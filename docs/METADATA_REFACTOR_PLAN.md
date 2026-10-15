@@ -17,7 +17,7 @@ Currently, the system is deeply coupled with TV metadata schemas (SkyHook, TheTV
   - Non-destructive conversion policies: Explicit opt-in toggles (AutoCompressDiscsToChd default false; DeleteOriginalAfterConversion default false).
   - Automated chdman disc conversion (.bin/.cue/.iso -> .chd) with integrity verification before source cleanup.
   - Export Engine: Target profiles for SD cards and dynamic symlinks (MiSTer FPGA, OnionOS, Analogue Pocket, EverDrive, EZ-Flash, FXPak Pro, R4, SummerCart64) with alphabetical bucket structuring.
-- **Batch 5 (Current): Frontend & Emulation:**
-  - React UI overhaul for Consoles/ROMs/Releases.
-  - Activity > Media Conversions dashboard with live stdout progress streaming, pause/resume/cancel controls, and batch conversion review drawers.
-  - Libretro/WASM in-browser emulation testing.
+- **Batch 5 (Completed):** Release Parser, Qualities, Indexers, Docs.
+- **Batch 6 (Completed):** Ingestion Engine, Canonical Standardization, BIOS, Asset Scraping, SD Export.
+- **Batch 7 (Active):** Existing Library Scanner, Disk Importer, Lockstep Save Sync.
+- **Batch 8 (Upcoming):** React UI overhaul, Internet Archive HTTP Downloader, Activity Dashboard with live stdout streaming, Libretro WASM in-browser emulation.
