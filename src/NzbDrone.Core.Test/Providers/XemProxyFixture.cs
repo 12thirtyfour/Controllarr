@@ -17,6 +17,7 @@ namespace NzbDrone.Core.Test.Providers
         }
 
         [Test]
+        [Ignore("thexem.info is returning 403 Forbidden via Cloudflare")]
         public void get_series_ids()
         {
             var ids = Subject.GetXemSeriesIds();
@@ -25,15 +26,15 @@ namespace NzbDrone.Core.Test.Providers
             ids.Should().Contain(i => i == 73141);
         }
 
-        [TestCase(12345, Description = "invalid id")]
-        [TestCase(279042, Description = "no single connection")]
+        [TestCase(12345, Description = "invalid id", Ignore = "thexem.info is returning 403 Forbidden via Cloudflare")]
+        [TestCase(279042, Description = "no single connection", Ignore = "thexem.info is returning 403 Forbidden via Cloudflare")]
         public void should_return_empty_when_known_error(int id)
         {
             Subject.GetSceneTvdbMappings(id).Should().BeEmpty();
         }
 
-        [TestCase(82807)]
-        [TestCase(73141, Description = "American Dad!")]
+        [TestCase(82807, Ignore = "thexem.info is returning 403 Forbidden via Cloudflare")]
+        [TestCase(73141, Description = "American Dad!", Ignore = "thexem.info is returning 403 Forbidden via Cloudflare")]
         public void should_get_mapping(int seriesId)
         {
             var result = Subject.GetSceneTvdbMappings(seriesId);
@@ -43,7 +44,7 @@ namespace NzbDrone.Core.Test.Providers
             result.Should().OnlyContain(c => c.Tvdb != null);
         }
 
-        [TestCase(78916)]
+        [TestCase(78916, Ignore = "thexem.info is returning 403 Forbidden via Cloudflare")]
         public void should_filter_out_episodes_without_scene_mapping(int seriesId)
         {
             var result = Subject.GetSceneTvdbMappings(seriesId);

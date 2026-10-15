@@ -86,7 +86,6 @@ namespace NzbDrone.Core.Qualities
         public static Quality HDTV1080p => new Quality(9,  "HDTV-1080p", QualitySource.Television, 1080);
         public static Quality RAWHD => new Quality(10, "Raw-HD", QualitySource.TelevisionRaw, 1080);
 
-        // public static Quality HDTV480p    { get { return new Quality(11, "HDTV-480p", QualitySource.Television, 480); } }
         public static Quality WEBRip480p
         {
             get { return new Quality(12, "WEBRip-480p", QualitySource.WebRip, 480); }
@@ -123,11 +122,24 @@ namespace NzbDrone.Core.Qualities
         public static Quality Bluray1080pRemux => new Quality(20,  "Bluray-1080p Remux", QualitySource.BlurayRaw, 1080);
         public static Quality Bluray2160pRemux => new Quality(21, "Bluray-2160p Remux", QualitySource.BlurayRaw, 2160);
 
+        public static Quality VerifiedGoodDump => new Quality(100,  "VerifiedGoodDump", QualitySource.Unknown, 0);
+        public static Quality VerifiedRedump => new Quality(101,  "VerifiedRedump", QualitySource.Unknown, 0);
+        public static Quality NoIntroVerified => new Quality(102,  "NoIntroVerified", QualitySource.Unknown, 0);
+        public static Quality UnverifiedRaw => new Quality(103,  "UnverifiedRaw", QualitySource.Unknown, 0);
+        public static Quality BetaProto => new Quality(104,  "BetaProto", QualitySource.Unknown, 0);
+        public static Quality TranslationPatch => new Quality(105,  "TranslationPatch", QualitySource.Unknown, 0);
+
         static Quality()
         {
             All = new List<Quality>
             {
                 Unknown,
+                VerifiedGoodDump,
+                VerifiedRedump,
+                NoIntroVerified,
+                UnverifiedRaw,
+                BetaProto,
+                TranslationPatch,
                 SDTV,
                 DVD,
                 WEBRip480p,
@@ -155,6 +167,12 @@ namespace NzbDrone.Core.Qualities
 
             DefaultQualityDefinitions = new HashSet<QualityDefinition>
             {
+                new QualityDefinition(Quality.VerifiedGoodDump) { Weight = 100, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.VerifiedRedump) { Weight = 101, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.NoIntroVerified) { Weight = 102, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.UnverifiedRaw) { Weight = 103, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.BetaProto) { Weight = 104, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.TranslationPatch) { Weight = 105, MinSize = 0, MaxSize = null, PreferredSize = 100 },
                 new QualityDefinition(Quality.Unknown)     { Weight = 1,  MinSize = 1, MaxSize = 199.9, PreferredSize = 95 },
                 new QualityDefinition(Quality.SDTV)        { Weight = 2,  MinSize = 2, MaxSize = 100, PreferredSize = 95 },
                 new QualityDefinition(Quality.WEBRip480p)  { Weight = 3,  MinSize = 2, MaxSize = 100, PreferredSize = 95, GroupName = "WEB 480p" },

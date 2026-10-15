@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.Qualities
                   .Setup(s => s.All())
                   .Returns(new List<QualityDefinition>
                       {
-                              new QualityDefinition(new Quality { Id = 100, Name = "Test" }) { Weight = 1, MinSize = 0, MaxSize = 100, Id = 20 }
+                              new QualityDefinition(new Quality { Id = 1000, Name = "Test" }) { Weight = 1, MinSize = 0, MaxSize = 100, Id = 20 }
                       });
 
             Subject.Handle(new ApplicationStartedEvent());
