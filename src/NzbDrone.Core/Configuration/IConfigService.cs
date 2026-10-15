@@ -102,5 +102,9 @@ namespace NzbDrone.Core.Configuration
 
         CertificateValidationType CertificateValidation { get; }
         string ApplicationUrl { get; }
+
+        // IGDB
+        string IgdbClientId { get; }
+        string IgdbClientSecret { get; }
     }
 }
