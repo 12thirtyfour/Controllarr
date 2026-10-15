@@ -24,18 +24,21 @@ namespace NzbDrone.Core.Tv
     {
         private readonly ISeriesService _seriesService;
         private readonly IProvideSeriesInfo _seriesInfo;
+        private readonly NzbDrone.Core.MetadataSource.IGameMetadataProxy _gameMetadataProxy;
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IAddSeriesValidator _addSeriesValidator;
         private readonly Logger _logger;
 
         public AddSeriesService(ISeriesService seriesService,
                                 IProvideSeriesInfo seriesInfo,
+                                NzbDrone.Core.MetadataSource.IGameMetadataProxy gameMetadataProxy,
                                 IBuildFileNames fileNameBuilder,
                                 IAddSeriesValidator addSeriesValidator,
                                 Logger logger)
         {
             _seriesService = seriesService;
             _seriesInfo = seriesInfo;
+            _gameMetadataProxy = gameMetadataProxy;
             _fileNameBuilder = fileNameBuilder;
             _addSeriesValidator = addSeriesValidator;
             _logger = logger;
