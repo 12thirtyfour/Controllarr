@@ -1,11 +1,11 @@
 # Controllarr
 
-An automated console ROM and game collection manager for Usenet and BitTorrent users, forked from the *arr stack.
+An automated console ROM collection manager for Usenet and BitTorrent users, forked from the *arr stack.
 
 ## Core Features
 - IGDB metadata integration
 - No-Intro/Redump/TOSEC classification
-- 1G1R collection management
+- 1G1R or Completionist per console collection management
 - Full-set archive unpacking
 - Opt-in chdman disc compression
 - Dynamic network symlinks
@@ -18,7 +18,4 @@ An automated console ROM and game collection manager for Usenet and BitTorrent u
 - SQLite/PostgreSQL datastore
 
 ## Basic local setup instructions
-```bash
-dotnet build
-yarn start
-```
+Who knows - it is currently just all AI slop because I have no idea what I'm doing!
