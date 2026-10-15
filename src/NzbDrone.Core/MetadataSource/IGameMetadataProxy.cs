@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource
 {
