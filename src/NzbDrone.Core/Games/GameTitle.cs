@@ -11,6 +11,8 @@ namespace NzbDrone.Core.Games
         public int IgdbId { get; set; }
         public bool Monitored { get; set; }
         public string ProviderId { get; set; }
+        public string Summary { get; set; }
+        public string CoverArtworkUrl { get; set; }
 
         public List<GameRelease> Releases { get; set; }
 

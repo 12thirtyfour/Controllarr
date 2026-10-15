@@ -428,6 +428,10 @@ namespace NzbDrone.Core.Configuration
 
         public int BackupRetention => GetValueInt("BackupRetention", 28);
 
+        // IGDB
+        public string IgdbClientId => GetValue("IgdbClientId", string.Empty);
+        public string IgdbClientSecret => GetValue("IgdbClientSecret", string.Empty);
+
         public CertificateValidationType CertificateValidation =>
             GetValueEnum("CertificateValidation", CertificateValidationType.Enabled);
 
