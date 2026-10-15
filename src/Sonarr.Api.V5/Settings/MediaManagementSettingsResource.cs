@@ -34,6 +34,11 @@ public class MediaManagementSettingsResource : RestResource
     public string? UserRejectedExtensions { get; set; }
     public SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
     public double? SeasonPackUpgradeThreshold { get; set; }
+
+    public bool ExtractFullSetCompletely { get; set; }
+    public bool AutoCompressDiscsToChd { get; set; }
+    public bool DeleteOriginalAfterConversion { get; set; }
+    public bool RequireUserConfirmationForBatchConversions { get; set; }
 }
 
 public static class MediaManagementConfigResourceMapper
@@ -67,7 +72,11 @@ public static class MediaManagementConfigResourceMapper
             EnableMediaInfo = model.EnableMediaInfo,
             UserRejectedExtensions = model.UserRejectedExtensions,
             SeasonPackUpgrade = model.SeasonPackUpgrade,
-            SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold
+            SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold,
+            ExtractFullSetCompletely = model.ExtractFullSetCompletely,
+            AutoCompressDiscsToChd = model.AutoCompressDiscsToChd,
+            DeleteOriginalAfterConversion = model.DeleteOriginalAfterConversion,
+            RequireUserConfirmationForBatchConversions = model.RequireUserConfirmationForBatchConversions
         };
     }
 }

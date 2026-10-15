@@ -48,6 +48,11 @@ namespace NzbDrone.Core.Configuration
         SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         double SeasonPackUpgradeThreshold { get; set; }
 
+        bool ExtractFullSetCompletely { get; set; }
+        bool AutoCompressDiscsToChd { get; set; }
+        bool DeleteOriginalAfterConversion { get; set; }
+        bool RequireUserConfirmationForBatchConversions { get; set; }
+
         // Permissions (Media Management)
         bool SetPermissionsLinux { get; set; }
         string ChmodFolder { get; set; }

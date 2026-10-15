@@ -286,6 +286,30 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("SeasonPackUpgradeThreshold", value); }
         }
 
+        public bool ExtractFullSetCompletely
+        {
+            get { return GetValueBoolean("ExtractFullSetCompletely", false); }
+            set { SetValue("ExtractFullSetCompletely", value); }
+        }
+
+        public bool AutoCompressDiscsToChd
+        {
+            get { return GetValueBoolean("AutoCompressDiscsToChd", false); }
+            set { SetValue("AutoCompressDiscsToChd", value); }
+        }
+
+        public bool DeleteOriginalAfterConversion
+        {
+            get { return GetValueBoolean("DeleteOriginalAfterConversion", false); }
+            set { SetValue("DeleteOriginalAfterConversion", value); }
+        }
+
+        public bool RequireUserConfirmationForBatchConversions
+        {
+            get { return GetValueBoolean("RequireUserConfirmationForBatchConversions", true); }
+            set { SetValue("RequireUserConfirmationForBatchConversions", value); }
+        }
+
         public bool SetPermissionsLinux
         {
             get { return GetValueBoolean("SetPermissionsLinux", false); }
