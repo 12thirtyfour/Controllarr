@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Tv
     public class RefreshSeriesService : IExecute<RefreshSeriesCommand>
     {
         private readonly IProvideSeriesInfo _seriesInfo;
+        private readonly NzbDrone.Core.MetadataSource.IGameMetadataProxy _gameMetadataProxy;
         private readonly ISeriesService _seriesService;
         private readonly ISeriesTranslationService _seriesTranslationService;
         private readonly IRefreshEpisodeService _refreshEpisodeService;
@@ -31,6 +32,7 @@ namespace NzbDrone.Core.Tv
         private readonly Logger _logger;
 
         public RefreshSeriesService(IProvideSeriesInfo seriesInfo,
+                                    NzbDrone.Core.MetadataSource.IGameMetadataProxy gameMetadataProxy,
                                     ISeriesService seriesService,
                                     ISeriesTranslationService seriesTranslationService,
                                     IRefreshEpisodeService refreshEpisodeService,
@@ -42,6 +44,7 @@ namespace NzbDrone.Core.Tv
                                     Logger logger)
         {
             _seriesInfo = seriesInfo;
+            _gameMetadataProxy = gameMetadataProxy;
             _seriesService = seriesService;
             _seriesTranslationService = seriesTranslationService;
             _refreshEpisodeService = refreshEpisodeService;
