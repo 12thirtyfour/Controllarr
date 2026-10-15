@@ -70,6 +70,11 @@ public class MediaManagementSettingsController : SettingsController<MediaManagem
         SharedValidator.RuleFor(c => c.SeasonPackUpgradeThreshold).Cascade(CascadeMode.Stop)
             .NotNull()
             .InclusiveBetween(0, 100);
+
+        SharedValidator.RuleFor(c => c.AutoCompressDiscsToChd).NotNull();
+        SharedValidator.RuleFor(c => c.DeleteOriginalAfterConversion).NotNull();
+        SharedValidator.RuleFor(c => c.ExtractFullSetCompletely).NotNull();
+        SharedValidator.RuleFor(c => c.RequireUserConfirmationForBatchConversions).NotNull();
     }
 
     protected override MediaManagementSettingsResource ToResource(IConfigFileProvider configFile, IConfigService model)
