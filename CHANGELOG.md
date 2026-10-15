@@ -19,3 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Batch 4:**
   - *What was changed:* Ingestion & Processing Pipeline including Archive Extraction/Repacking, Sidecar Save Syncing, CHDMAN disc conversions, System BIOS management, and Hardware Export Engine.
   - *Why:* To natively process incoming game archives, enforce canonical formats (Deflate level 9, stripping copier headers), safely backup sidecar save files alongside ROM moves, provide a framework for exporting directly to Flash Carts or Handheld setups, and ensure system firmware exists and is verified for emulation pipelines.
+- **Batch 6:**
+  - *What was changed:* Ingestion & Standardization Engine updates.
+  - *Why:* Improved ROM parsing stability and expanded processing capabilities.
+- **Batch 7:**
+  - *What was changed:* Existing Library Scanner & Disk Importer.
+  - *Why:* Implements unmanaged disk scanning capable of analyzing deeply nested or bucketed folder structures. Integrates ROM hash inspection directly within .zip central directories (avoiding costly full extractions), enabling non-destructive or destructive import pipelines (Copy vs Move). Sidecar save files are now properly synchronized in lockstep with canonical ROM moves/renames to prevent data loss.
