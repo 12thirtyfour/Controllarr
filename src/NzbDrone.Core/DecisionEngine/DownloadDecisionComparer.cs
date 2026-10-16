@@ -34,6 +34,7 @@ namespace NzbDrone.Core.DecisionEngine
                 CompareProtocol,
                 CompareEpisodeCount,
                 CompareEpisodeNumber,
+                CompareCollectionStrategy,
                 CompareIndexerPriority,
                 ComparePeersIfTorrent,
                 CompareAgeIfUsenet,
@@ -41,6 +42,86 @@ namespace NzbDrone.Core.DecisionEngine
             };
 
             return comparers.Select(comparer => comparer(x, y)).FirstOrDefault(result => result != 0);
+        }
+
+        private int CompareCollectionStrategy(DownloadDecision x, DownloadDecision y)
+        {
+            var series = x.RemoteEpisode.Series ?? y.RemoteEpisode.Series;
+            if (series == null)
+            {
+                return 0;
+            }
+
+            var xRomInfo = x.RemoteEpisode.ParsedRomInfo;
+            var yRomInfo = y.RemoteEpisode.ParsedRomInfo;
+
+            if (xRomInfo == null && yRomInfo == null)
+            {
+                return 0;
+            }
+
+            if (xRomInfo == null)
+            {
+                return -1;
+            }
+
+            if (yRomInfo == null)
+            {
+                return 1;
+            }
+
+            // Pinned versions take precedence over everything else
+            var pinnedVersion = series.PinnedVersion;
+            if (!string.IsNullOrWhiteSpace(pinnedVersion))
+            {
+                var xIsPinned = xRomInfo.Version == pinnedVersion || xRomInfo.Revision == pinnedVersion;
+                var yIsPinned = yRomInfo.Version == pinnedVersion || yRomInfo.Revision == pinnedVersion;
+
+                if (xIsPinned && !yIsPinned)
+                {
+                    return -1;
+                }
+
+                if (yIsPinned && !xIsPinned)
+                {
+                    return 1;
+                }
+            }
+
+            // 1G1R Tie-Breaking
+            if (series.CollectionStrategy == Games.CollectionStrategy.OneGameOneRom)
+            {
+                // Revision Preference tie-breaking
+                if (!string.IsNullOrWhiteSpace(xRomInfo.Revision) && !string.IsNullOrWhiteSpace(yRomInfo.Revision))
+                {
+                    var xRev = xRomInfo.Revision;
+                    var yRev = yRomInfo.Revision;
+
+                    if (xRev != yRev)
+                    {
+                        var comparison = string.Compare(xRev, yRev, StringComparison.OrdinalIgnoreCase);
+                        if (series.RevisionPreference == Games.RevisionPreference.LatestRevision)
+                        {
+                            return comparison * -1; // Highest revision wins
+                        }
+                        return comparison; // Initial release wins
+                    }
+                }
+                else if (string.IsNullOrWhiteSpace(xRomInfo.Revision) != string.IsNullOrWhiteSpace(yRomInfo.Revision))
+                {
+                    var xHasRevision = !string.IsNullOrWhiteSpace(xRomInfo.Revision);
+                    var yHasRevision = !string.IsNullOrWhiteSpace(yRomInfo.Revision);
+
+                    if (series.RevisionPreference == Games.RevisionPreference.LatestRevision)
+                    {
+                        return xHasRevision ? -1 : 1;
+                    }
+
+                    return xHasRevision ? 1 : -1;
+                }
+            }
+
+            return 0;
         }
 
         private int CompareBy<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)

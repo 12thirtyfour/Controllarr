@@ -33,6 +33,11 @@ namespace NzbDrone.Core.Tv
         public string Title { get; set; }
         public string CleanTitle { get; set; }
         public string SortTitle { get; set; }
+
+        public Games.CollectionStrategy CollectionStrategy { get; set; }
+        public Games.RevisionPreference RevisionPreference { get; set; }
+        public string PinnedVersion { get; set; }
+
         public SeriesStatusType Status { get; set; }
         public string Overview { get; set; }
         public string AirTime { get; set; }

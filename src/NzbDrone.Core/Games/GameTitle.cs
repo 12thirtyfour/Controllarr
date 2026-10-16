@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Games
         public string ProviderId { get; set; }
         public string Summary { get; set; }
         public string CoverArtworkUrl { get; set; }
+        public string PinnedVersion { get; set; }
 
         public List<GameRelease> Releases { get; set; }
 

@@ -29,6 +29,8 @@ namespace NzbDrone.Core.Parser.Model
         public int TvdbId { get; set; }
         public int TvRageId { get; set; }
         public string ImdbId { get; set; }
+
+        public ParsedRomInfo ParsedRomInfo { get; set; }
         public DateTime PublishDate { get; set; }
 
         public string Origin { get; set; }

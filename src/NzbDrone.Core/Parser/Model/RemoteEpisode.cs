@@ -26,6 +26,8 @@ namespace NzbDrone.Core.Parser.Model
         public List<Language> Languages { get; set; }
         public ReleaseSourceType ReleaseSource { get; set; }
 
+        public ParsedRomInfo ParsedRomInfo { get; set; }
+
         public RemoteEpisode()
         {
             Episodes = new List<Episode>();

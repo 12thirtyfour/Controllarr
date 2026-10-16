@@ -11,5 +11,7 @@ namespace NzbDrone.Core.Games
         public string Path { get; set; }
         public bool Monitored { get; set; }
         public string RootFolderPath { get; set; }
+        public CollectionStrategy CollectionStrategy { get; set; }
+        public RevisionPreference RevisionPreference { get; set; }
     }
 }
