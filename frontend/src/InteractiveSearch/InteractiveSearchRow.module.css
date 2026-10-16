@@ -148,3 +148,11 @@
   /* width: 100%; */
   text-align: center;
 }
+
+.pinButton {
+  margin-left: 8px;
+}
+
+.pinnedLabel {
+  margin-left: 8px;
+}

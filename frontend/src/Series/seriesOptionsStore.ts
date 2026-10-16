@@ -106,6 +106,12 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           isVisible: false,
         },
         {
+          name: 'collectionStrategy',
+          label: () => translate('Collection Strategy'),
+          isSortable: true,
+          isVisible: false,
+        },
+        {
           name: 'network',
           label: () => translate('Network'),
           isSortable: true,

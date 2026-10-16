@@ -29,6 +29,10 @@ import OverrideMatchModal from './OverrideMatch/OverrideMatchModal';
 import Peers from './Peers';
 import ReleaseSceneIndicator from './ReleaseSceneIndicator';
 import { Release, useGrabRelease } from './useReleases';
+import { useSaveSeries } from 'Series/useSeries';
+import IconButton from 'Components/Link/IconButton';
+import classNames from 'classnames';
+import Label from 'Components/Label';
 import styles from './InteractiveSearchRow.module.css';
 
 function getDownloadIcon(
@@ -135,6 +139,18 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
   const [isConfirmGrabModalOpen, setIsConfirmGrabModalOpen] = useState(false);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const { isGrabbing, isGrabbed, grabError, grabRelease } = useGrabRelease();
+  const { updateSeriesMonitor } = useSaveSeries(false);
+
+  const series = searchPayload?.series;
+  const isPinned = !!series?.pinnedVersion && parsedInfo?.revision === series?.pinnedVersion;
+
+  const handlePinToggle = useCallback(() => {
+    if (!series) return;
+    updateSeriesMonitor({
+      ...series,
+      pinnedVersion: isPinned ? null : parsedInfo?.revision,
+    });
+  }, [series, parsedInfo?.revision, isPinned, updateSeriesMonitor]);
 
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -223,6 +239,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       <VirtualTableRowCell className={styles.title}>
         <div className={styles.titleContent}>
           <Link to={infoUrl}>{title}</Link>
+          {isPinned && <Label kind="info" className={styles.pinnedLabel}>Pinned</Label>}
           <ReleaseSceneIndicator
             className={styles.sceneMapping}
             seasonNumber={mappedSeasonNumber}
@@ -377,6 +394,23 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
             />
           </div>
         </Link>
+        {series && (
+          <IconButton
+            name={icons.PIN}
+            className={classNames(styles.pinButton, {
+              [styles.pinned]: isPinned,
+            })}
+            title={
+              isPinned
+                ? translate('Unpin release')
+                : translate('Pin this release as preferred (1G1R override)')
+            }
+            iconProps={{
+              kind: isPinned ? kinds.WARNING : kinds.DEFAULT
+            }}
+            onPress={handlePinToggle}
+          />
+        )}
       </VirtualTableRowCell>
 
       <ConfirmModal

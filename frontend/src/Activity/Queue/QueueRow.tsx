@@ -232,7 +232,7 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'episodes.title') {
           return (
             <TableRowCell key={name}>
-              <EpisodeTitleCellContent episodes={episodes} series={series} />
+              <EpisodeTitleCellContent episodes={episodes} series={series} fallbackTitle={title} />
             </TableRowCell>
           );
         }

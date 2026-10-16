@@ -9,14 +9,16 @@ import styles from './EpisodeTitleCellContent.module.css';
 interface EpisodeTitleCellContentProps {
   episodes: Episode[];
   series?: Series;
+  fallbackTitle?: string;
 }
 
 export default function EpisodeTitleCellContent({
   episodes,
   series,
+  fallbackTitle,
 }: EpisodeTitleCellContentProps) {
   if (episodes.length === 0 || !series) {
-    return '-';
+    return <span title={fallbackTitle}>{fallbackTitle || '-'}</span>;
   }
 
   if (episodes.length === 1) {

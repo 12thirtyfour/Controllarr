@@ -99,6 +99,7 @@ namespace NzbDrone.Core.DecisionEngine
                         var remoteEpisode = _parsingService.Map(parsedEpisodeInfo, report.TvdbId, report.TvRageId, report.ImdbId, searchCriteria);
                         remoteEpisode.Release = report;
                         remoteEpisode.ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria);
+                        remoteEpisode.ParsedRomInfo = report.ParsedRomInfo;
 
                         if (remoteEpisode.Series == null)
                         {
