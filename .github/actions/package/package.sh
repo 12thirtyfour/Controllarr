@@ -12,8 +12,8 @@ for runtime in _output/*
 do
   name="${runtime##*/}"
   folderName="$runtime/$framework"
-  sonarrFolder="$folderName/Sonarr"
-  archiveName="Sonarr.$BRANCH.$SONARR_VERSION.$name"
+  controllarrFolder="$folderName/Controllarr"
+  archiveName="Controllarr.$BRANCH.$CONTROLLARR_VERSION.$name"
 
   if [[ "$name" == 'UI' ]]; then
     continue
@@ -22,12 +22,12 @@ do
   echo "Creating package for $name"
 
   echo "Copying UI"
-  cp -r $uiFolder $sonarrFolder
+  cp -r $uiFolder $controllarrFolder
   
   echo "Setting permissions"
-  find $sonarrFolder -name "ffprobe" -exec chmod a+x {} \;
-  find $sonarrFolder -name "Sonarr" -exec chmod a+x {} \;
-  find $sonarrFolder -name "Sonarr.Update" -exec chmod a+x {} \;
+  find $controllarrFolder -name "ffprobe" -exec chmod a+x {} \;
+  find $controllarrFolder -name "Controllarr" -exec chmod a+x {} \;
+  find $controllarrFolder -name "Controllarr.Update" -exec chmod a+x {} \;
   
   if [[ "$name" == *"osx"* ]]; then
     echo "Creating macOS package"
@@ -38,30 +38,30 @@ do
     rm -rf $packageFolder
     mkdir $packageFolder
       
-    cp -r distribution/macOS/Sonarr.app $packageFolder
-    mkdir -p $packageFolder/Sonarr.app/Contents/MacOS
+    cp -r distribution/macOS/Controllarr.app $packageFolder
+    mkdir -p $packageFolder/Controllarr.app/Contents/MacOS
       
     echo "Copying Binaries"
-    cp -r $sonarrFolder/* $packageFolder/Sonarr.app/Contents/MacOS
+    cp -r $controllarrFolder/* $packageFolder/Controllarr.app/Contents/MacOS
       
     echo "Removing Update Folder"
-    rm -r $packageFolder/Sonarr.app/Contents/MacOS/Sonarr.Update
+    rm -r $packageFolder/Controllarr.app/Contents/MacOS/Controllarr.Update
               
     echo "Packaging macOS app Artifact"
-    (cd $packageFolder; zip -rq "../../$artifactsFolder/$archiveName-app.zip" ./Sonarr.app)
+    (cd $packageFolder; zip -rq "../../$artifactsFolder/$archiveName-app.zip" ./Controllarr.app)
   fi
 
   echo "Packaging Artifact"
   if [[ "$name" == *"linux"* ]] || [[ "$name" == *"osx"* ]] || [[ "$name" == *"freebsd"* ]]; then
-    tar -zcf "./$artifactsFolder/$archiveName.tar.gz" -C $folderName Sonarr
+    tar -zcf "./$artifactsFolder/$archiveName.tar.gz" -C $folderName Controllarr
 	fi
     
   if [[ "$name" == *"win"* ]]; then
     if [ "$RUNNER_OS" = "Windows" ]
       then
-        (cd $folderName; 7z a -tzip "../../../$artifactsFolder/$archiveName.zip" ./Sonarr)
+        (cd $folderName; 7z a -tzip "../../../$artifactsFolder/$archiveName.zip" ./Controllarr)
       else
-      (cd $folderName; zip -rq "../../../$artifactsFolder/$archiveName.zip" ./Sonarr)
+      (cd $folderName; zip -rq "../../../$artifactsFolder/$archiveName.zip" ./Controllarr)
     fi
 	fi
 done

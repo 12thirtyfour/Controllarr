@@ -9,7 +9,7 @@ jobs:
   close-stale-waiting-for-info:
     name: Close issues labelled waiting-for-info for 7+ days
     runs-on: ubuntu-latest
-    if: github.repository == 'Sonarr/Sonarr'
+    if: github.repository == 'Controllarr/Controllarr'
     permissions:
       issues: write
     steps:
