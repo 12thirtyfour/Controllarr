@@ -1,5 +1,7 @@
 {
   "name": "__INSTANCE_NAME__",
+  "short_name": "Controllarr",
+  "description": "Controllarr ROM Manager",
   "icons": [
     {
       "src": "__URL_BASE__/Content/Images/Icons/android-chrome-192x192.png",

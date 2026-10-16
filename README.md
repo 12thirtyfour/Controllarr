@@ -1,6 +1,6 @@
 # Controllarr
 
-An automated console ROM collection manager for Usenet and BitTorrent users, forked from the *arr stack.
+An automated console ROM and game library manager for Usenet and BitTorrent users, targeting .NET 10.
 
 ## Core Features
 - IGDB metadata integration
@@ -13,9 +13,9 @@ An automated console ROM collection manager for Usenet and BitTorrent users, for
 - Multi-device SD card export profiles (MiSTer, OnionOS, Analogue Pocket, EverDrive, EZ-Flash, FXPak Pro, R4)
 
 ## Tech Stack
-- .NET 8 backend
+- .NET 10 backend
 - React/TypeScript frontend
 - SQLite/PostgreSQL datastore
 
 ## Basic local setup instructions
-Who knows - it is currently just all AI slop because I have no idea what I'm doing!
+See CONTRIBUTING.md for local setup and contribution guidelines.
