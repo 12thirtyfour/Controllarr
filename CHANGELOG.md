@@ -3,14 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [1.0.0-alpha] - Baseline
 
-### [Pre-Batch 0] - Architectural Audit: Decoupling Metadata Providers
-- Conducted architectural audit of upstream Sonarr metadata ingestion pipelines.
-- Mapped Tvdb/SkyHook dependencies for removal and designed the abstract IGameMetadataProxy layer.
-- Established decoupling boundaries for console platform schemas, IGDB API client requirements, and ROM asset contracts.
-
-### Added / Changed
+### Architectural Milestones
 
 - **Batch 0 & 1:**
   - *What was changed:* Architectural pivot from TV to ROM collections. Renaming Series/Season/Episode domain concepts to GamePlatform/GameTitle/GameRelease.
@@ -24,12 +19,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Batch 4:**
   - *What was changed:* Ingestion & Processing Pipeline including Archive Extraction/Repacking, Sidecar Save Syncing, CHDMAN disc conversions, System BIOS management, and Hardware Export Engine.
   - *Why:* To natively process incoming game archives, enforce canonical formats (Deflate level 9, stripping copier headers), safely backup sidecar save files alongside ROM moves, provide a framework for exporting directly to Flash Carts or Handheld setups, and ensure system firmware exists and is verified for emulation pipelines.
+- **Batch 5:**
+  - *What was changed:* Controllarr baseline and container infrastructure setup.
+  - *Why:* Establish new base for the project.
 - **Batch 6:**
   - *What was changed:* Ingestion & Standardization Engine updates.
   - *Why:* Improved ROM parsing stability and expanded processing capabilities.
-- **Batch 7 (Completed):**
+- **Batch 7:**
   - *What was changed:* Existing Library Scanner & Disk Importer.
   - *Why:* Implements unmanaged disk scanning capable of analyzing deeply nested or bucketed folder structures. Integrates ROM hash inspection directly within .zip central directories (avoiding costly full extractions), enabling non-destructive or destructive import pipelines (Copy vs Move). Sidecar save files are now properly synchronized in lockstep with canonical ROM moves/renames to prevent data loss.
-- **Batch 8 (In Progress):**
+- **Batch 8:**
   - *What was changed:* Search Engine, Ingestion Dispatch, Core React UI, and Collection Strategy Engine.
   - *Why:* Implementation of Three-Tiered Collection Strategy Engine (1G1R vs Preservationist).
