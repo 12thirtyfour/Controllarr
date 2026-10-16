@@ -22,13 +22,13 @@ testPackageFolder='_tests'
 rm -rf $outputFolder
 rm -rf $testPackageFolder
 
-slnFile=src/Sonarr.sln
+slnFile=src/Controllarr.sln
 platform=Posix
 
 if [ "$PLATFORM" = "Windows" ]; then
-  application=Sonarr.Console.dll
+  application=Controllarr.Console.dll
 else
-  application=Sonarr.dll
+  application=Controllarr.dll
 fi
 
 dotnet clean $slnFile -c Debug
@@ -61,7 +61,7 @@ generateDocs() {
   fi
 }
 
-generateDocs v3 src/Sonarr.Api.V3/openapi.json
-generateDocs v5 src/Sonarr.Api.V5/openapi.json
+generateDocs v3 src/Controllarr.Api.V3/openapi.json
+generateDocs v5 src/Controllarr.Api.V5/openapi.json
 
 exit 0
