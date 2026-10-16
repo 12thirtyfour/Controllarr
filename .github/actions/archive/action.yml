@@ -15,10 +15,10 @@ inputs:
     description: 'Git branch used for this build'
     required: true
   major_version:
-    description: 'Sonarr major version'
+    description: 'Controllarr major version'
     required: true
   version:
-    description: 'Sonarr version'
+    description: 'Controllarr version'
     required: true
 
 runs:

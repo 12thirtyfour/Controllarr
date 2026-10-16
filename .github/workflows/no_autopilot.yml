@@ -17,11 +17,11 @@ jobs:
   check:
     name: Flag suspected AI-authored PRs
     runs-on: ubuntu-latest
-    # Ignore this check for PRs from owners, members, the weblate-servarr-sonarr
+    # Ignore this check for PRs from owners, members, the weblate-servarr-controllarr
     # branch, and Bogdan (707714) to avoid false positives.
     if: >-
       !contains(fromJSON('["OWNER", "MEMBER"]'), github.event.pull_request.author_association) &&
-      github.event.pull_request.head.ref != 'weblate-servarr-sonarr' &&
+      github.event.pull_request.head.ref != 'weblate-servarr-controllarr' &&
       github.event.pull_request.user.id != 707714
     permissions:
       pull-requests: write

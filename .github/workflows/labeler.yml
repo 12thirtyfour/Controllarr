@@ -12,6 +12,6 @@ jobs:
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
-    if: github.repository == 'Sonarr/Sonarr'
+    if: github.repository == 'Controllarr/Controllarr'
     steps:
       - uses: actions/labeler@v6

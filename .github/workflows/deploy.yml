@@ -12,11 +12,11 @@ on:
         type: string
         required: true
       major_version:
-        description: "Sonarr major version"
+        description: "Controllarr major version"
         type: string
         required: true
       version:
-        description: "Sonarr version"
+        description: "Controllarr version"
         type: string
         required: true
     secrets:
@@ -52,7 +52,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Package
         uses: ./.github/actions/package
@@ -71,7 +71,7 @@ jobs:
       contents: write
     steps:
       - name: Check out
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Download release artifacts
         uses: actions/download-artifact@v8
@@ -111,7 +111,7 @@ jobs:
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: _artifacts/Sonarr.*
+          artifacts: _artifacts/Controllarr.*
           commit: ${{ github.sha }}
           generateReleaseNotes: false
           body: ${{ steps.generate-release-notes.outputs.result }}
@@ -166,7 +166,7 @@ jobs:
           hashes="$hashes ]"
 
           json="{\""branch\"":\""$branch\"", \""version\"":\""$version\"", \""lastCommit\"":\""$lastCommit\"", \""hashes\"":$hashes, \""gitHubRelease\"":true}"
-          url="https://services.sonarr.tv/v1/update"
+          url="https://services.controllarr.tv/v1/update"
 
           echo "Publishing update $version ($branch) to: $url"
           echo "$json"
