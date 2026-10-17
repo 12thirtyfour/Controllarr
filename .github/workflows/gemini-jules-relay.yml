@@ -29,14 +29,6 @@ jobs:
         with:
           ref: develop
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Google GenAI SDK
-        run: npm install @google/genai
-
       - name: Acknowledge Event
         uses: actions/github-script@v7
         with:
@@ -57,7 +49,6 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const { GoogleGenAI } = require('@google/genai');
 
             const issueNumber = context.payload.issue?.number || context.payload.pull_request?.number || context.issue.number;
 
@@ -79,33 +70,52 @@ jobs:
               incoming = `Pull Request #${issueNumber} opened/updated by @${context.actor}:\nTitle: ${context.payload.pull_request.title}\nBody: ${context.payload.pull_request.body || ''}`;
             }
 
-            const systemPrompt = `You are the lead architect and project manager for Controllarr.
+            const prompt = `System Instructions:
+You are the lead architect and project manager for Controllarr.
 Maintain the architectural source of truth based on ARCHITECT_STATE.md.
 Give concise, authoritative instructions to Jules (the software engineer).
 
 ARCHITECT_STATE.md:
-${archState}`;
+${archState}
 
-            const ai = new GoogleGenAI({ apiKey: (process.env.GEMINI_API_KEY || '').trim() });
+User Input:
+${incoming}`;
+
+            const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+
+            async function callGemini(model) {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{
+                    role: 'user',
+                    parts: [{ text: prompt }]
+                  }]
+                })
+              });
+              if (!res.ok) {
+                const errBody = await res.text();
+                throw new Error(`HTTP ${res.status}: ${errBody}`);
+              }
+              const data = await res.json();
+              return data.candidates?.[0]?.content?.parts?.[0]?.text;
+            }
 
             let reply = "";
             try {
-              let response;
               try {
-                response = await ai.models.generateContent({
-                  model: 'gemini-2.5-pro',
-                  contents: `${systemPrompt}\n\n${incoming}`
-                });
+                reply = await callGemini('gemini-2.5-pro');
               } catch (primaryErr) {
-                console.warn("Primary gemini-2.5-pro failed, trying gemini-2.5-flash fallback:", primaryErr);
-                response = await ai.models.generateContent({
-                  model: 'gemini-2.5-flash',
-                  contents: `${systemPrompt}\n\n${incoming}`
-                });
+                console.warn("Primary gemini-2.5-pro failed, falling back to gemini-2.5-flash:", primaryErr.message);
+                reply = await callGemini('gemini-2.5-flash');
               }
-              reply = response.text || "Architect Review Error: Empty response payload received.";
+              if (!reply) {
+                reply = "Architect Review Error: Empty response payload received.";
+              }
             } catch (err) {
-              reply = `Architect Review Error: ${err.message || err}`;
+              reply = `Architect Review Error: ${err.message}`;
             }
 
             await github.rest.issues.createComment({
