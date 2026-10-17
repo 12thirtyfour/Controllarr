@@ -1,0 +1,102 @@
+name: Gemini Architect & Jules Relay
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: bot-relay-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    # Trigger on Jules PRs/comments or when explicitly tagged with @gemini
+    if: |
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.user.login, 'jules')) ||
+      (github.event_name == 'issue_comment' && github.event.comment.user.login != 'github-actions[bot]' && 
+       (contains(github.event.comment.user.login, 'jules') || contains(github.event.comment.body, '@gemini')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Architect Decision Engine
+        uses: actions/github-script@v7
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            // 1. Load architectural context
+            let architectContext = "";
+            if (fs.existsSync('ARCHITECT_STATE.md')) {
+              architectContext = fs.readFileSync('ARCHITECT_STATE.md', 'utf8');
+            } else {
+              architectContext = "No ARCHITECT_STATE.md found. Adhere to standard clean architecture and maintain green tests.";
+            }
+
+            const isPR = process.env.IS_PR === 'true';
+            let incomingContent = "";
+            let targetIssueNumber = context.issue.number;
+
+            // 2. Extract PR diff or comment payload
+            if (isPR) {
+              const pr = context.payload.pull_request;
+              targetIssueNumber = pr.number;
+              const { data: diff } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                mediaType: { format: 'diff' }
+              });
+              incomingContent = `EVENT: Jules submitted Pull Request #${pr.number}: "${pr.title}"\nDescription:\n${pr.body || 'No description provided.'}\n\nDIFF (truncated to first 15k chars):\n\`\`\`diff\n${diff.slice(0, 15000)}\n\`\`\``;
+            } else {
+              const comment = context.payload.comment;
+              incomingContent = `EVENT: Contributor/Jules posted comment on #${targetIssueNumber}:\n"${comment.body}"`;
+            }
+
+            // 3. Construct prompt
+            const systemPrompt = `You are the Lead Technical Architect and Software Manager for this project.
+            Jules is your software engineer. Your responsibility is to guide Jules, clarify design choices, and review PRs so the project owner does not have to mediate simple decisions.
+
+            PROJECT ARCHITECTURE & SPECIFICATIONS:
+            ${architectContext}
+
+            INSTRUCTIONS:
+            1. If Jules submitted a PR: Check the diff against architectural requirements, clean conventions, and potential breaking changes. If revisions are required, list them as concrete bulleted directives. Conclude with either [APPROVED] or [REVISION NEEDED: <directives>].
+            2. If Jules asked a question: Provide an authoritative, unambiguous technical decision based on ARCHITECT_STATE.md.
+            3. Tone: Direct, concise, technical, and actionable. Do not use conversational filler or generic greetings.`;
+
+            // 4. Dispatch to Gemini API
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
+            
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  role: "user",
+                  parts: [{ text: `${systemPrompt}\n\n${incomingContent}` }]
+                }]
+              })
+            });
+
+            const data = await response.json();
+            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Architect Review Error: Failed to generate response from Gemini API.";
+
+            // 5. Post response to the PR or Issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: targetIssueNumber,
+              body: `### 🏛️ Architect (Gemini)\n\n${reply}`
+            });
