@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+- **Batch 12:**
+  - *What was changed:* Added Internet Archive S3-style authenticated HTTP downloads (`LOW access:secret`), masked password settings for IA S3 keys with configurable anonymous fallback, enforced CA1849 non-blocking async streaming and CA5389 path protection on IA ingest pipelines, and added comprehensive offline unit test coverage in InternetArchiveFixture.cs.
+  - *Why:* To securely fetch authenticated IA assets with stream optimizations and robust path traversal mitigations.
+
 ## [1.0.0-alpha] - Baseline
 
 ### Architectural Milestones
