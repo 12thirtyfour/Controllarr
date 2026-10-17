@@ -42,11 +42,32 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             var request = indexer?.GetDownloadRequest(url) ?? new HttpRequest(url);
             request.RateLimitKey = remoteEpisode?.Release?.IndexerId.ToString();
             request.AllowAutoRedirect = true;
+            request.SuppressHttpErrorStatusCodes = new[] { System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.Forbidden };
+
+            if (!string.IsNullOrWhiteSpace(Settings.S3AccessKey) && !string.IsNullOrWhiteSpace(Settings.S3SecretKey))
+            {
+                request.Headers.Add("Authorization", $"LOW {Settings.S3AccessKey.Trim()}:{Settings.S3SecretKey.Trim()}");
+            }
 
             // Implementing basic retry logic via RetryStrategy
             var response = await RetryStrategy
                 .ExecuteAsync(static async (state, token) => await state._httpClient.GetAsync(state.request, token), (_httpClient, request))
                 .ConfigureAwait(false);
+
+            if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
+            {
+                if (Settings.AllowAnonymousFallback)
+                {
+                    _logger.Warn("InternetArchive authenticated request failed with {0}, falling back to anonymous.", response.StatusCode);
+                    request.Headers.Remove("Authorization");
+                    response = await _httpClient.GetAsync(request, CancellationToken.None).ConfigureAwait(false);
+                }
+                else
+                {
+                    _logger.Warn("InternetArchive authenticated request failed with {0} and anonymous fallback is disabled.", response.StatusCode);
+                    return null;
+                }
+            }
 
             var path = Path.Combine(Settings.UrlBase, filename); // dummy path for now, actually needs to save.
 
@@ -54,12 +75,20 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             // Since this is a core service without a separate download worker thread yet, we simulate passing it to a generic state.
             // Normally we'd stream response.ResponseData to _diskProvider.WriteAllBytes
 
-            if (response.ResponseData != null)
+            if (response?.ResponseData != null)
             {
                 var downloadPath = Path.Combine(_configService.DownloadClientWorkingFolders, filename);
-                using (var stream = _diskProvider.OpenWriteStream(downloadPath))
+                var fullDestinationPath = Path.GetFullPath(downloadPath);
+
+                if (!fullDestinationPath.StartsWith(Path.GetFullPath(_configService.DownloadClientWorkingFolders) + Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    await stream.WriteAsync(new System.ReadOnlyMemory<byte>(response.ResponseData), CancellationToken.None);
+                    throw new System.Security.SecurityException("Zip Slip / Path Traversal detected in download destination.");
+                }
+
+                using (var stream = _diskProvider.OpenWriteStream(downloadPath))
+                using (var memoryStream = new MemoryStream(response.ResponseData))
+                {
+                    await memoryStream.CopyToAsync(stream, 81920, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 _logger.Debug("Downloaded archive {0} to {1}", filename, downloadPath);
