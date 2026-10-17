@@ -30,10 +30,14 @@ namespace NzbDrone.Core.MediaFiles.Synchronization
             var newNameNoExt = Path.GetFileNameWithoutExtension(newRomPath);
 
             if (string.IsNullOrEmpty(originalDir) || string.IsNullOrEmpty(newDir))
+            {
                 return;
+            }
 
             if (originalDir == newDir && originalNameNoExt == newNameNoExt)
+            {
                 return;
+            }
 
             if (!Directory.Exists(newDir))
             {
@@ -48,7 +52,7 @@ namespace NzbDrone.Core.MediaFiles.Synchronization
                 var extension = Path.GetExtension(file).ToLowerInvariant();
 
                 // Check for exact state save extensions like .state, .state0, .state.auto
-                bool isSaveExtension = SaveExtensions.Contains(extension) ||
+                var isSaveExtension = SaveExtensions.Contains(extension) ||
                                        extension.StartsWith(".state") ||
                                        extension == ".state.auto";
 

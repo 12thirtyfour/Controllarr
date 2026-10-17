@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation.Results;
 using NLog;
@@ -59,8 +59,9 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 var downloadPath = Path.Combine(_configService.DownloadClientWorkingFolders, filename);
                 using (var stream = _diskProvider.OpenWriteStream(downloadPath))
                 {
-                    stream.Write(response.ResponseData, 0, response.ResponseData.Length);
+                    await stream.WriteAsync(new System.ReadOnlyMemory<byte>(response.ResponseData), CancellationToken.None);
                 }
+
                 _logger.Debug("Downloaded archive {0} to {1}", filename, downloadPath);
                 return downloadPath;
             }

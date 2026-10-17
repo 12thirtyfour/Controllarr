@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using NLog;
 
 namespace NzbDrone.Core.MediaFiles.Archive
@@ -77,6 +76,7 @@ namespace NzbDrone.Core.MediaFiles.Archive
             {
                 // Has iNES header, basic detection successful
                 _logger.Debug("Detected iNES header, modernization required.");
+
                 // For demonstration, we simply return it unmodified since actual NES 2.0 modernization requires PRG/CHR ROM chunk parsing.
                 return romBytes;
             }

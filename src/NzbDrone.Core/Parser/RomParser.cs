@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
@@ -26,7 +24,9 @@ namespace NzbDrone.Core.Parser
         public static ParsedRomInfo ParseRomName(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
+            {
                 return null;
+            }
 
             var result = new ParsedRomInfo { ReleaseTitle = title };
             var normalizedTitle = title;
@@ -39,14 +39,18 @@ namespace NzbDrone.Core.Parser
                 foreach (var part in dirParts)
                 {
                     if (FullSetRegex.IsMatch(part))
+                    {
                         result.IsFullSetArchive = true;
+                    }
                 }
             }
 
             // Strip extension
             result.Format = Path.GetExtension(normalizedTitle)?.TrimStart('.');
             if (!string.IsNullOrEmpty(result.Format))
+            {
                 normalizedTitle = Path.GetFileNameWithoutExtension(normalizedTitle);
+            }
 
             // Regions
             foreach (Match match in RegionRegex.Matches(normalizedTitle))
@@ -59,8 +63,16 @@ namespace NzbDrone.Core.Parser
             var revMatch = RevisionRegex.Match(normalizedTitle);
             if (revMatch.Success)
             {
-                if (revMatch.Groups["rev"].Success) result.Revision = revMatch.Groups["rev"].Value;
-                if (revMatch.Groups["ver"].Success) result.Version = revMatch.Groups["ver"].Value;
+                if (revMatch.Groups["rev"].Success)
+                {
+                    result.Revision = revMatch.Groups["rev"].Value;
+                }
+
+                if (revMatch.Groups["ver"].Success)
+                {
+                    result.Version = revMatch.Groups["ver"].Value;
+                }
+
                 normalizedTitle = normalizedTitle.Replace(revMatch.Value, "");
             }
 
@@ -82,8 +94,16 @@ namespace NzbDrone.Core.Parser
             var discMatch = DiscTrackRegex.Match(normalizedTitle);
             if (discMatch.Success)
             {
-                if (discMatch.Groups["disc"].Success) result.DiscNumber = discMatch.Groups["disc"].Value;
-                if (discMatch.Groups["track"].Success) result.TrackNumber = discMatch.Groups["track"].Value;
+                if (discMatch.Groups["disc"].Success)
+                {
+                    result.DiscNumber = discMatch.Groups["disc"].Value;
+                }
+
+                if (discMatch.Groups["track"].Success)
+                {
+                    result.TrackNumber = discMatch.Groups["track"].Value;
+                }
+
                 normalizedTitle = normalizedTitle.Replace(discMatch.Value, "");
             }
 
@@ -98,13 +118,21 @@ namespace NzbDrone.Core.Parser
             // Quality
             result.Quality = new QualityModel(Quality.Unknown);
             if (result.DumpTags.Contains("!"))
+            {
                 result.Quality = new QualityModel(Quality.VerifiedGoodDump);
+            }
             else if (result.DumpTags.Contains("b"))
+            {
                 result.Quality = new QualityModel(Quality.UnverifiedRaw);
+            }
             else if (result.DumpTags.Any(t => t.StartsWith("T+") || t.StartsWith("T-")))
+            {
                 result.Quality = new QualityModel(Quality.TranslationPatch);
+            }
             else if (result.DumpTags.Any(t => new[] { "Beta", "Proto" }.Contains(t)))
+            {
                 result.Quality = new QualityModel(Quality.BetaProto);
+            }
 
             // Clean game title
             normalizedTitle = Regex.Replace(normalizedTitle, @"\[.*?\]|\(.*?\)", "").Trim();

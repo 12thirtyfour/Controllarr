@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using NLog;
 
@@ -21,7 +20,10 @@ namespace NzbDrone.Core.Export
 
         public void ExportFlashCart(string sourceDirectory, string targetDirectory)
         {
-            if (!Directory.Exists(sourceDirectory)) return;
+            if (!Directory.Exists(sourceDirectory))
+            {
+                return;
+            }
 
             Directory.CreateDirectory(targetDirectory);
 
@@ -30,16 +32,34 @@ namespace NzbDrone.Core.Export
             foreach (var dir in dirs)
             {
                 var dirName = new DirectoryInfo(dir).Name;
-                if (string.IsNullOrEmpty(dirName)) continue;
+                if (string.IsNullOrEmpty(dirName))
+                {
+                    continue;
+                }
 
                 var firstChar = char.ToUpperInvariant(dirName[0]);
                 string bucket;
 
-                if (firstChar >= 'A' && firstChar <= 'F') bucket = "A-F";
-                else if (firstChar >= 'G' && firstChar <= 'L') bucket = "G-L";
-                else if (firstChar >= 'M' && firstChar <= 'S') bucket = "M-S";
-                else if (firstChar >= 'T' && firstChar <= 'Z') bucket = "T-Z";
-                else bucket = "#";
+                if (firstChar >= 'A' && firstChar <= 'F')
+                {
+                    bucket = "A-F";
+                }
+                else if (firstChar >= 'G' && firstChar <= 'L')
+                {
+                    bucket = "G-L";
+                }
+                else if (firstChar >= 'M' && firstChar <= 'S')
+                {
+                    bucket = "M-S";
+                }
+                else if (firstChar >= 'T' && firstChar <= 'Z')
+                {
+                    bucket = "T-Z";
+                }
+                else
+                {
+                    bucket = "#";
+                }
 
                 var targetBucket = Path.Combine(targetDirectory, bucket);
                 Directory.CreateDirectory(targetBucket);
@@ -53,7 +73,10 @@ namespace NzbDrone.Core.Export
 
         public void ExportHandheld(string sourceDirectory, string targetDirectory)
         {
-            if (!Directory.Exists(sourceDirectory)) return;
+            if (!Directory.Exists(sourceDirectory))
+            {
+                return;
+            }
 
             Directory.CreateDirectory(targetDirectory);
 
