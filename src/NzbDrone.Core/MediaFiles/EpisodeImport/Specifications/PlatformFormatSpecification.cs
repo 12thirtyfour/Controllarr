@@ -10,6 +10,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
     public class PlatformFormatSpecification : IImportDecisionEngineSpecification
     {
         private readonly Logger _logger;
+
         // In a real implementation this would be injected
         private readonly PlatformFormatSettings _platformFormatSettings;
 

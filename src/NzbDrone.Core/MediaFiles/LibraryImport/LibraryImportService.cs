@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using NLog;
-using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
@@ -25,7 +24,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private readonly ISidecarSaveService _sidecarSaveService;
         private readonly Logger _logger;
 
-        private readonly string RomsRootPath = "/data/roms";
+        private readonly string _romsRootPath = "/data/roms";
 
         public LibraryImportService(
             IArchiveRepackService archiveRepackService,
@@ -41,7 +40,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             if (rootPathOverride != null)
             {
-                RomsRootPath = rootPathOverride;
+                _romsRootPath = rootPathOverride;
             }
         }
 
@@ -60,7 +59,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     var platformFolder = item.GamePlatform.Name;
                     var titleFolder = item.GameTitle.Title;
 
-                    var targetDir = Path.Combine(RomsRootPath, platformFolder, titleFolder);
+                    var targetDir = Path.Combine(_romsRootPath, platformFolder, titleFolder);
                     Directory.CreateDirectory(targetDir);
 
                     var originalExtension = Path.GetExtension(item.Path).ToLowerInvariant();
@@ -140,14 +139,16 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             var m3uPath = Path.Combine(targetDir, newFileNameNoExt + ".m3u");
                             if (!File.Exists(m3uPath))
                             {
-                                var destDiscs = adjacentDiscs.Select(d => Path.GetFileName(d)).ToArray(); // Wait, they aren't all moved yet, but we just generate m3u with their names.
+                                // Wait, they aren't all moved yet, but we just generate m3u with their names.
+                                var destDiscs = adjacentDiscs.Select(d => Path.GetFileName(d)).ToArray();
                                 _chdmanService.GenerateM3uPlaylist(destDiscs, m3uPath);
                             }
                         }
                     }
 
                     // Handle NES modernization. (Only if it wasn't packed into a zip, or if it was, we'd need to extract/repack, but we can assume ArchiveRepackService does this on zips eventually. For now we run on raw .nes files if they weren't packed, though above we pack all raw files.)
-                    if (newExtension == ".nes" || originalExtension == ".nes") // If it was packed into a zip, it will just have .zip extension now.
+                    // If it was packed into a zip, it will just have .zip extension now.
+                    if (newExtension == ".nes" || originalExtension == ".nes")
                     {
                         if (File.Exists(targetPath) && Path.GetExtension(targetPath) == ".nes")
                         {
@@ -163,7 +164,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     // Sidecar save sync
                     // Note: targetPath has .zip now if we packed it, but sidecar sync service handles renaming to that.
                     _sidecarSaveService.RenameAdjacentSaves(item.Path, targetPath, mode);
-
                 }
                 catch (Exception ex)
                 {

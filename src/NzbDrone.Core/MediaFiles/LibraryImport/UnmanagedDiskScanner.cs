@@ -8,7 +8,6 @@ using NLog;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.LibraryImport
 {
@@ -80,7 +79,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             // Match against catalog
             GamePlatform matchedPlatform = null;
             GameTitle matchedTitle = null;
-            bool isHighConfidence = false;
+            var isHighConfidence = false;
 
             var allPlatforms = _gamePlatformRepository.All();
             var allTitles = _gameTitleRepository.All();
@@ -132,6 +131,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                                     sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
                                     md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
                                 }
+
                                 sha1.TransformFinalBlock(new byte[0], 0, 0);
                                 md5.TransformFinalBlock(new byte[0], 0, 0);
 
@@ -170,6 +170,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
                             md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
                         }
+
                         sha1.TransformFinalBlock(new byte[0], 0, 0);
                         md5.TransformFinalBlock(new byte[0], 0, 0);
 

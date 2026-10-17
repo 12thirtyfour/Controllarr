@@ -104,6 +104,7 @@ namespace NzbDrone.Core.DecisionEngine
                         {
                             return comparison * -1; // Highest revision wins
                         }
+
                         return comparison; // Initial release wins
                     }
                 }

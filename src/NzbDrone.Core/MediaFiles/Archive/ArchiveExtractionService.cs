@@ -1,7 +1,8 @@
-using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
+using System.Security;
+using System.Threading;
+using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Core.Configuration;
 
@@ -10,6 +11,7 @@ namespace NzbDrone.Core.MediaFiles.Archive
     public interface IArchiveExtractionService
     {
         void ExtractArchive(string archivePath, string destinationDirectory, bool isFullSetArchive);
+        Task ExtractArchiveAsync(string archivePath, string destinationDirectory, bool isFullSetArchive, CancellationToken cancellationToken = default);
     }
 
     public class ArchiveExtractionService : IArchiveExtractionService
@@ -27,12 +29,20 @@ namespace NzbDrone.Core.MediaFiles.Archive
         {
             var extractAll = !isFullSetArchive || _configService.ExtractFullSetCompletely;
 
+            var destinationDirectoryFullPath = Path.GetFullPath(destinationDirectory);
+            if (!destinationDirectoryFullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                destinationDirectoryFullPath += Path.DirectorySeparatorChar;
+            }
+
             using (var archive = ZipFile.OpenRead(archivePath))
             {
                 foreach (var entry in archive.Entries)
                 {
                     if (string.IsNullOrEmpty(entry.Name))
+                    {
                         continue; // Skip directories
+                    }
 
                     if (!extractAll)
                     {
@@ -40,12 +50,10 @@ namespace NzbDrone.Core.MediaFiles.Archive
                         continue;
                     }
 
-                    var destinationPath = Path.Combine(destinationDirectory, entry.FullName);
-                    var fullDestDirPath = Path.GetFullPath(destinationDirectory + Path.DirectorySeparatorChar);
-                    if (!Path.GetFullPath(destinationPath).StartsWith(fullDestDirPath))
+                    var destinationPath = Path.GetFullPath(Path.Combine(destinationDirectoryFullPath, entry.FullName));
+                    if (!destinationPath.StartsWith(destinationDirectoryFullPath, System.StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.Warn($"Skipping {entry.FullName} due to Zip Slip vulnerability protection.");
-                        continue;
+                        throw new SecurityException($"Zip Slip extraction attempt blocked for entry: {entry.FullName}");
                     }
 
                     var entryDir = Path.GetDirectoryName(destinationPath);
@@ -55,6 +63,54 @@ namespace NzbDrone.Core.MediaFiles.Archive
                     }
 
                     entry.ExtractToFile(destinationPath, overwrite: true);
+                }
+            }
+        }
+
+        public async Task ExtractArchiveAsync(string archivePath, string destinationDirectory, bool isFullSetArchive, CancellationToken cancellationToken = default)
+        {
+            var extractAll = !isFullSetArchive || _configService.ExtractFullSetCompletely;
+
+            var destinationDirectoryFullPath = Path.GetFullPath(destinationDirectory);
+            if (!destinationDirectoryFullPath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                destinationDirectoryFullPath += Path.DirectorySeparatorChar;
+            }
+
+            using (var archive = await ZipFile.OpenReadAsync(archivePath, cancellationToken))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (string.IsNullOrEmpty(entry.Name))
+                    {
+                        continue; // Skip directories
+                    }
+
+                    if (!extractAll)
+                    {
+                        _logger.Debug($"Skipping {entry.FullName} as ExtractFullSetCompletely is false and wanted check is pending.");
+                        continue;
+                    }
+
+                    var destinationPath = Path.GetFullPath(Path.Combine(destinationDirectoryFullPath, entry.FullName));
+                    if (!destinationPath.StartsWith(destinationDirectoryFullPath, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new SecurityException($"Zip Slip extraction attempt blocked for entry: {entry.FullName}");
+                    }
+
+                    var entryDir = Path.GetDirectoryName(destinationPath);
+                    if (!string.IsNullOrEmpty(entryDir) && !Directory.Exists(entryDir))
+                    {
+                        Directory.CreateDirectory(entryDir);
+                    }
+
+                    using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                    await using (var entryStream = await entry.OpenAsync(cancellationToken))
+                    {
+                        await entryStream.CopyToAsync(destStream, cancellationToken);
+                    }
                 }
             }
         }
