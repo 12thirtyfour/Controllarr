@@ -105,11 +105,11 @@ ${incoming}`;
   let reply = "";
   try {
     try {
-      reply = await callGemini('gemini-3.1-pro-preview');
-    } catch (primaryErr) {
-      console.warn("Primary gemini-3.1-pro-preview failed:", primaryErr.message);
-      console.log("Falling back to gemini-3.8-flash...");
       reply = await callGemini('gemini-3.8-flash');
+    } catch (primaryErr) {
+      console.warn("Primary gemini-3.8-flash failed:", primaryErr.message);
+      console.log("Attempting fallback to gemini-3.1-pro-preview...");
+      reply = await callGemini('gemini-3.1-pro-preview');
     }
 
     if (!reply) {
@@ -129,3 +129,23 @@ ${incoming}`;
       'Accept': 'application/vnd.github+json',
       'User-Agent': 'controllarr-architect-relay'
     },
+    body: JSON.stringify({
+      body: `### 🏛️ Architect (Gemini)\n\n${reply}`
+    })
+  });
+
+  const postBody = await postRes.text();
+  console.log(`Comment POST response HTTP status: ${postRes.status}`);
+
+  if (!postRes.ok) {
+    console.error(`FATAL: GitHub Comment API rejected request: ${postBody}`);
+    process.exit(1);
+  }
+
+  console.log("=== Comment successfully posted. Relay finished cleanly. ===");
+}
+
+main().catch(err => {
+  console.error("Relay fatal error:", err);
+  process.exit(1);
+});
