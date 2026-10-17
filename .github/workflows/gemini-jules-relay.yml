@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize]
   issue_comment:
     types: [created]
+  issues:
+    types: [opened]
 
 concurrency:
   group: bot-relay-${{ github.event.issue.number || github.event.pull_request.number }}
@@ -14,9 +16,11 @@ jobs:
   relay:
     # Trigger on Jules PRs/comments or when explicitly tagged with @gemini
     if: |
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.user.login, 'jules')) ||
-      (github.event_name == 'issue_comment' && github.event.comment.user.login != 'github-actions[bot]' && 
-       (contains(github.event.comment.user.login, 'jules') || contains(github.event.comment.body, '@gemini')))
+      github.actor != 'github-actions[bot]' && (
+        (github.event_name == 'issues' && contains(github.event.issue.body, '@gemini')) ||
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@gemini')) ||
+        (github.event_name == 'pull_request' && contains(github.event.pull_request.user.login, 'jules'))
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,22 +50,26 @@ jobs:
 
             const isPR = process.env.IS_PR === 'true';
             let incomingContent = "";
-            let targetIssueNumber = context.issue.number;
+            let targetIssueNumber = context.payload.issue?.number || context.payload.pull_request?.number || context.issue.number;
 
-            // 2. Extract PR diff or comment payload
-            if (isPR) {
+            // 2. Extract payload
+            if (context.eventName === 'pull_request' || isPR) {
               const pr = context.payload.pull_request;
-              targetIssueNumber = pr.number;
               const { data: diff } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pr.number,
                 mediaType: { format: 'diff' }
               });
-              incomingContent = `EVENT: Jules submitted Pull Request #${pr.number}: "${pr.title}"\nDescription:\n${pr.body || 'No description provided.'}\n\nDIFF (truncated to first 15k chars):\n\`\`\`diff\n${diff.slice(0, 15000)}\n\`\`\``;
-            } else {
+              incomingContent = `EVENT: Jules submitted Pull Request #${pr.number}: "${pr.title}"\nDescription:\n${pr.body || 'No description provided.'}\n\nDIFF (truncated to first 12k chars):\n\`\`\`diff\n${diff.slice(0, 12000)}\n\`\`\``;
+            } else if (context.eventName === 'issue_comment') {
               const comment = context.payload.comment;
-              incomingContent = `EVENT: Contributor/Jules posted comment on #${targetIssueNumber}:\n"${comment.body}"`;
+              incomingContent = `EVENT: Comment posted on #${targetIssueNumber}:\n"${comment?.body || ''}"`;
+            } else if (context.eventName === 'issues') {
+              const issue = context.payload.issue;
+              incomingContent = `EVENT: Issue #${targetIssueNumber} opened:\n"${issue?.body || ''}"`;
+            } else {
+              incomingContent = `EVENT: Unknown event type on #${targetIssueNumber}`;
             }
 
             // 3. Construct prompt
@@ -79,19 +87,31 @@ jobs:
             // 4. Dispatch to Gemini API
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
             
-            const response = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{
-                  role: "user",
-                  parts: [{ text: `${systemPrompt}\n\n${incomingContent}` }]
-                }]
-              })
-            });
+            let reply = "";
+            try {
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{
+                    role: "user",
+                    parts: [{ text: `${systemPrompt}\n\n${incomingContent}` }]
+                  }]
+                })
+              });
 
-            const data = await response.json();
-            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Architect Review Error: Failed to generate response from Gemini API.";
+              if (!response.ok) {
+                const errorBody = await response.text();
+                console.error(`Gemini API Error: Status ${response.status}`, errorBody);
+                reply = `Architect Review Error: Gemini API request failed with status ${response.status}.`;
+              } else {
+                const data = await response.json();
+                reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Architect Review Error: Failed to parse response from Gemini API.";
+              }
+            } catch (error) {
+              console.error("Gemini API Error: Exception caught during fetch", error);
+              reply = `Architect Review Error: Exception occurred while contacting Gemini API.`;
+            }
 
             // 5. Post response to the PR or Issue
             await github.rest.issues.createComment({
