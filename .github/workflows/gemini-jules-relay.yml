@@ -33,7 +33,7 @@ jobs:
           node-version: 24
 
       - name: Execute Architect Relay
-        run: node .github/scripts/architect-relay.js
+        run: node .github/.scripts/architect-relay.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
