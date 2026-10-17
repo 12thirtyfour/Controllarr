@@ -1,8 +1,6 @@
 const fs = require('fs');
 
 async function main() {
-  console.log("=== Architect Relay Starting ===");
-
   const eventName = process.env.EVENT_NAME;
   const token = process.env.GITHUB_TOKEN;
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
@@ -10,30 +8,18 @@ async function main() {
   const repo = process.env.REPO_NAME;
   const actor = process.env.ACTOR;
 
-  console.log(`Event: ${eventName} | Owner: ${owner} | Repo: ${repo} | Actor: ${actor}`);
-  console.log(`GEMINI_API_KEY length: ${apiKey.length}`);
-  console.log(`GITHUB_TOKEN present: ${!!token}`);
-
   let payload = {};
   if (process.env.GITHUB_EVENT_PATH && fs.existsSync(process.env.GITHUB_EVENT_PATH)) {
     payload = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
-  } else {
-    console.warn("GITHUB_EVENT_PATH not found or invalid.");
   }
 
   const issueNumber = payload.issue?.number || payload.pull_request?.number;
-  console.log(`Identified Target Issue/PR Number: ${issueNumber}`);
+  if (!issueNumber) return;
 
-  if (!issueNumber) {
-    console.error("FATAL: No issue or pull request number identified from payload. Exiting.");
-    process.exit(1);
-  }
-
-  // React with eyes
+  // Acknowledge comment events with an eyes reaction
   if (eventName === 'issue_comment' && payload.comment?.id) {
     try {
-      console.log(`Adding eyes reaction to comment ID: ${payload.comment.id}`);
-      const rxRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/comments/${payload.comment.id}/reactions`, {
+      await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/comments/${payload.comment.id}/reactions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -42,30 +28,27 @@ async function main() {
         },
         body: JSON.stringify({ content: 'eyes' })
       });
-      console.log(`Reaction response status: ${rxRes.status}`);
     } catch (e) {
-      console.warn("Failed to post reaction:", e.message);
+      // Non-critical; continue execution
     }
   }
 
-  // Read architectural state
+  // Load architectural source of truth
   let archState = "";
   try {
     archState = fs.readFileSync('ARCHITECT_STATE.md', 'utf8');
-    console.log("Successfully loaded ARCHITECT_STATE.md");
-  } catch (e) {
-    console.warn("Could not read ARCHITECT_STATE.md, continuing with fallback.");
+  } catch {
     archState = "No ARCHITECT_STATE.md found at repository root.";
   }
 
-  // Format context
+  // Format context payload
   let incoming = "";
   if (eventName === 'issues') {
     incoming = `New Issue #${issueNumber}: ${payload.issue?.title}\n\n${payload.issue?.body || ''}`;
   } else if (eventName === 'issue_comment') {
     incoming = `Comment on Issue/PR #${issueNumber} by @${actor}:\n\n${payload.comment?.body || ''}`;
   } else if (eventName === 'pull_request') {
-    incoming = `Pull Request #${issueNumber} by @${actor}:\nTitle: ${payload.pull_request?.title}\nBody: ${payload.pull_request?.body || ''}`;
+    incoming = `Pull Request #${issueNumber} by @${actor}:\nTitle: ${payload.pull_request?.title}\nBody:${payload.pull_request?.body || ''}`;
   }
 
   const promptText = `System Instructions:
@@ -79,50 +62,29 @@ ${archState}
 User Input:
 ${incoming}`;
 
-  async function callGemini(modelName) {
-    console.log(`Querying Gemini API using model: ${modelName}...`);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          role: 'user',
-          parts: [{ text: promptText }]
-        }]
-      })
-    });
+  // Call Gemini API
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        role: 'user',
+        parts: [{ text: promptText }]
+      }]
+    })
+  });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
-    }
-
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API HTTP ${res.status}:${errText}`);
   }
 
-  let reply = "";
-  try {
-    try {
-      reply = await callGemini('gemini-3.8-flash');
-    } catch (primaryErr) {
-      console.warn("Primary gemini-3.8-flash failed:", primaryErr.message);
-      console.log("Attempting fallback to gemini-3.1-pro-preview...");
-      reply = await callGemini('gemini-3.1-pro-preview');
-    }
+  const data = await res.json();
+  const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Architect Review Error: Empty response payload received.";
 
-    if (!reply) {
-      reply = "Architect Review Error: Empty response payload received from Gemini.";
-    }
-  } catch (err) {
-    console.error("Gemini invocation failed entirely:", err.message);
-    reply = `Architect Review Error: ${err.message}`;
-  }
-
-  console.log(`Posting response comment to Issue #${issueNumber}...`);
-  const commentUrl = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
-  const postRes = await fetch(commentUrl, {
+  // Post comment back to GitHub
+  const postRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -134,18 +96,5 @@ ${incoming}`;
     })
   });
 
-  const postBody = await postRes.text();
-  console.log(`Comment POST response HTTP status: ${postRes.status}`);
-
   if (!postRes.ok) {
-    console.error(`FATAL: GitHub Comment API rejected request: ${postBody}`);
-    process.exit(1);
-  }
-
-  console.log("=== Comment successfully posted. Relay finished cleanly. ===");
-}
-
-main().catch(err => {
-  console.error("Relay fatal error:", err);
-  process.exit(1);
-});
+    throw new Error(`Failed to post
