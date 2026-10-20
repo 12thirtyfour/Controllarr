@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NzbDrone.Common.Test\Sonarr.Common.Test.csproj" />
-    <ProjectReference Include="..\NzbDrone.Test.Common\Sonarr.Test.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
     <ProjectReference Include="..\NzbDrone.Windows\Sonarr.Windows.csproj" />
   </ItemGroup>
 </Project>

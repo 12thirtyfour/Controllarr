@@ -14,7 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test.Common", "Test.Common"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Test.Dummy", "NzbDrone.Test.Dummy\Sonarr.Test.Dummy.csproj", "{FAFB5948-A222-4CF6-AD14-026BE7564802}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Test.Common", "NzbDrone.Test.Common\Sonarr.Test.Common.csproj", "{CADDFCE0-7509-4430-8364-2074E1EEFCA2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Controllarr.Test.Common", "Controllarr.Test.Common\Controllarr.Test.Common.csproj", "{CADDFCE0-7509-4430-8364-2074E1EEFCA2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Core.Test", "NzbDrone.Core.Test\Sonarr.Core.Test.csproj", "{193ADD3B-792B-4173-8E4C-5A3F8F0237F0}"
 EndProject
@@ -40,7 +40,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Core", "NzbDrone.Cor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Update", "NzbDrone.Update\Sonarr.Update.csproj", "{4CCC53CD-8D5E-4CC4-97D2-5C9312AC2BD7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Common", "NzbDrone.Common\Sonarr.Common.csproj", "{F2BE0FDF-6E47-4827-A420-DD4EF82407F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Controllarr.Common", "Controllarr.Common\Controllarr.Common.csproj", "{F2BE0FDF-6E47-4827-A420-DD4EF82407F8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Host", "Host", "{486ADF86-DD89-4E19-B805-9D94F19800D9}"
 EndProject
@@ -48,7 +48,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.Host", "NzbDrone.Hos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr", "NzbDrone\Sonarr.csproj", "{D12F7F2F-8A3C-415F-88FA-6DD061A84869}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sonarr.SignalR", "NzbDrone.SignalR\Sonarr.SignalR.csproj", "{7C2CC69F-5CA0-4E5C-85CB-983F9F6C3B36}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Controllarr.SignalR", "Controllarr.SignalR\Controllarr.SignalR.csproj", "{7C2CC69F-5CA0-4E5C-85CB-983F9F6C3B36}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platform", "Platform", "{0F0D4998-8F5D-4467-A909-BB192C4B3B4B}"
 EndProject
