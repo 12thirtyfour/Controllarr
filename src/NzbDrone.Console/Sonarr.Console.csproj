@@ -9,6 +9,8 @@
     <AssemblyName>Sonarr</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.SignalR\Controllarr.SignalR.csproj" />
     <ProjectReference Include="..\NzbDrone.Host\Sonarr.Host.csproj" />
     <ProjectReference Include="..\Sonarr.RuntimePatches\Sonarr.RuntimePatches.csproj" />
   </ItemGroup>

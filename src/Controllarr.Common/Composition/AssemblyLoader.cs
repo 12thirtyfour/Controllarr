@@ -19,7 +19,7 @@ namespace NzbDrone.Common.Composition
         public static IList<Assembly> Load(IList<string> assemblyNames)
         {
             var toLoad = assemblyNames.ToList();
-            toLoad.Add("Sonarr.Common");
+            toLoad.Add("Controllarr.Common");
             toLoad.Add(OsInfo.IsWindows ? "Sonarr.Windows" : "Sonarr.Mono");
 
             var toRegisterResolver = new List<string> { "System.Data.SQLite" };

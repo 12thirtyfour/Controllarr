@@ -39,7 +39,8 @@ namespace NzbDrone.Host
         {
             "Sonarr.Host",
             "Sonarr.Core",
-            "Sonarr.SignalR",
+            "Controllarr.Common",
+            "Controllarr.SignalR",
             "Sonarr.Api.V3",
             "Sonarr.Api.V5",
             "Sonarr.Http"
