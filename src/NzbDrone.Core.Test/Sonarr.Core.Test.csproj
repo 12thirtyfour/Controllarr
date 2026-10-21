@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <NoWarn>$(NoWarn);SA1210;IDE0005;SA1513;SA1500;SA1503;SA1501</NoWarn>
     <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
@@ -7,7 +8,7 @@
     <PackageReference Include="NBuilder" Version="6.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NzbDrone.Test.Common\Sonarr.Test.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
     <ProjectReference Include="..\NzbDrone.Core\Sonarr.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

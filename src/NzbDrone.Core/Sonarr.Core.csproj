@@ -27,7 +27,7 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NzbDrone.Common\Sonarr.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\Logo\64.png">

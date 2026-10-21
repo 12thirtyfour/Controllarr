@@ -5,6 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\NzbDrone.Core\Sonarr.Core.csproj" />
-    <ProjectReference Include="..\NzbDrone.Common\Sonarr.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
   </ItemGroup>
 </Project>

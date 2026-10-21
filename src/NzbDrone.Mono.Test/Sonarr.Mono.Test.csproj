@@ -5,7 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NzbDrone.Common.Test\Sonarr.Common.Test.csproj" />
     <ProjectReference Include="..\NzbDrone.Mono\Sonarr.Mono.csproj" />
-    <ProjectReference Include="..\NzbDrone.Test.Common\Sonarr.Test.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Files\**\*.*">
