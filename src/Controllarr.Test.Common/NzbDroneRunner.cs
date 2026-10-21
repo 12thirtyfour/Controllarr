@@ -27,6 +27,7 @@ namespace NzbDrone.Test.Common
         public string ApiKey { get; private set; }
         public PostgresOptions PostgresOptions { get; private set; }
         public int Port { get; private set; }
+        public string XemMockUrl { get; set; }
 
         public NzbDroneRunner(Logger logger, PostgresOptions postgresOptions, int port = 8989)
         {
@@ -61,7 +62,7 @@ namespace NzbDrone.Test.Common
             }
             else
             {
-                Start(Path.Combine(TestContext.CurrentContext.TestDirectory, "bin", consoleExe));
+                Start(Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "net10.0", consoleExe));
             }
 
             while (true)
@@ -142,6 +143,11 @@ namespace NzbDrone.Test.Common
             if (!_enableAuth)
             {
                 envVars.Add("Sonarr__Auth__Method", "None");
+            if (!string.IsNullOrEmpty(XemMockUrl))
+            {
+                envVars.Add("CONTROLLARR_XEM_URL", XemMockUrl);
+                TestContext.Progress.WriteLine("Setting CONTROLLARR_XEM_URL to {0}", XemMockUrl);
+            }
             }
 
             if (PostgresOptions?.Host != null)
