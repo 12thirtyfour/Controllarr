@@ -73,7 +73,7 @@ runs:
           echo "Updating version info to: $CONTROLLARR_VERSION"
           sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$CONTROLLARR_VERSION<\/AssemblyVersion>/g" src/Directory.Build.props
           sed -i'' -e "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH}<\/AssemblyConfiguration>/g" src/Directory.Build.props
-          sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$CONTROLLARR_VERSION<\/string>/g" distribution/macOS/Controllarr.app/Contents/Info.plist
+          sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$CONTROLLARR_VERSION<\/string>/g" distribution/macOS/Sonarr.app/Contents/Info.plist
         fi
 
     - name: Build Backend
@@ -81,7 +81,7 @@ runs:
       run: |
         runtime="${{ inputs.runtime }}"
         platform=Windows
-        slnFile=src/Controllarr.sln
+        slnFile=src/Sonarr.sln
         targetingWindows=false
 
         IFS='-' read -ra SPLIT <<< "$runtime"
@@ -110,68 +110,68 @@ runs:
 
         case "${SPLIT[0]}" in
           linux|freebsd*)
-            folder=_artifacts/$runtime/$framework/Controllarr
+            folder=_artifacts/$runtime/$framework/Sonarr
 
             echo "Packaging files"
             rm -rf $folder
             mkdir -p $folder
             cp -r _output/$framework/$runtime/publish/* $folder
-            cp -r _output/Controllarr.Update/$framework/$runtime/publish $folder/Controllarr.Update
+            cp -r _output/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
             cp LICENSE.md $folder
 
             echo "Removing Service helpers"
             rm -f $folder/ServiceUninstall.*
             rm -f $folder/ServiceInstall.*
 
-            echo "Removing Controllarr.Windows"
-            rm $folder/Controllarr.Windows.*
+            echo "Removing Sonarr.Windows"
+            rm $folder/Sonarr.Windows.*
 
-            echo "Adding Controllarr.Mono to UpdatePackage"
-            cp $folder/Controllarr.Mono.* $folder/Controllarr.Update
-            cp $folder/Openur.Mono.Unix.* $folder/Controllarr.Update
-            cp $folder/libMono.Unix.* $folder/Controllarr.Update
+            echo "Adding Sonarr.Mono to UpdatePackage"
+            cp $folder/Sonarr.Mono.* $folder/Sonarr.Update
+            cp $folder/Openur.Mono.Unix.* $folder/Sonarr.Update
+            cp $folder/libMono.Unix.* $folder/Sonarr.Update
             ;;
           win)
-            folder=_artifacts/$runtime/$framework/Controllarr
+            folder=_artifacts/$runtime/$framework/Sonarr
 
             echo "Packaging files"
             rm -rf $folder
             mkdir -p $folder
             cp -r _output/$framework/$runtime/publish/* $folder
-            cp -r _output/Controllarr.Update/$framework/$runtime/publish $folder/Controllarr.Update
+            cp -r _output/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
             cp LICENSE.md $folder
             cp -r _output/$framework-windows/$runtime/publish/* $folder
 
-            echo "Removing Controllarr.Mono"
-            rm -f $folder/Controllarr.Mono.*
+            echo "Removing Sonarr.Mono"
+            rm -f $folder/Sonarr.Mono.*
             rm -f $folder/Openur.Mono.Unix.*
             rm -f $folder/libMono.Unix.*
 
-            echo "Adding Controllarr.Windows to UpdatePackage"
-            cp $folder/Controllarr.Windows.* $folder/Controllarr.Update
+            echo "Adding Sonarr.Windows to UpdatePackage"
+            cp $folder/Sonarr.Windows.* $folder/Sonarr.Update
 
             ;;
           osx)
-            folder=_artifacts/$runtime/$framework/Controllarr
+            folder=_artifacts/$runtime/$framework/Sonarr
 
             echo "Packaging files"
             rm -rf $folder
             mkdir -p $folder
             cp -r _output/$framework/$runtime/publish/* $folder
-            cp -r _output/Controllarr.Update/$framework/$runtime/publish $folder/Controllarr.Update
+            cp -r _output/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
             cp LICENSE.md $folder
 
             echo "Removing Service helpers"
             rm -f $folder/ServiceUninstall.*
             rm -f $folder/ServiceInstall.*
 
-            echo "Removing Controllarr.Windows"
-            rm $folder/Controllarr.Windows.*
+            echo "Removing Sonarr.Windows"
+            rm $folder/Sonarr.Windows.*
 
-            echo "Adding Controllarr.Mono to UpdatePackage"
-            cp $folder/Controllarr.Mono.* $folder/Controllarr.Update
-            cp $folder/Openur.Mono.Unix.* $folder/Controllarr.Update
-            cp $folder/libMono.Unix.* $folder/Controllarr.Update
+            echo "Adding Sonarr.Mono to UpdatePackage"
+            cp $folder/Sonarr.Mono.* $folder/Sonarr.Update
+            cp $folder/Openur.Mono.Unix.* $folder/Sonarr.Update
+            cp $folder/libMono.Unix.* $folder/Sonarr.Update
             ;;
         esac
 

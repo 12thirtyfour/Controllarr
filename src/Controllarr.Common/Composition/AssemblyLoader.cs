@@ -20,7 +20,15 @@ namespace NzbDrone.Common.Composition
         {
             var toLoad = assemblyNames.ToList();
             toLoad.Add("Controllarr.Common");
-            toLoad.Add(OsInfo.IsWindows ? "Sonarr.Windows" : "Sonarr.Mono");
+
+            if (OsInfo.IsWindows)
+            {
+                toLoad.Add("Sonarr.Windows");
+            }
+            else
+            {
+                toLoad.Add("Sonarr.Mono");
+            }
 
             var toRegisterResolver = new List<string> { "System.Data.SQLite" };
             toRegisterResolver.AddRange(assemblyNames.Intersect(new[] { "Sonarr.Core" }));
