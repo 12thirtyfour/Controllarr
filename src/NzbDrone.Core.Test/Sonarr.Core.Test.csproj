@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
     <ProjectReference Include="..\NzbDrone.Core\Sonarr.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

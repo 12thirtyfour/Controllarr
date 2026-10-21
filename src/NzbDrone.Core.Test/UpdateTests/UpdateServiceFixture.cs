@@ -31,13 +31,15 @@ namespace NzbDrone.Core.Test.UpdateTests
         [SetUp]
         public void Setup()
         {
+            var targetVersion = new Version(BuildInfo.Version.Major, BuildInfo.Version.Minor, Math.Max(0, BuildInfo.Version.Build) + 1, Math.Max(0, BuildInfo.Version.Revision));
+
             if (OsInfo.IsLinux)
             {
                 _updatePackage = new UpdatePackage
                 {
                     FileName = "NzbDrone.develop.2.0.0.0.tar.gz",
                     Url = "http://download.sonarr.tv/v2/develop/mono/NzbDrone.develop.tar.gz",
-                    Version = new Version("2.0.0.0")
+                    Version = targetVersion
                 };
             }
             else
@@ -46,7 +48,7 @@ namespace NzbDrone.Core.Test.UpdateTests
                 {
                     FileName = "NzbDrone.develop.2.0.0.0.zip",
                     Url = "http://download.sonarr.tv/v2/develop/windows/NzbDrone.develop.zip",
-                    Version = new Version("2.0.0.0")
+                    Version = targetVersion
                 };
             }
 
