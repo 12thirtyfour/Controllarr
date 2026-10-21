@@ -21,6 +21,7 @@ namespace Sonarr.Http.Test.Authentication
         [SetUp]
         public void Setup()
         {
+            ExceptionVerification.IgnoreWarns();
             Mocker.SetConstant<ICacheManager>(Mocker.Resolve<CacheManager>());
 
             Mocker.GetMock<IConfigFileProvider>()
