@@ -169,12 +169,12 @@ namespace NzbDrone.Test.Common.AutoMoq
 
         private void LoadPlatformLibrary()
         {
-            var assemblyName = "Sonarr.Windows";
-
             if (OsInfo.IsNotWindows)
             {
-                assemblyName = "Sonarr.Mono";
+                return;
             }
+
+            var assemblyName = "Sonarr.Windows";
 
             if (!File.Exists(assemblyName + ".dll"))
             {
