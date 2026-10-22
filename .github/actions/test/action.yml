@@ -59,6 +59,15 @@ runs:
         name: ${{ inputs.artifact }}
         path: _tests
 
+    - name: Ensure test fixture executables have execution permissions
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "Ensuring test fixture binaries are executable..."
+        chmod -R +x _tests/Sonarr.Test.Dummy* 2>/dev/null || true
+        chmod -R +x _tests/ffprobe* 2>/dev/null || true
+        chmod -R +x _tests/*.sh 2>/dev/null || true
+
     - name: Download Binary Artifact
       if: ${{ inputs.integration_tests }}
       uses: actions/download-artifact@v8
@@ -92,27 +101,36 @@ runs:
           cp -rf "$BIN_DIR"/* _tests/bin/ 2>/dev/null || true
         fi
 
-        # On Windows, ensure Sonarr.Console.exe exists
-        if [ -f "_output/net10.0/Sonarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
-          cp _output/net10.0/Sonarr.exe _output/net10.0/Sonarr.Console.exe
-        fi
-        if [ -f "_output/net10.0/Controllarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
-          cp _output/net10.0/Controllarr.exe _output/net10.0/Sonarr.Console.exe
+        # 2. Windows-specific requirements
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          # Ensure Sonarr.Console.exe exists
+          if [ -f "_output/net10.0/Sonarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+            cp _output/net10.0/Sonarr.exe _output/net10.0/Sonarr.Console.exe
+          fi
+          if [ -f "_output/net10.0/Controllarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+            cp _output/net10.0/Controllarr.exe _output/net10.0/Sonarr.Console.exe
+          fi
+          if [ -f "_tests/bin/Sonarr.exe" ] && [ ! -f "_tests/bin/Sonarr.Console.exe" ]; then
+            cp _tests/bin/Sonarr.exe _tests/bin/Sonarr.Console.exe
+          fi
+        else
+          # Unix-specific requirements (Linux & macOS)
+          if [ -f "_output/net10.0/Controllarr" ] && [ ! -f "_output/net10.0/Sonarr" ]; then
+            cp _output/net10.0/Controllarr _output/net10.0/Sonarr
+          fi
+          if [ -f "_tests/bin/Controllarr" ] && [ ! -f "_tests/bin/Sonarr" ]; then
+            cp _tests/bin/Controllarr _tests/bin/Sonarr
+          fi
+
+          # Ensure execute permissions on all binaries
+          chmod +x _output/net10.0/* 2>/dev/null || true
+          chmod +x _tests/bin/* 2>/dev/null || true
+          chmod +x _output/net10.0/Sonarr 2>/dev/null || true
+          chmod +x _output/net10.0/Controllarr 2>/dev/null || true
         fi
 
-        # On Unix, ensure Sonarr exists if Controllarr was built
-        if [ -f "_output/net10.0/Controllarr" ] && [ ! -f "_output/net10.0/Sonarr" ]; then
-          cp _output/net10.0/Controllarr _output/net10.0/Sonarr
-        fi
-
-        # Ensure executables have +x permissions on Linux/macOS
-        chmod +x _output/net10.0/* 2>/dev/null || true
-        chmod +x _tests/bin/* 2>/dev/null || true
-        chmod +x _tests/*Test.Dummy* 2>/dev/null || true
-        chmod +x _tests/ffprobe 2>/dev/null || true
-
-        echo "=== Contents of _output/net10.0 ==="
-        ls -la _output/net10.0/ | head -n 20 || true
+        echo "=== Verification of _output/net10.0 ==="
+        ls -la _output/net10.0/ | head -n 25 || true
 
     - name: Run tests
       shell: bash
