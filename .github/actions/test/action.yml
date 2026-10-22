@@ -69,7 +69,14 @@ runs:
     - name: Set up binary artifact
       if: ${{ inputs.binary_path != '' }}
       shell: bash
-      run: mv ./_output/${{inputs.binary_path}} _tests/bin
+      run: |
+        mkdir -p _tests/bin
+        mkdir -p _output/net10.0
+        cp -rf ./_output/${{ inputs.binary_path }}* _tests/bin/ 2>/dev/null || true
+        cp -rf ./_output/${{ inputs.binary_path }}* _output/net10.0/ 2>/dev/null || true
+        if [ -f "_output/net10.0/Sonarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+          cp _output/net10.0/Sonarr.exe _output/net10.0/Sonarr.Console.exe
+        fi
 
     - name: Make executable
       if: startsWith(inputs.os, 'windows') != true
@@ -79,7 +86,7 @@ runs:
     - name: Make Controllarr binary executable
       if: ${{ inputs.integration_tests && !startsWith(inputs.os, 'windows') }}
       shell: bash
-      run: chmod +x ./_tests/bin/Controllarr
+      run: chmod +x ./_tests/bin/* 2>/dev/null || true
 
     - name: Run tests
       shell: bash
