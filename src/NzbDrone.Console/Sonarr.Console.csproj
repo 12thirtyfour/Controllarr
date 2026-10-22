@@ -13,5 +13,7 @@
     <ProjectReference Include="..\Controllarr.SignalR\Controllarr.SignalR.csproj" />
     <ProjectReference Include="..\NzbDrone.Host\Sonarr.Host.csproj" />
     <ProjectReference Include="..\Sonarr.RuntimePatches\Sonarr.RuntimePatches.csproj" />
+    <ProjectReference Include="..\NzbDrone.Mono\Sonarr.Mono.csproj" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="..\NzbDrone.Windows\Sonarr.Windows.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 </Project>
