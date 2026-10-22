@@ -192,22 +192,30 @@ function EditSeriesModalContent({
               onChange={handleInputChange}
             >
               <option value="0">{translate('1G1R (One Game, One ROM)')}</option>
-              <option value="1">{translate('Preservationist / Completionist')}</option>
+              <option value="1">
+                {translate('Preservationist / Completionist')}
+              </option>
             </FormInput>
           </FormRow>
 
           {Number(settings.collectionStrategy?.value) === 0 && (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('1G1R Revision Preference')}</FormLabel>
-              <FormInputHelpText text={translate('RevisionPreferenceHelpText')} />
+              <FormInputHelpText
+                text={translate('RevisionPreferenceHelpText')}
+              />
               <FormInput
                 type={inputTypes.SELECT}
                 name="revisionPreference"
                 {...settings.revisionPreference}
                 onChange={handleInputChange}
               >
-                <option value="0">{translate('Latest Revision (v1.1, v1.2, Rev A, etc.)')}</option>
-                <option value="1">{translate('Initial Release (v1.0 / Unpatched)')}</option>
+                <option value="0">
+                  {translate('Latest Revision (v1.1, v1.2, Rev A, etc.)')}
+                </option>
+                <option value="1">
+                  {translate('Initial Release (v1.0 / Unpatched)')}
+                </option>
               </FormInput>
             </FormRow>
           )}

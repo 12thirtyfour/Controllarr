@@ -78,6 +78,7 @@ import {
   Monitor,
   Network,
   Pause,
+  Pin,
   Play,
   Plus,
   Power,
@@ -193,6 +194,7 @@ export const PARENT = CornerLeftUp;
 export const PARSE = Calculator;
 export const PAUSED = Pause;
 export const PENDING = Clock;
+export const PIN = Pin;
 export const PREMIERE = CalendarPremiere;
 export const PROFILE = User;
 export const POSTER = LayoutGrid;
