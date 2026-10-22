@@ -6,6 +6,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Composition.Extensions;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.MetadataSource.Game.Model;
+using NzbDrone.Core.MetadataSource.Igdb;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MetadataSource
@@ -22,13 +23,13 @@ namespace NzbDrone.Core.Test.MetadataSource
             var resolvedProxy = container.Resolve<IGameMetadataProxy>();
 
             resolvedProxy.Should().NotBeNull();
-            resolvedProxy.Should().BeOfType<GameMetadataProxyStub>();
+            resolvedProxy.Should().BeOfType<IgdbMetadataProxy>();
         }
 
         [Test]
         public async Task Should_return_empty_list_for_SearchPlatformsAsync()
         {
-            var proxy = new GameMetadataProxyStub();
+            var proxy = new IgdbMetadataProxy();
             var platforms = await proxy.SearchPlatformsAsync("Nintendo");
 
             platforms.Should().NotBeNull();
@@ -38,7 +39,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [Test]
         public async Task Should_return_empty_list_for_SearchGamesAsync()
         {
-            var proxy = new GameMetadataProxyStub();
+            var proxy = new IgdbMetadataProxy();
             var games = await proxy.SearchGamesAsync("Mario", 1);
 
             games.Should().NotBeNull();
@@ -48,7 +49,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [Test]
         public async Task Should_return_null_for_GetGameDetailsAsync()
         {
-            var proxy = new GameMetadataProxyStub();
+            var proxy = new IgdbMetadataProxy();
             var game = await proxy.GetGameDetailsAsync(100);
 
             game.Should().BeNull();
@@ -57,7 +58,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [Test]
         public async Task Should_return_null_for_GetGameByHashAsync()
         {
-            var proxy = new GameMetadataProxyStub();
+            var proxy = new IgdbMetadataProxy();
             var game = await proxy.GetGameByHashAsync("abcdef1234567890");
 
             game.Should().BeNull();
