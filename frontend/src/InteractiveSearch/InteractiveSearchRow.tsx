@@ -21,6 +21,7 @@ import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
 import IndexerFlags from 'Episode/IndexerFlags';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import type Series from 'Series/Series';
 import { useSaveSeries } from 'Series/useSeries';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import formatDateTime from 'Utilities/Date/formatDateTime';
@@ -139,19 +140,22 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
   const [isConfirmGrabModalOpen, setIsConfirmGrabModalOpen] = useState(false);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
   const { isGrabbing, isGrabbed, grabError, grabRelease } = useGrabRelease();
-  const { updateSeriesMonitor } = useSaveSeries(false);
+  const { saveSeries } = useSaveSeries(false);
 
-  const series = searchPayload?.series;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const series = (searchPayload as any)?.series as Series | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parsedRevision = (parsedInfo as any)?.revision;
   const isPinned =
-    !!series?.pinnedVersion && parsedInfo?.revision === series?.pinnedVersion;
+    !!series?.pinnedVersion && parsedRevision === series?.pinnedVersion;
 
   const handlePinToggle = useCallback(() => {
     if (!series) return;
-    updateSeriesMonitor({
+    saveSeries({
       ...series,
-      pinnedVersion: isPinned ? null : parsedInfo?.revision,
+      pinnedVersion: isPinned ? null : parsedRevision,
     });
-  }, [series, parsedInfo?.revision, isPinned, updateSeriesMonitor]);
+  }, [series, parsedRevision, isPinned, saveSeries]);
 
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -403,16 +407,15 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
           <IconButton
             name={icons.PIN}
             className={classNames(styles.pinButton, {
-              [styles.pinned]: isPinned,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              [(styles as any).pinned]: isPinned,
             })}
+            kind={isPinned ? kinds.WARNING : kinds.DEFAULT}
             title={
               isPinned
                 ? translate('Unpin release')
                 : translate('Pin this release as preferred (1G1R override)')
             }
-            iconProps={{
-              kind: isPinned ? kinds.WARNING : kinds.DEFAULT,
-            }}
             onPress={handlePinToggle}
           />
         )}
