@@ -12,7 +12,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.MetadataSource
 {
     [TestFixture]
-    public class GameMetadataFixture : TestBase
+    public class GameMetadataFixture : TestBase<IgdbMetadataProxy>
     {
         [Test]
         public void Should_resolve_IGameMetadataProxy_from_container()
@@ -20,16 +20,18 @@ namespace NzbDrone.Core.Test.MetadataSource
             var container = new Container(rules => rules.WithNzbDroneRules());
             container.AutoAddServices(new List<string> { "Sonarr.Core" });
 
-            var resolvedProxy = container.Resolve<IGameMetadataProxy>();
+            container.RegisterInstance(Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>().Object);
+            container.RegisterInstance(Mocker.GetMock<NzbDrone.Core.Configuration.IConfigService>().Object);
 
-            resolvedProxy.Should().NotBeNull();
-            resolvedProxy.Should().BeOfType<IgdbMetadataProxy>();
+            var resolvedProxies = container.Resolve<IEnumerable<IGameMetadataProxy>>();
+
+            resolvedProxies.Should().Contain(p => p is IgdbMetadataProxy);
         }
 
         [Test]
         public async Task Should_return_empty_list_for_SearchPlatformsAsync()
         {
-            var proxy = new IgdbMetadataProxy();
+            var proxy = Subject;
             var platforms = await proxy.SearchPlatformsAsync("Nintendo");
 
             platforms.Should().NotBeNull();
@@ -39,7 +41,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [Test]
         public async Task Should_return_empty_list_for_SearchGamesAsync()
         {
-            var proxy = new IgdbMetadataProxy();
+            var proxy = Subject;
             var games = await proxy.SearchGamesAsync("Mario", 1);
 
             games.Should().NotBeNull();
@@ -49,7 +51,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [Test]
         public async Task Should_return_null_for_GetGameDetailsAsync()
         {
-            var proxy = new IgdbMetadataProxy();
+            var proxy = Subject;
             var game = await proxy.GetGameDetailsAsync(100);
 
             game.Should().BeNull();
@@ -58,7 +60,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [Test]
         public async Task Should_return_null_for_GetGameByHashAsync()
         {
-            var proxy = new IgdbMetadataProxy();
+            var proxy = Subject;
             var game = await proxy.GetGameByHashAsync("abcdef1234567890");
 
             game.Should().BeNull();

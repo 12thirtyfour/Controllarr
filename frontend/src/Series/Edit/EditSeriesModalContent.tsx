@@ -92,6 +92,8 @@ function EditSeriesModalContent({
         language,
         path,
         tags,
+        collectionStrategy: series.collectionStrategy,
+        revisionPreference: series.revisionPreference,
       },
       pendingChanges,
       saveError
@@ -106,6 +108,8 @@ function EditSeriesModalContent({
     language,
     path,
     tags,
+    series.collectionStrategy,
+    series.revisionPreference,
     pendingChanges,
     saveError,
   ]);
@@ -188,7 +192,8 @@ function EditSeriesModalContent({
             <FormInput
               type={inputTypes.SELECT}
               name="collectionStrategy"
-              {...settings.collectionStrategy}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              {...(settings as any).collectionStrategy}
               onChange={handleInputChange}
             >
               <option value="0">{translate('1G1R (One Game, One ROM)')}</option>
@@ -198,7 +203,8 @@ function EditSeriesModalContent({
             </FormInput>
           </FormRow>
 
-          {Number(settings.collectionStrategy?.value) === 0 && (
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {Number((settings as any).collectionStrategy?.value) === 0 && (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('1G1R Revision Preference')}</FormLabel>
               <FormInputHelpText
@@ -207,7 +213,8 @@ function EditSeriesModalContent({
               <FormInput
                 type={inputTypes.SELECT}
                 name="revisionPreference"
-                {...settings.revisionPreference}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                {...(settings as any).revisionPreference}
                 onChange={handleInputChange}
               >
                 <option value="0">

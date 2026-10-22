@@ -11,10 +11,10 @@ namespace NzbDrone.Core.MetadataSource.Igdb
         private readonly IHttpClient _httpClient;
         private readonly IConfigService _configService;
         private readonly Logger _logger;
+        private readonly object _lock = new object();
 
         private string _accessToken;
         private DateTime _tokenExpiration = DateTime.MinValue;
-        private readonly object _lock = new object();
 
         public IgdbTokenProvider(IHttpClient httpClient, IConfigService configService, Logger logger)
         {
