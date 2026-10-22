@@ -74,7 +74,7 @@ runs:
     - name: Make executable
       if: startsWith(inputs.os, 'windows') != true
       shell: bash
-      run: chmod +x ./_tests/Controllarr.Test.Dummy && chmod +x ./_tests/ffprobe
+      run: chmod +x ./_tests/*Test.Dummy* 2>/dev/null || true && chmod +x ./_tests/ffprobe 2>/dev/null || true
 
     - name: Make Controllarr binary executable
       if: ${{ inputs.integration_tests && !startsWith(inputs.os, 'windows') }}
@@ -83,7 +83,7 @@ runs:
 
     - name: Run tests
       shell: bash
-      run: dotnet test ./_tests/Controllarr.*.Test.dll --filter "${{ inputs.filter }}" --logger "trx;LogFileName=${{ env.RESULTS_NAME }}.trx" --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
+      run: dotnet test ./_tests/${{ inputs.pattern }} --filter "${{ inputs.filter }}" --logger "trx;LogFileName=${{ env.RESULTS_NAME }}.trx" --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
 
     - name: Upload Test Results
       if: ${{ !cancelled() }}
