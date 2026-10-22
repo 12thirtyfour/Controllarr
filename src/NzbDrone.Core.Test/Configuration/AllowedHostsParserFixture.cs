@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.Configuration
         [TestCase("")]
         [TestCase("  ")]
         [TestCase("http://sonarr.local")]
-        [TestCase("sonarr.local:8989")]
+        [TestCase("sonarr.local:7050")]
         [TestCase("sonarr local")]
         [TestCase("sonarr.*")]
         [TestCase("*")]

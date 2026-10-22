@@ -29,7 +29,7 @@ namespace NzbDrone.Test.Common
         public int Port { get; private set; }
         public string XemMockUrl { get; set; }
 
-        public NzbDroneRunner(Logger logger, PostgresOptions postgresOptions, int port = 8989)
+        public NzbDroneRunner(Logger logger, PostgresOptions postgresOptions, int port = 7050)
         {
             _processProvider = new ProcessProvider(logger);
             _restClient = new RestClient($"http://localhost:{port}/api/v3");

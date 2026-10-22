@@ -10,5 +10,7 @@
     <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
     <ProjectReference Include="..\Sonarr.Api.V3\Sonarr.Api.V3.csproj" />
     <ProjectReference Include="..\Sonarr.Http\Sonarr.Http.csproj" />
+    <ProjectReference Include="..\NzbDrone.Mono\Sonarr.Mono.csproj" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="..\NzbDrone.Windows\Sonarr.Windows.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 </Project>
