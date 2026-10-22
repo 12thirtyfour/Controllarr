@@ -150,6 +150,7 @@ namespace NzbDrone.Core.Parser.Rom
 
             // Clean game title by removing bracketed/parenthetical metadata
             var cleanTitle = BracketOrParenRegex.Replace(workingTitle, "").Trim();
+
             // Remove extra whitespace or trailing punctuation/dashes
             cleanTitle = Regex.Replace(cleanTitle, @"\s+", " ").Trim(' ', '-', '_');
 
