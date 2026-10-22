@@ -1,25 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Games;
-using NzbDrone.Core.Languages;
+using NzbDrone.Core.MetadataSource.Game;
+using NzbDrone.Core.MetadataSource.Game.Model;
 
 namespace NzbDrone.Core.MetadataSource.Igdb
 {
-    public class IgdbMetadataProxy : IGameMetadataProxy
+    public class IgdbMetadataProxy : Game.IGameMetadataProxy
     {
-        private readonly IIgdbTokenManager _tokenManager;
+        private readonly IIgdbTokenProvider _tokenProvider;
         private readonly IConfigService _configService;
         private readonly IHttpClient _httpClient;
         private readonly Logger _logger;
 
-        public IgdbMetadataProxy(IIgdbTokenManager tokenManager, IConfigService configService, IHttpClient httpClient, Logger logger)
+        public IgdbMetadataProxy(IIgdbTokenProvider tokenProvider, IConfigService configService, IHttpClient httpClient, Logger logger)
         {
-            _tokenManager = tokenManager;
+            _tokenProvider = tokenProvider;
             _configService = configService;
             _httpClient = httpClient;
             _logger = logger;
@@ -27,122 +28,180 @@ namespace NzbDrone.Core.MetadataSource.Igdb
 
         private HttpRequestBuilder BuildBaseRequest(string endpoint)
         {
-            var token = _tokenManager.GetToken();
+            var token = _tokenProvider.GetAccessToken();
             var clientId = _configService.IgdbClientId;
 
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(clientId))
             {
-                throw new Exception("IGDB token or Client-ID is missing.");
+                _logger.Warn("IGDB token or Client-ID is missing. Request will not be successful.");
+                return null;
             }
 
             return new HttpRequestBuilder($"https://api.igdb.com/v4/{endpoint}")
                 .SetHeader("Client-ID", clientId)
-                .SetHeader("Authorization", $"Bearer {token}");
+                .SetHeader("Authorization", $"Bearer {token}")
+                .SetHeader("Accept", "application/json");
         }
 
-        public List<GamePlatform> GetPlatforms()
+        public async Task<List<GamePlatform>> SearchPlatformsAsync(string query)
         {
-            var request = BuildBaseRequest("platforms")
-                .Post()
-                .SetHeader("Accept", "application/json")
-                .Build();
+            var requestBuilder = BuildBaseRequest("platforms");
+            if (requestBuilder == null)
+            {
+                return new List<GamePlatform>();
+            }
 
-            request.ContentData = System.Text.Encoding.UTF8.GetBytes("fields id,name,slug,generation,summary; limit 500;");
+            var request = requestBuilder.Post().Build();
             request.Headers.ContentType = "text/plain";
 
-            var response = _httpClient.Post<List<IgdbPlatform>>(request);
-
-            return response.Resource.Select(p => new GamePlatform
+            var body = "fields id,name,slug,generation,summary; limit 500;";
+            if (!string.IsNullOrWhiteSpace(query))
             {
-                IgdbId = p.Id,
-                Name = p.Name,
-                Slug = p.Slug,
-                Overview = p.Summary
-            }).ToList();
+                body = $"search \"{query}\"; {body}";
+            }
+
+            request.ContentData = System.Text.Encoding.UTF8.GetBytes(body);
+
+            try
+            {
+                var response = await _httpClient.ExecuteAsync(request);
+                if (response.HasHttpError)
+                {
+                    _logger.Error($"Failed to search IGDB platforms. HTTP Status: {response.StatusCode}");
+                    return new List<GamePlatform>();
+                }
+
+                var platforms = JsonConvert.DeserializeObject<List<IgdbPlatform>>(response.Content);
+                return platforms?.Select(p => new GamePlatform
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Slug = p.Slug,
+                    Generation = p.Generation > 0 ? p.Generation : (int?)null
+                }).ToList() ?? new List<GamePlatform>();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to search IGDB platforms.");
+                return new List<GamePlatform>();
+            }
         }
 
-        public Tuple<GameTitle, List<GameRelease>> GetGameInfo(string providerId, Language language)
+        public async Task<List<GameMetadata>> SearchGamesAsync(string title, int? platformId)
         {
-            if (!providerId.StartsWith("igdb:"))
+            var requestBuilder = BuildBaseRequest("games");
+            if (requestBuilder == null)
             {
-                throw new ArgumentException("Provider ID must start with 'igdb:'", nameof(providerId));
+                return new List<GameMetadata>();
             }
 
-            var igdbIdStr = providerId.Substring(5);
-            if (!int.TryParse(igdbIdStr, out var igdbId))
+            var request = requestBuilder.Post().Build();
+            request.Headers.ContentType = "text/plain";
+
+            var body = $"search \"{title}\"; fields id,name,summary,cover.url,first_release_date,platforms; limit 50;";
+            if (platformId.HasValue)
             {
-                throw new ArgumentException("Invalid IGDB ID", nameof(providerId));
+                body = $"search \"{title}\"; fields id,name,summary,cover.url,first_release_date,platforms; where platforms = [{platformId.Value}]; limit 50;";
             }
 
-            // Get Game Info
-            var gameRequest = BuildBaseRequest("games")
-                .Post()
-                .SetHeader("Accept", "application/json")
-                .Build();
+            request.ContentData = System.Text.Encoding.UTF8.GetBytes(body);
 
-            gameRequest.ContentData = System.Text.Encoding.UTF8.GetBytes($"fields id,name,summary,cover.url,release_dates.region,release_dates.y,release_dates.m,release_dates.d,platforms; where id = {igdbId};");
-            gameRequest.Headers.ContentType = "text/plain";
+            try
+            {
+                var response = await _httpClient.ExecuteAsync(request);
+                if (response.HasHttpError)
+                {
+                    _logger.Error($"Failed to search IGDB games. HTTP Status: {response.StatusCode}");
+                    return new List<GameMetadata>();
+                }
 
-            var gameResponse = _httpClient.Post<List<IgdbGame>>(gameRequest);
-            var igdbGame = gameResponse.Resource.FirstOrDefault();
+                var games = JsonConvert.DeserializeObject<List<IgdbGame>>(response.Content);
+                return games?.Select(g => new GameMetadata
+                {
+                    Id = g.Id,
+                    Title = g.Name,
+                    Summary = g.Summary,
+                    CoverUrl = g.Cover != null && !string.IsNullOrWhiteSpace(g.Cover.Url) ? MapCoverUrl(g.Cover.Url) : null,
+                    ReleaseDate = g.FirstReleaseDate > 0 ? DateTimeOffset.FromUnixTimeSeconds(g.FirstReleaseDate).UtcDateTime : (DateTime?)null,
+                    PlatformId = platformId ?? (g.Platforms != null && g.Platforms.Count > 0 ? g.Platforms.First() : 0)
+                }).ToList() ?? new List<GameMetadata>();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to search IGDB games.");
+                return new List<GameMetadata>();
+            }
+        }
 
-            if (igdbGame == null)
+        public async Task<GameMetadata> GetGameDetailsAsync(int gameId)
+        {
+            var requestBuilder = BuildBaseRequest("games");
+            if (requestBuilder == null)
             {
                 return null;
             }
 
-            var title = new GameTitle
-            {
-                IgdbId = igdbGame.Id,
-                Title = igdbGame.Name,
-                CleanTitle = igdbGame.Name,
-                ProviderId = providerId,
-                Summary = igdbGame.Summary,
-                CoverArtworkUrl = igdbGame.Cover?.Url
-            };
-
-            var releases = new List<GameRelease>();
-
-            if (igdbGame.ReleaseDates != null)
-            {
-                foreach (var releaseDate in igdbGame.ReleaseDates)
-                {
-                    releases.Add(new GameRelease
-                    {
-                        Region = releaseDate.Region.ToString(), // Or map to region name if needed
-                        ReleaseName = $"{igdbGame.Name} ({releaseDate.Region})",
-                        Title = igdbGame.Name
-                    });
-                }
-            }
-
-            return new Tuple<GameTitle, List<GameRelease>>(title, releases);
-        }
-
-        public List<GameTitle> SearchForNewGames(string title, Language language)
-        {
-            var request = BuildBaseRequest("games")
-                .Post()
-                .SetHeader("Accept", "application/json")
-                .Build();
-
-            request.ContentData = System.Text.Encoding.UTF8.GetBytes($"search \"{title}\"; fields id,name,summary,cover.url; limit 50;");
+            var request = requestBuilder.Post().Build();
             request.Headers.ContentType = "text/plain";
 
-            var response = _httpClient.Post<List<IgdbGame>>(request);
+            var body = $"fields id,name,summary,cover.url,first_release_date,platforms,involved_companies.developer,involved_companies.publisher,involved_companies.company.name; where id = {gameId}; limit 1;";
 
-            return response.Resource.Select(g => new GameTitle
+            request.ContentData = System.Text.Encoding.UTF8.GetBytes(body);
+
+            try
             {
-                IgdbId = g.Id,
-                Title = g.Name,
-                CleanTitle = g.Name,
-                ProviderId = $"igdb:{g.Id}",
-                Summary = g.Summary,
-                CoverArtworkUrl = g.Cover?.Url
-            }).ToList();
+                var response = await _httpClient.ExecuteAsync(request);
+                if (response.HasHttpError)
+                {
+                    _logger.Error($"Failed to get IGDB game details. HTTP Status: {response.StatusCode}");
+                    return null;
+                }
+
+                var games = JsonConvert.DeserializeObject<List<IgdbGame>>(response.Content);
+                var g = games?.FirstOrDefault();
+
+                if (g == null)
+                {
+                    return null;
+                }
+
+                var developer = g.InvolvedCompanies?.FirstOrDefault(c => c.Developer)?.Company?.Name;
+                var publisher = g.InvolvedCompanies?.FirstOrDefault(c => c.Publisher)?.Company?.Name;
+
+                return new GameMetadata
+                {
+                    Id = g.Id,
+                    Title = g.Name,
+                    Summary = g.Summary,
+                    CoverUrl = g.Cover != null && !string.IsNullOrWhiteSpace(g.Cover.Url) ? MapCoverUrl(g.Cover.Url) : null,
+                    ReleaseDate = g.FirstReleaseDate > 0 ? DateTimeOffset.FromUnixTimeSeconds(g.FirstReleaseDate).UtcDateTime : (DateTime?)null,
+                    Developer = developer,
+                    Publisher = publisher,
+                    PlatformId = g.Platforms != null && g.Platforms.Count > 0 ? g.Platforms.First() : 0
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, $"Failed to get IGDB game details for {gameId}.");
+                return null;
+            }
         }
 
-        public class IgdbPlatform
+        public Task<GameMetadata> GetGameByHashAsync(string romHash)
+        {
+            return Task.FromResult<GameMetadata>(null);
+        }
+
+        private string MapCoverUrl(string url)
+        {
+            if (url.StartsWith("//"))
+            {
+                return "https:" + url;
+            }
+            return url;
+        }
+
+        private class IgdbPlatform
         {
             [JsonProperty("id")]
             public int Id { get; set; }
@@ -160,7 +219,7 @@ namespace NzbDrone.Core.MetadataSource.Igdb
             public int Generation { get; set; }
         }
 
-        public class IgdbGame
+        private class IgdbGame
         {
             [JsonProperty("id")]
             public int Id { get; set; }
@@ -174,23 +233,47 @@ namespace NzbDrone.Core.MetadataSource.Igdb
             [JsonProperty("cover")]
             public IgdbCover Cover { get; set; }
 
-            [JsonProperty("release_dates")]
-            public List<IgdbReleaseDate> ReleaseDates { get; set; }
+            [JsonProperty("platforms")]
+            public List<int> Platforms { get; set; }
+
+            [JsonProperty("first_release_date")]
+            public long FirstReleaseDate { get; set; }
+
+            [JsonProperty("involved_companies")]
+            public List<IgdbInvolvedCompany> InvolvedCompanies { get; set; }
         }
 
-        public class IgdbCover
-        {
-            [JsonProperty("url")]
-            public string Url { get; set; }
-        }
-
-        public class IgdbReleaseDate
+        private class IgdbCover
         {
             [JsonProperty("id")]
             public int Id { get; set; }
 
-            [JsonProperty("region")]
-            public int Region { get; set; }
+            [JsonProperty("url")]
+            public string Url { get; set; }
+        }
+
+        private class IgdbInvolvedCompany
+        {
+            [JsonProperty("id")]
+            public int Id { get; set; }
+
+            [JsonProperty("developer")]
+            public bool Developer { get; set; }
+
+            [JsonProperty("publisher")]
+            public bool Publisher { get; set; }
+
+            [JsonProperty("company")]
+            public IgdbCompany Company { get; set; }
+        }
+
+        private class IgdbCompany
+        {
+            [JsonProperty("id")]
+            public int Id { get; set; }
+
+            [JsonProperty("name")]
+            public string Name { get; set; }
         }
     }
 }
