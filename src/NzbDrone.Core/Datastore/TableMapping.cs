@@ -18,6 +18,7 @@ using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
 using NzbDrone.Core.Extras.Subtitles;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.History;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.ImportLists.Exclusions;
@@ -178,6 +179,11 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<ImportListExclusion>("ImportListExclusions").RegisterModel();
 
             Mapper.Entity<AutoTagging.AutoTag>("AutoTagging").RegisterModel();
+
+            Mapper.Entity<GamePlatform>("GamePlatforms").RegisterModel();
+            Mapper.Entity<RomEntry>("RomEntries").RegisterModel();
+            Mapper.Entity<GameTitle>("GameTitles").RegisterModel();
+            Mapper.Entity<GameRelease>("GameReleases").RegisterModel();
         }
 
         private static void RegisterMappers()
