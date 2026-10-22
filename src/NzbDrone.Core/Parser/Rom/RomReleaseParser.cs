@@ -99,8 +99,8 @@ namespace NzbDrone.Core.Parser.Rom
 
                 // Check revision e.g. "Rev 1", "v1.1", "Rev A"
                 if (tagContent.StartsWith("Rev ", StringComparison.OrdinalIgnoreCase) ||
-                    tagContent.StartsWith("Rev", StringComparison.OrdinalIgnoreCase) && tagContent.Length > 3 && char.IsDigit(tagContent[3]) ||
-                    tagContent.StartsWith("v", StringComparison.OrdinalIgnoreCase) && tagContent.Length > 1 && char.IsDigit(tagContent[1]))
+                    (tagContent.StartsWith("Rev", StringComparison.OrdinalIgnoreCase) && tagContent.Length > 3 && char.IsDigit(tagContent[3])) ||
+                    (tagContent.StartsWith("v", StringComparison.OrdinalIgnoreCase) && tagContent.Length > 1 && char.IsDigit(tagContent[1])))
                 {
                     if (result.Revision == null)
                     {

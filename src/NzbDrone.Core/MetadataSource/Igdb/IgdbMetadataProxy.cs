@@ -6,7 +6,6 @@ using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.MetadataSource.Game.Model;
 
 namespace NzbDrone.Core.MetadataSource.Igdb
@@ -198,6 +197,7 @@ namespace NzbDrone.Core.MetadataSource.Igdb
             {
                 return "https:" + url;
             }
+
             return url;
         }
 
