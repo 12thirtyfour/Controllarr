@@ -184,6 +184,8 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<RomEntry>("RomEntries").RegisterModel();
             Mapper.Entity<GameTitle>("GameTitles").RegisterModel();
             Mapper.Entity<GameRelease>("GameReleases").RegisterModel();
+            Mapper.Entity<Dat.DatFile>("DatFiles").RegisterModel();
+            Mapper.Entity<Dat.DatEntry>("DatEntries").RegisterModel();
         }
 
         private static void RegisterMappers()
