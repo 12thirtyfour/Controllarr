@@ -43,9 +43,6 @@ runs:
       id: variables
       shell: bash
       run: |
-        DOTNET_VERSION=$(jq -r '.sdk.version' global.json)
-
-        echo "SDK_PATH=${{ env.DOTNET_ROOT }}/sdk/${DOTNET_VERSION}" >> "$GITHUB_ENV"
         echo "CONTROLLARR_VERSION=${{ inputs.version }}" >> "$GITHUB_ENV"
         echo "BRANCH=${{ inputs.branch }}" >> "$GITHUB_ENV"
 
@@ -53,13 +50,19 @@ runs:
       if: ${{ inputs.runtime == 'freebsd-x64' }}
       shell: bash
       run: |
-        BUNDLEDVERSIONS="${SDK_PATH}/Microsoft.NETCoreSdk.BundledVersions.props"
+        ACTUAL_SDK_DIR=$(ls -d /usr/share/dotnet/sdk/10.* 2>/dev/null | tail -n 1)
+        if [ -z "$ACTUAL_SDK_DIR" ]; then
+          ACTUAL_SDK_DIR="/usr/share/dotnet/sdk/$(dotnet --version)"
+        fi
+        BUNDLEDVERSIONS="${ACTUAL_SDK_DIR}/Microsoft.NETCoreSdk.BundledVersions.props"
 
-        if grep -q freebsd-x64 "$BUNDLEDVERSIONS"; then
-          echo "Extra platforms already enabled"
+        if [ -f "$BUNDLEDVERSIONS" ]; then
+          if ! grep -q freebsd-x64 "$BUNDLEDVERSIONS"; then
+            echo "Enabling extra platform support in $BUNDLEDVERSIONS"
+            sed -i.ORI 's/osx-x64/osx-x64;freebsd-x64/' "$BUNDLEDVERSIONS"
+          fi
         else
-          echo "Enabling extra platform support"
-          sed -i.ORI 's/osx-x64/osx-x64;freebsd-x64/' "$BUNDLEDVERSIONS"
+          echo "Warning: BundledVersions props not found at $BUNDLEDVERSIONS, skipping modification."
         fi
 
         if grep -qv freebsd-x64 src/Directory.Build.props; then
