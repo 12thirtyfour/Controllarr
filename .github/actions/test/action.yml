@@ -67,26 +67,52 @@ runs:
         path: _output
 
     - name: Set up binary artifact
-      if: ${{ inputs.binary_path != '' }}
+      if: inputs.integration_tests == 'true'
       shell: bash
       run: |
+        echo "=== Locating binary artifacts in _output ==="
+        find _output -maxdepth 4 -type f -name "Sonarr*" -o -name "Controllarr*" || true
+
         mkdir -p _tests/bin
         mkdir -p _output/net10.0
-        cp -rf ./_output/${{ inputs.binary_path }}* _tests/bin/ 2>/dev/null || true
-        cp -rf ./_output/${{ inputs.binary_path }}* _output/net10.0/ 2>/dev/null || true
+
+        # Copy everything from _output into _output/net10.0 if not already there
+        if [ -d "_output/${{ inputs.binary_path }}" ]; then
+          cp -rf "_output/${{ inputs.binary_path }}"* _output/net10.0/ 2>/dev/null || true
+        fi
+
+        # Find the main executable anywhere in _output
+        MAIN_BIN=$(find _output -type f \( -name "Sonarr" -o -name "Controllarr" -o -name "Sonarr.exe" -o -name "Controllarr.exe" \) | head -n 1)
+        echo "Found main binary: $MAIN_BIN"
+
+        if [ -n "$MAIN_BIN" ]; then
+          BIN_DIR=$(dirname "$MAIN_BIN")
+          # Copy all files from that binary directory into _output/net10.0 and _tests/bin
+          cp -rf "$BIN_DIR"/* _output/net10.0/ 2>/dev/null || true
+          cp -rf "$BIN_DIR"/* _tests/bin/ 2>/dev/null || true
+        fi
+
+        # On Windows, ensure Sonarr.Console.exe exists
         if [ -f "_output/net10.0/Sonarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
           cp _output/net10.0/Sonarr.exe _output/net10.0/Sonarr.Console.exe
         fi
+        if [ -f "_output/net10.0/Controllarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+          cp _output/net10.0/Controllarr.exe _output/net10.0/Sonarr.Console.exe
+        fi
 
-    - name: Make executable
-      if: startsWith(inputs.os, 'windows') != true
-      shell: bash
-      run: chmod +x ./_tests/*Test.Dummy* 2>/dev/null || true && chmod +x ./_tests/ffprobe 2>/dev/null || true
+        # On Unix, ensure Sonarr exists if Controllarr was built
+        if [ -f "_output/net10.0/Controllarr" ] && [ ! -f "_output/net10.0/Sonarr" ]; then
+          cp _output/net10.0/Controllarr _output/net10.0/Sonarr
+        fi
 
-    - name: Make Controllarr binary executable
-      if: ${{ inputs.integration_tests && !startsWith(inputs.os, 'windows') }}
-      shell: bash
-      run: chmod +x ./_tests/bin/* 2>/dev/null || true
+        # Ensure executables have +x permissions on Linux/macOS
+        chmod +x _output/net10.0/* 2>/dev/null || true
+        chmod +x _tests/bin/* 2>/dev/null || true
+        chmod +x _tests/*Test.Dummy* 2>/dev/null || true
+        chmod +x _tests/ffprobe 2>/dev/null || true
+
+        echo "=== Contents of _output/net10.0 ==="
+        ls -la _output/net10.0/ | head -n 20 || true
 
     - name: Run tests
       shell: bash
