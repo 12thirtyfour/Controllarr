@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import React, {
   useCallback,
   useLayoutEffect,
@@ -7,6 +8,8 @@ import React, {
 } from 'react';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
 import Icon from 'Components/Icon';
+import Label from 'Components/Label';
+import IconButton from 'Components/Link/IconButton';
 import Link from 'Components/Link/Link';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
@@ -18,6 +21,7 @@ import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
 import IndexerFlags from 'Episode/IndexerFlags';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import { useSaveSeries } from 'Series/useSeries';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatAge from 'Utilities/Number/formatAge';
@@ -29,10 +33,6 @@ import OverrideMatchModal from './OverrideMatch/OverrideMatchModal';
 import Peers from './Peers';
 import ReleaseSceneIndicator from './ReleaseSceneIndicator';
 import { Release, useGrabRelease } from './useReleases';
-import { useSaveSeries } from 'Series/useSeries';
-import IconButton from 'Components/Link/IconButton';
-import classNames from 'classnames';
-import Label from 'Components/Label';
 import styles from './InteractiveSearchRow.module.css';
 
 function getDownloadIcon(
@@ -142,7 +142,8 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
   const { updateSeriesMonitor } = useSaveSeries(false);
 
   const series = searchPayload?.series;
-  const isPinned = !!series?.pinnedVersion && parsedInfo?.revision === series?.pinnedVersion;
+  const isPinned =
+    !!series?.pinnedVersion && parsedInfo?.revision === series?.pinnedVersion;
 
   const handlePinToggle = useCallback(() => {
     if (!series) return;
@@ -239,7 +240,11 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       <VirtualTableRowCell className={styles.title}>
         <div className={styles.titleContent}>
           <Link to={infoUrl}>{title}</Link>
-          {isPinned && <Label kind="info" className={styles.pinnedLabel}>Pinned</Label>}
+          {isPinned && (
+            <Label kind="info" className={styles.pinnedLabel}>
+              Pinned
+            </Label>
+          )}
           <ReleaseSceneIndicator
             className={styles.sceneMapping}
             seasonNumber={mappedSeasonNumber}
@@ -406,7 +411,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
                 : translate('Pin this release as preferred (1G1R override)')
             }
             iconProps={{
-              kind: isPinned ? kinds.WARNING : kinds.DEFAULT
+              kind: isPinned ? kinds.WARNING : kinds.DEFAULT,
             }}
             onPress={handlePinToggle}
           />
