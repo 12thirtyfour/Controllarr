@@ -19,55 +19,99 @@ namespace NzbDrone.Core.Test.ParserTests
         }
 
         [Test]
-        public void Should_parse_super_mario_world_verified_dump()
+        public void Should_parse_nointro_standard()
         {
-            var result = _subject.Parse("Super Mario World (USA) [!]");
+            var result = _subject.Parse("Legend of Zelda, The - A Link to the Past (USA).sfc");
 
             result.Should().NotBeNull();
-            result.GameTitle.Should().Be("Super Mario World");
+            result.Title.Should().Be("Legend of Zelda, The - A Link to the Past");
             result.Regions.Should().ContainSingle().Which.Should().Be("USA");
-            result.IsVerifiedDump.Should().BeTrue();
-            result.FormatExtension.Should().BeNull();
+            result.Format.Should().Be(".sfc");
+            result.Platform.Should().Be("SNES"); // Decoded from extension
+
+            var result2 = _subject.Parse("Sonic The Hedgehog (Japan, Korea) (En) (Rev A) [!].md");
+            result2.Title.Should().Be("Sonic The Hedgehog");
+            result2.Regions.Should().BeEquivalentTo("Japan", "Korea");
+            result2.Languages.Should().BeEquivalentTo("En");
+            result2.Revision.Should().Be("Rev A");
+            result2.Flags.Should().Contain("!");
+            result2.Format.Should().Be(".md");
         }
 
         [Test]
-        public void Should_parse_pokemon_ruby_version()
-        {
-            var result = _subject.Parse("Pokemon - Ruby Version (USA, Europe) (Rev 1).gba");
-
-            result.Should().NotBeNull();
-            result.GameTitle.Should().Be("Pokemon - Ruby Version");
-            result.PlatformTag.Should().Be("GBA");
-            result.Regions.Should().BeEquivalentTo("USA", "Europe");
-            result.Revision.Should().Be("Rev 1");
-            result.FormatExtension.Should().Be(".gba");
-            result.IsVerifiedDump.Should().BeFalse();
-        }
-
-        [Test]
-        public void Should_parse_final_fantasy_vii()
+        public void Should_parse_redump_disc()
         {
             var result = _subject.Parse("Final Fantasy VII (USA) (Disc 1) (v1.1).chd");
 
             result.Should().NotBeNull();
-            result.GameTitle.Should().Be("Final Fantasy VII");
+            result.Title.Should().Be("Final Fantasy VII");
             result.Regions.Should().ContainSingle().Which.Should().Be("USA");
             result.Revision.Should().Be("v1.1");
-            result.FormatExtension.Should().Be(".chd");
-            result.IsVerifiedDump.Should().BeFalse();
+            result.DiscNumber.Should().Be(1);
+            result.DiscCount.Should().BeNull();
+            result.Format.Should().Be(".chd");
+
+            var result2 = _subject.Parse("Metal Gear Solid (USA) (Disc 1 of 2).iso");
+            result2.Title.Should().Be("Metal Gear Solid");
+            result2.DiscNumber.Should().Be(1);
+            result2.DiscCount.Should().Be(2);
         }
 
         [Test]
-        public void Should_parse_platform_tag_and_languages()
+        public void Should_parse_tosec_standard()
         {
-            var result = _subject.Parse("Tekken 3 (USA) (En,Fr,De) [PS1].iso");
+            var result = _subject.Parse("Sonic the Hedgehog (1991)(Sega)(US)(Proto)");
 
             result.Should().NotBeNull();
-            result.GameTitle.Should().Be("Tekken 3");
-            result.PlatformTag.Should().Be("PS1");
-            result.Regions.Should().ContainSingle().Which.Should().Be("USA");
-            result.Languages.Should().BeEquivalentTo("En", "Fr", "De");
-            result.FormatExtension.Should().Be(".iso");
+            result.Title.Should().Be("Sonic the Hedgehog");
+            result.Revision.Should().Be("Proto");
+        }
+
+        [Test]
+        public void Should_parse_scene_release_groups_and_hashes()
+        {
+            var result = _subject.Parse("Super_Mario_Bros-SUXXORS [1A2B3C4D].nes");
+
+            result.Should().NotBeNull();
+            result.Title.Should().Be("Super_Mario_Bros");
+            result.Platform.Should().Be("NES");
+            result.Format.Should().Be(".nes");
+        }
+
+        [Test]
+        public void Should_calculate_rom_priority()
+        {
+            var preferredRegions = new List<string> { "USA", "Europe" };
+
+            var best = new RomReleaseInfo { Regions = new List<string> { "USA" }, Flags = new List<string> { "!" }, Revision = "Rev 1" };
+            var bad = new RomReleaseInfo { Regions = new List<string> { "Japan" }, Flags = new List<string> { "b" } };
+            var proto = new RomReleaseInfo { Regions = new List<string> { "USA" }, Revision = "Proto" };
+            var noFlags = new RomReleaseInfo { Regions = new List<string> { "USA" } };
+            var eur = new RomReleaseInfo { Regions = new List<string> { "Europe" }, Flags = new List<string> { "!" } };
+
+            var bestScore = _subject.CalculateRomPriority(best, preferredRegions);
+            var badScore = _subject.CalculateRomPriority(bad, preferredRegions);
+            var protoScore = _subject.CalculateRomPriority(proto, preferredRegions);
+            var noFlagsScore = _subject.CalculateRomPriority(noFlags, preferredRegions);
+            var eurScore = _subject.CalculateRomPriority(eur, preferredRegions);
+
+            bestScore.Should().BeGreaterThan(noFlagsScore);
+            noFlagsScore.Should().BeGreaterThan(protoScore);
+            bestScore.Should().BeGreaterThan(eurScore);
+            eurScore.Should().BeGreaterThan(badScore);
+        }
+
+        [Test]
+        public void Should_parse_multi_language()
+        {
+            var result = _subject.Parse("Pokemon - Emerald Version (Europe) (En,Fr,De,Es,It).gba");
+
+            result.Should().NotBeNull();
+            result.Title.Should().Be("Pokemon - Emerald Version");
+            result.Platform.Should().Be("GBA");
+            result.Regions.Should().ContainSingle().Which.Should().Be("Europe");
+            result.Languages.Should().BeEquivalentTo("En", "Fr", "De", "Es", "It");
+            result.Format.Should().Be(".gba");
         }
 
         [Test]
