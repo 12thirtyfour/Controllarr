@@ -10,6 +10,7 @@ namespace Sonarr.Api.V3.Games
         public SdCardDeviceProfile Profile { get; set; }
         public string TargetMountPath { get; set; }
         public bool Overwrite { get; set; }
+        public bool OptimizeFormatsForDevice { get; set; }
         public List<SdCardExportItem> Items { get; set; } = new List<SdCardExportItem>();
     }
 
@@ -44,7 +45,8 @@ namespace Sonarr.Api.V3.Games
                 request.Profile,
                 request.TargetMountPath,
                 request.Items,
-                request.Overwrite);
+                request.Overwrite,
+                request.OptimizeFormatsForDevice);
 
             return Ok(result);
         }

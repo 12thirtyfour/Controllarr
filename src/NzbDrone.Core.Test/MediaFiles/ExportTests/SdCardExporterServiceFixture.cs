@@ -5,6 +5,7 @@ using Moq;
 using NLog;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.Export;
 
 namespace NzbDrone.Core.Test.MediaFiles.ExportTests
@@ -13,13 +14,18 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
     public class SdCardExporterServiceFixture
     {
         private Mock<IDiskProvider> _diskProvider;
+        private Mock<IDiscCompressionService> _discCompressionService;
         private SdCardExporterService _subject;
 
         [SetUp]
         public void Setup()
         {
             _diskProvider = new Mock<IDiskProvider>();
-            _subject = new SdCardExporterService(_diskProvider.Object, LogManager.GetCurrentClassLogger());
+            _discCompressionService = new Mock<IDiscCompressionService>();
+            _subject = new SdCardExporterService(
+                _diskProvider.Object,
+                LogManager.GetCurrentClassLogger(),
+                _discCompressionService.Object);
         }
 
         [TestCase(SdCardDeviceProfile.OnionOS, "SNES", "Super Mario World", "Super Mario World.sfc", "Roms", "SFC", "Super Mario World.sfc")]
@@ -53,46 +59,124 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
         }
 
         [Test]
+        public void should_keep_files_as_is_when_format_optimization_is_not_opted_in()
+        {
+            var plan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.MiSTer,
+                "SNES",
+                "Super Mario World",
+                "Super Mario World.sfc",
+                optimizeFormatsForDevice: false);
+
+            plan.Transformation.Should().Be(SdCardFormatTransformation.CopyAsIs);
+            plan.RelativeDestinationPath.Should().Be(Path.Combine("games", "SNES", "N-S", "Super Mario World.sfc"));
+        }
+
+        [Test]
+        public void should_zip_cartridge_roms_and_use_chd_on_mister_when_opted_in()
+        {
+            var snesPlan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.MiSTer,
+                "SNES",
+                "Super Mario World",
+                "Super Mario World.sfc",
+                optimizeFormatsForDevice: true);
+
+            snesPlan.Transformation.Should().Be(SdCardFormatTransformation.ZipSingleRom);
+            snesPlan.RelativeDestinationPath.Should().Be(Path.Combine("games", "SNES", "N-S", "Super Mario World.zip"));
+
+            var segaCdPlan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.MiSTer,
+                "Sega CD",
+                "Sonic CD",
+                "Sonic CD.cue",
+                optimizeFormatsForDevice: true);
+
+            segaCdPlan.Transformation.Should().Be(SdCardFormatTransformation.CompressDiscToChd);
+            segaCdPlan.RelativeDestinationPath.Should().Be(Path.Combine("games", "MegaCD", "N-S", "Sonic CD.chd"));
+        }
+
+        [Test]
+        public void should_convert_chd_to_cue_bin_for_flashcarts_and_odes_that_do_not_support_chd_when_opted_in()
+        {
+            var everDriveSegaCdPlan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.EverDrive,
+                "Sega CD",
+                "Sonic CD",
+                "Sonic CD.chd",
+                optimizeFormatsForDevice: true);
+
+            everDriveSegaCdPlan.Transformation.Should().Be(SdCardFormatTransformation.ConvertChdToCueBin);
+            everDriveSegaCdPlan.RelativeDestinationPath.Should().Be(Path.Combine("Sega CD", "N-S", "Sonic CD.cue"));
+
+            var xStationPlan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.XStation,
+                "PlayStation",
+                "Final Fantasy VII",
+                "Final Fantasy VII.chd",
+                optimizeFormatsForDevice: true);
+
+            xStationPlan.Transformation.Should().Be(SdCardFormatTransformation.ConvertChdToCueBin);
+            xStationPlan.RelativeDestinationPath.Should().Be(Path.Combine("00xstation", "A-F", "Final Fantasy VII.cue"));
+        }
+
+        [Test]
+        public void should_extract_zip_for_flashcarts_and_analogue_pocket_when_opted_in()
+        {
+            var pocketPlan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.AnaloguePocket,
+                "SNES",
+                "Chrono Trigger",
+                "Chrono Trigger.zip",
+                optimizeFormatsForDevice: true);
+
+            pocketPlan.Transformation.Should().Be(SdCardFormatTransformation.ExtractZipToRawRom);
+            pocketPlan.RelativeDestinationPath.Should().Be(Path.Combine("Assets", "snes", "common", "A-F", "Chrono Trigger.sfc"));
+        }
+
+        [Test]
         public void should_return_complete_supported_profile_catalog()
         {
             var profiles = _subject.GetSupportedProfiles();
 
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.MiSTer);
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.RetroArch);
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.Batocera);
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.EmulationStation);
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.OnionOS);
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.AnaloguePocket);
-            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.EverDrive);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.MiSTer && p.SupportsZipPerRom && p.SupportsChdForOpticalDiscs);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.RetroArch && p.SupportsZipPerRom && p.SupportsChdForOpticalDiscs);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.EverDrive && !p.SupportsChdForOpticalDiscs && !p.SupportsZipPerRom);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.AnaloguePocket && !p.SupportsZipPerRom);
         }
 
         [Test]
-        public void should_export_verified_roms_to_sd_card_mount_path()
+        public void should_invoke_chd_decompression_when_exporting_sega_cd_chd_to_everdrive_with_optimization_opted_in()
         {
-            var sourceRom = Path.Combine("C:", "Library", "Nintendo", "SNES", "Super Metroid (JU) [!].sfc");
-            var mountPath = Path.Combine("E:", "SDCard");
+            var sourceChd = Path.Combine("C:", "Library", "Sega", "Sega CD", "Sonic CD (USA).chd");
+            var mountPath = Path.Combine("E:", "EverDrive");
+            var expectedDestFolder = Path.Combine(mountPath, "Sega CD", "N-S");
+            var expectedCueOut = Path.Combine(expectedDestFolder, "Sonic CD (USA).cue");
 
-            _diskProvider.Setup(d => d.FileExists(sourceRom)).Returns(true);
-            _diskProvider.Setup(d => d.FolderExists(It.IsAny<string>())).Returns(false);
+            _diskProvider.Setup(d => d.FileExists(sourceChd)).Returns(true);
+            _diskProvider.Setup(d => d.FolderExists(expectedDestFolder)).Returns(false);
+            _discCompressionService
+                .Setup(c => c.DecompressDisc(sourceChd, expectedDestFolder, out expectedCueOut, "Sonic CD (USA)"))
+                .Returns(true);
 
             var result = _subject.ExportToSdCard(
-                SdCardDeviceProfile.MiSTer,
+                SdCardDeviceProfile.EverDrive,
                 mountPath,
                 new List<SdCardExportItem>
                 {
                     new SdCardExportItem
                     {
-                        SourceFilePath = sourceRom,
-                        PlatformFolder = "SNES",
-                        GameTitle = "Super Metroid"
+                        SourceFilePath = sourceChd,
+                        PlatformFolder = "Sega CD",
+                        GameTitle = "Sonic CD"
                     }
                 },
-                overwrite: true);
+                overwrite: true,
+                optimizeFormatsForDevice: true);
 
             result.ExportedCount.Should().Be(1);
-            result.DestinationPaths.Should().ContainSingle();
-            _diskProvider.Verify(d => d.CreateFolder(It.IsAny<string>()), Times.Once);
-            _diskProvider.Verify(d => d.CopyFile(sourceRom, It.IsAny<string>(), true), Times.Once);
+            result.AppliedTransformations.Should().ContainSingle().Which.Should().Be(SdCardFormatTransformation.ConvertChdToCueBin);
+            result.DestinationPaths.Should().ContainSingle().Which.Should().Be(expectedCueOut);
         }
     }
 }

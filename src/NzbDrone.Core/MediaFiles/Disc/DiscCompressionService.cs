@@ -15,8 +15,10 @@ namespace NzbDrone.Core.MediaFiles.Disc
 
     public interface IDiscCompressionService
     {
-        (string Executable, string Arguments, DiscCompressionFormat Format, string OutputPath) BuildCompressionCommand(string sourcePath, string platformSlug);
-        bool CompressDisc(string sourcePath, string platformSlug, out string outputPath);
+        (string Executable, string Arguments, DiscCompressionFormat Format, string OutputPath) BuildCompressionCommand(string sourcePath, string platformSlug, string explicitOutputPath = null);
+        bool CompressDisc(string sourcePath, string platformSlug, out string outputPath, string explicitOutputPath = null);
+        (string Executable, string Arguments, string PrimaryOutputPath) BuildDecompressionCommand(string sourcePath, string targetDirectory, string targetFileNameWithoutExtension = null);
+        bool DecompressDisc(string sourcePath, string targetDirectory, out string primaryOutputPath, string targetFileNameWithoutExtension = null);
     }
 
     public class DiscCompressionService : IDiscCompressionService
@@ -24,14 +26,19 @@ namespace NzbDrone.Core.MediaFiles.Disc
         private static readonly HashSet<string> RvzPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "gamecube",
+            "nintendo gamecube",
             "gc",
-            "wii"
+            "wii",
+            "nintendo wii"
         };
 
         private static readonly HashSet<string> DvdPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "ps2",
-            "psp"
+            "playstation 2",
+            "sony playstation 2",
+            "psp",
+            "xbox"
         };
 
         private readonly IProcessProvider _processProvider;
@@ -43,18 +50,22 @@ namespace NzbDrone.Core.MediaFiles.Disc
             _logger = logger;
         }
 
-        public (string Executable, string Arguments, DiscCompressionFormat Format, string OutputPath) BuildCompressionCommand(string sourcePath, string platformSlug)
+        public (string Executable, string Arguments, DiscCompressionFormat Format, string OutputPath) BuildCompressionCommand(string sourcePath, string platformSlug, string explicitOutputPath = null)
         {
             var normalizedPlatform = platformSlug?.Trim() ?? string.Empty;
 
             if (RvzPlatforms.Contains(normalizedPlatform))
             {
-                var rvzOutput = Path.ChangeExtension(sourcePath, ".rvz");
+                var rvzOutput = !string.IsNullOrWhiteSpace(explicitOutputPath)
+                    ? Path.ChangeExtension(explicitOutputPath, ".rvz")
+                    : Path.ChangeExtension(sourcePath, ".rvz");
                 var args = $"convert -i \"{sourcePath}\" -o \"{rvzOutput}\" -f rvz -b 131072 -c zstd -l 5";
                 return ("dolphin-tool", args, DiscCompressionFormat.Rvz, rvzOutput);
             }
 
-            var chdOutput = Path.ChangeExtension(sourcePath, ".chd");
+            var chdOutput = !string.IsNullOrWhiteSpace(explicitOutputPath)
+                ? Path.ChangeExtension(explicitOutputPath, ".chd")
+                : Path.ChangeExtension(sourcePath, ".chd");
             if (DvdPlatforms.Contains(normalizedPlatform))
             {
                 var dvdArgs = $"createdvd -i \"{sourcePath}\" -o \"{chdOutput}\"";
@@ -65,9 +76,9 @@ namespace NzbDrone.Core.MediaFiles.Disc
             return ("chdman", cdArgs, DiscCompressionFormat.ChdCd, chdOutput);
         }
 
-        public bool CompressDisc(string sourcePath, string platformSlug, out string outputPath)
+        public bool CompressDisc(string sourcePath, string platformSlug, out string outputPath, string explicitOutputPath = null)
         {
-            var (executable, arguments, format, targetPath) = BuildCompressionCommand(sourcePath, platformSlug);
+            var (executable, arguments, format, targetPath) = BuildCompressionCommand(sourcePath, platformSlug, explicitOutputPath);
             outputPath = targetPath;
 
             var compressResult = _processProvider.StartAndCapture(executable, arguments);
@@ -85,6 +96,49 @@ namespace NzbDrone.Core.MediaFiles.Disc
                     _logger.Error("CHD verification failed for {0}", outputPath);
                     return false;
                 }
+            }
+
+            return true;
+        }
+
+        public (string Executable, string Arguments, string PrimaryOutputPath) BuildDecompressionCommand(
+            string sourcePath,
+            string targetDirectory,
+            string targetFileNameWithoutExtension = null)
+        {
+            var baseName = !string.IsNullOrWhiteSpace(targetFileNameWithoutExtension)
+                ? targetFileNameWithoutExtension.Trim()
+                : Path.GetFileNameWithoutExtension(sourcePath);
+
+            var ext = Path.GetExtension(sourcePath)?.ToLowerInvariant() ?? string.Empty;
+
+            if (ext == ".rvz")
+            {
+                var isoOutput = Path.Combine(targetDirectory ?? string.Empty, baseName + ".iso");
+                var rvzArgs = $"convert -i \"{sourcePath}\" -o \"{isoOutput}\" -f iso";
+                return ("dolphin-tool", rvzArgs, isoOutput);
+            }
+
+            var cueOutput = Path.Combine(targetDirectory ?? string.Empty, baseName + ".cue");
+            var binOutput = Path.Combine(targetDirectory ?? string.Empty, baseName + ".bin");
+            var chdExtractArgs = $"extractcd -i \"{sourcePath}\" -o \"{cueOutput}\" -ob \"{binOutput}\"";
+            return ("chdman", chdExtractArgs, cueOutput);
+        }
+
+        public bool DecompressDisc(
+            string sourcePath,
+            string targetDirectory,
+            out string primaryOutputPath,
+            string targetFileNameWithoutExtension = null)
+        {
+            var (executable, arguments, outputPath) = BuildDecompressionCommand(sourcePath, targetDirectory, targetFileNameWithoutExtension);
+            primaryOutputPath = outputPath;
+
+            var extractResult = _processProvider.StartAndCapture(executable, arguments);
+            if (extractResult == null || extractResult.ExitCode != 0)
+            {
+                _logger.Error("Disc extraction ({0}) failed for {1} with exit code {2}", executable, sourcePath, extractResult?.ExitCode);
+                return false;
             }
 
             return true;

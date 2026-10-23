@@ -48,6 +48,20 @@ namespace NzbDrone.Core.Test.MediaFiles.DiscTests
         }
 
         [Test]
+        public void Should_build_chdman_extractcd_command_for_flashcarts_that_do_not_support_chd()
+        {
+            var source = Path.Combine("Library", "Sega CD", "Sonic CD (USA).chd");
+            var targetDir = Path.Combine("SDCard", "Sega CD", "N-S");
+
+            var (exe, args, primaryOutput) = Subject.BuildDecompressionCommand(source, targetDir, "Sonic CD (USA)");
+
+            exe.Should().Be("chdman");
+            args.Should().Contain("extractcd");
+            args.Should().Contain("-ob");
+            primaryOutput.Should().Be(Path.Combine(targetDir, "Sonic CD (USA).cue"));
+        }
+
+        [Test]
         public void Should_compress_and_verify_chd_disc_via_process_provider()
         {
             Mocker.GetMock<IProcessProvider>()
