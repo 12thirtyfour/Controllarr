@@ -23,9 +23,20 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
         }
 
         [TestCase(SdCardDeviceProfile.OnionOS, "SNES", "Super Mario World", "Super Mario World.sfc", "Roms", "SFC", "Super Mario World.sfc")]
+        [TestCase(SdCardDeviceProfile.GarlicOS, "Game Boy Advance", "Metroid Fusion", "Metroid Fusion.gba", "Roms", "GBA", "Metroid Fusion.gba")]
         [TestCase(SdCardDeviceProfile.AnaloguePocket, "SNES", "Chrono Trigger", "Chrono Trigger.sfc", "Assets", "snes", "Chrono Trigger.sfc")]
+        [TestCase(SdCardDeviceProfile.MiSTer, "Genesis", "Sonic the Hedgehog", "Sonic the Hedgehog.md", "games", "Genesis", "Sonic the Hedgehog.md")]
+        [TestCase(SdCardDeviceProfile.RetroArch, "SNES", "EarthBound", "EarthBound.sfc", "downloads", "SNES", "EarthBound.sfc")]
+        [TestCase(SdCardDeviceProfile.Batocera, "Genesis", "Streets of Rage 2", "Streets of Rage 2.md", "roms", "megadrive", "Streets of Rage 2.md")]
+        [TestCase(SdCardDeviceProfile.ArkOS, "PlayStation", "Castlevania", "Castlevania.chd", "roms", "psx", "Castlevania.chd")]
+        [TestCase(SdCardDeviceProfile.EmulationStation, "SNES", "Super Metroid", "Super Metroid.sfc", "ROMs", "snes", "Super Metroid.sfc")]
         [TestCase(SdCardDeviceProfile.EverDrive, "SNES", "F-Zero", "F-Zero.sfc", "SNES", "A-F", "F-Zero.sfc")]
         [TestCase(SdCardDeviceProfile.FXPakPro, "SNES", "Star Fox", "Star Fox.sfc", "sd2snes", "N-S", "Star Fox.sfc")]
+        [TestCase(SdCardDeviceProfile.TwilightMenu, "Nintendo DS", "Mario Kart DS", "Mario Kart DS.nds", "roms", "nds", "Mario Kart DS.nds")]
+        [TestCase(SdCardDeviceProfile.XStation, "PlayStation", "Metal Gear Solid", "Metal Gear Solid.chd", "00xstation", "G-M", "Metal Gear Solid.chd")]
+        [TestCase(SdCardDeviceProfile.SwissGameCube, "GameCube", "Luigi's Mansion", "Luigis Mansion.rvz", "games", "G-M", "Luigis Mansion.rvz")]
+        [TestCase(SdCardDeviceProfile.Fenrir, "Sega Saturn", "Panzer Dragoon Saga", "Panzer Dragoon Saga.chd", "saturn", "N-S", "Panzer Dragoon Saga.chd")]
+        [TestCase(SdCardDeviceProfile.GDEMU, "Dreamcast", "Soulcalibur", "Soulcalibur.chd", "GDEMU", "N-S", "Soulcalibur.chd")]
         public void should_build_device_specific_relative_path(
             SdCardDeviceProfile profile,
             string platformFolder,
@@ -42,6 +53,20 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
         }
 
         [Test]
+        public void should_return_complete_supported_profile_catalog()
+        {
+            var profiles = _subject.GetSupportedProfiles();
+
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.MiSTer);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.RetroArch);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.Batocera);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.EmulationStation);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.OnionOS);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.AnaloguePocket);
+            profiles.Should().Contain(p => p.Profile == SdCardDeviceProfile.EverDrive);
+        }
+
+        [Test]
         public void should_export_verified_roms_to_sd_card_mount_path()
         {
             var sourceRom = Path.Combine("C:", "Library", "Nintendo", "SNES", "Super Metroid (JU) [!].sfc");
@@ -51,7 +76,7 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
             _diskProvider.Setup(d => d.FolderExists(It.IsAny<string>())).Returns(false);
 
             var result = _subject.ExportToSdCard(
-                SdCardDeviceProfile.EverDrive,
+                SdCardDeviceProfile.MiSTer,
                 mountPath,
                 new List<SdCardExportItem>
                 {

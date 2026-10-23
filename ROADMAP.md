@@ -32,6 +32,6 @@
 * Step 2: Multi-Architecture Docker & Standalone Binary Packaging (Locking in the stable core runtime prior to new ecosystem additions)
 
 ## Phase 6: New Features (Ecosystem Integration & Interactive Views) (Completed)
-* Step 1: SD Card Multi-Device Exporter Engine (OnionOS, Analogue Pocket, EverDrive FAT32 alphabetical buckets)
+* Step 1: SD Card Multi-Device Exporter Engine (MiSTer FPGA, RetroArch, Batocera, EmulationStation/ES-DE, ArkOS/ROCKNIX, GarlicOS, OnionOS, Analogue Pocket, EverDrive, FXPak Pro, EZ-Flash, R4/TWiLight Menu++, and ODEs [xStation, Swiss/GC Loader, Fenrir, GDEMU] with FAT32 alphabetical buckets)
 * Step 2: RetroAchievements Integration (Credential Setup, Badge Showcase, Mastery Progress Bar)
 * Step 3: WebAssembly/Libretro Player & Desktop App Launcher ("Play Now" Button)

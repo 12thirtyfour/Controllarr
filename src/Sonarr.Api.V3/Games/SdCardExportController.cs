@@ -23,6 +23,13 @@ namespace Sonarr.Api.V3.Games
             _sdCardExporterService = sdCardExporterService;
         }
 
+        [HttpGet("profiles")]
+        [Produces("application/json")]
+        public ActionResult<IReadOnlyList<SdCardProfileDescriptor>> GetProfiles()
+        {
+            return Ok(_sdCardExporterService.GetSupportedProfiles());
+        }
+
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]

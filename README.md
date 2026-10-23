@@ -92,7 +92,7 @@ Take your collection on the go. Controllarr integrates layout profiles based on 
 
 * **FAT32-Safe Splits**: Automatically splits large alphabetized directories into `A-M/` and `N-Z/` subdirectories to prevent file-count limits on legacy hardware.
 
-* **Preset Profiles**: Dedicated directory configurations for **MiSTer FPGA**, **Analogue Pocket**, **OnionOS (Miyoo Mini)**, **EverDrive**, and **FXPak Pro**.
+* **Preset Profiles**: Dedicated directory configurations for **MiSTer FPGA**, **Analogue Pocket (openFPGA)**, **RetroArch**, **Batocera / Knulli**, **EmulationStation DE (ES-DE / EmuDeck)**, **OnionOS (Miyoo Mini)**, **GarlicOS / MuOS**, **ArkOS / ROCKNIX**, **EverDrive**, **FXPak Pro**, **EZ-Flash**, **R4 / TWiLight Menu++**, and Optical Drive Emulators (**xStation**, **Swiss / GC Loader**, **Fenrir / Saroo**, **GDEMU / MODE**).
 
 ## Project Status & Active Development
 
