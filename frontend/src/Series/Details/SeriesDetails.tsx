@@ -290,6 +290,13 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     setIsSeriesHistoryModalOpen(true);
   }, []);
 
+  const handlePlayNowPress = useCallback(() => {
+    window.location.href = `controllarr://play/${seriesId}`;
+  }, [seriesId]);
+
+  const handleSeriesHistoryPressNoop = useCallback(() => {
+  }, []);
+
   const handleSeriesHistoryModalClose = useCallback(() => {
     setIsSeriesHistoryModalOpen(false);
   }, []);
@@ -531,6 +538,16 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
             label={translate('ManageEpisodes')}
             iconName={icons.EPISODE_FILE}
             onPress={handleManageEpisodesPress}
+          />
+
+          <ToolbarItem
+            id="play-now"
+            priority={1}
+            groupId="left-b"
+            label="Play Now"
+            iconName={icons.QUICK}
+            isDisabled={!hasEpisodeFiles}
+            onPress={handlePlayNowPress}
           />
 
           <ToolbarItem
@@ -796,6 +813,15 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                           qualityProfileId={qualityProfileId}
                         />
                       </span>
+                    </Label>
+
+                    <Label
+                      className={styles.detailsLabel}
+                      title="RetroAchievements"
+                      size={sizes.LARGE}
+                      icon={icons.SCORE}
+                    >
+                      <span>RA Ready</span>
                     </Label>
 
                     <Label
