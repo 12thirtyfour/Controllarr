@@ -19,6 +19,9 @@ namespace NzbDrone.Core.Test.OrganizerTests
 
             Mocker.GetMock<INamingConfigService>()
                   .Setup(c => c.GetConfig()).Returns(_namingConfig);
+
+            Mocker.GetMock<NzbDrone.Core.Games.IPlatformCatalogService>()
+                  .Setup(c => c.GetAll()).Returns(new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>());
         }
 
         [TestCase("30 Rock", "{Series Title}", "30 Rock")]

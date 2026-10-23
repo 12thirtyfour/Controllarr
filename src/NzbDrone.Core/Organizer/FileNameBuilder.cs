@@ -11,6 +11,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Qualities;
@@ -44,6 +45,7 @@ namespace NzbDrone.Core.Organizer
         private readonly ICached<bool> _requiresEpisodeTitleCache;
         private readonly ICached<bool> _requiresAbsoluteEpisodeNumberCache;
         private readonly ICached<bool> _patternHasEpisodeIdentifierCache;
+        private readonly IPlatformCatalogService _platformCatalogService;
         private readonly Logger _logger;
 
         private static readonly Regex TitleRegex = new Regex(@"(?<escaped>\{\{|\}\})|\{(?<prefix>[- ._\[(]*)(?<token>(?:[a-z0-9]+)(?:(?<separator>[- ._]+)(?:[a-z0-9]+))?)(?::(?<customFormat>[ ,a-z0-9+-]+(?<![- ])))?(?<suffix>[- ._)\]]*)\}",
@@ -120,6 +122,7 @@ namespace NzbDrone.Core.Organizer
                                ICacheManager cacheManager,
                                IUpdateMediaInfo mediaInfoUpdater,
                                ICustomFormatCalculationService formatCalculator,
+                               IPlatformCatalogService platformCatalogService,
                                Logger logger)
         {
             _namingConfigService = namingConfigService;
@@ -131,6 +134,7 @@ namespace NzbDrone.Core.Organizer
             _requiresEpisodeTitleCache = cacheManager.GetCache<bool>(GetType(), "requiresEpisodeTitle");
             _requiresAbsoluteEpisodeNumberCache = cacheManager.GetCache<bool>(GetType(), "requiresAbsoluteEpisodeNumber");
             _patternHasEpisodeIdentifierCache = cacheManager.GetCache<bool>(GetType(), "patternHasEpisodeIdentifier");
+            _platformCatalogService = platformCatalogService;
             _logger = logger;
         }
 
@@ -263,9 +267,32 @@ namespace NzbDrone.Core.Organizer
 
         public string GetSeriesFolder(Series series, string title, NamingConfig namingConfig = null)
         {
+            if (_platformCatalogService != null)
+            {
+                var allPlatforms = _platformCatalogService.GetAll() ?? new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>();
+                var seriesTitle = series != null ? series.Title : title;
+                if (!string.IsNullOrWhiteSpace(seriesTitle))
+                {
+                    foreach (var platform in allPlatforms)
+                    {
+                        if (platform != null && platform.Name != null && platform.Name.Equals(seriesTitle, System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            var man = platform.Manufacturer ?? "";
+                            var con = platform.RegionalConsoleNames != null && platform.RegionalConsoleNames.ContainsKey("US") ? platform.RegionalConsoleNames["US"] : (platform.Name ?? "");
+                            return System.IO.Path.Combine(man, con);
+                        }
+                    }
+                }
+            }
+
             if (namingConfig == null)
             {
-                namingConfig = _namingConfigService.GetConfig();
+                namingConfig = _namingConfigService != null ? _namingConfigService.GetConfig() : NamingConfig.Default;
+            }
+
+            if (namingConfig == null)
+            {
+                namingConfig = NamingConfig.Default;
             }
 
             var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
