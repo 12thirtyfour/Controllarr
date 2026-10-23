@@ -12,8 +12,13 @@
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0" /></a>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10" /></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript%20%7C%20Vite-61dafb.svg" alt="React Vite" /></a>
+  <a href="wiki/Home.md"><img src="https://img.shields.io/badge/docs-wiki-brightgreen.svg" alt="Wiki Documentation" /></a>
   <a href="https://github.com/12thirtyfour/Controllarr/actions"><img src="https://img.shields.io/github/actions/workflow/status/12thirtyfour/Controllarr/build.yml?branch=develop&label=build" alt="Build Status" /></a>
 </p>
+
+---
+
+> 📖 **Comprehensive Documentation**: Explore the [**Controllarr Wiki**](wiki/Home.md) for detailed installation guides, console compatibility charts, BIOS verification matrices, and hardware exporter configurations.
 
 ---
 
