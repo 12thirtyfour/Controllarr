@@ -294,9 +294,6 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     window.location.href = `controllarr://play/${seriesId}`;
   }, [seriesId]);
 
-  const handleSeriesHistoryPressNoop = useCallback(() => {
-  }, []);
-
   const handleSeriesHistoryModalClose = useCallback(() => {
     setIsSeriesHistoryModalOpen(false);
   }, []);
@@ -482,6 +479,21 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   }
 
   const fanartUrl = getFanartUrl(images);
+  let collectionStrategyLabel = '1G1R';
+
+  if (collectionStrategy === 1) {
+    collectionStrategyLabel = 'Preservationist';
+  } else if (collectionStrategy === 2) {
+    collectionStrategyLabel = '1G1R Regional';
+  }
+
+  let revisionPreferenceLabel = ' (Latest Rev)';
+
+  if (pinnedVersion) {
+    revisionPreferenceLabel = ` (Pinned: ${pinnedVersion})`;
+  } else if (revisionPreference === 1) {
+    revisionPreferenceLabel = ' (Initial)';
+  }
   const isFetching = isEpisodesFetching || isEpisodeFilesFetching;
   const isPopulated = isEpisodesFetched && isEpisodeFilesFetched;
 
@@ -831,16 +843,8 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                       icon={icons.ORGANIZE}
                     >
                       <span>
-                        {collectionStrategy === 1
-                          ? 'Preservationist'
-                          : collectionStrategy === 2
-                            ? '1G1R Regional'
-                            : '1G1R'}
-                        {pinnedVersion
-                          ? ` (Pinned: ${pinnedVersion})`
-                          : revisionPreference === 1
-                            ? ' (Initial)'
-                            : ' (Latest Rev)'}
+                        {collectionStrategyLabel}
+                        {revisionPreferenceLabel}
                       </span>
                     </Label>
 

@@ -209,7 +209,7 @@ function EditSeriesModalContent({
           </FormRow>
 
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(Number((settings as any).collectionStrategy?.value) === 0 || Number((settings as any).collectionStrategy?.value) === 2) && (
+          {Number((settings as any).collectionStrategy?.value) !== 1 && (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('1G1R Revision Preference')}</FormLabel>
               <FormInputHelpText
@@ -234,7 +234,11 @@ function EditSeriesModalContent({
 
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('Pinned Version / Revision')}</FormLabel>
-            <FormInputHelpText text={translate('Optional revision or version tag to pin (e.g. Rev A, 1.1)')} />
+            <FormInputHelpText
+              text={translate(
+                'Optional revision or version tag to pin (e.g. Rev A, 1.1)'
+              )}
+            />
             <FormInput
               type={inputTypes.TEXT}
               name="pinnedVersion"
