@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import Alert from 'Components/Alert';
 import Form from 'Components/Form/Form';
 import FormInput from 'Components/Form/FormInput';
+import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
@@ -93,24 +94,28 @@ function RetroAchievementsSettings() {
             <Form>
               <FormRow size={sizes.MEDIUM}>
                 <FormLabel>{translate('Username')}</FormLabel>
+                <FormInputHelpText
+                  text={translate('RetroAchievementsUsernameHelpText')}
+                />
                 <FormInput
                   type={inputTypes.TEXT}
                   name="username"
                   value={username}
                   placeholder="RetroAchievements username"
-                  helpText={translate('RetroAchievementsUsernameHelpText')}
                   onChange={handleUsernameChange}
                 />
               </FormRow>
 
               <FormRow size={sizes.MEDIUM}>
                 <FormLabel>{translate('RetroAchievementsWebApiKey')}</FormLabel>
+                <FormInputHelpText
+                  text={translate('RetroAchievementsWebApiKeyHelpText')}
+                />
                 <FormInput
                   type={inputTypes.PASSWORD}
                   name="webApiKey"
                   value={webApiKey}
                   placeholder="16-64 character alphanumeric Web API Key"
-                  helpText={translate('RetroAchievementsWebApiKeyHelpText')}
                   onChange={handleApiKeyChange}
                 />
               </FormRow>
