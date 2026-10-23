@@ -94,34 +94,6 @@ Take your collection on the go. Controllarr integrates layout profiles based on 
 
 * **Preset Profiles**: Dedicated directory configurations for **MiSTer FPGA**, **Analogue Pocket**, **OnionOS (Miyoo Mini)**, **EverDrive**, and **FXPak Pro**.
 
-## How It Works
-
-```
-┌────────────────────────────────────────────────────────┐
-│                      Controllarr                       │
-│                                                        │
-│  1. Search & Ingestion                                 │
-│     • HTTP (Internet Archive) / Usenet / BitTorrent    │
-│     • Local Disk Scans (.zip, .7z, .iso, .chd)         │
-│                           │                            │
-│                           ▼                            │
-│  2. Identification & Verification                      │
-│     • CRC32 / MD5 / SHA-1 Hash Calculation             │
-│     • Local SQLite DAT Cache (No-Intro / Redump)       │
-│                           │                            │
-│                           ▼                            │
-│  3. Collection Strategy Rules                          │
-│     • 1G1R Deduplication (Region & Revision Filter)    │
-│     • Automatic File Renaming & Organization           │
-│                           │                            │
-│                           ▼                            │
-│  4. Library & Playback                                 │
-│     • In-Browser "Play Now" via Libretro WebAssembly   │
-│     • Export to Flash-Carts & Handheld SD Cards        │
-└────────────────────────────────────────────────────────┘
-
-```
-
 ## Project Status & Active Development
 
 Controllarr is currently in active development.
