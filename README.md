@@ -102,4 +102,17 @@ Controllarr is currently in active development.
 
 * **In Progress**: Root folder regional folder naming (`{Manufacturer}/{Console}`), automatic extension-based scanning and hash matching, and 3-way download protocol priority.
 
-* **Upcoming**: Web UI revamp with rich game cards and revision views, in-browser emulation playback, automatic disc image compression (`chdman`), and flash cart SD card export presets.
+* **Upcoming**: Expanded React modal workflows, end-to-end browser emulation core packaging, and broader community DAT/SMDB automation.
+
+## Credits, Upstream Attribution & Licenses
+
+Controllarr is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see [LICENSE.md](LICENSE.md).
+
+Controllarr stands on the shoulders of major open-source projects, preservation communities, and emulation tools. Full credits and license disclosures are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), including:
+
+* **[Sonarr](https://github.com/Sonarr/Sonarr)** (**GPL-3.0**) — Core `.NET` and `React` application architecture from which Controllarr is forked.
+* **`chdman` / [MAME Project](https://github.com/mamedev/mame)** (**GPL-2.0-or-later** / **BSD-3-Clause**) — External command-line tool invoked for `.chd` optical disc compression and verification.
+* **`dolphin-tool` / [Dolphin Emulator Project](https://github.com/dolphin-emu/dolphin)** (**GPL-2.0-or-later**) — External command-line tool invoked for GameCube/Wii `.rvz` lossless disc conversion.
+* **7-Zip / [p7zip](https://github.com/p7zip-project/p7zip)** (**LGPL-2.1-or-later**) & **[SharpCompress](https://github.com/adamhathcock/sharpcompress)** (**MIT**) — Archive inspection and extraction.
+* **[Libretro / RetroArch](https://github.com/libretro/RetroArch)** (**GPL-3.0** and respective core licenses) — WebAssembly player and desktop launcher target cores.
+* **[Hardware Target Game Database (HTGDB / SMDB)](https://github.com/frederic-mahe/Hardware-Target-Game-Database)** (SmokeMonster & Frederic Mahe), **[No-Intro](https://www.no-intro.org/)**, **[Redump](http://redump.org/)**, **[TOSEC](https://www.tosecdev.org/)**, **[RetroAchievements](https://retroachievements.org/)**, and **[IGDB](https://www.igdb.com/)** — Preservation hash schemas, flash-cart directory taxonomies, and metadata standards.
