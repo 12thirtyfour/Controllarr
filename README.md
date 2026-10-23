@@ -98,7 +98,7 @@ Take your collection on the go. Controllarr integrates layout profiles based on 
 
 Controllarr is currently in active development.
 
-* **Completed**: Core .NET 10 architecture, database schema, local SQLite DAT caching engine, IGDB metadata scrapers, and 1G1R collection rules. Local Alpha Verification Gate #1 has passed.
+* **Completed**: Core .NET 10 architecture, dual SQLite/PostgreSQL DAT & HTGDB/SMDB caching engine, root folder regional console naming (`{Manufacturer}/{Console}/{Region}`), 3-way acquisition protocol priority (HTTP / Usenet / Torrent), native Internet Archive downloader, advanced 1G1R strategy engine, Smart Add console auto-provisioning, BIOS tracking matrix, `chdman`/`rvz` disc compression, and dynamic virtual symlink views.
 
 * **In Progress**: Root folder regional folder naming (`{Manufacturer}/{Console}`), automatic extension-based scanning and hash matching, and 3-way download protocol priority.
 

@@ -67,19 +67,19 @@ else
     STATUS=1
 fi
 
-# 5. Verify API port availability (8989)
-echo -n "Checking Port 8989 availability... "
+# 5. Verify API port availability (7050)
+echo -n "Checking Port 7050 availability... "
 if command -v lsof >/dev/null 2>&1; then
-    if lsof -i :8989 >/dev/null 2>&1; then
+    if lsof -i :7050 >/dev/null 2>&1; then
         echo -e "${YELLOW}[WARN]${NC}"
-        echo "  -> Port 8989 is currently in use. Controllarr API may fail to start."
+        echo "  -> Port 7050 is currently in use. Controllarr API may fail to start."
     else
         echo -e "${GREEN}[PASS]${NC}"
     fi
 elif command -v netstat >/dev/null 2>&1; then
-    if netstat -tuln | grep -q ":8989 "; then
+    if netstat -tuln | grep -q ":7050 "; then
         echo -e "${YELLOW}[WARN]${NC}"
-        echo "  -> Port 8989 is currently in use. Controllarr API may fail to start."
+        echo "  -> Port 7050 is currently in use. Controllarr API may fail to start."
     else
         echo -e "${GREEN}[PASS]${NC}"
     fi

@@ -27,11 +27,11 @@
 * Step 2: Integrated Disc Compression (`chdman` & `rvz`) (File optimization pipeline)
 * Step 3: Dynamic Virtual Symlink Library Engine (Live network/local symlink trees for MiSTer, RetroArch, EmulationStation, Batocera, etc.)
 
-## Phase 5: Packaging & Core Stability Baseline (Active)
+## Phase 5: Packaging & Core Stability Baseline (Completed)
 * Step 1: Documentation Baseline & Core Release Candidate Validation
 * Step 2: Multi-Architecture Docker & Standalone Binary Packaging (Locking in the stable core runtime prior to new ecosystem additions)
 
-## Phase 6: New Features (Ecosystem Integration & Interactive Views)
+## Phase 6: New Features (Ecosystem Integration & Interactive Views) (Active)
 * Step 1: SD Card Multi-Device Exporter Engine (OnionOS, Analogue Pocket, EverDrive FAT32 alphabetical buckets)
 * Step 2: RetroAchievements Integration (Credential Setup, Badge Showcase, Mastery Progress Bar)
 * Step 3: WebAssembly/Libretro Player & Desktop App Launcher ("Play Now" Button)
