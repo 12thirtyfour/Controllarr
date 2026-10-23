@@ -56,7 +56,7 @@ namespace NzbDrone.Core.Indexers.Newznab
         public NewznabSettings()
         {
             ApiPath = "/api";
-            Categories = new[] { 1000, 1010, 1020, 1030, 1040, 1050 };
+            Categories = new[] { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 8000, 8010 };
             AnimeCategories = Enumerable.Empty<int>();
             MultiLanguages = Array.Empty<int>();
             FailDownloads = Array.Empty<int>();

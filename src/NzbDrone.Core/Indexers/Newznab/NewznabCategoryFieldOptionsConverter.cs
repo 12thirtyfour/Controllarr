@@ -8,35 +8,52 @@ namespace NzbDrone.Core.Indexers.Newznab
     {
         public static List<FieldSelectOption<int>> GetFieldSelectOptions(List<NewznabCategory> categories)
         {
-            // Categories not relevant for Sonarr
-            var ignoreCategories = new[] { 1000, 3000, 4000, 6000, 7000 };
+            // Categories not relevant for Controllarr (Movies, Audio, TV, XXX, Books)
+            var ignoreCategories = new[] { 2000, 3000, 5000, 6000, 7000 };
 
-            // And maybe relevant for specific users
-            var unimportantCategories = new[] { 0, 2000 };
+            // And maybe relevant for specific users (0 = Unknown, 4000 = PC/Games)
+            var unimportantCategories = new[] { 0, 4000 };
 
             var result = new List<FieldSelectOption<int>>();
 
             if (categories == null)
             {
-                // Fetching categories failed, use default Newznab categories
-                categories = new List<NewznabCategory>();
-                categories.Add(new NewznabCategory
+                // Fetching categories failed, use default Newznab Console & Other categories
+                categories = new List<NewznabCategory>
                 {
-                    Id = 5000,
-                    Name = "TV",
-                    Subcategories = new List<NewznabCategory>
+                    new NewznabCategory
                     {
-                        new NewznabCategory { Id = 5070, Name = "Anime" },
-                        new NewznabCategory { Id = 5080, Name = "Documentary" },
-                        new NewznabCategory { Id = 5020, Name = "Foreign" },
-                        new NewznabCategory { Id = 5040, Name = "HD" },
-                        new NewznabCategory { Id = 5045, Name = "UHD" },
-                        new NewznabCategory { Id = 5050, Name = "Other" },
-                        new NewznabCategory { Id = 5030, Name = "SD" },
-                        new NewznabCategory { Id = 5060, Name = "Sport" },
-                        new NewznabCategory { Id = 5010, Name = "WEB-DL" }
+                        Id = 1000,
+                        Name = "Console",
+                        Subcategories = new List<NewznabCategory>
+                        {
+                            new NewznabCategory { Id = 1010, Name = "NDS" },
+                            new NewznabCategory { Id = 1020, Name = "PSP" },
+                            new NewznabCategory { Id = 1030, Name = "Wii" },
+                            new NewznabCategory { Id = 1040, Name = "Xbox" },
+                            new NewznabCategory { Id = 1050, Name = "Xbox 360" },
+                            new NewznabCategory { Id = 1060, Name = "WiiWare/VC" },
+                            new NewznabCategory { Id = 1070, Name = "Xbox 360 DLC" },
+                            new NewznabCategory { Id = 1080, Name = "PS3" },
+                            new NewznabCategory { Id = 1090, Name = "Other" },
+                            new NewznabCategory { Id = 1110, Name = "3DS" },
+                            new NewznabCategory { Id = 1120, Name = "PS Vita" },
+                            new NewznabCategory { Id = 1130, Name = "WiiU" },
+                            new NewznabCategory { Id = 1140, Name = "Xbox One" },
+                            new NewznabCategory { Id = 1180, Name = "PS4" }
+                        }
+                    },
+                    new NewznabCategory
+                    {
+                        Id = 8000,
+                        Name = "Other",
+                        Subcategories = new List<NewznabCategory>
+                        {
+                            new NewznabCategory { Id = 8010, Name = "Misc" },
+                            new NewznabCategory { Id = 8020, Name = "Hashed" }
+                        }
                     }
-                });
+                };
             }
 
             foreach (var category in categories.Where(cat => !ignoreCategories.Contains(cat.Id)).OrderBy(cat => unimportantCategories.Contains(cat.Id)).ThenBy(cat => cat.Id))
