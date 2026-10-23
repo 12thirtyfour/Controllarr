@@ -91,7 +91,7 @@ namespace NzbDrone.Core.Notifications.Apprise
         {
             const string title = "Sonarr - Test Notification";
             const string body = "Success! You have properly configured your apprise notification settings.";
-            const string posterUrl = "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/128.png";
+            const string posterUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/128.png";
 
             try
             {

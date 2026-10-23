@@ -1,5 +1,9 @@
 Disclaimer: This is both an experiment and project. I have no coding experience at all. Other than the work put into Sonarr, everything from the fork forward was done by AI. I am basically the project owner, Gemini is the manager and architect, and then Jules is the engineer and developer.
 
+<p align="center">
+  <img src="Logo/256.png" alt="Controllarr" width="160" />
+</p>
+
 # Controllarr: Automated ROM Library Manager
 
 Welcome to **Controllarr**, the automated ROM management and acquisition engine for retro and modern console gaming enthusiasts.
