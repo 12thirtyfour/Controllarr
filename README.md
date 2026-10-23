@@ -1,122 +1,199 @@
-Disclaimer: This is both an experiment and project. I have no coding experience at all. Other than the work put into Sonarr, everything from the fork forward was done by AI. I am basically the project owner, Gemini is the manager and architect, and then Jules is the engineer and developer.
-
 <p align="center">
   <img src="Logo/256.png" alt="Controllarr" width="160" />
 </p>
 
-# Controllarr: Automated ROM Library Manager
+<h1 align="center">Controllarr</h1>
 
-Welcome to **Controllarr**, the automated ROM management and acquisition engine for retro and modern console gaming enthusiasts.
+<p align="center">
+  <strong>The automated ROM library manager and acquisition engine for retro and modern game consoles.</strong>
+</p>
 
-Controllarr brings the seamless, automated experience of modern media management to your game collection: pick the consoles you care about, set your collection rules, and let the system automatically find, verify, organize, and even launch your games.
+<p align="center">
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0" /></a>
+  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript%20%7C%20Vite-61dafb.svg" alt="React Vite" /></a>
+  <a href="https://github.com/12thirtyfour/Controllarr/actions"><img src="https://img.shields.io/github/actions/workflow/status/12thirtyfour/Controllarr/build.yml?branch=develop&label=build" alt="Build Status" /></a>
+</p>
 
-## What Does Controllarr Do?
+---
 
-Managing game ROMs and disc images often means juggling different file formats, sorting through duplicates from multiple regions, manually extracting multi-part `.zip` or `.7z` archives, and tracking down missing BIOS files.
+## What is Controllarr?
 
-Controllarr automates this entire lifecycle:
+**Controllarr** brings the effortless, automated library management experience made famous by media managers like Sonarr and Radarr to your video game collection.
 
-* **Monitors Your Wishlist**: Add games individually, monitor complete console catalogs, or track curated regional lists.
+Instead of wrestling with disorganized ROM folders, unverified dumps, multi-region duplicate clutter, missing BIOS files, or manually copying games to flash carts and handhelds, Controllarr automates the entire lifecycle:
 
-* **Searches Multiple Sources Automatically**: Finds releases across direct HTTP archives (such as the Internet Archive), Usenet, and BitTorrent, prioritizing your preferred sources.
+1. **Pick Your Consoles & Collections**: Add the systems you love, from 8-bit classics to modern disc-based systems.
+2. **Find & Acquire**: Automatically search and download titles across direct HTTP archives (such as the Internet Archive), Usenet (Newznab), and BitTorrent (Torznab).
+3. **Verify Every Byte**: Match your dumps against canonical **No-Intro**, **Redump**, and **TOSEC** hash databases.
+4. **Curate with 1G1R**: Automatically keep only your preferred regional release (e.g., USA > Europe > Japan) and revision, filtering out duplicate regional clones.
+5. **Sync to Hardware**: Export curated sets formatted specifically for your flash carts, handhelds, and ODEs (EverDrive, MiSTer FPGA, Analogue Pocket, OnionOS, and more).
+6. **Play Instantly**: Launch games directly in your web browser with embedded Libretro cores or hand off to native desktop emulators with a single click.
 
-* **Verifies Dumps with Canonical Databases**: Automatically compares every downloaded or scanned file against official **No-Intro**, **Redump**, and **TOSEC** hash catalogs (CRC32, MD5, SHA-1). You know immediately whether a game is a clean, verified dump or an unverified bad rip.
-
-* **Eliminates Duplicate Clutter (1G1R)**: If you only want one version of each game, Controllarr's **1 Game 1 ROM (1G1R)** engine automatically keeps your preferred regional release (e.g., USA over Europe or Japan) and revision, while archiving or ignoring duplicate regional clones.
-
-* **Instant In-Browser Playback**: Built-in web emulation allows you to simply click **Play** on any verified ROM in your library to launch it immediately in your browser or through your desktop launcher.
-
-* **Syncs to Real Hardware**: Export curated sets directly to SD cards formatted and organized specifically for flash carts and handhelds (such as EverDrive, MiSTer FPGA, Analogue Pocket, RetroArch, and OnionOS/Miyoo Mini).
-
-## Universal Console Scope
-
-Controllarr is dedicated specifically to video game consoles, handheld systems, and console hardware addons across every generation.
-
-### Supported Systems
-
-* **Home Consoles**: Nintendo (NES, SNES, N64, GameCube, Wii, Switch), Sega (Master System, Genesis, Saturn, Dreamcast), Sony PlayStation (PS1, PS2, PS3), Microsoft Xbox (Original, 360), NEC (TurboGrafx-16, PC-FX), SNK Neo Geo, Atari (2600 through Jaguar), 3DO, CD-i, and more.
-
-* **Handhelds**: Game Boy, Game Boy Color, Game Boy Advance, Nintendo DS, Nintendo 3DS, PlayStation Portable (PSP), PlayStation Vita, Game Gear, Neo Geo Pocket, WonderSwan, and more.
-
-* **Independent Add-on Systems**: Expansion hardware like the **Sega CD**, **Sega 32X**, **Famicom Disk System**, and **PC Engine CD-ROM²** are treated as distinct, first-class consoles with their own dedicated directory structures, BIOS requirements, and collection profiles.
-
-*(Note: Controllarr focuses exclusively on console and handheld hardware. General computer architectures like PC/DOS, Commodore, and Amiga, as well as arcade sets like MAME, are not supported).*
+---
 
 ## Key Features
 
-### 1. Smart Collection Profiles: 1G1R vs. Completionist
+### 🎯 1 Game 1 ROM (1G1R) & Smart Curation
+* **Region Hierarchy**: Prioritize your preferred regions (e.g., `USA > Europe > Japan > World`).
+* **Revision Preferences**: Choose between latest revisions (bug fixes and balance updates) or original release versions for launch fidelity.
+* **Archivist / Completionist Mode**: Track and catalog all regional variants, alternate revisions, and languages when you want a complete historical archive.
 
-Customize how each console in your collection is curated:
+### 🛡️ Canonical Hash Verification
+* Embedded DAT catalog support for **No-Intro** (cartridge systems), **Redump** (optical disc systems), and **TOSEC** (homebrew, revisions, firmware).
+* Validates CRC32, MD5, and SHA-1 checksums on ingestion.
+* Color-coded verification badges in the UI immediately signal verified clean dumps versus bad or modified rips.
 
-* **One Game, One ROM (1G1R)**: Keep only the single best version of each title. You define your region hierarchy (for example: `USA > Europe > Japan`) and revision preference (`Newest Revision` for bug-fixed releases or `Original Release` for launch fidelity). Controllarr filters out the rest.
+### 💾 Hardware Target Exporter (HTGDB / SMDB)
+* Built-in multi-device exporter modal based on the **Hardware Target Game Database (HTGDB / SMDB)**.
+* **FAT32-Safe Splits**: Automatically splits large directories into `A-M/` and `N-Z/` subdirectories to prevent file-count limits on legacy hardware.
+* **Hardware Profiles**: One-click exports tailored for:
+  * **FPGA**: MiSTer FPGA, Analogue Pocket (openFPGA).
+  * **Handheld OSes**: OnionOS (Miyoo Mini), GarlicOS, MuOS, ArkOS, ROCKNIX, AmberELEC.
+  * **Flash Carts**: EverDrive (Krikzz), FXPak Pro, EZ-Flash, R4 / TWiLight Menu++.
+  * **Optical Drive Emulators (ODEs)**: xStation, Fenrir, MODE, GDEMU, GC Loader / Swiss.
+  * **Frontends**: EmulationStation DE (ES-DE / EmuDeck), Batocera, RetroArch.
 
-* **Completionist**: Perfect for digital archivists. Automatically monitors, matches, and organizes every regional release, revision, and alternate edition.
+### 🕹️ Platform BIOS Verification Matrix
+* Track, inspect, and verify required BIOS and firmware files for every console.
+* Displays required filenames, expected MD5/SHA-1 hashes, and status (Verified, Missing, Mismatched).
+* Guarantees games will boot smoothly before you launch or export them.
 
-### 2. Metadata & Artwork
+### 🏆 RetroAchievements Integration
+* Connect your [RetroAchievements.org](https://retroachievements.org/) account to showcase your gaming achievements directly inside your library.
+* Visual badge showcase, progression statistics, masteries, and leaderboard ranks tied to your game collection.
 
-Through integration with **IGDB**, Controllarr presents your library in rich visual detail:
+### 🎮 Play Anywhere (Browser & Desktop)
+* **Web Player**: Click **Play** on supported cartridge and handheld titles to run them immediately inside your browser using embedded Libretro cores.
+* **Desktop Launcher Protocol**: Launch disc-based or demanding games directly in local native emulators (RetroArch, DuckStation, PCSX2, Dolphin, etc.) via custom URI handler (`controllarr://play/{gameId}`).
 
-* High-resolution cover art, title screens, and fan art.
+### 📦 Automated Archive Ingestion & Lossless Compression
+* Ingests `.zip`, `.7z`, and `.rar` multi-file archives on the fly.
+* Compresses optical disc images into space-saving, emulator-ready formats:
+  * `.chd` conversion using `chdman` for CD/DVD-based consoles (PS1, PS2, Saturn, Dreamcast, Sega CD, PC Engine CD).
+  * Lossless `.rvz` conversion using `dolphin-tool` for GameCube and Wii.
 
-* Genre categorization, release years, developer and publisher credits, storyline summaries, and community ratings.
+### 🔍 3-Way Acquisition Priority
+Controllarr searches and grabs releases according to your configured protocol hierarchy:
+1. **HTTP / Direct Download**: Native retrieval from public archives (Internet Archive S3 API) with zero external tools required.
+2. **Usenet**: Native Newznab integration configured for console gaming categories (`1000` Console & `8000` Other/Misc).
+3. **BitTorrent**: Torznab integration with leading torrent clients and indexers.
 
-* Filter and browse your collection by release year, genre, region, or completion status.
+---
 
-### 3. Native Hash-Based Ingestion & Archive Unpacking
+## Universal Console Scope
 
-Drop raw ROMs or multi-game archive sets into your library folder:
+Controllarr is dedicated specifically to video game consoles, handheld systems, and console expansion hardware across all generations.
 
-* Controllarr extracts `.zip`, `.7z`, and `.rar` archives on the fly.
+| Category | Supported Platforms |
+|---|---|
+| **Nintendo** | NES, Famicom Disk System, SNES, Nintendo 64, GameCube, Wii, Wii U, Nintendo Switch |
+| **Nintendo Handhelds** | Game Boy, Game Boy Color, Game Boy Advance, Nintendo DS, Nintendo 3DS, Virtual Boy |
+| **Sega** | Master System, SG-1000, Genesis / Mega Drive, Sega CD, Sega 32X, Saturn, Dreamcast, Game Gear |
+| **Sony** | PlayStation (PS1), PlayStation 2 (PS2), PlayStation 3 (PS3), PSP, PlayStation Vita |
+| **Microsoft** | Xbox (Original), Xbox 360 |
+| **NEC & SNK** | TurboGrafx-16 / PC Engine, PC Engine CD-ROM², PC-FX, Neo Geo AES/MVS, Neo Geo CD, Neo Geo Pocket / Color |
+| **Classic & Others** | Atari (2600, 5200, 7800, Lynx, Jaguar), 3DO, Philips CD-i, Bandai WonderSwan / Color, ColecoVision, Intellivision, Vectrex |
 
-* It calculates CRC32, MD5, and SHA-1 checksums and checks them directly against its embedded local DAT cache.
+> **Note**: Controllarr focuses exclusively on dedicated console and handheld hardware. General computer architectures (PC/DOS, Commodore, Amiga) and arcade machine dumps (MAME) are outside the project's scope.
 
-* Verified games are renamed, organized cleanly into `{Manufacturer}/{Console}` directory trees, and instantly matched with their artwork and metadata.
+---
 
-### 4. 3-Way Acquisition Priority
+## Architecture & Technical Specifications
 
-When searching for missing titles, Controllarr evaluates releases across three download protocols based on your custom ranking:
+Controllarr is built as a high-performance, container-ready client-server architecture:
 
-1. **HTTP / Direct Download**: Native retrieval from public archives (such as the Internet Archive) with built-in S3-compatible authentication and zero command-line setup.
+```
+┌────────────────────────────────────────────────────────┐
+│               React 19 / TypeScript SPA                │
+│       Vite • React Query • React-Table • FontAwesome    │
+└───────────────────────────┬────────────────────────────┘
+                            │ REST API (v3 / v5) + SignalR
+┌───────────────────────────▼────────────────────────────┐
+│                    Controllarr Core                    │
+│             ASP.NET Core (.NET 10.0 Runtime)           │
+├────────────────────────────────────────────────────────┤
+│ • 1G1R Engine          • DAT Catalog Ingestion (No-Intro)│
+│ • HTGDB/SMDB Exporter  • Hash Verifier (CRC32/MD5/SHA1)│
+│ • BIOS Matrix Service  • Disc Compressor (CHD/RVZ)     │
+│ • 3-Way Search Dispatch (HTTP / Usenet / Torznab)      │
+├───────────────────────────┬────────────────────────────┤
+│   SQLite (Default)        │   PostgreSQL (Enterprise)  │
+└───────────────────────────┴────────────────────────────┘
+```
 
-2. **Usenet**: Seamless integration with your favorite NZB indexers and download clients.
+* **Backend**: ASP.NET Core on **.NET 10**, compiled with StyleCop compliance and zero-warning enforcement (`<TreatWarningsAsErrors>true`).
+* **Frontend**: React 19 single-page application built with **TypeScript**, **Vite**, and modernized styling.
+* **Persistence Layer**: Dual-database abstraction supporting embedded **SQLite** out-of-the-box or external **PostgreSQL** (versions 16, 17, and 18) for high-scale multi-user instances.
+* **REST API**: Dual-exposed OpenAPI-compliant endpoints on both `/api/v3` and `/api/v5` for full backward compatibility and rich third-party integration.
+* **Target Application Port**: `7050` (default).
 
-3. **BitTorrent**: Full support for Torznab indexers and torrent clients.
+---
 
-### 5. Play Directly from Your Library (Planned Feature)
+## Getting Started
 
-No need to manually locate files or configure an emulator just to try a game:
+### Prerequisites
+* [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+* [Node.js](https://nodejs.org/) (v20+ or v24+) & [Yarn](https://yarnpkg.com/)
+* Supported OS: macOS (Apple Silicon / Intel), Linux (x64 / ARM64), or Windows (x64).
 
-* **Web Player**: Launch lightweight console and handheld games directly inside your web browser using embedded Libretro cores.
+### Building and Running from Source
 
-* **Desktop App Hand-off**: Use one-click launcher links (`controllarr://play/{gameId}`) to automatically hand off disc images or heavier games to native emulators like RetroArch, DuckStation, or Dolphin on your PC or Mac.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/12thirtyfour/Controllarr.git
+   cd Controllarr
+   ```
 
-### 6. Hardware Target Exporter (Planned Feature)
+2. **Build the React frontend:**
+   ```bash
+   yarn install
+   yarn build
+   ```
 
-Take your collection on the go. Controllarr integrates layout profiles based on the **Hardware Target Game Database (HTGDB / SMDB)** to format and copy games directly onto flash carts and emulation handhelds:
+3. **Build the .NET backend:**
+   ```bash
+   dotnet build src/Sonarr.sln --configuration Release
+   ```
 
-* **FAT32-Safe Splits**: Automatically splits large alphabetized directories into `A-M/` and `N-Z/` subdirectories to prevent file-count limits on legacy hardware.
+4. **Launch Controllarr:**
+   ```bash
+   # macOS / Linux
+   ./_output/net10.0/Sonarr --nobrowser
 
-* **Preset Profiles**: Dedicated directory configurations for **MiSTer FPGA**, **Analogue Pocket (openFPGA)**, **RetroArch**, **Batocera / Knulli**, **EmulationStation DE (ES-DE / EmuDeck)**, **OnionOS (Miyoo Mini)**, **GarlicOS / MuOS**, **ArkOS / ROCKNIX**, **EverDrive**, **FXPak Pro**, **EZ-Flash**, **R4 / TWiLight Menu++**, and Optical Drive Emulators (**xStation**, **Swiss / GC Loader**, **Fenrir / Saroo**, **GDEMU / MODE**).
+   # Windows
+   .\_output\net10.0\Sonarr.exe --nobrowser
+   ```
 
-## Project Status & Active Development
+5. **Open your browser:**
+   Navigate to [http://localhost:7050](http://localhost:7050).
 
-Controllarr is currently in active development.
-
-* **Completed**: Core .NET 10 architecture, dual SQLite/PostgreSQL DAT & HTGDB/SMDB caching engine, root folder regional console naming (`{Manufacturer}/{Console}/{Region}`), 3-way acquisition protocol priority (HTTP / Usenet / Torrent), native Internet Archive downloader, advanced 1G1R strategy engine, Smart Add console auto-provisioning, BIOS tracking matrix, `chdman`/`rvz` disc compression, and dynamic virtual symlink views.
-
-* **In Progress**: Root folder regional folder naming (`{Manufacturer}/{Console}`), automatic extension-based scanning and hash matching, and 3-way download protocol priority.
-
-* **Upcoming**: Expanded React modal workflows, end-to-end browser emulation core packaging, and broader community DAT/SMDB automation.
+---
 
 ## Credits, Upstream Attribution & Licenses
 
-Controllarr is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see [LICENSE.md](LICENSE.md).
+Controllarr is open-source software licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE.md).
 
-Controllarr stands on the shoulders of major open-source projects, preservation communities, and emulation tools. Full credits and license disclosures are documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), including:
+We stand on the shoulders of incredible open-source projects, preservation databases, and emulation communities. Detailed license texts and notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md):
 
-* **[Sonarr](https://github.com/Sonarr/Sonarr)** (**GPL-3.0**) — Core `.NET` and `React` application architecture from which Controllarr is forked.
-* **`chdman` / [MAME Project](https://github.com/mamedev/mame)** (**GPL-2.0-or-later** / **BSD-3-Clause**) — External command-line tool invoked for `.chd` optical disc compression and verification.
-* **`dolphin-tool` / [Dolphin Emulator Project](https://github.com/dolphin-emu/dolphin)** (**GPL-2.0-or-later**) — External command-line tool invoked for GameCube/Wii `.rvz` lossless disc conversion.
-* **7-Zip / [p7zip](https://github.com/p7zip-project/p7zip)** (**LGPL-2.1-or-later**) & **[SharpCompress](https://github.com/adamhathcock/sharpcompress)** (**MIT**) — Archive inspection and extraction.
-* **[Libretro / RetroArch](https://github.com/libretro/RetroArch)** (**GPL-3.0** and respective core licenses) — WebAssembly player and desktop launcher target cores.
-* **[Hardware Target Game Database (HTGDB / SMDB)](https://github.com/frederic-mahe/Hardware-Target-Game-Database)** (SmokeMonster & Frederic Mahe), **[No-Intro](https://www.no-intro.org/)**, **[Redump](http://redump.org/)**, **[TOSEC](https://www.tosecdev.org/)**, **[RetroAchievements](https://retroachievements.org/)**, and **[IGDB](https://www.igdb.com/)** — Preservation hash schemas, flash-cart directory taxonomies, and metadata standards.
+* **[Sonarr](https://github.com/Sonarr/Sonarr)** (**GPL-3.0**) — Upstream media management foundation from which Controllarr was forked.
+* **[Hardware Target Game Database (HTGDB / SMDB)](https://github.com/frederic-mahe/Hardware-Target-Game-Database)** — Flash-cart directory layouts and curation schemas by SmokeMonster and Frédéric Mahé.
+* **[No-Intro](https://www.no-intro.org/)**, **[Redump](http://redump.org/)**, & **[TOSEC](https://www.tosecdev.org/)** — Canonical ROM and optical disc checksum databases.
+* **[RetroAchievements](https://retroachievements.org/)** — Achievement metadata and community badge services.
+* **[IGDB](https://www.igdb.com/)** — Comprehensive video game metadata and high-resolution media.
+* **[Libretro / RetroArch](https://github.com/libretro/RetroArch)** — Web emulation cores and desktop launch targets.
+* **`chdman` / [MAME Project](https://github.com/mamedev/mame)** — Optical disc compression into `.chd`.
+* **`dolphin-tool` / [Dolphin Project](https://github.com/dolphin-emu/dolphin)** — GameCube & Wii `.rvz` disc compression.
+
+---
+
+## Project Disclaimer & Development Model
+
+> [!NOTE]
+> **Experimental AI-Native Development Experiment**  
+> Controllarr is both an active passion project and an AI-driven software engineering experiment. The project owner has no professional coding experience. Other than the upstream open-source foundation provided by Sonarr, all architectural design, backend C#/.NET 10 development, frontend React/TypeScript UI, and refactoring from the initial fork onward have been designed and implemented autonomously through artificial intelligence:
+>
+> * **Project Owner**: Human visionary, direction, functional requirements, and physical hardware verification.
+> * **Gemini**: Project manager, requirements evaluator, and system architect.
+> * **Jules**: Feature engineer and autonomous developer.
+> * **Antigravity**: Lead engineering agent, pair programmer, CI/CD triage specialist, and release steward.
