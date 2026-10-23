@@ -56,14 +56,24 @@ namespace NzbDrone.Test.Common
                 consoleExe = "Sonarr";
             }
 
-            if (BuildInfo.IsDebug)
+            var candidatePaths = new[]
             {
-                Start(Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "net10.0", consoleExe));
-            }
-            else
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "net10.0", consoleExe),
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "_output", "net10.0", consoleExe),
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "bin", consoleExe)
+            };
+
+            var executablePath = candidatePaths[0];
+            foreach (var candidate in candidatePaths)
             {
-                Start(Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "net10.0", consoleExe));
+                if (File.Exists(candidate))
+                {
+                    executablePath = candidate;
+                    break;
+                }
             }
+
+            Start(executablePath);
 
             while (true)
             {
@@ -210,16 +220,32 @@ namespace NzbDrone.Test.Common
             // per test assembly via a SetUpFixture so parallel fixtures don't race on the
             // shared file.
 
-            var contentDirectory = BuildInfo.IsDebug
-                ? Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "UI", "Content")
-                : Path.Combine(TestContext.CurrentContext.TestDirectory, "bin", "UI", "Content");
-            var stylesPath = Path.Combine(contentDirectory, "styles.css");
-
-            Directory.CreateDirectory(contentDirectory);
-
-            if (!File.Exists(stylesPath))
+            var contentDirectories = new[]
             {
-                File.WriteAllText(stylesPath, ".test { display: flex; }");
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "UI", "Content"),
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "_output", "net10.0", "UI", "Content"),
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "_output", "UI", "Content"),
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "_output", "net10.0", "UI", "Content"),
+                Path.Combine(TestContext.CurrentContext.TestDirectory, "bin", "UI", "Content")
+            };
+
+            foreach (var contentDirectory in contentDirectories)
+            {
+                var stylesPath = Path.Combine(contentDirectory, "styles.css");
+                var uiDirectory = Path.GetDirectoryName(contentDirectory);
+                var indexPath = Path.Combine(uiDirectory, "index.html");
+
+                Directory.CreateDirectory(contentDirectory);
+
+                if (!File.Exists(stylesPath))
+                {
+                    File.WriteAllText(stylesPath, ".test { display: flex; }");
+                }
+
+                if (!File.Exists(indexPath))
+                {
+                    File.WriteAllText(indexPath, "<!DOCTYPE html><html><head></head><body>Controllarr</body></html>");
+                }
             }
         }
     }

@@ -304,7 +304,7 @@ namespace NzbDrone.Integration.Test
                 var path = Path.Combine(SeriesRootFolder, series.Title, string.Format("Series.S{0}E{1}.{2}.mkv", season, episode, quality.Name));
 
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
-                File.WriteAllText(path, "Fake Episode");
+                File.WriteAllBytes(path, new byte[2048]);
 
                 Commands.PostAndWait(new RefreshSeriesCommand(new List<int> { series.Id }));
 

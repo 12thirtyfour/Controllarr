@@ -252,10 +252,12 @@ jobs:
     if: ${{ !cancelled() && github.ref_name == 'develop' }}
     env:
       STATUS: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Notify
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}

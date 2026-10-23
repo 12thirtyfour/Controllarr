@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Core.Games;
-using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.Game;
 
 namespace NzbDrone.Core.Metadata
 {
