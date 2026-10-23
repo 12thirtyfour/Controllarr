@@ -22,12 +22,12 @@
 * Step 5: Global Game Search & Smart Add Workflow (Search individual games across all platforms, auto-provision parent consoles, and mark target titles as wanted; excludes ROM hacks/homebrew by default with strict cryptographic hash-gating for future unofficial support)
 * Step 6: Verification Gate #3 (End-to-End System Smoke Test)
 
-## Phase 4: Media Optimization, Symlink Views & BIOS Management (Active)
+## Phase 4: Media Optimization, Symlink Views & BIOS Management (Completed)
 * Step 1: Platform BIOS Tracking & Verification Engine (Core system requirements foundation)
 * Step 2: Integrated Disc Compression (`chdman` & `rvz`) (File optimization pipeline)
 * Step 3: Dynamic Virtual Symlink Library Engine (Live network/local symlink trees for MiSTer, RetroArch, EmulationStation, Batocera, etc.)
 
-## Phase 5: Packaging & Core Stability Baseline
+## Phase 5: Packaging & Core Stability Baseline (Active)
 * Step 1: Documentation Baseline & Core Release Candidate Validation
 * Step 2: Multi-Architecture Docker & Standalone Binary Packaging (Locking in the stable core runtime prior to new ecosystem additions)
 
