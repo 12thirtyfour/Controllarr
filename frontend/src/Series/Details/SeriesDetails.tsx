@@ -42,6 +42,7 @@ import useCountryName from 'Internationalization/useCountryName';
 import OrganizePreviewModal from 'Organize/OrganizePreviewModal';
 import DeleteSeriesModal from 'Series/Delete/DeleteSeriesModal';
 import EditSeriesModal from 'Series/Edit/EditSeriesModal';
+import SdCardExportModal from 'Series/Export/SdCardExportModal';
 import SeriesHistoryModal from 'Series/History/SeriesHistoryModal';
 import MonitoringOptionsModal from 'Series/MonitoringOptions/MonitoringOptionsModal';
 import { Image, SeriesStatus, Statistics } from 'Series/Series';
@@ -231,6 +232,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   }, []);
   const [isSeriesHistoryModalOpen, setIsSeriesHistoryModalOpen] =
     useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isMonitorOptionsModalOpen, setIsMonitorOptionsModalOpen] =
     useState(false);
   const [expandedState, setExpandedState] = useState<ExpandedState>({
@@ -296,6 +298,14 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
   const handleSeriesHistoryModalClose = useCallback(() => {
     setIsSeriesHistoryModalOpen(false);
+  }, []);
+
+  const handleExportPress = useCallback(() => {
+    setIsExportModalOpen(true);
+  }, []);
+
+  const handleExportModalClose = useCallback(() => {
+    setIsExportModalOpen(false);
   }, []);
 
   const handleMonitorOptionsPress = useCallback(() => {
@@ -551,6 +561,16 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
             label={translate('ManageEpisodes')}
             iconName={icons.EPISODE_FILE}
             onPress={handleManageEpisodesPress}
+          />
+
+          <ToolbarItem
+            id="export-sd-card"
+            priority={1}
+            groupId="left-b"
+            label="Export to SD Card"
+            iconName={icons.EXPORT}
+            isDisabled={!hasEpisodeFiles}
+            onPress={handleExportPress}
           />
 
           <ToolbarItem
@@ -1048,6 +1068,11 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
             isOpen={isMonitorOptionsModalOpen}
             seriesId={seriesId}
             onModalClose={handleMonitorOptionsClose}
+          />
+
+          <SdCardExportModal
+            isOpen={isExportModalOpen}
+            onModalClose={handleExportModalClose}
           />
         </PageContentBody>
       </PageContent>
