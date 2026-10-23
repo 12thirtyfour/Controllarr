@@ -356,9 +356,20 @@ namespace NzbDrone.Common.Extensions
 
         public static string GetUiFolder(this IAppFolderInfo appFolderInfo)
         {
-            return BuildInfo.IsDebug
-                ? Path.GetFullPath(Path.Combine(appFolderInfo.StartUpFolder, "..", "UI"))
-                : Path.Combine(appFolderInfo.StartUpFolder, "UI");
+            if (BuildInfo.IsDebug)
+            {
+                return Path.GetFullPath(Path.Combine(appFolderInfo.StartUpFolder, "..", "UI"));
+            }
+
+            var uiFolder = Path.Combine(appFolderInfo.StartUpFolder, "UI");
+            var parentUiFolder = Path.GetFullPath(Path.Combine(appFolderInfo.StartUpFolder, "..", "UI"));
+
+            if (!Directory.Exists(uiFolder) && Directory.Exists(parentUiFolder))
+            {
+                return parentUiFolder;
+            }
+
+            return uiFolder;
         }
 
         public static string GetMediaCoverPath(this IAppFolderInfo appFolderInfo)
