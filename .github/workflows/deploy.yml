@@ -21,7 +21,7 @@ on:
         required: true
     secrets:
       SERVICES_API_KEY:
-        required: true
+        required: false
 
 jobs:
   package:
@@ -111,7 +111,7 @@ jobs:
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: _artifacts/Controllarr.*
+          artifacts: "_artifacts/*"
           commit: ${{ github.sha }}
           generateReleaseNotes: false
           body: ${{ steps.generate-release-notes.outputs.result }}
@@ -121,6 +121,9 @@ jobs:
           tag: v${{ inputs.version }}
 
       - name: Publish to Services
+        if: ${{ env.SERVICES_API_KEY != '' }}
+        env:
+          SERVICES_API_KEY: ${{ secrets.SERVICES_API_KEY }}
         shell: bash
         working-directory: _artifacts
         run: |
