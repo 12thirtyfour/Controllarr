@@ -5,6 +5,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V3.Games
 {
     [V3ApiController("gamelauncher")]
+    [V5ApiController("gamelauncher")]
     public class GameLauncherController : Controller
     {
         private readonly IGameLauncherService _gameLauncherService;

@@ -1,0 +1,118 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summaryCard {
+  padding: 16px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--paperWarm);
+}
+
+.summaryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gameTitle {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  color: var(--inkMuted);
+  font-size: 12px;
+  gap: 12px;
+}
+
+.hashChip {
+  font-family: var(--monospaceFontFamily);
+}
+
+.masteryStats {
+  display: flex;
+  align-items: center;
+}
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.countsRow {
+  display: flex;
+  justify-content: space-between;
+  color: var(--inkSoft);
+  font-size: 12px;
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.badgeCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--paperCard);
+  gap: 8px;
+}
+
+.badgeUnlocked {
+  border-color: var(--accentColor, var(--borderColor));
+}
+
+.badgeLocked {
+  opacity: 0.65;
+}
+
+.badgeHardcore {
+  border-color: var(--warningColor);
+}
+
+.badgeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.badgeTitle {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.badgeDescription {
+  color: var(--inkMuted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.badgeFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}

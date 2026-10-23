@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace Sonarr.Http
 {
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class VersionedApiControllerAttribute : Attribute, IRouteTemplateProvider, IEnableCorsAttribute, IApiBehaviorMetadata
     {
         public const string API_CORS_POLICY = "ApiCorsPolicy";

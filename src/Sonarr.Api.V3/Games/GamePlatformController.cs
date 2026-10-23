@@ -10,6 +10,7 @@ using Sonarr.Http.REST.Attributes;
 namespace Sonarr.Api.V3.Games
 {
     [V3ApiController("gameplatform")]
+    [V5ApiController("gameplatform")]
     public class GamePlatformController : RestController<GamePlatformResource>
     {
         private readonly IGamePlatformRepository _gamePlatformRepository;

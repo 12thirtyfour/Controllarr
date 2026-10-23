@@ -72,7 +72,7 @@ function SdCardExportModalContent({
     isFetching: isProfilesFetching,
     error: profilesError,
   } = useApiQuery<SdCardProfileDescriptor[]>({
-    path: 'sdcardexport/profiles',
+    path: '/sdcardexport/profiles',
   });
 
   const {
@@ -82,7 +82,7 @@ function SdCardExportModalContent({
     isSuccess: isExportSuccess,
     data: exportResult,
   } = useApiMutation<SdCardExportResult, SdCardExportRequestResource>({
-    path: 'sdcardexport',
+    path: '/sdcardexport',
     method: 'POST',
   });
 

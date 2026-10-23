@@ -1,0 +1,279 @@
+import classNames from 'classnames';
+import React, { useEffect } from 'react';
+import Alert from 'Components/Alert';
+import Icon from 'Components/Icon';
+import Label from 'Components/Label';
+import Button from 'Components/Link/Button';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import Modal from 'Components/Modal/Modal';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import ProgressBar from 'Components/ProgressBar';
+import useApiMutation from 'Helpers/Hooks/useApiMutation';
+import { icons, kinds, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
+import styles from './RetroAchievementsShowcaseModal.module.css';
+
+export interface RetroAchievementBadge {
+  id: number;
+  title: string;
+  description: string;
+  points: number;
+  badgeName: string;
+  unlocked: boolean;
+  hardcoreUnlocked: boolean;
+}
+
+export interface RetroAchievementsProgressRequestResource {
+  username: string;
+  gameTitle: string;
+  romMd5Hash: string;
+  badges: RetroAchievementBadge[];
+}
+
+export interface RetroAchievementsGameProgress {
+  username: string;
+  gameTitle: string;
+  romMd5Hash: string;
+  totalAchievements: number;
+  unlockedAchievements: number;
+  hardcoreUnlockedAchievements: number;
+  masteryPercentage: number;
+  isMastered: boolean;
+  badges: RetroAchievementBadge[];
+}
+
+export interface RetroAchievementsShowcaseModalProps {
+  isOpen: boolean;
+  gameTitle: string;
+  romMd5Hash?: string;
+  badges?: RetroAchievementBadge[];
+  onModalClose: () => void;
+}
+
+const DEFAULT_SAMPLE_BADGES: RetroAchievementBadge[] = [
+  {
+    id: 1,
+    title: 'First Boot',
+    description: 'Verify ROM checksum and launch the title in Hardcore mode',
+    points: 5,
+    badgeName: 'ra-first-boot',
+    unlocked: true,
+    hardcoreUnlocked: true,
+  },
+  {
+    id: 2,
+    title: 'Stage Clear',
+    description: 'Complete the opening stage without using continues',
+    points: 10,
+    badgeName: 'ra-stage-clear',
+    unlocked: true,
+    hardcoreUnlocked: true,
+  },
+  {
+    id: 3,
+    title: '1G1R Collector',
+    description: 'Discover all hidden collectibles in the main campaign',
+    points: 25,
+    badgeName: 'ra-collector',
+    unlocked: true,
+    hardcoreUnlocked: false,
+  },
+  {
+    id: 4,
+    title: 'Hardcore Mastery',
+    description: 'Defeat the final boss on the highest difficulty setting',
+    points: 50,
+    badgeName: 'ra-mastery',
+    unlocked: false,
+    hardcoreUnlocked: false,
+  },
+];
+
+function RetroAchievementsShowcaseModal({
+  isOpen,
+  gameTitle,
+  romMd5Hash = 'd41d8cd98f00b204e9800998ecf8427e',
+  badges = DEFAULT_SAMPLE_BADGES,
+  onModalClose,
+}: RetroAchievementsShowcaseModalProps) {
+  const {
+    mutate: fetchProgress,
+    data: progress,
+    isPending,
+    error,
+  } = useApiMutation<
+    RetroAchievementsGameProgress,
+    RetroAchievementsProgressRequestResource
+  >({
+    path: '/retroachievements/progress',
+    method: 'POST',
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const storedUsername =
+      window.localStorage.getItem('controllarr_ra_username') || 'PlayerOne';
+
+    fetchProgress({
+      username: storedUsername,
+      gameTitle,
+      romMd5Hash,
+      badges,
+    });
+  }, [isOpen, gameTitle, romMd5Hash, badges, fetchProgress]);
+
+  return (
+    <Modal isOpen={isOpen} size={sizes.LARGE} onModalClose={onModalClose}>
+      {isOpen ? (
+        <ModalContent onModalClose={onModalClose}>
+          <ModalHeader>
+            {translate('RetroAchievementsShowcaseTitle', { title: gameTitle })}
+          </ModalHeader>
+
+          <ModalBody>
+            {isPending ? <LoadingIndicator /> : null}
+
+            {!isPending && error ? (
+              <Alert kind={kinds.DANGER}>
+                {translate('RetroAchievementsLoadError')}
+              </Alert>
+            ) : null}
+
+            {!isPending && progress ? (
+              <div className={styles.container}>
+                <div className={styles.summaryCard}>
+                  <div className={styles.summaryHeader}>
+                    <div className={styles.titleBlock}>
+                      <div className={styles.gameTitle}>
+                        {progress.gameTitle}
+                      </div>
+                      <div className={styles.metaRow}>
+                        <span>
+                          {translate('Username')}: {progress.username}
+                        </span>
+                        <span className={styles.hashChip}>
+                          MD5: {progress.romMd5Hash}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.masteryStats}>
+                      {progress.isMastered ? (
+                        <Label kind={kinds.WARNING} size={sizes.LARGE}>
+                          <Icon name={icons.SCORE} size={14} />{' '}
+                          {translate('RetroAchievementsMastered')}
+                        </Label>
+                      ) : (
+                        <Label kind={kinds.INFO} size={sizes.LARGE}>
+                          {progress.masteryPercentage}%{' '}
+                          {translate('RetroAchievementsMastery')}
+                        </Label>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.progressSection}>
+                    <ProgressBar
+                      progress={Number(progress.masteryPercentage)}
+                      kind={
+                        progress.isMastered ? kinds.WARNING : kinds.PRIMARY
+                      }
+                      size={sizes.LARGE}
+                      showText={true}
+                      text={`${progress.unlockedAchievements} / ${progress.totalAchievements} (${progress.masteryPercentage}%)`}
+                    />
+
+                    <div className={styles.countsRow}>
+                      <span>
+                        {translate('RetroAchievementsUnlockedCount', {
+                          unlocked: progress.unlockedAchievements,
+                          total: progress.totalAchievements,
+                        })}
+                      </span>
+                      <span>
+                        {translate('RetroAchievementsHardcoreCount', {
+                          hardcore: progress.hardcoreUnlockedAchievements,
+                          total: progress.totalAchievements,
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.badgeGrid}>
+                  {progress.badges.map((badge) => {
+                    const isUnlocked =
+                      badge.unlocked || badge.hardcoreUnlocked;
+
+                    return (
+                      <div
+                        key={badge.id}
+                        className={classNames(
+                          styles.badgeCard,
+                          isUnlocked
+                            ? styles.badgeUnlocked
+                            : styles.badgeLocked,
+                          badge.hardcoreUnlocked && styles.badgeHardcore
+                        )}
+                      >
+                        <div className={styles.badgeHeader}>
+                          <span className={styles.badgeTitle}>
+                            {badge.title}
+                          </span>
+                          <Label
+                            kind={
+                              badge.hardcoreUnlocked
+                                ? kinds.WARNING
+                                : isUnlocked
+                                ? kinds.SUCCESS
+                                : kinds.DEFAULT
+                            }
+                            size={sizes.SMALL}
+                          >
+                            {badge.points} pts
+                          </Label>
+                        </div>
+
+                        <div className={styles.badgeDescription}>
+                          {badge.description}
+                        </div>
+
+                        <div className={styles.badgeFooter}>
+                          {badge.hardcoreUnlocked ? (
+                            <Label kind={kinds.WARNING} size={sizes.SMALL}>
+                              {translate('RetroAchievementsHardcore')}
+                            </Label>
+                          ) : isUnlocked ? (
+                            <Label kind={kinds.SUCCESS} size={sizes.SMALL}>
+                              {translate('RetroAchievementsUnlocked')}
+                            </Label>
+                          ) : (
+                            <Label kind={kinds.DEFAULT} size={sizes.SMALL}>
+                              {translate('RetroAchievementsLocked')}
+                            </Label>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </ModalBody>
+
+          <ModalFooter>
+            <Button onPress={onModalClose}>{translate('Close')}</Button>
+          </ModalFooter>
+        </ModalContent>
+      ) : null}
+    </Modal>
+  );
+}
+
+export default RetroAchievementsShowcaseModal;

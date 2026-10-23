@@ -1,0 +1,16 @@
+.card {
+  padding: 20px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--paperCard);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.statusAlert {
+  margin-top: 16px;
+}

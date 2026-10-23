@@ -34,7 +34,7 @@
   color: var(--inkSoft);
   word-break: break-all;
   font-size: 12px;
-  font-family: var(--monospaceFontFamily, monospace);
+  font-family: var(--monospaceFontFamily);
 }
 
 .hashLabel {

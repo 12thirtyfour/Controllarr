@@ -22,6 +22,7 @@ import MetadataSourceSettings from 'Settings/MetadataSource/MetadataSourceSettin
 import NotificationSettings from 'Settings/Notifications/NotificationSettings';
 import Profiles from 'Settings/Profiles/Profiles';
 import Quality from 'Settings/Quality/Quality';
+import RetroAchievementsSettings from 'Settings/RetroAchievements/RetroAchievementsSettings';
 import Settings from 'Settings/Settings';
 import TagSettings from 'Settings/Tags/TagSettings';
 import UISettings from 'Settings/UI/UISettings';
@@ -138,6 +139,11 @@ export function appRouteElements() {
       <Route path="/settings/ui" element={<UISettings />} />
 
       <Route path="/settings/bios" element={<BiosSettings />} />
+
+      <Route
+        path="/settings/retroachievements"
+        element={<RetroAchievementsSettings />}
+      />
 
       {/*
         System

@@ -10,6 +10,7 @@ using Sonarr.Http.REST.Attributes;
 namespace Sonarr.Api.V3.Games
 {
     [V3ApiController("romentry")]
+    [V5ApiController("romentry")]
     public class RomEntryController : RestController<RomEntryResource>
     {
         private readonly IRomEntryRepository _romEntryRepository;

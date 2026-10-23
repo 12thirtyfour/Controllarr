@@ -6,6 +6,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V3.Games
 {
     [V3ApiController("bios")]
+    [V5ApiController("bios")]
     public class BiosController : Controller
     {
         private readonly IBiosService _biosService;

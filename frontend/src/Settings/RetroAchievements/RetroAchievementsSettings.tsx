@@ -1,0 +1,152 @@
+import React, { useCallback, useState } from 'react';
+import Alert from 'Components/Alert';
+import Form from 'Components/Form/Form';
+import FormInput from 'Components/Form/FormInput';
+import FormLabel from 'Components/Form/FormLabel';
+import FormRow from 'Components/Form/FormRow';
+import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
+import PageContentBody from 'Components/Page/PageContentBody';
+import PageHeading from 'Components/Page/PageHeading';
+import useApiMutation from 'Helpers/Hooks/useApiMutation';
+import { inputTypes, kinds, sizes } from 'Helpers/Props';
+import settingsStyles from 'Settings/Settings.module.css';
+import SettingsPage from 'Settings/SettingsPage';
+import { InputChanged } from 'typings/inputs';
+import translate from 'Utilities/String/translate';
+import styles from './RetroAchievementsSettings.module.css';
+
+export interface RetroAchievementsCredentialsRequest {
+  username: string;
+  webApiKey: string;
+}
+
+const STORAGE_USERNAME_KEY = 'controllarr_ra_username';
+const STORAGE_APIKEY_KEY = 'controllarr_ra_apikey';
+
+function RetroAchievementsSettings() {
+  const [username, setUsername] = useState<string>(() => {
+    return window.localStorage.getItem(STORAGE_USERNAME_KEY) ?? '';
+  });
+  const [webApiKey, setWebApiKey] = useState<string>(() => {
+    return window.localStorage.getItem(STORAGE_APIKEY_KEY) ?? '';
+  });
+  const [validationStatus, setValidationStatus] = useState<
+    'idle' | 'valid' | 'invalid'
+  >('idle');
+
+  const {
+    mutate: validateCredentials,
+    isPending: isValidating,
+    error: validationError,
+  } = useApiMutation<boolean, RetroAchievementsCredentialsRequest>({
+    path: '/retroachievements/credentials',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (isValid) => {
+        if (isValid) {
+          window.localStorage.setItem(STORAGE_USERNAME_KEY, username.trim());
+          window.localStorage.setItem(STORAGE_APIKEY_KEY, webApiKey.trim());
+          setValidationStatus('valid');
+        } else {
+          setValidationStatus('invalid');
+        }
+      },
+      onError: () => {
+        setValidationStatus('invalid');
+      },
+    },
+  });
+
+  const handleUsernameChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      setUsername(value ?? '');
+      setValidationStatus('idle');
+    },
+    []
+  );
+
+  const handleApiKeyChange = useCallback(({ value }: InputChanged<string>) => {
+    setWebApiKey(value ?? '');
+    setValidationStatus('idle');
+  }, []);
+
+  const handleTestAndSavePress = useCallback(() => {
+    validateCredentials({
+      username: username.trim(),
+      webApiKey: webApiKey.trim(),
+    });
+  }, [username, webApiKey, validateCredentials]);
+
+  return (
+    <SettingsPage
+      title={translate('RetroAchievementsSettings')}
+      showSave={false}
+    >
+      <PageContentBody>
+        <div className={settingsStyles.section}>
+          <PageHeading
+            scope={translate('Settings')}
+            title={translate('RetroAchievements')}
+          />
+
+          <div className={styles.card}>
+            <Form>
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>{translate('Username')}</FormLabel>
+                <FormInput
+                  type={inputTypes.TEXT}
+                  name="username"
+                  value={username}
+                  placeholder="RetroAchievements username"
+                  helpText={translate('RetroAchievementsUsernameHelpText')}
+                  onChange={handleUsernameChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>{translate('RetroAchievementsWebApiKey')}</FormLabel>
+                <FormInput
+                  type={inputTypes.PASSWORD}
+                  name="webApiKey"
+                  value={webApiKey}
+                  placeholder="16-64 character alphanumeric Web API Key"
+                  helpText={translate('RetroAchievementsWebApiKeyHelpText')}
+                  onChange={handleApiKeyChange}
+                />
+              </FormRow>
+
+              <div className={styles.actions}>
+                <SpinnerErrorButton
+                  isSpinning={isValidating}
+                  error={validationError}
+                  disabled={!username.trim() || !webApiKey.trim()}
+                  onPress={handleTestAndSavePress}
+                >
+                  {translate('Test')}
+                </SpinnerErrorButton>
+              </div>
+            </Form>
+
+            {validationStatus === 'valid' ? (
+              <div className={styles.statusAlert}>
+                <Alert kind={kinds.SUCCESS}>
+                  {translate('RetroAchievementsCredentialsValid')}
+                </Alert>
+              </div>
+            ) : null}
+
+            {validationStatus === 'invalid' ? (
+              <div className={styles.statusAlert}>
+                <Alert kind={kinds.DANGER}>
+                  {translate('RetroAchievementsCredentialsInvalid')}
+                </Alert>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </PageContentBody>
+    </SettingsPage>
+  );
+}
+
+export default RetroAchievementsSettings;

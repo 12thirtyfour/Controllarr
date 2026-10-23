@@ -15,6 +15,7 @@ namespace Sonarr.Api.V3.Games
     }
 
     [V3ApiController("sdcardexport")]
+    [V5ApiController("sdcardexport")]
     public class SdCardExportController : Controller
     {
         private readonly ISdCardExporterService _sdCardExporterService;

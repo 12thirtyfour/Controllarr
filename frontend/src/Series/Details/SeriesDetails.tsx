@@ -64,6 +64,7 @@ import {
 import filterAlternateTitles from 'Utilities/Series/filterAlternateTitles';
 import translate from 'Utilities/String/translate';
 import toggleSelected from 'Utilities/Table/toggleSelected';
+import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
 import SeriesAlternateTitles from './SeriesAlternateTitles';
 import SeriesDetailsLinks from './SeriesDetailsLinks';
 import SeriesDetailsPath from './SeriesDetailsPath';
@@ -233,6 +234,8 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   const [isSeriesHistoryModalOpen, setIsSeriesHistoryModalOpen] =
     useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isRetroAchievementsModalOpen, setIsRetroAchievementsModalOpen] =
+    useState(false);
   const [isMonitorOptionsModalOpen, setIsMonitorOptionsModalOpen] =
     useState(false);
   const [expandedState, setExpandedState] = useState<ExpandedState>({
@@ -306,6 +309,14 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
   const handleExportModalClose = useCallback(() => {
     setIsExportModalOpen(false);
+  }, []);
+
+  const handleRetroAchievementsPress = useCallback(() => {
+    setIsRetroAchievementsModalOpen(true);
+  }, []);
+
+  const handleRetroAchievementsModalClose = useCallback(() => {
+    setIsRetroAchievementsModalOpen(false);
   }, []);
 
   const handleMonitorOptionsPress = useCallback(() => {
@@ -848,14 +859,17 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                       </span>
                     </Label>
 
-                    <Label
-                      className={styles.detailsLabel}
-                      title="RetroAchievements"
-                      size={sizes.LARGE}
-                      icon={icons.SCORE}
-                    >
-                      <span>RA Ready</span>
-                    </Label>
+                    <Link onPress={handleRetroAchievementsPress}>
+                      <Label
+                        className={styles.detailsLabel}
+                        title={translate('RetroAchievements')}
+                        size={sizes.LARGE}
+                        icon={icons.SCORE}
+                        interactive={true}
+                      >
+                        <span>RA Ready</span>
+                      </Label>
+                    </Link>
 
                     <Label
                       className={styles.detailsLabel}
@@ -1073,6 +1087,12 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
           <SdCardExportModal
             isOpen={isExportModalOpen}
             onModalClose={handleExportModalClose}
+          />
+
+          <RetroAchievementsShowcaseModal
+            isOpen={isRetroAchievementsModalOpen}
+            gameTitle={title}
+            onModalClose={handleRetroAchievementsModalClose}
           />
         </PageContentBody>
       </PageContent>

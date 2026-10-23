@@ -20,6 +20,7 @@ namespace Sonarr.Api.V3.Games
     }
 
     [V3ApiController("retroachievements")]
+    [V5ApiController("retroachievements")]
     public class RetroAchievementsController : Controller
     {
         private readonly IRetroAchievementsService _retroAchievementsService;

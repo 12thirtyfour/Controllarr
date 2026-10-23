@@ -164,6 +164,10 @@ const GROUPS: SidebarGroup[] = [
           { title: () => translate('General'), to: '/settings/general' },
           { title: () => translate('Ui'), to: '/settings/ui' },
           { title: () => translate('Bios'), to: '/settings/bios' },
+          {
+            title: () => translate('RetroAchievements'),
+            to: '/settings/retroachievements',
+          },
         ],
       },
       {

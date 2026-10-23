@@ -6,6 +6,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V3.Games
 {
     [V3ApiController("gamesearch")]
+    [V5ApiController("gamesearch")]
     public class GameSearchController : Controller
     {
         private readonly ISmartAddService _smartAddService;
