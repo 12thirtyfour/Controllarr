@@ -40,8 +40,9 @@ namespace NzbDrone.Core.Indexers.FileList
 
             Categories = new int[]
             {
-                (int)FileListCategories.Games_Console,
-                (int)FileListCategories.Misc
+                (int)FileListCategories.TV_SD,
+                (int)FileListCategories.TV_HD,
+                (int)FileListCategories.TV_4K
             };
 
             AnimeCategories = Array.Empty<int>();
@@ -90,12 +91,6 @@ namespace NzbDrone.Core.Indexers.FileList
 
     public enum FileListCategories
     {
-        [FieldOption(Label = "Console Games")]
-        Games_Console = 10,
-        [FieldOption(Label = "PC Games")]
-        Games_PC = 9,
-        [FieldOption(Label = "Misc")]
-        Misc = 18,
         [FieldOption(Label = "Anime")]
         Anime = 24,
         [FieldOption(Label = "Animation")]
