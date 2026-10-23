@@ -494,6 +494,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   } else if (revisionPreference === 1) {
     revisionPreferenceLabel = ' (Initial)';
   }
+
   const isFetching = isEpisodesFetching || isEpisodeFilesFetching;
   const isPopulated = isEpisodesFetched && isEpisodeFilesFetched;
 
