@@ -71,8 +71,8 @@
 
 .badgeCard {
   display: flex;
-  flex-direction: column;
   justify-content: space-between;
+  flex-direction: column;
   padding: 14px;
   border: 1px solid var(--borderColor);
   border-radius: 8px;

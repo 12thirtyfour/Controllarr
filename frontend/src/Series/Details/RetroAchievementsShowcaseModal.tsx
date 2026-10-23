@@ -13,6 +13,7 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import ProgressBar from 'Components/ProgressBar';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import { icons, kinds, sizes } from 'Helpers/Props';
+import { Kind } from 'Helpers/Props/kinds';
 import translate from 'Utilities/String/translate';
 import styles from './RetroAchievementsShowcaseModal.module.css';
 
@@ -181,9 +182,7 @@ function RetroAchievementsShowcaseModal({
                   <div className={styles.progressSection}>
                     <ProgressBar
                       progress={Number(progress.masteryPercentage)}
-                      kind={
-                        progress.isMastered ? kinds.WARNING : kinds.PRIMARY
-                      }
+                      kind={progress.isMastered ? kinds.WARNING : kinds.PRIMARY}
                       size={sizes.LARGE}
                       showText={true}
                       text={`${progress.unlockedAchievements} / ${progress.totalAchievements} (${progress.masteryPercentage}%)`}
@@ -208,8 +207,17 @@ function RetroAchievementsShowcaseModal({
 
                 <div className={styles.badgeGrid}>
                   {progress.badges.map((badge) => {
-                    const isUnlocked =
-                      badge.unlocked || badge.hardcoreUnlocked;
+                    const isUnlocked = badge.unlocked || badge.hardcoreUnlocked;
+                    let pointsKind: Kind = kinds.DEFAULT;
+                    let statusText = translate('RetroAchievementsLocked');
+
+                    if (badge.hardcoreUnlocked) {
+                      pointsKind = kinds.WARNING;
+                      statusText = translate('RetroAchievementsHardcore');
+                    } else if (isUnlocked) {
+                      pointsKind = kinds.SUCCESS;
+                      statusText = translate('RetroAchievementsUnlocked');
+                    }
 
                     return (
                       <div
@@ -226,16 +234,7 @@ function RetroAchievementsShowcaseModal({
                           <span className={styles.badgeTitle}>
                             {badge.title}
                           </span>
-                          <Label
-                            kind={
-                              badge.hardcoreUnlocked
-                                ? kinds.WARNING
-                                : isUnlocked
-                                ? kinds.SUCCESS
-                                : kinds.DEFAULT
-                            }
-                            size={sizes.SMALL}
-                          >
+                          <Label kind={pointsKind} size={sizes.SMALL}>
                             {badge.points} pts
                           </Label>
                         </div>
@@ -245,19 +244,9 @@ function RetroAchievementsShowcaseModal({
                         </div>
 
                         <div className={styles.badgeFooter}>
-                          {badge.hardcoreUnlocked ? (
-                            <Label kind={kinds.WARNING} size={sizes.SMALL}>
-                              {translate('RetroAchievementsHardcore')}
-                            </Label>
-                          ) : isUnlocked ? (
-                            <Label kind={kinds.SUCCESS} size={sizes.SMALL}>
-                              {translate('RetroAchievementsUnlocked')}
-                            </Label>
-                          ) : (
-                            <Label kind={kinds.DEFAULT} size={sizes.SMALL}>
-                              {translate('RetroAchievementsLocked')}
-                            </Label>
-                          )}
+                          <Label kind={pointsKind} size={sizes.SMALL}>
+                            {statusText}
+                          </Label>
                         </div>
                       </div>
                     );
