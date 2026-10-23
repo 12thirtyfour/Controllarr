@@ -167,3 +167,18 @@ src/.idea/
 .idea/
 
 frontend/src/**/*.module.css.d.ts
+
+# Compilation Artifacts
+**/bin/
+**/obj/
+
+# Node packages
+**/node_modules/
+
+# Frontend bundles
+**/dist/
+**/build/
+
+# Local databases
+*.db
+*.sqlite
