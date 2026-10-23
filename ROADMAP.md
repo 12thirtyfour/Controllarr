@@ -1,9 +1,12 @@
 # Controllarr Roadmap
 
 ## Phase 1: Foundation & Architecture Baseline (Completed)
-* Core infrastructure setup and repository initialization on .NET 10 architecture
-* Local alpha verification gate framework and CI/CD pipelines
-* Database schema baselines and migrations setup
+* Step 1: Forked and adapted the core Sonarr architecture framework for console gaming domain models
+* Step 2: Upgraded backend infrastructure to target .NET 10 runtime and updated global project dependencies
+* Step 3: Replaced legacy build tooling and integrated Vite into the frontend build and asset pipeline
+* Step 4: Established initial database schema migration baselines (Migrations 237–240) for platform and metadata tracking
+* Step 5: Configured local developer pre-flight tooling, editor configurations, and strict StyleCop rulesets (`SA1200`, `SA1028`)
+* Step 6: Initialized CI/CD workflow actions, cross-platform build pipelines, and passed local Alpha Verification Gate #1 on macOS
 
 ## Phase 2: Core Pipeline Adaptation, Ingestion & Hardware Target Integration (Active)
 * Step 1: Hardware Target Game Database (HTGDB / SMDB) Integration (Source Material DataStructures and record parsing models)
