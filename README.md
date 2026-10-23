@@ -1,8 +1,8 @@
 Disclaimer: This is both an experiment and project. I have no coding experience at all. Other than the work put into Sonarr, everything from the fork forward was done by AI. I am basically the project owner, Gemini is the manager and architect, and then Jules is the engineer and developer.
 
-# Controllarr: Automated Console Game & ROM Library Manager
+# Controllarr: Automated ROM Library Manager
 
-Welcome to **Controllarr**, the automated console game library and ROM acquisition engine designed from the ground up for retro and modern console gaming enthusiasts.
+Welcome to **Controllarr**, the automated ROM management and acquisition engine for retro and modern console gaming enthusiasts.
 
 Controllarr brings the seamless, automated experience of modern media management to your game collection: pick the consoles you care about, set your collection rules, and let the system automatically find, verify, organize, and even launch your games.
 
@@ -48,9 +48,9 @@ Customize how each console in your collection is curated:
 
 * **Completionist**: Perfect for digital archivists. Automatically monitors, matches, and organizes every regional release, revision, and alternate edition.
 
-### 2. Deep Metadata & Artwork
+### 2. Metadata & Artwork
 
-Through deep integration with **IGDB**, Controllarr presents your library in rich visual detail:
+Through integration with **IGDB**, Controllarr presents your library in rich visual detail:
 
 * High-resolution cover art, title screens, and fan art.
 
