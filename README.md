@@ -1,3 +1,5 @@
+Disclaimer: This is both an experiment and project. I have no coding experience at all. Other than the work put into Sonarr, everything from the fork forward was done by AI. I am basically the project owner, Gemini is the manager and architect, and then Jules is the engineer and developer.
+
 # Controllarr: Automated Console Game & ROM Library Manager
 
 Welcome to **Controllarr**, the automated console game library and ROM acquisition engine designed from the ground up for retro and modern console gaming enthusiasts.
