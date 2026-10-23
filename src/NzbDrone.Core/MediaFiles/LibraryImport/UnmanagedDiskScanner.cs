@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using NLog;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
 using NzbDrone.Core.Parser;
@@ -25,13 +26,20 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private static readonly string[] ArchiveExtensions = { ".zip" };
         private static readonly string[] RomExtensions = { ".smc", ".sfc", ".nes", ".md", ".bin", ".cue", ".iso", ".chd" };
 
+        private readonly IPlatformCatalogService _platformCatalogService;
+        private readonly IDatCacheService _datCacheService;
+
         public UnmanagedDiskScanner(
             IGamePlatformRepository gamePlatformRepository,
             IGameTitleRepository gameTitleRepository,
+            IPlatformCatalogService platformCatalogService,
+            IDatCacheService datCacheService,
             Logger logger)
         {
             _gamePlatformRepository = gamePlatformRepository;
             _gameTitleRepository = gameTitleRepository;
+            _platformCatalogService = platformCatalogService;
+            _datCacheService = datCacheService;
             _logger = logger;
         }
 
@@ -45,15 +53,42 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 return results;
             }
 
+            var allPlatforms = _platformCatalogService != null ? _platformCatalogService.GetAll() : null;
+            if (allPlatforms == null)
+            {
+                allPlatforms = new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>();
+            }
+
+            var validExtensions = new System.Collections.Generic.List<string>();
+            foreach (var platform in allPlatforms)
+            {
+                if (platform != null && platform.RomFileExtensions != null)
+                {
+                    validExtensions.AddRange(platform.RomFileExtensions);
+                }
+            }
+
+            if (validExtensions.Count == 0)
+            {
+                validExtensions.AddRange(RomExtensions);
+            }
+
+            if (validExtensions.Count == 0)
+            {
+                validExtensions.AddRange(RomExtensions);
+            }
+
+            validExtensions = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Distinct(validExtensions));
+
             var files = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
 
             foreach (var file in files)
             {
                 var extension = Path.GetExtension(file).ToLowerInvariant();
 
-                if (RomExtensions.Contains(extension) || ArchiveExtensions.Contains(extension))
+                if (validExtensions.Count == 0 || validExtensions.Contains(extension) || ArchiveExtensions.Contains(extension))
                 {
-                    var item = ProcessFile(file);
+                    var item = ProcessFile(file, validExtensions);
                     if (item != null)
                     {
                         results.Add(item);
@@ -64,7 +99,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             return results;
         }
 
-        private ManualImportItem ProcessFile(string filePath)
+        private ManualImportItem ProcessFile(string filePath, System.Collections.Generic.List<string> validExtensions)
         {
             var fileName = Path.GetFileName(filePath);
             var parsedInfo = RomParser.ParseRomName(fileName);
@@ -74,7 +109,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 return null;
             }
 
-            var hashes = ComputeHashes(filePath);
+            var hashes = ComputeHashes(filePath, validExtensions);
 
             // Match against catalog
             GamePlatform matchedPlatform = null;
@@ -93,6 +128,22 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 isHighConfidence = true; // High confidence if exact title match
             }
 
+            if (_datCacheService != null)
+            {
+                if (hashes.TryGetValue("CRC32", out var crc) && _datCacheService.FindByCrc32(crc) != null)
+                {
+                    isHighConfidence = true;
+                }
+                else if (hashes.TryGetValue("MD5", out var md5) && _datCacheService.FindByMd5(md5) != null)
+                {
+                    isHighConfidence = true;
+                }
+                else if (hashes.TryGetValue("SHA-1", out var sha1) && _datCacheService.FindBySha1(sha1) != null)
+                {
+                    isHighConfidence = true;
+                }
+            }
+
             return new ManualImportItem
             {
                 Path = filePath,
@@ -105,7 +156,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             };
         }
 
-        private Dictionary<string, string> ComputeHashes(string filePath)
+        private Dictionary<string, string> ComputeHashes(string filePath, System.Collections.Generic.List<string> validExtensions)
         {
             var hashes = new Dictionary<string, string>();
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
@@ -117,7 +168,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 {
                     using (var archive = ZipFile.OpenRead(filePath))
                     {
-                        var romEntry = archive.Entries.FirstOrDefault(e => RomExtensions.Contains(Path.GetExtension(e.Name).ToLowerInvariant()));
+                        var romEntry = archive.Entries.FirstOrDefault(e => validExtensions.Contains(Path.GetExtension(e.Name).ToLowerInvariant()));
                         if (romEntry != null)
                         {
                             using (var entryStream = romEntry.Open())

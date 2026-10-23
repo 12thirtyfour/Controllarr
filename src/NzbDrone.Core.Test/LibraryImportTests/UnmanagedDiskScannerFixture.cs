@@ -21,8 +21,16 @@ namespace NzbDrone.Core.Test.LibraryImportTests
         [SetUp]
         public void Setup()
         {
+            Mocker.GetMock<NzbDrone.Core.Games.IPlatformCatalogService>().Setup(c => c.GetAll()).Returns(new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>() {
+                new NzbDrone.Core.Games.PlatformDefinition { RomFileExtensions = new System.Collections.Generic.List<string> { ".smc", ".sfc", ".nes" } }
+            });
             _platformRepo = Mocker.GetMock<IGamePlatformRepository>();
             _titleRepo = Mocker.GetMock<IGameTitleRepository>();
+
+            var datCache = Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>();
+            datCache.Setup(c => c.FindByCrc32(Moq.It.IsAny<string>())).Returns(new NzbDrone.Core.Dat.DatEntry());
+            datCache.Setup(c => c.FindByMd5(Moq.It.IsAny<string>())).Returns(new NzbDrone.Core.Dat.DatEntry());
+            datCache.Setup(c => c.FindBySha1(Moq.It.IsAny<string>())).Returns(new NzbDrone.Core.Dat.DatEntry());
 
             _tempPath = Path.Combine(Path.GetTempPath(), "UnmanagedDiskScannerTests");
             if (Directory.Exists(_tempPath))
