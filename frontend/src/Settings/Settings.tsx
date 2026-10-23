@@ -95,6 +95,12 @@ function buildSections(): SectionEntry[] {
       title: translate('Ui'),
       summary: translate('UiSettingsSummary'),
     },
+    {
+      to: '/settings/bios',
+      iconName: icons.DRIVE,
+      title: translate('Bios'),
+      summary: translate('BiosSettingsSummary'),
+    },
   ];
 }
 

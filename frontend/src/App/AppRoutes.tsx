@@ -10,6 +10,7 @@ import CalendarPage from 'Calendar/CalendarPage';
 import NotFound from 'Components/NotFound';
 import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
 import SeriesIndex from 'Series/Index/SeriesIndex';
+import BiosSettings from 'Settings/Bios/BiosSettings';
 import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
 import DownloadClientSettings from 'Settings/DownloadClients/DownloadClientSettings';
 import GeneralSettings from 'Settings/General/GeneralSettings';
@@ -135,6 +136,8 @@ export function appRouteElements() {
       <Route path="/settings/general" element={<GeneralSettings />} />
 
       <Route path="/settings/ui" element={<UISettings />} />
+
+      <Route path="/settings/bios" element={<BiosSettings />} />
 
       {/*
         System
