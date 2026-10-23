@@ -89,7 +89,9 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             // 1G1R Tie-Breaking
-            if (series.CollectionStrategy == Games.CollectionStrategy.OneGameOneRom)
+            if (series.CollectionStrategy == Games.CollectionStrategy.OneGameOneRom ||
+                (series.CollectionStrategy == Games.CollectionStrategy.OneGamePerRegionPerConsole &&
+                 string.Equals(xRomInfo.Regions?.FirstOrDefault(), yRomInfo.Regions?.FirstOrDefault(), StringComparison.OrdinalIgnoreCase)))
             {
                 // Revision Preference tie-breaking
                 if (!string.IsNullOrWhiteSpace(xRomInfo.Revision) && !string.IsNullOrWhiteSpace(yRomInfo.Revision))

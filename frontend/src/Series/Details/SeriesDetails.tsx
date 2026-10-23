@@ -454,6 +454,9 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     tags,
     year,
     lastAired,
+    collectionStrategy,
+    revisionPreference,
+    pinnedVersion,
   } = series;
 
   const { episodeCount = 0, episodeFileCount = 0, sizeOnDisk = 0 } = statistics;
@@ -792,6 +795,26 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                         <QualityProfileName
                           qualityProfileId={qualityProfileId}
                         />
+                      </span>
+                    </Label>
+
+                    <Label
+                      className={styles.detailsLabel}
+                      title={translate('Collection Strategy')}
+                      size={sizes.LARGE}
+                      icon={icons.ORGANIZE}
+                    >
+                      <span>
+                        {collectionStrategy === 1
+                          ? 'Preservationist'
+                          : collectionStrategy === 2
+                            ? '1G1R Regional'
+                            : '1G1R'}
+                        {pinnedVersion
+                          ? ` (Pinned: ${pinnedVersion})`
+                          : revisionPreference === 1
+                            ? ' (Initial)'
+                            : ' (Latest Rev)'}
                       </span>
                     </Label>
 

@@ -94,6 +94,7 @@ function EditSeriesModalContent({
         tags,
         collectionStrategy: series.collectionStrategy,
         revisionPreference: series.revisionPreference,
+        pinnedVersion: series.pinnedVersion ?? '',
       },
       pendingChanges,
       saveError
@@ -110,6 +111,7 @@ function EditSeriesModalContent({
     tags,
     series.collectionStrategy,
     series.revisionPreference,
+    series.pinnedVersion,
     pendingChanges,
     saveError,
   ]);
@@ -196,7 +198,10 @@ function EditSeriesModalContent({
               {...(settings as any).collectionStrategy}
               onChange={handleInputChange}
             >
-              <option value="0">{translate('1G1R (One Game, One ROM)')}</option>
+              <option value="0">{translate('1G1R (1 Game / Console)')}</option>
+              <option value="2">
+                {translate('1G1R Regional (1 Game / Region / Console)')}
+              </option>
               <option value="1">
                 {translate('Preservationist / Completionist')}
               </option>
@@ -204,7 +209,7 @@ function EditSeriesModalContent({
           </FormRow>
 
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {Number((settings as any).collectionStrategy?.value) === 0 && (
+          {(Number((settings as any).collectionStrategy?.value) === 0 || Number((settings as any).collectionStrategy?.value) === 2) && (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('1G1R Revision Preference')}</FormLabel>
               <FormInputHelpText
@@ -226,6 +231,18 @@ function EditSeriesModalContent({
               </FormInput>
             </FormRow>
           )}
+
+          <FormRow size={sizes.MEDIUM}>
+            <FormLabel>{translate('Pinned Version / Revision')}</FormLabel>
+            <FormInputHelpText text={translate('Optional revision or version tag to pin (e.g. Rev A, 1.1)')} />
+            <FormInput
+              type={inputTypes.TEXT}
+              name="pinnedVersion"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              {...(settings as any).pinnedVersion}
+              onChange={handleInputChange}
+            />
+          </FormRow>
 
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('Monitored')}</FormLabel>

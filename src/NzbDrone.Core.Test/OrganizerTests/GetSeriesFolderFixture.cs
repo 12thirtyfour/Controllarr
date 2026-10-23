@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -58,6 +59,25 @@ namespace NzbDrone.Core.Test.OrganizerTests
 
             Subject.BuildPlatformRegionPath(root, "genesis", "EU")
                    .Should().Be(Path.Combine(root, "Sega", "Mega Drive", "EU"));
+        }
+
+        [Test]
+        public void should_build_rom_file_names_for_nointro_and_htgdb_presets()
+        {
+            Mocker.GetMock<IPlatformCatalogService>()
+                  .Setup(c => c.GetAll())
+                  .Returns(new PlatformCatalogService().GetAll());
+
+            var romInfo = RomParser.ParseRomName("Chrono Trigger (USA) (Rev A).sfc");
+
+            Subject.BuildRomFileName(romInfo, "snes", RomNamingPreset.NoIntroStandard)
+                   .Should().Be("Chrono Trigger (USA) (Rev A).sfc");
+
+            Subject.BuildRomFileName(romInfo, "snes", RomNamingPreset.SmokeMonsterHtgdb)
+                   .Should().Be("USA/A-F/Chrono Trigger (USA) (Rev A).sfc");
+
+            Subject.BuildRomFileName(romInfo, "snes", RomNamingPreset.FlatConsole)
+                   .Should().Be("Nintendo/Super Nintendo/Chrono Trigger (USA).sfc");
         }
     }
 }

@@ -14,6 +14,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 
@@ -27,6 +28,8 @@ namespace NzbDrone.Core.Organizer
         string GetSeriesFolder(Series series, NamingConfig namingConfig = null);
         string GetSeriesFolder(Series series, string title, NamingConfig namingConfig = null);
         string BuildPlatformRegionPath(string rootFolder, string platformNameOrSlug, string region = "US");
+        string BuildRomFileName(ParsedRomInfo romInfo, string platformNameOrSlug = null, RomNamingPreset preset = RomNamingPreset.NoIntroStandard, string customFormat = null);
+        string GetAlphabeticalBucket(string title);
         string GetSeasonFolder(Series series, int seasonNumber, NamingConfig namingConfig = null);
         bool RequiresEpisodeTitle(Series series, List<Episode> episodes);
         bool RequiresAbsoluteEpisodeNumber();
@@ -332,6 +335,96 @@ namespace NzbDrone.Core.Organizer
             }
 
             return Path.Combine(rootFolder ?? string.Empty, platformNameOrSlug ?? string.Empty, regionFolder);
+        }
+
+        public string BuildRomFileName(ParsedRomInfo romInfo, string platformNameOrSlug = null, RomNamingPreset preset = RomNamingPreset.NoIntroStandard, string customFormat = null)
+        {
+            if (romInfo == null)
+            {
+                return string.Empty;
+            }
+
+            var template = preset switch
+            {
+                RomNamingPreset.SmokeMonsterHtgdb => "{Region}/{Alphabetical Bucket}/{Game Title} ({Region}) ({Revision})",
+                RomNamingPreset.FlatConsole => "{Manufacturer}/{Console}/{Game Title} ({Region})",
+                RomNamingPreset.Custom when !string.IsNullOrWhiteSpace(customFormat) => customFormat,
+                _ => "{Game Title} ({Region}) ({Revision})"
+            };
+
+            var gameTitle = romInfo.GameTitle ?? string.Empty;
+            var cleanTitle = Parser.Parser.CleanSeriesTitle(gameTitle);
+            var primaryRegion = romInfo.Regions?.FirstOrDefault() ?? "USA";
+            var regionKey = NormalizeRegionKey(primaryRegion);
+            var revisionTag = !string.IsNullOrWhiteSpace(romInfo.Revision)
+                ? $"Rev {romInfo.Revision}"
+                : (!string.IsNullOrWhiteSpace(romInfo.Version) ? $"v{romInfo.Version}" : string.Empty);
+
+            PlatformDefinition matchedPlatform = null;
+            if (_platformCatalogService != null && !string.IsNullOrWhiteSpace(platformNameOrSlug))
+            {
+                var allPlatforms = _platformCatalogService.GetAll() ?? new List<PlatformDefinition>();
+                matchedPlatform = allPlatforms.FirstOrDefault(p =>
+                    p != null &&
+                    ((p.Name != null && p.Name.Equals(platformNameOrSlug, StringComparison.OrdinalIgnoreCase)) ||
+                     (p.Slug != null && p.Slug.Equals(platformNameOrSlug, StringComparison.OrdinalIgnoreCase))));
+            }
+
+            var manufacturer = matchedPlatform?.Manufacturer ?? string.Empty;
+            var consoleName = matchedPlatform != null ? ResolveRegionalConsoleName(matchedPlatform, regionKey) : (platformNameOrSlug ?? string.Empty);
+            var bucket = GetAlphabeticalBucket(gameTitle);
+            var qualityFull = romInfo.Quality?.Quality?.Name ?? string.Empty;
+
+            var rendered = template
+                .Replace("{Game Title}", gameTitle, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Game CleanTitle}", cleanTitle, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Region}", primaryRegion, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Revision}", revisionTag, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Console}", consoleName, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Platform}", consoleName, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Manufacturer}", manufacturer, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Alphabetical Bucket}", bucket, StringComparison.OrdinalIgnoreCase)
+                .Replace("{Quality Full}", qualityFull, StringComparison.OrdinalIgnoreCase);
+
+            rendered = Regex.Replace(rendered, @"\(\s*\)|\[\s*\]", string.Empty);
+            rendered = Regex.Replace(rendered, @"\s{2,}", " ").Trim();
+
+            var extension = !string.IsNullOrWhiteSpace(romInfo.Format)
+                ? "." + romInfo.Format.TrimStart('.')
+                : string.Empty;
+
+            return rendered + extension;
+        }
+
+        public string GetAlphabeticalBucket(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return "#";
+            }
+
+            var firstChar = char.ToUpperInvariant(title.Trim()[0]);
+            if (!char.IsLetter(firstChar))
+            {
+                return "#";
+            }
+
+            if (firstChar >= 'A' && firstChar <= 'F')
+            {
+                return "A-F";
+            }
+
+            if (firstChar >= 'G' && firstChar <= 'M')
+            {
+                return "G-M";
+            }
+
+            if (firstChar >= 'N' && firstChar <= 'S')
+            {
+                return "N-S";
+            }
+
+            return "T-Z";
         }
 
         private static string NormalizeRegionKey(string region)
