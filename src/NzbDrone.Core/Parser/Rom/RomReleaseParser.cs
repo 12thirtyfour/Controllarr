@@ -13,6 +13,8 @@ namespace NzbDrone.Core.Parser.Rom
         private static readonly Regex CrcRegex = new Regex(@"^[A-Fa-f0-9]{8}$", RegexOptions.Compiled);
         private static readonly Regex DiscRegex = new Regex(@"^Disc\s*(?<num>\d+)(?:\s*of\s*(?<count>\d+))?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FlagsRegex = new Regex(@"^([!bthfa]|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex MultiSpaceRegex = new Regex(@"\s+", RegexOptions.Compiled);
+        private static readonly char[] TagSplitChars = new[] { ',', '/' };
 
         private static readonly Dictionary<string, string> StandardRegions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -159,7 +161,7 @@ namespace NzbDrone.Core.Parser.Rom
                 }
 
                 // Check multi-item comma separated tag like "USA, Europe" or "En,Fr,De"
-                var parts = tagContent.Split(new[] { ',', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                var parts = tagContent.Split(TagSplitChars, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var part in parts)
                 {
                     var trimmed = part.Trim();
@@ -193,7 +195,7 @@ namespace NzbDrone.Core.Parser.Rom
             var cleanTitle = BracketOrParenRegex.Replace(workingTitle, "").Trim();
 
             // Remove extra whitespace or trailing punctuation/dashes
-            cleanTitle = Regex.Replace(cleanTitle, @"\s+", " ").Trim(' ', '-', '_');
+            cleanTitle = MultiSpaceRegex.Replace(cleanTitle, " ").Trim(' ', '-', '_');
 
             result.Title = cleanTitle;
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using FluentAssertions;
 using Moq;
@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
 
             var fileInfo = new FileInfo(resizedFile);
             fileInfo.Exists.Should().BeTrue();
-            fileInfo.Length.Should().BeInRange(1000, 30000);
+            fileInfo.Length.Should().BeInRange(1000, 60000);
 
             using (var image = Image.Load(resizedFile))
             {

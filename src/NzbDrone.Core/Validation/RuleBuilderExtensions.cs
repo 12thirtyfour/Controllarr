@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Validation
         public static IRuleBuilderOptions<T, string> StartsOrEndsWithSonarr<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             ruleBuilder.SetValidator(new NotEmptyValidator(null));
-            return ruleBuilder.SetValidator(new RegularExpressionValidator("^Sonarr|Sonarr$")).WithMessage("Must start or end with Sonarr");
+            return ruleBuilder.SetValidator(new RegularExpressionValidator("^(Sonarr|Controllarr)|(Sonarr|Controllarr)$")).WithMessage("Must start or end with Controllarr or Sonarr");
         }
     }
 }

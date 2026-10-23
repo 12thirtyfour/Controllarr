@@ -18,6 +18,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex DumpRegex = new Regex(@"\((Beta|Proto|Demo|Sample)\)|\[(?<tag>!|b|t|h|f|a|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DiscTrackRegex = new Regex(@"\((?:Disc\s*(?<disc>\d+(?:\s*of\s*\d+)?)|Track\s*(?<track>\d+))\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FullSetRegex = new Regex(@"\((Complete Set|Full Set|1G1R|Parent-Clone|[\d\-]+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex BracketCleanupRegex = new Regex(@"\[.*?\]|\(.*?\)", RegexOptions.Compiled);
 
         private static readonly string[] IgnoredPrefixes = { "_Top", "A-F", "G-K", "1 USA", "2 Japan", "Translations" };
 
@@ -125,17 +126,17 @@ namespace NzbDrone.Core.Parser
             {
                 result.Quality = new QualityModel(Quality.UnverifiedRaw);
             }
-            else if (result.DumpTags.Any(t => t.StartsWith("T+") || t.StartsWith("T-")))
+            else if (result.DumpTags.Any(t => t.StartsWith("T+", StringComparison.OrdinalIgnoreCase) || t.StartsWith("T-", StringComparison.OrdinalIgnoreCase)))
             {
                 result.Quality = new QualityModel(Quality.TranslationPatch);
             }
-            else if (result.DumpTags.Any(t => new[] { "Beta", "Proto" }.Contains(t)))
+            else if (result.DumpTags.Any(t => t.Equals("Beta", StringComparison.OrdinalIgnoreCase) || t.Equals("Proto", StringComparison.OrdinalIgnoreCase)))
             {
                 result.Quality = new QualityModel(Quality.BetaProto);
             }
 
             // Clean game title
-            normalizedTitle = Regex.Replace(normalizedTitle, @"\[.*?\]|\(.*?\)", "").Trim();
+            normalizedTitle = BracketCleanupRegex.Replace(normalizedTitle, "").Trim();
 
             // Strip ignored prefixes if present
             foreach (var prefix in IgnoredPrefixes)
