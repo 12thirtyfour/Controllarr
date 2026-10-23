@@ -28,3 +28,6 @@
 Before opening any PR, you must run and verify:
 1. `dotnet build --configuration Release` (must yield 0 errors, 0 warnings).
 2. `dotnet test --filter "FullyQualifiedName!~Integration"` (must pass cleanly, ignoring known legacy Sonarr.Http.Test failures).
+
+## Terminal Execution & Git Hygiene (Windows)
+- Always execute `git add`, `git commit`, `git push`, `gh`, `dotnet build`, and `dotnet test` directly with `BypassSandbox: true` without attempting a failing sandboxed run first (the Windows sandbox restricts `.git/index.lock` writes and `vstest.console` loopback sockets).
