@@ -10,9 +10,12 @@ namespace Sonarr.Api.V3.Profiles.Delay
     {
         public bool EnableUsenet { get; set; }
         public bool EnableTorrent { get; set; }
+        public bool EnableHttp { get; set; }
         public DownloadProtocol PreferredProtocol { get; set; }
+        public List<DownloadProtocol> ProtocolPriority { get; set; }
         public int UsenetDelay { get; set; }
         public int TorrentDelay { get; set; }
+        public int HttpDelay { get; set; }
         public bool BypassIfHighestQuality { get; set; }
         public bool BypassIfAboveCustomFormatScore { get; set; }
         public int MinimumCustomFormatScore { get; set; }
@@ -35,9 +38,12 @@ namespace Sonarr.Api.V3.Profiles.Delay
 
                 EnableUsenet = model.EnableUsenet,
                 EnableTorrent = model.EnableTorrent,
+                EnableHttp = model.EnableHttp,
                 PreferredProtocol = model.PreferredProtocol,
+                ProtocolPriority = model.ProtocolPriority != null ? new List<DownloadProtocol>(model.ProtocolPriority) : new List<DownloadProtocol>(),
                 UsenetDelay = model.UsenetDelay,
                 TorrentDelay = model.TorrentDelay,
+                HttpDelay = model.HttpDelay,
                 BypassIfHighestQuality = model.BypassIfHighestQuality,
                 BypassIfAboveCustomFormatScore = model.BypassIfAboveCustomFormatScore,
                 MinimumCustomFormatScore = model.MinimumCustomFormatScore,
@@ -59,9 +65,12 @@ namespace Sonarr.Api.V3.Profiles.Delay
 
                 EnableUsenet = resource.EnableUsenet,
                 EnableTorrent = resource.EnableTorrent,
+                EnableHttp = resource.EnableHttp,
                 PreferredProtocol = resource.PreferredProtocol,
+                ProtocolPriority = resource.ProtocolPriority != null ? new List<DownloadProtocol>(resource.ProtocolPriority) : new List<DownloadProtocol>(),
                 UsenetDelay = resource.UsenetDelay,
                 TorrentDelay = resource.TorrentDelay,
+                HttpDelay = resource.HttpDelay,
                 BypassIfHighestQuality = resource.BypassIfHighestQuality,
                 BypassIfAboveCustomFormatScore = resource.BypassIfAboveCustomFormatScore,
                 MinimumCustomFormatScore = resource.MinimumCustomFormatScore,

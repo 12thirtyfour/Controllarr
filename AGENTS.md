@@ -11,8 +11,8 @@
 - Dual SQLite/PostgreSQL persistence layer
 
 ## Coding Standards
-- Strict StyleCop compliance (mandatory adherence to rules such as `SA1200` using-directives inside namespaces).
-- xUnit test execution with **Moq** for test isolation.
+- Strict StyleCop compliance (mandatory adherence to rules in `src/stylecop.json`, such as `SA1200` requiring using-directives outside namespaces and `SA1028` no trailing whitespace).
+- NUnit test execution (`[TestFixture]`, `[Test]`) with **Moq** and **FluentAssertions** for test isolation.
 - Clean domain-driven separation mirroring Sonarr's indexer/provider/download client model.
 - Zero-Warnings Policy: `<TreatWarningsAsErrors>true` is strictly enforced. Release builds must output 0 errors and 0 warnings.
 - No Blanket Formatters: Running `dotnet format` or global whitespace cleanup scripts is strictly forbidden. Edit only lines directly pertinent to the task.

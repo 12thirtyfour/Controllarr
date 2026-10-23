@@ -173,7 +173,13 @@ namespace NzbDrone.Core.DecisionEngine
             {
                 var delayProfile = _delayProfileService.BestForTags(remoteEpisode.Series.Tags);
                 var downloadProtocol = remoteEpisode.Release.DownloadProtocol;
-                return downloadProtocol == delayProfile.PreferredProtocol;
+                if (delayProfile?.ProtocolPriority != null && delayProfile.ProtocolPriority.Count > 0)
+                {
+                    var index = delayProfile.ProtocolPriority.IndexOf(downloadProtocol);
+                    return index >= 0 ? delayProfile.ProtocolPriority.Count - index : 0;
+                }
+
+                return downloadProtocol == delayProfile.PreferredProtocol ? 1 : 0;
             });
 
             return result;

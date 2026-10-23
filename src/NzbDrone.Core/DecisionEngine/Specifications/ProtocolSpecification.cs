@@ -36,6 +36,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Torrent is not enabled for this series");
             }
 
+            if (subject.Release.DownloadProtocol == DownloadProtocol.Http && !delayProfile.EnableHttp)
+            {
+                _logger.Debug("[{0}] HTTP is not enabled for this series", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "HTTP is not enabled for this series");
+            }
+
             return DownloadSpecDecision.Accept();
         }
     }

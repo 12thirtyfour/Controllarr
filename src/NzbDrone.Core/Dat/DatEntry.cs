@@ -11,6 +11,8 @@ namespace NzbDrone.Core.Dat
         public string Crc32 { get; set; }
         public string Md5 { get; set; }
         public string Sha1 { get; set; }
+        public string Sha256 { get; set; }
+        public string SmdbPath { get; set; }
         public string Region { get; set; }
         public string Status { get; set; }
     }

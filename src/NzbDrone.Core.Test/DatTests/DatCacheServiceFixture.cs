@@ -32,10 +32,12 @@ namespace NzbDrone.Core.Test.DatTests
                 {
                     GameName = "Game 1",
                     RomName = "Game 1.rom",
+                    SmdbPath = "1 USA/Game 1.rom",
                     Size = 1024,
                     Crc32 = "crc1",
                     Md5 = "md51",
                     Sha1 = "sha11",
+                    Sha256 = "sha2561",
                     Region = "USA",
                     Status = "verified"
                 },
@@ -46,7 +48,8 @@ namespace NzbDrone.Core.Test.DatTests
                     Size = 2048,
                     Crc32 = "crc2",
                     Md5 = "md52",
-                    Sha1 = "sha12"
+                    Sha1 = "sha12",
+                    Sha256 = "sha2562"
                 }
             };
         }
@@ -95,6 +98,18 @@ namespace NzbDrone.Core.Test.DatTests
         }
 
         [Test]
+        public void Should_find_by_sha256_and_preserve_smdb_path()
+        {
+            Subject.Insert(_datFile, _datEntries);
+
+            var entry = Subject.FindBySha256("SHA2561");
+
+            entry.Should().NotBeNull();
+            entry.GameName.Should().Be("Game 1");
+            entry.SmdbPath.Should().Be("1 USA/Game 1.rom");
+        }
+
+        [Test]
         public void Should_return_null_when_hash_not_found()
         {
             Subject.Insert(_datFile, _datEntries);
@@ -102,6 +117,7 @@ namespace NzbDrone.Core.Test.DatTests
             Subject.FindByCrc32("invalid").Should().BeNull();
             Subject.FindBySha1("invalid").Should().BeNull();
             Subject.FindByMd5("invalid").Should().BeNull();
+            Subject.FindBySha256("invalid").Should().BeNull();
         }
     }
 }

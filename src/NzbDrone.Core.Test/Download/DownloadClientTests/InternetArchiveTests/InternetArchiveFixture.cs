@@ -13,6 +13,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.InternetArchive;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -41,11 +42,34 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
         }
 
         [Test]
-        public void should_create_settings()
+        public void should_create_settings_and_use_http_protocol()
         {
             var settings = new InternetArchiveSettings();
             settings.UrlBase.Should().Be("https://archive.org");
             settings.AllowAnonymousFallback.Should().BeTrue();
+            settings.PreferredArchives.Should().NotBeNull();
+            Subject.Protocol.Should().Be(DownloadProtocol.Http);
+        }
+
+        [Test]
+        public async Task should_resolve_relative_url_with_preferred_archive()
+        {
+            _settings.PreferredArchives = new[] { "nointro.snes" };
+
+            HttpRequest capturedRequest = null;
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .Callback<HttpRequest, CancellationToken>((req, token) => capturedRequest = req)
+                  .ReturnsAsync(new HttpResponse(new HttpRequest("https://archive.org"), new HttpHeader(), Array.Empty<byte>()));
+
+            var release = new ReleaseInfo { DownloadUrl = "Chrono Trigger (USA).zip", Title = "Chrono Trigger" };
+            var remoteEpisode = new RemoteEpisode { Release = release };
+
+            await Subject.Download(remoteEpisode, null);
+
+            capturedRequest.Should().NotBeNull();
+            capturedRequest.Url.FullUri.Should().Be("https://archive.org/download/nointro.snes/Chrono Trigger (USA).zip");
+            Subject.IsPreferredArchiveUrl(capturedRequest.Url.FullUri).Should().BeTrue();
         }
 
         [Test]
@@ -114,14 +138,20 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
                   {
                       // We need to copy the headers because the same request object is modified in the fallback
                       var clonedReq = new HttpRequest(req.Url.FullUri);
-                      if (req.Headers.ContainsKey("Authorization")) {
+                      if (req.Headers.ContainsKey("Authorization"))
+                      {
                           clonedReq.Headers.Add("Authorization", req.Headers.GetValues("Authorization").First());
                       }
+
                       requests.Add(clonedReq);
                   })
                   .Returns((HttpRequest req, CancellationToken token) =>
                   {
-                      if (requests.Count == 1) return Task.FromResult(unauthorizedResponse);
+                      if (requests.Count == 1)
+                      {
+                          return Task.FromResult(unauthorizedResponse);
+                      }
+
                       return Task.FromResult(okResponse);
                   });
 

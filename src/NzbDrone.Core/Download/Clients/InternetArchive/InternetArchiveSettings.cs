@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
@@ -19,6 +21,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         public InternetArchiveSettings()
         {
             UrlBase = "https://archive.org";
+            PreferredArchives = Array.Empty<string>();
         }
 
         [FieldDefinition(0, Label = "UrlBase", Type = FieldType.Textbox)]
@@ -32,6 +35,9 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         [FieldDefinition(3, Label = "Allow Anonymous Fallback", Type = FieldType.Checkbox)]
         public bool AllowAnonymousFallback { get; set; } = true;
+
+        [FieldDefinition(4, Label = "Preferred Archives", Type = FieldType.Tag)]
+        public IEnumerable<string> PreferredArchives { get; set; }
 
         public override NzbDroneValidationResult Validate()
         {

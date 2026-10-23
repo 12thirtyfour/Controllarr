@@ -18,10 +18,13 @@ namespace NzbDrone.Core.Dat
             using (var connection = _database.OpenConnection())
             using (var transaction = connection.BeginTransaction())
             {
-                var datFileSql = @"
-                    INSERT INTO ""DatFiles"" (""Name"", ""Description"", ""Version"", ""Author"", ""Category"", ""CreatedAt"")
-                    VALUES (@Name, @Description, @Version, @Author, @Category, @CreatedAt);
-                    SELECT last_insert_rowid();";
+                var datFileSql = _database.DatabaseType == DatabaseType.PostgreSQL
+                    ? @"INSERT INTO ""DatFiles"" (""Name"", ""Description"", ""Version"", ""Author"", ""Category"", ""CreatedAt"")
+                        VALUES (@Name, @Description, @Version, @Author, @Category, @CreatedAt)
+                        RETURNING ""Id"";"
+                    : @"INSERT INTO ""DatFiles"" (""Name"", ""Description"", ""Version"", ""Author"", ""Category"", ""CreatedAt"")
+                        VALUES (@Name, @Description, @Version, @Author, @Category, @CreatedAt);
+                        SELECT last_insert_rowid();";
 
                 var datFileId = connection.ExecuteScalar<int>(datFileSql, datFile, transaction);
                 datFile.Id = datFileId;
@@ -32,8 +35,8 @@ namespace NzbDrone.Core.Dat
                 }
 
                 var datEntrySql = @"
-                    INSERT INTO ""DatEntries"" (""DatFileId"", ""GameName"", ""RomName"", ""Size"", ""Crc32"", ""Md5"", ""Sha1"", ""Region"", ""Status"")
-                    VALUES (@DatFileId, @GameName, @RomName, @Size, @Crc32, @Md5, @Sha1, @Region, @Status);";
+                    INSERT INTO ""DatEntries"" (""DatFileId"", ""GameName"", ""RomName"", ""Size"", ""Crc32"", ""Md5"", ""Sha1"", ""Sha256"", ""SmdbPath"", ""Region"", ""Status"")
+                    VALUES (@DatFileId, @GameName, @RomName, @Size, @Crc32, @Md5, @Sha1, @Sha256, @SmdbPath, @Region, @Status);";
 
                 connection.Execute(datEntrySql, datEntries, transaction);
                 transaction.Commit();
@@ -84,6 +87,21 @@ namespace NzbDrone.Core.Dat
             using (var connection = _database.OpenConnection())
             {
                 return connection.QueryFirstOrDefault<DatEntry>(sql, new { md5 = md5.ToLowerInvariant() });
+            }
+        }
+
+        public DatEntry FindBySha256(string sha256)
+        {
+            if (string.IsNullOrWhiteSpace(sha256))
+            {
+                return null;
+            }
+
+            var sql = @"SELECT * FROM ""DatEntries"" WHERE ""Sha256"" = @sha256 LIMIT 1";
+
+            using (var connection = _database.OpenConnection())
+            {
+                return connection.QueryFirstOrDefault<DatEntry>(sql, new { sha256 = sha256.ToLowerInvariant() });
             }
         }
     }

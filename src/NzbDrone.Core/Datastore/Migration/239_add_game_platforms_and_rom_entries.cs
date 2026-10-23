@@ -4,7 +4,7 @@ using NzbDrone.Core.Datastore.Migration.Framework;
 namespace NzbDrone.Core.Datastore.Migration
 {
     [Migration(239)]
-    public class Migration239_AddGamePlatformsAndRomEntries : NzbDroneMigrationBase
+    public class add_game_platforms_and_rom_entries : NzbDroneMigrationBase
     {
         protected override void MainDbUpgrade()
         {

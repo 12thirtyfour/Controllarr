@@ -6,7 +6,7 @@
 * Step 5: Configured local developer pre-flight tooling, editor configurations, and strict StyleCop rulesets (`SA1200`, `SA1028`)
 * Step 6: Initialized CI/CD workflow actions, cross-platform build pipelines, and passed local Alpha Verification Gate #1 on macOS
 
-## Phase 2: Core Pipeline Adaptation, Ingestion & Hardware Target Integration (Active)
+## Phase 2: Core Pipeline Adaptation, Ingestion & Hardware Target Integration (Completed)
 * Step 1: Hardware Target Game Database (HTGDB / SMDB) Integration (Source Material DataStructures and record parsing models)
 * Step 2: Root Folder & Platform Path Hierarchy (`\RootFolder\Manufacturer\Console\Region\`)
 * Step 3: Per-Console Extension Mappings & Core ROM Ingestion Pipeline
@@ -14,7 +14,7 @@
 * Step 5: Native Internet Archive S3/HTTP Downloader Integration (Including user-defined Preferred Archives configuration)
 * Step 6: Verification Gate #2 (Local Disk Scan & Acquisition Test)
 
-## Phase 3: Rules Engine, Naming Presets & Core UI Modernization (React & Vite SPA)
+## Phase 3: Rules Engine, Naming Presets & Core UI Modernization (React & Vite SPA) (Active)
 * Step 1: Advanced 1G1R Strategy Engine (1 Game/Console vs. 1 Game/Region/Console with Console-level Override)
 * Step 2: ROM Naming Engine & Presets (Custom `*arr` Tokens + SmokeMonster / HTGDB Presets)
 * Step 3: Core UI Shell Adaptation (Terminology & Platform Views)

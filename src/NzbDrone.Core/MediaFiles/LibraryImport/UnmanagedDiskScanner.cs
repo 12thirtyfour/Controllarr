@@ -19,15 +19,15 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
     public class UnmanagedDiskScanner : IUnmanagedDiskScanner
     {
-        private readonly IGamePlatformRepository _gamePlatformRepository;
-        private readonly IGameTitleRepository _gameTitleRepository;
-        private readonly Logger _logger;
-
         private static readonly string[] ArchiveExtensions = { ".zip" };
         private static readonly string[] RomExtensions = { ".smc", ".sfc", ".nes", ".md", ".bin", ".cue", ".iso", ".chd" };
+        private static readonly uint[] Crc32Table = InitializeCrc32Table();
 
+        private readonly IGamePlatformRepository _gamePlatformRepository;
+        private readonly IGameTitleRepository _gameTitleRepository;
         private readonly IPlatformCatalogService _platformCatalogService;
         private readonly IDatCacheService _datCacheService;
+        private readonly Logger _logger;
 
         public UnmanagedDiskScanner(
             IGamePlatformRepository gamePlatformRepository,
@@ -56,13 +56,13 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             var allPlatforms = _platformCatalogService != null ? _platformCatalogService.GetAll() : null;
             if (allPlatforms == null)
             {
-                allPlatforms = new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>();
+                allPlatforms = new List<PlatformDefinition>();
             }
 
-            var validExtensions = new System.Collections.Generic.List<string>();
+            var validExtensions = new List<string>();
             foreach (var platform in allPlatforms)
             {
-                if (platform != null && platform.RomFileExtensions != null)
+                if (platform?.RomFileExtensions != null)
                 {
                     validExtensions.AddRange(platform.RomFileExtensions);
                 }
@@ -73,12 +73,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 validExtensions.AddRange(RomExtensions);
             }
 
-            if (validExtensions.Count == 0)
-            {
-                validExtensions.AddRange(RomExtensions);
-            }
-
-            validExtensions = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Distinct(validExtensions));
+            validExtensions = validExtensions.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
             var files = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
 
@@ -99,7 +94,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             return results;
         }
 
-        private ManualImportItem ProcessFile(string filePath, System.Collections.Generic.List<string> validExtensions)
+        private ManualImportItem ProcessFile(string filePath, List<string> validExtensions)
         {
             var fileName = Path.GetFileName(filePath);
             var parsedInfo = RomParser.ParseRomName(fileName);
@@ -111,7 +106,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             var hashes = ComputeHashes(filePath, validExtensions);
 
-            // Match against catalog
             GamePlatform matchedPlatform = null;
             GameTitle matchedTitle = null;
             var isHighConfidence = false;
@@ -119,18 +113,23 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             var allPlatforms = _gamePlatformRepository.All();
             var allTitles = _gameTitleRepository.All();
 
-            matchedTitle = allTitles.FirstOrDefault(t => t.Title.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase) ||
-                                                         t.CleanTitle.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase));
+            matchedTitle = allTitles.FirstOrDefault(t =>
+                t.Title.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase) ||
+                (t.CleanTitle != null && t.CleanTitle.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase)));
 
             if (matchedTitle != null)
             {
                 matchedPlatform = allPlatforms.FirstOrDefault(p => p.Id == matchedTitle.PlatformId);
-                isHighConfidence = true; // High confidence if exact title match
+                isHighConfidence = true;
             }
 
             if (_datCacheService != null)
             {
-                if (hashes.TryGetValue("CRC32", out var crc) && _datCacheService.FindByCrc32(crc) != null)
+                if (hashes.TryGetValue("SHA-256", out var sha256) && _datCacheService.FindBySha256(sha256) != null)
+                {
+                    isHighConfidence = true;
+                }
+                else if (hashes.TryGetValue("SHA-1", out var sha1) && _datCacheService.FindBySha1(sha1) != null)
                 {
                     isHighConfidence = true;
                 }
@@ -138,7 +137,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 {
                     isHighConfidence = true;
                 }
-                else if (hashes.TryGetValue("SHA-1", out var sha1) && _datCacheService.FindBySha1(sha1) != null)
+                else if (hashes.TryGetValue("CRC32", out var crc) && _datCacheService.FindByCrc32(crc) != null)
                 {
                     isHighConfidence = true;
                 }
@@ -156,14 +155,13 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             };
         }
 
-        private Dictionary<string, string> ComputeHashes(string filePath, System.Collections.Generic.List<string> validExtensions)
+        private Dictionary<string, string> ComputeHashes(string filePath, List<string> validExtensions)
         {
             var hashes = new Dictionary<string, string>();
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
 
             if (ArchiveExtensions.Contains(extension))
             {
-                // Inspect zip central directory for hashes without extracting
                 try
                 {
                     using (var archive = ZipFile.OpenRead(filePath))
@@ -172,25 +170,10 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         if (romEntry != null)
                         {
                             using (var entryStream = romEntry.Open())
-                            using (var sha1 = SHA1.Create())
-                            using (var md5 = MD5.Create())
                             {
-                                var buffer = new byte[8192];
-                                int bytesRead;
-                                while ((bytesRead = entryStream.Read(buffer, 0, buffer.Length)) > 0)
-                                {
-                                    sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-                                    md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-                                }
-
-                                sha1.TransformFinalBlock(new byte[0], 0, 0);
-                                md5.TransformFinalBlock(new byte[0], 0, 0);
-
-                                hashes["SHA-1"] = BitConverter.ToString(sha1.Hash).Replace("-", "").ToLowerInvariant();
-                                hashes["MD5"] = BitConverter.ToString(md5.Hash).Replace("-", "").ToLowerInvariant();
+                                ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
                             }
 
-                            // CRC32 directly from central directory
                             var crc32Property = romEntry.GetType().GetProperty("Crc32", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
                             if (crc32Property != null)
                             {
@@ -207,26 +190,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
             else
             {
-                // Compute hashes for regular file
                 try
                 {
                     using (var stream = File.OpenRead(filePath))
-                    using (var sha1 = SHA1.Create())
-                    using (var md5 = MD5.Create())
                     {
-                        var buffer = new byte[8192];
-                        int bytesRead;
-                        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-                            md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-                        }
-
-                        sha1.TransformFinalBlock(new byte[0], 0, 0);
-                        md5.TransformFinalBlock(new byte[0], 0, 0);
-
-                        hashes["SHA-1"] = BitConverter.ToString(sha1.Hash).Replace("-", "").ToLowerInvariant();
-                        hashes["MD5"] = BitConverter.ToString(md5.Hash).Replace("-", "").ToLowerInvariant();
+                        ComputeStreamHashes(stream, hashes, computeCrc32: true);
                     }
                 }
                 catch (Exception ex)
@@ -236,6 +204,63 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
 
             return hashes;
+        }
+
+        private static void ComputeStreamHashes(Stream stream, Dictionary<string, string> hashes, bool computeCrc32)
+        {
+            using (var sha256 = SHA256.Create())
+            using (var sha1 = SHA1.Create())
+            using (var md5 = MD5.Create())
+            {
+                var buffer = new byte[8192];
+                var crc = 0xFFFFFFFFu;
+                int bytesRead;
+
+                while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    sha256.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                    sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                    md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+
+                    if (computeCrc32)
+                    {
+                        for (var i = 0; i < bytesRead; i++)
+                        {
+                            crc = (crc >> 8) ^ Crc32Table[(crc ^ buffer[i]) & 0xFF];
+                        }
+                    }
+                }
+
+                sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                sha1.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                md5.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+                hashes["SHA-256"] = BitConverter.ToString(sha256.Hash).Replace("-", "").ToLowerInvariant();
+                hashes["SHA-1"] = BitConverter.ToString(sha1.Hash).Replace("-", "").ToLowerInvariant();
+                hashes["MD5"] = BitConverter.ToString(md5.Hash).Replace("-", "").ToLowerInvariant();
+
+                if (computeCrc32)
+                {
+                    hashes["CRC32"] = (~crc).ToString("x8").ToLowerInvariant();
+                }
+            }
+        }
+
+        private static uint[] InitializeCrc32Table()
+        {
+            var table = new uint[256];
+            for (var i = 0u; i < 256; i++)
+            {
+                var entry = i;
+                for (var j = 0; j < 8; j++)
+                {
+                    entry = (entry & 1) == 1 ? (entry >> 1) ^ 0xEDB88320u : entry >> 1;
+                }
+
+                table[i] = entry;
+            }
+
+            return table;
         }
     }
 }

@@ -1,19 +1,17 @@
-using System;
 using System.Collections.Generic;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Games;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Profiles;
+using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
-using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Profiles.Delay;
-using NzbDrone.Core.Datastore;
-using NzbDrone.Core.Indexers;
-using Moq;
 
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
@@ -24,6 +22,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         private DownloadDecision _decisionPinned;
         private DownloadDecision _decisionLatestRev;
         private DownloadDecision _decisionInitialRelease;
+        private Mock<IDelayProfileService> _delayProfileServiceMock;
 
         [SetUp]
         public void Setup()
@@ -31,10 +30,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var configServiceMock = new Mock<IConfigService>();
             configServiceMock.Setup(c => c.DownloadPropersAndRepacks).Returns(ProperDownloadTypes.PreferAndUpgrade);
 
-            var delayProfileServiceMock = new Mock<IDelayProfileService>();
-            delayProfileServiceMock.Setup(c => c.BestForTags(It.IsAny<HashSet<int>>())).Returns(new DelayProfile { PreferredProtocol = DownloadProtocol.Usenet });
+            _delayProfileServiceMock = new Mock<IDelayProfileService>();
+            _delayProfileServiceMock.Setup(c => c.BestForTags(It.IsAny<HashSet<int>>())).Returns(new DelayProfile { PreferredProtocol = DownloadProtocol.Usenet });
 
-            _comparer = new DownloadDecisionComparer(configServiceMock.Object, delayProfileServiceMock.Object);
+            _comparer = new DownloadDecisionComparer(configServiceMock.Object, _delayProfileServiceMock.Object);
 
             var profile = new QualityProfile
             {
@@ -118,6 +117,50 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             });
 
             _comparer.Compare(_decisionInitialRelease, laterDecision).Should().BeLessThan(0); // Initial (null) wins over RevA
+        }
+
+        [Test]
+        public void should_rank_protocols_by_protocol_priority_list()
+        {
+            _delayProfileServiceMock
+                .Setup(c => c.BestForTags(It.IsAny<HashSet<int>>()))
+                .Returns(new DelayProfile
+                {
+                    EnableHttp = true,
+                    EnableUsenet = true,
+                    EnableTorrent = true,
+                    ProtocolPriority = new List<DownloadProtocol>
+                    {
+                        DownloadProtocol.Http,
+                        DownloadProtocol.Usenet,
+                        DownloadProtocol.Torrent
+                    }
+                });
+
+            var httpDecision = new DownloadDecision(new RemoteEpisode
+            {
+                Series = _decisionLatestRev.RemoteEpisode.Series,
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.Unknown) },
+                Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Http }
+            });
+
+            var usenetDecision = new DownloadDecision(new RemoteEpisode
+            {
+                Series = _decisionLatestRev.RemoteEpisode.Series,
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.Unknown) },
+                Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
+            });
+
+            var torrentDecision = new DownloadDecision(new RemoteEpisode
+            {
+                Series = _decisionLatestRev.RemoteEpisode.Series,
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.Unknown) },
+                Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Torrent }
+            });
+
+            _comparer.Compare(httpDecision, usenetDecision).Should().BeGreaterThan(0);
+            _comparer.Compare(usenetDecision, torrentDecision).Should().BeGreaterThan(0);
+            _comparer.Compare(httpDecision, torrentDecision).Should().BeGreaterThan(0);
         }
     }
 }

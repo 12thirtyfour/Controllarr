@@ -4,7 +4,7 @@ using NzbDrone.Core.Datastore.Migration.Framework;
 namespace NzbDrone.Core.Datastore.Migration
 {
     [Migration(240)]
-    public class Migration240_AddDatCacheTables : NzbDroneMigrationBase
+    public class add_dat_cache_tables : NzbDroneMigrationBase
     {
         protected override void MainDbUpgrade()
         {

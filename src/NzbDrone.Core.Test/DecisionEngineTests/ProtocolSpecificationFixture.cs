@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -55,6 +55,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
+        public void should_be_true_if_http_and_http_is_enabled()
+        {
+            GivenProtocol(DownloadProtocol.Http);
+            _delayProfile.EnableHttp = true;
+
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(true);
+        }
+
+        [Test]
         public void should_be_false_if_usenet_and_usenet_is_disabled()
         {
             GivenProtocol(DownloadProtocol.Usenet);
@@ -68,6 +77,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             GivenProtocol(DownloadProtocol.Torrent);
             _delayProfile.EnableTorrent = false;
+
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(false);
+        }
+
+        [Test]
+        public void should_be_false_if_http_and_http_is_disabled()
+        {
+            GivenProtocol(DownloadProtocol.Http);
+            _delayProfile.EnableHttp = false;
 
             Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(false);
         }

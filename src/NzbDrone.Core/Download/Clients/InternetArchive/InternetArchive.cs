@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation.Results;
@@ -21,7 +23,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public override string Name => "InternetArchive";
 
-        public override DownloadProtocol Protocol => DownloadProtocol.Usenet; // or Http, but Using Usenet to force direct download in base if necessary
+        public override DownloadProtocol Protocol => DownloadProtocol.Http;
 
         public InternetArchive(IHttpClient httpClient,
                                IConfigService configService,
@@ -36,8 +38,14 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public override async Task<string> Download(RemoteEpisode remoteEpisode, IIndexer indexer)
         {
-            var url = remoteEpisode.Release.DownloadUrl;
-            var filename = Parser.Parser.CleanSeriesTitle(remoteEpisode.Release.Title) + (url.EndsWith(".zip") ? ".zip" : ".chd");
+            var url = ResolveDownloadUrl(remoteEpisode?.Release?.DownloadUrl);
+            var extension = Path.GetExtension(url);
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = url != null && url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ? ".zip" : ".chd";
+            }
+
+            var filename = Parser.Parser.CleanSeriesTitle(remoteEpisode.Release.Title) + extension;
 
             var request = indexer?.GetDownloadRequest(url) ?? new HttpRequest(url);
             request.RateLimitKey = remoteEpisode?.Release?.IndexerId.ToString();
@@ -49,7 +57,6 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 request.Headers.Add("Authorization", $"LOW {Settings.S3AccessKey.Trim()}:{Settings.S3SecretKey.Trim()}");
             }
 
-            // Implementing basic retry logic via RetryStrategy
             var response = await RetryStrategy
                 .ExecuteAsync(static async (state, token) => await state._httpClient.GetAsync(state.request, token), (_httpClient, request))
                 .ConfigureAwait(false);
@@ -69,18 +76,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 }
             }
 
-            var path = Path.Combine(Settings.UrlBase, filename); // dummy path for now, actually needs to save.
-
-            // Native HTTP direct streaming implementation stub:
-            // Since this is a core service without a separate download worker thread yet, we simulate passing it to a generic state.
-            // Normally we'd stream response.ResponseData to _diskProvider.WriteAllBytes
-
             if (response?.ResponseData != null)
             {
                 var downloadPath = Path.Combine(_configService.DownloadClientWorkingFolders, filename);
                 var fullDestinationPath = Path.GetFullPath(downloadPath);
 
-                if (!fullDestinationPath.StartsWith(Path.GetFullPath(_configService.DownloadClientWorkingFolders) + Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase))
+                if (!fullDestinationPath.StartsWith(Path.GetFullPath(_configService.DownloadClientWorkingFolders) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new System.Security.SecurityException("Zip Slip / Path Traversal detected in download destination.");
                 }
@@ -96,6 +97,28 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             }
 
             return null;
+        }
+
+        public bool IsPreferredArchiveUrl(string downloadUrl)
+        {
+            if (string.IsNullOrWhiteSpace(downloadUrl) || Settings?.PreferredArchives == null)
+            {
+                return false;
+            }
+
+            var preferredList = Settings.PreferredArchives
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Select(a => a.Trim())
+                .ToList();
+
+            if (preferredList.Count == 0)
+            {
+                return false;
+            }
+
+            return preferredList.Any(archiveId =>
+                downloadUrl.Contains($"/download/{archiveId}/", StringComparison.OrdinalIgnoreCase) ||
+                downloadUrl.EndsWith($"/download/{archiveId}", StringComparison.OrdinalIgnoreCase));
         }
 
         public override DownloadClientInfo GetStatus()
@@ -122,6 +145,30 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         protected override void Test(List<ValidationFailure> failures)
         {
             failures.AddIfNotNull(TestFolder(_configService.DownloadClientWorkingFolders, "DownloadClientWorkingFolders"));
+        }
+
+        private string ResolveDownloadUrl(string downloadUrl)
+        {
+            if (string.IsNullOrWhiteSpace(downloadUrl))
+            {
+                return downloadUrl;
+            }
+
+            if (downloadUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                downloadUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return downloadUrl;
+            }
+
+            var preferredArchive = Settings?.PreferredArchives?.FirstOrDefault(a => !string.IsNullOrWhiteSpace(a))?.Trim();
+            var baseUrl = string.IsNullOrWhiteSpace(Settings?.UrlBase) ? "https://archive.org" : Settings.UrlBase.TrimEnd('/');
+
+            if (!string.IsNullOrWhiteSpace(preferredArchive))
+            {
+                return $"{baseUrl}/download/{preferredArchive}/{downloadUrl.TrimStart('/')}";
+            }
+
+            return $"{baseUrl}/download/{downloadUrl.TrimStart('/')}";
         }
     }
 }

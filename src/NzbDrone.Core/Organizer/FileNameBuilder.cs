@@ -26,6 +26,7 @@ namespace NzbDrone.Core.Organizer
         string BuildSeasonPath(Series series, int seasonNumber);
         string GetSeriesFolder(Series series, NamingConfig namingConfig = null);
         string GetSeriesFolder(Series series, string title, NamingConfig namingConfig = null);
+        string BuildPlatformRegionPath(string rootFolder, string platformNameOrSlug, string region = "US");
         string GetSeasonFolder(Series series, int seasonNumber, NamingConfig namingConfig = null);
         bool RequiresEpisodeTitle(Series series, List<Episode> episodes);
         bool RequiresAbsoluteEpisodeNumber();
@@ -275,10 +276,10 @@ namespace NzbDrone.Core.Organizer
                 {
                     foreach (var platform in allPlatforms)
                     {
-                        if (platform != null && platform.Name != null && platform.Name.Equals(seriesTitle, System.StringComparison.OrdinalIgnoreCase))
+                        if (platform != null && ((platform.Name != null && platform.Name.Equals(seriesTitle, System.StringComparison.OrdinalIgnoreCase)) || (platform.Slug != null && platform.Slug.Equals(seriesTitle, System.StringComparison.OrdinalIgnoreCase))))
                         {
                             var man = platform.Manufacturer ?? "";
-                            var con = platform.RegionalConsoleNames != null && platform.RegionalConsoleNames.ContainsKey("US") ? platform.RegionalConsoleNames["US"] : (platform.Name ?? "");
+                            var con = ResolveRegionalConsoleName(platform, NormalizeRegionKey(series?.OriginalCountry));
                             return System.IO.Path.Combine(man, con);
                         }
                     }
@@ -307,6 +308,74 @@ namespace NzbDrone.Core.Organizer
             folderName = folderName.Replace("{ellipsis}", "...");
 
             return folderName;
+        }
+
+        public string BuildPlatformRegionPath(string rootFolder, string platformNameOrSlug, string region = "US")
+        {
+            var regionKey = NormalizeRegionKey(region);
+            var regionFolder = string.IsNullOrWhiteSpace(region) ? regionKey : region.Trim();
+
+            if (_platformCatalogService != null && !string.IsNullOrWhiteSpace(platformNameOrSlug))
+            {
+                var allPlatforms = _platformCatalogService.GetAll() ?? new List<PlatformDefinition>();
+                var matchedPlatform = allPlatforms.FirstOrDefault(p =>
+                    p != null &&
+                    ((p.Name != null && p.Name.Equals(platformNameOrSlug, StringComparison.OrdinalIgnoreCase)) ||
+                     (p.Slug != null && p.Slug.Equals(platformNameOrSlug, StringComparison.OrdinalIgnoreCase))));
+
+                if (matchedPlatform != null)
+                {
+                    var manufacturer = matchedPlatform.Manufacturer ?? string.Empty;
+                    var consoleName = ResolveRegionalConsoleName(matchedPlatform, regionKey);
+                    return Path.Combine(rootFolder ?? string.Empty, manufacturer, consoleName, regionFolder);
+                }
+            }
+
+            return Path.Combine(rootFolder ?? string.Empty, platformNameOrSlug ?? string.Empty, regionFolder);
+        }
+
+        private static string NormalizeRegionKey(string region)
+        {
+            if (string.IsNullOrWhiteSpace(region))
+            {
+                return "US";
+            }
+
+            var normalized = region.Trim().ToUpperInvariant();
+            if (normalized == "USA" || normalized == "US")
+            {
+                return "US";
+            }
+
+            if (normalized == "JAPAN" || normalized == "JP" || normalized == "JPN")
+            {
+                return "JP";
+            }
+
+            if (normalized == "EUROPE" || normalized == "EU" || normalized == "EUR" || normalized == "UK")
+            {
+                return "EU";
+            }
+
+            return normalized;
+        }
+
+        private static string ResolveRegionalConsoleName(PlatformDefinition platform, string regionKey)
+        {
+            if (platform?.RegionalConsoleNames != null)
+            {
+                if (platform.RegionalConsoleNames.TryGetValue(regionKey, out var regionalName) && !string.IsNullOrWhiteSpace(regionalName))
+                {
+                    return regionalName;
+                }
+
+                if (platform.RegionalConsoleNames.TryGetValue("US", out var usName) && !string.IsNullOrWhiteSpace(usName))
+                {
+                    return usName;
+                }
+            }
+
+            return platform?.Name ?? string.Empty;
         }
 
         public string GetSeasonFolder(Series series, int seasonNumber, NamingConfig namingConfig = null)

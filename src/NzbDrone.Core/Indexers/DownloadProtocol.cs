@@ -1,9 +1,10 @@
-﻿namespace NzbDrone.Core.Indexers
+namespace NzbDrone.Core.Indexers
 {
     public enum DownloadProtocol
     {
         Unknown = 0,
         Usenet = 1,
-        Torrent = 2
+        Torrent = 2,
+        Http = 3
     }
 }

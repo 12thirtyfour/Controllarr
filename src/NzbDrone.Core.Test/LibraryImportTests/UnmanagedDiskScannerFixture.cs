@@ -5,6 +5,7 @@ using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Test.Framework;
@@ -21,22 +22,25 @@ namespace NzbDrone.Core.Test.LibraryImportTests
         [SetUp]
         public void Setup()
         {
-            Mocker.GetMock<NzbDrone.Core.Games.IPlatformCatalogService>().Setup(c => c.GetAll()).Returns(new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>() {
-                new NzbDrone.Core.Games.PlatformDefinition { RomFileExtensions = new System.Collections.Generic.List<string> { ".smc", ".sfc", ".nes" } }
+            Mocker.GetMock<IPlatformCatalogService>().Setup(c => c.GetAll()).Returns(new List<PlatformDefinition>
+            {
+                new PlatformDefinition { RomFileExtensions = new List<string> { ".smc", ".sfc", ".nes" } }
             });
             _platformRepo = Mocker.GetMock<IGamePlatformRepository>();
             _titleRepo = Mocker.GetMock<IGameTitleRepository>();
 
-            var datCache = Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>();
-            datCache.Setup(c => c.FindByCrc32(Moq.It.IsAny<string>())).Returns(new NzbDrone.Core.Dat.DatEntry());
-            datCache.Setup(c => c.FindByMd5(Moq.It.IsAny<string>())).Returns(new NzbDrone.Core.Dat.DatEntry());
-            datCache.Setup(c => c.FindBySha1(Moq.It.IsAny<string>())).Returns(new NzbDrone.Core.Dat.DatEntry());
+            var datCache = Mocker.GetMock<IDatCacheService>();
+            datCache.Setup(c => c.FindByCrc32(It.IsAny<string>())).Returns(new DatEntry());
+            datCache.Setup(c => c.FindByMd5(It.IsAny<string>())).Returns(new DatEntry());
+            datCache.Setup(c => c.FindBySha1(It.IsAny<string>())).Returns(new DatEntry());
+            datCache.Setup(c => c.FindBySha256(It.IsAny<string>())).Returns(new DatEntry());
 
             _tempPath = Path.Combine(Path.GetTempPath(), "UnmanagedDiskScannerTests");
             if (Directory.Exists(_tempPath))
             {
                 Directory.Delete(_tempPath, true);
             }
+
             Directory.CreateDirectory(_tempPath);
         }
 
@@ -73,7 +77,10 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             results.First().GameTitle.Title.Should().Be("Super Mario World");
             results.First().GamePlatform.Name.Should().Be("SNES");
             results.First().IsHighConfidenceMatch.Should().BeTrue();
+            results.First().Hashes.Should().ContainKey("SHA-256");
             results.First().Hashes.Should().ContainKey("SHA-1");
+            results.First().Hashes.Should().ContainKey("MD5");
+            results.First().Hashes.Should().ContainKey("CRC32");
         }
 
         [Test]
@@ -128,6 +135,7 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             results.Should().HaveCount(1);
             results.First().Hashes.Should().ContainKey("CRC32");
             results.First().Hashes.Should().ContainKey("SHA-1");
+            results.First().Hashes.Should().ContainKey("SHA-256");
         }
     }
 }
