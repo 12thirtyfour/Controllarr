@@ -78,7 +78,7 @@ When searching for missing titles, Controllarr evaluates releases across three d
 
 3. **BitTorrent**: Full support for Torznab indexers and torrent clients.
 
-### 5. Play Directly from Your Library
+### 5. Play Directly from Your Library (Planned Feature)
 
 No need to manually locate files or configure an emulator just to try a game:
 
@@ -86,7 +86,7 @@ No need to manually locate files or configure an emulator just to try a game:
 
 * **Desktop App Hand-off**: Use one-click launcher links (`controllarr://play/{gameId}`) to automatically hand off disc images or heavier games to native emulators like RetroArch, DuckStation, or Dolphin on your PC or Mac.
 
-### 6. Hardware Target Exporter
+### 6. Hardware Target Exporter (Planned Feature)
 
 Take your collection on the go. Controllarr integrates layout profiles based on the **Hardware Target Game Database (HTGDB / SMDB)** to format and copy games directly onto flash carts and emulation handhelds:
 
