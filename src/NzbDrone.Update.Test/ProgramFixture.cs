@@ -31,7 +31,7 @@ namespace NzbDrone.Update.Test
         [Test]
         public void should_call_update_with_correct_path()
         {
-            var processPath = @"C:\Sonarr\Sonarr.exe".AsOsAgnostic();
+            var processPath = @"C:\Sonarr\Controllarr.exe".AsOsAgnostic();
 
             Mocker.GetMock<IProcessProvider>().Setup(c => c.GetProcessById(12))
                 .Returns(new ProcessInfo() { StartPath = processPath });

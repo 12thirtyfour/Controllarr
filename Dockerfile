@@ -37,4 +37,4 @@ COPY --from=build /app/bin /app/bin
 VOLUME ["/config", "/roms", "/downloads"]
 EXPOSE 7050
 
-ENTRYPOINT ["/app/bin/Sonarr.Console", "-nobrowser", "-data=/config"]
+ENTRYPOINT ["/app/bin/Controllarr", "-nobrowser", "-data=/config"]

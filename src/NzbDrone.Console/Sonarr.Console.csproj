@@ -1,12 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net10.0</TargetFrameworks>
+    <AssemblyName>Controllarr.Console</AssemblyName>
 
     <ApplicationIcon>..\NzbDrone.Host\Sonarr.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition="!$(RuntimeIdentifier.StartsWith('win'))">
-    <AssemblyName>Sonarr</AssemblyName>
+    <AssemblyName>Controllarr</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />

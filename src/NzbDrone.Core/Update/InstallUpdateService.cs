@@ -214,7 +214,7 @@ namespace NzbDrone.Core.Update
                 throw new UpdateFailedException("Update Script: '{0}' does not exist", scriptPath);
             }
 
-            _logger.Info("Removing Sonarr.Update");
+            _logger.Info("Removing Controllarr.Update");
             _diskProvider.DeleteFolder(_appFolderInfo.GetUpdateClientFolder(), true);
 
             _logger.ProgressInfo("Starting update script: {0}", _configFileProvider.UpdateScriptPath);

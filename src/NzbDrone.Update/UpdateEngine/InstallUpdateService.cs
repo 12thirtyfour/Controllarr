@@ -149,7 +149,7 @@ namespace NzbDrone.Update.UpdateEngine
                     // Set executable flag on app and ffprobe
                     if (OsInfo.IsOsx || OsInfo.IsLinux)
                     {
-                        _diskProvider.SetFilePermissions(Path.Combine(installationFolder, "Sonarr"), "755", null);
+                        _diskProvider.SetFilePermissions(Path.Combine(installationFolder, ProcessProvider.SONARR_PROCESS_NAME), "755", null);
                         _diskProvider.SetFilePermissions(Path.Combine(installationFolder, "ffprobe"), "755", null);
                     }
                 }

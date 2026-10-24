@@ -62,12 +62,12 @@ namespace NzbDrone.Update.UpdateEngine
 
         private void StartWinform(string installationFolder)
         {
-            Start(installationFolder, "Sonarr".ProcessNameToExe());
+            Start(installationFolder, ProcessProvider.SONARR_PROCESS_NAME.ProcessNameToExe());
         }
 
         private void StartConsole(string installationFolder)
         {
-            Start(installationFolder, "Sonarr.Console".ProcessNameToExe());
+            Start(installationFolder, ProcessProvider.SONARR_CONSOLE_PROCESS_NAME.ProcessNameToExe());
         }
 
         private void Start(string installationFolder, string fileName)

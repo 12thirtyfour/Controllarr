@@ -34,10 +34,10 @@ namespace NzbDrone.Update
                 var startupArgument = new StartupContext(args);
                 NzbDroneLogger.Register(startupArgument, true, true);
 
-                Logger.Info("Starting Sonarr Update Client");
+                Logger.Info("Starting Controllarr Update Client");
 
                 var container = new Container(rules => rules.WithNzbDroneRules())
-                    .AutoAddServices(new List<string> { "Sonarr.Update" })
+                    .AutoAddServices(new List<string> { "Controllarr.Update" })
                     .AddNzbDroneLogger()
                     .AddStartupContext(startupArgument);
 

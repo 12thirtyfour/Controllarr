@@ -27,8 +27,8 @@ do
   
   echo "Setting permissions"
   find $sonarrFolder -name "ffprobe" -exec chmod a+x {} \;
-  find $sonarrFolder -name "Sonarr" -exec chmod a+x {} \;
-  find $sonarrFolder -name "Sonarr.Update" -exec chmod a+x {} \;
+  find $sonarrFolder -name "Controllarr" -exec chmod a+x {} \;
+  find $sonarrFolder -name "Controllarr.Update" -exec chmod a+x {} \;
 
   rm -rf "$controllarrFolder"
   cp -r "$sonarrFolder" "$controllarrFolder"
@@ -49,7 +49,7 @@ do
     cp -r $sonarrFolder/* $packageFolder/Sonarr.app/Contents/MacOS
       
     echo "Removing Update Folder"
-    rm -r $packageFolder/Sonarr.app/Contents/MacOS/Sonarr.Update
+    rm -rf $packageFolder/Sonarr.app/Contents/MacOS/Controllarr.Update
               
     echo "Packaging macOS app Artifact"
     (cd $packageFolder; zip -rq "../../$artifactsFolder/$archiveName-app.zip" ./Sonarr.app)

@@ -28,7 +28,7 @@ namespace NzbDrone.Update.Test
         public void should_start_console_if_app_type_was_service_but_start_failed_because_of_permissions()
         {
             var targetFolder = "c:\\Sonarr\\".AsOsAgnostic();
-            var targetProcess = "c:\\Sonarr\\Sonarr.Console".AsOsAgnostic().ProcessNameToExe();
+            var targetProcess = "c:\\Sonarr\\Controllarr.Console".AsOsAgnostic().ProcessNameToExe();
 
             Mocker.GetMock<IServiceProvider>().Setup(c => c.Start(ServiceProvider.SERVICE_NAME)).Throws(new InvalidOperationException());
 

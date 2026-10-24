@@ -5,7 +5,7 @@
 #define AppPublisher "Team Controllarr"
 #define AppURL "https://github.com/12thirtyfour/Controllarr"
 #define ForumsURL "https://github.com/12thirtyfour/Controllarr/discussions"
-#define AppExeName "Sonarr.exe"
+#define AppExeName "Controllarr.exe"
 #define BuildNumber "5.0"
 #define BuildNumber GetEnv('CONTROLLARR_VERSION')
 #define MajorVersion GetEnv('CONTROLLARR_MAJOR_VERSION')
@@ -33,7 +33,7 @@ OutputBaseFilename=Controllarr.{#BranchName}.{#BuildNumber}.{#Runtime}-installer
 SolidCompression=yes
 AppCopyright=GPL v3.0 License
 AllowUNCPath=False
-UninstallDisplayIcon={app}\Sonarr.exe
+UninstallDisplayIcon={app}\Controllarr.exe
 DisableReadyPage=True
 CompressionThreads=2
 Compression=lzma2/normal
@@ -53,24 +53,24 @@ Name: "startupShortcut"; Description: "Create shortcut in Startup folder (Starts
 Name: "none"; Description: "Do not start automatically"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
 
 [Files]
-Source: "..\..\..\_output\{#Runtime}\{#Framework}\Sonarr\Sonarr.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\..\..\_output\{#Runtime}\{#Framework}\Sonarr\*"; Excludes: "Sonarr.Update"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\..\_output\{#Runtime}\{#Framework}\Sonarr\Controllarr.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\..\_output\{#Runtime}\{#Framework}\Sonarr\*"; Excludes: "Controllarr.Update"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: "/icon"
 Name: "{commondesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: "/icon"; Tasks: desktopIcon
-Name: "{userstartup}\{#AppName}"; Filename: "{app}\Sonarr.exe"; WorkingDir: "{app}"; Tasks: startupShortcut
+Name: "{userstartup}\{#AppName}"; Filename: "{app}\Controllarr.exe"; WorkingDir: "{app}"; Tasks: startupShortcut
 
 [InstallDelete]
 Name: "{app}"; Type: filesandordirs
 
 [Run]
-Filename: "{app}\Sonarr.Console.exe"; StatusMsg: "Removing previous Windows Service"; Parameters: "/u /exitimmediately"; Flags: runhidden waituntilterminated;
-Filename: "{app}\Sonarr.Console.exe"; Description: "Enable Access from Other Devices"; StatusMsg: "Enabling Remote access"; Parameters: "/registerurl /exitimmediately"; Flags: postinstall runascurrentuser runhidden waituntilterminated; Tasks: startupShortcut none;
-Filename: "{app}\Sonarr.Console.exe"; StatusMsg: "Installing Windows Service"; Parameters: "/i /exitimmediately"; Flags: runhidden waituntilterminated; Tasks: windowsService
-Filename: "{app}\Sonarr.exe"; Description: "Open Controllarr Web UI"; Flags: postinstall skipifsilent nowait; Tasks: windowsService;
-Filename: "{app}\Sonarr.exe"; Description: "Start Controllarr"; Flags: postinstall skipifsilent nowait; Tasks: startupShortcut none;
+Filename: "{app}\Controllarr.Console.exe"; StatusMsg: "Removing previous Windows Service"; Parameters: "/u /exitimmediately"; Flags: runhidden waituntilterminated;
+Filename: "{app}\Controllarr.Console.exe"; Description: "Enable Access from Other Devices"; StatusMsg: "Enabling Remote access"; Parameters: "/registerurl /exitimmediately"; Flags: postinstall runascurrentuser runhidden waituntilterminated; Tasks: startupShortcut none;
+Filename: "{app}\Controllarr.Console.exe"; StatusMsg: "Installing Windows Service"; Parameters: "/i /exitimmediately"; Flags: runhidden waituntilterminated; Tasks: windowsService
+Filename: "{app}\Controllarr.exe"; Description: "Open Controllarr Web UI"; Flags: postinstall skipifsilent nowait; Tasks: windowsService;
+Filename: "{app}\Controllarr.exe"; Description: "Start Controllarr"; Flags: postinstall skipifsilent nowait; Tasks: startupShortcut none;
 
 [UninstallRun]
-Filename: "{app}\Sonarr.Console.exe"; Parameters: "/u"; Flags: runhidden waituntilterminated skipifdoesntexist
+Filename: "{app}\Controllarr.Console.exe"; Parameters: "/u"; Flags: runhidden waituntilterminated skipifdoesntexist

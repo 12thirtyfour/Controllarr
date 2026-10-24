@@ -49,11 +49,11 @@ namespace NzbDrone.Test.Common
             string consoleExe;
             if (OsInfo.IsWindows)
             {
-                consoleExe = "Sonarr.Console.exe";
+                consoleExe = "Controllarr.Console.exe";
             }
             else
             {
-                consoleExe = "Sonarr";
+                consoleExe = "Controllarr";
             }
 
             var candidatePaths = new[]

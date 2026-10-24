@@ -123,10 +123,10 @@ dotnet build src/Sonarr.sln --configuration Release
 
 # 4. Launch Controllarr
 # macOS / Linux:
-./_output/net10.0/Sonarr --nobrowser
+./_output/net10.0/Controllarr --nobrowser
 
 # Windows:
-.\_output\net10.0\Sonarr.exe --nobrowser
+.\_output\net10.0\Controllarr.Console.exe --nobrowser
 ```
 
 Open your browser and navigate to **[http://localhost:7050](http://localhost:7050)**.

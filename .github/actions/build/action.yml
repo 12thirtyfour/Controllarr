@@ -74,8 +74,8 @@ runs:
       run: |
         if [ "$CONTROLLARR_VERSION" != "" ]; then
           echo "Updating version info to: $CONTROLLARR_VERSION"
-          sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$CONTROLLARR_VERSION<\/AssemblyVersion>/g" src/Directory.Build.props
-          sed -i'' -e "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH}<\/AssemblyConfiguration>/g" src/Directory.Build.props
+          sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$CONTROLLARR_VERSION<\/AssemblyVersion>/g" src/Directory.Build.props src/Controllarr.Common/Controllarr.Common.csproj
+          sed -i'' -e "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH}<\/AssemblyConfiguration>/g" src/Directory.Build.props src/Controllarr.Common/Controllarr.Common.csproj
           sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$CONTROLLARR_VERSION<\/string>/g" distribution/macOS/Sonarr.app/Contents/Info.plist
         fi
 
@@ -119,7 +119,7 @@ runs:
             rm -rf $folder
             mkdir -p $folder
             cp -r _output/$framework/$runtime/publish/* $folder
-            cp -r _output/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
+            cp -r _output/Controllarr.Update/$framework/$runtime/publish $folder/Controllarr.Update
             cp LICENSE.md $folder
 
             echo "Removing Service helpers"
@@ -130,9 +130,9 @@ runs:
             rm $folder/Sonarr.Windows.*
 
             echo "Adding Sonarr.Mono to UpdatePackage"
-            cp $folder/Sonarr.Mono.* $folder/Sonarr.Update
-            cp $folder/Openur.Mono.Unix.* $folder/Sonarr.Update
-            cp $folder/libMono.Unix.* $folder/Sonarr.Update
+            cp $folder/Sonarr.Mono.* $folder/Controllarr.Update
+            cp $folder/Openur.Mono.Unix.* $folder/Controllarr.Update
+            cp $folder/libMono.Unix.* $folder/Controllarr.Update
             ;;
           win)
             folder=_artifacts/$runtime/$framework/Sonarr
@@ -141,7 +141,7 @@ runs:
             rm -rf $folder
             mkdir -p $folder
             cp -r _output/$framework/$runtime/publish/* $folder
-            cp -r _output/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
+            cp -r _output/Controllarr.Update/$framework/$runtime/publish $folder/Controllarr.Update
             cp LICENSE.md $folder
             cp -r _output/$framework-windows/$runtime/publish/* $folder
 
@@ -151,7 +151,7 @@ runs:
             rm -f $folder/libMono.Unix.*
 
             echo "Adding Sonarr.Windows to UpdatePackage"
-            cp $folder/Sonarr.Windows.* $folder/Sonarr.Update
+            cp $folder/Sonarr.Windows.* $folder/Controllarr.Update
 
             ;;
           osx)
@@ -161,7 +161,7 @@ runs:
             rm -rf $folder
             mkdir -p $folder
             cp -r _output/$framework/$runtime/publish/* $folder
-            cp -r _output/Sonarr.Update/$framework/$runtime/publish $folder/Sonarr.Update
+            cp -r _output/Controllarr.Update/$framework/$runtime/publish $folder/Controllarr.Update
             cp LICENSE.md $folder
 
             echo "Removing Service helpers"
@@ -172,9 +172,9 @@ runs:
             rm $folder/Sonarr.Windows.*
 
             echo "Adding Sonarr.Mono to UpdatePackage"
-            cp $folder/Sonarr.Mono.* $folder/Sonarr.Update
-            cp $folder/Openur.Mono.Unix.* $folder/Sonarr.Update
-            cp $folder/libMono.Unix.* $folder/Sonarr.Update
+            cp $folder/Sonarr.Mono.* $folder/Controllarr.Update
+            cp $folder/Openur.Mono.Unix.* $folder/Controllarr.Update
+            cp $folder/libMono.Unix.* $folder/Controllarr.Update
             ;;
         esac
 
