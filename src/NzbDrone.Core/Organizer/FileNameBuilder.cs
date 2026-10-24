@@ -288,25 +288,13 @@ namespace NzbDrone.Core.Organizer
             AddIdTokens(tokenHandlers, series);
 
             var format = namingConfig.SeriesFolderFormat ?? "{Platform}";
-            var splitSegments = format.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
-            var folderSegments = new List<string>();
+            var folderName = ReplaceTokens(format, tokenHandlers, namingConfig);
 
-            foreach (var segment in splitSegments)
-            {
-                var rendered = ReplaceTokens(segment, tokenHandlers, namingConfig);
-                rendered = CleanFolderName(rendered);
-                rendered = ReplaceReservedDeviceNames(rendered);
-                rendered = rendered.Replace("{ellipsis}", "...");
+            folderName = CleanFolderName(folderName);
+            folderName = ReplaceReservedDeviceNames(folderName);
+            folderName = folderName.Replace("{ellipsis}", "...");
 
-                if (!string.IsNullOrWhiteSpace(rendered))
-                {
-                    folderSegments.Add(rendered);
-                }
-            }
-
-            return folderSegments.Any()
-                ? string.Join(Path.DirectorySeparatorChar.ToString(), folderSegments)
-                : CleanFolderName(title ?? string.Empty);
+            return folderName;
         }
 
         public string BuildPlatformRegionPath(string rootFolder, string platformNameOrSlug, string region = "US")
