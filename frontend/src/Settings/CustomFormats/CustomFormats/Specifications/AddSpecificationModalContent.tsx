@@ -79,7 +79,7 @@ function AddSpecificationModalContent({
           <>
             <p className={styles.wikiNote}>
               {translate('VisitTheWikiForMoreDetails')}
-              <Link to="https://wiki.servarr.com/sonarr/settings#custom-formats-2">
+              <Link to="https://wiki.servarr.com/controllarr/settings#custom-formats-2">
                 {translate('Wiki')}
               </Link>
             </p>

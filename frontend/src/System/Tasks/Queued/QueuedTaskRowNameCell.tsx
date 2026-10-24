@@ -32,21 +32,21 @@ export default function QueuedTaskRowNameCell(
   props: QueuedTaskRowNameCellProps
 ) {
   const { commandName, body, clientUserAgent } = props;
-  const seriesIds = 'seriesIds' in body ? [...body.seriesIds] : [];
+  const platformIds = 'seriesIds' in body ? [...body.seriesIds] : [];
 
   if ('seriesId' in body && body.seriesId) {
-    seriesIds.push(body.seriesId);
+    platformIds.push(body.seriesId);
   }
 
-  const series = useMultipleSeries(seriesIds);
-  const sortedSeries = series.sort(sortByProp('sortTitle'));
+  const platforms = useMultipleSeries(platformIds);
+  const sortedPlatforms = platforms.sort(sortByProp('sortTitle'));
 
   return (
     <TableRowCell>
       <span className={styles.commandName}>
         {commandName}
-        {sortedSeries.length ? (
-          <span> - {formatTitles(sortedSeries.map((s) => s.title))}</span>
+        {sortedPlatforms.length ? (
+          <span> - {formatTitles(sortedPlatforms.map((s) => s.title))}</span>
         ) : null}
         {'seasonNumber' in body && body.seasonNumber ? (
           <span>

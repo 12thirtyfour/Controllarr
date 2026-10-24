@@ -96,7 +96,7 @@ function HostSettings({
         <FormLabel>{translate('AllowedHosts')}</FormLabel>
         <FormInputHelpText
           text={translate('AllowedHostsHelpText')}
-          link="https://wiki.servarr.com/sonarr/settings#host"
+          link="https://wiki.servarr.com/controllarr/settings#host"
         />
         <FormInputHelpText
           text={translate('RestartRequiredHelpTextWarning')}

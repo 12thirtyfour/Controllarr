@@ -85,7 +85,7 @@ export default function AuthenticationRequiredModalContent() {
       <ModalBody>
         <Alert kind={kinds.WARNING}>
           {translate('AuthenticationRequiredWarning')}{' '}
-          <Link to="https://wiki.servarr.com/sonarr/faq#forced-authentication">
+          <Link to="https://wiki.servarr.com/controllarr/faq#forced-authentication">
             {translate('MoreInfo')}
           </Link>
         </Alert>
@@ -146,7 +146,7 @@ export default function AuthenticationRequiredModalContent() {
               <FormLabel>{translate('AllowedHosts')}</FormLabel>
               <FormInputHelpText
                 text={translate('AllowedHostsHelpText')}
-                link="https://wiki.servarr.com/sonarr/settings#host"
+                link="https://wiki.servarr.com/controllarr/settings#host"
               />
               <FormInputHelpText
                 text={translate('RestartRequiredHelpTextWarning')}

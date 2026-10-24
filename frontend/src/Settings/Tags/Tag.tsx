@@ -75,7 +75,7 @@ function Tag({ id, label }: TagProps) {
     >
       {isTagUsed ? (
         <div className={settingsCardStyles.labels}>
-          <TagInUse label={translate('Series')} count={seriesIds.length} />
+          <TagInUse label={translate('Platforms')} count={seriesIds.length} />
 
           <TagInUse
             label={translate('DelayProfile')}
