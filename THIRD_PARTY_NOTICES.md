@@ -38,6 +38,12 @@ Controllarr invokes external command-line utilities via separate OS processes (`
 - **License**: **GNU LGPL-2.1-or-later** (with unRAR license restriction for RAR decompression code)
 - **Usage in Controllarr**: Installed in container environments (`p7zip-full`) and invoked by `ArchiveExtractionService` to support `.7z` and `.rar` archive extraction alongside managed `.zip` archive readers.
 
+### `gosu` (Docker Container Privilege Drop Utility)
+- **Project**: [gosu](https://github.com/tianon/gosu)
+- **Authors**: Tianon Gravi and gosu Contributors
+- **License**: **Apache License 2.0** — see [gosu LICENSE](https://github.com/tianon/gosu/blob/master/LICENSE)
+- **Usage in Controllarr**: Used in the official Docker image entrypoint (`docker/entrypoint.sh`) to drop privileges from `root` to the user-specified `PUID`/`PGID` before launching `/app/bin/Controllarr`.
+
 ---
 
 ## 3. Emulation & Launcher Ecosystem

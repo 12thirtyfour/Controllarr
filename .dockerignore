@@ -1,0 +1,27 @@
+# Version Control & IDE
+.git
+.github
+.vs
+.vscode
+.gemini
+
+# Build Outputs & Caches
+_output
+_temp
+_tests
+_artifacts
+TestResults
+**/bin
+**/obj
+**/node_modules
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Local Environment & Databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+config.xml

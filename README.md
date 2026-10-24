@@ -131,7 +131,31 @@ dotnet build src/Sonarr.sln --configuration Release
 
 Open your browser and navigate to **[http://localhost:7050](http://localhost:7050)**.
 
-*(For reverse proxies, systemd services, or container deployment, see the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide) and [Quick Start Tutorial](https://github.com/12thirtyfour/Controllarr/wiki/Quick-Start)).*
+### Docker & Docker Compose
+```yaml
+services:
+  controllarr:
+    image: ghcr.io/12thirtyfour/controllarr:latest
+    build: .
+    container_name: controllarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=America/Chicago
+    ports:
+      - "7050:7050"
+    volumes:
+      - ./config:/config
+      - ./roms:/roms
+      - ./downloads:/downloads
+    restart: unless-stopped
+```
+```bash
+docker compose up -d --build
+```
+
+*(For reverse proxies, systemd services, or multi-architecture container builds, see the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide) and [Quick Start Tutorial](https://github.com/12thirtyfour/Controllarr/wiki/Quick-Start)).*
 
 ---
 
