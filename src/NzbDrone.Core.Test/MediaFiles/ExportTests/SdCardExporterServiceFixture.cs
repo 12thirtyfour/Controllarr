@@ -178,5 +178,50 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
             result.AppliedTransformations.Should().ContainSingle().Which.Should().Be(SdCardFormatTransformation.ConvertChdToCueBin);
             result.DestinationPaths.Should().ContainSingle().Which.Should().Be(expectedCueOut);
         }
+
+        [Test]
+        public void should_copy_platform_media_assets_and_gamelist_xml_during_export()
+        {
+            var sourcePlatformDir = Path.Combine("C:", "Library", "SNES");
+            var sourceRomPath = Path.Combine(sourcePlatformDir, "Super Mario World.sfc");
+            var sourceMediaBox2dDir = Path.Combine(sourcePlatformDir, "media", "box2d");
+            var sourceBox2dFile = Path.Combine(sourceMediaBox2dDir, "Super Mario World.png");
+            var sourceGamelistPath = Path.Combine(sourcePlatformDir, "gamelist.xml");
+
+            var mountPath = Path.Combine("E:", "ExportSD");
+            var targetPlatformDir = Path.Combine(mountPath, "roms", "snes");
+            var targetMediaBox2dDir = Path.Combine(targetPlatformDir, "media", "box2d");
+            var targetBox2dFile = Path.Combine(targetMediaBox2dDir, "Super Mario World.png");
+            var targetGamelistPath = Path.Combine(targetPlatformDir, "gamelist.xml");
+
+            _diskProvider.Setup(d => d.FileExists(sourceRomPath)).Returns(true);
+            _diskProvider.Setup(d => d.FolderExists(sourceMediaBox2dDir)).Returns(true);
+            _diskProvider.Setup(d => d.GetFiles(sourceMediaBox2dDir, false)).Returns(new[] { sourceBox2dFile });
+            _diskProvider.Setup(d => d.FileExists(sourceGamelistPath)).Returns(true);
+
+            var result = _subject.ExportToSdCard(
+                SdCardDeviceProfile.Batocera,
+                mountPath,
+                new List<SdCardExportItem>
+                {
+                    new SdCardExportItem
+                    {
+                        SourceFilePath = sourceRomPath,
+                        PlatformFolder = "SNES",
+                        GameTitle = "Super Mario World"
+                    }
+                },
+                overwrite: true);
+
+            result.ExportedCount.Should().Be(1);
+            result.ExportedMediaAssetCount.Should().Be(1);
+            result.ExportedMediaPaths.Should().Contain(targetBox2dFile);
+            result.ExportedMediaPaths.Should().Contain(targetGamelistPath);
+
+            _diskProvider.Verify(d => d.CopyFile(sourceRomPath, It.IsAny<string>(), true), Times.Once);
+            _diskProvider.Verify(d => d.CreateFolder(targetMediaBox2dDir), Times.Once);
+            _diskProvider.Verify(d => d.CopyFile(sourceBox2dFile, targetBox2dFile, true), Times.Once);
+            _diskProvider.Verify(d => d.CopyFile(sourceGamelistPath, targetGamelistPath, true), Times.Once);
+        }
     }
 }
