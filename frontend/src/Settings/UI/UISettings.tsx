@@ -115,10 +115,14 @@ function UISettings() {
       key: theme,
       value: titleCase(theme),
     })),
-    { key: 'nes', value: 'NES / Famicom (1985)' },
-    { key: 'snes', value: 'SNES / Super Famicom (1990)' },
+    { key: 'nes', value: 'NES (1985)' },
+    { key: 'famicom', value: 'Famicom (1983)' },
+    { key: 'snes', value: 'SNES North America (1991)' },
+    { key: 'superfamicom', value: 'Super Famicom (1990)' },
+    { key: 'genesis', value: 'Sega Genesis (1989)' },
+    { key: 'megadrive', value: 'Sega Mega Drive (1988)' },
     { key: 'dmg', value: 'Game Boy DMG-01 (1989)' },
-    { key: 'genesis', value: 'Sega Genesis / Mega Drive (1988)' },
+    { key: 'tg16', value: 'TurboGrafx-16 (1989)' },
     { key: 'gamecube', value: 'GameCube Indigo (2001)' },
   ];
 

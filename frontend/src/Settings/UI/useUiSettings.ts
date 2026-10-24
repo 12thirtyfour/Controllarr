@@ -10,9 +10,13 @@ export type ThemeName =
   | 'dark'
   | 'light'
   | 'nes'
+  | 'famicom'
   | 'snes'
-  | 'dmg'
+  | 'superfamicom'
   | 'genesis'
+  | 'megadrive'
+  | 'dmg'
+  | 'tg16'
   | 'gamecube';
 
 export interface UiSettingsModel {

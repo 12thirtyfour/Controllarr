@@ -31,7 +31,7 @@ Instead of wrestling with disorganized folders, unverified dumps, multi-region d
 1. **Pick Your Consoles**: Manage cartridge, disc, and handheld systems across all generations.
 2. **Find & Acquire**: Automatically search and grab titles across direct HTTP archives (Internet Archive), Usenet (Newznab), and BitTorrent (Torznab).
 3. **Verify Every Byte**: Check dumps against canonical **No-Intro**, **Redump**, and **TOSEC** hash databases.
-4. **Curate with 1G1R**: Automatically keep only your preferred regional release (e.g., USA > Europe > Japan) and revision, filtering out duplicate clones.
+4. **Flexible Library Curation**: Maintain either a streamlined **1G1R (One Game, One ROM)** set (per-game or per-region) using drag-and-drop region ordering, or a full **Completionist** collection tracking all documented revisions, regional variants, prototypes, betas, and aftermarket releases.
 5. **Sync to Hardware**: Export curated sets formatted specifically for flash carts, ODEs, and handhelds (EverDrive, MiSTer FPGA, Analogue Pocket, OnionOS, etc.).
 6. **Play Instantly**: Launch games directly in your browser with embedded Libretro cores or hand off to native desktop emulators with a single click.
 
@@ -41,7 +41,7 @@ Instead of wrestling with disorganized folders, unverified dumps, multi-region d
 
 Detailed feature breakdowns and technical documentation are available in the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki):
 
-* **[🎯 1 Game 1 ROM (1G1R) & Smart Curation](https://github.com/12thirtyfour/Controllarr/wiki/Core-Concepts)**: Eliminate duplicate regional clutter and pre-release demos/prototypes while retaining the single best retail release and revision based on your custom drag-and-drop region hierarchy.
+* **[🎯 Flexible Library & Collection Curation](https://github.com/12thirtyfour/Controllarr/wiki/Core-Concepts)**: Full control to define the exact type of library you want to maintain—whether a streamlined **1G1R (One Game, One ROM)** set (per-game or per-region) with custom drag-and-drop region ordering, or a **Completionist** collection tracking all documented revisions, regional variants, prototypes, betas, and aftermarket releases, alongside unified path naming and virtual symlink libraries.
 * **[🛡️ Canonical Hash Verification](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Validates CRC32, MD5, and SHA-1 checksums on ingestion against unified No-Intro, Redump, and TOSEC DATs.
 * **[🗂️ Virtual Symlink Libraries](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: Maintain live, non-destructive symlinked/junctioned folder structures formatted for MiSTer FPGA, RetroArch, Analogue Pocket, OnionOS, Batocera, and ES-DE without duplicating ROM files.
 * **[💾 Hardware Target Exporter (HTGDB / SMDB)](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: One-click SD card exports with automatic FAT32-safe alphabetical bucketing (`A-M/`, `N-Z/`) for MiSTer, Analogue Pocket, OnionOS, EverDrive, and ODEs.
@@ -82,7 +82,8 @@ Controllarr is built as a high-performance client-server application:
 │                    Controllarr Core                    │
 │             ASP.NET Core (.NET 10.0 Runtime)           │
 ├────────────────────────────────────────────────────────┤
-│ • 1G1R Engine          • DAT Catalog Ingestion (No-Intro)│
+│ • Curation Engine (1G1R / Completionist)                  │
+│ • DAT Catalog Ingestion (No-Intro/Redump/TOSEC)           │
 │ • HTGDB/SMDB Exporter  • Hash Verifier (CRC32/MD5/SHA1)│
 │ • BIOS Matrix Service  • Disc Compressor (CHD/RVZ)     │
 │ • 3-Way Search Dispatch (HTTP / Usenet / Torznab)      │
