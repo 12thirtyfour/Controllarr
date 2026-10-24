@@ -41,15 +41,44 @@ export interface EditSeriesModalContentProps {
 }
 
 const COLLECTION_STRATEGY_OPTIONS = [
-  { key: 0, value: '1G1R (Single Preferred Region)' },
-  { key: 2, value: '1G1R Multi-Region (1 Per Monitored Region)' },
-  { key: 1, value: 'Completionist (All Revisions, Regions & Variants)' },
+  { key: 'oneGameOneRom', value: '1G1R (Single Preferred Region)' },
+  {
+    key: 'oneGamePerRegionPerConsole',
+    value: '1G1R Multi-Region (1 Per Monitored Region)',
+  },
+  {
+    key: 'preservationist',
+    value: 'Completionist (All Revisions, Regions & Variants)',
+  },
 ];
 
 const REVISION_PREFERENCE_OPTIONS = [
-  { key: 0, value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)' },
-  { key: 1, value: 'Original Retail Release (Rev 0 / v1.0)' },
+  {
+    key: 'latestRevision',
+    value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)',
+  },
+  {
+    key: 'initialRelease',
+    value: 'Original Retail Release (Rev 0 / v1.0)',
+  },
 ];
+
+function normalizeCollectionStrategy(val: unknown): string {
+  if (val === 1 || val === '1' || val === 'preservationist') {
+    return 'preservationist';
+  }
+  if (val === 2 || val === '2' || val === 'oneGamePerRegionPerConsole') {
+    return 'oneGamePerRegionPerConsole';
+  }
+  return 'oneGameOneRom';
+}
+
+function normalizeRevisionPreference(val: unknown): string {
+  if (val === 1 || val === '1' || val === 'initialRelease') {
+    return 'initialRelease';
+  }
+  return 'latestRevision';
+}
 
 function EditSeriesModalContent({
   seriesId,
@@ -99,11 +128,31 @@ function EditSeriesModalContent({
         language,
         path,
         tags,
-        collectionStrategy: series.collectionStrategy ?? 0,
-        revisionPreference: series.revisionPreference ?? 0,
+        collectionStrategy: normalizeCollectionStrategy(
+          series.collectionStrategy
+        ),
+        revisionPreference: normalizeRevisionPreference(
+          series.revisionPreference
+        ),
         pinnedVersion: series.pinnedVersion ?? '',
       },
-      pendingChanges,
+      {
+        ...pendingChanges,
+        ...(pendingChanges.collectionStrategy !== undefined
+          ? {
+              collectionStrategy: normalizeCollectionStrategy(
+                pendingChanges.collectionStrategy
+              ) as unknown as number,
+            }
+          : {}),
+        ...(pendingChanges.revisionPreference !== undefined
+          ? {
+              revisionPreference: normalizeRevisionPreference(
+                pendingChanges.revisionPreference
+              ) as unknown as number,
+            }
+          : {}),
+      },
       saveError
     );
   }, [
@@ -122,6 +171,30 @@ function EditSeriesModalContent({
     pendingChanges,
     saveError,
   ]);
+
+  const currentSeasons = pendingChanges.seasons ?? series.seasons ?? [];
+  const isUnlicensedMonitored = Boolean(
+    currentSeasons.find((s) => s.seasonNumber === 0)?.monitored
+  );
+  const isHomebrewMonitored = Boolean(
+    currentSeasons.find((s) => s.seasonNumber === 5)?.monitored
+  );
+  const isRomHacksMonitored = Boolean(
+    currentSeasons.find((s) => s.seasonNumber === 6)?.monitored
+  );
+
+  const handleRegionMonitorToggle = useCallback(
+    (seasonNumber: number, monitoredValue: boolean) => {
+      const baseSeasons = pendingChanges.seasons ?? series.seasons ?? [];
+      const updated = baseSeasons.map((s) =>
+        s.seasonNumber === seasonNumber
+          ? { ...s, monitored: monitoredValue }
+          : s
+      );
+      setPendingChange('seasons', updated);
+    },
+    [pendingChanges.seasons, series.seasons, setPendingChange]
+  );
 
   const handleInputChange = useCallback(
     ({ name, value }: InputChanged) => {
@@ -209,10 +282,11 @@ function EditSeriesModalContent({
           </FormRow>
 
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {Number((settings as any).collectionStrategy?.value) !== 1 && (
+          {String((settings as any).collectionStrategy?.value) !==
+            'preservationist' && (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>1G1R Revision Preference</FormLabel>
-              <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist" />
+              <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist (Prototypes & Betas are never chosen as initial retail releases)" />
               <FormInput
                 type={inputTypes.SELECT}
                 name="revisionPreference"
@@ -269,14 +343,41 @@ function EditSeriesModalContent({
           </FormRow>
 
           <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('UseSeasonFolder')}</FormLabel>
-
-            <FormInputHelpText text="Organize ROMs into regional subfolders (USA, Europe, Japan, Homebrew, ROM Hacks)" />
+            <FormLabel>Track Unlicensed</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the Unlicensed region" />
             <FormInput
               type={inputTypes.CHECK}
-              name="seasonFolder"
-              {...settings.seasonFolder}
-              onChange={handleInputChange}
+              name="trackUnlicensed"
+              value={isUnlicensedMonitored}
+              onChange={({ value }: InputChanged) =>
+                handleRegionMonitorToggle(0, Boolean(value))
+              }
+            />
+          </FormRow>
+
+          <FormRow size={sizes.MEDIUM}>
+            <FormLabel>Track ROM Hacks & Translations</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region" />
+            <FormInput
+              type={inputTypes.CHECK}
+              name="trackRomHacks"
+              value={isRomHacksMonitored}
+              onChange={({ value }: InputChanged) =>
+                handleRegionMonitorToggle(6, Boolean(value))
+              }
+            />
+          </FormRow>
+
+          <FormRow size={sizes.MEDIUM}>
+            <FormLabel>Track Homebrew & Aftermarket</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region" />
+            <FormInput
+              type={inputTypes.CHECK}
+              name="trackHomebrew"
+              value={isHomebrewMonitored}
+              onChange={({ value }: InputChanged) =>
+                handleRegionMonitorToggle(5, Boolean(value))
+              }
             />
           </FormRow>
 

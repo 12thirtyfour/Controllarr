@@ -5,6 +5,7 @@ using System.Linq;
 using FluentValidation;
 using FluentValidation.Results;
 using NLog;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Exceptions;
@@ -13,6 +14,7 @@ using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.Tv
 {
@@ -32,6 +34,8 @@ namespace NzbDrone.Core.Tv
         private readonly ISmartAddService _smartAddService;
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IAddSeriesValidator _addSeriesValidator;
+        private readonly IDiskProvider _diskProvider;
+        private readonly IRootFolderService _rootFolderService;
         private readonly Logger _logger;
 
         public AddSeriesService(ISeriesService seriesService,
@@ -42,6 +46,8 @@ namespace NzbDrone.Core.Tv
                                 ISmartAddService smartAddService,
                                 IBuildFileNames fileNameBuilder,
                                 IAddSeriesValidator addSeriesValidator,
+                                IDiskProvider diskProvider,
+                                IRootFolderService rootFolderService,
                                 Logger logger)
         {
             _seriesService = seriesService;
@@ -52,6 +58,8 @@ namespace NzbDrone.Core.Tv
             _smartAddService = smartAddService;
             _fileNameBuilder = fileNameBuilder;
             _addSeriesValidator = addSeriesValidator;
+            _diskProvider = diskProvider;
+            _rootFolderService = rootFolderService;
             _logger = logger;
         }
 
@@ -70,6 +78,7 @@ namespace NzbDrone.Core.Tv
 
             _logger.Info("Adding Platform {0} Path: [{1}]", newSeries, newSeries.Path);
             _seriesService.AddSeries(newSeries);
+            EnsurePlatformFoldersCreated(newSeries);
 
             return newSeries;
         }
@@ -139,7 +148,19 @@ namespace NzbDrone.Core.Tv
                 }
             }
 
-            return _seriesService.AddSeries(seriesToAdd);
+            return SaveAddedSeries(seriesToAdd);
+        }
+
+        private List<Series> SaveAddedSeries(List<Series> seriesToAdd)
+        {
+            var addedSeries = _seriesService.AddSeries(seriesToAdd);
+
+            foreach (var series in addedSeries)
+            {
+                EnsurePlatformFoldersCreated(series);
+            }
+
+            return addedSeries;
         }
 
         private Series AddGameOrParentPlatform(Series newSeries, GameCatalogEntry gameEntry)
@@ -209,6 +230,27 @@ namespace NzbDrone.Core.Tv
                 return existingPlatform;
             }
 
+            if (string.IsNullOrWhiteSpace(newSeries.RootFolderPath))
+            {
+                var defaultRoot = _rootFolderService?.All()?.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.Path))?.Path;
+
+                if (string.IsNullOrWhiteSpace(defaultRoot))
+                {
+                    var anySeries = _seriesService.GetAllSeries()?.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.Path));
+                    if (anySeries != null)
+                    {
+                        defaultRoot = !string.IsNullOrWhiteSpace(anySeries.RootFolderPath)
+                            ? anySeries.RootFolderPath
+                            : Path.GetDirectoryName(anySeries.Path);
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(defaultRoot))
+                {
+                    newSeries.RootFolderPath = defaultRoot;
+                }
+            }
+
             newSeries.TvdbId = gameEntry.PlatformTvdbId;
             newSeries.Title = gameEntry.PlatformName;
             newSeries.TitleSlug = gameEntry.PlatformSlug;
@@ -226,8 +268,57 @@ namespace NzbDrone.Core.Tv
 
             _logger.Info("Auto-provisioning Platform {0} for Game {1} at Path: [{2}]", newSeries.Title, gameEntry.Title, newSeries.Path);
             _seriesService.AddSeries(newSeries);
+            EnsurePlatformFoldersCreated(newSeries);
 
             return newSeries;
+        }
+
+        private void EnsurePlatformFoldersCreated(Series series)
+        {
+            if (_diskProvider == null || string.IsNullOrWhiteSpace(series?.Path))
+            {
+                return;
+            }
+
+            try
+            {
+                var rootParent = Path.GetDirectoryName(series.Path);
+                if (string.IsNullOrWhiteSpace(rootParent) || !_diskProvider.FolderExists(rootParent))
+                {
+                    return;
+                }
+
+                if (!_diskProvider.FolderExists(series.Path))
+                {
+                    _diskProvider.CreateFolder(series.Path);
+                }
+
+                var biosPath = Path.Combine(series.Path, "bios");
+                if (!_diskProvider.FolderExists(biosPath))
+                {
+                    _diskProvider.CreateFolder(biosPath);
+                }
+
+                if (series.SeasonFolder && series.Seasons != null)
+                {
+                    foreach (var season in series.Seasons.Where(s => s.Monitored))
+                    {
+                        var regionFolder = _fileNameBuilder.GetSeasonFolder(series, season.SeasonNumber);
+                        if (!string.IsNullOrWhiteSpace(regionFolder))
+                        {
+                            var fullRegionPath = Path.Combine(series.Path, regionFolder);
+                            if (!_diskProvider.FolderExists(fullRegionPath))
+                            {
+                                _diskProvider.CreateFolder(fullRegionPath);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to automatically create platform folder structure for {0} at {1}", series.Title, series.Path);
+            }
         }
 
         private Series AddSkyhookData(Series newSeries)

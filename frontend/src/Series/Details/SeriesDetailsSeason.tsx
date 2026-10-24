@@ -46,10 +46,28 @@ import SeasonInfo from './SeasonInfo';
 import SeasonProgressLabel from './SeasonProgressLabel';
 import styles from './SeriesDetailsSeason.module.css';
 
+function isPreReleaseLabel(label: string) {
+  return /\b(proto|prototype|beta|demo|sample)\b/i.test(label);
+}
+
 function parseBaseGameAndVersion(item: Episode) {
   const rawTitle = item.title ?? '';
+
+  if (
+    item.finaleType &&
+    item.finaleType !== 'Retail (v1.0)' &&
+    rawTitle.endsWith(`(${item.finaleType})`)
+  ) {
+    return {
+      baseTitle: rawTitle
+        .slice(0, rawTitle.length - item.finaleType.length - 2)
+        .trim(),
+      versionLabel: item.finaleType,
+    };
+  }
+
   const match = rawTitle.match(
-    /^(.*?)\s*\((Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Beta|Prototype|Demo|Virtual Console|Unlicensed|Homebrew|ROM Hack)\)$/i
+    /^(.*?)\s*\((Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Beta[^)]*|Proto[^)]*|Prototype[^)]*|Demo[^)]*|Sample[^)]*|Virtual Console[^)]*|GameCube[^)]*|Classic NES[^)]*|Animal Crossing|e-Reader|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)\)$/i
   );
 
   if (match) {
@@ -178,8 +196,12 @@ function SeriesDetailsSeason({
     formatSeason(seasonNumber, false, titleSlug) ??
     translate('SeasonNumberToken', { seasonNumber });
 
-  const isCompletionist = Number(collectionStrategy) === 1;
-  const preferOriginalRelease = Number(revisionPreference) === 1;
+  const isCompletionist =
+    String(collectionStrategy) === 'preservationist' ||
+    Number(collectionStrategy) === 1;
+  const preferOriginalRelease =
+    String(revisionPreference) === 'initialRelease' ||
+    Number(revisionPreference) === 1;
 
   const toggleGroupExpand = useCallback((groupKey: string) => {
     setExpandedGameGroups((prev) => ({
@@ -215,9 +237,16 @@ function SeriesDetailsSeason({
     }[] = [];
 
     let groupIndex = 0;
-    groupsMap.forEach((entries, groupKey) => {
+    groupsMap.forEach((rawEntries, groupKey) => {
       const isAlternateGroup = groupIndex % 2 === 1;
       groupIndex++;
+
+      // Sort retail releases before Prototype/Beta/Demo/Sample pre-releases
+      const entries = [...rawEntries].sort((a, b) => {
+        const aPre = isPreReleaseLabel(a.versionLabel) ? 1 : 0;
+        const bPre = isPreReleaseLabel(b.versionLabel) ? 1 : 0;
+        return aPre - bPre;
+      });
 
       const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
       const alternateVersionCount =
@@ -235,12 +264,17 @@ function SeriesDetailsSeason({
           });
         });
       } else {
-        const monitoredEntry = entries.find((e) => e.item.monitored);
+        const retailEntries = entries.filter(
+          (e) => !isPreReleaseLabel(e.versionLabel)
+        );
+        const candidateEntries =
+          retailEntries.length > 0 ? retailEntries : entries;
+        const monitoredEntry = candidateEntries.find((e) => e.item.monitored);
         const preferredEntry =
           monitoredEntry ??
           (preferOriginalRelease
-            ? entries[0]
-            : entries[entries.length - 1]);
+            ? candidateEntries[0]
+            : candidateEntries[candidateEntries.length - 1]);
 
         rows.push({
           item: preferredEntry.item,

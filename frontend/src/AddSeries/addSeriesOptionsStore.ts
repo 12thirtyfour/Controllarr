@@ -10,13 +10,13 @@ export interface AddSeriesOptions {
   qualityProfileId: number;
   seriesType: SeriesType;
   seasonFolder: boolean;
-  collectionStrategy: number;
-  revisionPreference: number;
+  collectionStrategy: string;
+  revisionPreference: string;
   pinnedVersion: string;
-  compressionFormat: string;
+  enableCompression: boolean;
+  trackUnlicensed: boolean;
   trackHomebrew: boolean;
   trackRomHacks: boolean;
-  trackPrototypes: boolean;
   searchForMissingEpisodes: boolean;
   searchForCutoffUnmetEpisodes: boolean;
   tags: number[];
@@ -31,13 +31,13 @@ const { useOptions, useOption, setOption } =
       qualityProfileId: 1,
       seriesType: 'standard',
       seasonFolder: true,
-      collectionStrategy: 0,
-      revisionPreference: 0,
+      collectionStrategy: 'oneGameOneRom',
+      revisionPreference: 'latestRevision',
       pinnedVersion: '',
-      compressionFormat: 'zip',
+      enableCompression: true,
+      trackUnlicensed: false,
       trackHomebrew: false,
       trackRomHacks: false,
-      trackPrototypes: false,
       searchForMissingEpisodes: false,
       searchForCutoffUnmetEpisodes: false,
       tags: [],

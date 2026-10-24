@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Tv
                 var seasonNumber = season.SeasonNumber;
 
                 if (isCatalogPlatform &&
-                    (seasonNumber == GameCatalogProxy.RegionPrototypesSeason ||
+                    (seasonNumber == GameCatalogProxy.RegionUnlicensedSeason ||
                      seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
                      seasonNumber == GameCatalogProxy.RegionRomHacksSeason))
                 {
@@ -165,12 +165,23 @@ namespace NzbDrone.Core.Tv
                             .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
                         {
                             var groupList = group.ToList();
-                            if (groupList.Count <= 1)
+
+                            // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
+                            var retailList = groupList
+                                .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
+                                .ToList();
+
+                            if (retailList.Count == 0)
                             {
+                                foreach (var item in groupList)
+                                {
+                                    item.Monitored = false;
+                                }
+
                                 continue;
                             }
 
-                            var preferred = preferInitial ? groupList.First() : groupList.Last();
+                            var preferred = preferInitial ? retailList.First() : retailList.Last();
                             foreach (var item in groupList)
                             {
                                 item.Monitored = item.Id == preferred.Id;

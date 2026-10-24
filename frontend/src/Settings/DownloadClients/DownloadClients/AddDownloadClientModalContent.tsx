@@ -28,16 +28,23 @@ function AddDownloadClientModalContent({
   const { isSchemaLoading, isSchemaFetched, schemaError, schema } =
     useDownloadClientSchema();
 
-  const { usenetDownloadClients, torrentDownloadClients } = useMemo(() => {
+  const {
+    usenetDownloadClients,
+    torrentDownloadClients,
+    httpDownloadClients,
+  } = useMemo(() => {
     return schema.reduce<{
       usenetDownloadClients: DownloadClientModel[];
       torrentDownloadClients: DownloadClientModel[];
+      httpDownloadClients: DownloadClientModel[];
     }>(
       (acc, item) => {
         if (item.protocol === 'usenet') {
           acc.usenetDownloadClients.push(item);
         } else if (item.protocol === 'torrent') {
           acc.torrentDownloadClients.push(item);
+        } else if (item.protocol === 'http') {
+          acc.httpDownloadClients.push(item);
         }
 
         return acc;
@@ -45,6 +52,7 @@ function AddDownloadClientModalContent({
       {
         usenetDownloadClients: [],
         torrentDownloadClients: [],
+        httpDownloadClients: [],
       }
     );
   }, [schema]);
@@ -64,6 +72,25 @@ function AddDownloadClientModalContent({
 
         {isSchemaFetched && !schemaError ? (
           <div className={styles.downloadClients}>
+            {httpDownloadClients.length > 0 ? (
+              <>
+                <div className={styles.groupLegend}>
+                  HTTP / Direct Download (Internet Archive)
+                </div>
+
+                <div>
+                  {httpDownloadClients.map((downloadClient) => (
+                    <AddDownloadClientItem
+                      key={downloadClient.implementation}
+                      {...downloadClient}
+                      implementation={downloadClient.implementation}
+                      onDownloadClientSelect={onDownloadClientSelect}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : null}
+
             <div className={styles.groupLegend}>{translate('Usenet')}</div>
 
             <div>

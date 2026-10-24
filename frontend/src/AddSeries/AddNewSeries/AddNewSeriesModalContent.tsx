@@ -42,22 +42,87 @@ export interface AddNewSeriesModalContentProps {
 }
 
 const COLLECTION_STRATEGY_OPTIONS = [
-  { key: 0, value: '1G1R (Single Preferred Region)' },
-  { key: 2, value: '1G1R Multi-Region (1 Per Monitored Region)' },
-  { key: 1, value: 'Completionist (All Revisions, Regions & Variants)' },
+  { key: 'oneGameOneRom', value: '1G1R (Single Preferred Region)' },
+  {
+    key: 'oneGamePerRegionPerConsole',
+    value: '1G1R Multi-Region (1 Per Monitored Region)',
+  },
+  {
+    key: 'preservationist',
+    value: 'Completionist (All Revisions, Regions & Variants)',
+  },
 ];
 
 const REVISION_PREFERENCE_OPTIONS = [
-  { key: 0, value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)' },
-  { key: 1, value: 'Original Retail Release (Rev 0 / v1.0)' },
-  { key: 2, value: 'Pinned Version / Tag' },
+  {
+    key: 'latestRevision',
+    value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)',
+  },
+  {
+    key: 'initialRelease',
+    value: 'Original Retail Release (Rev 0 / v1.0)',
+  },
+  { key: 'pinned', value: 'Pinned Version / Tag' },
 ];
 
-const COMPRESSION_FORMAT_OPTIONS = [
-  { key: 'zip', value: 'Compressed Archive (.zip / .7z)' },
-  { key: 'chd', value: 'Compressed Disc / CHD (.chd / .rvz / .cso)' },
-  { key: 'raw', value: 'Uncompressed / Raw ROM (.nes, .sfc, .gba, .iso, .bin/.cue)' },
-];
+const DISC_PLATFORMS = new Set([
+  'ps1',
+  'ps2',
+  'ps3',
+  'psp',
+  'segacd',
+  'saturn',
+  'dreamcast',
+  'tgcd',
+  'gamecube',
+  'wii',
+  'wiiu',
+  'xbox',
+  'xbox360',
+  'jaguarcd',
+]);
+
+function getPlatformCompressionFormat(slugOrTitle?: string): string {
+  const normalized = (slugOrTitle ?? '').toLowerCase();
+  if (
+    DISC_PLATFORMS.has(normalized) ||
+    normalized.includes('playstation') ||
+    normalized.includes('saturn') ||
+    normalized.includes('dreamcast') ||
+    normalized.includes('sega cd') ||
+    normalized.includes('turbografx-cd') ||
+    normalized.includes('gamecube') ||
+    normalized.includes('wii') ||
+    normalized.includes('xbox') ||
+    normalized.includes('jaguar cd')
+  ) {
+    return normalized.includes('gamecube') || normalized.includes('wii')
+      ? 'RVZ / CHD lossless disc compression'
+      : 'CHD lossless disc compression (.chd)';
+  }
+
+  return 'ZIP / 7z archive compression (.zip / .7z)';
+}
+
+function normalizeCollectionStrategy(val: unknown): string {
+  if (val === 1 || val === '1' || val === 'preservationist') {
+    return 'preservationist';
+  }
+  if (val === 2 || val === '2' || val === 'oneGamePerRegionPerConsole') {
+    return 'oneGamePerRegionPerConsole';
+  }
+  return 'oneGameOneRom';
+}
+
+function normalizeRevisionPreference(val: unknown): string {
+  if (val === 1 || val === '1' || val === 'initialRelease') {
+    return 'initialRelease';
+  }
+  if (val === 2 || val === '2' || val === 'pinned') {
+    return 'pinned';
+  }
+  return 'latestRevision';
+}
 
 function AddNewSeriesModalContent({
   series,
@@ -118,17 +183,27 @@ function AddNewSeriesModalContent({
     rootFolderPath,
     searchForCutoffUnmetEpisodes,
     searchForMissingEpisodes,
-    seasonFolder,
     collectionStrategy,
     revisionPreference,
     pinnedVersion,
-    compressionFormat,
+    enableCompression,
+    trackUnlicensed,
     trackHomebrew,
     trackRomHacks,
-    trackPrototypes,
     seriesType: seriesTypeSetting,
     tags,
   } = settings;
+
+  const isIndividualGame = series.tvdbId >= 100000;
+  const normalizedStrategy = normalizeCollectionStrategy(
+    collectionStrategy?.value
+  );
+  const normalizedRevision = normalizeRevisionPreference(
+    revisionPreference?.value
+  );
+  const autoCompressionLabel = getPlatformCompressionFormat(
+    series.titleSlug || series.title
+  );
 
   const translation = translations.find((t) => t.language.id === language.id);
   const title = translation?.title ?? originalTitle ?? lookupTitle;
@@ -146,14 +221,14 @@ function AddNewSeriesModalContent({
 
   const handleAddSeriesPress = useCallback(() => {
     const updatedSeasons = (series.seasons ?? []).map((s) => {
+      if (s.seasonNumber === 0) {
+        return { ...s, monitored: Boolean(trackUnlicensed?.value) };
+      }
       if (s.seasonNumber === 5) {
         return { ...s, monitored: Boolean(trackHomebrew?.value) };
       }
       if (s.seasonNumber === 6) {
         return { ...s, monitored: Boolean(trackRomHacks?.value) };
-      }
-      if (s.seasonNumber === 0) {
-        return { ...s, monitored: Boolean(trackPrototypes?.value) };
       }
       return s;
     });
@@ -168,19 +243,17 @@ function AddNewSeriesModalContent({
         searchForCutoffUnmetEpisodes: searchForCutoffUnmetEpisodes.value,
       },
       qualityProfileId: qualityProfileId.value || 1,
-      collectionStrategy: Number(collectionStrategy?.value ?? 0),
+      collectionStrategy: normalizedStrategy,
       revisionPreference:
-        Number(revisionPreference?.value ?? 0) === 2
-          ? 0
-          : Number(revisionPreference?.value ?? 0),
+        normalizedRevision === 'pinned' ? 'latestRevision' : normalizedRevision,
       pinnedVersion:
-        Number(revisionPreference?.value ?? 0) === 2
+        normalizedRevision === 'pinned'
           ? String(pinnedVersion?.value ?? '')
           : '',
       seriesType,
       seasonType,
       language,
-      seasonFolder: seasonFolder.value,
+      seasonFolder: true,
       tags: tags.value,
     });
   }, [
@@ -191,13 +264,12 @@ function AddNewSeriesModalContent({
     language,
     monitor,
     qualityProfileId,
-    collectionStrategy,
-    revisionPreference,
+    normalizedStrategy,
+    normalizedRevision,
     pinnedVersion,
+    trackUnlicensed,
     trackHomebrew,
     trackRomHacks,
-    trackPrototypes,
-    seasonFolder,
     searchForMissingEpisodes,
     searchForCutoffUnmetEpisodes,
     tags,
@@ -237,145 +309,154 @@ function AddNewSeriesModalContent({
               validationErrors={validationErrors}
               validationWarnings={validationWarnings}
             >
-              <FormRow>
-                <FormLabel>{translate('RootFolder')}</FormLabel>
-                <FormInputHelpText
-                  text={translate('AddNewSeriesRootFolderHelpText', {
-                    folder,
-                  })}
-                />
-                <FormInput
-                  type={inputTypes.ROOT_FOLDER_SELECT}
-                  name="rootFolderPath"
-                  valueOptions={{
-                    seriesFolder: folder,
-                    isWindows,
-                  }}
-                  selectedValueOptions={{
-                    seriesFolder: folder,
-                    isWindows,
-                  }}
-                  onChange={handleInputChange}
-                  {...rootFolderPath}
-                />
-              </FormRow>
+              {!isIndividualGame ? (
+                <>
+                  <FormRow>
+                    <FormLabel>{translate('RootFolder')}</FormLabel>
+                    <FormInputHelpText
+                      text={translate('AddNewSeriesRootFolderHelpText', {
+                        folder,
+                      })}
+                    />
+                    <FormInput
+                      type={inputTypes.ROOT_FOLDER_SELECT}
+                      name="rootFolderPath"
+                      valueOptions={{
+                        seriesFolder: folder,
+                        isWindows,
+                      }}
+                      selectedValueOptions={{
+                        seriesFolder: folder,
+                        isWindows,
+                      }}
+                      onChange={handleInputChange}
+                      {...rootFolderPath}
+                    />
+                  </FormRow>
 
-              <FormRow>
-                <FormLabel>
-                  {translate('Monitor')}
+                  <FormRow>
+                    <FormLabel>
+                      {translate('Monitor')}
 
-                  <Popover
-                    anchor={
-                      <Icon className={styles.labelIcon} name={icons.INFO} />
-                    }
-                    title={translate('MonitoringOptions')}
-                    body={<SeriesMonitoringOptionsPopoverContent />}
-                    position={tooltipPositions.RIGHT}
-                  />
-                </FormLabel>
+                      <Popover
+                        anchor={
+                          <Icon
+                            className={styles.labelIcon}
+                            name={icons.INFO}
+                          />
+                        }
+                        title={translate('MonitoringOptions')}
+                        body={<SeriesMonitoringOptionsPopoverContent />}
+                        position={tooltipPositions.RIGHT}
+                      />
+                    </FormLabel>
 
-                <FormInput
-                  type={inputTypes.MONITOR_EPISODES_SELECT}
-                  name="monitor"
-                  onChange={handleInputChange}
-                  {...monitor}
-                />
-              </FormRow>
+                    <FormInput
+                      type={inputTypes.MONITOR_EPISODES_SELECT}
+                      name="monitor"
+                      onChange={handleInputChange}
+                      {...monitor}
+                    />
+                  </FormRow>
 
-              <FormRow>
-                <FormLabel>Collection Strategy</FormLabel>
-                <FormInputHelpText text="Choose 1G1R (single preferred ROM per game), 1G1R Multi-Region, or Completionist (all revisions and variants)" />
-                <FormInput
-                  type={inputTypes.SELECT}
-                  name="collectionStrategy"
-                  values={COLLECTION_STRATEGY_OPTIONS}
-                  onChange={handleInputChange}
-                  {...collectionStrategy}
-                />
-              </FormRow>
+                  <FormRow>
+                    <FormLabel>Collection Strategy</FormLabel>
+                    <FormInputHelpText text="Choose 1G1R (single preferred ROM per game), 1G1R Multi-Region, or Completionist (all revisions and variants)" />
+                    <FormInput
+                      type={inputTypes.SELECT}
+                      name="collectionStrategy"
+                      values={COLLECTION_STRATEGY_OPTIONS}
+                      onChange={handleInputChange}
+                      {...collectionStrategy}
+                      value={normalizedStrategy}
+                    />
+                  </FormRow>
 
-              {Number(collectionStrategy?.value ?? 0) !== 1 ? (
+                  {normalizedStrategy !== 'preservationist' ? (
+                    <FormRow>
+                      <FormLabel>Version / Revision Preference</FormLabel>
+                      <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist (Prototypes & Betas are never chosen as initial retail releases)" />
+                      <FormInput
+                        type={inputTypes.SELECT}
+                        name="revisionPreference"
+                        values={REVISION_PREFERENCE_OPTIONS}
+                        onChange={handleInputChange}
+                        {...revisionPreference}
+                        value={normalizedRevision}
+                      />
+                    </FormRow>
+                  ) : null}
+
+                  {normalizedStrategy !== 'preservationist' &&
+                  normalizedRevision === 'pinned' ? (
+                    <FormRow>
+                      <FormLabel>Pinned Version Tag</FormLabel>
+                      <FormInputHelpText text="Specify a specific revision tag to pin (e.g. Rev A, Rev 1, v1.1)" />
+                      <FormInput
+                        type={inputTypes.TEXT}
+                        name="pinnedVersion"
+                        onChange={handleInputChange}
+                        {...pinnedVersion}
+                      />
+                    </FormRow>
+                  ) : null}
+
+                  <FormRow>
+                    <FormLabel>Enable Compression</FormLabel>
+                    <FormInputHelpText
+                      text={`When enabled, Controllarr automatically uses ${autoCompressionLabel}. Leave unchecked to keep uncompressed raw files.`}
+                    />
+                    <FormInput
+                      type={inputTypes.CHECK}
+                      name="enableCompression"
+                      onChange={handleInputChange}
+                      {...enableCompression}
+                      value={Boolean(enableCompression?.value ?? true)}
+                    />
+                  </FormRow>
+
+                  <FormRow>
+                    <FormLabel>Track Unlicensed</FormLabel>
+                    <FormInputHelpText text="Enable monitoring of the Unlicensed region" />
+                    <FormInput
+                      type={inputTypes.CHECK}
+                      name="trackUnlicensed"
+                      onChange={handleInputChange}
+                      {...trackUnlicensed}
+                      value={Boolean(trackUnlicensed?.value)}
+                    />
+                  </FormRow>
+
+                  <FormRow>
+                    <FormLabel>Track ROM Hacks & Translations</FormLabel>
+                    <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region (hash-gated against HTGDB / SMDB)" />
+                    <FormInput
+                      type={inputTypes.CHECK}
+                      name="trackRomHacks"
+                      onChange={handleInputChange}
+                      {...trackRomHacks}
+                      value={Boolean(trackRomHacks?.value)}
+                    />
+                  </FormRow>
+
+                  <FormRow>
+                    <FormLabel>Track Homebrew & Aftermarket</FormLabel>
+                    <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region (hash-gated against HTGDB / SMDB)" />
+                    <FormInput
+                      type={inputTypes.CHECK}
+                      name="trackHomebrew"
+                      onChange={handleInputChange}
+                      {...trackHomebrew}
+                      value={Boolean(trackHomebrew?.value)}
+                    />
+                  </FormRow>
+                </>
+              ) : (
                 <FormRow>
-                  <FormLabel>Version / Revision Preference</FormLabel>
-                  <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist" />
-                  <FormInput
-                    type={inputTypes.SELECT}
-                    name="revisionPreference"
-                    values={REVISION_PREFERENCE_OPTIONS}
-                    onChange={handleInputChange}
-                    {...revisionPreference}
-                  />
+                  <FormLabel>Platform Library Placement</FormLabel>
+                  <FormInputHelpText text="This game will automatically be added and monitored under its parent platform folder using your configured Media Management naming structure." />
                 </FormRow>
-              ) : null}
-
-              {Number(revisionPreference?.value ?? 0) === 2 ? (
-                <FormRow>
-                  <FormLabel>Pinned Version Tag</FormLabel>
-                  <FormInputHelpText text="Specify a specific revision tag to pin (e.g. Rev A, Rev 1, v1.1)" />
-                  <FormInput
-                    type={inputTypes.TEXT}
-                    name="pinnedVersion"
-                    onChange={handleInputChange}
-                    {...pinnedVersion}
-                  />
-                </FormRow>
-              ) : null}
-
-              <FormRow>
-                <FormLabel>Compression / Container Format</FormLabel>
-                <FormInputHelpText text="Preferred storage container for ROMs and disc images on this platform" />
-                <FormInput
-                  type={inputTypes.SELECT}
-                  name="compressionFormat"
-                  values={COMPRESSION_FORMAT_OPTIONS}
-                  onChange={handleInputChange}
-                  {...compressionFormat}
-                />
-              </FormRow>
-
-              <FormRow>
-                <FormLabel>{translate('SeasonFolder')}</FormLabel>
-                <FormInputHelpText text="Organize ROMs into regional subfolders (USA, Europe, Japan, Homebrew, ROM Hacks)" />
-                <FormInput
-                  type={inputTypes.CHECK}
-                  name="seasonFolder"
-                  onChange={handleInputChange}
-                  {...seasonFolder}
-                />
-              </FormRow>
-
-              <FormRow>
-                <FormLabel>Track Homebrew & Aftermarket</FormLabel>
-                <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region (hash-gated against HTGDB / SMDB)" />
-                <FormInput
-                  type={inputTypes.CHECK}
-                  name="trackHomebrew"
-                  onChange={handleInputChange}
-                  {...trackHomebrew}
-                />
-              </FormRow>
-
-              <FormRow>
-                <FormLabel>Track ROM Hacks & Translations</FormLabel>
-                <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region (hash-gated against HTGDB / SMDB)" />
-                <FormInput
-                  type={inputTypes.CHECK}
-                  name="trackRomHacks"
-                  onChange={handleInputChange}
-                  {...trackRomHacks}
-                />
-              </FormRow>
-
-              <FormRow>
-                <FormLabel>Track Prototypes, Betas & Unlicensed</FormLabel>
-                <FormInputHelpText text="Enable monitoring of the Prototypes, Betas & Unlicensed region" />
-                <FormInput
-                  type={inputTypes.CHECK}
-                  name="trackPrototypes"
-                  onChange={handleInputChange}
-                  {...trackPrototypes}
-                />
-              </FormRow>
+              )}
 
               <FormRow>
                 <FormLabel>{translate('Tags')}</FormLabel>

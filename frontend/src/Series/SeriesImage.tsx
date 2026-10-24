@@ -118,8 +118,24 @@ function SeriesImage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const mergedStyle = useMemo(() => {
+    if (url && url.includes('/Content/Images/Consoles/')) {
+      return {
+        ...style,
+        objectFit: 'contain' as const,
+        padding: '8px',
+        boxSizing: 'border-box' as const,
+      };
+    }
+
+    return {
+      ...style,
+      objectFit: 'contain' as const,
+    };
+  }, [style, url]);
+
   if (hasError || !url) {
-    return <img className={className} style={style} src={placeholder} />;
+    return <img className={className} style={mergedStyle} src={placeholder} />;
   }
 
   if (lazy) {
@@ -129,13 +145,13 @@ function SeriesImage({
         offset={100}
         overflow={overflow}
         placeholder={
-          <img className={className} style={style} src={placeholder} />
+          <img className={className} style={mergedStyle} src={placeholder} />
         }
       >
         <img
           alt={alt}
           className={className}
-          style={style}
+          style={mergedStyle}
           src={url}
           rel="noreferrer"
           onError={handleError}
@@ -149,7 +165,7 @@ function SeriesImage({
     <img
       alt={alt}
       className={className}
-      style={style}
+      style={mergedStyle}
       src={isLoaded ? url : placeholder}
       onError={handleError}
       onLoad={handleLoad}

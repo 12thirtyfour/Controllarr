@@ -83,6 +83,13 @@ namespace NzbDrone.Core.MediaCover
                 // Series isn't in Sonarr yet, map via a proxy to circumvent referrer issues
                 foreach (var mediaCover in covers)
                 {
+                    if (!string.IsNullOrWhiteSpace(mediaCover.RemoteUrl) &&
+                        mediaCover.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        mediaCover.Url = _configFileProvider.UrlBase + mediaCover.RemoteUrl;
+                        continue;
+                    }
+
                     mediaCover.Url = _mediaCoverProxy.RegisterUrl(mediaCover.RemoteUrl);
                 }
             }
@@ -92,6 +99,13 @@ namespace NzbDrone.Core.MediaCover
                 {
                     if (mediaCover.CoverType == MediaCoverTypes.Unknown)
                     {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(mediaCover.RemoteUrl) &&
+                        mediaCover.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        mediaCover.Url = _configFileProvider.UrlBase + mediaCover.RemoteUrl;
                         continue;
                     }
 
@@ -143,6 +157,12 @@ namespace NzbDrone.Core.MediaCover
             foreach (var cover in series.Images)
             {
                 if (cover.CoverType == MediaCoverTypes.Unknown)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(cover.RemoteUrl) &&
+                    cover.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

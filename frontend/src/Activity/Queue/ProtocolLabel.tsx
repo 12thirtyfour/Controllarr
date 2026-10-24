@@ -10,9 +10,10 @@ interface ProtocolLabelProps
 
 function ProtocolLabel({ protocol, ...otherProps }: ProtocolLabelProps) {
   const protocolName = protocol === 'usenet' ? 'nzb' : protocol;
+  const styleKey = protocol === 'http' ? 'torrent' : protocol;
 
   return (
-    <Label className={styles[protocol]} {...otherProps}>
+    <Label className={styles[styleKey]} {...otherProps}>
       {protocolName}
     </Label>
   );

@@ -46,10 +46,11 @@ namespace NzbDrone.Core.Parser
                 }
             }
 
-            // Strip extension
-            result.Format = Path.GetExtension(normalizedTitle)?.TrimStart('.');
-            if (!string.IsNullOrEmpty(result.Format))
+            // Strip extension only if it is an actual file extension at the end of the string (no spaces or parentheses)
+            var ext = Path.GetExtension(normalizedTitle);
+            if (!string.IsNullOrEmpty(ext) && Regex.IsMatch(ext, @"^\.[A-Za-z0-9]{1,6}$"))
             {
+                result.Format = ext.TrimStart('.');
                 normalizedTitle = Path.GetFileNameWithoutExtension(normalizedTitle);
             }
 

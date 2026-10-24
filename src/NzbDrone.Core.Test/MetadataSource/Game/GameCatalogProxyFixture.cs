@@ -66,5 +66,55 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
 
             Subject.ClearPendingPlatformSelections(tuple.Item1.TvdbId);
         }
+
+        [Test]
+        public void should_populate_full_nes_catalog_and_separate_unlicensed_and_prerelease_versions()
+        {
+            var sampleDat = @"
+game (
+	name ""Super Mario Bros. (USA)""
+	rom ( name ""Super Mario Bros. (USA).nes"" size 40976 )
+)
+game (
+	name ""Super Mario Bros. (USA) (Rev 1)""
+	rom ( name ""Super Mario Bros. (USA) (Rev 1).nes"" size 40976 )
+)
+game (
+	name ""Super Mario Bros. (USA) (Beta)""
+	rom ( name ""Super Mario Bros. (USA) (Beta).nes"" size 40976 )
+)
+game (
+	name ""Bible Adventures (USA)""
+	rom ( name ""Bible Adventures (USA) (Unl).nes"" size 131088 )
+)
+game (
+	name ""Micro Mages (World)""
+	rom ( name ""Micro Mages (World) (Aftermarket) (Unl).nes"" size 40976 )
+)";
+
+            Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>()
+                .Setup(c => c.Execute(Moq.It.Is<NzbDrone.Common.Http.HttpRequest>(r => r.Url.FullUri.Contains("no-intro"))))
+                .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), sampleDat));
+
+            var tuple = Subject.GetSeriesInfo(1001, Language.English, null);
+
+            tuple.Item1.Title.Should().Be("Nintendo Entertainment System");
+            tuple.Item1.Images.Should().Contain(i => i.RemoteUrl == "/Content/Images/Consoles/nes.png");
+
+            var usaEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUsaSeason).ToList();
+            usaEpisodes.Should().Contain(e => e.Title == "Super Mario Bros.");
+            usaEpisodes.Should().Contain(e => e.Title == "Super Mario Bros. (Rev 1)");
+            usaEpisodes.Should().Contain(e => e.Title == "Super Mario Bros. (Beta)");
+
+            var unlicensedEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUnlicensedSeason).ToList();
+            unlicensedEpisodes.Should().Contain(e => e.Title.Contains("Bible Adventures"));
+
+            var homebrewEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionHomebrewSeason).ToList();
+            homebrewEpisodes.Should().Contain(e => e.Title.Contains("Micro Mages"));
+
+            GameCatalogProxy.IsPreReleaseVersion("Proto", "Star Fox 2 (USA) (Proto)").Should().BeTrue();
+            GameCatalogProxy.IsPreReleaseVersion("Beta", "Legend of Zelda, The (USA) (Beta)").Should().BeTrue();
+            GameCatalogProxy.IsPreReleaseVersion("Retail (v1.0)", "Super Mario Bros. (World)").Should().BeFalse();
+        }
     }
 }

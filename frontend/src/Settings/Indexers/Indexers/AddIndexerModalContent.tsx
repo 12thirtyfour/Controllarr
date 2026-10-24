@@ -25,16 +25,19 @@ function AddIndexerModalContent({
   const { isSchemaLoading, isSchemaFetched, schemaError, schema } =
     useIndexerSchema();
 
-  const { usenetIndexers, torrentIndexers } = useMemo(() => {
+  const { usenetIndexers, torrentIndexers, httpIndexers } = useMemo(() => {
     return schema.reduce<{
       usenetIndexers: IndexerModel[];
       torrentIndexers: IndexerModel[];
+      httpIndexers: IndexerModel[];
     }>(
       (acc, item) => {
         if (item.protocol === 'usenet') {
           acc.usenetIndexers.push(item);
         } else if (item.protocol === 'torrent') {
           acc.torrentIndexers.push(item);
+        } else if (item.protocol === 'http') {
+          acc.httpIndexers.push(item);
         }
 
         return acc;
@@ -42,6 +45,7 @@ function AddIndexerModalContent({
       {
         usenetIndexers: [],
         torrentIndexers: [],
+        httpIndexers: [],
       }
     );
   }, [schema]);
@@ -59,6 +63,23 @@ function AddIndexerModalContent({
 
         {isSchemaFetched && !schemaError ? (
           <div className={styles.indexers}>
+            {httpIndexers.length > 0 ? (
+              <div className={styles.group}>
+                <h3 className={styles.groupHeading}>
+                  HTTP / Direct Download (Internet Archive)
+                </h3>
+
+                {httpIndexers.map((indexer) => (
+                  <AddIndexerItem
+                    key={indexer.implementation}
+                    {...indexer}
+                    implementation={indexer.implementation}
+                    onIndexerSelect={onIndexerSelect}
+                  />
+                ))}
+              </div>
+            ) : null}
+
             <div className={styles.group}>
               <h3 className={styles.groupHeading}>{translate('Usenet')}</h3>
 

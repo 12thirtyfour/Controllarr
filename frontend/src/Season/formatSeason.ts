@@ -92,7 +92,7 @@ export default function formatSeason(
     : getRegionalConsoleName(seasonNumber, platformSlugOrTitle);
 
   if (seasonNumber === 0) {
-    return shortFormat ? 'PROTO' : 'Prototypes, Betas & Unlicensed';
+    return shortFormat ? 'UNL' : 'Unlicensed';
   }
 
   if (seasonNumber === 1) {

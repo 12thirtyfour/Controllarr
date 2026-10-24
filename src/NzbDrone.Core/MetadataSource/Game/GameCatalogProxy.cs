@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NLog;
@@ -16,6 +17,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 {
     public class GameCatalogProxy : IGameCatalogService, IProvideSeriesInfo, ISearchForNewSeries
     {
+        public const int RegionUnlicensedSeason = 0;
         public const int RegionPrototypesSeason = 0;
         public const int RegionUsaSeason = 1;
         public const int RegionEuropeSeason = 2;
@@ -25,8 +27,16 @@ namespace NzbDrone.Core.MetadataSource.Game
         public const int RegionRomHacksSeason = 6;
 
         private static readonly Regex DatGameBlockRegex = new Regex(
-            @"game\s*\(\s*name\s+""(?<name>[^""]+)""(?<body>.*?)\n\)",
+            @"game\s*\(\s*name\s+""(?<name>[^""]+)""(?<body>.*?)\r?\n\)",
             RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatRomNameRegex = new Regex(
+            @"rom\s*\(\s*name\s+""(?<rom>[^""]+)""",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatReleaseYearBlockRegex = new Regex(
+            @"game\s*\(\s*(?:comment|name)\s+""(?<name>[^""]+)""[^)]*?releaseyear\s+""?(?<year>\d{4})""?",
+            RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex DatReleaseYearRegex = new Regex(
             @"releaseyear\s+""?(?<year>\d{4})""?",
@@ -35,6 +45,24 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static readonly Regex RevisionTagRegex = new Regex(
             @"\((?<rev>Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Alt\s*\d*|Program\s*ROM\s*[^\)]+|PRG\d+)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DiscTagRegex = new Regex(
+            @"\((?<disc>Disc\s*\d+[^\)]*|Disk\s*[A-Z0-9]+[^\)]*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex PreReleaseTagRegex = new Regex(
+            @"\((?<pre>Proto[^\)]*|Beta[^\)]*|Sample[^\)]*|Demo[^\)]*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> KnownRomExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".nes", ".unh", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd",
+            ".gb", ".gbc", ".gba", ".nds", ".dsi", ".3ds", ".cia", ".cci", ".nsp", ".xci", ".nsz",
+            ".md", ".gen", ".smd", ".32x", ".sms", ".gg", ".pce", ".sgx", ".cue", ".bin", ".iso",
+            ".chd", ".rvz", ".gcm", ".ciso", ".wbfs", ".wua", ".wux", ".wud", ".rpx", ".gdi", ".cdi",
+            ".cso", ".pbp", ".pkg", ".vpk", ".xiso", ".xex", ".god", ".a26", ".a78", ".lnx", ".j64",
+            ".jag", ".neo", ".ngp", ".ngc", ".ws", ".wsc", ".vb", ".zip", ".7z"
+        };
 
         private static readonly List<PlatformCatalogEntry> BuiltInPlatforms = BuildPlatforms();
         private static readonly List<GameCatalogEntry> BuiltInGames = BuildGames();
@@ -309,14 +337,22 @@ namespace NzbDrone.Core.MetadataSource.Game
             var series = MapPlatformToSeries(platform);
             var episodes = new List<Episode>();
 
-            var platformGames = BuiltInGames
-                .Where(g => g.PlatformTvdbId == platform.TvdbId)
-                .ToList();
+            var platformGames = new List<GameCatalogEntry>();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenIds = new HashSet<int>();
+
+            foreach (var builtIn in BuiltInGames.Where(g => g.PlatformTvdbId == platform.TvdbId))
+            {
+                if (seenIds.Add(builtIn.TvdbId) && seenNames.Add(builtIn.NoIntroName))
+                {
+                    platformGames.Add(builtIn);
+                }
+            }
 
             var syncedGames = SyncOnlineCatalogForPlatform(platform);
             foreach (var synced in syncedGames)
             {
-                if (platformGames.All(g => g.TvdbId != synced.TvdbId && !string.Equals(g.NoIntroName, synced.NoIntroName, StringComparison.OrdinalIgnoreCase)))
+                if (seenIds.Add(synced.TvdbId) && seenNames.Add(synced.NoIntroName))
                 {
                     platformGames.Add(synced);
                 }
@@ -324,7 +360,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             foreach (var dynamicGame in DynamicGames.Values.Where(g => g.PlatformTvdbId == platform.TvdbId))
             {
-                if (platformGames.All(g => g.TvdbId != dynamicGame.TvdbId && !string.Equals(g.Title, dynamicGame.Title, StringComparison.OrdinalIgnoreCase)))
+                if (seenIds.Add(dynamicGame.TvdbId) && seenNames.Add(dynamicGame.NoIntroName ?? dynamicGame.Title))
                 {
                     platformGames.Add(dynamicGame);
                 }
@@ -338,9 +374,10 @@ namespace NzbDrone.Core.MetadataSource.Game
             var episodeCounters = new Dictionary<int, int>();
 
             foreach (var game in platformGames
-                .OrderBy(g => g.BaseTitle ?? g.Title)
-                .ThenBy(g => g.IsInitialRelease ? 0 : 1)
-                .ThenBy(g => g.Title))
+                .OrderBy(g => g.BaseTitle ?? g.Title, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(g => IsPreReleaseVersion(g.RevisionTag, g.NoIntroName) ? 1 : 0)
+                .ThenBy(g => GetRevisionSortOrder(g.RevisionTag))
+                .ThenBy(g => g.Title, StringComparer.OrdinalIgnoreCase))
             {
                 var seasonNum = game.RegionSeasonNumber;
                 episodeCounters.TryGetValue(seasonNum, out var currentEpNum);
@@ -348,9 +385,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                 episodeCounters[seasonNum] = currentEpNum;
                 game.EpisodeNumber = currentEpNum;
 
-                var isUnofficial = seasonNum == RegionPrototypesSeason ||
+                var isUnofficial = seasonNum == RegionUnlicensedSeason ||
                                    seasonNum == RegionHomebrewSeason ||
-                                   seasonNum == RegionRomHacksSeason;
+                                   seasonNum == RegionRomHacksSeason ||
+                                   IsPreReleaseVersion(game.RevisionTag, game.NoIntroName);
 
                 var isMonitored = hasExplicitSelection
                     ? selectedGameIds.Contains(game.TvdbId)
@@ -375,33 +413,37 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             var syncedList = new List<GameCatalogEntry>();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
                 var escapedSystem = Uri.EscapeDataString(platform.LibretroSystemName);
-                var datUrls = new[]
+                var releaseYearLookup = FetchReleaseYearLookup(escapedSystem);
+
+                var datFeeds = new (string Url, string SourceLabel)[]
                 {
-                    $"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat",
-                    $"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat",
-                    $"https://raw.githubusercontent.com/libretro/libretro-database/master/dat/{escapedSystem}.dat"
+                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"),
+                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"),
+                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/dat/{escapedSystem}.dat", "No-Intro / Libretro"),
+                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"),
+                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/hacks/{escapedSystem}.dat", "ROM Hacks & Translations")
                 };
 
-                foreach (var url in datUrls)
+                foreach (var feed in datFeeds)
                 {
-                    var request = new HttpRequest(url)
+                    var request = new HttpRequest(feed.Url)
                     {
                         SuppressHttpError = true,
-                        RequestTimeout = TimeSpan.FromSeconds(12)
+                        RequestTimeout = TimeSpan.FromSeconds(15)
                     };
 
                     var response = _httpClient.Execute(request);
                     if (response != null && !response.HasHttpError && !string.IsNullOrWhiteSpace(response.Content))
                     {
-                        var parsedEntries = ParseLibretroDatContent(platform, response.Content);
+                        var parsedEntries = ParseLibretroDatContent(platform, response.Content, feed.SourceLabel, releaseYearLookup, seenNames);
                         if (parsedEntries.Count > 0)
                         {
                             syncedList.AddRange(parsedEntries);
-                            break;
                         }
                     }
                 }
@@ -424,33 +466,106 @@ namespace NzbDrone.Core.MetadataSource.Game
             return syncedList;
         }
 
-        private static List<GameCatalogEntry> ParseLibretroDatContent(PlatformCatalogEntry platform, string datContent)
+        private Dictionary<string, int> FetchReleaseYearLookup(string escapedSystem)
+        {
+            var lookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var url = $"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/releaseyear/{escapedSystem}.dat";
+                var request = new HttpRequest(url)
+                {
+                    SuppressHttpError = true,
+                    RequestTimeout = TimeSpan.FromSeconds(10)
+                };
+
+                var response = _httpClient.Execute(request);
+                if (response != null && !response.HasHttpError && !string.IsNullOrWhiteSpace(response.Content))
+                {
+                    foreach (Match match in DatReleaseYearBlockRegex.Matches(response.Content))
+                    {
+                        var name = match.Groups["name"].Value.Trim();
+                        if (!string.IsNullOrWhiteSpace(name) &&
+                            int.TryParse(match.Groups["year"].Value, out var year) &&
+                            year >= 1970 &&
+                            year <= 2030)
+                        {
+                            lookup[name] = year;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Trace(ex, "Unable to fetch releaseyear DAT metadata for {0}", escapedSystem);
+            }
+
+            return lookup;
+        }
+
+        private static List<GameCatalogEntry> ParseLibretroDatContent(
+            PlatformCatalogEntry platform,
+            string datContent,
+            string sourceLabel,
+            Dictionary<string, int> releaseYearLookup,
+            HashSet<string> seenNames)
         {
             var results = new List<GameCatalogEntry>();
             var matches = DatGameBlockRegex.Matches(datContent);
 
             foreach (Match match in matches)
             {
-                if (results.Count >= 1200)
+                var blockName = match.Groups["name"].Value.Trim();
+                var body = match.Groups["body"].Value;
+
+                var romMatch = DatRomNameRegex.Match(body);
+                var rawName = blockName;
+
+                if (romMatch.Success)
                 {
-                    break;
+                    var romFileName = romMatch.Groups["rom"].Value.Trim();
+
+                    // Skip unheadered duplicate entries (.unh) when headered (.nes) entries exist in the same DAT
+                    if (romFileName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var strippedRomName = StripKnownRomExtension(romFileName);
+                    if (!string.IsNullOrWhiteSpace(strippedRomName) && strippedRomName.Length >= blockName.Length)
+                    {
+                        rawName = strippedRomName;
+                    }
                 }
 
-                var rawName = match.Groups["name"].Value.Trim();
-                if (string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(rawName) ||
+                    rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    blockName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                var body = match.Groups["body"].Value;
-                var year = platform.ReleaseYear;
-                var yearMatch = DatReleaseYearRegex.Match(body);
-                if (yearMatch.Success && int.TryParse(yearMatch.Groups["year"].Value, out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2030)
+                if (!seenNames.Add(rawName))
                 {
-                    year = parsedYear;
+                    continue;
                 }
 
-                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, "No-Intro / Redump / HTGDB");
+                var year = platform.ReleaseYear;
+                if (releaseYearLookup != null &&
+                    (releaseYearLookup.TryGetValue(rawName, out var mappedYear) ||
+                     releaseYearLookup.TryGetValue(blockName, out mappedYear)))
+                {
+                    year = mappedYear;
+                }
+                else
+                {
+                    var yearMatch = DatReleaseYearRegex.Match(body);
+                    if (yearMatch.Success && int.TryParse(yearMatch.Groups["year"].Value, out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2030)
+                    {
+                        year = parsedYear;
+                    }
+                }
+
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, sourceLabel);
                 if (entry != null)
                 {
                     results.Add(entry);
@@ -458,6 +573,22 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             return results;
+        }
+
+        private static string StripKnownRomExtension(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            var ext = Path.GetExtension(fileName);
+            if (!string.IsNullOrWhiteSpace(ext) && KnownRomExtensions.Contains(ext))
+            {
+                return fileName.Substring(0, fileName.Length - ext.Length).Trim();
+            }
+
+            return fileName.Trim();
         }
 
         private static GameCatalogEntry CreateCatalogEntryFromNoIntroName(
@@ -472,7 +603,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 ? NormalizeTitleArticle(parsed.GameTitle)
                 : NormalizeTitleArticle(StripParentheses(noIntroName));
 
-            var regionSeason = ClassifyRegionAndCategory(noIntroName, parsed);
+            var regionSeason = ClassifyRegionAndCategory(noIntroName, parsed, verificationSource);
             var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionSeason);
             var displayTitle = string.IsNullOrWhiteSpace(revisionTag) || revisionTag == "Retail (v1.0)"
                 ? baseTitle
@@ -480,6 +611,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var tvdbId = ComputeDeterministicGameId(platform.Slug, noIntroName);
             var regionName = GetRegionDisplayName(regionSeason);
+            var isPreRelease = IsPreReleaseVersion(revisionTag, noIntroName);
 
             return new GameCatalogEntry
             {
@@ -487,8 +619,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 Title = displayTitle,
                 BaseTitle = baseTitle,
                 RevisionTag = revisionTag,
-                IsLatestRevision = true,
-                IsInitialRelease = revisionTag == "Retail (v1.0)",
+                IsLatestRevision = !isPreRelease,
+                IsInitialRelease = !isPreRelease && revisionTag == "Retail (v1.0)",
                 NoIntroName = noIntroName,
                 PlatformTvdbId = platform.TvdbId,
                 PlatformSlug = platform.Slug,
@@ -508,21 +640,64 @@ namespace NzbDrone.Core.MetadataSource.Game
             };
         }
 
+        public static bool IsPreReleaseVersion(string revisionTag, string noIntroName = null)
+        {
+            if (!string.IsNullOrWhiteSpace(revisionTag))
+            {
+                if (revisionTag.Contains("Proto", StringComparison.OrdinalIgnoreCase) ||
+                    revisionTag.Contains("Beta", StringComparison.OrdinalIgnoreCase) ||
+                    revisionTag.Contains("Sample", StringComparison.OrdinalIgnoreCase) ||
+                    revisionTag.Contains("Demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(noIntroName))
+            {
+                if (noIntroName.Contains("(Proto", StringComparison.OrdinalIgnoreCase) ||
+                    noIntroName.Contains("(Beta", StringComparison.OrdinalIgnoreCase) ||
+                    noIntroName.Contains("(Sample", StringComparison.OrdinalIgnoreCase) ||
+                    noIntroName.Contains("(Demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static void MarkLatestAndInitialRevisions(List<GameCatalogEntry> games)
         {
             foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{(g.BaseTitle ?? g.Title).ToLowerInvariant()}"))
             {
                 var items = group.ToList();
-                if (items.Count == 1)
+
+                // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
+                var retailItems = items.Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName)).ToList();
+                var preReleaseItems = items.Where(i => IsPreReleaseVersion(i.RevisionTag, i.NoIntroName)).ToList();
+
+                foreach (var pre in preReleaseItems)
                 {
-                    items[0].IsInitialRelease = true;
-                    items[0].IsLatestRevision = true;
+                    pre.IsInitialRelease = false;
+                    pre.IsLatestRevision = false;
+                }
+
+                if (retailItems.Count == 0)
+                {
                     continue;
                 }
 
-                var ordered = items
+                if (retailItems.Count == 1)
+                {
+                    retailItems[0].IsInitialRelease = true;
+                    retailItems[0].IsLatestRevision = true;
+                    continue;
+                }
+
+                var ordered = retailItems
                     .OrderBy(i => GetRevisionSortOrder(i.RevisionTag))
-                    .ThenBy(i => i.NoIntroName)
+                    .ThenBy(i => i.NoIntroName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 for (var idx = 0; idx < ordered.Count; idx++)
@@ -540,6 +715,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return 0;
             }
 
+            if (IsPreReleaseVersion(revisionTag))
+            {
+                return 1000;
+            }
+
             if (revisionTag.StartsWith("Rev ", StringComparison.OrdinalIgnoreCase) ||
                 revisionTag.StartsWith("v", StringComparison.OrdinalIgnoreCase))
             {
@@ -551,6 +731,52 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static string ExtractRevisionTag(string noIntroName, Parser.Model.ParsedRomInfo parsed, int regionSeason)
         {
+            var parts = new List<string>();
+
+            var discMatch = DiscTagRegex.Match(noIntroName);
+            if (discMatch.Success)
+            {
+                parts.Add(discMatch.Groups["disc"].Value.Trim());
+            }
+
+            var preMatch = PreReleaseTagRegex.Match(noIntroName);
+            if (preMatch.Success)
+            {
+                parts.Add(preMatch.Groups["pre"].Value.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(parsed?.Revision))
+            {
+                parts.Add($"Rev {parsed.Revision}");
+            }
+            else if (!string.IsNullOrWhiteSpace(parsed?.Version))
+            {
+                parts.Add($"v{parsed.Version}");
+            }
+            else
+            {
+                var revMatch = RevisionTagRegex.Match(noIntroName);
+                if (revMatch.Success)
+                {
+                    parts.Add(revMatch.Groups["rev"].Value.Trim());
+                }
+            }
+
+            if (noIntroName.Contains("(Virtual Console)", StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add("Virtual Console");
+            }
+            else if (noIntroName.Contains("(Classic Mini)", StringComparison.OrdinalIgnoreCase) ||
+                     noIntroName.Contains("(Switch Online)", StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add("Re-Release");
+            }
+
+            if (parts.Count > 0)
+            {
+                return string.Join(" • ", parts.Distinct(StringComparer.OrdinalIgnoreCase));
+            }
+
             if (regionSeason == RegionHomebrewSeason)
             {
                 return "Homebrew";
@@ -561,44 +787,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return "ROM Hack";
             }
 
-            if (!string.IsNullOrWhiteSpace(parsed?.Revision))
-            {
-                return $"Rev {parsed.Revision}";
-            }
-
-            if (!string.IsNullOrWhiteSpace(parsed?.Version))
-            {
-                return $"v{parsed.Version}";
-            }
-
-            var match = RevisionTagRegex.Match(noIntroName);
-            if (match.Success)
-            {
-                return match.Groups["rev"].Value.Trim();
-            }
-
-            if (noIntroName.Contains("(Beta", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Beta";
-            }
-
-            if (noIntroName.Contains("(Proto", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Sample", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Prototype";
-            }
-
-            if (noIntroName.Contains("(Demo", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Demo";
-            }
-
-            if (noIntroName.Contains("(Virtual Console)", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Virtual Console";
-            }
-
-            if (noIntroName.Contains("(Unl)", StringComparison.OrdinalIgnoreCase))
+            if (regionSeason == RegionUnlicensedSeason)
             {
                 return "Unlicensed";
             }
@@ -606,9 +795,10 @@ namespace NzbDrone.Core.MetadataSource.Game
             return "Retail (v1.0)";
         }
 
-        private static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed)
+        private static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed, string verificationSource = null)
         {
-            if (noIntroName.Contains("(Hack)", StringComparison.OrdinalIgnoreCase) ||
+            if (string.Equals(verificationSource, "ROM Hacks & Translations", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Hack)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Hack]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
@@ -620,22 +810,22 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return RegionRomHacksSeason;
             }
 
-            if (noIntroName.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) ||
+            if (string.Equals(verificationSource, "Homebrew & Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(Homebrew)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(PD)", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionHomebrewSeason;
             }
 
-            if (noIntroName.Contains("(Beta", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Proto", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Sample", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Unl)", StringComparison.OrdinalIgnoreCase) ||
+            if (noIntroName.Contains("(Unl)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(Pirate)", StringComparison.OrdinalIgnoreCase))
             {
-                return RegionPrototypesSeason;
+                return RegionUnlicensedSeason;
             }
 
+            // Note: Prototypes, Betas, Demos, and Samples stay in their geographic region
+            // so they appear as versions of the game itself rather than in a separate region.
             var regionStr = parsed?.Regions != null && parsed.Regions.Count > 0
                 ? string.Join(",", parsed.Regions)
                 : noIntroName;
@@ -647,30 +837,38 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (regionStr.Contains("USA", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(US", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("(U)", StringComparison.OrdinalIgnoreCase))
+                regionStr.Contains("(U)", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Canada", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Brazil", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionUsaSeason;
-            }
-
-            if (regionStr.Contains("Europe", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("Australia", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("Germany", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("France", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("Spain", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("Italy", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("(EU", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase))
-            {
-                return RegionEuropeSeason;
             }
 
             if (regionStr.Contains("Japan", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Korea", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Asia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Taiwan", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Hong Kong", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(JP", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(J)", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionJapanSeason;
+            }
+
+            if (regionStr.Contains("Europe", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Australia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("UK", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("United Kingdom", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Germany", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("France", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Spain", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Italy", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Netherlands", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Sweden", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(EU", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase))
+            {
+                return RegionEuropeSeason;
             }
 
             return RegionUsaSeason;
@@ -713,6 +911,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (score > 0)
                 {
                     candidates.Add(Tuple.Create(game, score));
+                }
+            }
+
+            foreach (var dynGame in DynamicGames.Values.Where(g => g.IsLatestRevision))
+            {
+                var score = ScoreGameMatch(dynGame, rawQuery, normalizedQuery, queryTokens);
+                if (score > 0 && candidates.All(c => c.Item1.TvdbId != dynGame.TvdbId))
+                {
+                    candidates.Add(Tuple.Create(dynGame, score));
                 }
             }
 
@@ -881,19 +1088,14 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             var seasons = BuildDefaultRegionSeasons();
             var firstAired = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            var images = new List<MediaCover.MediaCover>();
-
-            if (!string.IsNullOrWhiteSpace(platform.RepresentativeBoxartName))
+            var consoleImageUrl = $"/Content/Images/Consoles/{platform.Slug}.png";
+            var images = new List<MediaCover.MediaCover>
             {
-                var boxartUrl = BuildLibretroBoxartUrl(platform.LibretroSystemName, platform.RepresentativeBoxartName);
-                if (!string.IsNullOrWhiteSpace(boxartUrl))
+                new MediaCover.MediaCover(MediaCoverTypes.Poster, consoleImageUrl)
                 {
-                    images.Add(new MediaCover.MediaCover(MediaCoverTypes.Poster, boxartUrl)
-                    {
-                        RemoteUrl = boxartUrl
-                    });
+                    RemoteUrl = consoleImageUrl
                 }
-            }
+            };
 
             return new Series
             {
@@ -962,7 +1164,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             return new List<Season>
             {
-                new Season { SeasonNumber = RegionPrototypesSeason, Monitored = false },
+                new Season { SeasonNumber = RegionUnlicensedSeason, Monitored = false },
                 new Season { SeasonNumber = RegionUsaSeason, Monitored = true },
                 new Season { SeasonNumber = RegionEuropeSeason, Monitored = true },
                 new Season { SeasonNumber = RegionJapanSeason, Monitored = true },
@@ -1040,13 +1242,13 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             return seasonNumber switch
             {
-                RegionUsaSeason => "USA (NTSC-U)",
-                RegionEuropeSeason => "Europe (PAL)",
-                RegionJapanSeason => "Japan (NTSC-J)",
-                RegionWorldSeason => "World / Multi-Region",
-                RegionHomebrewSeason => "Homebrew & Aftermarket",
+                RegionUsaSeason => "USA",
+                RegionEuropeSeason => "Europe",
+                RegionJapanSeason => "Japan",
+                RegionWorldSeason => "World",
+                RegionUnlicensedSeason => "Unlicensed",
                 RegionRomHacksSeason => "ROM Hacks & Translations",
-                RegionPrototypesSeason => "Prototypes, Betas & Unlicensed",
+                RegionHomebrewSeason => "Homebrew & Aftermarket",
                 _ => $"Region {seasonNumber}"
             };
         }
@@ -1166,7 +1368,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 ReleaseYear = year,
                 LibretroSystemName = libretroSystem,
                 RepresentativeBoxartName = representativeBoxart,
-                Overview = $"{manufacturer} {name} ({year}) — Verified No-Intro / Redump / HTGDB (SmokeMonster) hardware platform. Supported ROM & disc formats: {extList}. Organized by regional releases (USA, Europe, Japan, World, Homebrew, and ROM Hacks).",
+                Overview = $"{manufacturer} {name} ({year}) — Verified No-Intro / Redump / HTGDB (SmokeMonster) hardware platform. Supported ROM & disc formats: {extList}. Organized by BIOS, USA, Japan, Europe, World, Unlicensed, ROM Hacks & Translations, and Homebrew & Aftermarket.",
                 Aliases = aliases.ToList(),
                 Extensions = extensions.ToList()
             };
@@ -1243,7 +1445,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("switch", "Pokemon Scarlet (World)", 2022, "Open-world adventure across the Paldea region with Terastal phenomenon and Koraidon.");
             Add("switch", "Pokemon Violet (World)", 2022, "Open-world adventure across the Paldea region with Terastal phenomenon and Miraidon.");
 
-            // NES (Expanded Retail, Revisions, Europe, Japan, Homebrew, Hacks)
+            // NES (Expanded Retail, Revisions, Europe, Japan, Homebrew, Hacks, Unlicensed)
             Add("nes", "Super Mario Bros. (World)", 1985, "Side-scrolling platformer masterpiece where Mario and Luigi rescue Princess Toadstool from Bowser.");
             Add("nes", "Super Mario Bros. (Europe) (Rev A)", 1987, "PAL European release of Super Mario Bros.");
             Add("nes", "Super Mario Bros. 2 (USA)", 1988, "Initial USA retail release of Super Mario Bros. 2 set in Subcon.");
@@ -1300,6 +1502,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("nes", "Teenage Mutant Ninja Turtles III - The Manhattan Project (USA)", 1992, "Original NES beat-'em-up adventure with signature Turtle special moves.");
             Add("nes", "Battletoads (USA)", 1991, "Notoriously challenging brawler/action game from Rare.");
             Add("nes", "Tetris (USA)", 1989, "Nintendo's official NES Tetris used in the Classic Tetris World Championship.");
+            Add("nes", "Tetris (USA) (Unl)", 1989, "Tengen unlicensed NES release of Tetris.");
+            Add("nes", "Micro Machines (USA) (Unl)", 1991, "Camerica/Codemasters unlicensed miniature racing classic for the NES.");
+            Add("nes", "Bible Adventures (USA) (Unl)", 1991, "Wisdom Tree unlicensed NES platformer.");
             Add("nes", "Dr. Mario (Japan, USA) (Rev A)", 1990, "Clear viruses with vitamin capsules in Nintendo's addictive puzzle classic.");
             Add("nes", "Excitebike (Japan, USA)", 1985, "Motocross racing and track design launch title.");
             Add("nes", "Balloon Fight (USA)", 1986, "Arcade-style flight action and Balloon Trip survival mode.");
@@ -1314,6 +1519,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("nes", "Micro Mages (World) (Aftermarket)", 2019, "Modern four-player cooperative NES homebrew platformer crammed into 40 KB.", "HTGDB / SMDB");
             Add("nes", "Alwa's Awakening - The 8-Bit Edition (World) (Aftermarket)", 2021, "Full-featured Metroidvania homebrew crafted specifically for the NES.", "HTGDB / SMDB");
             Add("nes", "Super Mario Bros. 3Mix (USA) (Hack)", 2014, "Expansive ROM hack of Super Mario Bros. 3 featuring worlds from across Mario history.", "HTGDB / SMDB");
+            Add("nes", "EarthBound Beginnings (USA)", 2015, "Official English release of Mother.");
             Add("nes", "EarthBound Beginnings (USA) (Proto)", 1990, "Official English localization prototype of Mother (EarthBound Zero).");
 
             // SNES
@@ -1335,6 +1541,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("snes", "Secret of Mana (USA)", 1993, "Real-time action RPG with three-player cooperative Ring Command combat.");
             Add("snes", "Street Fighter II Turbo (USA) (Rev 1)", 1993, "High-speed 16-bit conversion of Capcom's arcade fighting phenomenon.");
             Add("snes", "Star Fox 2 (USA, Europe) (Classic Mini)", 2017, "Completed official release of the previously unreleased Argonaut/Nintendo Super FX sequel.");
+            Add("snes", "Star Fox 2 (USA) (Proto)", 1995, "Original 1995 Super FX2 development prototype of Star Fox 2.");
             Add("snes", "Final Fantasy V (Japan)", 1992, "Super Famicom RPG featuring the Job & Ability mastery system.");
             Add("snes", "Seiken Densetsu 3 (Japan)", 1995, "Super Famicom action-RPG sequel to Secret of Mana (Trials of Mana).");
             Add("snes", "Fire Emblem - Seisen no Keifu (Japan)", 1996, "Two-generation Super Famicom tactical RPG epic (Genealogy of the Holy War).");

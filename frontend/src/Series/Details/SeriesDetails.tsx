@@ -461,6 +461,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     imdbId,
     tmdbId,
     title,
+    titleSlug,
     runtime,
     ratings,
     path,
@@ -474,8 +475,6 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     overview,
     images,
     seasons,
-    seasonType,
-    seasonTypes,
     genres,
     tags,
     year,
@@ -503,18 +502,29 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   const fanartUrl = getFanartUrl(images);
   let collectionStrategyLabel = '1G1R';
 
-  if (collectionStrategy === 1) {
-    collectionStrategyLabel = 'Preservationist';
-  } else if (collectionStrategy === 2) {
-    collectionStrategyLabel = '1G1R Regional';
+  if (
+    collectionStrategy === 1 ||
+    String(collectionStrategy) === 'preservationist'
+  ) {
+    collectionStrategyLabel = 'Completionist';
+  } else if (
+    collectionStrategy === 2 ||
+    String(collectionStrategy) === 'oneGamePerRegionPerConsole'
+  ) {
+    collectionStrategyLabel = '1G1R Multi-Region';
   }
 
   let revisionPreferenceLabel = ' (Latest Rev)';
 
   if (pinnedVersion) {
     revisionPreferenceLabel = ` (Pinned: ${pinnedVersion})`;
-  } else if (revisionPreference === 1) {
-    revisionPreferenceLabel = ' (Initial)';
+  } else if (collectionStrategyLabel === 'Completionist') {
+    revisionPreferenceLabel = '';
+  } else if (
+    revisionPreference === 1 ||
+    String(revisionPreference) === 'initialRelease'
+  ) {
+    revisionPreferenceLabel = ' (Original Release)';
   }
 
   const isFetching = isEpisodesFetching || isEpisodeFilesFetching;
@@ -886,18 +896,6 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
                     <Label
                       className={styles.detailsLabel}
-                      title={translate('SeasonType')}
-                      size={sizes.LARGE}
-                      icon={icons.SEASON_TYPE}
-                    >
-                      <span className={styles.seasonTypeName}>
-                        {seasonTypes.find((s) => s.type === seasonType)?.name ??
-                          seasonType}
-                      </span>
-                    </Label>
-
-                    <Label
-                      className={styles.detailsLabel}
                       title={translate('Language')}
                       size={sizes.LARGE}
                       icon={icons.LANGUAGE}
@@ -1022,7 +1020,20 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
                 {seasons
                   .slice(0)
-                  .reverse()
+                  .sort((a, b) => {
+                    const regionOrder: Record<number, number> = {
+                      1: 1, // USA
+                      3: 2, // JAPAN
+                      2: 3, // EUROPE
+                      4: 4, // WORLD
+                      0: 5, // Unlicensed
+                      6: 6, // ROM Hacks & Translations
+                      5: 7, // Homebrew & Aftermarket
+                    };
+                    const orderA = regionOrder[a.seasonNumber] ?? 99;
+                    const orderB = regionOrder[b.seasonNumber] ?? 99;
+                    return orderA - orderB;
+                  })
                   .map((season) => {
                     return (
                       <SeriesDetailsSeason

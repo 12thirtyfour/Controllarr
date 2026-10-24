@@ -18,57 +18,37 @@ interface SeriesDetailsLink {
 }
 
 function SeriesDetailsLinks(props: SeriesDetailsLinksProps) {
-  const { tvdbId, tvMazeId, imdbId, tmdbId } = props;
+  const { tvdbId } = props;
 
   const links = useMemo(() => {
     const validLinks: SeriesDetailsLink[] = [];
 
     if (tvdbId) {
-      validLinks.push({
-        externalId: tvdbId,
-        name: 'Catalog ID',
-        url: 'https://www.igdb.com/',
-      });
-    }
-
-    if (tvMazeId) {
-      validLinks.push({
-        externalId: tvMazeId,
-        name: 'TV Maze',
-        url: `https://www.tvmaze.com/shows/${tvMazeId}/_`,
-      });
-    }
-
-    if (imdbId) {
       validLinks.push(
         {
-          externalId: imdbId,
-          name: 'IMDB',
-          url: `https://imdb.com/title/${imdbId}/`,
+          externalId: tvdbId,
+          name: 'IGDB',
+          url: 'https://www.igdb.com/',
         },
         {
-          name: 'Trakt',
-          url: `https://trakt.tv/shows/${imdbId}`,
+          name: 'No-Intro',
+          url: 'https://datomatic.no-intro.org/',
         },
         {
-          name: 'MDBList',
-          url: `https://mdblist.com/show/${imdbId}`,
+          name: 'Redump',
+          url: 'http://redump.org/',
+        },
+        {
+          name: 'RetroAchievements',
+          url: 'https://retroachievements.org/',
         }
       );
-    }
-
-    if (tmdbId) {
-      validLinks.push({
-        externalId: tmdbId,
-        name: 'TMDB',
-        url: `https://www.themoviedb.org/tv/${tmdbId}`,
-      });
     }
 
     return validLinks.sort(
       (a, b) => Number(!a.externalId) - Number(!b.externalId)
     );
-  }, [tvdbId, tvMazeId, imdbId, tmdbId]);
+  }, [tvdbId]);
 
   return (
     <div className={styles.links}>

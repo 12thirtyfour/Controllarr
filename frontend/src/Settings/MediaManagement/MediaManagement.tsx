@@ -42,9 +42,15 @@ const defaultLibraryStyleOptions: SelectInputOption[] = [
 ];
 
 const defaultRevisionPreferenceOptions: SelectInputOption[] = [
-  { key: '0', value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)' },
-  { key: '1', value: 'Original Retail Release (Rev 0 / v1.0)' },
-  { key: '2', value: 'Pinned Version / Tag' },
+  {
+    key: 'latestRevision',
+    value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)',
+  },
+  {
+    key: 'initialRelease',
+    value: 'Original Retail Release (Rev 0 / v1.0)',
+  },
+  { key: 'pinned', value: 'Pinned Version / Tag' },
 ];
 
 const episodeTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
@@ -157,7 +163,9 @@ function MediaManagement() {
   const isWindows = useIsWindows();
   const addOptions = useAddSeriesOptions();
   const [onePerRegion1g1r, setOnePerRegion1g1r] = useState<boolean>(
-    () => addOptions.collectionStrategy === 2
+    () =>
+      String(addOptions.collectionStrategy) === 'oneGamePerRegionPerConsole' ||
+      String(addOptions.collectionStrategy) === '2'
   );
 
   const {
@@ -204,14 +212,19 @@ function MediaManagement() {
     [updateSetting]
   );
 
-  const isCompletionistDefault = addOptions.collectionStrategy === 1;
+  const isCompletionistDefault =
+    String(addOptions.collectionStrategy) === 'preservationist' ||
+    String(addOptions.collectionStrategy) === '1';
 
   const handleDefaultLibraryStyleChange = useCallback(
     ({ value }: InputChanged<string>) => {
       if (value === 'completionist') {
-        setAddSeriesOption('collectionStrategy', 1);
+        setAddSeriesOption('collectionStrategy', 'preservationist');
       } else {
-        setAddSeriesOption('collectionStrategy', onePerRegion1g1r ? 2 : 0);
+        setAddSeriesOption(
+          'collectionStrategy',
+          onePerRegion1g1r ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
+        );
       }
     },
     [onePerRegion1g1r]
@@ -221,8 +234,14 @@ function MediaManagement() {
     ({ value }: InputChanged<boolean>) => {
       const useSingle = Boolean(value);
       setOnePerRegion1g1r(!useSingle);
-      if (addOptions.collectionStrategy !== 1) {
-        setAddSeriesOption('collectionStrategy', useSingle ? 0 : 2);
+      if (
+        String(addOptions.collectionStrategy) !== 'preservationist' &&
+        String(addOptions.collectionStrategy) !== '1'
+      ) {
+        setAddSeriesOption(
+          'collectionStrategy',
+          useSingle ? 'oneGameOneRom' : 'oneGamePerRegionPerConsole'
+        );
       }
     },
     [addOptions.collectionStrategy]
@@ -232,8 +251,14 @@ function MediaManagement() {
     ({ value }: InputChanged<boolean>) => {
       const useMulti = Boolean(value);
       setOnePerRegion1g1r(useMulti);
-      if (addOptions.collectionStrategy !== 1) {
-        setAddSeriesOption('collectionStrategy', useMulti ? 2 : 0);
+      if (
+        String(addOptions.collectionStrategy) !== 'preservationist' &&
+        String(addOptions.collectionStrategy) !== '1'
+      ) {
+        setAddSeriesOption(
+          'collectionStrategy',
+          useMulti ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
+        );
       }
     },
     [addOptions.collectionStrategy]
@@ -241,7 +266,7 @@ function MediaManagement() {
 
   const handleDefaultRevisionChange = useCallback(
     ({ value }: InputChanged<string>) => {
-      setAddSeriesOption('revisionPreference', Number(value));
+      setAddSeriesOption('revisionPreference', String(value));
     },
     []
   );
@@ -286,13 +311,22 @@ function MediaManagement() {
                 <FormInputHelpText text="Which ROM version/revision to prefer in 1G1R mode (used globally or when overriding a console to 1G1R)" />
                 <SelectInput<string>
                   name="defaultRevisionPreference"
-                  value={String(addOptions.revisionPreference ?? 0)}
+                  value={
+                    String(addOptions.revisionPreference) === '1'
+                      ? 'initialRelease'
+                      : String(addOptions.revisionPreference) === '2'
+                        ? 'pinned'
+                        : String(
+                            addOptions.revisionPreference || 'latestRevision'
+                          )
+                  }
                   values={defaultRevisionPreferenceOptions}
                   onChange={handleDefaultRevisionChange}
                 />
               </FormRow>
 
-              {Number(addOptions.revisionPreference) === 2 ? (
+              {String(addOptions.revisionPreference) === 'pinned' ||
+              String(addOptions.revisionPreference) === '2' ? (
                 <FormRow size={sizes.MEDIUM}>
                   <FormLabel>Default Pinned Version Tag</FormLabel>
                   <FormInputHelpText text="Revision tag to pin when Pinned Version is selected (e.g. Rev A, Rev 1, v1.1)" />

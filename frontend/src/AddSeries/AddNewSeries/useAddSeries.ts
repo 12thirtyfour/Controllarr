@@ -12,7 +12,16 @@ interface AddSeriesPayload
   extends AddSeries,
     Omit<
       AddSeriesOptions,
-      'monitor' | 'searchForMissingEpisodes' | 'searchForCutoffUnmetEpisodes'
+      | 'monitor'
+      | 'searchForMissingEpisodes'
+      | 'searchForCutoffUnmetEpisodes'
+      | 'collectionStrategy'
+      | 'revisionPreference'
+      | 'pinnedVersion'
+      | 'enableCompression'
+      | 'trackUnlicensed'
+      | 'trackHomebrew'
+      | 'trackRomHacks'
     > {
   language: Language;
 }

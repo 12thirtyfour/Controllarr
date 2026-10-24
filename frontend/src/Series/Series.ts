@@ -95,8 +95,8 @@ interface Series extends ModelBase {
   imdbId?: string;
   monitored: boolean;
   monitorNewItems: MonitorNewItems;
-  collectionStrategy: number;
-  revisionPreference: number;
+  collectionStrategy: string | number;
+  revisionPreference: string | number;
   pinnedVersion?: string;
   network: string;
   originalCountry: string;
