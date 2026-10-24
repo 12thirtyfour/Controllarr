@@ -1,0 +1,84 @@
+.biosSection {
+  margin-bottom: 20px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  background-color: var(--seasonBackgroundColor);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-size: 24px;
+  padding: 15px 20px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  flex: 1 1 200px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.title {
+  color: var(--ink);
+  font-weight: 300;
+  font-size: 22px;
+}
+
+.folderBadge {
+  padding: 2px 8px;
+  border: 1px solid var(--hairlineStrong);
+  border-radius: 4px;
+  color: var(--inkMuted);
+  font-size: 12px;
+  font-family: var(--monospaceFontFamily);
+}
+
+.expandButton {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 200px;
+  gap: 8px;
+}
+
+.body {
+  padding: 0 20px 16px;
+  border-top: 1px solid var(--borderColor);
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileName {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.fileDescription {
+  color: var(--inkMuted);
+  font-size: 12px;
+}
+
+.hashContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hash {
+  color: var(--inkMuted);
+  font-size: 11px;
+  font-family: var(--monospaceFontFamily);
+}

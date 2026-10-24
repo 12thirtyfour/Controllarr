@@ -36,3 +36,69 @@
   font-family: var(--defaultFontFamily);
   line-height: 1.6;
 }
+
+.achievementsSection {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--paperCard);
+}
+
+.achievementsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.achievementsTitle {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin-top: 14px;
+  gap: 10px;
+}
+
+.badgeCard {
+  padding: 10px 12px;
+  border: 1px solid var(--hairlineStrong);
+  border-radius: 6px;
+  background: var(--paperWarm);
+}
+
+.badgeCardUnlocked {
+  border-color: var(--accent);
+}
+
+.badgeCardHardcore {
+  border-color: #e0a82e;
+}
+
+.badgeTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  gap: 6px;
+}
+
+.badgeName {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.badgeDesc {
+  color: var(--inkMuted);
+  font-size: 12px;
+  line-height: 1.4;
+}

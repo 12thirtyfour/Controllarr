@@ -5,6 +5,7 @@ import FormInput from 'Components/Form/FormInput';
 import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
+import Label from 'Components/Label';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
@@ -33,7 +34,11 @@ function RetroAchievementsSettings() {
   });
   const [validationStatus, setValidationStatus] = useState<
     'idle' | 'valid' | 'invalid'
-  >('idle');
+  >(() => {
+    const savedUser = window.localStorage.getItem(STORAGE_USERNAME_KEY);
+    const savedKey = window.localStorage.getItem(STORAGE_APIKEY_KEY);
+    return savedUser && savedKey ? 'valid' : 'idle';
+  });
 
   const {
     mutate: validateCredentials,
@@ -127,7 +132,7 @@ function RetroAchievementsSettings() {
                   disabled={!username.trim() || !webApiKey.trim()}
                   onPress={handleTestAndSavePress}
                 >
-                  {translate('Test')}
+                  Test &amp; Save Credentials
                 </SpinnerErrorButton>
               </div>
             </Form>
@@ -135,7 +140,23 @@ function RetroAchievementsSettings() {
             {validationStatus === 'valid' ? (
               <div className={styles.statusAlert}>
                 <Alert kind={kinds.SUCCESS}>
+                  <strong>Connected as {username.trim()}!</strong>{' '}
                   {translate('RetroAchievementsCredentialsValid')}
+                  <div style={{ marginTop: '8px' }}>
+                    Badge Legend in Platform &amp; Game Views:{' '}
+                    <Label outline={true} size={sizes.SMALL}>
+                      ◇ Available (0 Earned)
+                    </Label>{' '}
+                    <Label kind={kinds.INFO} size={sizes.SMALL}>
+                      🥈 Softcore Earned
+                    </Label>{' '}
+                    <Label kind={kinds.WARNING} size={sizes.SMALL}>
+                      🥇 Hardcore Earned
+                    </Label>{' '}
+                    <Label kind={kinds.PRIMARY} size={sizes.SMALL}>
+                      👑 100% Mastered
+                    </Label>
+                  </div>
                 </Alert>
               </div>
             ) : null}

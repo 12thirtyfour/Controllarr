@@ -33,23 +33,6 @@ interface TokenGroup {
   isFullFilename?: boolean;
 }
 
-function withFootNotes(
-  tokens: Token[],
-  notes: Record<string, string>
-): Token[] {
-  return tokens.map((token) =>
-    token.footNotes
-      ? {
-          ...token,
-          notes: token.footNotes
-            .split(',')
-            .map((id) => notes[id.trim()])
-            .filter((note): note is string => note != null),
-        }
-      : token
-  );
-}
-
 interface TokenFlags {
   season: boolean;
   seasonTitle: boolean;
@@ -115,210 +98,90 @@ const caseOptions: CaseInputOption[] = [
   },
 ];
 
-const fileNameTokens = [
+const romFilePresets: Token[] = [
   {
-    token:
-      '{Series TitleYear} - S{season:00}E{episode:00} - {Episode CleanTitle} {Quality Full}',
-    example:
-      "The Series Title's! (2010) - S01E01 - Episode Title WEBDL-1080p Proper",
+    token: '{Episode Title}',
+    example: 'Super Mario Bros. (USA) (Rev 1)',
   },
   {
-    token:
-      '{Series TitleYear} - {season:0}x{episode:00} - {Episode CleanTitle} {Quality Full}',
-    example:
-      "The Series Title's! (2010) - 1x01 - Episode Title WEBDL-1080p Proper",
+    token: '{Episode CleanTitle}',
+    example: 'Super Mario Bros USA Rev 1',
   },
   {
-    token:
-      '{Series.CleanTitleYear}.S{season:00}E{episode:00}.{Episode.CleanTitle}.{Quality.Full}',
-    example: "The.Series.Title's!.2010.S01E01.Episode.Title.WEBDL-1080p.Proper",
-  },
-];
-
-const fileNameDailyTokens = [
-  {
-    token:
-      '{Series TitleYear} - {Air-Date} - {Episode CleanTitle} {Quality Full}',
-    example:
-      "The Series Title's! (2010) - 2013-10-30 - Episode Title WEBDL-1080p Proper",
+    token: '{Series Title} - {Episode Title}',
+    example: 'Nintendo Entertainment System - Super Mario Bros. (USA)',
   },
   {
-    token:
-      '{Series.CleanTitleYear}.{Air.Date}.{Episode.CleanTitle}.{Quality.Full}',
-    example:
-      "The.Series.Title's!.2010.2013.10.30.Episode.Title.WEBDL-1080p.Proper",
+    token: '{Episode Title}/{Episode Title}',
+    example: 'Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
   },
 ];
 
-const fileNameAnimeTokens = [
+const platformTokens: Token[] = [
   {
-    token:
-      '{Series TitleYear} - S{season:00}E{episode:00} - {absolute:000} - {Episode CleanTitle} {Quality Full}',
-    example:
-      "The Series Title's! (2010) - S01E01 - 001- Episode Title WEBDL-1080p Proper",
+    token: '{Series Title}',
+    example: 'Nintendo Entertainment System',
   },
-  {
-    token:
-      '{Series TitleYear} - {season:0}x{episode:00} - {absolute:000} - {Episode CleanTitle} {Quality Full}',
-    example:
-      "The Series Title's! (2010) - 1x01 - 001 - Episode Title WEBDL-1080p Proper",
-  },
-  {
-    token:
-      '{Series.CleanTitleYear}.S{season:00}E{episode:00}.{absolute:000}.{Episode.CleanTitle}.{Quality.Full}',
-    example:
-      "The.Series.Title's!.2010.S01E01.001.Episode.Title.WEBDL-1080p.Proper",
-  },
-];
-
-const seriesTokens = [
-  { token: '{Series Title}', example: "The Series Title's!", footNotes: '1' },
   {
     token: '{Series CleanTitle}',
-    example: "The Series Title's!",
-    footNotes: '1',
+    example: 'Nintendo Entertainment System',
   },
   {
     token: '{Series TitleYear}',
-    example: "The Series Title's! (2010)",
-    footNotes: '1',
+    example: 'Nintendo Entertainment System (1985)',
   },
   {
-    token: '{Series CleanTitleYear}',
-    example: "The Series Title's! 2010",
-    footNotes: '1',
+    token: '{Series TitleFirstCharacter}',
+    example: 'N',
   },
   {
-    token: '{Series TitleWithoutYear}',
-    example: "The Series Title's!",
-    footNotes: '1',
-  },
-  {
-    token: '{Series CleanTitleWithoutYear}',
-    example: "The Series Title's!",
-    footNotes: '1',
-  },
-  {
-    token: '{Series TitleThe}',
-    example: "Series Title's!, The",
-    footNotes: '1',
-  },
-  {
-    token: '{Series CleanTitleThe}',
-    example: "Series Title's!, The",
-    footNotes: '1',
-  },
-  {
-    token: '{Series TitleTheYear}',
-    example: "Series Title's!, The (2010)",
-    footNotes: '1',
-  },
-  {
-    token: '{Series CleanTitleTheYear}',
-    example: "Series Title's!, The 2010",
-    footNotes: '1',
-  },
-  {
-    token: '{Series TitleTheWithoutYear}',
-    example: "Series Title's!, The",
-    footNotes: '1',
-  },
-  {
-    token: '{Series CleanTitleTheWithoutYear}',
-    example: "Series Title's!, The",
-    footNotes: '1',
-  },
-  { token: '{Series TitleFirstCharacter}', example: 'S', footNotes: '1' },
-  { token: '{Series Year}', example: '2010' },
-];
-
-const seriesIdTokens = [
-  { token: '{ImdbId}', example: 'tt12345' },
-  { token: '{TvdbId}', example: '12345' },
-  { token: '{TmdbId}', example: '11223' },
-  { token: '{TvMazeId}', example: '54321' },
-];
-
-const seasonTokens = [
-  { token: '{season:0}', example: '1' },
-  { token: '{season:00}', example: '01' },
-];
-
-const seasonTitleTokens = [
-  { token: '{Season Title}', example: 'Part 1!' },
-  { token: '{Season CleanTitle}', example: 'Part 1' },
-];
-
-const episodeTokens = [
-  { token: '{episode:0}', example: '1' },
-  { token: '{episode:00}', example: '01' },
-];
-
-const airDateTokens = [
-  { token: '{Air-Date}', example: '2016-03-20' },
-  { token: '{Air Date}', example: '2016 03 20' },
-];
-
-const absoluteTokens = [
-  { token: '{absolute:0}', example: '1' },
-  { token: '{absolute:00}', example: '01' },
-  { token: '{absolute:000}', example: '001' },
-];
-
-const episodeTitleTokens = [
-  { token: '{Episode Title}', example: "Episode's Title", footNotes: '1' },
-  { token: '{Episode CleanTitle}', example: 'Episodes Title', footNotes: '1' },
-];
-
-const qualityTokens = [
-  { token: '{Quality Full}', example: 'WEBDL-1080p Proper' },
-  { token: '{Quality Title}', example: 'WEBDL-1080p' },
-];
-
-const mediaInfoTokens = [
-  { token: '{MediaInfo Simple}', example: 'x264 DTS' },
-  { token: '{MediaInfo Full}', example: 'x264 DTS [EN+DE]', footNotes: '1' },
-
-  { token: '{MediaInfo AudioCodec}', example: 'DTS' },
-  { token: '{MediaInfo AudioChannels}', example: '5.1' },
-  {
-    token: '{MediaInfo AudioLanguages}',
-    example: '[EN+DE]',
-    footNotes: '1,2',
-  },
-  {
-    token: '{MediaInfo AudioLanguagesAll}',
-    example: '[EN]',
-    footNotes: '1',
-  },
-  { token: '{MediaInfo SubtitleLanguages}', example: '[DE]', footNotes: '1' },
-
-  { token: '{MediaInfo VideoCodec}', example: 'x264' },
-  { token: '{MediaInfo VideoBitDepth}', example: '10' },
-  { token: '{MediaInfo VideoDynamicRange}', example: 'HDR' },
-  { token: '{MediaInfo VideoDynamicRangeType}', example: 'DV HDR10' },
-];
-
-const otherTokens = [
-  { token: '{Release Group}', example: 'Rls Grp', footNotes: '1' },
-  { token: '{Custom Formats}', example: 'iNTERNAL' },
-  {
-    token: '{Custom Format:FormatName}',
-    example: 'Surround Sound',
-    footNotes: '2',
+    token: '{Series Year}',
+    example: '1985',
   },
 ];
 
-const otherAnimeTokens = [{ token: '{Release Hash}', example: 'ABCDEFGH' }];
+const regionTokens: Token[] = [
+  {
+    token: '{Season Title}',
+    example: 'USA',
+  },
+  {
+    token: '{Season CleanTitle}',
+    example: 'USA',
+  },
+  {
+    token: '{season:0}',
+    example: '1',
+  },
+  {
+    token: '{season:00}',
+    example: '01',
+  },
+];
 
-const originalTokens = [
+const gameTitleTokens: Token[] = [
+  {
+    token: '{Episode Title}',
+    example: 'The Legend of Zelda (USA) (Rev 1)',
+  },
+  {
+    token: '{Episode CleanTitle}',
+    example: 'The Legend of Zelda USA Rev 1',
+  },
+  {
+    token: '{Air-Date}',
+    example: '1986-02-21',
+  },
+];
+
+const originalTokens: Token[] = [
   {
     token: '{Original Title}',
-    example: "The.Series.Title's!.S01E01.WEBDL.1080p.x264-EVOLVE",
+    example: 'Legend of Zelda, The (USA) (Rev 1)',
   },
   {
     token: '{Original Filename}',
-    example: "the.series.title's!.s01e01.webdl.1080p.x264-EVOLVE",
+    example: 'Legend of Zelda, The (USA) (Rev 1).nes',
   },
 ];
 
@@ -326,94 +189,40 @@ function getNamingTokenGroups({
   season,
   seasonTitle,
   episode,
-  daily,
-  anime,
   additional,
 }: TokenFlags): TokenGroup[] {
   const groups: TokenGroup[] = [];
 
   if (episode) {
-    const presets: Token[] = [];
-
-    if (daily) {
-      presets.push(...fileNameDailyTokens);
-    }
-
-    if (anime) {
-      presets.push(...fileNameAnimeTokens);
-    }
-
-    presets.push(...fileNameTokens);
-
     groups.push({
-      legend: translate('Presets'),
-      caption: translate('NamingPresetsHelpText'),
-      tokens: presets,
+      legend: 'ROM Naming Presets',
+      caption: 'Click a preset to replace the full ROM naming pattern',
+      tokens: romFilePresets,
       size: sizes.LARGE,
       isFullFilename: true,
     });
   }
 
   groups.push({
-    legend: translate('SeriesSingular'),
-    tokens: withFootNotes(seriesTokens, { 1: translate('SeriesFootNote') }),
+    legend: 'Platform / Console Tokens',
+    tokens: platformTokens,
   });
-
-  groups.push({ legend: translate('SeriesID'), tokens: seriesIdTokens });
 
   if (season || seasonTitle) {
     groups.push({
-      legend: translate('Season'),
-      tokens: [
-        ...(season ? seasonTokens : []),
-        ...(seasonTitle ? seasonTitleTokens : []),
-      ],
+      legend: 'Region Folder Tokens (USA, Europe, Japan, Homebrew, ROM Hacks)',
+      tokens: regionTokens,
     });
   }
 
-  if (episode) {
-    groups.push({ legend: translate('Episode'), tokens: episodeTokens });
-    groups.push({ legend: translate('AirDate'), tokens: airDateTokens });
-
-    if (anime) {
-      groups.push({
-        legend: translate('AbsoluteEpisodeNumber'),
-        tokens: absoluteTokens,
-      });
-    }
-  }
-
-  if (additional) {
+  if (episode || additional) {
     groups.push({
-      legend: translate('EpisodeTitle'),
-      tokens: withFootNotes(episodeTitleTokens, {
-        1: translate('EpisodeTitleFootNote'),
-      }),
-    });
-
-    groups.push({ legend: translate('Quality'), tokens: qualityTokens });
-
-    groups.push({
-      legend: translate('MediaInfo'),
-      tokens: withFootNotes(mediaInfoTokens, {
-        1: translate('MediaInfoFootNote'),
-        2: translate('MediaInfoFootNote2'),
-      }),
+      legend: 'Game / ROM Title & Release Date Tokens',
+      tokens: gameTitleTokens,
     });
 
     groups.push({
-      legend: translate('Other'),
-      tokens: withFootNotes(
-        anime ? [...otherTokens, ...otherAnimeTokens] : otherTokens,
-        {
-          1: translate('ReleaseGroupFootNote'),
-          2: translate('CustomFormatFootNote'),
-        }
-      ),
-    });
-
-    groups.push({
-      legend: translate('Original'),
+      legend: 'Original Dump Filename Tokens',
       tokens: originalTokens,
       size: sizes.LARGE,
     });

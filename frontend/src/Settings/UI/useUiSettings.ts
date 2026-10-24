@@ -5,8 +5,18 @@ import {
   useSettings,
 } from 'Settings/useSettings';
 
+export type ThemeName =
+  | 'auto'
+  | 'dark'
+  | 'light'
+  | 'nes'
+  | 'snes'
+  | 'dmg'
+  | 'genesis'
+  | 'gamecube';
+
 export interface UiSettingsModel {
-  theme: 'auto' | 'dark' | 'light';
+  theme: ThemeName;
   showRelativeDates: boolean;
   shortDateFormat: string;
   longDateFormat: string;

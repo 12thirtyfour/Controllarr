@@ -13,7 +13,7 @@ interface EpisodeSelectOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<EpisodeSelectOptions>('rom_episode_options_v2', () => {
+  createOptionsStore<EpisodeSelectOptions>('rom_episode_options_v3', () => {
     return {
       sortKey: 'title',
       sortDirection: 'ascending',
@@ -40,6 +40,12 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         {
           name: 'romVersion',
           label: 'Version / Type',
+          isVisible: true,
+          isSortable: false,
+        },
+        {
+          name: 'achievements',
+          label: 'Achievements',
           isVisible: true,
           isSortable: false,
         },

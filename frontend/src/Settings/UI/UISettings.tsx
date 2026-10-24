@@ -110,10 +110,17 @@ function UISettings() {
   }, [languageItems]);
 
   // Must stay in sync with the theme selectors in frontend/src/Styles/Themes/themes.css.
-  const themeOptions = ['auto', 'light', 'dark'].map((theme) => ({
-    key: theme,
-    value: titleCase(theme),
-  }));
+  const themeOptions = [
+    ...['auto', 'light', 'dark'].map((theme) => ({
+      key: theme,
+      value: titleCase(theme),
+    })),
+    { key: 'nes', value: 'NES / Famicom (1985)' },
+    { key: 'snes', value: 'SNES / Super Famicom (1990)' },
+    { key: 'dmg', value: 'Game Boy DMG-01 (1989)' },
+    { key: 'genesis', value: 'Sega Genesis / Mega Drive (1988)' },
+    { key: 'gamecube', value: 'GameCube Indigo (2001)' },
+  ];
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {

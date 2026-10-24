@@ -1,4 +1,5 @@
-import React, { useCallback } from 'react';
+import classNames from 'classnames';
+import React, { useCallback, useMemo, useState } from 'react';
 import Icon from 'Components/Icon';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
 import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
@@ -23,6 +24,8 @@ import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import formatRuntime from 'Utilities/Number/formatRuntime';
 import translate from 'Utilities/String/translate';
+import { getGameAchievementSummary } from './gameAchievementsHelper';
+import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
 import styles from './EpisodeRow.module.css';
 
 interface EpisodeRowProps {
@@ -88,10 +91,16 @@ function EpisodeRow({
     alternateTitles = [],
   } = useSingleSeries(seriesId)!;
   const episodeFile = useEpisodeFile(episodeFileId);
+  const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
 
   const customFormats = episodeFile?.customFormats ?? [];
   const customFormatScore = episodeFile?.customFormatScore ?? 0;
   const effectiveVersion = romVersionLabel || finaleType || 'Retail (v1.0)';
+
+  const achievementSummary = useMemo(
+    () => getGameAchievementSummary(title, seasonNumber),
+    [title, seasonNumber]
+  );
 
   const handleMonitorEpisodePress = useCallback(
     (monitored: boolean, options: { shiftKey: boolean }) => {
@@ -99,6 +108,14 @@ function EpisodeRow({
     },
     [id, onMonitorEpisodePress]
   );
+
+  const handleOpenAchievements = useCallback(() => {
+    setIsAchievementsModalOpen(true);
+  }, []);
+
+  const handleCloseAchievements = useCallback(() => {
+    setIsAchievementsModalOpen(false);
+  }, []);
 
   return (
     <TableRow
@@ -185,6 +202,56 @@ function EpisodeRow({
                       }`}
                 </button>
               ) : null}
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'achievements') {
+          if (achievementSummary.tier === 'none') {
+            return <TableRowCell key={name} className={styles.achievements} />;
+          }
+
+          let badgeClass = styles.achievementOutline;
+          let badgeIcon = '◇';
+          let badgeText = `${achievementSummary.unlocked}/${achievementSummary.total}`;
+          let badgeTooltip =
+            'Achievements available (0 earned) — Click to view';
+
+          if (achievementSummary.tier === 'mastered') {
+            badgeClass = styles.achievementMastered;
+            badgeIcon = '👑';
+            badgeText = 'Mastered';
+            badgeTooltip = `Mastered! (${achievementSummary.hardcoreUnlocked}/${achievementSummary.total} Hardcore)`;
+          } else if (achievementSummary.tier === 'gold') {
+            badgeClass = styles.achievementGold;
+            badgeIcon = '🥇';
+            badgeText = `${achievementSummary.hardcoreUnlocked}/${achievementSummary.total} HC`;
+            badgeTooltip = `Hardcore achievements earned (${achievementSummary.hardcoreUnlocked}/${achievementSummary.total})`;
+          } else if (achievementSummary.tier === 'silver') {
+            badgeClass = styles.achievementSilver;
+            badgeIcon = '🥈';
+            badgeText = `${achievementSummary.unlocked}/${achievementSummary.total}`;
+            badgeTooltip = `Softcore achievements earned (${achievementSummary.unlocked}/${achievementSummary.total})`;
+          }
+
+          return (
+            <TableRowCell key={name} className={styles.achievements}>
+              <button
+                type="button"
+                title={badgeTooltip}
+                className={classNames(styles.achievementBadge, badgeClass)}
+                onClick={handleOpenAchievements}
+              >
+                <span>{badgeIcon}</span>
+                <span>{badgeText}</span>
+              </button>
+
+              <RetroAchievementsShowcaseModal
+                isOpen={isAchievementsModalOpen}
+                gameTitle={title}
+                badges={achievementSummary.badges}
+                onModalClose={handleCloseAchievements}
+              />
             </TableRowCell>
           );
         }

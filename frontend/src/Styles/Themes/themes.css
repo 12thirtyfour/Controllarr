@@ -193,7 +193,12 @@
   color-scheme: light;
 }
 
-[data-theme=dark] {
+[data-theme=dark],
+[data-theme=nes],
+[data-theme=snes],
+[data-theme=dmg],
+[data-theme=genesis],
+[data-theme=gamecube] {
   /* Surfaces */
   --paper: oklch(24% 0.014 260);
   --paperWarm: oklch(27% 0.014 260);
@@ -422,4 +427,169 @@
   --alertDangerBackgroundColor:  color-mix(in oklch, var(--dangerColor) 8%, transparent);
   --alertSuccessBackgroundColor: color-mix(in oklch, var(--successColor) 8%, transparent);
   --alertWarningBackgroundColor: color-mix(in oklch, var(--warningColor) 8%, transparent);
+}
+
+
+/* =========================================================================
+   Retro Console Themes
+   ========================================================================= */
+
+[data-theme=nes] {
+  --paper: #1e1e20;
+  --pageBackground: #1e1e20;
+  --paperWarm: #262629;
+  --paperCard: #2b2b2f;
+  --hairline: #3b3b40;
+  --hairlineStrong: #525259;
+  --pageHeaderBackgroundColor: #161618;
+  --sidebarBackgroundColor: #18181b;
+  --sidebarActiveBackgroundColor: #2e1d1f;
+  --toolbarBackgroundColor: #232326;
+  --accent: #e60012;
+  --accentDeep: #b8000e;
+  --accentGlow: #ff4d5a;
+  --primaryColor: #e60012;
+  --selectedColor: #e60012;
+  --sonarrBlue: #e60012;
+  --themeBlue: #e60012;
+  --themeAlternateBlue: #b8000e;
+  --linkColor: #ff4d5a;
+  --linkHoverColor: #ff8089;
+  --inputFocusBorderColor: #e60012;
+  --defaultHoverBorderColor: #e60012;
+  --menuItemHoverColor: #ff4d5a;
+  --toolbarButtonHoverColor: #ff4d5a;
+  --primaryBackgroundColor: #b8000e;
+  --primaryBorderColor: #d40011;
+  --primaryHoverBackgroundColor: #e60012;
+  --primaryHoverBorderColor: #ff3342;
+}
+
+[data-theme=snes] {
+  --paper: #1d1b27;
+  --pageBackground: #1d1b27;
+  --paperWarm: #252232;
+  --paperCard: #2c283b;
+  --hairline: #3d3852;
+  --hairlineStrong: #534c6e;
+  --pageHeaderBackgroundColor: #16141f;
+  --sidebarBackgroundColor: #181622;
+  --sidebarActiveBackgroundColor: #31294a;
+  --toolbarBackgroundColor: #232030;
+  --accent: #9075ea;
+  --accentDeep: #6e52cc;
+  --accentGlow: #b5a1f7;
+  --primaryColor: #9075ea;
+  --selectedColor: #9075ea;
+  --sonarrBlue: #9075ea;
+  --themeBlue: #9075ea;
+  --themeAlternateBlue: #6e52cc;
+  --linkColor: #a992f5;
+  --linkHoverColor: #c6b6fa;
+  --inputFocusBorderColor: #9075ea;
+  --defaultHoverBorderColor: #9075ea;
+  --menuItemHoverColor: #a992f5;
+  --toolbarButtonHoverColor: #a992f5;
+  --primaryBackgroundColor: #5b42b0;
+  --primaryBorderColor: #7357d1;
+  --primaryHoverBackgroundColor: #6e52cc;
+  --primaryHoverBorderColor: #9075ea;
+}
+
+[data-theme=dmg] {
+  --paper: #0f240f;
+  --pageBackground: #0f240f;
+  --paperWarm: #153015;
+  --paperCard: #1b3b1b;
+  --hairline: #2b542b;
+  --hairlineStrong: #3b6e3b;
+  --ink: #d0e898;
+  --inkSoft: #b6d672;
+  --inkMuted: #8bac0f;
+  --textColor: #d0e898;
+  --defaultColor: #d0e898;
+  --pageHeaderBackgroundColor: #091709;
+  --sidebarBackgroundColor: #0b1c0b;
+  --sidebarActiveBackgroundColor: #224722;
+  --toolbarBackgroundColor: #132b13;
+  --accent: #9bbc0f;
+  --accentDeep: #8bac0f;
+  --accentGlow: #b8d838;
+  --primaryColor: #9bbc0f;
+  --selectedColor: #9bbc0f;
+  --sonarrBlue: #9bbc0f;
+  --themeBlue: #9bbc0f;
+  --themeAlternateBlue: #8bac0f;
+  --linkColor: #9bbc0f;
+  --linkHoverColor: #c4e246;
+  --inputFocusBorderColor: #9bbc0f;
+  --defaultHoverBorderColor: #9bbc0f;
+  --menuItemHoverColor: #9bbc0f;
+  --toolbarButtonHoverColor: #9bbc0f;
+  --primaryBackgroundColor: #306230;
+  --primaryBorderColor: #8bac0f;
+  --primaryHoverBackgroundColor: #3e7a3e;
+  --primaryHoverBorderColor: #9bbc0f;
+}
+
+[data-theme=genesis] {
+  --paper: #12141a;
+  --pageBackground: #12141a;
+  --paperWarm: #181b24;
+  --paperCard: #1e222d;
+  --hairline: #2d3446;
+  --hairlineStrong: #3f4961;
+  --pageHeaderBackgroundColor: #0c0e13;
+  --sidebarBackgroundColor: #0e1016;
+  --sidebarActiveBackgroundColor: #182744;
+  --toolbarBackgroundColor: #161922;
+  --accent: #2979ff;
+  --accentDeep: #1565c0;
+  --accentGlow: #69a1ff;
+  --primaryColor: #2979ff;
+  --selectedColor: #2979ff;
+  --sonarrBlue: #2979ff;
+  --themeBlue: #2979ff;
+  --themeAlternateBlue: #1565c0;
+  --linkColor: #5c9aff;
+  --linkHoverColor: #8ebaff;
+  --inputFocusBorderColor: #2979ff;
+  --defaultHoverBorderColor: #2979ff;
+  --menuItemHoverColor: #5c9aff;
+  --toolbarButtonHoverColor: #5c9aff;
+  --primaryBackgroundColor: #1557b0;
+  --primaryBorderColor: #2979ff;
+  --primaryHoverBackgroundColor: #1b6bd8;
+  --primaryHoverBorderColor: #5c9aff;
+}
+
+[data-theme=gamecube] {
+  --paper: #19152c;
+  --pageBackground: #19152c;
+  --paperWarm: #211c3a;
+  --paperCard: #282246;
+  --hairline: #3a3163;
+  --hairlineStrong: #4f4385;
+  --pageHeaderBackgroundColor: #120f21;
+  --sidebarBackgroundColor: #141125;
+  --sidebarActiveBackgroundColor: #2f2656;
+  --toolbarBackgroundColor: #1e1936;
+  --accent: #7b68ee;
+  --accentDeep: #5a46c4;
+  --accentGlow: #a192f7;
+  --primaryColor: #7b68ee;
+  --selectedColor: #7b68ee;
+  --sonarrBlue: #7b68ee;
+  --themeBlue: #7b68ee;
+  --themeAlternateBlue: #5a46c4;
+  --linkColor: #9888f5;
+  --linkHoverColor: #b9adfa;
+  --inputFocusBorderColor: #7b68ee;
+  --defaultHoverBorderColor: #7b68ee;
+  --menuItemHoverColor: #9888f5;
+  --toolbarButtonHoverColor: #9888f5;
+  --primaryBackgroundColor: #4e3ba8;
+  --primaryBorderColor: #6a55cc;
+  --primaryHoverBackgroundColor: #5f49c7;
+  --primaryHoverBorderColor: #8674f0;
 }

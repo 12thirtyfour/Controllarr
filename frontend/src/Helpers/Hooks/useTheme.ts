@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
+import { ThemeName, useUiSettingsValues } from 'Settings/UI/useUiSettings';
 
-const useTheme = (): 'dark' | 'light' => {
+const useTheme = (): Exclude<ThemeName, 'auto'> => {
   const { theme } = useUiSettingsValues();
-  const selectedTheme = theme ?? window.Sonarr.theme;
-  const [resolvedTheme, setResolvedTheme] = useState(() => {
+  const selectedTheme = (theme ?? window.Sonarr.theme) as ThemeName;
+  const [resolvedTheme, setResolvedTheme] = useState<Exclude<ThemeName, 'auto'>>(() => {
     if (selectedTheme === 'auto') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'

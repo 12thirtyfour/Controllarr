@@ -5,6 +5,12 @@ using Sonarr.Http;
 
 namespace Sonarr.Api.V3.Games
 {
+    public class BiosDownloadRequestResource
+    {
+        public string PlatformSlug { get; set; }
+        public string FileName { get; set; }
+    }
+
     [V3ApiController("bios")]
     [V5ApiController("bios")]
     public class BiosController : Controller
@@ -26,6 +32,14 @@ namespace Sonarr.Api.V3.Games
             }
 
             return _biosService.GetCatalog(platformSlug);
+        }
+
+        [HttpPost("download")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public List<BiosFile> DownloadMissing([FromBody] BiosDownloadRequestResource request)
+        {
+            return _biosService.DownloadMissingBios(request?.PlatformSlug, request?.FileName);
         }
     }
 }

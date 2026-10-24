@@ -26,20 +26,9 @@ function buildSections(): SectionEntry[] {
     {
       to: '/settings/profiles',
       iconName: icons.PROFILE,
-      title: translate('Profiles'),
-      summary: translate('ProfilesSettingsSummary'),
-    },
-    {
-      to: '/settings/quality',
-      iconName: icons.MEDIA_INFO,
-      title: translate('Quality'),
-      summary: translate('QualitySettingsSummary'),
-    },
-    {
-      to: '/settings/customformats',
-      iconName: icons.MANAGE,
-      title: translate('CustomFormats'),
-      summary: translate('CustomFormatsSettingsSummary'),
+      title: 'Virtual Libraries',
+      summary:
+        'Define hardware-specific virtual folders (MiSTer, RetroArch, Analogue Pocket, OnionOS, Batocera) powered by console directory symlinks',
     },
     {
       to: '/settings/indexers',
@@ -69,13 +58,15 @@ function buildSections(): SectionEntry[] {
       to: '/settings/metadata',
       iconName: icons.CLIPBOARD,
       title: translate('Metadata'),
-      summary: translate('MetadataSettingsSeriesSummary'),
+      summary:
+        'Configure local game media assets (Box Art, Screenshots, Video Previews, Manuals, and EmulationStation gamelist.xml)',
     },
     {
       to: '/settings/metadatasource',
       iconName: icons.GLOBE,
       title: translate('MetadataSource'),
-      summary: translate('MetadataSourceSettingsSeriesSummary'),
+      summary:
+        'Configure game catalog databases and API credentials (No-Intro/Redump, IGDB, ScreenScraper, TheGamesDB)',
     },
     {
       to: '/settings/tags',

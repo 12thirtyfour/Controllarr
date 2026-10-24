@@ -859,7 +859,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return 85;
             }
 
-            var combinedSearchable = $"{normTitle} {normNoIntro} {normPlatform} {normShortPlatform} {normSlug}";
+            var platformAliases = BuiltInPlatforms
+                .FirstOrDefault(p => string.Equals(p.Slug, game.PlatformSlug, StringComparison.OrdinalIgnoreCase))
+                ?.Aliases ?? new List<string>();
+            var normAliases = string.Join(" ", platformAliases.Select(NormalizeSearchText));
+
+            var combinedSearchable = $"{normTitle} {normNoIntro} {normPlatform} {normShortPlatform} {normSlug} {normAliases}";
             if (queryTokens.Length > 0 && queryTokens.All(t => combinedSearchable.Contains(t, StringComparison.OrdinalIgnoreCase)))
             {
                 var titleTokenMatches = queryTokens.Count(t => normTitle.Contains(t, StringComparison.OrdinalIgnoreCase));
@@ -1247,6 +1252,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("nes", "Super Mario Bros. 3 (USA) (Rev A)", 1990, "Updated USA retail revision (Rev A / PRG1) of Super Mario Bros. 3.");
             Add("nes", "Super Mario Bros. 3 (Europe)", 1991, "European PAL release of Super Mario Bros. 3.");
             Add("nes", "Super Mario Bros. 3 (Japan) (Rev A)", 1988, "Japanese Famicom release of Super Mario Bros. 3.");
+            Add("nes", "Super Mario Bros. (Japan)", 1985, "Original Japanese Nintendo Family Computer (Famicom) cartridge release of Super Mario Bros.");
+            Add("nes", "Dragon Quest (Japan)", 1986, "Original Japanese Famicom release of Dragon Quest.");
+            Add("nes", "Final Fantasy III (Japan)", 1990, "Classic Famicom RPG introducing the job-change system.");
+            Add("nes", "Fire Emblem - Ankoku Ryuu to Hikari no Tsurugi (Japan)", 1990, "Inaugural Famicom tactical RPG starring Prince Marth.");
+            Add("nes", "Mother (Japan)", 1989, "Shigesato Itoi's original Japanese Famicom RPG.");
             Add("nes", "Legend of Zelda, The (USA)", 1987, "Initial USA release (PRG0) of The Legend of Zelda.");
             Add("nes", "Legend of Zelda, The (USA) (Rev A)", 1987, "Updated USA revision (Rev A / PRG1) of The Legend of Zelda with TM screen & bug fixes.");
             Add("nes", "Legend of Zelda, The (Europe) (Rev A)", 1987, "European PAL release of The Legend of Zelda.");
@@ -1325,6 +1335,10 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("snes", "Secret of Mana (USA)", 1993, "Real-time action RPG with three-player cooperative Ring Command combat.");
             Add("snes", "Street Fighter II Turbo (USA) (Rev 1)", 1993, "High-speed 16-bit conversion of Capcom's arcade fighting phenomenon.");
             Add("snes", "Star Fox 2 (USA, Europe) (Classic Mini)", 2017, "Completed official release of the previously unreleased Argonaut/Nintendo Super FX sequel.");
+            Add("snes", "Final Fantasy V (Japan)", 1992, "Super Famicom RPG featuring the Job & Ability mastery system.");
+            Add("snes", "Seiken Densetsu 3 (Japan)", 1995, "Super Famicom action-RPG sequel to Secret of Mana (Trials of Mana).");
+            Add("snes", "Fire Emblem - Seisen no Keifu (Japan)", 1996, "Two-generation Super Famicom tactical RPG epic (Genealogy of the Holy War).");
+            Add("snes", "Chrono Trigger (Japan)", 1995, "Original Japanese Super Famicom release of Chrono Trigger.");
 
             // Nintendo 64
             Add("n64", "Super Mario 64 (USA)", 1996, "Landmark 3D platformer where Mario collects 120 Power Stars inside Princess Peach's castle.");
@@ -1381,6 +1395,10 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("genesis", "Shining Force II (USA)", 1994, "Tactical fantasy RPG with free-roaming town exploration and class promotions.");
             Add("genesis", "Gunstar Heroes (USA)", 1993, "Explosive run-and-gun action from Treasure with combinable weapon types.");
             Add("genesis", "Castlevania - Bloodlines (USA)", 1994, "Globe-trotting 16-bit Castlevania starring John Morris and Eric Lecarde.");
+            Add("genesis", "Castlevania - The New Generation (Europe)", 1994, "European PAL Sega Mega Drive release of Castlevania: Bloodlines.");
+            Add("genesis", "Vampire Killer (Japan)", 1994, "Japanese Sega Mega Drive release of Castlevania: Bloodlines.");
+            Add("genesis", "Alien Soldier (Europe)", 1995, "Boss-rush run-and-gun tour de force from Treasure for the Sega Mega Drive.");
+            Add("genesis", "Bare Knuckle II - Shitou e no Requiem (Japan)", 1993, "Japanese Sega Mega Drive release of Streets of Rage 2.");
             Add("saturn", "Panzer Dragoon Saga (USA) (Disc 1)", 1998, "Four-disc tactical dragon-riding RPG set in a post-apocalyptic world.", "Redump");
             Add("saturn", "Nights into Dreams... (USA)", 1996, "Acrobatic 3D flight score-attack adventure from Sonic Team.", "Redump");
             Add("dreamcast", "Sonic Adventure (USA)", 1999, "Full 3D high-speed adventure across six interwoven character campaigns and Chao Gardens.", "Redump");

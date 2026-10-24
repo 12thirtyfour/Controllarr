@@ -139,12 +139,7 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('MediaManagement'),
             to: '/settings/mediamanagement',
           },
-          { title: () => translate('Profiles'), to: '/settings/profiles' },
-          { title: () => translate('Quality'), to: '/settings/quality' },
-          {
-            title: () => translate('CustomFormats'),
-            to: '/settings/customformats',
-          },
+          { title: () => 'Virtual Libraries', to: '/settings/profiles' },
           { title: () => translate('Indexers'), to: '/settings/indexers' },
           {
             title: () => translate('DownloadClients'),

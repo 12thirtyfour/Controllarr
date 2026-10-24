@@ -1,6 +1,7 @@
 .filterContainer {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   margin-bottom: 24px;
   padding: 16px;
@@ -18,10 +19,21 @@
   gap: 6px;
 }
 
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .filterLabel {
   color: var(--ink);
   font-weight: 600;
   font-size: 13px;
+}
+
+.storageNote {
+  color: var(--inkMuted);
+  font-size: 12px;
 }
 
 .hashContainer {
@@ -59,10 +71,15 @@
   font-size: 12px;
 }
 
+.resolvedPath {
+  color: var(--inkMuted);
+  font-size: 11px;
+  font-family: var(--monospaceFontFamily);
+}
+
 .platformSlug {
   color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   font-weight: 600;
   font-size: 12px;
 }

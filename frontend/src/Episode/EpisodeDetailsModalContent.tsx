@@ -99,7 +99,7 @@ function EpisodeDetailsModalContent({
             <span className={styles.scopeSeries}>{seriesTitle}</span>
 
             <span className={styles.scopeEpisode}>
-              {formatSeason(seasonNumber)}
+              {formatSeason(seasonNumber, false, titleSlug)}
             </span>
           </span>
         </div>

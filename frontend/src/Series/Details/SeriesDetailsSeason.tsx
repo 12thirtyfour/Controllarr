@@ -133,6 +133,7 @@ function SeriesDetailsSeason({
   const {
     monitored: seriesMonitored,
     path,
+    titleSlug,
     collectionStrategy = 0,
     revisionPreference = 0,
   } = useSingleSeries(seriesId)!;
@@ -174,7 +175,7 @@ function SeriesDetailsSeason({
   const hasSetInitalExpand = useRef(false);
 
   const seasonNumberTitle =
-    formatSeason(seasonNumber) ??
+    formatSeason(seasonNumber, false, titleSlug) ??
     translate('SeasonNumberToken', { seasonNumber });
 
   const isCompletionist = Number(collectionStrategy) === 1;

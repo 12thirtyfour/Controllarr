@@ -64,6 +64,7 @@ import {
 import filterAlternateTitles from 'Utilities/Series/filterAlternateTitles';
 import translate from 'Utilities/String/translate';
 import toggleSelected from 'Utilities/Table/toggleSelected';
+import PlatformBiosSection from './PlatformBiosSection';
 import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
 import SeriesAlternateTitles from './SeriesAlternateTitles';
 import SeriesDetailsLinks from './SeriesDetailsLinks';
@@ -1014,6 +1015,11 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
             {isPopulated && !!seasons.length ? (
               <div>
+                <PlatformBiosSection
+                  platformSlug={titleSlug}
+                  platformPath={path}
+                />
+
                 {seasons
                   .slice(0)
                   .reverse()

@@ -1,8 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useMemo, useState } from 'react';
 import Alert from 'Components/Alert';
-import PathInput from 'Components/Form/PathInput';
 import SelectInput, { SelectInputOption } from 'Components/Form/SelectInput';
 import Label from 'Components/Label';
+import SpinnerButton from 'Components/Link/SpinnerButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
@@ -11,8 +12,9 @@ import Column from 'Components/Table/Column';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableRow from 'Components/Table/TableRow';
+import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
-import { kinds } from 'Helpers/Props';
+import { kinds, sizes } from 'Helpers/Props';
 import { Kind } from 'Helpers/Props/kinds';
 import settingsStyles from 'Settings/Settings.module.css';
 import SettingsPage from 'Settings/SettingsPage';
@@ -30,6 +32,7 @@ export interface BiosFile {
   fileName: string;
   platformSlug?: string;
   gamePlatform?: string;
+  platformTitle?: string;
   description?: string;
   md5Hash?: string;
   expectedMd5?: string;
@@ -38,10 +41,12 @@ export interface BiosFile {
   isRequired?: boolean;
   status?: BiosVerificationStatus | number;
   isVerified?: boolean;
+  resolvedPath?: string;
+  downloadUrl?: string;
 }
 
 export function getPlatformSlug(item: BiosFile): string {
-  return item.platformSlug || item.gamePlatform || '';
+  return item.platformTitle || item.platformSlug || item.gamePlatform || '';
 }
 
 export function getMd5Hash(item: BiosFile): string {
@@ -88,44 +93,114 @@ const columns: Column[] = [
     label: () => translate('VerificationStatus'),
     isVisible: true,
   },
+  {
+    name: 'actions',
+    label: 'Actions',
+    isVisible: true,
+  },
 ];
 
 const PLATFORM_OPTIONS: SelectInputOption[] = [
   { key: '', value: () => translate('AllPlatforms') },
-  { key: 'ps1', value: 'PlayStation 1 (ps1)' },
-  { key: 'segacd', value: 'Sega CD (segacd)' },
-  { key: 'saturn', value: 'Sega Saturn (saturn)' },
-  { key: 'dreamcast', value: 'Dreamcast (dreamcast/dc)' },
-  { key: 'gba', value: 'Game Boy Advance (gba)' },
-  { key: 'nds', value: 'Nintendo DS (nds)' },
-  { key: 'fds', value: 'Famicom Disk System (fds)' },
-  { key: 'tgcd', value: 'PC Engine / TurboGrafx-CD (tgcd/pcecd)' },
-  { key: 'neogeo', value: 'Neo Geo (neogeo)' },
+  { key: 'ps1', value: 'Sony PlayStation (PS1)' },
+  { key: 'ps2', value: 'Sony PlayStation 2 (PS2)' },
+  { key: 'psp', value: 'Sony PlayStation Portable (PSP)' },
+  { key: 'segacd', value: 'Sega CD / Mega-CD' },
+  { key: 'saturn', value: 'Sega Saturn' },
+  { key: 'dreamcast', value: 'Sega Dreamcast' },
+  { key: 'naomi', value: 'Sega NAOMI / Atomiswave' },
+  { key: 'sms', value: 'Sega Master System / Mark III' },
+  { key: 'gamegear', value: 'Sega Game Gear' },
+  { key: 'fds', value: 'Nintendo Famicom Disk System (NES)' },
+  { key: 'gb', value: 'Nintendo Game Boy' },
+  { key: 'gbc', value: 'Nintendo Game Boy Color' },
+  { key: 'sgb', value: 'Super Game Boy (SNES Add-on)' },
+  { key: 'gba', value: 'Nintendo Game Boy Advance' },
+  { key: 'nds', value: 'Nintendo DS' },
+  { key: 'dsi', value: 'Nintendo DSi' },
+  { key: 'pokemonmini', value: 'Nintendo Pokémon Mini' },
+  { key: 'gamecube', value: 'Nintendo GameCube' },
+  { key: 'tgcd', value: 'TurboGrafx-CD / PC Engine CD-ROM²' },
+  { key: 'pcfx', value: 'NEC PC-FX' },
+  { key: 'neogeo', value: 'SNK Neo Geo AES / MVS' },
+  { key: 'neogeocd', value: 'SNK Neo Geo CD' },
+  { key: '3do', value: '3DO Interactive Multiplayer' },
+  { key: 'atari5200', value: 'Atari 5200' },
+  { key: 'atari7800', value: 'Atari 7800' },
+  { key: 'lynx', value: 'Atari Lynx' },
+  { key: 'jaguarcd', value: 'Atari Jaguar / Jaguar CD' },
+  { key: 'colecovision', value: 'ColecoVision' },
+  { key: 'intellivision', value: 'Mattel Intellivision' },
+  { key: 'odyssey2', value: 'Magnavox Odyssey² / Videopac' },
+  { key: 'vectrex', value: 'GCE Vectrex' },
+  { key: 'channelf', value: 'Fairchild Channel F' },
+  { key: 'msx', value: 'MSX / MSX2 / MSX2+' },
+  { key: 'amiga', value: 'Commodore Amiga / CD32 / CDTV' },
+  { key: 'x68000', value: 'Sharp X68000' },
+  { key: 'pc98', value: 'NEC PC-98' },
+  { key: 'cdi', value: 'Philips CD-i' },
 ];
 
 function BiosSettings() {
-  const [biosDirectory, setBiosDirectory] = useState('');
+  const queryClient = useQueryClient();
   const [platformSlug, setPlatformSlug] = useState('');
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
   const queryParams = useMemo(() => {
     return {
       platformSlug: platformSlug || undefined,
-      biosDirectory: biosDirectory || undefined,
     };
-  }, [platformSlug, biosDirectory]);
+  }, [platformSlug]);
 
   const { data, isFetching, error } = useApiQuery<BiosFile[]>({
     path: '/bios',
     queryParams,
   });
 
-  const handleDirectoryChange = useCallback((change: InputChanged<string>) => {
-    setBiosDirectory(change.value);
-  }, []);
+  const { mutate: downloadBios, isPending: isDownloading } = useApiMutation<
+    BiosFile[],
+    { platformSlug?: string; fileName?: string }
+  >({
+    path: '/bios/download',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: () => {
+        setDownloadingFile(null);
+        queryClient.invalidateQueries({ queryKey: ['/bios'] });
+      },
+      onError: () => {
+        setDownloadingFile(null);
+      },
+    },
+  });
 
   const handlePlatformChange = useCallback((change: InputChanged<string>) => {
     setPlatformSlug(change.value);
   }, []);
+
+  const handleDownloadAllMissing = useCallback(() => {
+    setDownloadingFile('__all__');
+    downloadBios({
+      platformSlug: platformSlug || undefined,
+    });
+  }, [downloadBios, platformSlug]);
+
+  const handleDownloadSingle = useCallback(
+    (gamePlatform?: string, fileName?: string) => {
+      setDownloadingFile(fileName ?? null);
+      downloadBios({
+        platformSlug: gamePlatform,
+        fileName,
+      });
+    },
+    [downloadBios]
+  );
+
+  const missingCount = useMemo(() => {
+    return (data ?? []).filter(
+      (item) => getVerificationStatus(item) !== BiosVerificationStatus.Present
+    ).length;
+  }, [data]);
 
   return (
     <SettingsPage title={translate('BiosSettings')} showSave={false}>
@@ -138,20 +213,6 @@ function BiosSettings() {
 
           <div className={styles.filterContainer}>
             <div className={styles.filterGroup}>
-              <label className={styles.filterLabel} htmlFor="biosDirectory">
-                {translate('BiosDirectory')}
-              </label>
-              <PathInput
-                name="biosDirectory"
-                value={biosDirectory}
-                placeholder="/path/to/bios"
-                includeFiles={false}
-                hasFileBrowser={true}
-                onChange={handleDirectoryChange}
-              />
-            </div>
-
-            <div className={styles.filterGroup}>
               <label className={styles.filterLabel} htmlFor="platformSlug">
                 {translate('PlatformSlug')}
               </label>
@@ -161,6 +222,22 @@ function BiosSettings() {
                 values={PLATFORM_OPTIONS}
                 onChange={handlePlatformChange}
               />
+              <span className={styles.storageNote}>
+                BIOS files are stored automatically inside each platform&apos;s{' '}
+                <code>bios/</code> subfolder (e.g.{' '}
+                <code>{'{PlatformFolder}/bios/'}</code>).
+              </span>
+            </div>
+
+            <div className={styles.actionGroup}>
+              <SpinnerButton
+                kind={kinds.PRIMARY}
+                isSpinning={isDownloading && downloadingFile === '__all__'}
+                isDisabled={isDownloading || missingCount === 0}
+                onPress={handleDownloadAllMissing}
+              >
+                Download All Missing ({missingCount})
+              </SpinnerButton>
             </div>
           </div>
 
@@ -180,7 +257,7 @@ function BiosSettings() {
                   const md5 = getMd5Hash(item);
                   const sha1 = getSha1Hash(item);
                   const status = getVerificationStatus(item);
-                  const key = `${platform}-${item.fileName}-${index}`;
+                  const key = `${item.gamePlatform}-${item.fileName}-${index}`;
 
                   let statusKind: Kind = kinds.WARNING;
                   let statusText = translate('Missing');
@@ -207,6 +284,11 @@ function BiosSettings() {
                           {item.description ? (
                             <span className={styles.fileDescription}>
                               {item.description}
+                            </span>
+                          ) : null}
+                          {item.resolvedPath ? (
+                            <span className={styles.resolvedPath}>
+                              {item.resolvedPath}
                             </span>
                           ) : null}
                         </div>
@@ -247,6 +329,29 @@ function BiosSettings() {
 
                       <TableRowCell>
                         <Label kind={statusKind}>{statusText}</Label>
+                      </TableRowCell>
+
+                      <TableRowCell>
+                        {status !== BiosVerificationStatus.Present ? (
+                          <SpinnerButton
+                            size={sizes.SMALL}
+                            kind={kinds.DEFAULT}
+                            isSpinning={
+                              isDownloading && downloadingFile === item.fileName
+                            }
+                            isDisabled={isDownloading}
+                            onPress={() =>
+                              handleDownloadSingle(
+                                item.gamePlatform,
+                                item.fileName
+                              )
+                            }
+                          >
+                            Download
+                          </SpinnerButton>
+                        ) : (
+                          <Label kind={kinds.SUCCESS}>Verified</Label>
+                        )}
                       </TableRowCell>
                     </TableRow>
                   );

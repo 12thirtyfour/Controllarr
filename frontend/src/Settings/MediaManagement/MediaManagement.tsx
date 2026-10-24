@@ -1,12 +1,18 @@
 import React, { useCallback, useRef, useState } from 'react';
+import {
+  setAddSeriesOption,
+  useAddSeriesOptions,
+} from 'AddSeries/addSeriesOptionsStore';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
+import CheckInput from 'Components/Form/CheckInput';
 import Form from 'Components/Form/Form';
 import FormInput from 'Components/Form/FormInput';
 import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
+import SelectInput, { SelectInputOption } from 'Components/Form/SelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
@@ -26,6 +32,20 @@ import {
   MediaManagementSettingsModel,
   useManageMediaManagementSettings,
 } from './useMediaManagementSettings';
+
+const defaultLibraryStyleOptions: SelectInputOption[] = [
+  { key: '1g1r', value: '1G1R (1 Game 1 ROM)' },
+  {
+    key: 'completionist',
+    value: 'Completionist (All Revisions, Regions & Variants)',
+  },
+];
+
+const defaultRevisionPreferenceOptions: SelectInputOption[] = [
+  { key: '0', value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)' },
+  { key: '1', value: 'Original Retail Release (Rev 0 / v1.0)' },
+  { key: '2', value: 'Pinned Version / Tag' },
+];
 
 const episodeTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
   {
@@ -135,6 +155,10 @@ const seasonPackUpgradeOptions: EnhancedSelectInputValue<string>[] = [
 function MediaManagement() {
   const showAdvancedSettings = useShowAdvancedSettings();
   const isWindows = useIsWindows();
+  const addOptions = useAddSeriesOptions();
+  const [onePerRegion1g1r, setOnePerRegion1g1r] = useState<boolean>(
+    () => addOptions.collectionStrategy === 2
+  );
 
   const {
     isFetching,
@@ -180,6 +204,48 @@ function MediaManagement() {
     [updateSetting]
   );
 
+  const isCompletionistDefault = addOptions.collectionStrategy === 1;
+
+  const handleDefaultLibraryStyleChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      if (value === 'completionist') {
+        setAddSeriesOption('collectionStrategy', 1);
+      } else {
+        setAddSeriesOption('collectionStrategy', onePerRegion1g1r ? 2 : 0);
+      }
+    },
+    [onePerRegion1g1r]
+  );
+
+  const handleOnePerGameCheck = useCallback(
+    ({ value }: InputChanged<boolean>) => {
+      const useSingle = Boolean(value);
+      setOnePerRegion1g1r(!useSingle);
+      if (addOptions.collectionStrategy !== 1) {
+        setAddSeriesOption('collectionStrategy', useSingle ? 0 : 2);
+      }
+    },
+    [addOptions.collectionStrategy]
+  );
+
+  const handleOnePerRegionCheck = useCallback(
+    ({ value }: InputChanged<boolean>) => {
+      const useMulti = Boolean(value);
+      setOnePerRegion1g1r(useMulti);
+      if (addOptions.collectionStrategy !== 1) {
+        setAddSeriesOption('collectionStrategy', useMulti ? 2 : 0);
+      }
+    },
+    [addOptions.collectionStrategy]
+  );
+
+  const handleDefaultRevisionChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      setAddSeriesOption('revisionPreference', Number(value));
+    },
+    []
+  );
+
   return (
     <SettingsPage
       title={translate('MediaManagementSettings')}
@@ -198,6 +264,73 @@ function MediaManagement() {
             setChildSave={handleSetNamingSave}
             onChildStateChange={setNaming}
           />
+
+          <FieldSet
+            legend="Default Library Curation (1G1R & Completionist)"
+            caption="Set your global library curation defaults. Even if you select Completionist globally, your 1G1R preferences below will be inherited whenever you override a specific console to 1G1R."
+          >
+            <Form>
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Default Library Style</FormLabel>
+                <FormInputHelpText text="Default collection strategy applied when adding new consoles/platforms" />
+                <SelectInput<string>
+                  name="defaultLibraryStyle"
+                  value={isCompletionistDefault ? 'completionist' : '1g1r'}
+                  values={defaultLibraryStyleOptions}
+                  onChange={handleDefaultLibraryStyleChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>1G1R Default Version Preference</FormLabel>
+                <FormInputHelpText text="Which ROM version/revision to prefer in 1G1R mode (used globally or when overriding a console to 1G1R)" />
+                <SelectInput<string>
+                  name="defaultRevisionPreference"
+                  value={String(addOptions.revisionPreference ?? 0)}
+                  values={defaultRevisionPreferenceOptions}
+                  onChange={handleDefaultRevisionChange}
+                />
+              </FormRow>
+
+              {Number(addOptions.revisionPreference) === 2 ? (
+                <FormRow size={sizes.MEDIUM}>
+                  <FormLabel>Default Pinned Version Tag</FormLabel>
+                  <FormInputHelpText text="Revision tag to pin when Pinned Version is selected (e.g. Rev A, Rev 1, v1.1)" />
+                  <FormInput
+                    type={inputTypes.TEXT}
+                    name="pinnedVersion"
+                    value={addOptions.pinnedVersion ?? ''}
+                    placeholder="e.g. Rev A, Rev 1, v1.1"
+                    onChange={({ value }: InputChanged<string>) =>
+                      setAddSeriesOption('pinnedVersion', value)
+                    }
+                  />
+                </FormRow>
+              ) : null}
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>1G1R Scope: 1 ROM Per Game (Single Region)</FormLabel>
+                <FormInputHelpText text="Keep only 1 preferred ROM per title across the entire console following your region priority" />
+                <CheckInput
+                  name="onePerGame1g1r"
+                  value={!onePerRegion1g1r}
+                  onChange={handleOnePerGameCheck}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>
+                  1G1R Scope: 1 ROM Per Monitored Region (Multi-Region 1G1R)
+                </FormLabel>
+                <FormInputHelpText text="Keep 1 preferred ROM per title inside each monitored region (e.g. 1 USA + 1 Japan)" />
+                <CheckInput
+                  name="onePerRegion1g1r"
+                  value={onePerRegion1g1r}
+                  onChange={handleOnePerRegionCheck}
+                />
+              </FormRow>
+            </Form>
+          </FieldSet>
 
           {isFetching ? (
             <FieldSet legend={translate('NamingSettings')}>
@@ -499,36 +632,6 @@ function MediaManagement() {
                               'SeasonPackUpgradeThresholdHelpText'
                             )}
                           />
-                          <FormInputHelpText
-                            text={translate(
-                              'SeasonPackUpgradeThresholdHelpTextExample',
-                              {
-                                numberEpisodes: 2,
-                                totalEpisodes: 8,
-                                count: Math.ceil((100 * 2) / 8),
-                              }
-                            )}
-                          />
-                          <FormInputHelpText
-                            text={translate(
-                              'SeasonPackUpgradeThresholdHelpTextExample',
-                              {
-                                numberEpisodes: 3,
-                                totalEpisodes: 12,
-                                count: Math.ceil((100 * 3) / 12),
-                              }
-                            )}
-                          />
-                          <FormInputHelpText
-                            text={translate(
-                              'SeasonPackUpgradeThresholdHelpTextExample',
-                              {
-                                numberEpisodes: 6,
-                                totalEpisodes: 24,
-                                count: Math.ceil((100 * 6) / 24),
-                              }
-                            )}
-                          />
                           <FormInput
                             type={inputTypes.FLOAT}
                             name="seasonPackUpgradeThreshold"
@@ -574,19 +677,6 @@ function MediaManagement() {
                   <FormInputHelpText
                     text={translate('DownloadPropersAndRepacksHelpText')}
                   />
-                  <FormInputHelpText
-                    text={translate(
-                      'DownloadPropersAndRepacksHelpTextCustomFormat'
-                    )}
-                  />
-                  <FormInputHelpText
-                    text={
-                      settings.downloadPropersAndRepacks.value === 'doNotPrefer'
-                        ? translate('DownloadPropersAndRepacksHelpTextWarning')
-                        : undefined
-                    }
-                    isWarning={true}
-                  />
                   <FormInput
                     type={inputTypes.SELECT}
                     name="downloadPropersAndRepacks"
@@ -599,33 +689,12 @@ function MediaManagement() {
                 <FormRow
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
-                  size={sizes.MEDIUM}
-                >
-                  <FormLabel>{translate('AnalyseVideoFiles')}</FormLabel>
-                  <FormInputHelpText
-                    text={translate('AnalyseVideoFilesHelpText')}
-                  />
-                  <FormInput
-                    type={inputTypes.CHECK}
-                    name="enableMediaInfo"
-                    onChange={handleInputChange}
-                    {...settings.enableMediaInfo}
-                  />
-                </FormRow>
-
-                <FormRow
-                  advancedSettings={showAdvancedSettings}
-                  isAdvanced={true}
                 >
                   <FormLabel>
                     {translate('RescanSeriesFolderAfterRefresh')}
                   </FormLabel>
                   <FormInputHelpText
                     text={translate('RescanAfterRefreshSeriesHelpText')}
-                  />
-                  <FormInputHelpText
-                    text={translate('RescanAfterRefreshHelpTextWarning')}
-                    isWarning={true}
                   />
                   <FormInput
                     type={inputTypes.SELECT}
@@ -676,10 +745,6 @@ function MediaManagement() {
                   <FormInputHelpText
                     text={translate('RecyclingBinCleanupHelpText')}
                   />
-                  <FormInputHelpText
-                    text={translate('RecyclingBinCleanupHelpTextWarning')}
-                    isWarning={true}
-                  />
                   <FormInput
                     type={inputTypes.NUMBER}
                     name="recycleBinCleanupDays"
@@ -704,10 +769,6 @@ function MediaManagement() {
                     <FormInputHelpText
                       text={translate('SetPermissionsLinuxHelpText')}
                     />
-                    <FormInputHelpText
-                      text={translate('SetPermissionsLinuxHelpTextWarning')}
-                      isWarning={true}
-                    />
                     <FormInput
                       type={inputTypes.CHECK}
                       name="setPermissionsLinux"
@@ -724,10 +785,6 @@ function MediaManagement() {
                     <FormInputHelpText
                       text={translate('ChmodFolderHelpText')}
                     />
-                    <FormInputHelpText
-                      text={translate('ChmodFolderHelpTextWarning')}
-                      isWarning={true}
-                    />
                     <FormInput
                       type={inputTypes.UMASK}
                       name="chmodFolder"
@@ -742,10 +799,6 @@ function MediaManagement() {
                   >
                     <FormLabel>{translate('ChownGroup')}</FormLabel>
                     <FormInputHelpText text={translate('ChownGroupHelpText')} />
-                    <FormInputHelpText
-                      text={translate('ChownGroupHelpTextWarning')}
-                      isWarning={true}
-                    />
                     <FormInput
                       type={inputTypes.TEXT}
                       name="chownGroup"

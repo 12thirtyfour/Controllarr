@@ -19,6 +19,55 @@
   white-space: nowrap;
 }
 
+.achievements {
+  composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
+
+  width: 135px;
+  white-space: nowrap;
+}
+
+.achievementBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+  }
+}
+
+.achievementOutline {
+  border: 1px dashed var(--hairlineStrong);
+  background: transparent;
+  color: var(--inkMuted);
+}
+
+.achievementSilver {
+  border: 1px solid #9ea7b3;
+  background: linear-gradient(135deg, rgba(192, 200, 212, 0.25), rgba(142, 152, 168, 0.15));
+  color: #d6dde6;
+}
+
+.achievementGold {
+  border: 1px solid #e0a82e;
+  background: linear-gradient(135deg, rgba(245, 194, 66, 0.25), rgba(212, 148, 28, 0.15));
+  color: #f7c948;
+}
+
+.achievementMastered {
+  border: 1px solid #f5b82e;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.32), rgba(245, 184, 46, 0.28));
+  color: #ffd86b;
+  box-shadow: 0 0 8px rgba(245, 184, 46, 0.22);
+}
+
 .versionBadge {
   display: inline-flex;
   align-items: center;

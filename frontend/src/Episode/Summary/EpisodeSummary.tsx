@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import React, { useCallback, useEffect } from 'react';
+import classNames from 'classnames';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
+import ProgressBar from 'Components/ProgressBar';
 import Column from 'Components/Table/Column';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
@@ -9,7 +11,8 @@ import Episode from 'Episode/Episode';
 import useEpisode, { EpisodeEntity } from 'Episode/useEpisode';
 import { useEpisodeFile } from 'EpisodeFile/EpisodeFileProvider';
 import { useDeleteEpisodeFile } from 'EpisodeFile/useEpisodeFiles';
-import { icons, sizes } from 'Helpers/Props';
+import { icons, kinds, sizes } from 'Helpers/Props';
+import { getGameAchievementSummary } from 'Series/Details/gameAchievementsHelper';
 import Series from 'Series/Series';
 import { useSingleSeries } from 'Series/useSeries';
 import translate from 'Utilities/String/translate';
@@ -80,10 +83,14 @@ function EpisodeSummary({
   const queryClient = useQueryClient();
   const { network } = useSingleSeries(seriesId) as Series;
 
-  const { airDate, airDateUtc, finaleType, overview } = useEpisode(
-    episodeId,
-    episodeEntity
-  ) as Episode;
+  const {
+    title = '',
+    seasonNumber = 1,
+    airDate,
+    airDateUtc,
+    finaleType,
+    overview,
+  } = useEpisode(episodeId, episodeEntity) as Episode;
 
   const {
     path,
@@ -111,6 +118,11 @@ function EpisodeSummary({
     }
   }, [episodeFileId, path, queryClient]);
 
+  const achievementSummary = useMemo(
+    () => getGameAchievementSummary(title, seasonNumber),
+    [title, seasonNumber]
+  );
+
   const hasOverview = !!overview;
 
   return (
@@ -120,7 +132,8 @@ function EpisodeSummary({
           <span className={styles.metaLabel}>{translate('Airs')}</span>
 
           <div className={styles.metaValue}>
-            {airDate ?? (airDateUtc ? airDateUtc.slice(0, 10) : translate('Unknown'))}
+            {airDate ??
+              (airDateUtc ? airDateUtc.slice(0, 10) : translate('Unknown'))}
           </div>
         </div>
 
@@ -146,6 +159,88 @@ function EpisodeSummary({
       <div className={styles.overview}>
         {hasOverview ? overview : translate('NoEpisodeOverview')}
       </div>
+
+      {achievementSummary.tier !== 'none' ? (
+        <div className={styles.achievementsSection}>
+          <div className={styles.achievementsHeader}>
+            <span className={styles.achievementsTitle}>
+              RetroAchievements ({achievementSummary.unlocked} /{' '}
+              {achievementSummary.total} Unlocked)
+            </span>
+
+            {achievementSummary.tier === 'mastered' ? (
+              <Label kind={kinds.WARNING} size={sizes.MEDIUM}>
+                👑 Mastered (100% Hardcore)
+              </Label>
+            ) : achievementSummary.tier === 'gold' ? (
+              <Label kind={kinds.WARNING} size={sizes.MEDIUM}>
+                🥇 Hardcore Progress ({achievementSummary.hardcoreUnlocked} /{' '}
+                {achievementSummary.total})
+              </Label>
+            ) : achievementSummary.tier === 'silver' ? (
+              <Label kind={kinds.INFO} size={sizes.MEDIUM}>
+                🥈 Softcore Progress ({achievementSummary.unlocked} /{' '}
+                {achievementSummary.total})
+              </Label>
+            ) : (
+              <Label outline={true} size={sizes.MEDIUM}>
+                ◇ Achievements Available (0 Earned)
+              </Label>
+            )}
+          </div>
+
+          <ProgressBar
+            progress={achievementSummary.masteryPercentage}
+            kind={
+              achievementSummary.isMastered ? kinds.WARNING : kinds.PRIMARY
+            }
+            size={sizes.MEDIUM}
+            showText={true}
+            text={`${achievementSummary.unlocked} / ${achievementSummary.total} (${achievementSummary.masteryPercentage}%)`}
+          />
+
+          <div className={styles.badgeGrid}>
+            {achievementSummary.badges.map((badge) => {
+              const isUnlocked = badge.unlocked || badge.hardcoreUnlocked;
+
+              return (
+                <div
+                  key={badge.id}
+                  className={classNames(
+                    styles.badgeCard,
+                    isUnlocked && styles.badgeCardUnlocked,
+                    badge.hardcoreUnlocked && styles.badgeCardHardcore
+                  )}
+                >
+                  <div className={styles.badgeTop}>
+                    <span className={styles.badgeName}>
+                      {badge.hardcoreUnlocked
+                        ? '🥇 '
+                        : isUnlocked
+                          ? '🥈 '
+                          : '◇ '}
+                      {badge.title}
+                    </span>
+                    <Label
+                      kind={
+                        badge.hardcoreUnlocked
+                          ? kinds.WARNING
+                          : isUnlocked
+                            ? kinds.SUCCESS
+                            : kinds.DEFAULT
+                      }
+                      size={sizes.SMALL}
+                    >
+                      {badge.points} pts
+                    </Label>
+                  </div>
+                  <div className={styles.badgeDesc}>{badge.description}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {path ? (
         <Table columns={COLUMNS}>
