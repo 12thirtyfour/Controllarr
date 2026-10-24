@@ -13,11 +13,18 @@ export type ThemeName =
   | 'famicom'
   | 'snes'
   | 'superfamicom'
+  | 'sms'
   | 'genesis'
   | 'megadrive'
   | 'dmg'
   | 'tg16'
-  | 'gamecube';
+  | 'jaguar'
+  | 'ps1'
+  | 'ps2'
+  | 'gamecube'
+  | 'wii'
+  | 'xbox'
+  | 'xbox360';
 
 export interface UiSettingsModel {
   theme: ThemeName;

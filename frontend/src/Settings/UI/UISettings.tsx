@@ -117,13 +117,20 @@ function UISettings() {
     })),
     { key: 'nes', value: 'NES (1985)' },
     { key: 'famicom', value: 'Famicom (1983)' },
+    { key: 'sms', value: 'Sega Master System (1985)' },
     { key: 'snes', value: 'SNES North America (1991)' },
     { key: 'superfamicom', value: 'Super Famicom (1990)' },
     { key: 'genesis', value: 'Sega Genesis (1989)' },
     { key: 'megadrive', value: 'Sega Mega Drive (1988)' },
     { key: 'dmg', value: 'Game Boy DMG-01 (1989)' },
     { key: 'tg16', value: 'TurboGrafx-16 (1989)' },
+    { key: 'jaguar', value: 'Atari Jaguar (1993)' },
+    { key: 'ps1', value: 'Sony PlayStation (1994)' },
+    { key: 'ps2', value: 'Sony PlayStation 2 (2000)' },
     { key: 'gamecube', value: 'GameCube Indigo (2001)' },
+    { key: 'xbox', value: 'Microsoft Xbox (2001)' },
+    { key: 'xbox360', value: 'Microsoft Xbox 360 (2005)' },
+    { key: 'wii', value: 'Nintendo Wii (2006)' },
   ];
 
   const handleInputChange = useCallback(

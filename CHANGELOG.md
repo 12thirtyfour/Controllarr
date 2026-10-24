@@ -15,7 +15,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [1.0.0-beta.6] - 2026-10-24
 
+### Added
+- **7 New Retro & Modern Console UI Themes (`sms`, `jaguar`, `ps1`, `ps2`, `xbox`, `xbox360`, `wii`)**:
+  - Added **Sega Master System (1985)** (`sms`): Matte black chassis with crimson pinstripe framing, red accents, and Sega blue selection badges.
+  - Added **Atari Jaguar (1993)** (`jaguar`): Deep stealth charcoal shell with red roar accents and amber/gold "64-Bit" callouts.
+  - Added **Sony PlayStation (1994)** (`ps1`): Classic SCPH-1001 stone gray casing with Sony royal blue primary actions and 4-color logo/button highlights (teal, red, yellow, blue).
+  - Added **Sony PlayStation 2 (2000)** (`ps2`): Matte black monolith surface with deep indigo tower undertones and electric cyan-blue optical accents.
+  - Added **Microsoft Xbox (2001)** (`xbox`): Dark industrial black-green chassis with radioactive neon jewel green highlights.
+  - Added **Microsoft Xbox 360 (2005)** (`xbox360`):NXE/Blades dark slate charcoal with Ring-of-Light lime green (`#9bc848`) and deep Xbox green (`#107c10`) accents.
+  - Added **Nintendo Wii (2006)** (`wii`): Glossy pearl white and cool ice-gray Wii Menu channels with glowing Wii optical disc slot cyan-blue (`#009ac7`) accents.
+
 ### Changed
+- **Reverted Game Boy DMG-01 (`dmg`) Theme**:
+  - Restored the classic full olive dot-matrix LCD palette (`#0f240f` / `#153015` / `#1b3b1b` backgrounds with `#9bbc0f` / `#8bac0f` / `#d0e898` phosphor greens) for `Game Boy DMG-01 (1989)`.
 - **Region Folder Naming on Disk (`USA`, `Europe`, `Japan`, `World`, `Unlicensed`, `Homebrew`, `ROM Hacks` instead of `Season 1`, `Season 2`)**:
   - Updated `GameCatalogProxy.BuildDefaultRegionSeasons` so every platform region season carries its canonical region title (`0 -> "Unlicensed"`, `1 -> "USA"`, `2 -> "Europe"`, `3 -> "Japan"`, `4 -> "World"`, `5 -> "Homebrew"`, `6 -> "ROM Hacks"`).
   - Updated `NamingConfigService.GetConfig()` and `Migration 242` (`242_rename_tv_tables_to_platform_game_rom_tables.cs`) to automatically upgrade legacy database `NamingConfig` rows (`Season {season}` -> `{Region}`, `Specials` -> `Unlicensed`, `{Series Title}` -> `{Platform}`, and `S{season` -> `{Game Title}`).
