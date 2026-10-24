@@ -29,7 +29,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     HealthCheckResult.Warning,
                     HealthCheckReason.IndexerSearchNoAutomatic,
                     _localizationService.GetLocalizedString("IndexerSearchNoAutomaticHealthCheckMessage"),
-                    "#no-indexers-available-with-automatic-search-enabled-sonarr-will-not-provide-any-automatic-search-results");
+                    "#no-indexers-available-with-automatic-search-enabled-controllarr-will-not-provide-any-automatic-search-results");
             }
 
             var interactiveSearchEnabled = _indexerFactory.InteractiveSearchEnabled(false);
