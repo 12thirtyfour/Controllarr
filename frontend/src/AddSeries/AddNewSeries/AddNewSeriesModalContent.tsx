@@ -84,6 +84,7 @@ const DISC_PLATFORMS = new Set([
 
 function getPlatformCompressionFormat(slugOrTitle?: string): string {
   const normalized = (slugOrTitle ?? '').toLowerCase();
+
   if (
     DISC_PLATFORMS.has(normalized) ||
     normalized.includes('playstation') ||
@@ -108,9 +109,11 @@ function normalizeCollectionStrategy(val: unknown): string {
   if (val === 1 || val === '1' || val === 'preservationist') {
     return 'preservationist';
   }
+
   if (val === 2 || val === '2' || val === 'oneGamePerRegionPerConsole') {
     return 'oneGamePerRegionPerConsole';
   }
+
   return 'oneGameOneRom';
 }
 
@@ -118,9 +121,11 @@ function normalizeRevisionPreference(val: unknown): string {
   if (val === 1 || val === '1' || val === 'initialRelease') {
     return 'initialRelease';
   }
+
   if (val === 2 || val === '2' || val === 'pinned') {
     return 'pinned';
   }
+
   return 'latestRevision';
 }
 
@@ -170,11 +175,12 @@ function AddNewSeriesModalContent({
       ? settings.seriesType.value
       : initialSeriesType
   );
-  const [seasonType] = useState(
+  const seasonType = useMemo(
     () =>
       seasonTypes.find((s) => s.type === 'official')?.type ??
       seasonTypes[0]?.type ??
-      'official'
+      'official',
+    [seasonTypes]
   );
 
   const {
@@ -224,17 +230,21 @@ function AddNewSeriesModalContent({
       if (s.seasonNumber === 0) {
         return { ...s, monitored: Boolean(trackUnlicensed?.value) };
       }
+
       if (s.seasonNumber === 5) {
         return { ...s, monitored: Boolean(trackHomebrew?.value) };
       }
+
       if (s.seasonNumber === 6) {
         return { ...s, monitored: Boolean(trackRomHacks?.value) };
       }
+
       return s;
     });
 
     addSeries({
       ...series,
+      monitored: monitor.value !== 'none',
       seasons: updatedSeasons,
       rootFolderPath: rootFolderPath.value,
       addOptions: {
@@ -309,7 +319,12 @@ function AddNewSeriesModalContent({
               validationErrors={validationErrors}
               validationWarnings={validationWarnings}
             >
-              {!isIndividualGame ? (
+              {isIndividualGame ? (
+                <FormRow>
+                  <FormLabel>Platform Library Placement</FormLabel>
+                  <FormInputHelpText text="This game will automatically be added and monitored under its parent platform folder using your configured Media Management naming structure." />
+                </FormRow>
+              ) : (
                 <>
                   <FormRow>
                     <FormLabel>{translate('RootFolder')}</FormLabel>
@@ -372,7 +387,7 @@ function AddNewSeriesModalContent({
                     />
                   </FormRow>
 
-                  {normalizedStrategy !== 'preservationist' ? (
+                  {normalizedStrategy === 'preservationist' ? null : (
                     <FormRow>
                       <FormLabel>Version / Revision Preference</FormLabel>
                       <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist (Prototypes & Betas are never chosen as initial retail releases)" />
@@ -385,7 +400,7 @@ function AddNewSeriesModalContent({
                         value={normalizedRevision}
                       />
                     </FormRow>
-                  ) : null}
+                  )}
 
                   {normalizedStrategy !== 'preservationist' &&
                   normalizedRevision === 'pinned' ? (
@@ -451,11 +466,6 @@ function AddNewSeriesModalContent({
                     />
                   </FormRow>
                 </>
-              ) : (
-                <FormRow>
-                  <FormLabel>Platform Library Placement</FormLabel>
-                  <FormInputHelpText text="This game will automatically be added and monitored under its parent platform folder using your configured Media Management naming structure." />
-                </FormRow>
               )}
 
               <FormRow>

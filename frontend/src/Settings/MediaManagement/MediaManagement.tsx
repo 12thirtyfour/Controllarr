@@ -5,7 +5,6 @@ import {
 } from 'AddSeries/addSeriesOptionsStore';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
-import CheckInput from 'Components/Form/CheckInput';
 import Form from 'Components/Form/Form';
 import FormInput from 'Components/Form/FormInput';
 import FormInputHelpText from 'Components/Form/FormInputHelpText';
@@ -40,6 +39,11 @@ const defaultLibraryStyleOptions: SelectInputOption[] = [
     key: 'completionist',
     value: 'Completionist (All Revisions, Regions & Variants)',
   },
+];
+
+const default1g1rScopeOptions: SelectInputOption[] = [
+  { key: 'oneGameOneRom', value: 'Per Game' },
+  { key: 'oneGamePerRegionPerConsole', value: 'Per Region' },
 ];
 
 const defaultRevisionPreferenceOptions: SelectInputOption[] = [
@@ -231,27 +235,11 @@ function MediaManagement() {
     [onePerRegion1g1r]
   );
 
-  const handleOnePerGameCheck = useCallback(
-    ({ value }: InputChanged<boolean>) => {
-      const useSingle = Boolean(value);
-      setOnePerRegion1g1r(!useSingle);
-      if (
-        String(addOptions.collectionStrategy) !== 'preservationist' &&
-        String(addOptions.collectionStrategy) !== '1'
-      ) {
-        setAddSeriesOption(
-          'collectionStrategy',
-          useSingle ? 'oneGameOneRom' : 'oneGamePerRegionPerConsole'
-        );
-      }
-    },
-    [addOptions.collectionStrategy]
-  );
-
-  const handleOnePerRegionCheck = useCallback(
-    ({ value }: InputChanged<boolean>) => {
-      const useMulti = Boolean(value);
+  const handle1g1rScopeChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      const useMulti = value === 'oneGamePerRegionPerConsole';
       setOnePerRegion1g1r(useMulti);
+
       if (
         String(addOptions.collectionStrategy) !== 'preservationist' &&
         String(addOptions.collectionStrategy) !== '1'
@@ -271,6 +259,23 @@ function MediaManagement() {
     },
     []
   );
+
+  const handlePinnedVersionChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      setAddSeriesOption('pinnedVersion', value);
+    },
+    []
+  );
+
+  let defaultRevisionValue = String(
+    addOptions.revisionPreference || 'latestRevision'
+  );
+
+  if (String(addOptions.revisionPreference) === '1') {
+    defaultRevisionValue = 'initialRelease';
+  } else if (String(addOptions.revisionPreference) === '2') {
+    defaultRevisionValue = 'pinned';
+  }
 
   return (
     <SettingsPage
@@ -308,26 +313,32 @@ function MediaManagement() {
               </FormRow>
 
               <FormRow size={sizes.MEDIUM}>
+                <FormLabel>1G1R Scope</FormLabel>
+                <FormInputHelpText text="Choose whether 1G1R keeps 1 preferred ROM per game across the console (Per Game) or 1 preferred ROM inside each monitored region (Per Region)" />
+                <SelectInput<string>
+                  name="oneGameOneRomScope"
+                  value={
+                    onePerRegion1g1r
+                      ? 'oneGamePerRegionPerConsole'
+                      : 'oneGameOneRom'
+                  }
+                  values={default1g1rScopeOptions}
+                  onChange={handle1g1rScopeChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
                 <FormLabel>1G1R Default Version Preference</FormLabel>
                 <FormInputHelpText text="Which ROM version/revision to prefer in 1G1R mode (used globally or when overriding a console to 1G1R)" />
                 <SelectInput<string>
                   name="defaultRevisionPreference"
-                  value={
-                    String(addOptions.revisionPreference) === '1'
-                      ? 'initialRelease'
-                      : String(addOptions.revisionPreference) === '2'
-                        ? 'pinned'
-                        : String(
-                            addOptions.revisionPreference || 'latestRevision'
-                          )
-                  }
+                  value={defaultRevisionValue}
                   values={defaultRevisionPreferenceOptions}
                   onChange={handleDefaultRevisionChange}
                 />
               </FormRow>
 
-              {String(addOptions.revisionPreference) === 'pinned' ||
-              String(addOptions.revisionPreference) === '2' ? (
+              {defaultRevisionValue === 'pinned' ? (
                 <FormRow size={sizes.MEDIUM}>
                   <FormLabel>Default Pinned Version Tag</FormLabel>
                   <FormInputHelpText text="Revision tag to pin when Pinned Version is selected (e.g. Rev A, Rev 1, v1.1)" />
@@ -336,34 +347,10 @@ function MediaManagement() {
                     name="pinnedVersion"
                     value={addOptions.pinnedVersion ?? ''}
                     placeholder="e.g. Rev A, Rev 1, v1.1"
-                    onChange={({ value }: InputChanged<string>) =>
-                      setAddSeriesOption('pinnedVersion', value)
-                    }
+                    onChange={handlePinnedVersionChange}
                   />
                 </FormRow>
               ) : null}
-
-              <FormRow size={sizes.MEDIUM}>
-                <FormLabel>1G1R Scope: 1 ROM Per Game (Single Region)</FormLabel>
-                <FormInputHelpText text="Keep only 1 preferred ROM per title across the entire console following your region priority" />
-                <CheckInput
-                  name="onePerGame1g1r"
-                  value={!onePerRegion1g1r}
-                  onChange={handleOnePerGameCheck}
-                />
-              </FormRow>
-
-              <FormRow size={sizes.MEDIUM}>
-                <FormLabel>
-                  1G1R Scope: 1 ROM Per Monitored Region (Multi-Region 1G1R)
-                </FormLabel>
-                <FormInputHelpText text="Keep 1 preferred ROM per title inside each monitored region (e.g. 1 USA + 1 Japan)" />
-                <CheckInput
-                  name="onePerRegion1g1r"
-                  value={onePerRegion1g1r}
-                  onChange={handleOnePerRegionCheck}
-                />
-              </FormRow>
             </Form>
           </FieldSet>
 

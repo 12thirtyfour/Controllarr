@@ -67,9 +67,11 @@ function normalizeCollectionStrategy(val: unknown): string {
   if (val === 1 || val === '1' || val === 'preservationist') {
     return 'preservationist';
   }
+
   if (val === 2 || val === '2' || val === 'oneGamePerRegionPerConsole') {
     return 'oneGamePerRegionPerConsole';
   }
+
   return 'oneGameOneRom';
 }
 
@@ -77,6 +79,7 @@ function normalizeRevisionPreference(val: unknown): string {
   if (val === 1 || val === '1' || val === 'initialRelease') {
     return 'initialRelease';
   }
+
   return 'latestRevision';
 }
 
@@ -138,20 +141,20 @@ function EditSeriesModalContent({
       },
       {
         ...pendingChanges,
-        ...(pendingChanges.collectionStrategy !== undefined
-          ? {
+        ...(pendingChanges.collectionStrategy === undefined
+          ? {}
+          : {
               collectionStrategy: normalizeCollectionStrategy(
                 pendingChanges.collectionStrategy
               ) as unknown as number,
-            }
-          : {}),
-        ...(pendingChanges.revisionPreference !== undefined
-          ? {
+            }),
+        ...(pendingChanges.revisionPreference === undefined
+          ? {}
+          : {
               revisionPreference: normalizeRevisionPreference(
                 pendingChanges.revisionPreference
               ) as unknown as number,
-            }
-          : {}),
+            }),
       },
       saveError
     );
@@ -194,6 +197,27 @@ function EditSeriesModalContent({
       setPendingChange('seasons', updated);
     },
     [pendingChanges.seasons, series.seasons, setPendingChange]
+  );
+
+  const handleUnlicensedMonitorChange = useCallback(
+    ({ value }: InputChanged) => {
+      handleRegionMonitorToggle(0, Boolean(value));
+    },
+    [handleRegionMonitorToggle]
+  );
+
+  const handleRomHacksMonitorChange = useCallback(
+    ({ value }: InputChanged) => {
+      handleRegionMonitorToggle(6, Boolean(value));
+    },
+    [handleRegionMonitorToggle]
+  );
+
+  const handleHomebrewMonitorChange = useCallback(
+    ({ value }: InputChanged) => {
+      handleRegionMonitorToggle(5, Boolean(value));
+    },
+    [handleRegionMonitorToggle]
   );
 
   const handleInputChange = useCallback(
@@ -349,9 +373,7 @@ function EditSeriesModalContent({
               type={inputTypes.CHECK}
               name="trackUnlicensed"
               value={isUnlicensedMonitored}
-              onChange={({ value }: InputChanged) =>
-                handleRegionMonitorToggle(0, Boolean(value))
-              }
+              onChange={handleUnlicensedMonitorChange}
             />
           </FormRow>
 
@@ -362,9 +384,7 @@ function EditSeriesModalContent({
               type={inputTypes.CHECK}
               name="trackRomHacks"
               value={isRomHacksMonitored}
-              onChange={({ value }: InputChanged) =>
-                handleRegionMonitorToggle(6, Boolean(value))
-              }
+              onChange={handleRomHacksMonitorChange}
             />
           </FormRow>
 
@@ -375,9 +395,7 @@ function EditSeriesModalContent({
               type={inputTypes.CHECK}
               name="trackHomebrew"
               value={isHomebrewMonitored}
-              onChange={({ value }: InputChanged) =>
-                handleRegionMonitorToggle(5, Boolean(value))
-              }
+              onChange={handleHomebrewMonitorChange}
             />
           </FormRow>
 

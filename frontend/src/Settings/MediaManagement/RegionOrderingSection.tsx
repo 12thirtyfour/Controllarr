@@ -29,15 +29,17 @@ function SortableRegionRow({ item, index }: SortableRegionRowProps) {
 
   return (
     <div ref={ref} className={styles.rowContainer}>
-      <div
-        className={classNames(styles.row, isDragging && styles.isDragging)}
-      >
+      <div className={classNames(styles.row, isDragging && styles.isDragging)}>
         <span className={styles.rankBadge}>#{index + 1}</span>
         <div className={styles.info}>
           <span className={styles.label}>{item.label}</span>
           <span className={styles.description}>{item.description}</span>
         </div>
-        <div ref={handleRef} className={styles.dragHandle} title="Drag to reorder">
+        <div
+          ref={handleRef}
+          className={styles.dragHandle}
+          title="Drag to reorder"
+        >
           <Icon name={icons.GRIP} size={16} />
         </div>
       </div>
@@ -101,7 +103,8 @@ function RegionOrderingSection() {
       <div className={styles.container}>
         <div className={styles.headerRow}>
           <p className={styles.helpText}>
-            Grab any row handle on the right to reorder platform sections and regions:
+            Grab any row handle on the right to reorder platform sections and
+            regions:
           </p>
           <button
             type="button"
@@ -119,11 +122,7 @@ function RegionOrderingSection() {
         >
           <div className={styles.list}>
             {displayedItems.map((item, index) => (
-              <SortableRegionRow
-                key={item.id}
-                item={item}
-                index={index}
-              />
+              <SortableRegionRow key={item.id} item={item} index={index} />
             ))}
           </div>
         </DragDropProvider>

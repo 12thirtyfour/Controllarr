@@ -61,6 +61,7 @@ export function normalizeRegionOrder(order?: number[]): number[] {
   if (Array.isArray(order)) {
     for (const id of order) {
       const num = Number(id);
+
       if (validIds.has(num) && !result.includes(num)) {
         result.push(num);
       }

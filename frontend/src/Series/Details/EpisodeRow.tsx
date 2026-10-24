@@ -24,7 +24,10 @@ import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import formatRuntime from 'Utilities/Number/formatRuntime';
 import translate from 'Utilities/String/translate';
-import { getGameAchievementSummary } from './gameAchievementsHelper';
+import {
+  getGameAchievementSummary,
+  useRetroAchievementsLibraryVersion,
+} from './gameAchievementsHelper';
 import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
 import styles from './EpisodeRow.module.css';
 
@@ -49,7 +52,8 @@ interface EpisodeRowProps {
   romVersionLabel?: string;
   alternateVersionCount?: number;
   isGroupExpanded?: boolean;
-  onToggleGroupExpand?: () => void;
+  groupKey?: string;
+  onToggleGroupExpand?: (groupKey: string) => void;
   mediaInfo?: MediaInfoModel;
   columns: Column[];
   onMonitorEpisodePress: (
@@ -80,13 +84,13 @@ function EpisodeRow({
   romVersionLabel,
   alternateVersionCount = 0,
   isGroupExpanded = false,
+  groupKey = '',
   onToggleGroupExpand,
   columns,
   onMonitorEpisodePress,
 }: EpisodeRowProps) {
   const {
     useSceneNumbering,
-    monitored: seriesMonitored,
     seriesType,
     alternateTitles = [],
   } = useSingleSeries(seriesId)!;
@@ -97,10 +101,16 @@ function EpisodeRow({
   const customFormatScore = episodeFile?.customFormatScore ?? 0;
   const effectiveVersion = romVersionLabel || finaleType || 'Retail (v1.0)';
 
+  const raLibraryVersion = useRetroAchievementsLibraryVersion();
+
   const achievementSummary = useMemo(
-    () => getGameAchievementSummary(title, seasonNumber),
-    [title, seasonNumber]
+    () => getGameAchievementSummary(title, seasonNumber, raLibraryVersion),
+    [title, seasonNumber, raLibraryVersion]
   );
+
+  const handleToggleGroupExpandPress = useCallback(() => {
+    onToggleGroupExpand?.(groupKey);
+  }, [groupKey, onToggleGroupExpand]);
 
   const handleMonitorEpisodePress = useCallback(
     (monitored: boolean, options: { shiftKey: boolean }) => {
@@ -135,7 +145,7 @@ function EpisodeRow({
             <TableRowCell key={name} className={styles.monitored}>
               <MonitorToggleButton
                 monitored={monitored}
-                isDisabled={!seriesMonitored}
+                isDisabled={false}
                 isSaving={isSaving}
                 size={14}
                 onPress={handleMonitorEpisodePress}
@@ -193,7 +203,7 @@ function EpisodeRow({
                 <button
                   type="button"
                   className={styles.versionToggleBtn}
-                  onClick={onToggleGroupExpand}
+                  onClick={handleToggleGroupExpandPress}
                 >
                   {isGroupExpanded
                     ? 'Hide versions'
@@ -213,9 +223,14 @@ function EpisodeRow({
 
           let badgeClass = styles.achievementOutline;
           let badgeIcon = '◇';
-          let badgeText = `${achievementSummary.unlocked}/${achievementSummary.total}`;
+          let badgeText =
+            achievementSummary.total > 0
+              ? `${achievementSummary.unlocked}/${achievementSummary.total}`
+              : '0';
           let badgeTooltip =
-            'Achievements available (0 earned) — Click to view';
+            achievementSummary.total > 0
+              ? `Achievements available (0/${achievementSummary.total} earned) — Click to view`
+              : 'No achievements earned — Click to view';
 
           if (achievementSummary.tier === 'mastered') {
             badgeClass = styles.achievementMastered;
@@ -225,7 +240,7 @@ function EpisodeRow({
           } else if (achievementSummary.tier === 'gold') {
             badgeClass = styles.achievementGold;
             badgeIcon = '🥇';
-            badgeText = `${achievementSummary.hardcoreUnlocked}/${achievementSummary.total} HC`;
+            badgeText = `${achievementSummary.hardcoreUnlocked}/${achievementSummary.total}`;
             badgeTooltip = `Hardcore achievements earned (${achievementSummary.hardcoreUnlocked}/${achievementSummary.total})`;
           } else if (achievementSummary.tier === 'silver') {
             badgeClass = styles.achievementSilver;

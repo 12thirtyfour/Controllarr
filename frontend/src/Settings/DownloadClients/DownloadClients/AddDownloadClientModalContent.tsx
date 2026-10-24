@@ -28,34 +28,31 @@ function AddDownloadClientModalContent({
   const { isSchemaLoading, isSchemaFetched, schemaError, schema } =
     useDownloadClientSchema();
 
-  const {
-    usenetDownloadClients,
-    torrentDownloadClients,
-    httpDownloadClients,
-  } = useMemo(() => {
-    return schema.reduce<{
-      usenetDownloadClients: DownloadClientModel[];
-      torrentDownloadClients: DownloadClientModel[];
-      httpDownloadClients: DownloadClientModel[];
-    }>(
-      (acc, item) => {
-        if (item.protocol === 'usenet') {
-          acc.usenetDownloadClients.push(item);
-        } else if (item.protocol === 'torrent') {
-          acc.torrentDownloadClients.push(item);
-        } else if (item.protocol === 'http') {
-          acc.httpDownloadClients.push(item);
-        }
+  const { usenetDownloadClients, torrentDownloadClients, httpDownloadClients } =
+    useMemo(() => {
+      return schema.reduce<{
+        usenetDownloadClients: DownloadClientModel[];
+        torrentDownloadClients: DownloadClientModel[];
+        httpDownloadClients: DownloadClientModel[];
+      }>(
+        (acc, item) => {
+          if (item.protocol === 'usenet') {
+            acc.usenetDownloadClients.push(item);
+          } else if (item.protocol === 'torrent') {
+            acc.torrentDownloadClients.push(item);
+          } else if (item.protocol === 'http') {
+            acc.httpDownloadClients.push(item);
+          }
 
-        return acc;
-      },
-      {
-        usenetDownloadClients: [],
-        torrentDownloadClients: [],
-        httpDownloadClients: [],
-      }
-    );
-  }, [schema]);
+          return acc;
+        },
+        {
+          usenetDownloadClients: [],
+          torrentDownloadClients: [],
+          httpDownloadClients: [],
+        }
+      );
+    }, [schema]);
 
   return (
     <ModalContent onModalClose={onModalClose}>

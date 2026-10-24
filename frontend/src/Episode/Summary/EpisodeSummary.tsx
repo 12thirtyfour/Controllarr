@@ -12,7 +12,10 @@ import useEpisode, { EpisodeEntity } from 'Episode/useEpisode';
 import { useEpisodeFile } from 'EpisodeFile/EpisodeFileProvider';
 import { useDeleteEpisodeFile } from 'EpisodeFile/useEpisodeFiles';
 import { icons, kinds, sizes } from 'Helpers/Props';
-import { getGameAchievementSummary } from 'Series/Details/gameAchievementsHelper';
+import {
+  getGameAchievementSummary,
+  useRetroAchievementsLibraryVersion,
+} from 'Series/Details/gameAchievementsHelper';
 import Series from 'Series/Series';
 import { useSingleSeries } from 'Series/useSeries';
 import translate from 'Utilities/String/translate';
@@ -118,12 +121,41 @@ function EpisodeSummary({
     }
   }, [episodeFileId, path, queryClient]);
 
+  const raLibraryVersion = useRetroAchievementsLibraryVersion();
+
   const achievementSummary = useMemo(
-    () => getGameAchievementSummary(title, seasonNumber),
-    [title, seasonNumber]
+    () => getGameAchievementSummary(title, seasonNumber, raLibraryVersion),
+    [title, seasonNumber, raLibraryVersion]
   );
 
   const hasOverview = !!overview;
+  let achievementTierLabel = (
+    <Label outline={true} size={sizes.MEDIUM}>
+      ◇ Achievements Available (0 Earned)
+    </Label>
+  );
+
+  if (achievementSummary.tier === 'mastered') {
+    achievementTierLabel = (
+      <Label kind={kinds.WARNING} size={sizes.MEDIUM}>
+        👑 Mastered (100% Hardcore)
+      </Label>
+    );
+  } else if (achievementSummary.tier === 'gold') {
+    achievementTierLabel = (
+      <Label kind={kinds.WARNING} size={sizes.MEDIUM}>
+        🥇 Hardcore Progress ({achievementSummary.hardcoreUnlocked} /{' '}
+        {achievementSummary.total})
+      </Label>
+    );
+  } else if (achievementSummary.tier === 'silver') {
+    achievementTierLabel = (
+      <Label kind={kinds.INFO} size={sizes.MEDIUM}>
+        🥈 Softcore Progress ({achievementSummary.unlocked} /{' '}
+        {achievementSummary.total})
+      </Label>
+    );
+  }
 
   return (
     <div>
@@ -160,7 +192,7 @@ function EpisodeSummary({
         {hasOverview ? overview : translate('NoEpisodeOverview')}
       </div>
 
-      {achievementSummary.tier !== 'none' ? (
+      {achievementSummary.tier === 'none' ? null : (
         <div className={styles.achievementsSection}>
           <div className={styles.achievementsHeader}>
             <span className={styles.achievementsTitle}>
@@ -168,32 +200,12 @@ function EpisodeSummary({
               {achievementSummary.total} Unlocked)
             </span>
 
-            {achievementSummary.tier === 'mastered' ? (
-              <Label kind={kinds.WARNING} size={sizes.MEDIUM}>
-                👑 Mastered (100% Hardcore)
-              </Label>
-            ) : achievementSummary.tier === 'gold' ? (
-              <Label kind={kinds.WARNING} size={sizes.MEDIUM}>
-                🥇 Hardcore Progress ({achievementSummary.hardcoreUnlocked} /{' '}
-                {achievementSummary.total})
-              </Label>
-            ) : achievementSummary.tier === 'silver' ? (
-              <Label kind={kinds.INFO} size={sizes.MEDIUM}>
-                🥈 Softcore Progress ({achievementSummary.unlocked} /{' '}
-                {achievementSummary.total})
-              </Label>
-            ) : (
-              <Label outline={true} size={sizes.MEDIUM}>
-                ◇ Achievements Available (0 Earned)
-              </Label>
-            )}
+            {achievementTierLabel}
           </div>
 
           <ProgressBar
             progress={achievementSummary.masteryPercentage}
-            kind={
-              achievementSummary.isMastered ? kinds.WARNING : kinds.PRIMARY
-            }
+            kind={achievementSummary.isMastered ? kinds.WARNING : kinds.PRIMARY}
             size={sizes.MEDIUM}
             showText={true}
             text={`${achievementSummary.unlocked} / ${achievementSummary.total} (${achievementSummary.masteryPercentage}%)`}
@@ -202,6 +214,16 @@ function EpisodeSummary({
           <div className={styles.badgeGrid}>
             {achievementSummary.badges.map((badge) => {
               const isUnlocked = badge.unlocked || badge.hardcoreUnlocked;
+              let badgePrefix = '◇ ';
+              let badgeKind = kinds.DEFAULT;
+
+              if (badge.hardcoreUnlocked) {
+                badgePrefix = '🥇 ';
+                badgeKind = kinds.WARNING;
+              } else if (isUnlocked) {
+                badgePrefix = '🥈 ';
+                badgeKind = kinds.SUCCESS;
+              }
 
               return (
                 <div
@@ -214,23 +236,10 @@ function EpisodeSummary({
                 >
                   <div className={styles.badgeTop}>
                     <span className={styles.badgeName}>
-                      {badge.hardcoreUnlocked
-                        ? '🥇 '
-                        : isUnlocked
-                          ? '🥈 '
-                          : '◇ '}
+                      {badgePrefix}
                       {badge.title}
                     </span>
-                    <Label
-                      kind={
-                        badge.hardcoreUnlocked
-                          ? kinds.WARNING
-                          : isUnlocked
-                            ? kinds.SUCCESS
-                            : kinds.DEFAULT
-                      }
-                      size={sizes.SMALL}
-                    >
+                    <Label kind={badgeKind} size={sizes.SMALL}>
                       {badge.points} pts
                     </Label>
                   </div>
@@ -240,7 +249,7 @@ function EpisodeSummary({
             })}
           </div>
         </div>
-      ) : null}
+      )}
 
       {path ? (
         <Table columns={COLUMNS}>

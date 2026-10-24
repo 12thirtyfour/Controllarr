@@ -20,12 +20,12 @@
 }
 
 .filterLabel {
+  margin-right: 4px;
   color: var(--inkMuted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 600;
   font-size: 11px;
-  margin-right: 4px;
 }
 
 .filterPill {

@@ -30,6 +30,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+
   padding: 2px 9px;
   border-radius: 999px;
   font-weight: 600;
@@ -38,8 +39,8 @@
   transition: transform 120ms ease, filter 120ms ease;
 
   &:hover {
-    transform: translateY(-1px);
     filter: brightness(1.08);
+    transform: translateY(-1px);
   }
 }
 
@@ -64,8 +65,8 @@
 .achievementMastered {
   border: 1px solid #f5b82e;
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.32), rgba(245, 184, 46, 0.28));
-  color: #ffd86b;
   box-shadow: 0 0 8px rgba(245, 184, 46, 0.22);
+  color: #ffd86b;
 }
 
 .versionBadge {

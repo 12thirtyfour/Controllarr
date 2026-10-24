@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useAppDimension } from 'App/appStore';
 import CommandNames from 'Commands/CommandNames';
 import { useCommands, useExecuteCommand } from 'Commands/useCommands';
@@ -67,7 +73,7 @@ function parseBaseGameAndVersion(item: Episode) {
   }
 
   const match = rawTitle.match(
-    /^(.*?)\s*\((Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Beta[^)]*|Proto[^)]*|Prototype[^)]*|Demo[^)]*|Sample[^)]*|Virtual Console[^)]*|GameCube[^)]*|Classic NES[^)]*|Animal Crossing|e-Reader|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)\)$/i
+    /^(.*?)\s*\((Rev\s*[A-Z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Beta[^)]*|Proto[^)]*|Prototype[^)]*|Demo[^)]*|Sample[^)]*|Virtual Console[^)]*|GameCube[^)]*|Classic NES[^)]*|Animal Crossing|e-Reader|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)\)$/i
   );
 
   if (match) {
@@ -220,6 +226,7 @@ function SeriesDetailsSeason({
       const { baseTitle, versionLabel } = parseBaseGameAndVersion(item);
       const key = baseTitle.toLowerCase();
       const existing = groupsMap.get(key);
+
       if (existing) {
         existing.push({ item, versionLabel });
       } else {
@@ -425,7 +432,7 @@ function SeriesDetailsSeason({
         <div className={styles.left}>
           <MonitorToggleButton
             monitored={monitored}
-            isDisabled={!seriesMonitored}
+            isDisabled={false}
             isSaving={isTogglingSeasonMonitored}
             size={24}
             onPress={handleMonitorSeasonPress}
@@ -653,10 +660,11 @@ function SeriesDetailsSeason({
                         isAlternateGroup={isAlternateGroup}
                         alternateVersionCount={alternateVersionCount}
                         isGroupExpanded={isGroupExpanded}
-                        onToggleGroupExpand={() => toggleGroupExpand(groupKey)}
+                        groupKey={groupKey}
                         isSaving={
                           isToggling && togglingEpisodeIds.includes(item.id)
                         }
+                        onToggleGroupExpand={toggleGroupExpand}
                         onMonitorEpisodePress={handleMonitorEpisodePress}
                       />
                     );

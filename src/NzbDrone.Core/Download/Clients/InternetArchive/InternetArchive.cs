@@ -64,6 +64,42 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             TrackedItems.Clear();
         }
 
+        public static void TrackTransferState(
+            string downloadId,
+            string title,
+            string outputPath,
+            long totalSize,
+            long downloadedBytes,
+            double speedBytesPerSec,
+            DownloadItemStatus status,
+            string errorMessage = null)
+        {
+            if (string.IsNullOrWhiteSpace(downloadId))
+            {
+                return;
+            }
+
+            TrackedItems[downloadId] = new InternetArchiveDownloadState
+            {
+                DownloadId = downloadId,
+                Title = title ?? Path.GetFileName(outputPath),
+                OutputPath = outputPath ?? downloadId,
+                TotalSize = Math.Max(0L, totalSize),
+                DownloadedBytes = Math.Max(0L, downloadedBytes),
+                SpeedBytesPerSec = Math.Max(0d, speedBytesPerSec),
+                Status = status,
+                ErrorMessage = errorMessage
+            };
+        }
+
+        public static void RemoveTrackedTransfer(string downloadId)
+        {
+            if (!string.IsNullOrWhiteSpace(downloadId))
+            {
+                TrackedItems.TryRemove(downloadId, out _);
+            }
+        }
+
         public override async Task<string> Download(RemoteEpisode remoteEpisode, IIndexer indexer)
         {
             var url = ResolveDownloadUrl(remoteEpisode?.Release?.DownloadUrl);

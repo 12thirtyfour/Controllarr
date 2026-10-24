@@ -50,7 +50,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
           name={icons.SERIES_CONTINUING}
           title={translate('SeriesEditor')}
           aria-label={translate('SeriesEditor')}
-          to="/serieseditor"
+          to="/platforms"
         />
       );
     case 'UpdateCheck':

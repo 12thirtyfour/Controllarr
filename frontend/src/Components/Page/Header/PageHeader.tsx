@@ -45,7 +45,7 @@ function PageHeader() {
       <div className={styles.logoContainer}>
         <Link
           className={styles.logoLink}
-          to="/series"
+          to="/platforms"
           aria-label={translate('Home')}
         >
           <img

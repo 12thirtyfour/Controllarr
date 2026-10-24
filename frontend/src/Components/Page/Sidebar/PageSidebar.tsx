@@ -68,7 +68,6 @@ const GROUPS: SidebarGroup[] = [
         iconName: icons.SERIES_CONTINUING,
         title: () => translate('Series'),
         to: '/platforms',
-        alias: '/series',
         children: [
           {
             title: () => translate('AddNew'),

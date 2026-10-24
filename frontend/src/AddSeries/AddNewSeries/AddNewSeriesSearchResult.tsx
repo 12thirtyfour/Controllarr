@@ -150,7 +150,9 @@ function AddNewSeriesSearchResult({ series }: AddNewSeriesSearchResultProps) {
 
               <Link
                 className={styles.tvdbLink}
-                to={`https://www.igdb.com/search?q=${encodeURIComponent(title)}`}
+                to={`https://www.igdb.com/search?q=${encodeURIComponent(
+                  title
+                )}`}
                 aria-label={translate('ViewSeriesOnTvdb', { title })}
                 onPress={handleTvdbLinkPress}
               >

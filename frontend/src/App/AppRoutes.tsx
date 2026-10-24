@@ -53,7 +53,10 @@ export function appRouteElements() {
 
       <Route path="/platforms" element={<SeriesIndex />} />
       <Route path="/platforms/:titleSlug" element={<SeriesDetailsPage />} />
-      <Route path="/series" element={<Navigate to="/platforms" replace={true} />} />
+      <Route
+        path="/series"
+        element={<Navigate to="/platforms" replace={true} />}
+      />
 
       <Route path="/add/new" element={<AddNewSeries />} />
 
@@ -63,12 +66,12 @@ export function appRouteElements() {
 
       <Route
         path="/serieseditor"
-        element={<Navigate to="/series" replace={true} />}
+        element={<Navigate to="/platforms" replace={true} />}
       />
 
       <Route
         path="/seasonpass"
-        element={<Navigate to="/series" replace={true} />}
+        element={<Navigate to="/platforms" replace={true} />}
       />
 
       <Route path="/series/:titleSlug" element={<SeriesDetailsPage />} />

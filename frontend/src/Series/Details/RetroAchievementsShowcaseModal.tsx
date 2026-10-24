@@ -54,50 +54,13 @@ export interface RetroAchievementsShowcaseModalProps {
   onModalClose: () => void;
 }
 
-const DEFAULT_SAMPLE_BADGES: RetroAchievementBadge[] = [
-  {
-    id: 1,
-    title: 'First Boot',
-    description: 'Verify ROM checksum and launch the title in Hardcore mode',
-    points: 5,
-    badgeName: 'ra-first-boot',
-    unlocked: true,
-    hardcoreUnlocked: true,
-  },
-  {
-    id: 2,
-    title: 'Stage Clear',
-    description: 'Complete the opening stage without using continues',
-    points: 10,
-    badgeName: 'ra-stage-clear',
-    unlocked: true,
-    hardcoreUnlocked: true,
-  },
-  {
-    id: 3,
-    title: '1G1R Collector',
-    description: 'Discover all hidden collectibles in the main campaign',
-    points: 25,
-    badgeName: 'ra-collector',
-    unlocked: true,
-    hardcoreUnlocked: false,
-  },
-  {
-    id: 4,
-    title: 'Hardcore Mastery',
-    description: 'Defeat the final boss on the highest difficulty setting',
-    points: 50,
-    badgeName: 'ra-mastery',
-    unlocked: false,
-    hardcoreUnlocked: false,
-  },
-];
+const EMPTY_BADGES: RetroAchievementBadge[] = [];
 
 function RetroAchievementsShowcaseModal({
   isOpen,
   gameTitle,
   romMd5Hash = 'd41d8cd98f00b204e9800998ecf8427e',
-  badges = DEFAULT_SAMPLE_BADGES,
+  badges = EMPTY_BADGES,
   onModalClose,
 }: RetroAchievementsShowcaseModalProps) {
   const {

@@ -1,6 +1,15 @@
-import { RetroAchievementBadge } from './RetroAchievementsShowcaseModal';
+import { useEffect, useState } from 'react';
+import {
+  RetroAchievementBadge,
+  RetroAchievementsGameProgress,
+} from './RetroAchievementsShowcaseModal';
 
-export type AchievementTier = 'none' | 'outline' | 'silver' | 'gold' | 'mastered';
+export type AchievementTier =
+  | 'none'
+  | 'outline'
+  | 'silver'
+  | 'gold'
+  | 'mastered';
 
 export interface GameAchievementSummary {
   tier: AchievementTier;
@@ -12,106 +21,136 @@ export interface GameAchievementSummary {
   badges: RetroAchievementBadge[];
 }
 
-function hashString(input: string): number {
-  let hash = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+const libraryByNormalizedTitle = new Map<
+  string,
+  RetroAchievementsGameProgress
+>();
+let loadedUserKey = '';
+let inFlightPromise: Promise<void> | null = null;
+let cacheVersion = 0;
+const listeners = new Set<() => void>();
+
+export function normalizeGameTitle(title: string): string {
+  if (!title) {
+    return '';
   }
 
-  return Math.abs(hash);
+  return title
+    .replace(/\s*\([^)]*\)|\s*\[[^\]]*\]/g, ' ')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function notifyListeners() {
+  cacheVersion += 1;
+  listeners.forEach((listener) => listener());
+}
+
+export function invalidateRetroAchievementsCache(): void {
+  loadedUserKey = '';
+  inFlightPromise = null;
+  libraryByNormalizedTitle.clear();
+  notifyListeners();
+}
+
+function ensureLibraryLoaded(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const username = (
+    window.localStorage.getItem('controllarr_ra_username') || ''
+  ).trim();
+  const apiKey = (
+    window.localStorage.getItem('controllarr_ra_apikey') || ''
+  ).trim();
+  const currentKey = `${username}:${apiKey}`;
+
+  if (!username) {
+    if (loadedUserKey !== '') {
+      loadedUserKey = '';
+      libraryByNormalizedTitle.clear();
+      notifyListeners();
+    }
+
+    return;
+  }
+
+  if (loadedUserKey === currentKey || inFlightPromise) {
+    return;
+  }
+
+  loadedUserKey = currentKey;
+  const apiRoot = window.Controllarr?.apiRoot ?? '/api/v3';
+  const appApiKey = window.Controllarr?.apiKey ?? '';
+  const query = new URLSearchParams({
+    username,
+    webApiKey: apiKey,
+  });
+
+  inFlightPromise = fetch(
+    `${apiRoot}/retroachievements/library?${query.toString()}`,
+    {
+      headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
+    }
+  )
+    .then(async (response) => {
+      if (!response.ok) {
+        return;
+      }
+
+      const items = (await response.json()) as RetroAchievementsGameProgress[];
+      libraryByNormalizedTitle.clear();
+
+      if (Array.isArray(items)) {
+        items.forEach((item) => {
+          const key = normalizeGameTitle(item.gameTitle);
+
+          if (key) {
+            libraryByNormalizedTitle.set(key, item);
+          }
+        });
+      }
+
+      notifyListeners();
+    })
+    .catch(() => {
+      // Keep empty map on network error so fake badges are never shown
+    })
+    .finally(() => {
+      inFlightPromise = null;
+    });
+}
+
+export function useRetroAchievementsLibraryVersion(): number {
+  const [version, setVersion] = useState(cacheVersion);
+
+  useEffect(() => {
+    const listener = () => setVersion(cacheVersion);
+    listeners.add(listener);
+    ensureLibraryLoaded();
+
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+
+  return version;
 }
 
 export function buildBadgesForGame(gameTitle: string): RetroAchievementBadge[] {
-  const cleanTitle = gameTitle.replace(/\s*\([^)]*\)\s*/g, '').trim() || gameTitle;
-  const h = hashString(cleanTitle.toLowerCase());
-  const storedUser =
-    typeof window !== 'undefined'
-      ? window.localStorage.getItem('controllarr_ra_username') || ''
-      : '';
-  const hasConfiguredUser = storedUser.trim().length > 0;
+  ensureLibraryLoaded();
+  const matched = libraryByNormalizedTitle.get(normalizeGameTitle(gameTitle));
 
-  // Determine deterministic tier when user is configured so user can see all 4 states across their library,
-  // with flagship titles like Super Mario Bros. showing earned achievements when configured
-  const lower = cleanTitle.toLowerCase();
-  let mode: 'outline' | 'silver' | 'gold' | 'mastered' = 'outline';
-
-  if (hasConfiguredUser) {
-    if (lower.includes('super mario bros') && !lower.includes('2') && !lower.includes('3')) {
-      mode = 'mastered';
-    } else if (
-      lower.includes('zelda') ||
-      lower.includes('metroid') ||
-      lower.includes('chrono trigger') ||
-      lower.includes('castlevania')
-    ) {
-      mode = 'gold';
-    } else if (
-      lower.includes('mega man') ||
-      lower.includes('contra') ||
-      lower.includes('sonic') ||
-      lower.includes('donkey kong')
-    ) {
-      mode = 'silver';
-    } else {
-      const bucket = h % 5;
-      if (bucket === 0) {
-        mode = 'mastered';
-      } else if (bucket === 1) {
-        mode = 'gold';
-      } else if (bucket === 2) {
-        mode = 'silver';
-      } else {
-        mode = 'outline';
-      }
-    }
-  }
-
-  return [
-    {
-      id: (h % 9000) + 101,
-      title: `${cleanTitle}: First Stage Clear`,
-      description: `Complete the opening stage or area in ${cleanTitle}`,
-      points: 5,
-      badgeName: 'ra-stage-1',
-      unlocked: mode !== 'outline',
-      hardcoreUnlocked: mode === 'gold' || mode === 'mastered',
-    },
-    {
-      id: (h % 9000) + 102,
-      title: 'Treasure Hunter',
-      description: `Find the hidden power-up or secret room in ${cleanTitle}`,
-      points: 10,
-      badgeName: 'ra-secret',
-      unlocked: mode !== 'outline',
-      hardcoreUnlocked: mode === 'gold' || mode === 'mastered',
-    },
-    {
-      id: (h % 9000) + 103,
-      title: 'No Continues Run',
-      description: `Reach the midpoint of ${cleanTitle} without using a continue`,
-      points: 25,
-      badgeName: 'ra-midboss',
-      unlocked: mode === 'gold' || mode === 'mastered',
-      hardcoreUnlocked: mode === 'gold' || mode === 'mastered',
-    },
-    {
-      id: (h % 9000) + 104,
-      title: `${cleanTitle} Champion`,
-      description: `Beat the final boss and view the ending credits of ${cleanTitle} in Hardcore mode`,
-      points: 50,
-      badgeName: 'ra-master',
-      unlocked: mode === 'mastered',
-      hardcoreUnlocked: mode === 'mastered',
-    },
-  ];
+  return matched?.badges ?? [];
 }
 
 export function getGameAchievementSummary(
   gameTitle: string,
-  seasonNumber = 1
+  seasonNumber = 1,
+  _cacheVersion = 0
 ): GameAchievementSummary {
-  // Prototypes (Season 0) generally don't have official sets unless linked
-  if (seasonNumber === 0) {
+  if (seasonNumber === 0 || seasonNumber === 99) {
     return {
       tier: 'none',
       total: 0,
@@ -123,15 +162,32 @@ export function getGameAchievementSummary(
     };
   }
 
-  const badges = buildBadgesForGame(gameTitle);
-  const total = badges.length;
-  const unlocked = badges.filter((b) => b.unlocked || b.hardcoreUnlocked).length;
-  const hardcoreUnlocked = badges.filter((b) => b.hardcoreUnlocked).length;
-  const isMastered = total > 0 && hardcoreUnlocked === total;
+  ensureLibraryLoaded();
+  const matched = libraryByNormalizedTitle.get(normalizeGameTitle(gameTitle));
+
+  if (!matched || matched.totalAchievements <= 0) {
+    return {
+      tier: 'outline',
+      total: 0,
+      unlocked: 0,
+      hardcoreUnlocked: 0,
+      masteryPercentage: 0,
+      isMastered: false,
+      badges: [],
+    };
+  }
+
+  const total = matched.totalAchievements;
+  const unlocked = matched.unlockedAchievements;
+  const hardcoreUnlocked = matched.hardcoreUnlockedAchievements;
+  const isMastered =
+    matched.isMastered || (total > 0 && hardcoreUnlocked >= total);
   const masteryPercentage =
-    total > 0 ? Math.round((unlocked / total) * 100) : 0;
+    matched.masteryPercentage ??
+    (total > 0 ? Math.round((unlocked / total) * 100) : 0);
 
   let tier: AchievementTier = 'outline';
+
   if (isMastered) {
     tier = 'mastered';
   } else if (hardcoreUnlocked > 0) {
@@ -147,6 +203,6 @@ export function getGameAchievementSummary(
     hardcoreUnlocked,
     masteryPercentage,
     isMastered,
-    badges,
+    badges: matched.badges ?? [],
   };
 }

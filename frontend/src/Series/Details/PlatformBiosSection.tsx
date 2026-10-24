@@ -25,7 +25,6 @@ import styles from './PlatformBiosSection.module.css';
 
 interface PlatformBiosSectionProps {
   platformSlug: string;
-  platformPath: string;
 }
 
 const COLUMNS: Column[] = [
@@ -56,10 +55,37 @@ const COLUMNS: Column[] = [
   },
 ];
 
-function PlatformBiosSection({
-  platformSlug,
-  platformPath,
-}: PlatformBiosSectionProps) {
+interface BiosDownloadRowButtonProps {
+  fileName: string;
+  isDownloading: boolean;
+  isSpinning: boolean;
+  onDownload: (fileName: string) => void;
+}
+
+function BiosDownloadRowButton({
+  fileName,
+  isDownloading,
+  isSpinning,
+  onDownload,
+}: BiosDownloadRowButtonProps) {
+  const handlePress = useCallback(() => {
+    onDownload(fileName);
+  }, [fileName, onDownload]);
+
+  return (
+    <SpinnerButton
+      size={sizes.SMALL}
+      kind={kinds.DEFAULT}
+      isSpinning={isSpinning}
+      isDisabled={isDownloading}
+      onPress={handlePress}
+    >
+      Download
+    </SpinnerButton>
+  );
+}
+
+function PlatformBiosSection({ platformSlug }: PlatformBiosSectionProps) {
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
@@ -85,6 +111,8 @@ function PlatformBiosSection({
       onSuccess: () => {
         setDownloadingFile(null);
         queryClient.invalidateQueries({ queryKey: ['/bios'] });
+        queryClient.invalidateQueries({ queryKey: ['/history'] });
+        queryClient.invalidateQueries({ queryKey: ['/queue'] });
       },
       onError: () => {
         setDownloadingFile(null);
@@ -130,16 +158,14 @@ function PlatformBiosSection({
           >
             {verifiedCount} / {data.length} Verified
           </Label>
-
-          <span className={styles.folderBadge}>
-            {platformPath ? `${platformPath}/bios` : 'bios/'}
-          </span>
         </div>
 
         <Link className={styles.expandButton} onPress={handleToggleExpand}>
           <Icon
             name={isExpanded ? icons.COLLAPSE : icons.EXPAND}
-            title={isExpanded ? translate('HideEpisodes') : translate('ShowEpisodes')}
+            title={
+              isExpanded ? translate('HideEpisodes') : translate('ShowEpisodes')
+            }
             size={24}
           />
         </Link>
@@ -219,20 +245,17 @@ function PlatformBiosSection({
                     </TableRowCell>
 
                     <TableRowCell>
-                      {status !== BiosVerificationStatus.Present ? (
-                        <SpinnerButton
-                          size={sizes.SMALL}
-                          kind={kinds.DEFAULT}
+                      {status === BiosVerificationStatus.Present ? (
+                        <Label kind={kinds.SUCCESS}>Ready</Label>
+                      ) : (
+                        <BiosDownloadRowButton
+                          fileName={item.fileName}
+                          isDownloading={isDownloading}
                           isSpinning={
                             isDownloading && downloadingFile === item.fileName
                           }
-                          isDisabled={isDownloading}
-                          onPress={() => handleDownloadSingle(item.fileName)}
-                        >
-                          Download
-                        </SpinnerButton>
-                      ) : (
-                        <Label kind={kinds.SUCCESS}>Ready</Label>
+                          onDownload={handleDownloadSingle}
+                        />
                       )}
                     </TableRowCell>
                   </TableRow>

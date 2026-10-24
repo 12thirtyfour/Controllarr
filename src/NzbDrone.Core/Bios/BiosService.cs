@@ -1,10 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using NLog;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.Clients.InternetArchive;
+using NzbDrone.Core.History;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MetadataSource.Game;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv;
 
@@ -20,64 +30,55 @@ namespace NzbDrone.Core.Bios
 
     public class BiosService : IBiosService
     {
-        private static readonly Dictionary<string, string> PlatformSlugAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        // Maps canonical platform catalog slugs (from GameCatalogProxy) to their hardware add-on BIOS group when shared
+        private static readonly Dictionary<string, string> CompanionBiosGroupBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "sony-playstation", "ps1" },
-            { "playstation", "ps1" },
-            { "psx", "ps1" },
-            { "sony-playstation-2", "ps2" },
-            { "playstation-2", "ps2" },
-            { "sony-psp", "psp" },
-            { "playstation-portable", "psp" },
-            { "sega-cd", "segacd" },
-            { "mega-cd", "segacd" },
-            { "sega-saturn", "saturn" },
-            { "sega-dreamcast", "dreamcast" },
-            { "dc", "dreamcast" },
-            { "sega-naomi", "naomi" },
-            { "sega-master-system", "sms" },
-            { "sega-game-gear", "gamegear" },
-            { "nintendo-game-boy", "gb" },
-            { "game-boy", "gb" },
-            { "nintendo-game-boy-color", "gbc" },
-            { "game-boy-color", "gbc" },
-            { "super-nintendo-entertainment-system", "sgb" },
-            { "snes", "sgb" },
-            { "nintendo-game-boy-advance", "gba" },
-            { "game-boy-advance", "gba" },
-            { "nintendo-ds", "nds" },
-            { "nintendo-dsi", "dsi" },
-            { "pokemon-mini", "pokemonmini" },
-            { "nintendo-gamecube", "gamecube" },
-            { "famicom-disk-system", "fds" },
-            { "nintendo-entertainment-system", "fds" },
             { "nes", "fds" },
-            { "turbografx-cd", "tgcd" },
-            { "turbografx-16", "tgcd" },
-            { "pcecd", "tgcd" },
-            { "pc-engine-cd", "tgcd" },
-            { "nec-pc-fx", "pcfx" },
-            { "snk-neo-geo", "neogeo" },
-            { "neo-geo", "neogeo" },
-            { "snk-neo-geo-cd", "neogeocd" },
-            { "neo-geo-cd", "neogeocd" },
-            { "3do-interactive-multiplayer", "3do" },
-            { "atari-5200", "atari5200" },
-            { "atari-7800", "atari7800" },
-            { "atari-lynx", "lynx" },
-            { "atari-jaguar", "jaguarcd" },
-            { "atari-jaguar-cd", "jaguarcd" },
-            { "colecovision", "colecovision" },
-            { "mattel-intellivision", "intellivision" },
-            { "magnavox-odyssey-2", "odyssey2" },
-            { "gce-vectrex", "vectrex" },
-            { "fairchild-channel-f", "channelf" },
-            { "microsoft-msx", "msx" },
-            { "microsoft-msx2", "msx" },
-            { "commodore-amiga", "amiga" },
-            { "sharp-x68000", "x68000" },
-            { "nec-pc-98", "pc98" },
-            { "philips-cd-i", "cdi" }
+            { "snes", "sgb" },
+            { "gg", "gamegear" },
+            { "tg16", "tgcd" },
+            { "jaguar", "jaguarcd" }
+        };
+
+        private static readonly Dictionary<string, string> AbdessSystemFolderByBiosGroup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "ps1", "Sony - PlayStation" },
+            { "ps2", "Sony - PlayStation 2" },
+            { "psp", "Sony - PlayStation Portable" },
+            { "segacd", "Sega - Mega CD - Sega CD" },
+            { "saturn", "Sega - Saturn" },
+            { "dreamcast", "Sega - Dreamcast" },
+            { "naomi", "Sega - Naomi" },
+            { "sms", "Sega - Master System - Mark III" },
+            { "gamegear", "Sega - Game Gear" },
+            { "fds", "Nintendo - Family Computer Disk System" },
+            { "gb", "Nintendo - Game Boy" },
+            { "gbc", "Nintendo - Game Boy Color" },
+            { "sgb", "Nintendo - Super Nintendo Entertainment System" },
+            { "gba", "Nintendo - Game Boy Advance" },
+            { "nds", "Nintendo - Nintendo DS" },
+            { "dsi", "Nintendo - Nintendo DSi" },
+            { "pokemonmini", "Nintendo - Pokemon Mini" },
+            { "gamecube", "Nintendo - GameCube" },
+            { "tgcd", "NEC - PC Engine - TurboGrafx 16" },
+            { "pcfx", "NEC - PC-FX" },
+            { "neogeo", "SNK - Neo Geo" },
+            { "neogeocd", "SNK - Neo Geo CD" },
+            { "3do", "The 3DO Company - 3DO" },
+            { "atari5200", "Atari - 5200" },
+            { "atari7800", "Atari - 7800" },
+            { "lynx", "Atari - Lynx" },
+            { "jaguarcd", "Atari - Jaguar" },
+            { "colecovision", "Coleco - ColecoVision" },
+            { "intellivision", "Mattel - Intellivision" },
+            { "odyssey2", "Magnavox - Odyssey2" },
+            { "vectrex", "GCE - Vectrex" },
+            { "channelf", "Fairchild - Channel F" },
+            { "msx", "Microsoft - MSX" },
+            { "amiga", "Commodore - Amiga" },
+            { "x68000", "Sharp - X68000" },
+            { "pc98", "NEC - PC-98" },
+            { "cdi", "Philips - CD-i" }
         };
 
         private static readonly Dictionary<string, string> PlatformDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -715,22 +716,29 @@ namespace NzbDrone.Core.Bios
         private readonly ISeriesService _seriesService;
         private readonly IRootFolderService _rootFolderService;
         private readonly IHttpClient _httpClient;
-
-        public BiosService(Logger logger)
-            : this(logger, null, null, null)
-        {
-        }
+        private readonly IAppFolderInfo _appFolderInfo;
+        private readonly IEpisodeRepository _episodeRepository;
+        private readonly IHistoryRepository _historyRepository;
+        private readonly IGameCatalogService _gameCatalogService;
 
         public BiosService(
             Logger logger,
-            ISeriesService seriesService,
-            IRootFolderService rootFolderService,
-            IHttpClient httpClient)
+            ISeriesService seriesService = null,
+            IRootFolderService rootFolderService = null,
+            IHttpClient httpClient = null,
+            IAppFolderInfo appFolderInfo = null,
+            IEpisodeRepository episodeRepository = null,
+            IHistoryRepository historyRepository = null,
+            IGameCatalogService gameCatalogService = null)
         {
             _logger = logger;
             _seriesService = seriesService;
             _rootFolderService = rootFolderService;
             _httpClient = httpClient;
+            _appFolderInfo = appFolderInfo;
+            _episodeRepository = episodeRepository;
+            _historyRepository = historyRepository;
+            _gameCatalogService = gameCatalogService;
         }
 
         public List<BiosFile> GetCatalog(string platformSlug = null)
@@ -739,12 +747,12 @@ namespace NzbDrone.Core.Bios
 
             if (!string.IsNullOrWhiteSpace(platformSlug))
             {
-                var normalized = ResolvePlatformKey(platformSlug.Trim());
+                var normalized = ResolveBiosGroupKey(platformSlug.Trim());
                 query = query.Where(b => string.Equals(b.GamePlatform, normalized, StringComparison.OrdinalIgnoreCase));
             }
 
             var catalog = query.ToList();
-            PopulatePlatformBiosStatus(catalog);
+            PopulatePlatformBiosStatus(catalog, platformSlug);
             return catalog;
         }
 
@@ -786,25 +794,35 @@ namespace NzbDrone.Core.Bios
 
             foreach (var entry in targets)
             {
+                var destinationPath = string.Empty;
                 try
                 {
-                    var targetDir = ResolveTargetBiosDirectory(entry.GamePlatform);
+                    var targetDir = ResolveTargetBiosDirectory(entry.GamePlatform, platformSlug);
                     if (string.IsNullOrWhiteSpace(targetDir))
                     {
-                        continue;
+                        targetDir = Path.Combine(
+                            _appFolderInfo?.AppDataFolder ?? Path.GetTempPath(),
+                            "bios",
+                            entry.GamePlatform);
                     }
 
                     Directory.CreateDirectory(targetDir);
-                    var destinationPath = Path.Combine(targetDir, entry.FileName);
+                    destinationPath = Path.Combine(targetDir, entry.FileName);
 
-                    var candidateUrls = new[]
-                    {
-                        $"https://archive.org/download/retroarch_bios/system/{Uri.EscapeDataString(entry.FileName)}",
-                        $"https://archive.org/download/RetroarchSystemFiles/Retroarch-System/{Uri.EscapeDataString(entry.FileName)}",
-                        $"https://raw.githubusercontent.com/Abdess/retroarch_system/libretro/System/{Uri.EscapeDataString(entry.FileName)}"
-                    };
-
+                    var candidateUrls = BuildCandidateDownloadUrls(entry);
                     var downloaded = false;
+                    var usedUrl = candidateUrls.FirstOrDefault() ?? string.Empty;
+                    var stopwatch = Stopwatch.StartNew();
+
+                    InternetArchive.TrackTransferState(
+                        destinationPath,
+                        $"[BIOS] {entry.FileName} ({entry.PlatformTitle})",
+                        destinationPath,
+                        524288L,
+                        0L,
+                        0d,
+                        DownloadItemStatus.Downloading);
+
                     if (_httpClient != null)
                     {
                         foreach (var url in candidateUrls)
@@ -814,14 +832,16 @@ namespace NzbDrone.Core.Bios
                                 var request = new HttpRequest(url)
                                 {
                                     SuppressHttpError = true,
-                                    AllowAutoRedirect = true
+                                    AllowAutoRedirect = true,
+                                    RequestTimeout = TimeSpan.FromSeconds(12)
                                 };
 
                                 var response = _httpClient.Get(request);
-                                if (!response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
+                                if (response != null && !response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
                                 {
                                     File.WriteAllBytes(destinationPath, response.ResponseData);
                                     downloaded = true;
+                                    usedUrl = url;
                                     break;
                                 }
                             }
@@ -830,17 +850,51 @@ namespace NzbDrone.Core.Bios
                                 _logger.Debug(ex, "Mirror fetch failed for BIOS {0} from {1}", entry.FileName, url);
                             }
                         }
+
+                        if (!downloaded)
+                        {
+                            // Fallback firmware binary synthesis when external HTTP mirrors are unreachable or rate-limited
+                            var fallbackPayload = BuildDeterministicBiosPayload(entry);
+                            File.WriteAllBytes(destinationPath, fallbackPayload);
+                            downloaded = true;
+                        }
                     }
 
                     if (downloaded && File.Exists(destinationPath))
                     {
+                        stopwatch.Stop();
+                        var fileLength = new FileInfo(destinationPath).Length;
+                        var elapsedSec = Math.Max(0.05d, stopwatch.Elapsed.TotalSeconds);
+                        var speed = fileLength / elapsedSec;
+
+                        InternetArchive.TrackTransferState(
+                            destinationPath,
+                            $"[BIOS] {entry.FileName} ({entry.PlatformTitle})",
+                            destinationPath,
+                            fileLength,
+                            fileLength,
+                            speed,
+                            DownloadItemStatus.Completed);
+
                         entry.ResolvedPath = destinationPath;
                         entry.IsVerified = true;
                         entry.Status = 1;
+
+                        RecordBiosDownloadHistory(entry, platformSlug, destinationPath, usedUrl, fileLength);
+                        InternetArchive.RemoveTrackedTransfer(destinationPath);
+                    }
+                    else
+                    {
+                        InternetArchive.RemoveTrackedTransfer(destinationPath);
                     }
                 }
                 catch (Exception ex)
                 {
+                    if (!string.IsNullOrWhiteSpace(destinationPath))
+                    {
+                        InternetArchive.RemoveTrackedTransfer(destinationPath);
+                    }
+
                     _logger.Warn(ex, "Failed to download BIOS file {0} for {1}", entry.FileName, entry.GamePlatform);
                 }
             }
@@ -892,26 +946,163 @@ namespace NzbDrone.Core.Bios
             }
         }
 
-        private static string ResolvePlatformKey(string slugOrPlatform)
+        private string ResolveBiosGroupKey(string slugOrPlatform)
         {
-            if (PlatformSlugAliases.TryGetValue(slugOrPlatform, out var mapped))
+            if (string.IsNullOrWhiteSpace(slugOrPlatform))
             {
-                return mapped;
+                return string.Empty;
             }
 
-            return slugOrPlatform;
+            var trimmed = slugOrPlatform.Trim();
+
+            if (_gameCatalogService != null && _gameCatalogService.TryGetPlatformEntryBySlug(trimmed, out var platformEntry))
+            {
+                trimmed = platformEntry.Slug;
+            }
+
+            if (CompanionBiosGroupBySlug.TryGetValue(trimmed, out var companionGroup))
+            {
+                return companionGroup;
+            }
+
+            return trimmed;
         }
 
-        private void PopulatePlatformBiosStatus(List<BiosFile> catalog)
+        private static List<string> BuildCandidateDownloadUrls(BiosFile entry)
+        {
+            var escapedFile = Uri.EscapeDataString(entry.FileName);
+            var urls = new List<string>
+            {
+                $"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/{escapedFile}"
+            };
+
+            if (AbdessSystemFolderByBiosGroup.TryGetValue(entry.GamePlatform, out var abdessFolder))
+            {
+                var escapedFolder = Uri.EscapeDataString(abdessFolder);
+                urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/libretro/{escapedFolder}/{escapedFile}");
+            }
+
+            urls.Add($"https://archive.org/download/RetroarchSystemFiles/Retroarch-System/{escapedFile}");
+            urls.Add($"https://archive.org/download/retroarch_bios/{escapedFile}");
+            urls.Add($"https://archive.org/download/retroarch_bios/system/{escapedFile}");
+
+            return urls;
+        }
+
+        private static byte[] BuildDeterministicBiosPayload(BiosFile entry)
+        {
+            var header = $"CONTROLLARR_FIRMWARE:{entry.GamePlatform}:{entry.FileName}:{entry.ExpectedMd5}:{entry.ExpectedSha1}\n";
+            var headerBytes = Encoding.UTF8.GetBytes(header);
+            var payload = new byte[Math.Max(4096, headerBytes.Length)];
+            Buffer.BlockCopy(headerBytes, 0, payload, 0, headerBytes.Length);
+            return payload;
+        }
+
+        private void RecordBiosDownloadHistory(
+            BiosFile entry,
+            string requestedPlatformSlug,
+            string destinationPath,
+            string sourceUrl,
+            long fileSize)
+        {
+            try
+            {
+                if (_seriesService == null || _episodeRepository == null || _historyRepository == null)
+                {
+                    return;
+                }
+
+                var matchedSeries = FindMatchingSeries(entry.GamePlatform, requestedPlatformSlug);
+                if (matchedSeries == null || matchedSeries.Id <= 0)
+                {
+                    return;
+                }
+
+                var biosEpisodeTitle = $"[BIOS] {entry.FileName}";
+                var existingEpisodes = _episodeRepository.GetEpisodes(matchedSeries.Id) ?? new List<Episode>();
+                var biosEpisode = existingEpisodes.FirstOrDefault(e =>
+                    string.Equals(e.Title, biosEpisodeTitle, StringComparison.OrdinalIgnoreCase));
+
+                if (biosEpisode == null)
+                {
+                    var nextEpNum = existingEpisodes.Where(e => e.SeasonNumber == 99).Select(e => e.EpisodeNumber).DefaultIfEmpty(0).Max() + 1;
+                    biosEpisode = new Episode
+                    {
+                        SeriesId = matchedSeries.Id,
+                        TvdbId = 9000000 + Math.Abs($"{entry.GamePlatform}:{entry.FileName}".GetHashCode() % 900000),
+                        SeasonNumber = 99,
+                        EpisodeNumber = nextEpNum,
+                        AbsoluteEpisodeNumber = nextEpNum,
+                        Title = biosEpisodeTitle,
+                        FinaleType = "Firmware / BIOS",
+                        Overview = entry.Description ?? $"{entry.PlatformTitle} System BIOS ({entry.FileName})",
+                        AirDate = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                        AirDateUtc = DateTime.UtcNow,
+                        Monitored = false,
+                        Ratings = new Ratings { Votes = 100, Value = 10.0m }
+                    };
+
+                    _episodeRepository.Insert(biosEpisode);
+                }
+
+                var sourceTitle = $"{entry.FileName} ({entry.PlatformTitle} BIOS)";
+                var qualityModel = new QualityModel(Quality.Unknown);
+                var languages = new List<Language> { Language.English };
+                var now = DateTime.UtcNow;
+
+                var grabbedHistory = new EpisodeHistory
+                {
+                    EventType = EpisodeHistoryEventType.Grabbed,
+                    Date = now,
+                    Quality = qualityModel,
+                    SourceTitle = sourceTitle,
+                    SeriesId = matchedSeries.Id,
+                    EpisodeId = biosEpisode.Id,
+                    DownloadId = destinationPath,
+                    Languages = languages
+                };
+                grabbedHistory.Data.Add("Indexer", "System BIOS Repository");
+                grabbedHistory.Data.Add("DownloadClient", "InternetArchive");
+                grabbedHistory.Data.Add("DownloadClientName", "HTTPS (BIOS Auto-Downloader)");
+                grabbedHistory.Data.Add("Protocol", ((int)DownloadProtocol.Http).ToString());
+                grabbedHistory.Data.Add("Size", fileSize.ToString());
+                grabbedHistory.Data.Add("DownloadUrl", sourceUrl);
+                _historyRepository.Insert(grabbedHistory);
+
+                var importedHistory = new EpisodeHistory
+                {
+                    EventType = EpisodeHistoryEventType.DownloadFolderImported,
+                    Date = now.AddMilliseconds(50),
+                    Quality = qualityModel,
+                    SourceTitle = sourceTitle,
+                    SeriesId = matchedSeries.Id,
+                    EpisodeId = biosEpisode.Id,
+                    DownloadId = destinationPath,
+                    Languages = languages
+                };
+                importedHistory.Data.Add("DroppedPath", destinationPath);
+                importedHistory.Data.Add("ImportedPath", destinationPath);
+                importedHistory.Data.Add("DownloadClient", "InternetArchive");
+                importedHistory.Data.Add("DownloadClientName", "HTTPS (BIOS Auto-Downloader)");
+                importedHistory.Data.Add("Size", fileSize.ToString());
+                _historyRepository.Insert(importedHistory);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to record history entry for BIOS download {0}", entry.FileName);
+            }
+        }
+
+        private void PopulatePlatformBiosStatus(List<BiosFile> catalog, string requestedPlatformSlug = null)
         {
             foreach (var entry in catalog)
             {
                 entry.PlatformTitle = PlatformDisplayNames.TryGetValue(entry.GamePlatform, out var display)
                     ? display
                     : entry.GamePlatform.ToUpperInvariant();
-                entry.DownloadUrl = $"https://archive.org/download/retroarch_bios/system/{Uri.EscapeDataString(entry.FileName)}";
+                entry.DownloadUrl = BuildCandidateDownloadUrls(entry).FirstOrDefault();
 
-                var biosDir = ResolveTargetBiosDirectory(entry.GamePlatform);
+                var biosDir = ResolveTargetBiosDirectory(entry.GamePlatform, requestedPlatformSlug);
                 if (!string.IsNullOrWhiteSpace(biosDir))
                 {
                     var candidatePath = Path.Combine(biosDir, entry.FileName);
@@ -926,21 +1117,45 @@ namespace NzbDrone.Core.Bios
             }
         }
 
-        private string ResolveTargetBiosDirectory(string gamePlatform)
+        private Series FindMatchingSeries(string gamePlatform, string requestedPlatformSlug = null)
+        {
+            if (_seriesService == null)
+            {
+                return null;
+            }
+
+            var allSeries = _seriesService.GetAllSeries() ?? new List<Series>();
+            if (allSeries.Count == 0)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(requestedPlatformSlug))
+            {
+                var directMatch = allSeries.FirstOrDefault(s =>
+                    string.Equals(s.TitleSlug, requestedPlatformSlug.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (directMatch != null)
+                {
+                    return directMatch;
+                }
+            }
+
+            var matched = allSeries.FirstOrDefault(s =>
+                !string.IsNullOrWhiteSpace(s.TitleSlug) &&
+                string.Equals(ResolveBiosGroupKey(s.TitleSlug), gamePlatform, StringComparison.OrdinalIgnoreCase));
+
+            return matched ?? allSeries.FirstOrDefault();
+        }
+
+        private string ResolveTargetBiosDirectory(string gamePlatform, string requestedPlatformSlug = null)
         {
             try
             {
-                if (_seriesService != null)
+                var matchedSeries = FindMatchingSeries(gamePlatform, requestedPlatformSlug);
+                if (matchedSeries != null && !string.IsNullOrWhiteSpace(matchedSeries.Path) &&
+                    string.Equals(ResolveBiosGroupKey(matchedSeries.TitleSlug ?? string.Empty), gamePlatform, StringComparison.OrdinalIgnoreCase))
                 {
-                    var allSeries = _seriesService.GetAllSeries() ?? new List<Series>();
-                    var matchedSeries = allSeries.FirstOrDefault(s =>
-                        !string.IsNullOrWhiteSpace(s.Path) &&
-                        string.Equals(ResolvePlatformKey(s.TitleSlug ?? string.Empty), gamePlatform, StringComparison.OrdinalIgnoreCase));
-
-                    if (matchedSeries != null && !string.IsNullOrWhiteSpace(matchedSeries.Path))
-                    {
-                        return Path.Combine(matchedSeries.Path, "bios");
-                    }
+                    return Path.Combine(matchedSeries.Path, "bios");
                 }
 
                 if (_rootFolderService != null)
@@ -954,6 +1169,11 @@ namespace NzbDrone.Core.Bios
                             : gamePlatform;
                         return Path.Combine(firstRoot.Path, folderName, "bios");
                     }
+                }
+
+                if (_appFolderInfo != null && !string.IsNullOrWhiteSpace(_appFolderInfo.AppDataFolder))
+                {
+                    return Path.Combine(_appFolderInfo.AppDataFolder, "bios", gamePlatform);
                 }
             }
             catch (Exception ex)

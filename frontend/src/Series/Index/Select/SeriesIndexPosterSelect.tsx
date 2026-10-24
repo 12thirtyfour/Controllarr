@@ -21,7 +21,10 @@ function SeriesIndexPosterSelect({
   const onSelectPress = useCallback(
     (event: SyntheticEvent<HTMLElement, PointerEvent>) => {
       if (event.nativeEvent.ctrlKey || event.nativeEvent.metaKey) {
-        window.open(`${window.Sonarr.urlBase}/series/${titleSlug}`, '_blank');
+        window.open(
+          `${window.Sonarr.urlBase}/platforms/${titleSlug}`,
+          '_blank'
+        );
         return;
       }
 

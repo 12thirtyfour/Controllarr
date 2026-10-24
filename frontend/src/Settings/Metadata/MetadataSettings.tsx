@@ -45,6 +45,7 @@ const DEFAULT_SETTINGS: GameMediaAssetSettings = {
 function loadInitialSettings(): GameMediaAssetSettings {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+
     if (raw) {
       return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
     }
@@ -61,17 +62,14 @@ function MetadataSettings() {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
 
-  const handleToggle = useCallback(
-    ({ name, value }: InputChanged<boolean>) => {
-      setValues((prev) => ({
-        ...prev,
-        [name]: Boolean(value),
-      }));
-      setHasPendingChanges(true);
-      setSavedNotice(false);
-    },
-    []
-  );
+  const handleToggle = useCallback(({ name, value }: InputChanged<boolean>) => {
+    setValues((prev) => ({
+      ...prev,
+      [name]: Boolean(value),
+    }));
+    setHasPendingChanges(true);
+    setSavedNotice(false);
+  }, []);
 
   const handleSavePress = useCallback(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
@@ -200,9 +198,7 @@ function MetadataSettings() {
               </FormRow>
 
               <FormRow size={sizes.MEDIUM}>
-                <FormLabel>
-                  Generate EmulationStation gamelist.xml
-                </FormLabel>
+                <FormLabel>Generate EmulationStation gamelist.xml</FormLabel>
                 <FormInputHelpText text="Write and update gamelist.xml inside each platform folder for ES-DE, Batocera, Knulli, and RetroBat" />
                 <CheckInput
                   name="generateGamelistXml"

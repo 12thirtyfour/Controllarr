@@ -30,7 +30,7 @@ function SeriesDetailsPage() {
     );
 
     if (renamedSeries) {
-      navigate(`/series/${renamedSeries.titleSlug}`, { replace: true });
+      navigate(`/platforms/${renamedSeries.titleSlug}`, { replace: true });
     } else {
       navigate('/');
     }

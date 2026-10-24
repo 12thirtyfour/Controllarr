@@ -59,7 +59,9 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     }
 
     if (
-      settings.standardEpisodeFormat.value.includes('S{season:00}E{episode:00}') ||
+      settings.standardEpisodeFormat.value.includes(
+        'S{season:00}E{episode:00}'
+      ) ||
       !settings.standardEpisodeFormat.value
     ) {
       updateSetting('standardEpisodeFormat', '{Episode Title}');
@@ -256,9 +258,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.TEXT}
               name="standardEpisodeFormat"
               buttons={
-                <FormInputButton
-                  onPress={handleStandardNamingModalOpenClick}
-                >
+                <FormInputButton onPress={handleStandardNamingModalOpenClick}>
                   ?
                 </FormInputButton>
               }

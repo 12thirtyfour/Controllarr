@@ -52,17 +52,12 @@ function EpisodeDetailsModalContent({
   const [currentlySelectedTab, setCurrentlySelectedTab] = useState(selectedTab);
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
-  const {
-    title: seriesTitle,
-    titleSlug,
-    monitored: seriesMonitored,
-  } = useSingleSeries(seriesId) as Series;
+  const { title: seriesTitle, titleSlug } = useSingleSeries(seriesId) as Series;
 
-  const {
-    episodeFileId,
-    seasonNumber,
-    monitored,
-  } = useEpisode(episodeId, episodeEntity) as Episode;
+  const { episodeFileId, seasonNumber, monitored } = useEpisode(
+    episodeId,
+    episodeEntity
+  ) as Episode;
 
   const { toggleEpisodesMonitored, isToggling } = useToggleEpisodesMonitored(
     getQueryKey(episodeEntity)!
@@ -108,7 +103,7 @@ function EpisodeDetailsModalContent({
           <MonitorToggleButton
             monitored={monitored}
             size={18}
-            isDisabled={!seriesMonitored}
+            isDisabled={false}
             isSaving={isToggling}
             onPress={handleMonitorEpisodePress}
           />

@@ -26,6 +26,12 @@
 * **Physical Hardware & Flash-Cart Target Verification**:
   * End-to-end validation of **Virtual Symlink Libraries** (SMB/NFS network shares and local emulator mounts) on **MiSTer FPGA** and **RetroArch**.
   * End-to-end validation of **SD Card Exporter** folder layouts and FAT32 bucketing on physical **EverDrive / FXPak Pro**, **Analogue Pocket**, **OnionOS / GarlicOS** handhelds, and **Optical Drive Emulators** (`xStation`, `GDEMU`, `Fenrir`, `GC Loader`).
+* **Torznab / Newznab Game-Specific Indexer Attributes & Volume Factors**:
+  * Extend `Torznab` and `Newznab` indexer definitions with game-specific category attributes (ROM container format hints, region tags, and download/upload ratio volume factors) for specialized private retro trackers.
+* **Live Cryptographic Hash-Gating Against HTGDB / SMDB Manifests**:
+  * Enforce automated SHA-1 / MD5 / CRC32 post-download verification against live Hardware Target Game Database (`HTGDB` / SmokeMonster `SMDB`) manifests before importing unofficial content (`ROM Hacks & Translations` and `Homebrew & Aftermarket`).
+* **Pre-Release Memory Profiling & Async Ingestion Optimization**:
+  * Memory allocation profiling and async loop tightening across large multi-thousand-entry No-Intro / Redump DAT catalog syncs and archive extraction pipelines.
 * **Binary & Host Executable Rename**:
   * Transition the compiled binary output name (`Sonarr` / `Sonarr.exe` -> `Controllarr` / `Controllarr.exe`) alongside existing `Controllarr` AppData, database, and service isolation for the `v1.0.0` Release Candidate.
 * **v1.0.0 Release Candidate (RC) & Stable Distribution**:
@@ -35,6 +41,8 @@
 
 ## Pitched Ideas & Future Enhancements (Post-1.0 Backlog)
 
+* **Embedded In-Browser WebAssembly (`Libretro` / `EmulatorJS`) Core Streaming & Cloud Save Persistence**:
+  * Expand the WebAssembly/Desktop Game Launcher (`controllarr://play/`) to stream verified ROMs directly into bundled in-browser WebAssembly Libretro cores with persistent server-side battery save (`.srm`/`.sav`) and save-state storage.
 * **Automated Multi-Disc `.m3u` Playlist Generation**:
   * Automatically generate `.m3u` playlist files referencing `Disc 1`, `Disc 2`, etc. inside multi-disc game folders during import and Virtual Library sync for seamless disc swapping in RetroArch, MiSTer, and Batocera.
 * **Cryptographic Hash-Gated Romhack & Translation Patching Pipeline**:

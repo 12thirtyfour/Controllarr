@@ -49,6 +49,7 @@ const DEFAULT_CONFIG: MetadataSourceConfig = {
 function loadInitialConfig(): MetadataSourceConfig {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+
     if (raw) {
       return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
     }

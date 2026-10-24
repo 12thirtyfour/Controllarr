@@ -51,7 +51,6 @@ import SeriesHistoryModal from 'Series/History/SeriesHistoryModal';
 import MonitoringOptionsModal from 'Series/MonitoringOptions/MonitoringOptionsModal';
 import { Image, SeriesStatus, Statistics } from 'Series/Series';
 import SeriesGenres from 'Series/SeriesGenres';
-import SeriesPoster from 'Series/SeriesPoster';
 import { getSeriesStatusDetails } from 'Series/SeriesStatus';
 import useSeries, {
   useSingleSeries,
@@ -81,6 +80,27 @@ import styles from './SeriesDetails.module.css';
 
 function getFanartUrl(images: Image[]) {
   return images.find((image) => image.coverType === 'fanart')?.url;
+}
+
+function getConsoleArtUrl(images: Image[], titleSlug?: string) {
+  const poster = images.find((image) => image.coverType === 'poster');
+
+  if (
+    poster?.remoteUrl &&
+    poster.remoteUrl.startsWith('/Content/Images/Consoles/')
+  ) {
+    return poster.remoteUrl;
+  }
+
+  if (poster?.url && poster.url.startsWith('/Content/Images/Consoles/')) {
+    return poster.url;
+  }
+
+  if (titleSlug) {
+    return `/Content/Images/Consoles/${titleSlug}.png`;
+  }
+
+  return poster?.remoteUrl || poster?.url;
 }
 
 function getDateYear(date: string) {
@@ -509,6 +529,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   }
 
   const fanartUrl = getFanartUrl(images);
+  const consoleArtUrl = getConsoleArtUrl(images, titleSlug);
   let collectionStrategyLabel = '1G1R';
 
   if (
@@ -679,18 +700,19 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                 fanartUrl ? { backgroundImage: `url(${fanartUrl})` } : undefined
               }
             >
+              {consoleArtUrl ? (
+                <img
+                  className={styles.consoleArtBackground}
+                  src={consoleArtUrl}
+                  alt=""
+                  aria-hidden="true"
+                />
+              ) : null}
+
               <div className={styles.backdropOverlay} />
             </div>
 
             <div className={styles.headerContent}>
-              <SeriesPoster
-                className={styles.poster}
-                images={images}
-                size={500}
-                lazy={false}
-                title={title}
-              />
-
               <div className={styles.info}>
                 <div className={styles.titleRow}>
                   <div className={styles.titleContainer}>
@@ -726,7 +748,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                         aria-label={translate('SeriesDetailsGoTo', {
                           title: previousSeries.title,
                         })}
-                        to={`/series/${previousSeries.titleSlug}`}
+                        to={`/platforms/${previousSeries.titleSlug}`}
                       />
                     ) : null}
 
@@ -741,7 +763,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                         aria-label={translate('SeriesDetailsGoTo', {
                           title: nextSeries.title,
                         })}
-                        to={`/series/${nextSeries.titleSlug}`}
+                        to={`/platforms/${nextSeries.titleSlug}`}
                       />
                     ) : null}
                   </div>
@@ -1028,7 +1050,6 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                       <PlatformBiosSection
                         key="bios"
                         platformSlug={titleSlug}
-                        platformPath={path}
                       />
                     );
                   }
@@ -1036,6 +1057,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                   const season = seasons.find(
                     (s) => s.seasonNumber === regionId
                   );
+
                   if (!season) {
                     return null;
                   }

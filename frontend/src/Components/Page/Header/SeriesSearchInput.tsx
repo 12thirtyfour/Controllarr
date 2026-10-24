@@ -320,7 +320,7 @@ function SeriesSearchInput() {
           ? suggestions[0]
           : suggestions[highlightedSuggestionIndex];
 
-      navigate(`/series/${selectedSuggestion.item.titleSlug}`);
+      navigate(`/platforms/${selectedSuggestion.item.titleSlug}`);
 
       inputRef.current?.blur();
       reset();
@@ -355,7 +355,7 @@ function SeriesSearchInput() {
         navigate(`/add/new?term=${encodeURIComponent(value)}`);
       } else {
         setValue('');
-        navigate(`/series/${suggestion.item.titleSlug}`);
+        navigate(`/platforms/${suggestion.item.titleSlug}`);
       }
     },
     [value, navigate]

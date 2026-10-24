@@ -11,6 +11,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
+import { invalidateRetroAchievementsCache } from 'Series/Details/gameAchievementsHelper';
 import settingsStyles from 'Settings/Settings.module.css';
 import SettingsPage from 'Settings/SettingsPage';
 import { InputChanged } from 'typings/inputs';
@@ -52,6 +53,7 @@ function RetroAchievementsSettings() {
         if (isValid) {
           window.localStorage.setItem(STORAGE_USERNAME_KEY, username.trim());
           window.localStorage.setItem(STORAGE_APIKEY_KEY, webApiKey.trim());
+          invalidateRetroAchievementsCache();
           setValidationStatus('valid');
         } else {
           setValidationStatus('invalid');

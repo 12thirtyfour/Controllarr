@@ -14,7 +14,15 @@ function findImage(images: Image[], coverType: CoverType) {
 }
 
 function getUrl(image: Image, coverType: CoverType, size: number) {
+  if (image?.remoteUrl && image.remoteUrl.startsWith('/Content/Images/')) {
+    return image.remoteUrl;
+  }
+
   const imageUrl = image?.url;
+
+  if (imageUrl && imageUrl.startsWith('/Content/Images/')) {
+    return imageUrl;
+  }
 
   return imageUrl
     ? imageUrl.replace(`${coverType}.jpg`, `${coverType}-${size}.jpg`)

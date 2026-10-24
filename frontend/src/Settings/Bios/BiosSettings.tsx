@@ -49,6 +49,38 @@ export function getPlatformSlug(item: BiosFile): string {
   return item.platformTitle || item.platformSlug || item.gamePlatform || '';
 }
 
+interface BiosDownloadButtonProps {
+  platform?: string;
+  fileName: string;
+  isDownloading: boolean;
+  isSpinning: boolean;
+  onDownload: (platform: string | undefined, fileName: string) => void;
+}
+
+function BiosDownloadButton({
+  platform,
+  fileName,
+  isDownloading,
+  isSpinning,
+  onDownload,
+}: BiosDownloadButtonProps) {
+  const handlePress = useCallback(() => {
+    onDownload(platform, fileName);
+  }, [platform, fileName, onDownload]);
+
+  return (
+    <SpinnerButton
+      size={sizes.SMALL}
+      kind={kinds.DEFAULT}
+      isSpinning={isSpinning}
+      isDisabled={isDownloading}
+      onPress={handlePress}
+    >
+      Download
+    </SpinnerButton>
+  );
+}
+
 export function getMd5Hash(item: BiosFile): string {
   return item.md5Hash || item.expectedMd5 || '';
 }
@@ -332,25 +364,18 @@ function BiosSettings() {
                       </TableRowCell>
 
                       <TableRowCell>
-                        {status !== BiosVerificationStatus.Present ? (
-                          <SpinnerButton
-                            size={sizes.SMALL}
-                            kind={kinds.DEFAULT}
+                        {status === BiosVerificationStatus.Present ? (
+                          <Label kind={kinds.SUCCESS}>Verified</Label>
+                        ) : (
+                          <BiosDownloadButton
+                            platform={item.gamePlatform}
+                            fileName={item.fileName}
+                            isDownloading={isDownloading}
                             isSpinning={
                               isDownloading && downloadingFile === item.fileName
                             }
-                            isDisabled={isDownloading}
-                            onPress={() =>
-                              handleDownloadSingle(
-                                item.gamePlatform,
-                                item.fileName
-                              )
-                            }
-                          >
-                            Download
-                          </SpinnerButton>
-                        ) : (
-                          <Label kind={kinds.SUCCESS}>Verified</Label>
+                            onDownload={handleDownloadSingle}
+                          />
                         )}
                       </TableRowCell>
                     </TableRow>

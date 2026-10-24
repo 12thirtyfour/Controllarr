@@ -113,7 +113,8 @@ const romFilePresets: Token[] = [
   },
   {
     token: '{Episode Title}/{Episode Title}',
-    example: 'Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
+    example:
+      'Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
   },
 ];
 

@@ -203,7 +203,7 @@ function SeriesIndexRow(props: SeriesIndexRowProps) {
               )}
             >
               {showBanners ? (
-                <Link className={styles.link} to={`/series/${titleSlug}`}>
+                <Link className={styles.link} to={`/platforms/${titleSlug}`}>
                   <SeriesBanner
                     className={styles.bannerImage}
                     images={images}

@@ -18,7 +18,7 @@ namespace NzbDrone.Integration.Test
 
             var resultGet = Series.All();
 
-            var logFile = "sonarr.trace.txt";
+            var logFile = "controllarr.trace.txt";
             var logLines = Logs.GetLogFileLines(logFile);
 
             var resultPost = Series.InvalidPost(new SeriesResource());

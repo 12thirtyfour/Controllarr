@@ -75,6 +75,50 @@ const PRESET_LAYOUT_EXAMPLES: Record<string, string> = {
     '{TargetFolder}/NES, {TargetFolder}/SNES, {TargetFolder}/Genesis, {TargetFolder}/GBA',
 };
 
+interface VirtualLibraryActionButtonsProps {
+  libraryId: number;
+  isSyncing: boolean;
+  onSyncNow: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+function VirtualLibraryActionButtons({
+  libraryId,
+  isSyncing,
+  onSyncNow,
+  onDelete,
+}: VirtualLibraryActionButtonsProps) {
+  const handleSyncPress = useCallback(() => {
+    onSyncNow(libraryId);
+  }, [libraryId, onSyncNow]);
+
+  const handleDeletePress = useCallback(() => {
+    onDelete(libraryId);
+  }, [libraryId, onDelete]);
+
+  return (
+    <div className={styles.libraryActions}>
+      <SpinnerButton
+        size={sizes.SMALL}
+        kind={kinds.PRIMARY}
+        isSpinning={isSyncing}
+        isDisabled={isSyncing}
+        onPress={handleSyncPress}
+      >
+        Sync Now
+      </SpinnerButton>
+
+      <Button
+        size={sizes.SMALL}
+        kind={kinds.DANGER}
+        onPress={handleDeletePress}
+      >
+        Delete
+      </Button>
+    </div>
+  );
+}
+
 function Profiles() {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
@@ -156,6 +200,7 @@ function Profiles() {
   const handleSyncNow = useCallback(
     async (id: number) => {
       setSyncingId(id);
+
       try {
         await fetchJson({
           path: getQueryPath(`/virtuallibrary/${id}/sync`),
@@ -190,7 +235,10 @@ function Profiles() {
     <SettingsPage title="Virtual Libraries" showSave={false}>
       <PageContentBody>
         <div className={settingsStyles.section}>
-          <PageHeading scope={translate('Settings')} title="Virtual Libraries" />
+          <PageHeading
+            scope={translate('Settings')}
+            title="Virtual Libraries"
+          />
 
           <div className={settingsStyles.pageSection}>
             <SectionHeading
@@ -299,25 +347,12 @@ function Profiles() {
                       ) : null}
                     </div>
 
-                    <div className={styles.libraryActions}>
-                      <SpinnerButton
-                        size={sizes.SMALL}
-                        kind={kinds.PRIMARY}
-                        isSpinning={syncingId === lib.id}
-                        isDisabled={syncingId === lib.id}
-                        onPress={() => handleSyncNow(lib.id)}
-                      >
-                        Sync Now
-                      </SpinnerButton>
-
-                      <Button
-                        size={sizes.SMALL}
-                        kind={kinds.DANGER}
-                        onPress={() => handleDelete(lib.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <VirtualLibraryActionButtons
+                      libraryId={lib.id}
+                      isSyncing={syncingId === lib.id}
+                      onSyncNow={handleSyncNow}
+                      onDelete={handleDelete}
+                    />
                   </div>
                 ))}
               </div>

@@ -59,11 +59,15 @@ export function getRegionalConsoleName(
     .replace(/^-|-$/g, '');
 
   const regionalMap = REGIONAL_CONSOLE_NAMES[normalized];
+
   if (regionalMap && regionalMap[seasonNumber]) {
     return regionalMap[seasonNumber];
   }
 
-  if (normalized.includes('nintendo-entertainment-system') && !normalized.includes('super')) {
+  if (
+    normalized.includes('nintendo-entertainment-system') &&
+    !normalized.includes('super')
+  ) {
     return seasonNumber === 3 ? 'Famicom' : null;
   }
 
@@ -75,7 +79,10 @@ export function getRegionalConsoleName(
     return seasonNumber === 2 || seasonNumber === 3 ? 'Mega Drive' : null;
   }
 
-  if (normalized.includes('turbografx-16') || normalized.includes('pc-engine')) {
+  if (
+    normalized.includes('turbografx-16') ||
+    normalized.includes('pc-engine')
+  ) {
     return seasonNumber === 3 ? 'PC Engine' : null;
   }
 
@@ -96,27 +103,33 @@ export default function formatSeason(
   }
 
   if (seasonNumber === 1) {
-    return shortFormat
-      ? 'USA'
-      : regionalConsole
-        ? `USA (NTSC-U — ${regionalConsole})`
-        : 'USA (NTSC-U)';
+    if (shortFormat) {
+      return 'USA';
+    }
+
+    return regionalConsole
+      ? `USA (NTSC-U — ${regionalConsole})`
+      : 'USA (NTSC-U)';
   }
 
   if (seasonNumber === 2) {
-    return shortFormat
-      ? 'EUR'
-      : regionalConsole
-        ? `Europe (PAL — ${regionalConsole})`
-        : 'Europe (PAL)';
+    if (shortFormat) {
+      return 'EUR';
+    }
+
+    return regionalConsole
+      ? `Europe (PAL — ${regionalConsole})`
+      : 'Europe (PAL)';
   }
 
   if (seasonNumber === 3) {
-    return shortFormat
-      ? 'JPN'
-      : regionalConsole
-        ? `Japan (NTSC-J — ${regionalConsole})`
-        : 'Japan (NTSC-J)';
+    if (shortFormat) {
+      return 'JPN';
+    }
+
+    return regionalConsole
+      ? `Japan (NTSC-J — ${regionalConsole})`
+      : 'Japan (NTSC-J)';
   }
 
   if (seasonNumber === 4) {

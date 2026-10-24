@@ -1,5 +1,11 @@
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import TextInput from 'Components/Form/TextInput';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
@@ -55,6 +61,18 @@ function AddNewSeries() {
     setTerm('');
     setIsFetching(false);
     searchInputRef.current?.focus();
+  }, []);
+
+  const handleFilterAllPress = useCallback(() => {
+    setFilterType('all');
+  }, []);
+
+  const handleFilterPlatformsPress = useCallback(() => {
+    setFilterType('platforms');
+  }, []);
+
+  const handleFilterGamesPress = useCallback(() => {
+    setFilterType('games');
   }, []);
 
   const {
@@ -139,7 +157,7 @@ function AddNewSeries() {
                 styles.filterPill,
                 filterType === 'all' && styles.filterPillActive
               )}
-              onClick={() => setFilterType('all')}
+              onClick={handleFilterAllPress}
             >
               All ({data.length})
             </button>
@@ -150,7 +168,7 @@ function AddNewSeries() {
                 styles.filterPill,
                 filterType === 'platforms' && styles.filterPillActive
               )}
-              onClick={() => setFilterType('platforms')}
+              onClick={handleFilterPlatformsPress}
             >
               Consoles / Platforms ({platformCount})
             </button>
@@ -161,7 +179,7 @@ function AddNewSeries() {
                 styles.filterPill,
                 filterType === 'games' && styles.filterPillActive
               )}
-              onClick={() => setFilterType('games')}
+              onClick={handleFilterGamesPress}
             >
               Games / ROMs ({gameCount})
             </button>
