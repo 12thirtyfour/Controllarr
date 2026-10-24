@@ -158,22 +158,22 @@ namespace NzbDrone.Common.Test
         }
 
         [Test]
-        public void should_default_to_forms_authentication_when_no_existing_value()
+        public void should_default_to_none_authentication_when_no_existing_value()
         {
             var result = Subject.AuthenticationMethod;
 
-            result.Should().Be(AuthenticationType.Forms);
+            result.Should().Be(AuthenticationType.None);
         }
 
         [Test]
-        public void should_coerce_none_in_config_file_to_forms()
+        public void should_preserve_none_in_config_file()
         {
             Subject.SetValue("AuthenticationMethod", AuthenticationType.None);
 
             var result = Subject.AuthenticationMethod;
 
-            result.Should().Be(AuthenticationType.Forms);
-            Subject.GetValue("AuthenticationMethod", string.Empty).Should().Be("forms");
+            result.Should().Be(AuthenticationType.None);
+            Subject.GetValue("AuthenticationMethod", string.Empty).Should().Be("none");
         }
 
         [Test]

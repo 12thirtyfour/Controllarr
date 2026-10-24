@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Authentication
 {
     public class InitialUserService : IHandle<ApplicationStartedEvent>
     {
-        private const string DefaultUsername = "sonarr";
+        private const string DefaultUsername = "controllarr";
         private const int GeneratedPasswordLength = 20;
 
         private readonly IUserService _userService;

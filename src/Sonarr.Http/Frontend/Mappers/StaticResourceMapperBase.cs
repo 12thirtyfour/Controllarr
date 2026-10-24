@@ -41,7 +41,7 @@ namespace Sonarr.Http.Frontend.Mappers
             return filePath.StartsWith(parentPath) ? filePath : null;
         }
 
-        public Task<IActionResult> GetResponse(HttpContext context, string resourceUrl)
+        public virtual Task<IActionResult> GetResponse(HttpContext context, string resourceUrl)
         {
             var filePath = Map(resourceUrl);
 

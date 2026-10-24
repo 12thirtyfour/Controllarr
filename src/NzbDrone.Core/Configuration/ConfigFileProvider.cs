@@ -233,10 +233,10 @@ namespace NzbDrone.Core.Configuration
 #pragma warning restore CS0618 // Type or member is obsolete
                 }
 
-                var value = GetValueEnum("AuthenticationMethod", AuthenticationType.Forms);
+                var value = GetValueEnum("AuthenticationMethod", AuthenticationType.None);
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                if (value is AuthenticationType.Basic or AuthenticationType.None)
+                if (value is AuthenticationType.Basic)
 #pragma warning restore CS0618 // Type or member is obsolete
                 {
                     SetValue("AuthenticationMethod", AuthenticationType.Forms);

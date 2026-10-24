@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Test.Authentication
             Subject.Handle(new ApplicationStartedEvent());
 
             Mocker.GetMock<IUserService>()
-                .Verify(c => c.Add("sonarr", It.Is<string>(p => p.Length == 20)), Times.Once());
+                .Verify(c => c.Add("controllarr", It.Is<string>(p => p.Length == 20)), Times.Once());
         }
 
         [Test]
@@ -73,6 +73,19 @@ namespace NzbDrone.Core.Test.Authentication
             Mocker.GetMock<IUserService>()
                 .Setup(c => c.FindUser())
                 .Returns(new User { Username = "existing" });
+
+            Subject.Handle(new ApplicationStartedEvent());
+
+            Mocker.GetMock<IUserService>()
+                .Verify(c => c.Add(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void should_not_seed_when_authentication_method_is_none()
+        {
+            Mocker.GetMock<IConfigFileProvider>()
+                .SetupGet(c => c.AuthenticationMethod)
+                .Returns(AuthenticationType.None);
 
             Subject.Handle(new ApplicationStartedEvent());
 
@@ -123,7 +136,7 @@ namespace NzbDrone.Core.Test.Authentication
                 .Verify(c => c.Add(string.Empty, string.Empty), Times.Never());
 
             Mocker.GetMock<IUserService>()
-                .Verify(c => c.Add("sonarr", It.Is<string>(p => p.Length == 20)), Times.Once());
+                .Verify(c => c.Add("controllarr", It.Is<string>(p => p.Length == 20)), Times.Once());
         }
 
         [Test]
