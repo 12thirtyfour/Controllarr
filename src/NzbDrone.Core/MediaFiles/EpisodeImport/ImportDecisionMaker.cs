@@ -113,6 +113,22 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             try
             {
                 var fileEpisodeInfo = Parser.Parser.ParsePath(localEpisode.Path);
+                var trackedDownload = downloadClientItem?.DownloadId.IsNotNullOrWhiteSpace() == true
+                    ? _trackedDownloadService.Find(downloadClientItem.DownloadId)
+                    : null;
+
+                if (fileEpisodeInfo == null && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
+                {
+                    fileEpisodeInfo = trackedDownload.RemoteEpisode.ParsedEpisodeInfo ?? new ParsedEpisodeInfo
+                    {
+                        ReleaseTitle = downloadClientItem.Title,
+                        SeriesTitle = trackedDownload.RemoteEpisode.Series?.Title,
+                        SeasonNumber = trackedDownload.RemoteEpisode.Episodes.First().SeasonNumber,
+                        EpisodeNumbers = trackedDownload.RemoteEpisode.Episodes.Select(e => e.EpisodeNumber).ToArray(),
+                        Quality = trackedDownload.RemoteEpisode.ParsedEpisodeInfo?.Quality ?? new Qualities.QualityModel(Qualities.Quality.Unknown),
+                        Languages = trackedDownload.RemoteEpisode.Languages
+                    };
+                }
 
                 localEpisode.FileEpisodeInfo = fileEpisodeInfo;
                 localEpisode.Size = _diskProvider.GetFileSize(localEpisode.Path);
@@ -122,6 +138,11 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                                            ReleaseType.Unknown;
 
                 _aggregationService.Augment(localEpisode, downloadClientItem);
+
+                if (localEpisode.Episodes.Empty() && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
+                {
+                    localEpisode.Episodes = trackedDownload.RemoteEpisode.Episodes;
+                }
 
                 if (localEpisode.Episodes.Empty())
                 {
@@ -142,7 +163,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                 {
                     if (downloadClientItem?.DownloadId.IsNotNullOrWhiteSpace() == true)
                     {
-                        var trackedDownload = _trackedDownloadService.Find(downloadClientItem.DownloadId);
+                        trackedDownload ??= _trackedDownloadService.Find(downloadClientItem.DownloadId);
 
                         if (trackedDownload?.RemoteEpisode?.Release?.IndexerFlags != null)
                         {

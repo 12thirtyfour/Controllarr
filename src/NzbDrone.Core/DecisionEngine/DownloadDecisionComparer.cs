@@ -88,7 +88,17 @@ namespace NzbDrone.Core.DecisionEngine
                 }
             }
 
-            // 1G1R Tie-Breaking
+            // 1G1R Tie-Breaking: Demos, Protos, Betas, and Samples are never considered for 1G1R
+            if (series.CollectionStrategy != Games.CollectionStrategy.Preservationist)
+            {
+                var xPreRelease = IsPreReleaseRom(xRomInfo);
+                var yPreRelease = IsPreReleaseRom(yRomInfo);
+                if (xPreRelease != yPreRelease)
+                {
+                    return xPreRelease ? 1 : -1;
+                }
+            }
+
             if (series.CollectionStrategy == Games.CollectionStrategy.OneGameOneRom ||
                 (series.CollectionStrategy == Games.CollectionStrategy.OneGamePerRegionPerConsole &&
                  string.Equals(xRomInfo.Regions?.FirstOrDefault(), yRomInfo.Regions?.FirstOrDefault(), StringComparison.OrdinalIgnoreCase)))
@@ -125,6 +135,30 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             return 0;
+        }
+
+        private static bool IsPreReleaseRom(ParsedRomInfo romInfo)
+        {
+            if (romInfo == null)
+            {
+                return false;
+            }
+
+            if (romInfo.DumpTags != null && romInfo.DumpTags.Any(t =>
+                t.StartsWith("Proto", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Beta", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Demo", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Sample", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Promo", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var raw = romInfo.ReleaseTitle ?? string.Empty;
+            return raw.Contains("(Proto", StringComparison.OrdinalIgnoreCase) ||
+                   raw.Contains("(Beta", StringComparison.OrdinalIgnoreCase) ||
+                   raw.Contains("(Demo", StringComparison.OrdinalIgnoreCase) ||
+                   raw.Contains("(Sample", StringComparison.OrdinalIgnoreCase);
         }
 
         private int CompareBy<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)

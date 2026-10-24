@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Games
@@ -10,11 +11,14 @@ namespace NzbDrone.Core.Games
         CollectionStrategy ResolveEffectiveStrategy(GamePlatform platform, CollectionStrategy globalDefault = CollectionStrategy.OneGameOneRom);
         List<ParsedRomInfo> FilterCandidates(IEnumerable<ParsedRomInfo> candidates, CollectionStrategy strategy, RevisionPreference revisionPreference, string pinnedVersion = null, IReadOnlyList<string> preferredRegions = null);
         int GetRegionRank(ParsedRomInfo romInfo, IReadOnlyList<string> preferredRegions = null);
+        bool IsPreReleaseCandidate(ParsedRomInfo romInfo);
     }
 
     public class CollectionStrategyService : ICollectionStrategyService
     {
         private static readonly string[] DefaultPreferredRegions = { "USA", "World", "Europe", "Japan" };
+        private static readonly string[] PreReleaseTags = { "Beta", "Proto", "Prototype", "Demo", "Sample", "Promo", "Preview", "Kiosk" };
+        private static readonly Regex PreReleaseRegex = new Regex(@"\b(Proto|Prototype|Beta|Demo|Sample|Promo|Preview|Kiosk)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public CollectionStrategy ResolveEffectiveStrategy(GamePlatform platform, CollectionStrategy globalDefault = CollectionStrategy.OneGameOneRom)
         {
@@ -24,6 +28,36 @@ namespace NzbDrone.Core.Games
             }
 
             return platform.CollectionStrategy;
+        }
+
+        public bool IsPreReleaseCandidate(ParsedRomInfo romInfo)
+        {
+            if (romInfo == null)
+            {
+                return false;
+            }
+
+            if (romInfo.DumpTags != null && romInfo.DumpTags.Any(t => PreReleaseTags.Any(p => t.StartsWith(p, StringComparison.OrdinalIgnoreCase))))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(romInfo.Revision) && PreReleaseRegex.IsMatch(romInfo.Revision))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(romInfo.Version) && PreReleaseRegex.IsMatch(romInfo.Version))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(romInfo.ReleaseTitle) && PreReleaseRegex.IsMatch(romInfo.ReleaseTitle))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public List<ParsedRomInfo> FilterCandidates(
@@ -39,7 +73,14 @@ namespace NzbDrone.Core.Games
             }
 
             var candidateList = candidates.Where(c => c != null).ToList();
-            if (candidateList.Count <= 1 || strategy == CollectionStrategy.Preservationist)
+            if (strategy == CollectionStrategy.Preservationist)
+            {
+                return candidateList;
+            }
+
+            // Demos, Protos, Betas, and Samples are never considered for 1G1R
+            candidateList = candidateList.Where(c => !IsPreReleaseCandidate(c)).ToList();
+            if (candidateList.Count == 0)
             {
                 return candidateList;
             }

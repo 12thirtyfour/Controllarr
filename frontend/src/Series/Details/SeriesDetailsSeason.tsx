@@ -248,11 +248,20 @@ function SeriesDetailsSeason({
         return aPre - bPre;
       });
 
+      const retailEntries = entries.filter(
+        (e) => !isPreReleaseLabel(e.versionLabel)
+      );
+
+      // Demos, Protos, Betas, and Samples are never considered for 1G1R at all
+      if (!isCompletionist && retailEntries.length === 0) {
+        return;
+      }
+
       const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
       const alternateVersionCount =
         !isCompletionist && entries.length > 1 ? entries.length - 1 : 0;
 
-      if (isCompletionist || isGroupExpanded || entries.length === 1) {
+      if (isCompletionist || isGroupExpanded) {
         entries.forEach((entry, idx) => {
           rows.push({
             item: entry.item,
@@ -264,17 +273,14 @@ function SeriesDetailsSeason({
           });
         });
       } else {
-        const retailEntries = entries.filter(
-          (e) => !isPreReleaseLabel(e.versionLabel)
+        const monitoredRetailEntry = retailEntries.find(
+          (e) => e.item.monitored
         );
-        const candidateEntries =
-          retailEntries.length > 0 ? retailEntries : entries;
-        const monitoredEntry = candidateEntries.find((e) => e.item.monitored);
         const preferredEntry =
-          monitoredEntry ??
+          monitoredRetailEntry ??
           (preferOriginalRelease
-            ? candidateEntries[0]
-            : candidateEntries[candidateEntries.length - 1]);
+            ? retailEntries[0]
+            : retailEntries[retailEntries.length - 1]);
 
         rows.push({
           item: preferredEntry.item,

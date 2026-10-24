@@ -377,7 +377,7 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'progress') {
           return (
             <TableRowCell key={name} className={styles.progress}>
-              {!!progress && (
+              {size > 0 && progress >= 0 && (
                 <ProgressBar
                   ariaLabel={translate('DownloadProgressForTitle', { title })}
                   progress={progress}

@@ -27,6 +27,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
         [SetUp]
         public void SetUp()
         {
+            InternetArchive.ClearTrackedItems();
             _settings = new InternetArchiveSettings
             {
                 UrlBase = "https://archive.org",
@@ -204,6 +205,31 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
             Func<Task> act = async () => await Subject.Download(remoteEpisode, null);
 
             act.Should().ThrowAsync<SecurityException>().WithMessage("*Path Traversal*");
+        }
+
+        [Test]
+        public async Task should_report_completed_item_in_get_items_and_remove_item()
+        {
+            var payload = new byte[4096];
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(new HttpResponse(new HttpRequest("https://archive.org/download/test.zip"), new HttpHeader(), payload));
+
+            var release = new ReleaseInfo { DownloadUrl = "https://archive.org/download/test.zip", Title = "Super Mario Bros. (USA)", Size = payload.Length };
+            var remoteEpisode = new RemoteEpisode { Release = release };
+
+            var downloadId = await Subject.Download(remoteEpisode, null);
+
+            var items = Subject.GetItems().ToList();
+            items.Should().ContainSingle();
+            items[0].DownloadId.Should().Be(downloadId);
+            items[0].Title.Should().Be("Super Mario Bros. (USA)");
+            items[0].TotalSize.Should().Be(payload.Length);
+            items[0].RemainingSize.Should().Be(0);
+            items[0].Status.Should().Be(DownloadItemStatus.Completed);
+
+            Subject.RemoveItem(items[0], false);
+            Subject.GetItems().Should().BeEmpty();
         }
     }
 }

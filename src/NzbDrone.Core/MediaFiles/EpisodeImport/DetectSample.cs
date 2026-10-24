@@ -85,6 +85,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
 
             var extension = Path.GetExtension(path);
 
+            if (!string.IsNullOrWhiteSpace(extension) && MediaFileExtensions.RomExtensions.Contains(extension))
+            {
+                _logger.Debug("Skipping sample check for console ROM/archive file ({0})", extension);
+                return DetectSampleResult.NotSample;
+            }
+
             if (extension != null && extension.Equals(".flv", StringComparison.InvariantCultureIgnoreCase))
             {
                 _logger.Debug("Skipping sample check for .flv file");

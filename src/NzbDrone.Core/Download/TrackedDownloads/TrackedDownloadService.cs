@@ -156,7 +156,13 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                         // Try parsing the original source title and if that fails, try parsing it as a special
                         // TODO: Pass the TVDB ID and TVRage IDs in as well so we have a better chance for finding the item
                         parsedEpisodeInfo = Parser.Parser.ParseTitle(firstHistoryItem.SourceTitle) ??
-                                            _parsingService.ParseSpecialEpisodeTitle(parsedEpisodeInfo, firstHistoryItem.SourceTitle, 0, 0, null);
+                                            _parsingService.ParseSpecialEpisodeTitle(parsedEpisodeInfo, firstHistoryItem.SourceTitle, 0, 0, null) ??
+                                            new ParsedEpisodeInfo
+                                            {
+                                                ReleaseTitle = firstHistoryItem.SourceTitle,
+                                                Quality = firstHistoryItem.Quality,
+                                                Languages = firstHistoryItem.Languages
+                                            };
 
                         if (parsedEpisodeInfo != null)
                         {

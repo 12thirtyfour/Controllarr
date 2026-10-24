@@ -1,12 +1,15 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.AutoTagging;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Core.Tv.Events;
@@ -227,6 +230,8 @@ namespace NzbDrone.Core.Tv
                         episodeMonitoredChanged = true;
                     }
                 }
+
+                ApplyOneGameOneRomMonitoringIfNeeded(series, storedSeries, ref episodeMonitoredChanged);
             }
 
             // Never update AddOptions when updating a series, keep it the same as the existing stored series.
@@ -240,6 +245,75 @@ namespace NzbDrone.Core.Tv
             }
 
             return updatedSeries;
+        }
+
+        private void ApplyOneGameOneRomMonitoringIfNeeded(Series series, Series storedSeries, ref bool episodeMonitoredChanged)
+        {
+            var isCatalogPlatform = series?.Seasons != null && series.Seasons.Any(s =>
+                s.SeasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
+                s.SeasonNumber == GameCatalogProxy.RegionRomHacksSeason);
+
+            if (!isCatalogPlatform || series.CollectionStrategy == CollectionStrategy.Preservationist)
+            {
+                return;
+            }
+
+            if (!episodeMonitoredChanged &&
+                (storedSeries == null ||
+                 (series.CollectionStrategy == storedSeries.CollectionStrategy &&
+                  series.RevisionPreference == storedSeries.RevisionPreference)))
+            {
+                return;
+            }
+
+            var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+            if (!allEpisodes.Any())
+            {
+                return;
+            }
+
+            var monitoredSeasonSet = series.Seasons.Where(s => s.Monitored).Select(s => s.SeasonNumber).ToHashSet();
+            var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
+
+            foreach (var group in allEpisodes
+                .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
+            {
+                var groupList = group.ToList();
+                var retailList = groupList
+                    .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
+                    .ToList();
+
+                if (retailList.Count == 0)
+                {
+                    foreach (var item in groupList)
+                    {
+                        item.Monitored = false;
+                    }
+
+                    continue;
+                }
+
+                var preferred = preferInitial ? retailList.First() : retailList.Last();
+                foreach (var item in groupList)
+                {
+                    item.Monitored = item.Id == preferred.Id;
+                }
+            }
+
+            _episodeService.UpdateEpisodes(allEpisodes);
+            episodeMonitoredChanged = true;
+        }
+
+        private static string ExtractBaseTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var idx = title.IndexOf(" (", StringComparison.Ordinal);
+            return idx > 0 ? title.Substring(0, idx).Trim() : title.Trim();
         }
 
         public List<Series> UpdateSeries(List<Series> series, bool moveFiles)
