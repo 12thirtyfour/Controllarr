@@ -453,8 +453,131 @@ namespace NzbDrone.Core.Configuration
         public int BackupRetention => GetValueInt("BackupRetention", 28);
 
         // IGDB
-        public string IgdbClientId => GetValue("IgdbClientId", string.Empty);
-        public string IgdbClientSecret => GetValue("IgdbClientSecret", string.Empty);
+        public string IgdbClientId
+        {
+            get { return GetValue("IgdbClientId", string.Empty); }
+            set { SetValue("IgdbClientId", value); }
+        }
+
+        public string IgdbClientSecret
+        {
+            get { return GetValue("IgdbClientSecret", string.Empty); }
+            set { SetValue("IgdbClientSecret", value); }
+        }
+
+        public bool EnableNoIntroLibretro
+        {
+            get { return GetValueBoolean("EnableNoIntroLibretro", true); }
+            set { SetValue("EnableNoIntroLibretro", value); }
+        }
+
+        public bool EnableHtgdbSmdb
+        {
+            get { return GetValueBoolean("EnableHtgdbSmdb", true); }
+            set { SetValue("EnableHtgdbSmdb", value); }
+        }
+
+        public bool EnableLaunchBox
+        {
+            get { return GetValueBoolean("EnableLaunchBox", true); }
+            set { SetValue("EnableLaunchBox", value); }
+        }
+
+        public bool EnableIgdb
+        {
+            get { return GetValueBoolean("EnableIgdb", false); }
+            set { SetValue("EnableIgdb", value); }
+        }
+
+        public bool EnableScreenScraper
+        {
+            get { return GetValueBoolean("EnableScreenScraper", false); }
+            set { SetValue("EnableScreenScraper", value); }
+        }
+
+        public string ScreenScraperUsername
+        {
+            get { return GetValue("ScreenScraperUsername", string.Empty); }
+            set { SetValue("ScreenScraperUsername", value); }
+        }
+
+        public string ScreenScraperPassword
+        {
+            get { return GetValue("ScreenScraperPassword", string.Empty); }
+            set { SetValue("ScreenScraperPassword", value); }
+        }
+
+        public bool EnableTheGamesDb
+        {
+            get { return GetValueBoolean("EnableTheGamesDb", false); }
+            set { SetValue("EnableTheGamesDb", value); }
+        }
+
+        public string TheGamesDbApiKey
+        {
+            get { return GetValue("TheGamesDbApiKey", string.Empty); }
+            set { SetValue("TheGamesDbApiKey", value); }
+        }
+
+        public bool MetadataBoxArt2d
+        {
+            get { return GetValueBoolean("MetadataBoxArt2d", true); }
+            set { SetValue("MetadataBoxArt2d", value); }
+        }
+
+        public bool MetadataBoxArt3d
+        {
+            get { return GetValueBoolean("MetadataBoxArt3d", true); }
+            set { SetValue("MetadataBoxArt3d", value); }
+        }
+
+        public bool MetadataTitleScreens
+        {
+            get { return GetValueBoolean("MetadataTitleScreens", true); }
+            set { SetValue("MetadataTitleScreens", value); }
+        }
+
+        public bool MetadataScreenshots
+        {
+            get { return GetValueBoolean("MetadataScreenshots", true); }
+            set { SetValue("MetadataScreenshots", value); }
+        }
+
+        public bool MetadataClearLogos
+        {
+            get { return GetValueBoolean("MetadataClearLogos", true); }
+            set { SetValue("MetadataClearLogos", value); }
+        }
+
+        public bool MetadataMediaScans
+        {
+            get { return GetValueBoolean("MetadataMediaScans", false); }
+            set { SetValue("MetadataMediaScans", value); }
+        }
+
+        public bool MetadataVideoPreviews
+        {
+            get { return GetValueBoolean("MetadataVideoPreviews", false); }
+            set { SetValue("MetadataVideoPreviews", value); }
+        }
+
+        public bool MetadataManualsPdf
+        {
+            get { return GetValueBoolean("MetadataManualsPdf", true); }
+            set { SetValue("MetadataManualsPdf", value); }
+        }
+
+        public bool MetadataPublishingMetadata
+        {
+            get { return GetValueBoolean("MetadataPublishingMetadata", true); }
+            set { SetValue("MetadataPublishingMetadata", value); }
+        }
+
+        public bool MetadataGenerateGamelistXml
+        {
+            get { return GetValueBoolean("MetadataGenerateGamelistXml", true); }
+            set { SetValue("MetadataGenerateGamelistXml", value); }
+        }
 
         public CertificateValidationType CertificateValidation =>
             GetValueEnum("CertificateValidation", CertificateValidationType.Enabled);

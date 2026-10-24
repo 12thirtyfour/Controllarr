@@ -11,6 +11,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
+using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
@@ -43,6 +44,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly ILocalEpisodeCustomFormatCalculationService _localEpisodeFormatCalculator;
         private readonly IEventAggregator _eventAggregator;
+        private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
         private readonly Logger _logger;
 
         public ManualImportService(IDiskProvider diskProvider,
@@ -59,7 +61,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                                    ILocalEpisodeCustomFormatCalculationService localEpisodeFormatCalculator,
                                    ICustomFormatCalculationService formatCalculator,
                                    IEventAggregator eventAggregator,
-                                   Logger logger)
+                                   Logger logger,
+                                   IUnmanagedDiskScanner unmanagedDiskScanner = null)
         {
             _diskProvider = diskProvider;
             _parsingService = parsingService;
@@ -76,6 +79,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             _formatCalculator = formatCalculator;
             _eventAggregator = eventAggregator;
             _logger = logger;
+            _unmanagedDiskScanner = unmanagedDiskScanner;
         }
 
         public List<ManualImportItem> GetMediaFiles(int seriesId, int? seasonNumber)
@@ -93,7 +97,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 var unmappedFiles = MediaFileService.FilterExistingFiles(mediaFiles, seriesFiles, series);
 
                 items.AddRange(unmappedFiles.Select(file =>
-                    new ManualImportItem
+                {
+                    var item = new ManualImportItem
                     {
                         Path = Path.Combine(series.Path, file),
                         FolderName = directoryInfo.Name,
@@ -107,7 +112,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                         Languages = new List<Language> { Language.Unknown },
                         Size = _diskProvider.GetFileSize(file),
                         Rejections = Enumerable.Empty<ImportRejection>()
-                    }));
+                    };
+                    _unmanagedDiskScanner?.EnrichItem(item);
+                    return item;
+                }));
             }
 
             return items;
@@ -365,7 +373,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 _logger.Warn(ex, "Failed to process file: {0}", file);
             }
 
-            return new ManualImportItem
+            var fallbackItem = new ManualImportItem
             {
                 DownloadId = downloadId,
                 Path = file,
@@ -374,6 +382,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 Size = _diskProvider.GetFileSize(file),
                 Rejections = new List<ImportRejection>()
             };
+            _unmanagedDiskScanner?.EnrichItem(fallbackItem);
+            return fallbackItem;
         }
 
         private List<ManualImportItem> ProcessDownloadDirectory(string rootFolder, List<string> videoFiles)
@@ -459,6 +469,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 }
             }
 
+            _unmanagedDiskScanner?.EnrichItem(item);
+
             return item;
         }
 
@@ -482,6 +494,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             item.Rejections = Enumerable.Empty<ImportRejection>();
             item.EpisodeFileId = episodeFile.Id;
             item.CustomFormats = _formatCalculator.ParseCustomFormat(episodeFile, series);
+
+            _unmanagedDiskScanner?.EnrichItem(item);
 
             return item;
         }

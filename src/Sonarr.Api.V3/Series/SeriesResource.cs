@@ -54,6 +54,7 @@ namespace Sonarr.Api.V3.Series
         public NzbDrone.Core.Games.CollectionStrategy CollectionStrategy { get; set; }
         public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; }
         public string PinnedVersion { get; set; }
+        public string PreferredArchiveFormat { get; set; }
 
         public bool UseSceneNumbering { get; set; }
         public int Runtime { get; set; }
@@ -136,6 +137,7 @@ namespace Sonarr.Api.V3.Series
                        CollectionStrategy = model.CollectionStrategy,
                        RevisionPreference = model.RevisionPreference,
                        PinnedVersion = model.PinnedVersion,
+                       PreferredArchiveFormat = model.PreferredArchiveFormat,
 
                        UseSceneNumbering = model.UseSceneNumbering,
                        Runtime = model.Runtime,
@@ -211,6 +213,7 @@ namespace Sonarr.Api.V3.Series
                        CollectionStrategy = resource.CollectionStrategy,
                        RevisionPreference = resource.RevisionPreference,
                        PinnedVersion = resource.PinnedVersion,
+                       PreferredArchiveFormat = resource.PreferredArchiveFormat ?? resource.Certification,
 
                        UseSceneNumbering = resource.UseSceneNumbering,
                        Runtime = resource.Runtime,

@@ -13,6 +13,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.0-beta.7] - 2026-10-24
+
+### Added
+- **Multi-Provider Game Metadata Pipeline (`IGDB`, `ScreenScraper.fr`, `TheGamesDB`, `Libretro / No-Intro / Redump`, `HTGDB / SMDB`, `LaunchBox`)**:
+  - Wired `MetadataSourceSettings.tsx` (`Settings -> Metadata Sources`) to persistent backend configuration (`IConfigService` / `ConfigService`) via `GameMetadataSettingsController` (`GET/POST /api/v3/gamemetadata/sources`).
+  - Expanded `IgdbMetadataProxy` (`IGameMetadataProxy`) to query **IGDB** (via Twitch OAuth2), **TheGamesDB API**, and **ScreenScraper.fr API** when enabled, and wired `GameCatalogProxy` to respect provider toggles for No-Intro/Redump/Libretro, SmokeMonster HTGDB/SMDB, and LaunchBox feeds.
+- **EmulationStation / Batocera / RetroDeck `gamelist.xml` & Media Asset Pipeline**:
+  - Wired `MetadataSettings.tsx` (`Settings -> Metadata`) to persistent backend configuration via `GET/POST /api/v3/gamemetadata/assets` and `GameMediaAssetService` (`IGameMediaAssetService`).
+  - Automatically generates and updates per-platform `gamelist.xml` manifests (including `<path>`, `<name>`, `<desc>`, `<releasedate>`, `<developer>`, `<publisher>`, `<image>`, `<marquee>`, `<video>`, and `<manual>` tags governed by the user's asset toggles) on platform refresh (`SeriesRefreshCompleteEvent`), ROM import (`EpisodeImportedEvent`), and settings save.
+- **Local DAT & SMDB Cryptographic Hash Catalog Import (`DatParserService`, `SmdbParserService`, `DatCacheService`)**:
+  - Wired `DatParserService` (expanded to parse both Logiqx XML `.dat` and ClrMamePro `.dat` formats), `SmdbParserService` (SmokeMonster HTGDB tab-delimited SHA-256/SHA-1/MD5/CRC32 `.txt`/`.smdb` manifests), and `DatCacheService` (`DatFiles` and `DatEntries` tables) into `GameMediaAssetService`, `GameMetadataSettingsController` (`GET /api/v3/gamemetadata/dats` and `POST /api/v3/gamemetadata/dats/import`), and `GameCatalogProxy`.
+  - Added a **Local DAT / SMDB Hash Catalog Import** section in `MetadataSourceSettings.tsx` supporting browser file uploads (`.dat`, `.xml`, `.txt`, `.smdb`) and server file path imports.
+- **ROM Post-Processing Pipeline (`SidecarSaveService`, `DiscCompressionService`, `ArchiveExtractionService`, `ArchiveRepackService`, `UnmanagedDiskScanner`)**:
+  - **Sidecar Battery Save & Patch Mobility (`SidecarSaveService`)**: Wired into `EpisodeFileMovingService` so `.srm`, `.sav`, `.eep`, `.fla`, `.sra`, `.state`, `.ips`, `.bps`, and `.ups` sidecar files automatically move/copy and rename alongside their parent ROM.
+  - **Disc Compression (`chdman` / `dolphin-tool`) & Multi-Disc `.m3u` Playlist Generation (`DiscCompressionService`)**: Wired into `EpisodeFileMovingService`, respecting both platform-specific (`Series.PreferredArchiveFormat`) and global (`RomArchiveHandling`) compression settings, and automatically generating `.m3u` playlists for multi-disc games (`(Disc 1)`, `(Disc 2)`, etc.).
+  - **Archive Extraction & Single-ROM `.zip` Repackaging (`ArchiveExtractionService` & `ArchiveRepackService`)**: Wired into `EpisodeFileMovingService` to extract compressed archives when `Extract` is configured or repackage uncompressed cartridge ROMs into single-file `.zip` archives when `Keep / Compress as .zip` is configured.
+  - **Interactive Manual Import Hash & Catalog Enrichment (`UnmanagedDiskScanner`)**: Wired `IUnmanagedDiskScanner.EnrichItem` into `ManualImportService` to compute `CRC32`, `MD5`, `SHA-1`, and `SHA-256` hashes (including zero-extraction `.zip` inspection) and verify against the local `IDatCacheService` during Interactive/Manual Import.
+
+### Removed
+- **Removed Superseded & Redundant Prototype Classes**:
+  - Removed unused stubs and duplicate prototype services: `GameMetadataProxyStub`, `ChdmanService` (consolidated into `DiscCompressionService`), `LibraryImportService`, `VirtualSymlinkLibraryService` (superseded by `VirtualLibraryService`), `RomReleaseParser` / `RomReleaseInfo` (superseded by `RomParser` / `ParsedRomInfo`), `CollectionStrategyService` (superseded by `EpisodeMonitoredService`), and `IAssetScraper` / `IgdbAssetScraper` (superseded by `GameMediaAssetService`).
+  - Removed redundant early-prototype parallel database models, repositories, and controllers (`GamePlatform`, `GameTitle`, `GameRelease`, `RomEntry`, `SmartAddService`, `GamePlatformController`, `RomEntryController`, `GameSearchController`) that were superseded by the unified `Platforms` (`Series`), `Games` (`Episode`), and `RomFiles` (`EpisodeFile`) domain architecture.
+
+---
+
 ## [1.0.0-beta.6] - 2026-10-24
 
 ### Added

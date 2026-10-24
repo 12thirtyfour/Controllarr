@@ -15,6 +15,7 @@
 | **Phase 5** | Multi-Architecture Docker Packaging, Port `7050` Standardization & Official GitHub Wiki Suite | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.3](CHANGELOG.md#100-beta3---2026-10-24) |
 | **Phase 6** | SD Card Multi-Device Exporter (15+ Hardware Targets), Live RetroAchievements API Integration & WebAssembly/Desktop Game Launcher | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.4](CHANGELOG.md#100-beta4---2026-10-24) |
 | **Phase 7** | Brand Unification, AppData/DB Isolation (`~/.config/Controllarr`), Database Table Renames (`Migration 242`), Built-In GitHub Releases Updater, Collection Settings, Regional Console Themes & HTTPS Activity Queue/History | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.6](CHANGELOG.md#100-beta6---2026-10-24) |
+| **Phase 8** | Multi-Provider Metadata Pipeline (`IGDB`, `ScreenScraper`, `TheGamesDB`, `Libretro/HTGDB`), `gamelist.xml` Export, Local DAT/SMDB Hash Cache Import, Disc Compression & `.m3u` Generation, Archive Repackaging & Sidecar Save Mobility | ✅ Completed | [1.0.0-beta.7](CHANGELOG.md#100-beta7---2026-10-24) |
 
 ---
 
@@ -41,13 +42,9 @@
 
 ## Pitched Ideas & Future Enhancements (Post-1.0 Backlog)
 
-* **Automated Multi-Disc `.m3u` Playlist Generation**:
-  * Automatically generate `.m3u` playlist files referencing `Disc 1`, `Disc 2`, etc. inside multi-disc game folders during import and Virtual Library sync for seamless disc swapping in RetroArch, MiSTer, and Batocera.
 * **Cryptographic Hash-Gated Romhack & Translation Patching Pipeline**:
   * Automatically apply `.ips`, `.bps`, and `.xdelta` translation or romhack patches on top of hash-verified retail base ROMs, outputting patched copies into the `Hacks & Translations` section without modifying the clean retail 1G1R file.
 * **Scheduled DAT Catalog Auto-Updates**:
   * Background task to periodically pull updated No-Intro, Redump, and TOSEC DAT snapshots so newly dumped revisions, translations, and aftermarket releases appear automatically.
-* **Emulation Frontend Metadata & Artwork Export**:
-  * Automated generation of local `gamelist.xml` (EmulationStation / ES-DE / Batocera) and `.lpl` playlist files paired with downloaded box art, title screens, and marquees directly inside Virtual Libraries and exported SD cards.
 * **Battery Save & Save State Synchronization**:
   * Optional bi-directional backup and synchronization of `.srm`/`.sav` battery saves and emulator save states across local emulators, network shares, and handheld SD cards.

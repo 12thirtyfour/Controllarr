@@ -18,7 +18,6 @@ using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
 using NzbDrone.Core.Extras.Subtitles;
-using NzbDrone.Core.Games;
 using NzbDrone.Core.History;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.ImportLists.Exclusions;
@@ -118,6 +117,7 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<Series>("Platforms").RegisterModel()
                   .Ignore(s => s.RootFolderPath)
                   .Ignore(s => s.Translations)
+                  .Ignore(s => s.PreferredArchiveFormat)
                   .HasOne(s => s.QualityProfile, s => s.QualityProfileId);
 
             Mapper.Entity<SeriesTranslation>("PlatformTranslations").RegisterModel();
@@ -180,10 +180,6 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<AutoTagging.AutoTag>("AutoTagging").RegisterModel();
 
-            Mapper.Entity<GamePlatform>("GamePlatforms").RegisterModel();
-            Mapper.Entity<RomEntry>("RomEntries").RegisterModel();
-            Mapper.Entity<GameTitle>("GameTitles").RegisterModel();
-            Mapper.Entity<GameRelease>("GameReleases").RegisterModel();
             Mapper.Entity<Dat.DatFile>("DatFiles").RegisterModel();
             Mapper.Entity<Dat.DatEntry>("DatEntries").RegisterModel();
         }

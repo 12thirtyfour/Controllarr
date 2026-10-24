@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using NLog;
 using NzbDrone.Common.Processes;
 
@@ -19,6 +20,7 @@ namespace NzbDrone.Core.MediaFiles.Disc
         bool CompressDisc(string sourcePath, string platformSlug, out string outputPath, string explicitOutputPath = null);
         (string Executable, string Arguments, string PrimaryOutputPath) BuildDecompressionCommand(string sourcePath, string targetDirectory, string targetFileNameWithoutExtension = null);
         bool DecompressDisc(string sourcePath, string targetDirectory, out string primaryOutputPath, string targetFileNameWithoutExtension = null);
+        void GenerateM3uPlaylist(IEnumerable<string> discPaths, string outputM3uPath);
     }
 
     public class DiscCompressionService : IDiscCompressionService
@@ -142,6 +144,25 @@ namespace NzbDrone.Core.MediaFiles.Disc
             }
 
             return true;
+        }
+
+        public void GenerateM3uPlaylist(IEnumerable<string> discPaths, string outputM3uPath)
+        {
+            if (discPaths == null || string.IsNullOrWhiteSpace(outputM3uPath))
+            {
+                return;
+            }
+
+            var sb = new StringBuilder();
+            foreach (var path in discPaths)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    sb.AppendLine(Path.GetFileName(path));
+                }
+            }
+
+            File.WriteAllText(outputM3uPath, sb.ToString());
         }
     }
 }

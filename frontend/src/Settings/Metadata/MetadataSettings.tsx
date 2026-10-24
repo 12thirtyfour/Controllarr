@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import CheckInput from 'Components/Form/CheckInput';
@@ -8,6 +8,8 @@ import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
+import useApiMutation from 'Helpers/Hooks/useApiMutation';
+import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import { kinds, sizes } from 'Helpers/Props';
 import settingsStyles from 'Settings/Settings.module.css';
 import SettingsPage from 'Settings/SettingsPage';
@@ -62,6 +64,49 @@ function MetadataSettings() {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
 
+  const { data: backendSettings } = useApiQuery<GameMediaAssetSettings>({
+    path: '/gamemetadata/assets',
+  });
+
+  useEffect(() => {
+    if (backendSettings && !hasPendingChanges) {
+      const merged = { ...DEFAULT_SETTINGS, ...backendSettings };
+      setValues(merged);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [backendSettings, hasPendingChanges]);
+
+  const { mutate: saveBackendAssets } = useApiMutation<
+    GameMediaAssetSettings,
+    GameMediaAssetSettings
+  >({
+    path: '/gamemetadata/assets',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (saved) => {
+        if (saved) {
+          const merged = { ...DEFAULT_SETTINGS, ...saved };
+          setValues(merged);
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          } catch {
+            // ignore
+          }
+        }
+        setHasPendingChanges(false);
+        setSavedNotice(true);
+      },
+      onError: () => {
+        setHasPendingChanges(false);
+        setSavedNotice(true);
+      },
+    },
+  });
+
   const handleToggle = useCallback(({ name, value }: InputChanged<boolean>) => {
     setValues((prev) => ({
       ...prev,
@@ -73,9 +118,8 @@ function MetadataSettings() {
 
   const handleSavePress = useCallback(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
-    setHasPendingChanges(false);
-    setSavedNotice(true);
-  }, [values]);
+    saveBackendAssets(values);
+  }, [values, saveBackendAssets]);
 
   return (
     <SettingsPage

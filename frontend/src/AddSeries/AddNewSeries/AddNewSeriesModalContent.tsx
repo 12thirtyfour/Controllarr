@@ -260,6 +260,9 @@ function AddNewSeriesModalContent({
         normalizedRevision === 'pinned'
           ? String(pinnedVersion?.value ?? '')
           : '',
+      preferredArchiveFormat: Boolean(enableCompression?.value ?? true)
+        ? 'auto'
+        : 'none',
       seriesType,
       seasonType,
       language,
@@ -277,6 +280,7 @@ function AddNewSeriesModalContent({
     normalizedStrategy,
     normalizedRevision,
     pinnedVersion,
+    enableCompression,
     trackUnlicensed,
     trackHomebrew,
     trackRomHacks,

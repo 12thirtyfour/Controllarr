@@ -109,7 +109,26 @@ namespace NzbDrone.Core.Configuration
         string ApplicationUrl { get; }
 
         // IGDB
-        string IgdbClientId { get; }
-        string IgdbClientSecret { get; }
+        string IgdbClientId { get; set; }
+        string IgdbClientSecret { get; set; }
+        bool EnableNoIntroLibretro { get; set; }
+        bool EnableHtgdbSmdb { get; set; }
+        bool EnableLaunchBox { get; set; }
+        bool EnableIgdb { get; set; }
+        bool EnableScreenScraper { get; set; }
+        string ScreenScraperUsername { get; set; }
+        string ScreenScraperPassword { get; set; }
+        bool EnableTheGamesDb { get; set; }
+        string TheGamesDbApiKey { get; set; }
+        bool MetadataBoxArt2d { get; set; }
+        bool MetadataBoxArt3d { get; set; }
+        bool MetadataTitleScreens { get; set; }
+        bool MetadataScreenshots { get; set; }
+        bool MetadataClearLogos { get; set; }
+        bool MetadataMediaScans { get; set; }
+        bool MetadataVideoPreviews { get; set; }
+        bool MetadataManualsPdf { get; set; }
+        bool MetadataPublishingMetadata { get; set; }
+        bool MetadataGenerateGamelistXml { get; set; }
     }
 }

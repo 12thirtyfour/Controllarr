@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import CheckInput from 'Components/Form/CheckInput';
@@ -8,13 +8,37 @@ import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import Label from 'Components/Label';
+import Button from 'Components/Link/Button';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
+import useApiMutation from 'Helpers/Hooks/useApiMutation';
+import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import settingsStyles from 'Settings/Settings.module.css';
 import SettingsPage from 'Settings/SettingsPage';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
+
+interface DatFileRecord {
+  id: number;
+  name: string;
+  description?: string;
+  version?: string;
+  author?: string;
+  category?: string;
+}
+
+interface DatImportRequest {
+  filePath?: string;
+  fileName?: string;
+  content?: string;
+  format?: string;
+}
+
+interface DatImportResult {
+  datFile?: DatFileRecord;
+  entryCount: number;
+}
 
 interface MetadataSourceConfig {
   enableNoIntroLibretro: boolean;
@@ -64,6 +88,79 @@ function MetadataSourceSettings() {
   const [config, setConfig] = useState<MetadataSourceConfig>(loadInitialConfig);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [datServerPath, setDatServerPath] = useState('');
+  const [datImportStatus, setDatImportStatus] = useState<string | null>(null);
+
+  const { data: backendConfig } = useApiQuery<MetadataSourceConfig>({
+    path: '/gamemetadata/sources',
+  });
+
+  const { data: importedDats, refetch: refetchDats } = useApiQuery<
+    DatFileRecord[]
+  >({
+    path: '/gamemetadata/dats',
+  });
+
+  const { mutate: importDatFile, isPending: isImportingDat } = useApiMutation<
+    DatImportResult,
+    DatImportRequest
+  >({
+    path: '/gamemetadata/dats/import',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (result) => {
+        const count = result?.entryCount ?? 0;
+        const name = result?.datFile?.name ?? 'Catalog';
+        setDatImportStatus(
+          `Imported "${name}" (${count.toLocaleString()} hash entries cached).`
+        );
+        setDatServerPath('');
+        refetchDats();
+      },
+      onError: () => {
+        setDatImportStatus('Failed to import DAT / SMDB file.');
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (backendConfig && !hasPendingChanges) {
+      const merged = { ...DEFAULT_CONFIG, ...backendConfig };
+      setConfig(merged);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [backendConfig, hasPendingChanges]);
+
+  const { mutate: saveBackendSources } = useApiMutation<
+    MetadataSourceConfig,
+    MetadataSourceConfig
+  >({
+    path: '/gamemetadata/sources',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (saved) => {
+        if (saved) {
+          const merged = { ...DEFAULT_CONFIG, ...saved };
+          setConfig(merged);
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          } catch {
+            // ignore
+          }
+        }
+        setHasPendingChanges(false);
+        setSavedNotice(true);
+      },
+      onError: () => {
+        setHasPendingChanges(false);
+        setSavedNotice(true);
+      },
+    },
+  });
 
   const handleCheckChange = useCallback(
     ({ name, value }: InputChanged<boolean>) => {
@@ -91,9 +188,48 @@ function MetadataSourceSettings() {
 
   const handleSavePress = useCallback(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    setHasPendingChanges(false);
-    setSavedNotice(true);
-  }, [config]);
+    saveBackendSources(config);
+  }, [config, saveBackendSources]);
+
+  const handleDatPathChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      setDatServerPath(value ?? '');
+    },
+    []
+  );
+
+  const handleImportServerPathPress = useCallback(() => {
+    if (!datServerPath.trim()) {
+      return;
+    }
+
+    importDatFile({
+      filePath: datServerPath.trim(),
+    });
+  }, [datServerPath, importDatFile]);
+
+  const handleLocalFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = typeof reader.result === 'string' ? reader.result : '';
+        if (content) {
+          importDatFile({
+            fileName: file.name,
+            content,
+          });
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    },
+    [importDatFile]
+  );
 
   return (
     <SettingsPage
@@ -156,6 +292,69 @@ function MetadataSourceSettings() {
                   onChange={handleCheckChange}
                 />
               </FormRow>
+            </FieldSet>
+
+            <FieldSet
+              legend="Local DAT / SMDB Hash Catalog Import"
+              caption="Import local No-Intro / Redump / TOSEC XML or ClrMamePro (.dat / .xml) and SmokeMonster HTGDB (.txt / .smdb) files into the local cryptographic hash cache"
+            >
+              {datImportStatus ? (
+                <Alert kind={kinds.INFO}>{datImportStatus}</Alert>
+              ) : null}
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Upload Local DAT or SMDB File</FormLabel>
+                <FormInputHelpText text="Select a .dat, .xml, .txt, or .smdb file from your computer to parse and cache into Controllarr" />
+                <input
+                  type="file"
+                  accept=".dat,.xml,.txt,.smdb"
+                  disabled={isImportingDat}
+                  onChange={handleLocalFileChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Or Import from Server Path</FormLabel>
+                <FormInputHelpText text="Full server path to a local .dat or SMDB .txt file" />
+                <FormInput
+                  type={inputTypes.TEXT}
+                  name="datServerPath"
+                  value={datServerPath}
+                  placeholder="C:\DATs\Nintendo - Super Nintendo Entertainment System.dat"
+                  onChange={handleDatPathChange}
+                />
+                <div style={{ marginTop: '8px' }}>
+                  <Button
+                    kind={kinds.PRIMARY}
+                    size={sizes.SMALL}
+                    isDisabled={isImportingDat || !datServerPath.trim()}
+                    onPress={handleImportServerPathPress}
+                  >
+                    {isImportingDat ? 'Importing...' : 'Import Server File'}
+                  </Button>
+                </div>
+              </FormRow>
+
+              {importedDats && importedDats.length > 0 ? (
+                <FormRow size={sizes.MEDIUM}>
+                  <FormLabel>Cached Local Catalogs</FormLabel>
+                  <FormInputHelpText
+                    text={`${importedDats.length} local DAT / SMDB catalog(s) cached in database`}
+                  />
+                  <div>
+                    {importedDats.slice(0, 12).map((dat) => (
+                      <Label
+                        key={dat.id}
+                        kind={kinds.DEFAULT}
+                        size={sizes.SMALL}
+                      >
+                        {dat.name}
+                        {dat.category ? ` (${dat.category})` : ''}
+                      </Label>
+                    ))}
+                  </div>
+                </FormRow>
+              ) : null}
             </FieldSet>
 
             <FieldSet

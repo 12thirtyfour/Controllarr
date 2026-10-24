@@ -46,6 +46,16 @@ namespace NzbDrone.Core.Dat
             return datFile;
         }
 
+        public List<DatFile> GetAllDatFiles()
+        {
+            var sql = @"SELECT * FROM ""DatFiles"" ORDER BY ""CreatedAt"" DESC, ""Id"" DESC";
+
+            using (var connection = _database.OpenConnection())
+            {
+                return connection.Query<DatFile>(sql).ToList();
+            }
+        }
+
         public DatEntry FindByCrc32(string crc32)
         {
             if (string.IsNullOrWhiteSpace(crc32))

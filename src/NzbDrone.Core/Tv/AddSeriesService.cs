@@ -9,7 +9,6 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.Games;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Organizer;
@@ -31,7 +30,6 @@ namespace NzbDrone.Core.Tv
         private readonly IProvideSeriesInfo _seriesInfo;
         private readonly IGameMetadataProxy _gameMetadataProxy;
         private readonly IGameCatalogService _gameCatalogService;
-        private readonly ISmartAddService _smartAddService;
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IAddSeriesValidator _addSeriesValidator;
         private readonly IDiskProvider _diskProvider;
@@ -43,7 +41,6 @@ namespace NzbDrone.Core.Tv
                                 IProvideSeriesInfo seriesInfo,
                                 IGameMetadataProxy gameMetadataProxy,
                                 IGameCatalogService gameCatalogService,
-                                ISmartAddService smartAddService,
                                 IBuildFileNames fileNameBuilder,
                                 IAddSeriesValidator addSeriesValidator,
                                 IDiskProvider diskProvider,
@@ -55,7 +52,6 @@ namespace NzbDrone.Core.Tv
             _seriesInfo = seriesInfo;
             _gameMetadataProxy = gameMetadataProxy;
             _gameCatalogService = gameCatalogService;
-            _smartAddService = smartAddService;
             _fileNameBuilder = fileNameBuilder;
             _addSeriesValidator = addSeriesValidator;
             _diskProvider = diskProvider;
@@ -166,20 +162,6 @@ namespace NzbDrone.Core.Tv
         private Series AddGameOrParentPlatform(Series newSeries, GameCatalogEntry gameEntry)
         {
             _gameCatalogService.RegisterGameSelection(gameEntry.TvdbId);
-
-            try
-            {
-                _smartAddService?.SmartAddGame(new SmartAddRequest
-                {
-                    Title = gameEntry.Title,
-                    PlatformSlug = gameEntry.PlatformSlug,
-                    RootFolderPath = newSeries.RootFolderPath
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.Debug(ex, "Skipping SmartAdd table sync for {0}", gameEntry.Title);
-            }
 
             var existingPlatform = _seriesService.FindByTvdbId(gameEntry.PlatformTvdbId) ??
                                    _seriesService.FindByTitle(gameEntry.PlatformName);

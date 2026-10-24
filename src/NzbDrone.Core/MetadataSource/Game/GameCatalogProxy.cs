@@ -3,11 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Dat;
-using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Parser;
@@ -71,23 +72,26 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static readonly ConcurrentDictionary<int, HashSet<int>> PendingPlatformGameSelections = new ConcurrentDictionary<int, HashSet<int>>();
 
         private readonly IDatCacheService _datCacheService;
-        private readonly IGameTitleRepository _gameTitleRepository;
+        private readonly IDatParserService _datParserService;
         private readonly IGameMetadataProxy _gameMetadataProxy;
         private readonly IHttpClient _httpClient;
+        private readonly IConfigService _configService;
         private readonly Logger _logger;
 
         public GameCatalogProxy(
             IDatCacheService datCacheService,
-            IGameTitleRepository gameTitleRepository,
             IGameMetadataProxy gameMetadataProxy,
             IHttpClient httpClient,
-            Logger logger)
+            Logger logger,
+            IConfigService configService = null,
+            IDatParserService datParserService = null)
         {
             _datCacheService = datCacheService;
-            _gameTitleRepository = gameTitleRepository;
             _gameMetadataProxy = gameMetadataProxy;
             _httpClient = httpClient;
             _logger = logger;
+            _configService = configService;
+            _datParserService = datParserService;
         }
 
         public bool IsGameTvdbId(int tvdbId)
@@ -475,16 +479,23 @@ namespace NzbDrone.Core.MetadataSource.Game
             try
             {
                 var escapedSystem = Uri.EscapeDataString(platform.LibretroSystemName);
-                var releaseYearLookup = FetchReleaseYearLookup(escapedSystem);
+                var releaseYearLookup = IsSourceEnabled(c => c.EnableLaunchBox || c.EnableNoIntroLibretro)
+                    ? FetchReleaseYearLookup(escapedSystem)
+                    : new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-                var datFeeds = new (string Url, string SourceLabel)[]
+                var datFeeds = new List<(string Url, string SourceLabel)>();
+                if (IsSourceEnabled(c => c.EnableNoIntroLibretro))
                 {
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/dat/{escapedSystem}.dat", "No-Intro / Libretro"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/hacks/{escapedSystem}.dat", "ROM Hacks & Translations")
-                };
+                    datFeeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
+                    datFeeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"));
+                    datFeeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/dat/{escapedSystem}.dat", "No-Intro / Libretro"));
+                }
+
+                if (IsSourceEnabled(c => c.EnableHtgdbSmdb))
+                {
+                    datFeeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"));
+                    datFeeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/hacks/{escapedSystem}.dat", "ROM Hacks & Translations"));
+                }
 
                 foreach (var feed in datFeeds)
                 {
@@ -501,6 +512,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (parsedEntries.Count > 0)
                         {
                             syncedList.AddRange(parsedEntries);
+                            TryCacheRemoteDatContent(platform, feed.SourceLabel, response.Content);
                         }
                     }
                 }
@@ -557,6 +569,62 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             return lookup;
+        }
+
+        private bool IsSourceEnabled(Func<IConfigService, bool> selector, bool defaultWhenUnconfigured = true)
+        {
+            if (_configService == null)
+            {
+                return defaultWhenUnconfigured;
+            }
+
+            if (!_configService.EnableNoIntroLibretro &&
+                !_configService.EnableHtgdbSmdb &&
+                !_configService.EnableLaunchBox &&
+                !_configService.EnableIgdb &&
+                !_configService.EnableScreenScraper &&
+                !_configService.EnableTheGamesDb &&
+                string.IsNullOrEmpty(_configService.IgdbClientId) &&
+                string.IsNullOrEmpty(_configService.ScreenScraperUsername) &&
+                string.IsNullOrEmpty(_configService.TheGamesDbApiKey))
+            {
+                return defaultWhenUnconfigured;
+            }
+
+            return selector(_configService);
+        }
+
+        private void TryCacheRemoteDatContent(PlatformCatalogEntry platform, string sourceLabel, string datContent)
+        {
+            if (_datCacheService == null || _datParserService == null || string.IsNullOrWhiteSpace(datContent))
+            {
+                return;
+            }
+
+            try
+            {
+                var catalogName = $"{platform.LibretroSystemName} ({sourceLabel})";
+                var existing = _datCacheService.GetAllDatFiles();
+                if (existing != null && existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return;
+                }
+
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(datContent)))
+                {
+                    var (datFile, entries) = _datParserService.Parse(stream);
+                    if (entries != null && entries.Count > 0)
+                    {
+                        datFile.Name = catalogName;
+                        datFile.Category = sourceLabel;
+                        _datCacheService.Insert(datFile, entries);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Trace(ex, "Unable to persist remote DAT hash cache for {0}", platform?.Name);
+            }
         }
 
         private static List<GameCatalogEntry> ParseLibretroDatContent(
@@ -1003,32 +1071,6 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             try
             {
-                var dbTitles = _gameTitleRepository?.All();
-                if (dbTitles != null)
-                {
-                    foreach (var dbTitle in dbTitles)
-                    {
-                        if (dbTitle != null &&
-                            !string.IsNullOrWhiteSpace(dbTitle.Title) &&
-                            NormalizeSearchText(dbTitle.Title).Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
-                        {
-                            var converted = ConvertGameTitleToCatalogEntry(dbTitle);
-                            if (converted != null && candidates.All(c => !string.Equals(c.Item1.Title, converted.Title, StringComparison.OrdinalIgnoreCase)))
-                            {
-                                DynamicGames[converted.TvdbId] = converted;
-                                candidates.Add(Tuple.Create(converted, 80));
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.Debug(ex, "Skipping local GameTitle repository lookup during catalog search.");
-            }
-
-            try
-            {
                 var igdbResults = _gameMetadataProxy?.SearchGamesAsync(rawQuery, null)?.GetAwaiter().GetResult();
                 if (igdbResults != null)
                 {
@@ -1248,18 +1290,6 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var platform = InferPlatformFromText($"{datEntry.SmdbPath} {datEntry.RomName}") ?? BuiltInPlatforms.First(p => p.Slug == "snes");
             return CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, "No-Intro / Redump DAT");
-        }
-
-        private GameCatalogEntry ConvertGameTitleToCatalogEntry(GameTitle dbTitle)
-        {
-            var platform = BuiltInPlatforms.FirstOrDefault(p => p.Slug == "snes") ?? BuiltInPlatforms[0];
-            var entry = CreateCatalogEntryFromNoIntroName(platform, $"{dbTitle.Title} (USA)", platform.ReleaseYear, "Local Catalog", dbTitle.Summary);
-            if (!string.IsNullOrWhiteSpace(dbTitle.CoverArtworkUrl))
-            {
-                entry.PosterUrl = dbTitle.CoverArtworkUrl;
-            }
-
-            return entry;
         }
 
         private GameCatalogEntry ConvertIgdbToCatalogEntry(Model.GameMetadata igdb)

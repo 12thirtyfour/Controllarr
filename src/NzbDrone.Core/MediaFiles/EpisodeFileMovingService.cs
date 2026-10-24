@@ -7,8 +7,11 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.MediaFiles.Synchronization;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
@@ -36,6 +39,10 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IRootFolderService _rootFolderService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IConfigService _configService;
+        private readonly ISidecarSaveService _sidecarSaveService;
+        private readonly IDiscCompressionService _discCompressionService;
+        private readonly IArchiveRepackService _archiveRepackService;
+        private readonly IArchiveExtractionService _archiveExtractionService;
         private readonly Logger _logger;
 
         public EpisodeFileMovingService(IEpisodeService episodeService,
@@ -48,7 +55,11 @@ namespace NzbDrone.Core.MediaFiles
                                 IRootFolderService rootFolderService,
                                 IEventAggregator eventAggregator,
                                 IConfigService configService,
-                                Logger logger)
+                                Logger logger,
+                                ISidecarSaveService sidecarSaveService = null,
+                                IDiscCompressionService discCompressionService = null,
+                                IArchiveRepackService archiveRepackService = null,
+                                IArchiveExtractionService archiveExtractionService = null)
         {
             _episodeService = episodeService;
             _updateEpisodeFileService = updateEpisodeFileService;
@@ -61,6 +72,10 @@ namespace NzbDrone.Core.MediaFiles
             _eventAggregator = eventAggregator;
             _configService = configService;
             _logger = logger;
+            _sidecarSaveService = sidecarSaveService;
+            _discCompressionService = discCompressionService;
+            _archiveRepackService = archiveRepackService;
+            _archiveExtractionService = archiveExtractionService;
         }
 
         public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series)
@@ -151,6 +166,13 @@ namespace NzbDrone.Core.MediaFiles
                 _diskTransferService.TransferFile(episodeFilePath, destinationFilePath, mode);
             }
 
+            var sidecarMode = (mode == TransferMode.Copy || mode == TransferMode.HardLinkOrCopy)
+                ? ImportMode.Copy
+                : ImportMode.Move;
+            _sidecarSaveService?.RenameAdjacentSaves(episodeFilePath, destinationFilePath, sidecarMode);
+
+            PostProcessRomFile(ref destinationFilePath, episodeFile, series);
+
             _updateEpisodeFileService.ChangeFileDateForFile(episodeFile, series, episodes);
 
             try
@@ -172,6 +194,117 @@ namespace NzbDrone.Core.MediaFiles
             _mediaFileAttributeService.SetFilePermissions(destinationFilePath);
 
             return episodeFile;
+        }
+
+        private bool ResolvePlatformCompressionEnabled(Series series)
+        {
+            var format = series?.PreferredArchiveFormat?.Trim();
+            if (!string.IsNullOrWhiteSpace(format))
+            {
+                if (format.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("uncompressed", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("disabled", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("false", StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (format.Equals("auto", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("enabled", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("chd", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("rvz", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("zip", StringComparison.OrdinalIgnoreCase) ||
+                    format.Equals("7z", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return _configService != null && _configService.AutoCompressDiscsToChd;
+        }
+
+        private void PostProcessRomFile(ref string destinationFilePath, EpisodeFile episodeFile, Series series)
+        {
+            if (string.IsNullOrWhiteSpace(destinationFilePath))
+            {
+                return;
+            }
+
+            var ext = Path.GetExtension(destinationFilePath)?.ToLowerInvariant() ?? string.Empty;
+            var shouldCompress = ResolvePlatformCompressionEnabled(series);
+
+            try
+            {
+                if (ext == ".zip")
+                {
+                    if (!shouldCompress && _archiveExtractionService != null && File.Exists(destinationFilePath))
+                    {
+                        var destDir = Path.GetDirectoryName(destinationFilePath);
+                        if (!string.IsNullOrWhiteSpace(destDir))
+                        {
+                            _archiveExtractionService.ExtractArchive(destinationFilePath, destDir, false);
+                        }
+                    }
+                    else if (shouldCompress && _archiveRepackService != null && File.Exists(destinationFilePath))
+                    {
+                        _archiveRepackService.RepackArchive(destinationFilePath);
+                    }
+                }
+                else if (ext == ".nes" && _archiveRepackService != null && File.Exists(destinationFilePath))
+                {
+                    var romBytes = File.ReadAllBytes(destinationFilePath);
+                    var modernized = _archiveRepackService.ModernizeINesHeader(romBytes);
+                    if (modernized != null && !ReferenceEquals(romBytes, modernized))
+                    {
+                        File.WriteAllBytes(destinationFilePath, modernized);
+                    }
+                }
+                else if (shouldCompress && _discCompressionService != null && (ext == ".cue" || ext == ".iso" || ext == ".gdi"))
+                {
+                    var platformSlug = series?.TitleSlug ?? series?.Title ?? string.Empty;
+                    if (_discCompressionService.CompressDisc(destinationFilePath, platformSlug, out var compressedDiscPath) &&
+                        !string.IsNullOrWhiteSpace(compressedDiscPath))
+                    {
+                        destinationFilePath = compressedDiscPath;
+                        ext = Path.GetExtension(destinationFilePath)?.ToLowerInvariant() ?? ext;
+                        if (!string.IsNullOrWhiteSpace(series?.Path))
+                        {
+                            episodeFile.RelativePath = series.Path.GetRelativePath(destinationFilePath);
+                        }
+                    }
+                }
+
+                if (_discCompressionService != null && (ext == ".chd" || ext == ".rvz" || ext == ".cue" || ext == ".iso"))
+                {
+                    var targetDir = Path.GetDirectoryName(destinationFilePath);
+                    if (!string.IsNullOrWhiteSpace(targetDir) && Directory.Exists(targetDir))
+                    {
+                        var adjacentDiscs = Directory.GetFiles(targetDir)
+                            .Where(f =>
+                            {
+                                var e = Path.GetExtension(f)?.ToLowerInvariant();
+                                return e == ".chd" || e == ".rvz" || e == ".cue" || e == ".iso";
+                            })
+                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                            .ToArray();
+
+                        if (adjacentDiscs.Length > 1)
+                        {
+                            var baseTitle = Path.GetFileNameWithoutExtension(destinationFilePath);
+                            var m3uPath = Path.Combine(targetDir, baseTitle + ".m3u");
+                            if (!File.Exists(m3uPath))
+                            {
+                                _discCompressionService.GenerateM3uPlaylist(adjacentDiscs, m3uPath);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to complete ROM post-processing for {0}", destinationFilePath);
+            }
         }
 
         private void EnsureEpisodeFolder(EpisodeFile episodeFile, LocalEpisode localEpisode, string filePath)

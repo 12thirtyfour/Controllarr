@@ -116,7 +116,11 @@ namespace NzbDrone.Core.Tv
             series.Ratings = seriesInfo.Ratings;
             series.Actors = seriesInfo.Actors;
             series.Genres = seriesInfo.Genres;
-            series.Certification = seriesInfo.Certification;
+            if (seriesInfo.Certification.IsNotNullOrWhiteSpace())
+            {
+                series.Certification = seriesInfo.Certification;
+            }
+
             series.OriginalCountry = seriesInfo.OriginalCountry;
             series.OriginalTitle = seriesInfo.OriginalTitle;
             series.CleanOriginalTitle = seriesInfo.CleanOriginalTitle;

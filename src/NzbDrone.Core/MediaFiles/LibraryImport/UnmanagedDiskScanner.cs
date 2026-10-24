@@ -9,12 +9,14 @@ using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.LibraryImport
 {
     public interface IUnmanagedDiskScanner
     {
         List<ManualImportItem> Scan(string rootFolder);
+        void EnrichItem(ManualImportItem item);
     }
 
     public class UnmanagedDiskScanner : IUnmanagedDiskScanner
@@ -23,21 +25,21 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private static readonly string[] RomExtensions = { ".smc", ".sfc", ".nes", ".md", ".bin", ".cue", ".iso", ".chd" };
         private static readonly uint[] Crc32Table = InitializeCrc32Table();
 
-        private readonly IGamePlatformRepository _gamePlatformRepository;
-        private readonly IGameTitleRepository _gameTitleRepository;
+        private readonly ISeriesService _seriesService;
+        private readonly IEpisodeService _episodeService;
         private readonly IPlatformCatalogService _platformCatalogService;
         private readonly IDatCacheService _datCacheService;
         private readonly Logger _logger;
 
         public UnmanagedDiskScanner(
-            IGamePlatformRepository gamePlatformRepository,
-            IGameTitleRepository gameTitleRepository,
+            ISeriesService seriesService,
+            IEpisodeService episodeService,
             IPlatformCatalogService platformCatalogService,
             IDatCacheService datCacheService,
             Logger logger)
         {
-            _gamePlatformRepository = gamePlatformRepository;
-            _gameTitleRepository = gameTitleRepository;
+            _seriesService = seriesService;
+            _episodeService = episodeService;
             _platformCatalogService = platformCatalogService;
             _datCacheService = datCacheService;
             _logger = logger;
@@ -53,6 +55,57 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 return results;
             }
 
+            var validExtensions = GetValidRomExtensions();
+            var files = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
+
+            foreach (var file in files)
+            {
+                var extension = Path.GetExtension(file).ToLowerInvariant();
+
+                if (validExtensions.Count == 0 || validExtensions.Contains(extension) || ArchiveExtensions.Contains(extension))
+                {
+                    var item = ProcessFile(file, validExtensions);
+                    if (item != null)
+                    {
+                        results.Add(item);
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        public void EnrichItem(ManualImportItem item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.Path) || !File.Exists(item.Path))
+            {
+                return;
+            }
+
+            try
+            {
+                var validExtensions = GetValidRomExtensions();
+                var processed = ProcessFile(item.Path, validExtensions);
+                if (processed != null)
+                {
+                    item.Hashes = processed.Hashes ?? new Dictionary<string, string>();
+                    item.Series ??= processed.Series;
+                    if ((item.Episodes == null || item.Episodes.Count == 0) && processed.Episodes != null)
+                    {
+                        item.Episodes = processed.Episodes;
+                    }
+
+                    item.IsHighConfidenceMatch = processed.IsHighConfidenceMatch;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to enrich manual import item hashes for {0}", item.Path);
+            }
+        }
+
+        private List<string> GetValidRomExtensions()
+        {
             var allPlatforms = _platformCatalogService != null ? _platformCatalogService.GetAll() : null;
             if (allPlatforms == null)
             {
@@ -73,25 +126,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 validExtensions.AddRange(RomExtensions);
             }
 
-            validExtensions = validExtensions.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-            var files = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
-
-            foreach (var file in files)
-            {
-                var extension = Path.GetExtension(file).ToLowerInvariant();
-
-                if (validExtensions.Count == 0 || validExtensions.Contains(extension) || ArchiveExtensions.Contains(extension))
-                {
-                    var item = ProcessFile(file, validExtensions);
-                    if (item != null)
-                    {
-                        results.Add(item);
-                    }
-                }
-            }
-
-            return results;
+            return validExtensions.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private ManualImportItem ProcessFile(string filePath, List<string> validExtensions)
@@ -106,21 +141,23 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             var hashes = ComputeHashes(filePath, validExtensions);
 
-            GamePlatform matchedPlatform = null;
-            GameTitle matchedTitle = null;
+            Series matchedSeries = null;
+            Episode matchedEpisode = null;
             var isHighConfidence = false;
 
-            var allPlatforms = _gamePlatformRepository.All();
-            var allTitles = _gameTitleRepository.All();
-
-            matchedTitle = allTitles.FirstOrDefault(t =>
-                t.Title.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase) ||
-                (t.CleanTitle != null && t.CleanTitle.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase)));
-
-            if (matchedTitle != null)
+            var allPlatforms = _seriesService?.GetAllSeries() ?? new List<Series>();
+            foreach (var platform in allPlatforms)
             {
-                matchedPlatform = allPlatforms.FirstOrDefault(p => p.Id == matchedTitle.PlatformId);
-                isHighConfidence = true;
+                var games = _episodeService?.GetEpisodeBySeries(platform.Id) ?? new List<Episode>();
+                matchedEpisode = games.FirstOrDefault(g =>
+                    g.Title != null && g.Title.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase));
+
+                if (matchedEpisode != null)
+                {
+                    matchedSeries = platform;
+                    isHighConfidence = true;
+                    break;
+                }
             }
 
             if (_datCacheService != null)
@@ -148,8 +185,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 Path = filePath,
                 Name = fileName,
                 Size = new FileInfo(filePath).Length,
-                GamePlatform = matchedPlatform,
-                GameTitle = matchedTitle,
+                Series = matchedSeries,
+                Episodes = matchedEpisode != null ? new List<Episode> { matchedEpisode } : new List<Episode>(),
                 Hashes = hashes,
                 IsHighConfidenceMatch = isHighConfidence
             };

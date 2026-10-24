@@ -29,9 +29,6 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
         public IEnumerable<ImportRejection> Rejections { get; set; } = new List<ImportRejection>();
 
         // Game specific properties
-        public NzbDrone.Core.Games.GamePlatform GamePlatform { get; set; }
-        public NzbDrone.Core.Games.GameTitle GameTitle { get; set; }
-        public NzbDrone.Core.Games.GameRelease GameRelease { get; set; }
         public Dictionary<string, string> Hashes { get; set; } = new Dictionary<string, string>();
         public bool IsHighConfidenceMatch { get; set; }
     }

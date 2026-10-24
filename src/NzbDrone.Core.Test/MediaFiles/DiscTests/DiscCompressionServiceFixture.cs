@@ -73,5 +73,32 @@ namespace NzbDrone.Core.Test.MediaFiles.DiscTests
             success.Should().BeTrue();
             outputPath.Should().Be("Metal Gear Solid (USA).chd");
         }
+
+        [Test]
+        public void Should_generate_m3u_playlist_with_disc_file_names()
+        {
+            var tempM3u = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".m3u");
+
+            try
+            {
+                Subject.GenerateM3uPlaylist(
+                    new[]
+                    {
+                        Path.Combine("PS1", "Final Fantasy VII (USA) (Disc 1).chd"),
+                        Path.Combine("PS1", "Final Fantasy VII (USA) (Disc 2).chd")
+                    },
+                    tempM3u);
+
+                var lines = File.ReadAllLines(tempM3u);
+                lines.Should().Equal("Final Fantasy VII (USA) (Disc 1).chd", "Final Fantasy VII (USA) (Disc 2).chd");
+            }
+            finally
+            {
+                if (File.Exists(tempM3u))
+                {
+                    File.Delete(tempM3u);
+                }
+            }
+        }
     }
 }

@@ -38,6 +38,12 @@ namespace NzbDrone.Core.Tv
         public Games.RevisionPreference RevisionPreference { get; set; }
         public string PinnedVersion { get; set; }
 
+        public string PreferredArchiveFormat
+        {
+            get => Certification;
+            set => Certification = value;
+        }
+
         public SeriesStatusType Status { get; set; }
         public string Overview { get; set; }
         public string AirTime { get; set; }
@@ -95,6 +101,10 @@ namespace NzbDrone.Core.Tv
             CollectionStrategy = otherSeries.CollectionStrategy;
             RevisionPreference = otherSeries.RevisionPreference;
             PinnedVersion = otherSeries.PinnedVersion;
+            if (otherSeries.PreferredArchiveFormat.IsNotNullOrWhiteSpace())
+            {
+                PreferredArchiveFormat = otherSeries.PreferredArchiveFormat;
+            }
 
             SeriesType = otherSeries.SeriesType;
             RootFolderPath = otherSeries.RootFolderPath;

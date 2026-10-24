@@ -9,14 +9,15 @@ using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.LibraryImportTests
 {
     [TestFixture]
     public class UnmanagedDiskScannerFixture : CoreTest<UnmanagedDiskScanner>
     {
-        private Mock<IGamePlatformRepository> _platformRepo;
-        private Mock<IGameTitleRepository> _titleRepo;
+        private Mock<ISeriesService> _seriesService;
+        private Mock<IEpisodeService> _episodeService;
         private string _tempPath;
 
         [SetUp]
@@ -26,8 +27,8 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             {
                 new PlatformDefinition { RomFileExtensions = new List<string> { ".smc", ".sfc", ".nes" } }
             });
-            _platformRepo = Mocker.GetMock<IGamePlatformRepository>();
-            _titleRepo = Mocker.GetMock<IGameTitleRepository>();
+            _seriesService = Mocker.GetMock<ISeriesService>();
+            _episodeService = Mocker.GetMock<IEpisodeService>();
 
             var datCache = Mocker.GetMock<IDatCacheService>();
             datCache.Setup(c => c.FindByCrc32(It.IsAny<string>())).Returns(new DatEntry());
@@ -60,13 +61,13 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             var romPath = Path.Combine(_tempPath, "Super Mario World (USA).sfc");
             File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
 
-            _titleRepo.Setup(s => s.All()).Returns(new List<GameTitle>
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
-                new GameTitle { Id = 1, Title = "Super Mario World", PlatformId = 1 }
+                new Series { Id = 1, Title = "SNES" }
             });
-            _platformRepo.Setup(s => s.All()).Returns(new List<GamePlatform>
+            _episodeService.Setup(s => s.GetEpisodeBySeries(1)).Returns(new List<Episode>
             {
-                new GamePlatform { Id = 1, Name = "SNES" }
+                new Episode { Id = 1, Title = "Super Mario World", SeriesId = 1 }
             });
 
             // Act
@@ -74,8 +75,8 @@ namespace NzbDrone.Core.Test.LibraryImportTests
 
             // Assert
             results.Should().HaveCount(1);
-            results.First().GameTitle.Title.Should().Be("Super Mario World");
-            results.First().GamePlatform.Name.Should().Be("SNES");
+            results.First().Episodes.First().Title.Should().Be("Super Mario World");
+            results.First().Series.Title.Should().Be("SNES");
             results.First().IsHighConfidenceMatch.Should().BeTrue();
             results.First().Hashes.Should().ContainKey("SHA-256");
             results.First().Hashes.Should().ContainKey("SHA-1");
@@ -92,13 +93,13 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             var romPath = Path.Combine(bucketDir, "Chrono Trigger (USA).sfc");
             File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
 
-            _titleRepo.Setup(s => s.All()).Returns(new List<GameTitle>
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
-                new GameTitle { Id = 2, Title = "Chrono Trigger", PlatformId = 1 }
+                new Series { Id = 1, Title = "SNES" }
             });
-            _platformRepo.Setup(s => s.All()).Returns(new List<GamePlatform>
+            _episodeService.Setup(s => s.GetEpisodeBySeries(1)).Returns(new List<Episode>
             {
-                new GamePlatform { Id = 1, Name = "SNES" }
+                new Episode { Id = 2, Title = "Chrono Trigger", SeriesId = 1 }
             });
 
             // Act
@@ -106,7 +107,7 @@ namespace NzbDrone.Core.Test.LibraryImportTests
 
             // Assert
             results.Should().HaveCount(1);
-            results.First().GameTitle.Title.Should().Be("Chrono Trigger");
+            results.First().Episodes.First().Title.Should().Be("Chrono Trigger");
         }
 
         [Test]
@@ -123,9 +124,13 @@ namespace NzbDrone.Core.Test.LibraryImportTests
                 }
             }
 
-            _titleRepo.Setup(s => s.All()).Returns(new List<GameTitle>
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
-                new GameTitle { Id = 3, Title = "Game", PlatformId = 2 }
+                new Series { Id = 2, Title = "NES" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(2)).Returns(new List<Episode>
+            {
+                new Episode { Id = 3, Title = "Game", SeriesId = 2 }
             });
 
             // Act
