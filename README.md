@@ -142,11 +142,12 @@ Controllarr is open-source software licensed under the [GNU General Public Licen
 We stand on the shoulders of incredible open-source projects, preservation databases, and emulation communities. Detailed notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md):
 
 * **[Sonarr](https://github.com/Sonarr/Sonarr)** (**GPL-3.0**) — Upstream media management foundation from which Controllarr was forked.
-* **[Hardware Target Game Database (HTGDB / SMDB)](https://github.com/frederic-mahe/Hardware-Target-Game-Database)** — Flash-cart directory layouts and curation schemas by SmokeMonster and Frédéric Mahé.
-* **[No-Intro](https://www.no-intro.org/)**, **[Redump](http://redump.org/)**, & **[TOSEC](https://www.tosecdev.org/)** — Canonical ROM and optical disc checksum databases.
+* **[Hardware Target Game Database (HTGDB / SMDB)](https://github.com/frederic-mahe/Hardware-Target-Game-Database)** & **[SmokeMonster EverDrive-Packs-Lists-Database](https://github.com/SmokeMonsterPacks/EverDrive-Packs-Lists-Database)** — Flash-cart directory layouts, SHA-256 SMDB manifests, and curation schemas by SmokeMonster and Frédéric Mahé.
+* **[No-Intro](https://www.no-intro.org/)**, **[Redump](http://redump.org/)**, **[TOSEC](https://www.tosecdev.org/)**, **[FinalBurn Neo (`FBNeo`)](https://github.com/finalburnneo/FBNeo)**, **[NSWDB](http://nswdb.com/)**, & **[Libretro Database](https://github.com/libretro/libretro-database)** — Canonical ROM and optical disc checksum databases.
+* **[IGDB](https://www.igdb.com/)**, **[ScreenScraper.fr](https://www.screenscraper.fr/)**, **[TheGamesDB](https://thegamesdb.net/)**, **[Libretro Thumbnails](https://github.com/libretro-thumbnails/libretro-thumbnails)**, & **[LaunchBox Games Database](https://gamesdb.launchbox-app.com/)** — Video game metadata, manuals, video previews, and high-resolution artwork providers.
+* **[Internet Archive (`archive.org`)](https://archive.org/)** — Public preservation collections and system firmware verification.
 * **[RetroAchievements](https://retroachievements.org/)** — Achievement metadata and community badge services.
-* **[IGDB](https://www.igdb.com/)** — Comprehensive video game metadata and high-resolution media.
-* **[Libretro / RetroArch](https://github.com/libretro/RetroArch)** — Web emulation cores and desktop launch targets.
+* **[Libretro / RetroArch](https://github.com/libretro/RetroArch)** & **[EmulatorJS](https://github.com/EmulatorJS/EmulatorJS)** (**GPL-3.0**) — In-browser WebAssembly emulation cores, shaders, and desktop launch targets.
 * **`chdman` / [MAME Project](https://github.com/mamedev/mame)** — Optical disc compression into `.chd`.
 * **`dolphin-tool` / [Dolphin Project](https://github.com/dolphin-emu/dolphin)** — GameCube & Wii `.rvz` disc compression.
 * **[Evan-Amos](https://commons.wikimedia.org/wiki/User:Evan-Amos) ([Vanamo Media](https://github.com/evan-amos))** — High-resolution public-domain (CC0) console hardware photography.

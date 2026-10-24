@@ -29,6 +29,8 @@
   * End-to-end validation of **SD Card Exporter** folder layouts, media/`gamelist.xml` assets, and FAT32 bucketing on physical **EverDrive / FXPak Pro**, **Analogue Pocket**, **OnionOS / GarlicOS** handhelds, and **Optical Drive Emulators** (`xStation`, `GDEMU`, `Fenrir`, `GC Loader`).
 * **Torznab / Newznab Game-Specific Indexer Attributes & Volume Factors**:
   * Extend `Torznab` and `Newznab` indexer definitions with game-specific category attributes (ROM container format hints, region tags, and download/upload ratio volume factors) for specialized private retro trackers.
+* **Production-Ready Multi-Architecture `Dockerfile` & Container Packaging (Pre-1.0 Requirement)**:
+  * Build out and verify a complete, production-grade multi-architecture `Dockerfile` (`linux/amd64` and `linux/arm64`) prior to the `v1.0.0` release, including full React/Vite frontend asset compilation into `/app/UI`, `Controllarr` backend publish, non-root `PUID`/`PGID` execution support, bundled `chdman` (`mame-tools`), `dolphin-tool`, and `7z` (`p7zip-full`) runtime utilities, and `package_info` (`UpdateMechanism=Docker`) configuration.
 * **Pre-Release Memory Profiling & Async Ingestion Optimization**:
   * Memory allocation profiling and async loop tightening across large multi-thousand-entry No-Intro / Redump / SmokeMonster SMDB catalog syncs and archive extraction pipelines.
 * **v1.0.0 Release Candidate (RC) & Stable Distribution**:
