@@ -44,6 +44,12 @@ namespace NzbDrone.Core.Tv
             set => Certification = value;
         }
 
+        public bool PreferEncryptedRoms
+        {
+            get => UseSceneNumbering;
+            set => UseSceneNumbering = value;
+        }
+
         public SeriesStatusType Status { get; set; }
         public string Overview { get; set; }
         public string AirTime { get; set; }
@@ -105,6 +111,8 @@ namespace NzbDrone.Core.Tv
             {
                 PreferredArchiveFormat = otherSeries.PreferredArchiveFormat;
             }
+
+            UseSceneNumbering = otherSeries.UseSceneNumbering;
 
             SeriesType = otherSeries.SeriesType;
             RootFolderPath = otherSeries.RootFolderPath;

@@ -55,6 +55,7 @@ namespace Sonarr.Api.V3.Series
         public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; }
         public string PinnedVersion { get; set; }
         public string PreferredArchiveFormat { get; set; }
+        public bool PreferEncryptedRoms { get; set; }
 
         public bool UseSceneNumbering { get; set; }
         public int Runtime { get; set; }
@@ -138,6 +139,7 @@ namespace Sonarr.Api.V3.Series
                        RevisionPreference = model.RevisionPreference,
                        PinnedVersion = model.PinnedVersion,
                        PreferredArchiveFormat = model.PreferredArchiveFormat,
+                       PreferEncryptedRoms = model.PreferEncryptedRoms,
 
                        UseSceneNumbering = model.UseSceneNumbering,
                        Runtime = model.Runtime,
@@ -214,6 +216,7 @@ namespace Sonarr.Api.V3.Series
                        RevisionPreference = resource.RevisionPreference,
                        PinnedVersion = resource.PinnedVersion,
                        PreferredArchiveFormat = resource.PreferredArchiveFormat ?? resource.Certification,
+                       PreferEncryptedRoms = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
 
                        UseSceneNumbering = resource.UseSceneNumbering,
                        Runtime = resource.Runtime,

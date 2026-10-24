@@ -162,5 +162,55 @@ game (
             tuple.Item2.Where(e => e.Title == "Terranigma" && e.SeasonNumber == GameCatalogProxy.RegionEuropeSeason)
                 .Should().ContainSingle();
         }
+
+        [Test]
+        public void should_default_to_decrypted_catalog_for_nds_and_support_encrypted_preference_and_smdb_and_nswdb()
+        {
+            var decryptedNdsDat = @"
+game (
+	name ""Chrono Trigger (USA) (Decrypted)""
+	rom ( name ""Chrono Trigger (USA).nds"" size 67108864 )
+)";
+            var smdbContent = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899\tNeoSD/World/Garou - Mark of the Wolves (World).neo\t1122334455667788990011223344556677889900\t11223344556677889900112233445566\tdeadbeef";
+            var nswdbXml = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<releases>
+  <release>
+    <name>Metroid Dread</name>
+    <region>USA</region>
+    <imgcrc>12345678</imgcrc>
+    <revision>0</revision>
+  </release>
+</releases>";
+
+            var httpMock = Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>();
+            httpMock
+                .Setup(c => c.Execute(Moq.It.Is<NzbDrone.Common.Http.HttpRequest>(r => r.Url.FullUri.Contains("DS%20(Decrypted).dat"))))
+                .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), decryptedNdsDat));
+
+            httpMock
+                .Setup(c => c.Execute(Moq.It.Is<NzbDrone.Common.Http.HttpRequest>(r => r.Url.FullUri.Contains("NeoSD%20SMDB.txt"))))
+                .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), smdbContent));
+
+            httpMock
+                .Setup(c => c.Execute(Moq.It.Is<NzbDrone.Common.Http.HttpRequest>(r => r.Url.FullUri.Contains("nswdb.com/xml.php"))))
+                .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), nswdbXml));
+
+            Subject.InvalidatePlatformCache();
+
+            // 1. Nintendo DS (1012) defaults to Decrypted catalog
+            var ndsTuple = Subject.GetSeriesInfo(1012, Language.English, null);
+            ndsTuple.Item2.Should().Contain(e => e.Title.Contains("Chrono Trigger"));
+
+            // 2. SNK Neo Geo (1038) syncs SmokeMonster NeoSD SMDB
+            var neoGeoTuple = Subject.GetSeriesInfo(1038, Language.English, null);
+            neoGeoTuple.Item2.Should().Contain(e => e.Title.Contains("Garou - Mark of the Wolves"));
+
+            // 3. Nintendo Switch (1014) syncs NSWDB XML
+            var switchTuple = Subject.GetSeriesInfo(1014, Language.English, null);
+            switchTuple.Item2.Should().Contain(e => e.Title.Contains("Metroid Dread"));
+
+            // 4. Standalone Arcade platform (1041) is not present
+            Subject.TryGetPlatformEntry(1041, out _).Should().BeFalse();
+        }
     }
 }

@@ -88,6 +88,7 @@ export interface AddSeriesOptions {
   revisionPreference: string;
   pinnedVersion: string;
   enableCompression: boolean;
+  preferEncryptedRoms: boolean;
   trackUnlicensed: boolean;
   trackHomebrew: boolean;
   trackRomHacks: boolean;
@@ -110,6 +111,7 @@ const { useOptions, useOption, setOption } =
       revisionPreference: 'latestRevision',
       pinnedVersion: '',
       enableCompression: true,
+      preferEncryptedRoms: false,
       trackUnlicensed: false,
       trackHomebrew: false,
       trackRomHacks: false,

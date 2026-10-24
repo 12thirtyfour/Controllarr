@@ -138,6 +138,9 @@ function EditSeriesModalContent({
           series.revisionPreference
         ),
         pinnedVersion: series.pinnedVersion ?? '',
+        preferEncryptedRoms: Boolean(
+          series.preferEncryptedRoms ?? series.useSceneNumbering
+        ),
       },
       {
         ...pendingChanges,
@@ -171,6 +174,8 @@ function EditSeriesModalContent({
     series.collectionStrategy,
     series.revisionPreference,
     series.pinnedVersion,
+    series.preferEncryptedRoms,
+    series.useSceneNumbering,
     pendingChanges,
     saveError,
   ]);
@@ -395,9 +400,23 @@ function EditSeriesModalContent({
               type={inputTypes.CHECK}
               name="trackHomebrew"
               value={isHomebrewMonitored}
-              onChange={handleHomebrewMonitorChange}
+              onChange={handleRegionMonitorToggle ? handleHomebrewMonitorChange : handleInputChange}
             />
           </FormRow>
+
+          {['nds', '3ds'].includes((series.titleSlug ?? '').toLowerCase()) ? (
+            <FormRow size={sizes.MEDIUM}>
+              <FormLabel>Prefer Encrypted ROM Hashes</FormLabel>
+              <FormInputHelpText text="Controllarr defaults to Unencrypted (Decrypted) ROM verification hashes for Nintendo DS & 3DS emulators. Enable to prioritize Encrypted ROM hashes instead." />
+              <FormInput
+                type={inputTypes.CHECK}
+                name="preferEncryptedRoms"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                {...(settings as any).preferEncryptedRoms}
+                onChange={handleInputChange}
+              />
+            </FormRow>
+          ) : null}
 
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>

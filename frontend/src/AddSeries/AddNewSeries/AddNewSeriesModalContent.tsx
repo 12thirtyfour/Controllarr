@@ -193,6 +193,7 @@ function AddNewSeriesModalContent({
     revisionPreference,
     pinnedVersion,
     enableCompression,
+    preferEncryptedRoms,
     trackUnlicensed,
     trackHomebrew,
     trackRomHacks,
@@ -263,6 +264,8 @@ function AddNewSeriesModalContent({
       preferredArchiveFormat: Boolean(enableCompression?.value ?? true)
         ? 'auto'
         : 'none',
+      preferEncryptedRoms: Boolean(preferEncryptedRoms?.value ?? false),
+      useSceneNumbering: Boolean(preferEncryptedRoms?.value ?? false),
       seriesType,
       seasonType,
       language,
@@ -281,6 +284,7 @@ function AddNewSeriesModalContent({
     normalizedRevision,
     pinnedVersion,
     enableCompression,
+    preferEncryptedRoms,
     trackUnlicensed,
     trackHomebrew,
     trackRomHacks,
@@ -469,6 +473,22 @@ function AddNewSeriesModalContent({
                       value={Boolean(trackHomebrew?.value)}
                     />
                   </FormRow>
+
+                  {['nds', '3ds'].includes(
+                    (series.titleSlug ?? '').toLowerCase()
+                  ) ? (
+                    <FormRow>
+                      <FormLabel>Prefer Encrypted ROM Hashes</FormLabel>
+                      <FormInputHelpText text="Controllarr defaults to Unencrypted (Decrypted) ROM verification hashes for Nintendo DS & 3DS emulators. Enable to prioritize Encrypted ROM hashes instead." />
+                      <FormInput
+                        type={inputTypes.CHECK}
+                        name="preferEncryptedRoms"
+                        onChange={handleInputChange}
+                        {...preferEncryptedRoms}
+                        value={Boolean(preferEncryptedRoms?.value ?? false)}
+                      />
+                    </FormRow>
+                  ) : null}
                 </>
               )}
 

@@ -69,7 +69,8 @@ namespace NzbDrone.Core.Tv
 
             try
             {
-                var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, series.SeasonType);
+                var effectiveSeasonType = series.PreferEncryptedRoms ? "encrypted" : series.SeasonType;
+                var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, effectiveSeasonType);
                 seriesInfo = tuple.Item1;
                 episodes = tuple.Item2;
             }

@@ -196,7 +196,7 @@ const FALLBACK_PLATFORMS: LibretroPlatformCoreOption[] = [
   },
   {
     platformKey: 'Neo Geo',
-    platformName: 'SNK Neo Geo / Arcade',
+    platformName: 'SNK Neo Geo (AES / MVS / CD)',
     defaultCore: 'fbneo',
     selectedCore: 'fbneo',
     availableCores: ['fbneo', 'mame2003_plus', 'neocd'],

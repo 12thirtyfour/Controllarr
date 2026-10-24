@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using NLog;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Dat;
@@ -232,21 +233,23 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         public Tuple<Series, List<Episode>> GetSeriesInfo(int tvdbSeriesId, Language language, string seasonType)
         {
+            var preferEncryptedRoms = string.Equals(seasonType, "encrypted", StringComparison.OrdinalIgnoreCase);
+
             if (TryGetGameEntry(tvdbSeriesId, out var gameEntry) &&
                 TryGetPlatformEntry(gameEntry.PlatformTvdbId, out var parentPlatform))
             {
                 RegisterGameSelection(gameEntry.TvdbId);
-                return BuildPlatformSeriesAndEpisodes(parentPlatform);
+                return BuildPlatformSeriesAndEpisodes(parentPlatform, preferEncryptedRoms);
             }
 
             if (TryGetPlatformEntry(tvdbSeriesId, out var platformEntry))
             {
-                return BuildPlatformSeriesAndEpisodes(platformEntry);
+                return BuildPlatformSeriesAndEpisodes(platformEntry, preferEncryptedRoms);
             }
 
             var fallbackPlatform = CreateFallbackPlatformEntry(tvdbSeriesId);
 
-            return BuildPlatformSeriesAndEpisodes(fallbackPlatform);
+            return BuildPlatformSeriesAndEpisodes(fallbackPlatform, preferEncryptedRoms);
         }
 
         public List<Series> SearchForNewSeries(string title, Language language)
@@ -404,7 +407,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             return SearchForNewSeries($"tvdb:{tmdbId}", language);
         }
 
-        private Tuple<Series, List<Episode>> BuildPlatformSeriesAndEpisodes(PlatformCatalogEntry platform)
+        private Tuple<Series, List<Episode>> BuildPlatformSeriesAndEpisodes(PlatformCatalogEntry platform, bool preferEncryptedRoms = false)
         {
             var series = MapPlatformToSeries(platform);
             var episodes = new List<Episode>();
@@ -444,7 +447,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            var syncedGames = SyncOnlineCatalogForPlatform(platform);
+            var syncedGames = SyncOnlineCatalogForPlatform(platform, preferEncryptedRoms);
             foreach (var synced in syncedGames)
             {
                 if (TryRegisterCrossReferencedGame(synced))
@@ -565,14 +568,14 @@ namespace NzbDrone.Core.MetadataSource.Game
             return new Tuple<Series, List<Episode>>(series, episodes);
         }
 
-        private List<GameCatalogEntry> SyncOnlineCatalogForPlatform(PlatformCatalogEntry platform)
+        private List<GameCatalogEntry> SyncOnlineCatalogForPlatform(PlatformCatalogEntry platform, bool preferEncryptedRoms = false)
         {
             if (platform == null || string.IsNullOrWhiteSpace(platform.LibretroSystemName) || _httpClient == null)
             {
                 return new List<GameCatalogEntry>();
             }
 
-            if (SyncedPlatformGamesCache.TryGetValue(platform.TvdbId, out var cached))
+            if (!preferEncryptedRoms && SyncedPlatformGamesCache.TryGetValue(platform.TvdbId, out var cached))
             {
                 return cached;
             }
@@ -585,13 +588,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var escapedSystem = Uri.EscapeDataString(platform.LibretroSystemName);
                 var releaseYearLookup = FetchReleaseYearLookup(escapedSystem);
 
-                var datFeeds = new List<(string Url, string SourceLabel)>
-                {
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"),
-                    ($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/hacks/{escapedSystem}.dat", "ROM Hacks & Translations")
-                };
+                var datFeeds = BuildDatFeedsForPlatform(platform, escapedSystem, preferEncryptedRoms);
 
                 foreach (var feed in datFeeds)
                 {
@@ -612,10 +609,49 @@ namespace NzbDrone.Core.MetadataSource.Game
                         }
                     }
                 }
+
+                var smdbUrl = GetSmokeMonsterSmdbUrl(platform.Slug);
+                if (!string.IsNullOrWhiteSpace(smdbUrl))
+                {
+                    var smdbRequest = new HttpRequest(smdbUrl)
+                    {
+                        SuppressHttpError = true,
+                        RequestTimeout = TimeSpan.FromSeconds(15)
+                    };
+
+                    var smdbResponse = _httpClient.Execute(smdbRequest);
+                    if (smdbResponse != null && !smdbResponse.HasHttpError && !string.IsNullOrWhiteSpace(smdbResponse.Content))
+                    {
+                        var smdbEntries = ParseSmokeMonsterSmdbContent(platform, smdbResponse.Content, releaseYearLookup, seenNames);
+                        if (smdbEntries.Count > 0)
+                        {
+                            syncedList.AddRange(smdbEntries);
+                        }
+                    }
+                }
+
+                if (string.Equals(platform.Slug, "switch", StringComparison.OrdinalIgnoreCase))
+                {
+                    var nswdbRequest = new HttpRequest("http://nswdb.com/xml.php")
+                    {
+                        SuppressHttpError = true,
+                        RequestTimeout = TimeSpan.FromSeconds(15)
+                    };
+
+                    var nswdbResponse = _httpClient.Execute(nswdbRequest);
+                    if (nswdbResponse != null && !nswdbResponse.HasHttpError && !string.IsNullOrWhiteSpace(nswdbResponse.Content))
+                    {
+                        var nswdbEntries = ParseNswdbXmlContent(platform, nswdbResponse.Content, seenNames);
+                        if (nswdbEntries.Count > 0)
+                        {
+                            syncedList.AddRange(nswdbEntries);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger?.Debug(ex, "Offline or unable to sync remote No-Intro/Redump DAT for {0}; using built-in catalog.", platform.Name);
+                _logger?.Debug(ex, "Offline or unable to sync remote No-Intro/Redump/SMDB DAT for {0}; using built-in catalog.", platform.Name);
             }
 
             if (syncedList.Count > 0)
@@ -625,10 +661,348 @@ namespace NzbDrone.Core.MetadataSource.Game
                     DynamicGames[entry.TvdbId] = entry;
                 }
 
-                SyncedPlatformGamesCache[platform.TvdbId] = syncedList;
+                if (!preferEncryptedRoms)
+                {
+                    SyncedPlatformGamesCache[platform.TvdbId] = syncedList;
+                }
             }
 
             return syncedList;
+        }
+
+        private static List<(string Url, string SourceLabel)> BuildDatFeedsForPlatform(
+            PlatformCatalogEntry platform,
+            string escapedSystem,
+            bool preferEncryptedRoms)
+        {
+            var feeds = new List<(string Url, string SourceLabel)>();
+            var slug = (platform?.Slug ?? string.Empty).ToLowerInvariant();
+
+            if (slug == "nds")
+            {
+                if (!preferEncryptedRoms)
+                {
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi%20(Decrypted).dat", "No-Intro DSi (Decrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi%20(Digital).dat", "No-Intro DSiWare"));
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
+                }
+                else
+                {
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi.dat", "No-Intro DSi (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
+                }
+            }
+            else if (slug == "3ds")
+            {
+                if (!preferEncryptedRoms)
+                {
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS%20(Decrypted).dat", "No-Intro New 3DS (Decrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Digital).dat", "No-Intro 3DS Digital"));
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
+                }
+                else
+                {
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS.dat", "No-Intro New 3DS (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
+                }
+            }
+            else if (slug == "neogeo")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/SNK%20-%20Neo%20Geo.dat", "FBNeo / Neo Geo AES"));
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/SNK%20-%20Neo%20Geo%20CD.dat", "Redump Neo Geo CD"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
+            }
+            else if (slug == "wiiu")
+            {
+                if (!preferEncryptedRoms)
+                {
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20U%20(Digital).dat", "No-Intro Wii U Digital (Decrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/Nintendo%20-%20Wii%20U.dat", "Wii U Catalog"));
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump Wii U (Encrypted)"));
+                }
+                else
+                {
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump Wii U (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/Nintendo%20-%20Wii%20U.dat", "Wii U Catalog"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20U%20(Digital).dat", "No-Intro Wii U Digital (Decrypted)"));
+                }
+            }
+            else
+            {
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"));
+            }
+
+            if (slug == "ngpc")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/SNK%20-%20Neo%20Geo%20Pocket.dat", "No-Intro Neo Geo Pocket"));
+            }
+            else if (slug == "wonderswan")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Bandai%20-%20WonderSwan.dat", "No-Intro WonderSwan"));
+            }
+            else if (slug == "tg16")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/NEC%20-%20PC%20Engine%20SuperGrafx.dat", "No-Intro SuperGrafx"));
+            }
+            else if (slug == "wii")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20(Digital).dat", "No-Intro WiiWare & VC"));
+            }
+
+            feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"));
+            feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/hacks/{escapedSystem}.dat", "ROM Hacks & Translations"));
+
+            return feeds;
+        }
+
+        private static string GetSmokeMonsterSmdbUrl(string platformSlug)
+        {
+            if (string.IsNullOrWhiteSpace(platformSlug))
+            {
+                return null;
+            }
+
+            const string baseUrl = "https://raw.githubusercontent.com/SmokeMonsterPacks/EverDrive-Packs-Lists-Database/master/EverDrive%20Pack%20SMDBs/";
+
+            switch (platformSlug.ToLowerInvariant())
+            {
+                case "nes":
+                    return baseUrl + "EverDrive%20N8%20SMDB.txt";
+                case "fds":
+                    return baseUrl + "Famicom%20Disk%20System%20SMDB.txt";
+                case "snes":
+                    return baseUrl + "Super%20EverDrive%20%26%20SD2SNES%20SMDB.txt";
+                case "n64":
+                    return baseUrl + "EverDrive%2064%20SMDB.txt";
+                case "gb":
+                case "gbc":
+                    return baseUrl + "EverDrive%20GB%20SMDB.txt";
+                case "gba":
+                    return baseUrl + "EverDrive%20GBA%20SMDB.txt";
+                case "genesis":
+                    return baseUrl + "Mega%20EverDrive%20SMDB.txt";
+                case "segacd":
+                    return baseUrl + "Mega-CD%20SMDB.txt";
+                case "32x":
+                    return baseUrl + "Mega%20EverDrive%2032X%20SMDB.txt";
+                case "sms":
+                    return baseUrl + "Master%20EverDrive%20SMDB.txt";
+                case "gg":
+                    return baseUrl + "EverDrive%20GG%20SMDB.txt";
+                case "tg16":
+                    return baseUrl + "Turbo%20EverDrive%20SMDB.txt";
+                case "tgcd":
+                    return baseUrl + "PC%20Engine%20CD%20SMDB.txt";
+                case "neogeo":
+                    return baseUrl + "NeoSD%20SMDB.txt";
+                case "atari2600":
+                    return baseUrl + "Harmony%20SMDB.txt";
+                case "atari7800":
+                    return baseUrl + "Atari%207800%20SMDB.txt";
+                case "lynx":
+                    return baseUrl + "Atari%20Lynx%20SMDB.txt";
+                case "jaguar":
+                    return baseUrl + "Atari%20Jaguar%20SMDB.txt";
+                case "vb":
+                    return baseUrl + "HyperBoy%20%26%20FlashBoy%20SMDB.txt";
+                case "ngpc":
+                    return baseUrl + "Neo%20Pocket%20Flash%20Masta%20SMDB.txt";
+                case "wonderswan":
+                    return baseUrl + "WonderSwan%20SMDB.txt";
+                default:
+                    return null;
+            }
+        }
+
+        private List<GameCatalogEntry> ParseSmokeMonsterSmdbContent(
+            PlatformCatalogEntry platform,
+            string smdbContent,
+            Dictionary<string, int> releaseYearLookup,
+            HashSet<string> seenNames)
+        {
+            var results = new List<GameCatalogEntry>();
+            var datEntries = new List<DatEntry>();
+            var lines = smdbContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                var parts = line.Split('\t');
+                if (parts.Length < 2)
+                {
+                    continue;
+                }
+
+                var sha256 = parts[0].Trim();
+                var smdbPath = parts[1].Trim();
+                var sha1 = parts.Length > 2 ? parts[2].Trim() : string.Empty;
+                var md5 = parts.Length > 3 ? parts[3].Trim() : string.Empty;
+                var crc32 = parts.Length > 4 ? parts[4].Trim() : string.Empty;
+
+                var fileName = Path.GetFileName(smdbPath.Replace('\\', '/'));
+                var rawName = StripKnownRomExtension(fileName);
+                if (string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                datEntries.Add(new DatEntry
+                {
+                    GameName = rawName,
+                    RomName = fileName,
+                    SmdbPath = smdbPath,
+                    Sha256 = sha256,
+                    Sha1 = sha1,
+                    Md5 = md5,
+                    Crc32 = crc32
+                });
+
+                if (!seenNames.Add(rawName))
+                {
+                    continue;
+                }
+
+                var year = platform.ReleaseYear;
+                if (releaseYearLookup != null && releaseYearLookup.TryGetValue(rawName, out var mappedYear))
+                {
+                    year = mappedYear;
+                }
+
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, "SmokeMonster HTGDB / SMDB");
+                if (entry != null)
+                {
+                    entry.ExpectedSha256 = sha256;
+                    entry.ExpectedSha1 = sha1;
+                    entry.ExpectedMd5 = md5;
+                    entry.ExpectedCrc32 = crc32;
+                    results.Add(entry);
+                }
+            }
+
+            if (datEntries.Count > 0 && _datCacheService != null)
+            {
+                try
+                {
+                    var catalogName = $"{platform.LibretroSystemName} (SmokeMonster SMDB)";
+                    var existing = _datCacheService.GetAllDatFiles();
+                    if (existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _datCacheService.Insert(
+                            new DatFile
+                            {
+                                Name = catalogName,
+                                Description = platform.Slug,
+                                Category = "SmokeMonster SMDB",
+                                CreatedAt = DateTime.UtcNow
+                            },
+                            datEntries);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Trace(ex, "Unable to cache remote SmokeMonster SMDB entries for {0}", platform?.Name);
+                }
+            }
+
+            return results;
+        }
+
+        private List<GameCatalogEntry> ParseNswdbXmlContent(
+            PlatformCatalogEntry platform,
+            string xmlContent,
+            HashSet<string> seenNames)
+        {
+            var results = new List<GameCatalogEntry>();
+            var datEntries = new List<DatEntry>();
+
+            try
+            {
+                var doc = XDocument.Parse(xmlContent);
+                foreach (var releaseEl in doc.Descendants("release"))
+                {
+                    var name = releaseEl.Element("name")?.Value?.Trim();
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    var region = releaseEl.Element("region")?.Value?.Trim();
+                    var crc = releaseEl.Element("imgcrc")?.Value?.Trim();
+                    var revision = releaseEl.Element("revision")?.Value?.Trim();
+
+                    var regionLabel = "World";
+                    if (string.Equals(region, "USA", StringComparison.OrdinalIgnoreCase) || string.Equals(region, "US", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regionLabel = "USA";
+                    }
+                    else if (string.Equals(region, "EUR", StringComparison.OrdinalIgnoreCase) || string.Equals(region, "Europe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regionLabel = "Europe";
+                    }
+                    else if (string.Equals(region, "JPN", StringComparison.OrdinalIgnoreCase) || string.Equals(region, "Japan", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regionLabel = "Japan";
+                    }
+
+                    var revSuffix = !string.IsNullOrWhiteSpace(revision) && revision != "0" && revision != "000"
+                        ? $" (Rev {revision})"
+                        : string.Empty;
+                    var noIntroName = name.Contains('(')
+                        ? name
+                        : $"{name} ({regionLabel}){revSuffix}";
+
+                    if (!string.IsNullOrWhiteSpace(crc))
+                    {
+                        datEntries.Add(new DatEntry
+                        {
+                            GameName = noIntroName,
+                            RomName = $"{noIntroName}.xci",
+                            Crc32 = crc.ToLowerInvariant(),
+                            Region = regionLabel
+                        });
+                    }
+
+                    if (!seenNames.Add(noIntroName))
+                    {
+                        continue;
+                    }
+
+                    var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, platform.ReleaseYear, "NSWDB Switch Catalog");
+                    if (entry != null)
+                    {
+                        entry.ExpectedCrc32 = crc;
+                        results.Add(entry);
+                    }
+                }
+
+                if (datEntries.Count > 0 && _datCacheService != null)
+                {
+                    var catalogName = $"{platform.LibretroSystemName} (NSWDB)";
+                    var existing = _datCacheService.GetAllDatFiles();
+                    if (existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _datCacheService.Insert(
+                            new DatFile
+                            {
+                                Name = catalogName,
+                                Description = platform.Slug,
+                                Category = "NSWDB",
+                                CreatedAt = DateTime.UtcNow
+                            },
+                            datEntries);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Trace(ex, "Unable to parse NSWDB XML catalog for Nintendo Switch");
+            }
+
+            return results;
         }
 
         private Dictionary<string, int> FetchReleaseYearLookup(string escapedSystem)
@@ -1495,8 +1869,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 CreatePlatform(1037, "Atari Jaguar", "Jaguar", "jaguar", "Atari", 1993, "Atari - Jaguar", "Alien vs Predator (World)", new[] { "Jaguar" }, new[] { ".j64", ".jag", ".zip" }),
                 CreatePlatform(1038, "Neo Geo", "Neo Geo", "neogeo", "SNK", 1990, "SNK - Neo Geo", "Metal Slug 3 (World)", new[] { "AES", "MVS", "Neo-Geo", "NGCD" }, new[] { ".zip", ".7z", ".neo", ".chd" }),
                 CreatePlatform(1039, "Neo Geo Pocket Color", "NGPC", "ngpc", "SNK", 1999, "SNK - Neo Geo Pocket Color", "SNK vs. Capcom - The Match of the Millennium (World)", new[] { "NGPC", "NGP" }, new[] { ".ngc", ".ngp", ".zip" }),
-                CreatePlatform(1040, "WonderSwan Color", "WSC", "wonderswan", "Bandai", 2000, "Bandai - WonderSwan Color", "Final Fantasy (Japan)", new[] { "WonderSwan", "WSC", "WS" }, new[] { ".wsc", ".ws", ".zip" }),
-                CreatePlatform(1041, "Arcade", "Arcade", "arcade", "Arcade", 1980, "MAME", "Street Fighter II' - Champion Edition (World)", new[] { "MAME", "FBNeo", "FinalBurn Neo", "CPS1", "CPS2", "CPS3" }, new[] { ".zip", ".7z", ".chd" })
+                CreatePlatform(1040, "WonderSwan Color", "WSC", "wonderswan", "Bandai", 2000, "Bandai - WonderSwan Color", "Final Fantasy (Japan)", new[] { "WonderSwan", "WSC", "WS" }, new[] { ".wsc", ".ws", ".zip" })
             };
         }
 

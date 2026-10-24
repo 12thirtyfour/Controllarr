@@ -40,6 +40,7 @@ public class SeriesResource : RestResource
     public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; }
     public string? PinnedVersion { get; set; }
     public string? PreferredArchiveFormat { get; set; }
+    public bool PreferEncryptedRoms { get; set; }
     public bool UseSceneNumbering { get; set; }
     public int Runtime { get; set; }
     public int TvdbId { get; set; }
@@ -105,6 +106,7 @@ public static class SeriesResourceMapper
             RevisionPreference = model.RevisionPreference,
             PinnedVersion = model.PinnedVersion,
             PreferredArchiveFormat = model.PreferredArchiveFormat,
+            PreferEncryptedRoms = model.PreferEncryptedRoms,
             UseSceneNumbering = model.UseSceneNumbering,
             Runtime = model.Runtime,
             TvdbId = model.TvdbId,
@@ -156,7 +158,8 @@ public static class SeriesResourceMapper
             RevisionPreference = resource.RevisionPreference,
             PinnedVersion = resource.PinnedVersion,
             PreferredArchiveFormat = resource.PreferredArchiveFormat ?? resource.Certification,
-            UseSceneNumbering = resource.UseSceneNumbering,
+            PreferEncryptedRoms = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
+            UseSceneNumbering = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
             Runtime = resource.Runtime,
             TvdbId = resource.TvdbId,
             TvRageId = resource.TvRageId,

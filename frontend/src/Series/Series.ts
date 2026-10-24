@@ -98,6 +98,7 @@ interface Series extends ModelBase {
   collectionStrategy: string | number;
   revisionPreference: string | number;
   preferredArchiveFormat?: string | number;
+  preferEncryptedRoms?: boolean;
   pinnedVersion?: string;
   network: string;
   originalCountry: string;
