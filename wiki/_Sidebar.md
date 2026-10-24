@@ -6,6 +6,7 @@
 
 * **Library & Curation**
   * [1G1R & Curation Modes](1G1R-and-Curation-Modes.md)
+  * [Virtual Libraries](Virtual-Libraries.md)
   * [Supported Platforms](Supported-Platforms.md)
   * [Core Concepts & Curation](Core-Concepts.md)
   * [Ingestion & Hash Gating](Ingestion-and-Hash-Verification.md)

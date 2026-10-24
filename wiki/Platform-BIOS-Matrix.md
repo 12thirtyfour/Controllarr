@@ -1,20 +1,50 @@
-# Platform BIOS Verification Matrix
+# Platform BIOS Verification Matrix & Auto-Downloader
 
 Many consoles—especially optical disc and 32-bit/64-bit systems—require proprietary system firmware (BIOS) files to boot games, play audio tracks, or run without emulation glitches.
 
-Controllarr includes a dedicated **Platform BIOS Verification Matrix** located in **Settings** → **BIOS Verification** (and via `/api/v3/bios` and `/api/v5/bios`).
+Controllarr includes a built-in **Platform BIOS Verification Matrix** accessible globally under **Settings** → **BIOS Verification** (and via `/api/v3/bios` and `/api/v5/bios`), as well as directly inside each platform's detail page.
 
 ---
 
-## 1. Why BIOS Verification Matters
+## 1. Storage Location & Automatic Handling
 
-* **Boot Reliability**: Disc systems like PlayStation 1 (`SCPH1001.BIN`), Sega CD (`bios_CD_U.bin`), and Saturn (`sega_101.bin`) will fail to launch without exact BIOS files.
-* **Region Compatibility**: European, American, and Japanese titles frequently require regional BIOS counterparts to render localized fonts and timings.
-* **Corrupted or Incompatible Rips**: Using an incorrect or bad dump of a BIOS can lead to subtle bugs, broken audio loops, or crashes mid-game.
+To keep platform assets cleanly isolated and portable, BIOS files in Controllarr are stored automatically inside each platform's root directory:
+
+```text
+{PlatformPath}/bios/
+```
+
+* **No Global Path Required**: You do not need to configure complex global BIOS paths or environment variables. Controllarr automatically creates and manages the `{PlatformPath}/bios/` folder for each configured console.
+* **Emulation Readiness**: When launching games via the Libretro in-browser player or exporting libraries via [Hardware Target Exporter](Hardware-Target-Exporter.md), Controllarr sources verified firmware files directly from this directory.
 
 ---
 
-## 2. Common System BIOS Requirements
+## 2. Platform Details Page Integration
+
+Each system's **Platform Details** page includes a dedicated **System BIOS & Firmware** section:
+
+* Displays a real-time status card for every required and optional firmware file for that console.
+* Lists file checksums (MD5, SHA-1, CRC32), file size specifications, and specific region/purpose notes (e.g., PS1 USA vs. Europe vs. Japan BIOS).
+* Displays live status indicators:
+  * 🟢 **Verified**: Correct filename and exact matching checksum in `{PlatformPath}/bios/`.
+  * 🟡 **Name Mismatch**: Correct checksum detected under a non-canonical filename (includes 1-click auto-rename).
+  * 🔴 **Missing**: File is absent from `{PlatformPath}/bios/`.
+
+---
+
+## 3. BIOS Auto-Downloader (Internet Archive Repository)
+
+When firmware files are missing, Controllarr provides automated retrieval powered by the official **Internet Archive RetroArch BIOS repository**:
+
+### Per-File "Download Missing" Button
+Beside any missing or unverified BIOS file entry in the matrix or Platform Details page, click **Download Missing** to fetch that specific firmware file directly into `{PlatformPath}/bios/`. Controllarr automatically hashes and verifies the downloaded file upon completion.
+
+### Bulk "Download Missing BIOS" Button
+At the top of the **BIOS Verification Matrix** and the **System BIOS & Firmware** section, click **Download Missing BIOS** to automatically identify, queue, and download all missing required and optional firmware files across platforms in a single automated batch operation.
+
+---
+
+## 4. Common System BIOS Requirements
 
 | Console | Filename | Purpose | MD5 Checksum | Status |
 |---|---|---|---|---|
@@ -35,19 +65,6 @@ Controllarr includes a dedicated **Platform BIOS Verification Matrix** located i
 
 ---
 
-## 3. Using the BIOS Verification Matrix
+## 5. Hardware Syncing with Exporter
 
-1. Navigate to **Settings** → **BIOS Verification**.
-2. The matrix lists all configured platforms with their required and optional firmware files.
-3. Place your BIOS files in your designated BIOS directory (e.g., `/Volumes/Games/BIOS/` or configured RetroArch `system/` directory).
-4. Click **Scan BIOS Files**:
-   * Controllarr scans the folder, compares CRC32/MD5/SHA-1 hashes against official catalogs, and displays immediate status indicators:
-     * 🟢 **Verified**: Correct filename, correct checksum, ready to play.
-     * 🟡 **Name Mismatch**: Correct checksum found under an alternate filename (Controllarr offers a 1-click rename button).
-     * 🔴 **Missing**: BIOS file is absent.
-
----
-
-## 4. Hardware Syncing with Exporter
-
-When using the [Hardware Target Exporter](Hardware-Target-Exporter.md) to build an SD card for MiSTer, OnionOS, Analogue Pocket, or flash carts, Controllarr automatically copies verified BIOS files into the appropriate hardware directories (e.g. `/bios/`, `/system/`, or `/Assets/common/`) so you never have to manually hunt down firmware files.
+When using the [Hardware Target Exporter](Hardware-Target-Exporter.md) to build an SD card for MiSTer, OnionOS, Analogue Pocket, or flash carts, Controllarr automatically copies verified BIOS files from `{PlatformPath}/bios/` into the appropriate hardware target directories (e.g., `/bios/`, `/system/`, or `/Assets/common/`) so your destination device boots immediately without manual file transfers.
