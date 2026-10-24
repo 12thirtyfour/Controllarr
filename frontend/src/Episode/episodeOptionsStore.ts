@@ -13,10 +13,10 @@ interface EpisodeSelectOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<EpisodeSelectOptions>('episode_options', () => {
+  createOptionsStore<EpisodeSelectOptions>('rom_episode_options_v2', () => {
     return {
-      sortKey: 'episodeNumber',
-      sortDirection: 'descending',
+      sortKey: 'title',
+      sortDirection: 'ascending',
       columns: [
         {
           name: 'monitored',
@@ -28,14 +28,20 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         {
           name: 'episodeNumber',
           label: '#',
-          isVisible: true,
+          isVisible: false,
           isSortable: true,
         },
         {
           name: 'title',
-          label: () => translate('Title'),
+          label: () => translate('EpisodeTitle'),
           isVisible: true,
           isSortable: true,
+        },
+        {
+          name: 'romVersion',
+          label: 'Version / Type',
+          isVisible: true,
+          isSortable: false,
         },
         {
           name: 'path',
@@ -94,7 +100,7 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         {
           name: 'size',
           label: () => translate('Size'),
-          isVisible: false,
+          isVisible: true,
           isSortable: true,
         },
         {

@@ -270,6 +270,11 @@ namespace NzbDrone.Core.Tv
             newSeries.SortTitle = SeriesTitleNormalizer.Normalize(newSeries.Title, newSeries.TvdbId);
             newSeries.Added = DateTime.UtcNow;
 
+            if (newSeries.QualityProfileId <= 0)
+            {
+                newSeries.QualityProfileId = 1;
+            }
+
             if (newSeries.AddOptions != null && newSeries.AddOptions.Monitor == MonitorTypes.None)
             {
                 newSeries.Monitored = false;

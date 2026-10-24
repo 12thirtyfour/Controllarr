@@ -146,7 +146,7 @@ function SeriesIndexPoster(props: SeriesIndexPosterProps) {
     sizeOnDisk = 0,
   } = statistics;
 
-  const link = `/series/${titleSlug}`;
+  const link = `/platforms/${titleSlug}`;
 
   const elementStyle = {
     width: `${posterWidth}px`,

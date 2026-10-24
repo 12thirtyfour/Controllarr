@@ -10,6 +10,13 @@ export interface AddSeriesOptions {
   qualityProfileId: number;
   seriesType: SeriesType;
   seasonFolder: boolean;
+  collectionStrategy: number;
+  revisionPreference: number;
+  pinnedVersion: string;
+  compressionFormat: string;
+  trackHomebrew: boolean;
+  trackRomHacks: boolean;
+  trackPrototypes: boolean;
   searchForMissingEpisodes: boolean;
   searchForCutoffUnmetEpisodes: boolean;
   tags: number[];
@@ -21,9 +28,16 @@ const { useOptions, useOption, setOption } =
       rootFolderPath: '',
       language: null,
       monitor: 'all',
-      qualityProfileId: 0,
+      qualityProfileId: 1,
       seriesType: 'standard',
       seasonFolder: true,
+      collectionStrategy: 0,
+      revisionPreference: 0,
+      pinnedVersion: '',
+      compressionFormat: 'zip',
+      trackHomebrew: false,
+      trackRomHacks: false,
+      trackPrototypes: false,
       searchForMissingEpisodes: false,
       searchForCutoffUnmetEpisodes: false,
       tags: [],

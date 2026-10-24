@@ -3,12 +3,56 @@
   top: 0;
   z-index: 2;
   padding-top: 16px;
-  padding-bottom: 24px;
+  padding-bottom: 20px;
   background: var(--pageBackground);
 }
 
 .searchWrap {
   position: relative;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.filterLabel {
+  color: var(--inkMuted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  font-size: 11px;
+  margin-right: 4px;
+}
+
+.filterPill {
+  padding: 5px 12px;
+  border: 1px solid var(--hairlineStrong);
+  border-radius: 999px;
+  background: var(--paperCard);
+  color: var(--inkMuted);
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover {
+    background: var(--paperWarm);
+    color: var(--ink);
+  }
+}
+
+.filterPillActive {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 16%, var(--paperCard));
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .searchIcon {

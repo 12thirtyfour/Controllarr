@@ -36,6 +36,9 @@ public class SeriesResource : RestResource
     public bool SeasonFolder { get; set; }
     public bool Monitored { get; set; }
     public NewItemMonitorTypes MonitorNewItems { get; set; }
+    public NzbDrone.Core.Games.CollectionStrategy CollectionStrategy { get; set; }
+    public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; }
+    public string? PinnedVersion { get; set; }
     public bool UseSceneNumbering { get; set; }
     public int Runtime { get; set; }
     public int TvdbId { get; set; }
@@ -97,6 +100,9 @@ public static class SeriesResourceMapper
             SeasonFolder = model.SeasonFolder,
             Monitored = model.Monitored,
             MonitorNewItems = model.MonitorNewItems,
+            CollectionStrategy = model.CollectionStrategy,
+            RevisionPreference = model.RevisionPreference,
+            PinnedVersion = model.PinnedVersion,
             UseSceneNumbering = model.UseSceneNumbering,
             Runtime = model.Runtime,
             TvdbId = model.TvdbId,
@@ -144,6 +150,9 @@ public static class SeriesResourceMapper
             SeasonFolder = resource.SeasonFolder,
             Monitored = resource.Monitored,
             MonitorNewItems = resource.MonitorNewItems,
+            CollectionStrategy = resource.CollectionStrategy,
+            RevisionPreference = resource.RevisionPreference,
+            PinnedVersion = resource.PinnedVersion,
             UseSceneNumbering = resource.UseSceneNumbering,
             Runtime = resource.Runtime,
             TvdbId = resource.TvdbId,

@@ -6,7 +6,7 @@ export default function formatSeason(
   shortFormat?: boolean
 ) {
   if (seasonNumber === 0) {
-    return shortFormat ? 'UNOFF' : translate('Specials');
+    return shortFormat ? 'PROTO' : 'Prototypes, Betas & Unlicensed';
   }
 
   if (seasonNumber === 1) {
@@ -23,6 +23,14 @@ export default function formatSeason(
 
   if (seasonNumber === 4) {
     return shortFormat ? 'WLD' : 'World / Multi-Region';
+  }
+
+  if (seasonNumber === 5) {
+    return shortFormat ? 'HBW' : 'Homebrew & Aftermarket';
+  }
+
+  if (seasonNumber === 6) {
+    return shortFormat ? 'HACK' : 'ROM Hacks & Translations';
   }
 
   if (seasonNumber > 0) {

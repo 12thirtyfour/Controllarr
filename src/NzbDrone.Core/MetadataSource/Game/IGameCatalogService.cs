@@ -13,6 +13,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         public string Manufacturer { get; set; }
         public int ReleaseYear { get; set; }
         public string LibretroSystemName { get; set; }
+        public string RepresentativeBoxartName { get; set; }
         public string Overview { get; set; }
         public List<string> Aliases { get; set; } = new List<string>();
         public List<string> Extensions { get; set; } = new List<string>();
@@ -22,6 +23,10 @@ namespace NzbDrone.Core.MetadataSource.Game
     {
         public int TvdbId { get; set; }
         public string Title { get; set; }
+        public string BaseTitle { get; set; }
+        public string RevisionTag { get; set; }
+        public bool IsLatestRevision { get; set; }
+        public bool IsInitialRelease { get; set; }
         public string NoIntroName { get; set; }
         public int PlatformTvdbId { get; set; }
         public string PlatformSlug { get; set; }

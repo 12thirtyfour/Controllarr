@@ -45,6 +45,10 @@ namespace Sonarr.Http.Frontend.Mappers
             var filename = match.Groups["filename"].Value;
 
             var imageData = await _mediaCoverProxy.GetImage(hash);
+            if (imageData == null || imageData.Length == 0)
+            {
+                return new StatusCodeResult((int)HttpStatusCode.NotFound);
+            }
 
             if (!_mimeTypeProvider.TryGetContentType(filename, out var contentType))
             {

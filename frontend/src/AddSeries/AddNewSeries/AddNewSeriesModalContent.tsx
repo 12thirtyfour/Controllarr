@@ -6,7 +6,6 @@ import {
   useAddSeriesOptions,
 } from 'AddSeries/addSeriesOptionsStore';
 import SeriesMonitoringOptionsPopoverContent from 'AddSeries/SeriesMonitoringOptionsPopoverContent';
-import SeriesTypePopoverContent from 'AddSeries/SeriesTypePopoverContent';
 import { useAppDimension } from 'App/appStore';
 import CheckInput from 'Components/Form/CheckInput';
 import Form from 'Components/Form/Form';
@@ -14,7 +13,6 @@ import FormInput from 'Components/Form/FormInput';
 import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
-import { LanguageSelectInputOnChangeProps } from 'Components/Form/Select/LanguageSelectInput';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
 import SpinnerButton from 'Components/Link/SpinnerButton';
@@ -42,6 +40,24 @@ export interface AddNewSeriesModalContentProps {
   initialSeriesType: SeriesType;
   onModalClose: () => void;
 }
+
+const COLLECTION_STRATEGY_OPTIONS = [
+  { key: 0, value: '1G1R (Single Preferred Region)' },
+  { key: 2, value: '1G1R Multi-Region (1 Per Monitored Region)' },
+  { key: 1, value: 'Completionist (All Revisions, Regions & Variants)' },
+];
+
+const REVISION_PREFERENCE_OPTIONS = [
+  { key: 0, value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)' },
+  { key: 1, value: 'Original Retail Release (Rev 0 / v1.0)' },
+  { key: 2, value: 'Pinned Version / Tag' },
+];
+
+const COMPRESSION_FORMAT_OPTIONS = [
+  { key: 'zip', value: 'Compressed Archive (.zip / .7z)' },
+  { key: 'chd', value: 'Compressed Disc / CHD (.chd / .rvz / .cso)' },
+  { key: 'raw', value: 'Uncompressed / Raw ROM (.nes, .sfc, .gba, .iso, .bin/.cue)' },
+];
 
 function AddNewSeriesModalContent({
   series,
@@ -72,13 +88,6 @@ function AddNewSeriesModalContent({
     }
   }, [resolvedLanguage]);
 
-  const handleLanguageChange = useCallback(
-    ({ value }: LanguageSelectInputOnChangeProps) => {
-      setLanguage(value as Language);
-    },
-    []
-  );
-
   const isSmallScreen = useAppDimension('isSmallScreen');
   const isWindows = useIsWindows();
 
@@ -96,7 +105,7 @@ function AddNewSeriesModalContent({
       ? settings.seriesType.value
       : initialSeriesType
   );
-  const [seasonType, setSeasonType] = useState(
+  const [seasonType] = useState(
     () =>
       seasonTypes.find((s) => s.type === 'official')?.type ??
       seasonTypes[0]?.type ??
@@ -110,6 +119,13 @@ function AddNewSeriesModalContent({
     searchForCutoffUnmetEpisodes,
     searchForMissingEpisodes,
     seasonFolder,
+    collectionStrategy,
+    revisionPreference,
+    pinnedVersion,
+    compressionFormat,
+    trackHomebrew,
+    trackRomHacks,
+    trackPrototypes,
     seriesType: seriesTypeSetting,
     tags,
   } = settings;
@@ -128,30 +144,39 @@ function AddNewSeriesModalContent({
     []
   );
 
-  const handleSeasonTypeChange = useCallback(
-    ({ value }: InputChanged<string>) => {
-      setSeasonType(value);
-    },
-    []
-  );
-
-  const handleQualityProfileIdChange = useCallback(
-    ({ value }: InputChanged<string | number>) => {
-      setAddSeriesOption('qualityProfileId', value as number);
-    },
-    []
-  );
-
   const handleAddSeriesPress = useCallback(() => {
+    const updatedSeasons = (series.seasons ?? []).map((s) => {
+      if (s.seasonNumber === 5) {
+        return { ...s, monitored: Boolean(trackHomebrew?.value) };
+      }
+      if (s.seasonNumber === 6) {
+        return { ...s, monitored: Boolean(trackRomHacks?.value) };
+      }
+      if (s.seasonNumber === 0) {
+        return { ...s, monitored: Boolean(trackPrototypes?.value) };
+      }
+      return s;
+    });
+
     addSeries({
       ...series,
+      seasons: updatedSeasons,
       rootFolderPath: rootFolderPath.value,
       addOptions: {
         monitor: monitor.value,
         searchForMissingEpisodes: searchForMissingEpisodes.value,
         searchForCutoffUnmetEpisodes: searchForCutoffUnmetEpisodes.value,
       },
-      qualityProfileId: qualityProfileId.value,
+      qualityProfileId: qualityProfileId.value || 1,
+      collectionStrategy: Number(collectionStrategy?.value ?? 0),
+      revisionPreference:
+        Number(revisionPreference?.value ?? 0) === 2
+          ? 0
+          : Number(revisionPreference?.value ?? 0),
+      pinnedVersion:
+        Number(revisionPreference?.value ?? 0) === 2
+          ? String(pinnedVersion?.value ?? '')
+          : '',
       seriesType,
       seasonType,
       language,
@@ -166,6 +191,12 @@ function AddNewSeriesModalContent({
     language,
     monitor,
     qualityProfileId,
+    collectionStrategy,
+    revisionPreference,
+    pinnedVersion,
+    trackHomebrew,
+    trackRomHacks,
+    trackPrototypes,
     seasonFolder,
     searchForMissingEpisodes,
     searchForCutoffUnmetEpisodes,
@@ -230,17 +261,6 @@ function AddNewSeriesModalContent({
               </FormRow>
 
               <FormRow>
-                <FormLabel>{translate('Tags')}</FormLabel>
-
-                <FormInput
-                  type={inputTypes.TAG}
-                  name="tags"
-                  onChange={handleInputChange}
-                  {...tags}
-                />
-              </FormRow>
-
-              <FormRow>
                 <FormLabel>
                   {translate('Monitor')}
 
@@ -263,8 +283,59 @@ function AddNewSeriesModalContent({
               </FormRow>
 
               <FormRow>
-                <FormLabel>{translate('SeasonFolder')}</FormLabel>
+                <FormLabel>Collection Strategy</FormLabel>
+                <FormInputHelpText text="Choose 1G1R (single preferred ROM per game), 1G1R Multi-Region, or Completionist (all revisions and variants)" />
+                <FormInput
+                  type={inputTypes.SELECT}
+                  name="collectionStrategy"
+                  values={COLLECTION_STRATEGY_OPTIONS}
+                  onChange={handleInputChange}
+                  {...collectionStrategy}
+                />
+              </FormRow>
 
+              {Number(collectionStrategy?.value ?? 0) !== 1 ? (
+                <FormRow>
+                  <FormLabel>Version / Revision Preference</FormLabel>
+                  <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist" />
+                  <FormInput
+                    type={inputTypes.SELECT}
+                    name="revisionPreference"
+                    values={REVISION_PREFERENCE_OPTIONS}
+                    onChange={handleInputChange}
+                    {...revisionPreference}
+                  />
+                </FormRow>
+              ) : null}
+
+              {Number(revisionPreference?.value ?? 0) === 2 ? (
+                <FormRow>
+                  <FormLabel>Pinned Version Tag</FormLabel>
+                  <FormInputHelpText text="Specify a specific revision tag to pin (e.g. Rev A, Rev 1, v1.1)" />
+                  <FormInput
+                    type={inputTypes.TEXT}
+                    name="pinnedVersion"
+                    onChange={handleInputChange}
+                    {...pinnedVersion}
+                  />
+                </FormRow>
+              ) : null}
+
+              <FormRow>
+                <FormLabel>Compression / Container Format</FormLabel>
+                <FormInputHelpText text="Preferred storage container for ROMs and disc images on this platform" />
+                <FormInput
+                  type={inputTypes.SELECT}
+                  name="compressionFormat"
+                  values={COMPRESSION_FORMAT_OPTIONS}
+                  onChange={handleInputChange}
+                  {...compressionFormat}
+                />
+              </FormRow>
+
+              <FormRow>
+                <FormLabel>{translate('SeasonFolder')}</FormLabel>
+                <FormInputHelpText text="Organize ROMs into regional subfolders (USA, Europe, Japan, Homebrew, ROM Hacks)" />
                 <FormInput
                   type={inputTypes.CHECK}
                   name="seasonFolder"
@@ -274,64 +345,46 @@ function AddNewSeriesModalContent({
               </FormRow>
 
               <FormRow>
-                <FormLabel>{translate('QualityProfile')}</FormLabel>
-
+                <FormLabel>Track Homebrew & Aftermarket</FormLabel>
+                <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region (hash-gated against HTGDB / SMDB)" />
                 <FormInput
-                  type={inputTypes.QUALITY_PROFILE_SELECT}
-                  name="qualityProfileId"
-                  onChange={handleQualityProfileIdChange}
-                  {...qualityProfileId}
-                />
-              </FormRow>
-
-              <FormRow>
-                <FormLabel>
-                  {translate('SeriesType')}
-
-                  <Popover
-                    anchor={
-                      <Icon className={styles.labelIcon} name={icons.INFO} />
-                    }
-                    title={translate('SeriesTypes')}
-                    body={<SeriesTypePopoverContent />}
-                    position={tooltipPositions.RIGHT}
-                  />
-                </FormLabel>
-                <FormInputHelpText text={translate('SeriesTypesHelpText')} />
-                <FormInput
-                  type={inputTypes.SERIES_TYPE_SELECT}
-                  name="seriesType"
+                  type={inputTypes.CHECK}
+                  name="trackHomebrew"
                   onChange={handleInputChange}
-                  {...seriesTypeSetting}
-                  value={seriesType}
+                  {...trackHomebrew}
                 />
               </FormRow>
 
               <FormRow>
-                <FormLabel>{translate('Language')}</FormLabel>
-
-                <FormInputHelpText text={translate('SeriesLanguageHelpText')} />
+                <FormLabel>Track ROM Hacks & Translations</FormLabel>
+                <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region (hash-gated against HTGDB / SMDB)" />
                 <FormInput
-                  type={inputTypes.LANGUAGE_SELECT}
-                  name="language"
-                  value={language}
-                  includeAny={false}
-                  onChange={handleLanguageChange}
+                  type={inputTypes.CHECK}
+                  name="trackRomHacks"
+                  onChange={handleInputChange}
+                  {...trackRomHacks}
                 />
               </FormRow>
 
               <FormRow>
-                <FormLabel>{translate('SeasonType')}</FormLabel>
-
-                <FormInputHelpText text={translate('SeasonTypeHelpText')} />
+                <FormLabel>Track Prototypes, Betas & Unlicensed</FormLabel>
+                <FormInputHelpText text="Enable monitoring of the Prototypes, Betas & Unlicensed region" />
                 <FormInput
-                  type={inputTypes.SEASON_TYPE_SELECT}
-                  name="seasonType"
-                  value={seasonType}
-                  seasonTypes={seasonTypes}
-                  includeNoChange={false}
-                  includeMixed={false}
-                  onChange={handleSeasonTypeChange}
+                  type={inputTypes.CHECK}
+                  name="trackPrototypes"
+                  onChange={handleInputChange}
+                  {...trackPrototypes}
+                />
+              </FormRow>
+
+              <FormRow>
+                <FormLabel>{translate('Tags')}</FormLabel>
+
+                <FormInput
+                  type={inputTypes.TAG}
+                  name="tags"
+                  onChange={handleInputChange}
+                  {...tags}
                 />
               </FormRow>
             </Form>

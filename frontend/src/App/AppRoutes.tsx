@@ -45,13 +45,15 @@ export function appRouteElements() {
         Until then, "/" redirects to SeriesIndex and the sidebar's "Home" nav is hidden.
       */}
 
-      <Route path="/" element={<Navigate to="/series" replace={true} />} />
+      <Route path="/" element={<Navigate to="/platforms" replace={true} />} />
 
       {/*
-        Series
+        Platforms
       */}
 
-      <Route path="/series" element={<SeriesIndex />} />
+      <Route path="/platforms" element={<SeriesIndex />} />
+      <Route path="/platforms/:titleSlug" element={<SeriesDetailsPage />} />
+      <Route path="/series" element={<Navigate to="/platforms" replace={true} />} />
 
       <Route path="/add/new" element={<AddNewSeries />} />
 

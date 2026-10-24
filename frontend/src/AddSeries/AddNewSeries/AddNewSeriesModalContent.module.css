@@ -8,12 +8,15 @@
 }
 
 .poster {
-  flex: 0 0 170px;
+  flex: 0 0 160px;
   margin-right: 20px;
-  width: 170px;
-  height: 250px;
+  padding: 8px;
+  width: 160px;
+  height: 160px;
+  border: 1px solid var(--hairline);
   border-radius: 8px;
-  object-fit: cover;
+  background: var(--paperWarm);
+  object-fit: contain;
 }
 
 .info {

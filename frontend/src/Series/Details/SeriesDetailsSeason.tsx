@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppDimension } from 'App/appStore';
 import CommandNames from 'Commands/CommandNames';
 import { useCommands, useExecuteCommand } from 'Commands/useCommands';
@@ -46,6 +46,25 @@ import SeasonInfo from './SeasonInfo';
 import SeasonProgressLabel from './SeasonProgressLabel';
 import styles from './SeriesDetailsSeason.module.css';
 
+function parseBaseGameAndVersion(item: Episode) {
+  const rawTitle = item.title ?? '';
+  const match = rawTitle.match(
+    /^(.*?)\s*\((Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Beta|Prototype|Demo|Virtual Console|Unlicensed|Homebrew|ROM Hack)\)$/i
+  );
+
+  if (match) {
+    return {
+      baseTitle: match[1].trim(),
+      versionLabel: item.finaleType || match[2].trim(),
+    };
+  }
+
+  return {
+    baseTitle: rawTitle.trim(),
+    versionLabel: item.finaleType || 'Retail (v1.0)',
+  };
+}
+
 function getSeasonStatistics(episodes: Episode[]) {
   let episodeCount = 0;
   let episodeFileCount = 0;
@@ -55,15 +74,11 @@ function getSeasonStatistics(episodes: Episode[]) {
   const sizeOnDisk = 0;
 
   episodes.forEach((episode) => {
-    if (
-      episode.episodeFileId ||
-      (episode.monitored && isBefore(episode.airDateUtc))
-    ) {
-      episodeCount++;
-    }
-
     if (episode.episodeFileId) {
+      episodeCount++;
       episodeFileCount++;
+    } else if (episode.monitored && isBefore(episode.airDateUtc)) {
+      episodeCount++;
     }
 
     if (episode.monitored) {
@@ -115,13 +130,24 @@ function SeriesDetailsSeason({
   onExpandPress,
 }: SeriesDetailsSeasonProps) {
   const executeCommand = useExecuteCommand();
-  const { monitored: seriesMonitored, path } = useSingleSeries(seriesId)!;
+  const {
+    monitored: seriesMonitored,
+    path,
+    collectionStrategy = 0,
+    revisionPreference = 0,
+  } = useSingleSeries(seriesId)!;
   const { data: items } = useSeasonEpisodes(seriesId, seasonNumber);
 
   const { columns, sortKey, sortDirection } = useEpisodeOptions();
 
   const isSmallScreen = useAppDimension('isSmallScreen');
   const isSearching = useIsSearching(seriesId, seasonNumber);
+
+  const { isTogglingSeasonMonitored, toggleSeasonMonitored } =
+    useToggleSeasonMonitored(seriesId);
+
+  const { isToggling, togglingEpisodeIds, toggleEpisodesMonitored } =
+    useToggleEpisodesMonitored(getQueryKey('episodes')!);
 
   const { sizeOnDisk = 0 } = statistics;
 
@@ -140,20 +166,94 @@ function SeriesDetailsSeason({
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isInteractiveSearchModalOpen, setIsInteractiveSearchModalOpen] =
     useState(false);
-
-  const { toggleEpisodesMonitored, isToggling, togglingEpisodeIds } =
-    useToggleEpisodesMonitored(getQueryKey('episodes')!);
-
-  const { toggleSeasonMonitored, isTogglingSeasonMonitored } =
-    useToggleSeasonMonitored(seriesId);
+  const [expandedGameGroups, setExpandedGameGroups] = useState<
+    Record<string, boolean>
+  >({});
 
   const lastToggledEpisode = useRef<number | null>(null);
   const hasSetInitalExpand = useRef(false);
 
   const seasonNumberTitle =
-    seasonNumber === 0
-      ? translate('Specials')
-      : formatSeason(seasonNumber) ?? translate('SeasonNumberToken', { seasonNumber });
+    formatSeason(seasonNumber) ??
+    translate('SeasonNumberToken', { seasonNumber });
+
+  const isCompletionist = Number(collectionStrategy) === 1;
+  const preferOriginalRelease = Number(revisionPreference) === 1;
+
+  const toggleGroupExpand = useCallback((groupKey: string) => {
+    setExpandedGameGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
+  }, []);
+
+  const displayRows = useMemo(() => {
+    const groupsMap = new Map<
+      string,
+      { item: Episode; versionLabel: string }[]
+    >();
+
+    items.forEach((item) => {
+      const { baseTitle, versionLabel } = parseBaseGameAndVersion(item);
+      const key = baseTitle.toLowerCase();
+      const existing = groupsMap.get(key);
+      if (existing) {
+        existing.push({ item, versionLabel });
+      } else {
+        groupsMap.set(key, [{ item, versionLabel }]);
+      }
+    });
+
+    const rows: {
+      item: Episode;
+      versionLabel: string;
+      isAlternateGroup: boolean;
+      alternateVersionCount: number;
+      isGroupExpanded: boolean;
+      groupKey: string;
+    }[] = [];
+
+    let groupIndex = 0;
+    groupsMap.forEach((entries, groupKey) => {
+      const isAlternateGroup = groupIndex % 2 === 1;
+      groupIndex++;
+
+      const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
+      const alternateVersionCount =
+        !isCompletionist && entries.length > 1 ? entries.length - 1 : 0;
+
+      if (isCompletionist || isGroupExpanded || entries.length === 1) {
+        entries.forEach((entry, idx) => {
+          rows.push({
+            item: entry.item,
+            versionLabel: entry.versionLabel,
+            isAlternateGroup,
+            alternateVersionCount: idx === 0 ? alternateVersionCount : 0,
+            isGroupExpanded,
+            groupKey,
+          });
+        });
+      } else {
+        const monitoredEntry = entries.find((e) => e.item.monitored);
+        const preferredEntry =
+          monitoredEntry ??
+          (preferOriginalRelease
+            ? entries[0]
+            : entries[entries.length - 1]);
+
+        rows.push({
+          item: preferredEntry.item,
+          versionLabel: preferredEntry.versionLabel,
+          isAlternateGroup,
+          alternateVersionCount,
+          isGroupExpanded: false,
+          groupKey,
+        });
+      }
+    });
+
+    return rows;
+  }, [items, isCompletionist, preferOriginalRelease, expandedGameGroups]);
 
   const handleMonitorSeasonPress = useCallback(
     (value: boolean) => {
@@ -263,7 +363,9 @@ function SeriesDetailsSeason({
     const expand =
       items.some(
         (item) =>
-          isAfter(item.airDateUtc) || isAfter(item.airDateUtc, { days: -30 }) || item.monitored
+          isAfter(item.airDateUtc) ||
+          isAfter(item.airDateUtc, { days: -30 }) ||
+          item.monitored
       ) || items.every((item) => !item.airDateUtc);
 
     onExpandPress(seasonNumber, expand && seasonNumber > 0);
@@ -482,7 +584,7 @@ function SeriesDetailsSeason({
       <div>
         {isExpanded ? (
           <div className={styles.episodes}>
-            {items.length ? (
+            {displayRows.length ? (
               <Table
                 columns={columns}
                 sortKey={sortKey}
@@ -491,12 +593,26 @@ function SeriesDetailsSeason({
                 onTableOptionChange={handleTableOptionChange}
               >
                 <TableBody>
-                  {items.map((item) => {
+                  {displayRows.map((row) => {
+                    const {
+                      item,
+                      versionLabel,
+                      isAlternateGroup,
+                      alternateVersionCount,
+                      isGroupExpanded,
+                      groupKey,
+                    } = row;
+
                     return (
                       <EpisodeRow
                         key={item.id}
                         columns={columns}
                         {...item}
+                        romVersionLabel={versionLabel}
+                        isAlternateGroup={isAlternateGroup}
+                        alternateVersionCount={alternateVersionCount}
+                        isGroupExpanded={isGroupExpanded}
+                        onToggleGroupExpand={() => toggleGroupExpand(groupKey)}
                         isSaving={
                           isToggling && togglingEpisodeIds.includes(item.id)
                         }

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import classNames from 'classnames';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TextInput from 'Components/Form/TextInput';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
@@ -20,11 +21,14 @@ import AddNewSeriesSearchResult from './AddNewSeriesSearchResult';
 import { useLookupSeries } from './useAddSeries';
 import styles from './AddNewSeries.module.css';
 
+type SearchFilterType = 'all' | 'platforms' | 'games';
+
 function AddNewSeries() {
   const { term: initialTerm = '' } = useQueryParams<{ term: string }>();
   const hasSeries = useHasSeries();
   const language = usePreferredMetadataLanguage();
   const [term, setTerm] = useState(initialTerm);
+  const [filterType, setFilterType] = useState<SearchFilterType>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [isMetadataSettingsModalOpen, setIsMetadataSettingsModalOpen] =
@@ -58,6 +62,28 @@ function AddNewSeries() {
     error,
     data,
   } = useLookupSeries(query, language);
+
+  const filteredData = useMemo(() => {
+    if (filterType === 'platforms') {
+      return data.filter((item) => item.tvdbId < 100000);
+    }
+
+    if (filterType === 'games') {
+      return data.filter((item) => item.tvdbId >= 100000);
+    }
+
+    return data;
+  }, [data, filterType]);
+
+  const platformCount = useMemo(
+    () => data.filter((item) => item.tvdbId < 100000).length,
+    [data]
+  );
+
+  const gameCount = useMemo(
+    () => data.filter((item) => item.tvdbId >= 100000).length,
+    [data]
+  );
 
   useEffect(() => {
     setIsFetching(isFetchingApi);
@@ -103,6 +129,43 @@ function AddNewSeries() {
               </Button>
             ) : null}
           </div>
+
+          <div className={styles.filterRow}>
+            <span className={styles.filterLabel}>Show:</span>
+
+            <button
+              type="button"
+              className={classNames(
+                styles.filterPill,
+                filterType === 'all' && styles.filterPillActive
+              )}
+              onClick={() => setFilterType('all')}
+            >
+              All ({data.length})
+            </button>
+
+            <button
+              type="button"
+              className={classNames(
+                styles.filterPill,
+                filterType === 'platforms' && styles.filterPillActive
+              )}
+              onClick={() => setFilterType('platforms')}
+            >
+              Consoles / Platforms ({platformCount})
+            </button>
+
+            <button
+              type="button"
+              className={classNames(
+                styles.filterPill,
+                filterType === 'games' && styles.filterPillActive
+              )}
+              onClick={() => setFilterType('games')}
+            >
+              Games / ROMs ({gameCount})
+            </button>
+          </div>
         </div>
 
         {isFetching ? <LoadingIndicator /> : null}
@@ -116,21 +179,21 @@ function AddNewSeries() {
           </div>
         ) : null}
 
-        {!isFetching && !error && !!data.length ? (
+        {!isFetching && !error && !!filteredData.length ? (
           <div className={styles.searchResults}>
             <div className={styles.resultsLabel}>
-              {data.length === 1
-                ? translate('CountResult', { count: data.length })
-                : translate('CountResults', { count: data.length })}
+              {filteredData.length === 1
+                ? translate('CountResult', { count: filteredData.length })
+                : translate('CountResults', { count: filteredData.length })}
             </div>
 
-            {data.map((item) => (
+            {filteredData.map((item) => (
               <AddNewSeriesSearchResult key={item.tvdbId} series={item} />
             ))}
           </div>
         ) : null}
 
-        {!isFetching && !error && !data.length && term ? (
+        {!isFetching && !error && !filteredData.length && term ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyTitle}>
               {translate('CouldNotFindResults', { term })}
@@ -139,10 +202,7 @@ function AddNewSeries() {
               {translate('SearchByTvdbId')}
             </div>
             <div>
-              <Link
-                className={styles.emptyLink}
-                to="/settings/metadatasource"
-              >
+              <Link className={styles.emptyLink} to="/settings/metadatasource">
                 {translate('WhyCantIFindMyShow')}
               </Link>
             </div>

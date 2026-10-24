@@ -32,7 +32,7 @@ namespace NzbDrone.Core.MetadataSource.Igdb
 
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(clientId))
             {
-                _logger.Warn("IGDB token or Client-ID is missing. Request will not be successful.");
+                _logger.Debug("IGDB token or Client-ID is missing. Request will not be successful.");
                 return null;
             }
 

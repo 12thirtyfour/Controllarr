@@ -42,13 +42,11 @@ interface EpisodeRowProps {
   title: string;
   isSaving?: boolean;
   unverifiedSceneNumbering?: boolean;
-  // episodeFilePath?: string;
-  // episodeFileRelativePath?: string;
-  // episodeFileSize?: number;
-  // releaseGroup?: string;
-  // customFormats?: CustomFormat[];
-  // customFormatScore: number;
-  // indexerFlags?: number;
+  isAlternateGroup?: boolean;
+  romVersionLabel?: string;
+  alternateVersionCount?: number;
+  isGroupExpanded?: boolean;
+  onToggleGroupExpand?: () => void;
   mediaInfo?: MediaInfoModel;
   columns: Column[];
   onMonitorEpisodePress: (
@@ -75,13 +73,11 @@ function EpisodeRow({
   title,
   unverifiedSceneNumbering,
   isSaving,
-  // episodeFilePath,
-  // episodeFileRelativePath,
-  // episodeFileSize,
-  // releaseGroup,
-  // customFormats = [],
-  // customFormatScore,
-  // indexerFlags = 0,
+  isAlternateGroup = false,
+  romVersionLabel,
+  alternateVersionCount = 0,
+  isGroupExpanded = false,
+  onToggleGroupExpand,
   columns,
   onMonitorEpisodePress,
 }: EpisodeRowProps) {
@@ -95,6 +91,7 @@ function EpisodeRow({
 
   const customFormats = episodeFile?.customFormats ?? [];
   const customFormatScore = episodeFile?.customFormatScore ?? 0;
+  const effectiveVersion = romVersionLabel || finaleType || 'Retail (v1.0)';
 
   const handleMonitorEpisodePress = useCallback(
     (monitored: boolean, options: { shiftKey: boolean }) => {
@@ -104,7 +101,11 @@ function EpisodeRow({
   );
 
   return (
-    <TableRow>
+    <TableRow
+      className={
+        isAlternateGroup ? styles.alternateGameGroup : styles.primaryGameGroup
+      }
+    >
       {columns.map((column) => {
         const { name, isVisible } = column;
 
@@ -160,9 +161,30 @@ function EpisodeRow({
                 seriesId={seriesId}
                 episodeTitle={title}
                 episodeEntity="episodes"
-                finaleType={finaleType}
                 showOpenSeriesButton={false}
               />
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'romVersion') {
+          return (
+            <TableRowCell key={name} className={styles.romVersion}>
+              <span className={styles.versionBadge}>{effectiveVersion}</span>
+
+              {alternateVersionCount > 0 && onToggleGroupExpand ? (
+                <button
+                  type="button"
+                  className={styles.versionToggleBtn}
+                  onClick={onToggleGroupExpand}
+                >
+                  {isGroupExpanded
+                    ? 'Hide versions'
+                    : `+${alternateVersionCount} version${
+                        alternateVersionCount > 1 ? 's' : ''
+                      }`}
+                </button>
+              ) : null}
             </TableRowCell>
           );
         }

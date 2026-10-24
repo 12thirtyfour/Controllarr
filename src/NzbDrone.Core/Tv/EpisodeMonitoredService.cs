@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MetadataSource.Game;
 
 namespace NzbDrone.Core.Tv
@@ -86,6 +87,12 @@ namespace NzbDrone.Core.Tv
                 return;
             }
 
+            var isCatalogPlatform = series.Seasons.Any(s =>
+                s.SeasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
+                s.SeasonNumber == GameCatalogProxy.RegionRomHacksSeason);
+
+            var initialSeasonMonitored = series.Seasons.ToDictionary(s => s.SeasonNumber, s => s.Monitored);
+
             var firstSeason = series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
             var lastSeason = series.Seasons.Select(s => s.SeasonNumber).MaxOrDefault();
 
@@ -96,6 +103,15 @@ namespace NzbDrone.Core.Tv
             foreach (var season in series.Seasons)
             {
                 var seasonNumber = season.SeasonNumber;
+
+                if (isCatalogPlatform &&
+                    (seasonNumber == GameCatalogProxy.RegionPrototypesSeason ||
+                     seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
+                     seasonNumber == GameCatalogProxy.RegionRomHacksSeason))
+                {
+                    season.Monitored = initialSeasonMonitored.TryGetValue(seasonNumber, out var wasMonitored) && wasMonitored;
+                    continue;
+                }
 
                 // Monitor the last season when:
                 // - Not specials
@@ -127,7 +143,57 @@ namespace NzbDrone.Core.Tv
                 }
             }
 
+            if (isCatalogPlatform)
+            {
+                var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+                if (allEpisodes.Any())
+                {
+                    var monitoredSeasonSet = series.Seasons.Where(s => s.Monitored).Select(s => s.SeasonNumber).ToHashSet();
+                    foreach (var ep in allEpisodes)
+                    {
+                        if (!monitoredSeasonSet.Contains(ep.SeasonNumber))
+                        {
+                            ep.Monitored = false;
+                        }
+                    }
+
+                    if (series.CollectionStrategy != CollectionStrategy.Preservationist)
+                    {
+                        var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
+                        foreach (var group in allEpisodes
+                            .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                            .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
+                        {
+                            var groupList = group.ToList();
+                            if (groupList.Count <= 1)
+                            {
+                                continue;
+                            }
+
+                            var preferred = preferInitial ? groupList.First() : groupList.Last();
+                            foreach (var item in groupList)
+                            {
+                                item.Monitored = item.Id == preferred.Id;
+                            }
+                        }
+                    }
+
+                    _episodeService.UpdateEpisodes(allEpisodes);
+                }
+            }
+
             _seriesService.UpdateSeries(series, false);
+        }
+
+        private static string ExtractBaseTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var idx = title.IndexOf(" (", StringComparison.Ordinal);
+            return idx > 0 ? title.Substring(0, idx).Trim() : title.Trim();
         }
 
         private void LegacySetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions)

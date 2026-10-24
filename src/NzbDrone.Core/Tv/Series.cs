@@ -92,6 +92,9 @@ namespace NzbDrone.Core.Tv
             SeasonFolder = otherSeries.SeasonFolder;
             Monitored = otherSeries.Monitored;
             MonitorNewItems = otherSeries.MonitorNewItems;
+            CollectionStrategy = otherSeries.CollectionStrategy;
+            RevisionPreference = otherSeries.RevisionPreference;
+            PinnedVersion = otherSeries.PinnedVersion;
 
             SeriesType = otherSeries.SeriesType;
             RootFolderPath = otherSeries.RootFolderPath;

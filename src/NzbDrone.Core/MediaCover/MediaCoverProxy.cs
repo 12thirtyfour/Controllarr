@@ -61,12 +61,28 @@ namespace NzbDrone.Core.MediaCover
 
         public async Task<byte[]> GetImage(string hash)
         {
-            var url = GetUrl(hash);
+            try
+            {
+                var url = GetUrl(hash);
 
-            var request = new HttpRequest(url);
-            var response = await _httpClient.GetAsync(request);
+                var request = new HttpRequest(url)
+                {
+                    SuppressHttpError = true
+                };
 
-            return response.ResponseData;
+                var response = await _httpClient.GetAsync(request);
+
+                if (response == null || response.HasHttpError || response.ResponseData == null || response.ResponseData.Length == 0)
+                {
+                    return null;
+                }
+
+                return response.ResponseData;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

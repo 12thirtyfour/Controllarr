@@ -44,11 +44,14 @@
 .poster {
   display: block;
   align-self: flex-start;
-  flex: 0 0 114px;
-  width: 114px;
-  height: 170px;
+  flex: 0 0 132px;
+  padding: 6px;
+  width: 132px;
+  height: 132px;
+  border: 1px solid var(--hairline);
   border-radius: 8px;
-  object-fit: cover;
+  background: var(--paperWarm);
+  object-fit: contain;
 }
 
 .content {

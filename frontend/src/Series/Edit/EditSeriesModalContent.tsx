@@ -24,7 +24,7 @@ import {
   tooltipPositions,
 } from 'Helpers/Props';
 import MoveSeriesModal from 'Series/MoveSeries/MoveSeriesModal';
-import Series, { Statistics } from 'Series/Series';
+import Series from 'Series/Series';
 import SeriesMovePending from 'Series/SeriesMovePending';
 import { useSaveSeries, useSingleSeries } from 'Series/useSeries';
 import { InputChanged } from 'typings/inputs';
@@ -39,6 +39,17 @@ export interface EditSeriesModalContentProps {
   onModalClose: () => void;
   onDeleteSeriesPress: () => void;
 }
+
+const COLLECTION_STRATEGY_OPTIONS = [
+  { key: 0, value: '1G1R (Single Preferred Region)' },
+  { key: 2, value: '1G1R Multi-Region (1 Per Monitored Region)' },
+  { key: 1, value: 'Completionist (All Revisions, Regions & Variants)' },
+];
+
+const REVISION_PREFERENCE_OPTIONS = [
+  { key: 0, value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)' },
+  { key: 1, value: 'Original Retail Release (Rev 0 / v1.0)' },
+];
 
 function EditSeriesModalContent({
   seriesId,
@@ -55,16 +66,12 @@ function EditSeriesModalContent({
     qualityProfileId,
     seriesType,
     seasonType,
-    seasonTypes,
     language,
     path,
     pendingPath,
     tags,
     rootFolderPath: initialRootFolderPath,
-    statistics = {} as Statistics,
   } = series;
-
-  const { episodeFileCount = 0 } = statistics;
 
   const { pendingChanges, setPendingChange } = usePendingChangesStore<Series>(
     {}
@@ -92,8 +99,8 @@ function EditSeriesModalContent({
         language,
         path,
         tags,
-        collectionStrategy: series.collectionStrategy,
-        revisionPreference: series.revisionPreference,
+        collectionStrategy: series.collectionStrategy ?? 0,
+        revisionPreference: series.revisionPreference ?? 0,
         pinnedVersion: series.pinnedVersion ?? '',
       },
       pendingChanges,
@@ -189,56 +196,37 @@ function EditSeriesModalContent({
       <ModalBody>
         <Form {...otherSettings}>
           <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('Collection Strategy')}</FormLabel>
-            <FormInputHelpText text={translate('CollectionStrategyHelpText')} />
+            <FormLabel>Collection Strategy</FormLabel>
+            <FormInputHelpText text="Choose 1G1R (single preferred ROM per game), 1G1R Multi-Region, or Completionist (all revisions and variants)" />
             <FormInput
               type={inputTypes.SELECT}
               name="collectionStrategy"
+              values={COLLECTION_STRATEGY_OPTIONS}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               {...(settings as any).collectionStrategy}
               onChange={handleInputChange}
-            >
-              <option value="0">{translate('1G1R (1 Game / Console)')}</option>
-              <option value="2">
-                {translate('1G1R Regional (1 Game / Region / Console)')}
-              </option>
-              <option value="1">
-                {translate('Preservationist / Completionist')}
-              </option>
-            </FormInput>
+            />
           </FormRow>
 
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {Number((settings as any).collectionStrategy?.value) !== 1 && (
             <FormRow size={sizes.MEDIUM}>
-              <FormLabel>{translate('1G1R Revision Preference')}</FormLabel>
-              <FormInputHelpText
-                text={translate('RevisionPreferenceHelpText')}
-              />
+              <FormLabel>1G1R Revision Preference</FormLabel>
+              <FormInputHelpText text="Which ROM revision to monitor in 1G1R mode when multiple revisions exist" />
               <FormInput
                 type={inputTypes.SELECT}
                 name="revisionPreference"
+                values={REVISION_PREFERENCE_OPTIONS}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 {...(settings as any).revisionPreference}
                 onChange={handleInputChange}
-              >
-                <option value="0">
-                  {translate('Latest Revision (v1.1, v1.2, Rev A, etc.)')}
-                </option>
-                <option value="1">
-                  {translate('Initial Release (v1.0 / Unpatched)')}
-                </option>
-              </FormInput>
+              />
             </FormRow>
           )}
 
           <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('Pinned Version / Revision')}</FormLabel>
-            <FormInputHelpText
-              text={translate(
-                'Optional revision or version tag to pin (e.g. Rev A, 1.1)'
-              )}
-            />
+            <FormLabel>Pinned Version / Revision</FormLabel>
+            <FormInputHelpText text="Optional revision or version tag to pin (e.g. Rev A, Rev 1, v1.1)" />
             <FormInput
               type={inputTypes.TEXT}
               name="pinnedVersion"
@@ -283,62 +271,11 @@ function EditSeriesModalContent({
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('UseSeasonFolder')}</FormLabel>
 
-            <FormInputHelpText text={translate('UseSeasonFolderHelpText')} />
+            <FormInputHelpText text="Organize ROMs into regional subfolders (USA, Europe, Japan, Homebrew, ROM Hacks)" />
             <FormInput
               type={inputTypes.CHECK}
               name="seasonFolder"
               {...settings.seasonFolder}
-              onChange={handleInputChange}
-            />
-          </FormRow>
-
-          <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('QualityProfile')}</FormLabel>
-
-            <FormInput
-              type={inputTypes.QUALITY_PROFILE_SELECT}
-              name="qualityProfileId"
-              {...settings.qualityProfileId}
-              onChange={handleInputChange}
-            />
-          </FormRow>
-
-          <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('SeriesType')}</FormLabel>
-
-            <FormInputHelpText text={translate('SeriesTypesHelpText')} />
-            <FormInput
-              type={inputTypes.SERIES_TYPE_SELECT}
-              name="seriesType"
-              {...settings.seriesType}
-              onChange={handleInputChange}
-            />
-          </FormRow>
-
-          <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('Language')}</FormLabel>
-
-            <FormInputHelpText text={translate('SeriesLanguageHelpText')} />
-            <FormInput
-              type={inputTypes.LANGUAGE_SELECT}
-              name="language"
-              {...settings.language}
-              onChange={handleInputChange}
-            />
-          </FormRow>
-
-          <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('SeasonType')}</FormLabel>
-
-            <FormInputHelpText text={translate('SeasonTypeHelpText')} />
-            <FormInput
-              type={inputTypes.SEASON_TYPE_SELECT}
-              name="seasonType"
-              {...settings.seasonType}
-              seasonTypes={seasonTypes}
-              isDisabled={!seasonTypes.length || episodeFileCount > 0}
-              includeNoChange={false}
-              includeMixed={false}
               onChange={handleInputChange}
             />
           </FormRow>

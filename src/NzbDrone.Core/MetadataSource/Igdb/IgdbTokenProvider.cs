@@ -42,7 +42,7 @@ namespace NzbDrone.Core.MetadataSource.Igdb
 
                 if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
                 {
-                    _logger.Warn("IGDB ClientId or ClientSecret is not configured.");
+                    _logger.Debug("IGDB ClientId or ClientSecret is not configured.");
                     return null;
                 }
 

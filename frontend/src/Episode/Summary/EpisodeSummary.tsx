@@ -12,9 +12,7 @@ import { useDeleteEpisodeFile } from 'EpisodeFile/useEpisodeFiles';
 import { icons, sizes } from 'Helpers/Props';
 import Series from 'Series/Series';
 import { useSingleSeries } from 'Series/useSeries';
-import QualityProfileName from 'Settings/Profiles/Quality/QualityProfileName';
 import translate from 'Utilities/String/translate';
-import EpisodeAiring from './EpisodeAiring';
 import EpisodeFileRow from './EpisodeFileRow';
 import styles from './EpisodeSummary.module.css';
 
@@ -80,9 +78,9 @@ function EpisodeSummary({
   episodeFileId,
 }: EpisodeSummaryProps) {
   const queryClient = useQueryClient();
-  const { qualityProfileId, network } = useSingleSeries(seriesId) as Series;
+  const { network } = useSingleSeries(seriesId) as Series;
 
-  const { airDateUtc, overview } = useEpisode(
+  const { airDate, airDateUtc, finaleType, overview } = useEpisode(
     episodeId,
     episodeEntity
   ) as Episode;
@@ -122,19 +120,27 @@ function EpisodeSummary({
           <span className={styles.metaLabel}>{translate('Airs')}</span>
 
           <div className={styles.metaValue}>
-            <EpisodeAiring airDateUtc={airDateUtc} network={network} />
+            {airDate ?? (airDateUtc ? airDateUtc.slice(0, 10) : translate('Unknown'))}
           </div>
         </div>
 
         <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>
-            {translate('QualityProfile')}
-          </span>
+          <span className={styles.metaLabel}>Version / Type</span>
 
           <Label outline={true} size={sizes.MEDIUM}>
-            <QualityProfileName qualityProfileId={qualityProfileId} />
+            {finaleType || 'Retail (v1.0)'}
           </Label>
         </div>
+
+        {network ? (
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>{translate('Network')}</span>
+
+            <Label outline={true} size={sizes.MEDIUM}>
+              {network}
+            </Label>
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.overview}>

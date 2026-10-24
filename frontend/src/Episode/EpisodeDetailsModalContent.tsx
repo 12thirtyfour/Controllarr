@@ -15,12 +15,12 @@ import useEpisode, {
   useToggleEpisodesMonitored,
 } from 'Episode/useEpisode';
 import { useClearReleasesOnUnmount } from 'InteractiveSearch/useReleases';
+import formatSeason from 'Season/formatSeason';
 import Series from 'Series/Series';
 import { useSingleSeries } from 'Series/useSeries';
 import translate from 'Utilities/String/translate';
 import EpisodeHistory from './History/EpisodeHistory';
 import EpisodeSearch from './Search/EpisodeSearch';
-import SeasonEpisodeNumber from './SeasonEpisodeNumber';
 import EpisodeSummary from './Summary/EpisodeSummary';
 import styles from './EpisodeDetailsModalContent.module.css';
 
@@ -56,15 +56,11 @@ function EpisodeDetailsModalContent({
     title: seriesTitle,
     titleSlug,
     monitored: seriesMonitored,
-    seriesType,
   } = useSingleSeries(seriesId) as Series;
 
   const {
     episodeFileId,
     seasonNumber,
-    episodeNumber,
-    absoluteEpisodeNumber,
-    airDate,
     monitored,
   } = useEpisode(episodeId, episodeEntity) as Episode;
 
@@ -93,7 +89,7 @@ function EpisodeDetailsModalContent({
     [episodeId, toggleEpisodesMonitored]
   );
 
-  const seriesLink = `/series/${titleSlug}`;
+  const seriesLink = `/platforms/${titleSlug}`;
 
   return (
     <ModalContent onModalClose={onModalClose}>
@@ -103,13 +99,7 @@ function EpisodeDetailsModalContent({
             <span className={styles.scopeSeries}>{seriesTitle}</span>
 
             <span className={styles.scopeEpisode}>
-              <SeasonEpisodeNumber
-                seasonNumber={seasonNumber}
-                episodeNumber={episodeNumber}
-                absoluteEpisodeNumber={absoluteEpisodeNumber}
-                airDate={airDate}
-                seriesType={seriesType}
-              />
+              {formatSeason(seasonNumber)}
             </span>
           </span>
         </div>
