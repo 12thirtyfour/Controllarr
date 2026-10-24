@@ -636,7 +636,7 @@ namespace NzbDrone.Core.Notifications.Discord
         {
             try
             {
-                var message = $"Test message from Sonarr posted at {DateTime.Now}";
+                var message = $"Test message from Controllarr posted at {DateTime.Now}";
                 var payload = CreatePayload(message);
 
                 _proxy.SendPayload(payload, Settings);
