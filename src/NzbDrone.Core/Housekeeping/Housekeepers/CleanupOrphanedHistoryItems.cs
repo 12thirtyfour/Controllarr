@@ -24,9 +24,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""History""
                                      WHERE ""Id"" IN (
                                      SELECT ""History"".""Id"" FROM ""History""
-                                     LEFT OUTER JOIN ""Series""
-                                     ON ""History"".""SeriesId"" = ""Series"".""Id""
-                                     WHERE ""Series"".""Id"" IS NULL)");
+                                     LEFT OUTER JOIN ""Platforms""
+                                     ON ""History"".""SeriesId"" = ""Platforms"".""Id""
+                                     WHERE ""Platforms"".""Id"" IS NULL)");
         }
 
         private void CleanupOrphanedByEpisode()
@@ -35,9 +35,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""History""
                                      WHERE ""Id"" IN (
                                      SELECT ""History"".""Id"" FROM ""History""
-                                     LEFT OUTER JOIN ""Episodes""
-                                     ON ""History"".""EpisodeId"" = ""Episodes"".""Id""
-                                     WHERE ""Episodes"".""Id"" IS NULL)");
+                                     LEFT OUTER JOIN ""Games""
+                                     ON ""History"".""EpisodeId"" = ""Games"".""Id""
+                                     WHERE ""Games"".""Id"" IS NULL)");
         }
     }
 }

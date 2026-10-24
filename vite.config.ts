@@ -154,10 +154,10 @@ export default defineConfig({
   base: '/',
 
   server: {
-    port: Number(process.env.SONARR_VITE_PORT ?? 8959),
+    port: Number(process.env.CONTROLLARR_VITE_PORT ?? process.env.SONARR_VITE_PORT ?? 8959),
     strictPort: true,
     hmr: {
-      clientPort: Number(process.env.SONARR_VITE_PORT ?? 8959),
+      clientPort: Number(process.env.CONTROLLARR_VITE_PORT ?? process.env.SONARR_VITE_PORT ?? 8959),
     },
   },
 

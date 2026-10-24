@@ -5,13 +5,13 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import Episode from 'Episode/Episode';
-import EpisodeSearchCell from 'Episode/EpisodeSearchCell';
-import EpisodeStatus from 'Episode/EpisodeStatus';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
 import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
-import SeriesTitleLink from 'Series/SeriesTitleLink';
-import { useSingleSeries } from 'Series/useSeries';
+import Game from 'Game/Game';
+import GameSearchCell from 'Game/GameSearchCell';
+import GameStatus from 'Game/GameStatus';
+import GameTitleLink from 'Game/GameTitleLink';
+import PlatformTitleLink from 'Platform/PlatformTitleLink';
+import { useSinglePlatform } from 'Platform/usePlatform';
 import { SelectStateInputProps } from 'typings/props';
 import styles from './MissingRow.module.css';
 
@@ -48,8 +48,8 @@ function MissingRow({
   title,
   columns,
 }: MissingRowProps) {
-  const series = useSingleSeries(seriesId);
-  const { toggleSelected, useIsSelected } = useSelect<Episode>();
+  const platform = useSinglePlatform(seriesId);
+  const { toggleSelected, useIsSelected } = useSelect<Game>();
   const isSelected = useIsSelected(id);
 
   const handleSelectedChange = useCallback(
@@ -63,7 +63,7 @@ function MissingRow({
     [toggleSelected]
   );
 
-  if (!series) {
+  if (!platform) {
     return null;
   }
 
@@ -85,9 +85,9 @@ function MissingRow({
         if (name === 'series.sortTitle') {
           return (
             <TableRowCell key={name}>
-              <SeriesTitleLink
-                titleSlug={series.titleSlug}
-                title={series.title}
+              <PlatformTitleLink
+                titleSlug={platform.titleSlug}
+                title={platform.title}
               />
             </TableRowCell>
           );
@@ -100,8 +100,8 @@ function MissingRow({
                 seasonNumber={seasonNumber}
                 episodeNumber={episodeNumber}
                 absoluteEpisodeNumber={absoluteEpisodeNumber}
-                seriesType={series.seriesType}
-                alternateTitles={series.alternateTitles}
+                seriesType={platform.seriesType}
+                alternateTitles={platform.alternateTitles}
                 sceneSeasonNumber={sceneSeasonNumber}
                 sceneEpisodeNumber={sceneEpisodeNumber}
                 sceneAbsoluteEpisodeNumber={sceneAbsoluteEpisodeNumber}
@@ -114,9 +114,9 @@ function MissingRow({
         if (name === 'episodes.title') {
           return (
             <TableRowCell key={name}>
-              <EpisodeTitleLink
+              <GameTitleLink
                 episodeId={id}
-                seriesId={series.id}
+                seriesId={platform.id}
                 episodeEntity="wanted.missing"
                 episodeTitle={title}
                 showOpenSeriesButton={true}
@@ -142,7 +142,7 @@ function MissingRow({
         if (name === 'status') {
           return (
             <TableRowCell key={name} className={styles.status}>
-              <EpisodeStatus
+              <GameStatus
                 episodeId={id}
                 episodeFileId={episodeFileId}
                 episodeEntity="wanted.missing"
@@ -153,10 +153,10 @@ function MissingRow({
 
         if (name === 'actions') {
           return (
-            <EpisodeSearchCell
+            <GameSearchCell
               key={name}
               episodeId={id}
-              seriesId={series.id}
+              seriesId={platform.id}
               episodeTitle={title}
               episodeEntity="wanted.missing"
               showOpenSeriesButton={true}

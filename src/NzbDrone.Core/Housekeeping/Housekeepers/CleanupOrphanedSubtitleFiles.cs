@@ -25,9 +25,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""SubtitleFiles""
                                      WHERE ""Id"" IN (
                                      SELECT ""SubtitleFiles"".""Id"" FROM ""SubtitleFiles""
-                                     LEFT OUTER JOIN ""Series""
-                                     ON ""SubtitleFiles"".""SeriesId"" = ""Series"".""Id""
-                                     WHERE ""Series"".""Id"" IS NULL)");
+                                     LEFT OUTER JOIN ""Platforms""
+                                     ON ""SubtitleFiles"".""SeriesId"" = ""Platforms"".""Id""
+                                     WHERE ""Platforms"".""Id"" IS NULL)");
         }
 
         private void DeleteOrphanedByEpisodeFile()
@@ -36,10 +36,10 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""SubtitleFiles""
                                      WHERE ""Id"" IN (
                                      SELECT ""SubtitleFiles"".""Id"" FROM ""SubtitleFiles""
-                                     LEFT OUTER JOIN ""EpisodeFiles""
-                                     ON ""SubtitleFiles"".""EpisodeFileId"" = ""EpisodeFiles"".""Id""
+                                     LEFT OUTER JOIN ""RomFiles""
+                                     ON ""SubtitleFiles"".""EpisodeFileId"" = ""RomFiles"".""Id""
                                      WHERE ""SubtitleFiles"".""EpisodeFileId"" > 0
-                                     AND ""EpisodeFiles"".""Id"" IS NULL)");
+                                     AND ""RomFiles"".""Id"" IS NULL)");
         }
 
         private void DeleteWhereEpisodeFileIsZero()

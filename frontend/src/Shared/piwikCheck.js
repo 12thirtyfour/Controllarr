@@ -1,4 +1,4 @@
-if (window.Sonarr.analytics) {
+if (window.Controllarr.analytics) {
   const d = document;
   const g = d.createElement('script');
   const s = d.getElementsByTagName('script')[0];

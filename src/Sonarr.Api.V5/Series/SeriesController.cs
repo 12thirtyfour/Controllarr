@@ -26,6 +26,7 @@ using Sonarr.Http.REST.Attributes;
 namespace Sonarr.Api.V5.Series;
 
 [V5ApiController]
+[Route("api/v5/platform")]
 public class SeriesController : RestControllerWithSignalR<SeriesResource, NzbDrone.Core.Tv.Series>,
                             IHandle<EpisodeImportedEvent>,
                             IHandle<EpisodeFileDeletedEvent>,

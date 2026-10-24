@@ -23,6 +23,7 @@ using BadRequestException = Sonarr.Http.REST.BadRequestException;
 namespace Sonarr.Api.V3.EpisodeFiles
 {
     [V3ApiController]
+    [Route("api/v3/romfile")]
     public class EpisodeFileController : RestControllerWithSignalR<EpisodeFileResource, EpisodeFile>,
                                  IHandle<EpisodeFileAddedEvent>,
                                  IHandle<EpisodeFileDeletedEvent>

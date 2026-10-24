@@ -206,7 +206,7 @@ function Profiles() {
           path: getQueryPath(`/virtuallibrary/${id}/sync`),
           method: 'POST',
           headers: {
-            'X-Api-Key': window.Sonarr.apiKey,
+            'X-Api-Key': window.Controllarr.apiKey,
           },
         });
         queryClient.invalidateQueries({ queryKey: ['/virtuallibrary'] });
@@ -223,7 +223,7 @@ function Profiles() {
         path: getQueryPath(`/virtuallibrary/${id}`),
         method: 'DELETE',
         headers: {
-          'X-Api-Key': window.Sonarr.apiKey,
+          'X-Api-Key': window.Controllarr.apiKey,
         },
       });
       queryClient.invalidateQueries({ queryKey: ['/virtuallibrary'] });

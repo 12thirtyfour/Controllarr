@@ -124,7 +124,7 @@ export const useReorderDelayProfile = () => {
           getQueryString(after == null ? {} : { after }),
         method: 'PUT',
         headers: {
-          'X-Api-Key': window.Sonarr.apiKey,
+          'X-Api-Key': window.Controllarr.apiKey,
           'X-Sonarr-Client': 'Sonarr',
         },
       });

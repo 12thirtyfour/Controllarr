@@ -49,7 +49,7 @@ function CalendarLinkModalContent({
   );
 
   const { iCalHttpUrl, iCalWebCalUrl } = useMemo(() => {
-    let icalUrl = `${window.location.host}${window.Sonarr.urlBase}/feed/v5/calendar/Sonarr.ics?`;
+    let icalUrl = `${window.location.host}${window.Controllarr.urlBase}/feed/v5/calendar/Controllarr.ics?`;
 
     if (unmonitored) {
       icalUrl += 'unmonitored=true&';
@@ -67,7 +67,7 @@ function CalendarLinkModalContent({
       icalUrl += `tags=${tags.toString()}&`;
     }
 
-    icalUrl += `apikey=${encodeURIComponent(window.Sonarr.apiKey)}`;
+    icalUrl += `apikey=${encodeURIComponent(window.Controllarr.apiKey)}`;
 
     return {
       iCalHttpUrl: `${window.location.protocol}//${icalUrl}`,

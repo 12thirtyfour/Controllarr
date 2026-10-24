@@ -16,11 +16,11 @@ function PageContent({
 }: PageContentProps) {
   useEffect(() => {
     document.title = title
-      ? `${title} - ${window.Sonarr.instanceName}`
-      : window.Sonarr.instanceName;
+      ? `${title} - ${window.Controllarr.instanceName}`
+      : window.Controllarr.instanceName;
 
     return () => {
-      document.title = window.Sonarr.instanceName;
+      document.title = window.Controllarr.instanceName;
     };
   }, [title]);
 

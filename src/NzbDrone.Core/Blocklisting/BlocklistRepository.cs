@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Blocklisting
 
                 builder.LeftJoin(
                     $"\"QualityProfileQualityRanks\" AS \"r\" " +
-                    $"ON \"r\".\"ProfileId\" = \"Series\".\"QualityProfileId\" " +
+                    $"ON \"r\".\"ProfileId\" = \"Platforms\".\"QualityProfileId\" " +
                     $"AND \"r\".\"QualityId\" = {qualityIdExpr}");
             }
 

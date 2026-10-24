@@ -5,15 +5,15 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import Episode from 'Episode/Episode';
-import EpisodeSearchCell from 'Episode/EpisodeSearchCell';
-import EpisodeStatus from 'Episode/EpisodeStatus';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
 import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
-import EpisodeFileLanguages from 'EpisodeFile/EpisodeFileLanguages';
-import EpisodeFileQuality from 'EpisodeFile/EpisodeFileQuality';
-import SeriesTitleLink from 'Series/SeriesTitleLink';
-import { useSingleSeries } from 'Series/useSeries';
+import Game from 'Game/Game';
+import GameSearchCell from 'Game/GameSearchCell';
+import GameStatus from 'Game/GameStatus';
+import GameTitleLink from 'Game/GameTitleLink';
+import PlatformTitleLink from 'Platform/PlatformTitleLink';
+import { useSinglePlatform } from 'Platform/usePlatform';
+import RomFileLanguages from 'RomFile/RomFileLanguages';
+import RomFileQuality from 'RomFile/RomFileQuality';
 import { SelectStateInputProps } from 'typings/props';
 import styles from './CutoffUnmetRow.module.css';
 
@@ -50,8 +50,8 @@ function CutoffUnmetRow({
   title,
   columns,
 }: CutoffUnmetRowProps) {
-  const series = useSingleSeries(seriesId);
-  const { toggleSelected, useIsSelected } = useSelect<Episode>();
+  const platform = useSinglePlatform(seriesId);
+  const { toggleSelected, useIsSelected } = useSelect<Game>();
   const isSelected = useIsSelected(id);
 
   const handleSelectedChange = useCallback(
@@ -65,7 +65,7 @@ function CutoffUnmetRow({
     [toggleSelected]
   );
 
-  if (!series || !episodeFileId) {
+  if (!platform || !episodeFileId) {
     return null;
   }
 
@@ -87,9 +87,9 @@ function CutoffUnmetRow({
         if (name === 'series.sortTitle') {
           return (
             <TableRowCell key={name}>
-              <SeriesTitleLink
-                titleSlug={series.titleSlug}
-                title={series.title}
+              <PlatformTitleLink
+                titleSlug={platform.titleSlug}
+                title={platform.title}
               />
             </TableRowCell>
           );
@@ -102,8 +102,8 @@ function CutoffUnmetRow({
                 seasonNumber={seasonNumber}
                 episodeNumber={episodeNumber}
                 absoluteEpisodeNumber={absoluteEpisodeNumber}
-                seriesType={series.seriesType}
-                alternateTitles={series.alternateTitles}
+                seriesType={platform.seriesType}
+                alternateTitles={platform.alternateTitles}
                 sceneSeasonNumber={sceneSeasonNumber}
                 sceneEpisodeNumber={sceneEpisodeNumber}
                 sceneAbsoluteEpisodeNumber={sceneAbsoluteEpisodeNumber}
@@ -116,9 +116,9 @@ function CutoffUnmetRow({
         if (name === 'episodes.title') {
           return (
             <TableRowCell key={name}>
-              <EpisodeTitleLink
+              <GameTitleLink
                 episodeId={id}
-                seriesId={series.id}
+                seriesId={platform.id}
                 episodeEntity="wanted.cutoffUnmet"
                 episodeTitle={title}
                 showOpenSeriesButton={true}
@@ -144,7 +144,7 @@ function CutoffUnmetRow({
         if (name === 'languages') {
           return (
             <TableRowCell key={name} className={styles.languages}>
-              <EpisodeFileLanguages episodeFileId={episodeFileId} />
+              <RomFileLanguages episodeFileId={episodeFileId} />
             </TableRowCell>
           );
         }
@@ -152,7 +152,7 @@ function CutoffUnmetRow({
         if (name === 'quality') {
           return (
             <TableRowCell key={name}>
-              <EpisodeFileQuality episodeFileId={episodeFileId} />
+              <RomFileQuality episodeFileId={episodeFileId} />
             </TableRowCell>
           );
         }
@@ -160,7 +160,7 @@ function CutoffUnmetRow({
         if (name === 'status') {
           return (
             <TableRowCell key={name} className={styles.status}>
-              <EpisodeStatus
+              <GameStatus
                 episodeId={id}
                 episodeFileId={episodeFileId}
                 episodeEntity="wanted.cutoffUnmet"
@@ -171,10 +171,10 @@ function CutoffUnmetRow({
 
         if (name === 'actions') {
           return (
-            <EpisodeSearchCell
+            <GameSearchCell
               key={name}
               episodeId={id}
-              seriesId={series.id}
+              seriesId={platform.id}
               episodeTitle={title}
               episodeEntity="wanted.cutoffUnmet"
               showOpenSeriesButton={true}

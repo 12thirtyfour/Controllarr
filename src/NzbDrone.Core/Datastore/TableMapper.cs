@@ -8,6 +8,15 @@ namespace NzbDrone.Core.Datastore
 {
     public class TableMapper
     {
+        private static readonly Dictionary<string, string> LegacyTableAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Series", "Platforms" },
+            { "SeriesTranslations", "PlatformTranslations" },
+            { "Episodes", "Games" },
+            { "EpisodeFiles", "RomFiles" },
+            { "SceneMappings", "PlatformMappings" }
+        };
+
         private readonly HashSet<string> _allowedOrderBy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public TableMapper()
@@ -78,6 +87,11 @@ namespace NzbDrone.Core.Datastore
                 sortKey = split[1];
             }
 
+            if (table != null && LegacyTableAliases.TryGetValue(table, out var aliasedTable))
+            {
+                table = aliasedTable;
+            }
+
             if (table != null && !TableMap.Values.Contains(table, StringComparer.OrdinalIgnoreCase))
             {
                 return false;
@@ -107,6 +121,11 @@ namespace NzbDrone.Core.Datastore
 
             if (table != null)
             {
+                if (LegacyTableAliases.TryGetValue(table, out var aliasedTable))
+                {
+                    table = aliasedTable;
+                }
+
                 table = TableMap.Values.FirstOrDefault(x => x.Equals(table, StringComparison.OrdinalIgnoreCase)) ?? table;
             }
 

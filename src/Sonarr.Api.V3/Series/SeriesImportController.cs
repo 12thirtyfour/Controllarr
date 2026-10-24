@@ -6,6 +6,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V3.Series
 {
     [V3ApiController("series/import")]
+    [Route("api/v3/platform/import")]
     public class SeriesImportController : Controller
     {
         private readonly IAddSeriesService _addSeriesService;

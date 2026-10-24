@@ -8,7 +8,7 @@ function LoadingPage() {
     <div className={styles.page}>
       <img
         className={styles.logoFull}
-        src={`${window.Sonarr.urlBase}/Content/Images/logo.svg`}
+        src={`${window.Controllarr.urlBase}/Content/Images/logo.svg`}
         alt=""
       />
       <LoadingMessage />

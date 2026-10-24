@@ -6,12 +6,12 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import EpisodeFormats from 'Episode/EpisodeFormats';
-import EpisodeLanguages from 'Episode/EpisodeLanguages';
-import EpisodeQuality from 'Episode/EpisodeQuality';
+import GameFormats from 'Game/GameFormats';
+import GameLanguages from 'Game/GameLanguages';
+import GameQuality from 'Game/GameQuality';
 import { icons, kinds } from 'Helpers/Props';
-import SeriesTitleLink from 'Series/SeriesTitleLink';
-import { useSingleSeries } from 'Series/useSeries';
+import PlatformTitleLink from 'Platform/PlatformTitleLink';
+import { useSinglePlatform } from 'Platform/usePlatform';
 import Blocklist from 'typings/Blocklist';
 import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
@@ -37,7 +37,7 @@ function BlocklistRow({
   source,
   columns,
 }: BlocklistRowProps) {
-  const series = useSingleSeries(seriesId);
+  const platform = useSinglePlatform(seriesId);
   const { isRemoving, removeBlocklistItem } = useRemoveBlocklistItem(id);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const { toggleSelected, useIsSelected } = useSelect<Blocklist>();
@@ -62,7 +62,7 @@ function BlocklistRow({
     removeBlocklistItem();
   }, [removeBlocklistItem]);
 
-  if (!series) {
+  if (!platform) {
     return null;
   }
 
@@ -84,9 +84,9 @@ function BlocklistRow({
         if (name === 'series.sortTitle') {
           return (
             <TableRowCell key={name}>
-              <SeriesTitleLink
-                titleSlug={series.titleSlug}
-                title={series.title}
+              <PlatformTitleLink
+                titleSlug={platform.titleSlug}
+                title={platform.title}
               />
             </TableRowCell>
           );
@@ -99,7 +99,7 @@ function BlocklistRow({
         if (name === 'languages') {
           return (
             <TableRowCell key={name} className={styles.languages}>
-              <EpisodeLanguages languages={languages} />
+              <GameLanguages languages={languages} />
             </TableRowCell>
           );
         }
@@ -107,7 +107,7 @@ function BlocklistRow({
         if (name === 'quality') {
           return (
             <TableRowCell key={name} className={styles.quality}>
-              <EpisodeQuality quality={quality} />
+              <GameQuality quality={quality} />
             </TableRowCell>
           );
         }
@@ -115,7 +115,7 @@ function BlocklistRow({
         if (name === 'customFormats') {
           return (
             <TableRowCell key={name}>
-              <EpisodeFormats formats={customFormats} />
+              <GameFormats formats={customFormats} />
             </TableRowCell>
           );
         }

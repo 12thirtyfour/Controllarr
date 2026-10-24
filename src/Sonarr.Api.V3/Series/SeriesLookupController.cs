@@ -14,6 +14,7 @@ using Sonarr.Http.REST;
 namespace Sonarr.Api.V3.Series
 {
     [V3ApiController("series/lookup")]
+    [Route("api/v3/platform/lookup")]
     public class SeriesLookupController : Controller
     {
         private readonly ISearchForNewSeries _searchProxy;

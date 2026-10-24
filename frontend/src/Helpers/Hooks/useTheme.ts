@@ -3,7 +3,7 @@ import { ThemeName, useUiSettingsValues } from 'Settings/UI/useUiSettings';
 
 const useTheme = (): Exclude<ThemeName, 'auto'> => {
   const { theme } = useUiSettingsValues();
-  const selectedTheme = (theme ?? window.Sonarr.theme) as ThemeName;
+  const selectedTheme = (theme ?? window.Controllarr.theme) as ThemeName;
   const [resolvedTheme, setResolvedTheme] = useState<
     Exclude<ThemeName, 'auto'>
   >(() => {

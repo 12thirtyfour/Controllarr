@@ -6,17 +6,17 @@ import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import episodeEntities from 'Episode/episodeEntities';
-import EpisodeFormats from 'Episode/EpisodeFormats';
-import EpisodeLanguages from 'Episode/EpisodeLanguages';
-import EpisodeQuality from 'Episode/EpisodeQuality';
-import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
 import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
-import useEpisode from 'Episode/useEpisode';
+import GameFormats from 'Game/GameFormats';
+import GameLanguages from 'Game/GameLanguages';
+import GameQuality from 'Game/GameQuality';
+import GameTitleLink from 'Game/GameTitleLink';
+import useGame from 'Game/useGame';
 import { icons, tooltipPositions } from 'Helpers/Props';
 import Language from 'Language/Language';
+import PlatformTitleLink from 'Platform/PlatformTitleLink';
+import { useSinglePlatform } from 'Platform/usePlatform';
 import { QualityModel } from 'Quality/Quality';
-import SeriesTitleLink from 'Series/SeriesTitleLink';
-import { useSingleSeries } from 'Series/useSeries';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { HistoryData, HistoryEventType } from 'typings/History';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
@@ -62,8 +62,8 @@ function HistoryRow(props: HistoryRowProps) {
     columns,
   } = props;
 
-  const series = useSingleSeries(seriesId);
-  const episode = useEpisode(episodeId, 'episodes');
+  const platform = useSinglePlatform(seriesId);
+  const game = useGame(episodeId, 'episodes');
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -75,7 +75,7 @@ function HistoryRow(props: HistoryRowProps) {
     setIsDetailsModalOpen(false);
   }, [setIsDetailsModalOpen]);
 
-  if (!series || !episode) {
+  if (!platform || !game) {
     return null;
   }
 
@@ -101,9 +101,9 @@ function HistoryRow(props: HistoryRowProps) {
         if (name === 'series.sortTitle') {
           return (
             <TableRowCell key={name}>
-              <SeriesTitleLink
-                titleSlug={series.titleSlug}
-                title={series.title}
+              <PlatformTitleLink
+                titleSlug={platform.titleSlug}
+                title={platform.title}
               />
             </TableRowCell>
           );
@@ -113,14 +113,14 @@ function HistoryRow(props: HistoryRowProps) {
           return (
             <TableRowCell key={name}>
               <SeasonEpisodeNumber
-                seasonNumber={episode.seasonNumber}
-                episodeNumber={episode.episodeNumber}
-                absoluteEpisodeNumber={episode.absoluteEpisodeNumber}
-                seriesType={series.seriesType}
-                alternateTitles={series.alternateTitles}
-                sceneSeasonNumber={episode.sceneSeasonNumber}
-                sceneEpisodeNumber={episode.sceneEpisodeNumber}
-                sceneAbsoluteEpisodeNumber={episode.sceneAbsoluteEpisodeNumber}
+                seasonNumber={game.seasonNumber}
+                episodeNumber={game.episodeNumber}
+                absoluteEpisodeNumber={game.absoluteEpisodeNumber}
+                seriesType={platform.seriesType}
+                alternateTitles={platform.alternateTitles}
+                sceneSeasonNumber={game.sceneSeasonNumber}
+                sceneEpisodeNumber={game.sceneEpisodeNumber}
+                sceneAbsoluteEpisodeNumber={game.sceneAbsoluteEpisodeNumber}
               />
             </TableRowCell>
           );
@@ -129,11 +129,11 @@ function HistoryRow(props: HistoryRowProps) {
         if (name === 'episodes.title') {
           return (
             <TableRowCell key={name}>
-              <EpisodeTitleLink
+              <GameTitleLink
                 episodeId={episodeId}
                 episodeEntity={episodeEntities.EPISODES}
-                seriesId={series.id}
-                episodeTitle={episode.title}
+                seriesId={platform.id}
+                episodeTitle={game.title}
                 showOpenSeriesButton={true}
               />
             </TableRowCell>
@@ -143,7 +143,7 @@ function HistoryRow(props: HistoryRowProps) {
         if (name === 'languages') {
           return (
             <TableRowCell key={name}>
-              <EpisodeLanguages languages={languages} />
+              <GameLanguages languages={languages} />
             </TableRowCell>
           );
         }
@@ -151,7 +151,7 @@ function HistoryRow(props: HistoryRowProps) {
         if (name === 'quality') {
           return (
             <TableRowCell key={name}>
-              <EpisodeQuality
+              <GameQuality
                 quality={quality}
                 isCutoffNotMet={qualityCutoffNotMet}
               />
@@ -162,7 +162,7 @@ function HistoryRow(props: HistoryRowProps) {
         if (name === 'customFormats') {
           return (
             <TableRowCell key={name}>
-              <EpisodeFormats formats={customFormats} />
+              <GameFormats formats={customFormats} />
             </TableRowCell>
           );
         }
@@ -200,7 +200,7 @@ function HistoryRow(props: HistoryRowProps) {
                   customFormatScore,
                   customFormats.length
                 )}
-                tooltip={<EpisodeFormats formats={customFormats} />}
+                tooltip={<GameFormats formats={customFormats} />}
                 position={tooltipPositions.BOTTOM}
               />
             </TableRowCell>

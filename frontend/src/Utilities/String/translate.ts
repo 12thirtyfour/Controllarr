@@ -8,7 +8,7 @@ export function translate(
   key: string,
   tokens: Record<string, string | number | boolean> = {}
 ) {
-  const { isProduction = true } = window.Sonarr;
+  const { isProduction = true } = window.Controllarr;
 
   if (!isProduction && !(key in translations)) {
     console.warn(`Missing translation for key: ${key}`);

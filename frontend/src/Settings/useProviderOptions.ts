@@ -79,7 +79,7 @@ export default function useProviderOptions({
           body: flattenedData,
           headers: {
             'Content-Type': 'application/json',
-            'X-Api-Key': window.Sonarr.apiKey,
+            'X-Api-Key': window.Controllarr.apiKey,
             'X-Sonarr-Client': 'Sonarr',
           },
           signal,

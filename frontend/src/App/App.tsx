@@ -27,7 +27,7 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<PageLayout />}>{appRouteElements()}</Route>
   ),
-  { basename: window.Sonarr.urlBase || undefined }
+  { basename: window.Controllarr.urlBase || undefined }
 );
 
 function App() {

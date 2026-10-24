@@ -5,7 +5,7 @@ import App from './App/App';
 import 'Diag/ConsoleApi';
 
 export async function bootstrap() {
-  document.title = window.Sonarr.instanceName;
+  document.title = window.Controllarr.instanceName;
 
   const container = document.getElementById('root');
 

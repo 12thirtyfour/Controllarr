@@ -12,7 +12,7 @@ function TheTvdb() {
     <div className={styles.container}>
       <img
         className={styles.image}
-        src={`${window.Sonarr.urlBase}/Content/Images/thetvdb-${theme}.png`}
+        src={`${window.Controllarr.urlBase}/Content/Images/thetvdb-${theme}.png`}
       />
 
       <div className={styles.info}>

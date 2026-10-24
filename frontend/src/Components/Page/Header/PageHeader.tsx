@@ -50,7 +50,7 @@ function PageHeader() {
         >
           <img
             className={styles.logo}
-            src={`${window.Sonarr.urlBase}/Content/Images/logo.svg`}
+            src={`${window.Controllarr.urlBase}/Content/Images/logo.svg`}
             alt=""
           />
           <span className={styles.brandName}>Controllarr</span>
@@ -74,7 +74,7 @@ function PageHeader() {
           iconClassName={styles.donateIcon}
           name={icons.HEART}
           aria-label={translate('Donate')}
-          to="https://sonarr.tv/donate.html"
+          to="https://controllarr.org/donate"
           size={14}
           title={translate('Donate')}
         />

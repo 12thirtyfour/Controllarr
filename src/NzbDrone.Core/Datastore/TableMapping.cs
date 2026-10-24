@@ -111,25 +111,25 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(x => x.ImplementationName)
                   .Ignore(d => d.Protocol);
 
-            Mapper.Entity<SceneMapping>("SceneMappings").RegisterModel();
+            Mapper.Entity<SceneMapping>("PlatformMappings").RegisterModel();
 
             Mapper.Entity<EpisodeHistory>("History").RegisterModel();
 
-            Mapper.Entity<Series>("Series").RegisterModel()
+            Mapper.Entity<Series>("Platforms").RegisterModel()
                   .Ignore(s => s.RootFolderPath)
                   .Ignore(s => s.Translations)
                   .HasOne(s => s.QualityProfile, s => s.QualityProfileId);
 
-            Mapper.Entity<SeriesTranslation>("SeriesTranslations").RegisterModel();
+            Mapper.Entity<SeriesTranslation>("PlatformTranslations").RegisterModel();
 
-            Mapper.Entity<EpisodeFile>("EpisodeFiles").RegisterModel()
+            Mapper.Entity<EpisodeFile>("RomFiles").RegisterModel()
                   .HasOne(f => f.Series, f => f.SeriesId)
                   .LazyLoad(x => x.Episodes,
                             (db, parent) => db.Query<Episode>(new SqlBuilder(db.DatabaseType).Where<Episode>(c => c.EpisodeFileId == parent.Id)).ToList(),
                             t => t.Id > 0)
                   .Ignore(f => f.Path);
 
-            Mapper.Entity<Episode>("Episodes").RegisterModel()
+            Mapper.Entity<Episode>("Games").RegisterModel()
                   .Ignore(e => e.SeriesTitle)
                   .Ignore(e => e.Series)
                   .Ignore(e => e.HasFile)

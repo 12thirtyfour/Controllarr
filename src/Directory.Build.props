@@ -70,8 +70,8 @@
   <!-- Set the Product and Version info for our own projects -->
   <PropertyGroup Condition="'$(SonarrProject)'=='true'">
     <Product>Sonarr</Product>
-    <Company>sonarr.tv</Company>
-    <Copyright>Copyright 2014-$([System.DateTime]::Now.ToString('yyyy')) sonarr.tv (GNU General Public v3)</Copyright>
+    <Company>Controllarr</Company>
+    <Copyright>Copyright 2014-$([System.DateTime]::Now.ToString('yyyy')) Controllarr (GNU General Public v3)</Copyright>
     
     <!-- Should be replaced by CI -->
     <AssemblyVersion>10.0.0.*</AssemblyVersion>

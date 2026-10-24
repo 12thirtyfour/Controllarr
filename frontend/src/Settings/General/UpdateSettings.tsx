@@ -105,7 +105,7 @@ function UpdateSettings({
           <FormLabel>{translate('Mechanism')}</FormLabel>
           <FormInputHelpText
             text={translate('UpdateMechanismHelpText')}
-            link="https://wiki.servarr.com/sonarr/settings#updates"
+            link="https://wiki.servarr.com/controllarr/settings#updates"
           />
           <FormInput
             type={inputTypes.SELECT}

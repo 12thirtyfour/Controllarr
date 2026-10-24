@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                conn.Execute("UPDATE \"Episodes\" SET \"Monitored\" = @monitored WHERE \"SeriesId\" = @seriesId AND \"SeasonNumber\" = @seasonNumber AND \"Monitored\" != @monitored",
+                conn.Execute("UPDATE \"Games\" SET \"Monitored\" = @monitored WHERE \"SeriesId\" = @seriesId AND \"SeasonNumber\" = @seasonNumber AND \"Monitored\" != @monitored",
                     new { seriesId = seriesId, seasonNumber = seasonNumber, monitored = monitored });
             }
         }
@@ -307,11 +307,11 @@ namespace NzbDrone.Core.Tv
         {
             if (_database.DatabaseType == DatabaseType.PostgreSQL)
             {
-                return string.Format("\"Episodes\".\"AirDateUtc\" + make_interval(mins => \"Series\".\"Runtime\") <= '{0}'",
+                return string.Format("\"Games\".\"AirDateUtc\" + make_interval(mins => \"Platforms\".\"Runtime\") <= '{0}'",
                                      currentTime.ToString("yyyy-MM-dd HH:mm:ss"));
             }
 
-            return string.Format("datetime(strftime('%s', \"Episodes\".\"AirDateUtc\") + \"Series\".\"Runtime\" * 60,  'unixepoch') <= '{0}'",
+            return string.Format("datetime(strftime('%s', \"Games\".\"AirDateUtc\") + \"Platforms\".\"Runtime\" * 60,  'unixepoch') <= '{0}'",
                                  currentTime.ToString("yyyy-MM-dd HH:mm:ss"));
         }
 
@@ -343,12 +343,12 @@ namespace NzbDrone.Core.Tv
             if (joinQualityRanks)
             {
                 var qualityIdExpr = _database.DatabaseType == DatabaseType.PostgreSQL
-                    ? "(\"EpisodeFiles\".\"Quality\"::jsonb ->> 'quality')::int"
-                    : "json_extract(\"EpisodeFiles\".\"Quality\", '$.quality')";
+                    ? "(\"RomFiles\".\"Quality\"::jsonb ->> 'quality')::int"
+                    : "json_extract(\"RomFiles\".\"Quality\", '$.quality')";
 
                 builder.LeftJoin(
                     $"\"QualityProfileQualityRanks\" AS \"r\" " +
-                    $"ON \"r\".\"ProfileId\" = \"Series\".\"QualityProfileId\" " +
+                    $"ON \"r\".\"ProfileId\" = \"Platforms\".\"QualityProfileId\" " +
                     $"AND \"r\".\"QualityId\" = {qualityIdExpr}");
             }
 
@@ -363,7 +363,7 @@ namespace NzbDrone.Core.Tv
             {
                 foreach (var belowCutoff in profile.QualityIds)
                 {
-                    clauses.Add(string.Format("(\"Series\".\"QualityProfileId\" = {0} AND \"EpisodeFiles\".\"Quality\" LIKE '%_quality_: {1},%')", profile.ProfileId, belowCutoff));
+                    clauses.Add(string.Format("(\"Platforms\".\"QualityProfileId\" = {0} AND \"RomFiles\".\"Quality\" LIKE '%_quality_: {1},%')", profile.ProfileId, belowCutoff));
                 }
             }
 
@@ -377,19 +377,19 @@ namespace NzbDrone.Core.Tv
             if (_database.DatabaseType == DatabaseType.PostgreSQL)
             {
                 return string.Format(
-                    "EXISTS (SELECT 1 FROM jsonb_array_elements_text(\"Series\".\"Tags\"::jsonb) AS elem WHERE elem::int IN ({0}))",
+                    "EXISTS (SELECT 1 FROM jsonb_array_elements_text(\"Platforms\".\"Tags\"::jsonb) AS elem WHERE elem::int IN ({0}))",
                     ids);
             }
 
             return string.Format(
-                "EXISTS (SELECT 1 FROM json_each(\"Series\".\"Tags\") WHERE json_each.value IN ({0}))",
+                "EXISTS (SELECT 1 FROM json_each(\"Platforms\".\"Tags\") WHERE json_each.value IN ({0}))",
                 ids);
         }
 
         private string BuildQualityFilterWhereClause(List<int> qualityIds)
         {
             var clauses = qualityIds
-                .Select(id => string.Format("\"EpisodeFiles\".\"Quality\" LIKE '%_quality_: {0},%'", id))
+                .Select(id => string.Format("\"RomFiles\".\"Quality\" LIKE '%_quality_: {0},%'", id))
                 .ToList();
 
             return string.Format("({0})", string.Join(" OR ", clauses));
@@ -397,7 +397,7 @@ namespace NzbDrone.Core.Tv
 
         private List<int> GetSeasonNumbersWithMonitoredEpisodes(IDbConnection conn, int seriesId)
         {
-            return conn.Query<int>("SELECT DISTINCT \"SeasonNumber\" FROM \"Episodes\" WHERE \"SeriesId\" = @seriesId AND \"Monitored\" = @monitored",
+            return conn.Query<int>("SELECT DISTINCT \"SeasonNumber\" FROM \"Games\" WHERE \"SeriesId\" = @seriesId AND \"Monitored\" = @monitored",
                 new { seriesId, monitored = true }).ToList();
         }
 
@@ -406,7 +406,7 @@ namespace NzbDrone.Core.Tv
             var p = new DynamicParameters(parameters);
             p.Add("monitored", monitored);
 
-            conn.Execute($"UPDATE \"Episodes\" SET \"Monitored\" = @monitored WHERE {whereClause} AND \"Monitored\" <> @monitored", p, tran);
+            conn.Execute($"UPDATE \"Games\" SET \"Monitored\" = @monitored WHERE {whereClause} AND \"Monitored\" <> @monitored", p, tran);
         }
 
         private Episode FindOneByAirDate(int seriesId, string date)

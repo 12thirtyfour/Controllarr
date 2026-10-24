@@ -10,6 +10,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V5.Series;
 
 [V5ApiController("series")]
+[Route("api/v5/platform")]
 public class SeriesFolderController : Controller
 {
     private readonly ISeriesService _seriesService;

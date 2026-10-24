@@ -6,6 +6,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V3.SeasonPass
 {
     [V3ApiController]
+    [Route("api/v3/platformpass")]
     public class SeasonPassController : Controller
     {
         private readonly ISeriesService _seriesService;

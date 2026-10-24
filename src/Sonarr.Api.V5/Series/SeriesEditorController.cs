@@ -9,6 +9,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V5.Series;
 
 [V5ApiController("series/editor")]
+[Route("api/v5/platform/editor")]
 public class SeriesEditorController : Controller
 {
     private readonly ISeriesService _seriesService;

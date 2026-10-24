@@ -13,6 +13,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.0-beta.5] - 2026-10-24
+
+### Changed
+- **Database Schema Table Renaming (`Migration 242`) & Repository Overhaul**:
+  - Added `242_rename_tv_tables_to_platform_game_rom_tables.cs` (`[Migration(242)]`) to rename legacy database tables to authentic Controllarr domain tables: `"Series"` -> `"Platforms"`, `"SeriesTranslations"` -> `"PlatformTranslations"`, `"Episodes"` -> `"Games"`, `"EpisodeFiles"` -> `"RomFiles"`, and `"SceneMappings"` -> `"PlatformMappings"`.
+  - Updated `TableMapping.cs`, `TableMapper.cs` (with seamless sort-key aliasing), `BlocklistRepository.cs`, `HistoryRepository.cs`, `SeriesStatisticsRepository.cs`, `StatisticsRepository.cs`, `EpisodeRepository.cs`, `SeriesRepository.cs`, and all 9 `Housekeeping/Housekeepers` SQL tasks (`CleanupOrphanedBlocklist`, `CleanupOrphanedEpisodeFiles`, `CleanupOrphanedEpisodes`, `CleanupOrphanedExtraFiles`, `CleanupOrphanedHistoryItems`, `CleanupOrphanedMetadataFiles`, `CleanupOrphanedPendingReleases`, `CleanupOrphanedSubtitleFiles`, `CleanupUnusedTags`) to query `"Platforms"`, `"Games"`, and `"RomFiles"`.
+- **Project-Wide Game/ROM/Platform/Controllarr Terminology & Domain Module Overhaul (`#61`, `#62`, `#63`, `#64`, `#65`, `#66`)**:
+  - Converted all remaining TV/Sonarr localization strings in `src/NzbDrone.Core/Localization/Core/en.json` to authentic `Controllarr`, `Platform`, `Region`, `Game`, `ROM File`, `Release Date`, and `Manufacturer` terminology.
+  - Transitioned global frontend configuration from `window.Sonarr` to `window.Controllarr` across `index.html`, `frontend/src/index.ts`, `frontend/typings/Globals.d.ts`, and all frontend hooks, stores, and components.
+  - Created `frontend/src/Platform/`, `frontend/src/AddPlatform/`, `frontend/src/Region/`, `frontend/src/Game/`, and `frontend/src/RomFile/` domain modules and wired `AppRoutes.tsx` to `PlatformIndex`, `PlatformDetailsPage`, `AddNewPlatform`, `ImportPlatform`, and `ImportPlatformSelectFolder`.
+  - Added V3 and V5 REST API route aliases (`/api/v3/platform`, `/api/v3/platform/lookup`, `/api/v3/platform/import`, `/api/v3/platform/editor`, `/api/v3/game`, `/api/v3/romfile`, `/api/v3/platformpass`, `/api/v5/platform`, `/api/v5/platform/lookup`, `/api/v5/platform/import`, `/api/v5/platform/editor`, `/api/v5/game`, `/api/v5/romfile`, `/api/v5/platformpass`) and iCal feed endpoints (`/feed/v3/calendar/Controllarr.ics` and `/feed/v5/calendar/Controllarr.ics` with `Controllarr Game Release Schedule`).
+  - Updated local variables, descriptions, and external links across frontend modules (`Settings`, `System`, `FirstRun`, `RootFolder`, `Tags`, `Activity`, `Wanted`, `Calendar`, `Statistics`, `Organize`, `Parse`, `InteractiveImport`, `InteractiveSearch`) and backend `Notifications`, `HealthCheck`, `ImportLists`, and `Extras` services.
+
+---
+
 ## [1.0.0-beta.4] - 2026-10-24
 
 ### Added

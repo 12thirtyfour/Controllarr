@@ -38,7 +38,7 @@ namespace Sonarr.Api.V3
                 Tags = definition.Tags,
                 Fields = SchemaBuilder.ToSchema(definition.Settings),
 
-                InfoLink = $"https://wiki.servarr.com/sonarr/supported#{definition.Implementation.ToLower()}"
+                InfoLink = $"https://wiki.servarr.com/controllarr/supported#{definition.Implementation.ToLower()}"
             };
         }
 

@@ -48,7 +48,10 @@ export function Overflow({ children, padding = 10 }: OverflowProps) {
   // `padding` must match the container's horizontal padding and stay stable per mount; a change re-observes and drops registered items.
   const initialPadding = useRef(padding);
   useEffect(() => {
-    if (!window.Sonarr.isProduction && padding !== initialPadding.current) {
+    if (
+      !window.Controllarr.isProduction &&
+      padding !== initialPadding.current
+    ) {
       // eslint-disable-next-line no-console
       console.error(
         `Overflow: \`padding\` changed from ${initialPadding.current} to ${padding} after mount; registered items will be dropped. Keep it stable.`

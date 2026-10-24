@@ -108,7 +108,7 @@ function FileBrowserModalContent({
           <p className={styles.mappedDrivesWarning}>
             <InlineMarkdown
               data={translate('MappedNetworkDrivesWindowsService', {
-                url: 'https://wiki.servarr.com/sonarr/faq#why-cant-sonarr-see-my-files-on-a-remote-server',
+                url: 'https://wiki.servarr.com/controllarr/faq#why-cant-controllarr-see-my-files-on-a-remote-server',
               })}
             />
           </p>

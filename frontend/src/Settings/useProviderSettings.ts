@@ -114,7 +114,7 @@ export const useSaveProviderSettings = <T extends ModelBase>(
           getQueryString(queryParams),
         method: id ? 'PUT' : 'POST',
         headers: {
-          'X-Api-Key': window.Sonarr.apiKey,
+          'X-Api-Key': window.Controllarr.apiKey,
           'X-Sonarr-Client': 'Sonarr',
         },
         body: data,
@@ -160,7 +160,7 @@ export const useTestProvider = <T extends ModelBase>(path: string) => {
         path: getQueryPath(`${path}/test`) + getQueryString(queryParams),
         method: 'POST',
         headers: {
-          'X-Api-Key': window.Sonarr.apiKey,
+          'X-Api-Key': window.Controllarr.apiKey,
           'X-Sonarr-Client': 'Sonarr',
         },
         body: data,

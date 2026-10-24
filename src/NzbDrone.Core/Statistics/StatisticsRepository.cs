@@ -16,9 +16,9 @@ public interface IStatisticsRepository
 
 public class StatisticsRepository : IStatisticsRepository
 {
-    private const string _selectSeriesTemplate = "SELECT /**select**/ FROM \"Series\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
-    private const string _selectEpisodesTemplate = "SELECT /**select**/ FROM \"Episodes\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
-    private const string _selectEpisodeFilesTemplate = "SELECT /**select**/ FROM \"EpisodeFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+    private const string _selectSeriesTemplate = "SELECT /**select**/ FROM \"Platforms\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+    private const string _selectEpisodesTemplate = "SELECT /**select**/ FROM \"Games\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+    private const string _selectEpisodeFilesTemplate = "SELECT /**select**/ FROM \"RomFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
     private const string _selectQualityProfilesTemplate = "SELECT /**select**/ FROM \"QualityProfiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
     private const string _selectTagsTemplate = "SELECT /**select**/ FROM \"Tags\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
 
@@ -100,7 +100,7 @@ public class StatisticsRepository : IStatisticsRepository
                 var pathPrefix = path.TrimEnd('/', '\\') + separator;
 
                 // SUBSTR instead of LIKE so characters in the path aren't treated as wildcards
-                pathConditions.Add($@"SUBSTR(""Series"".""Path"", 1, @pathPrefixLength{i}) = @pathPrefix{i}");
+                pathConditions.Add($@"SUBSTR(""Platforms"".""Path"", 1, @pathPrefixLength{i}) = @pathPrefix{i}");
                 parameters.Add($"pathPrefix{i}", pathPrefix, null);
                 parameters.Add($"pathPrefixLength{i}", pathPrefix.Length, null);
             }
@@ -127,7 +127,7 @@ public class StatisticsRepository : IStatisticsRepository
 
             for (var i = 0; i < filter.QualityProfileIds.Count; i++)
             {
-                profileConditions.Add($@"""Series"".""QualityProfileId"" = @qualityProfileIdFilter{i}");
+                profileConditions.Add($@"""Platforms"".""QualityProfileId"" = @qualityProfileIdFilter{i}");
                 parameters.Add($"qualityProfileIdFilter{i}", filter.QualityProfileIds[i], null);
             }
 
@@ -136,7 +136,7 @@ public class StatisticsRepository : IStatisticsRepository
 
         if (filter.Monitored.HasValue)
         {
-            conditions.Add(@"""Series"".""Monitored"" = @monitoredFilter");
+            conditions.Add(@"""Platforms"".""Monitored"" = @monitoredFilter");
             parameters.Add("monitoredFilter", filter.Monitored.Value, null);
         }
 
@@ -146,7 +146,7 @@ public class StatisticsRepository : IStatisticsRepository
 
             for (var i = 0; i < filter.SeriesTypes.Count; i++)
             {
-                seriesTypeConditions.Add($@"""Series"".""SeriesType"" = @seriesTypeFilter{i}");
+                seriesTypeConditions.Add($@"""Platforms"".""SeriesType"" = @seriesTypeFilter{i}");
                 parameters.Add($"seriesTypeFilter{i}", (int)filter.SeriesTypes[i], null);
             }
 
@@ -255,15 +255,15 @@ public class StatisticsRepository : IStatisticsRepository
         var trueIndicator = _database.DatabaseType == DatabaseType.PostgreSQL ? "true" : "1";
 
         return new SqlBuilder(_database.DatabaseType)
-            .Select($@"SUM(CASE WHEN (""Episodes"".""Monitored"" = {trueIndicator} AND ""Episodes"".""AirDateUtc"" <= @currentDate) OR ""Episodes"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS ""EpisodeCount"",
-                         SUM(CASE WHEN ""Episodes"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS ""EpisodeFileCount""",
+            .Select($@"SUM(CASE WHEN (""Games"".""Monitored"" = {trueIndicator} AND ""Games"".""AirDateUtc"" <= @currentDate) OR ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS ""EpisodeCount"",
+                         SUM(CASE WHEN ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS ""EpisodeFileCount""",
                 parameters);
     }
 
     private SqlBuilder CompletedSeriesBuilder(DateTime currentDate, SeriesFilter seriesFilter)
     {
         var builder = EpisodeProgressBuilder(currentDate)
-            .GroupBy(@"""Episodes"".""SeriesId""");
+            .GroupBy(@"""Games"".""SeriesId""");
 
         if (seriesFilter != null)
         {
@@ -277,8 +277,8 @@ public class StatisticsRepository : IStatisticsRepository
     private SqlBuilder SeasonsBuilder(DateTime currentDate, SeriesFilter seriesFilter)
     {
         var builder = EpisodeProgressBuilder(currentDate)
-            .Where(@"""Episodes"".""SeasonNumber"" > 0")
-            .GroupBy(@"""Episodes"".""SeriesId"", ""Episodes"".""SeasonNumber""");
+            .Where(@"""Games"".""SeasonNumber"" > 0")
+            .GroupBy(@"""Games"".""SeriesId"", ""Games"".""SeasonNumber""");
 
         if (seriesFilter != null)
         {
@@ -331,10 +331,10 @@ public class StatisticsRepository : IStatisticsRepository
 
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select($@"COUNT(*) AS TotalEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Episodes"".""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END), 0) AS MonitoredEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Episodes"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END), 0) AS DownloadedEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Episodes"".""EpisodeFileId"" = 0 AND ""Episodes"".""Monitored"" = {trueIndicator} AND ""Series"".""Monitored"" = {trueIndicator} AND ""Episodes"".""AirDateUtc"" <= @currentDate THEN 1 ELSE 0 END), 0) AS MissingEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Episodes"".""EpisodeFileId"" = 0 AND (""Episodes"".""AirDateUtc"" IS NULL OR ""Episodes"".""AirDateUtc"" > @currentDate) THEN 1 ELSE 0 END), 0) AS UnairedEpisodeCount",
+                         COALESCE(SUM(CASE WHEN ""Games"".""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END), 0) AS MonitoredEpisodeCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END), 0) AS DownloadedEpisodeCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND ""Games"".""Monitored"" = {trueIndicator} AND ""Platforms"".""Monitored"" = {trueIndicator} AND ""Games"".""AirDateUtc"" <= @currentDate THEN 1 ELSE 0 END), 0) AS MissingEpisodeCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND (""Games"".""AirDateUtc"" IS NULL OR ""Games"".""AirDateUtc"" > @currentDate) THEN 1 ELSE 0 END), 0) AS UnairedEpisodeCount",
                 parameters)
             .Join<Episode, Series>((e, s) => e.SeriesId == s.Id);
 
@@ -350,7 +350,7 @@ public class StatisticsRepository : IStatisticsRepository
     {
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select(@"COUNT(*) AS EpisodeFileCount,
-                        COALESCE(SUM(COALESCE(""EpisodeFiles"".""Size"", 0)), 0) AS SizeOnDisk");
+                        COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk");
 
         if (seriesFilter != null)
         {
@@ -364,7 +364,7 @@ public class StatisticsRepository : IStatisticsRepository
     private SqlBuilder QualityProfilesBuilder(SeriesFilter seriesFilter)
     {
         // Filtering in the join keeps profiles without matching series in the results
-        var seriesJoin = @"""Series"" ON ""Series"".""QualityProfileId"" = ""QualityProfiles"".""Id""";
+        var seriesJoin = @"""Platforms"" ON ""Platforms"".""QualityProfileId"" = ""QualityProfiles"".""Id""";
 
         if (seriesFilter != null)
         {
@@ -374,7 +374,7 @@ public class StatisticsRepository : IStatisticsRepository
         return new SqlBuilder(_database.DatabaseType)
             .Select(@"""QualityProfiles"".""Id"" AS QualityProfileId,
                         ""QualityProfiles"".""Name"" AS Name,
-                        COUNT(""Series"".""Id"") AS SeriesCount")
+                        COUNT(""Platforms"".""Id"") AS SeriesCount")
             .LeftJoin(seriesJoin, seriesFilter?.Parameters)
             .GroupBy(@"""QualityProfiles"".""Id"", ""QualityProfiles"".""Name""")
             .OrderBy(@"""QualityProfiles"".""Name""");
@@ -383,11 +383,11 @@ public class StatisticsRepository : IStatisticsRepository
     private SqlBuilder EpisodeFilesPerProfileBuilder(SeriesFilter seriesFilter)
     {
         var builder = new SqlBuilder(_database.DatabaseType)
-            .Select(@"""Series"".""QualityProfileId"" AS QualityProfileId,
+            .Select(@"""Platforms"".""QualityProfileId"" AS QualityProfileId,
                         COUNT(*) AS EpisodeFileCount,
-                        COALESCE(SUM(COALESCE(""EpisodeFiles"".""Size"", 0)), 0) AS SizeOnDisk")
+                        COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .Join<EpisodeFile, Series>((f, s) => f.SeriesId == s.Id)
-            .GroupBy(@"""Series"".""QualityProfileId""");
+            .GroupBy(@"""Platforms"".""QualityProfileId""");
 
         if (seriesFilter != null)
         {
@@ -400,14 +400,14 @@ public class StatisticsRepository : IStatisticsRepository
     private string SeriesHasTagExpression(string tagId)
     {
         return _database.DatabaseType == DatabaseType.PostgreSQL
-            ? $@"COALESCE(""Series"".""Tags"", '[]')::jsonb @> jsonb_build_array({tagId})"
-            : $@"EXISTS (SELECT 1 FROM json_each(COALESCE(""Series"".""Tags"", '[]')) AS ""seriesTag"" WHERE ""seriesTag"".""value"" = {tagId})";
+            ? $@"COALESCE(""Platforms"".""Tags"", '[]')::jsonb @> jsonb_build_array({tagId})"
+            : $@"EXISTS (SELECT 1 FROM json_each(COALESCE(""Platforms"".""Tags"", '[]')) AS ""seriesTag"" WHERE ""seriesTag"".""value"" = {tagId})";
     }
 
     private SqlBuilder TagsBuilder(SeriesFilter seriesFilter)
     {
         // Filtering in the join keeps tags without matching series in the results
-        var seriesJoin = $@"""Series"" ON {SeriesHasTagExpression(@"""Tags"".""Id""")}";
+        var seriesJoin = $@"""Platforms"" ON {SeriesHasTagExpression(@"""Tags"".""Id""")}";
 
         if (seriesFilter != null)
         {
@@ -417,7 +417,7 @@ public class StatisticsRepository : IStatisticsRepository
         return new SqlBuilder(_database.DatabaseType)
             .Select(@"""Tags"".""Id"" AS TagId,
                         ""Tags"".""Label"" AS Label,
-                        COUNT(""Series"".""Id"") AS SeriesCount")
+                        COUNT(""Platforms"".""Id"") AS SeriesCount")
             .LeftJoin(seriesJoin, seriesFilter?.Parameters)
             .GroupBy(@"""Tags"".""Id"", ""Tags"".""Label""")
             .OrderBy(@"""Tags"".""Label""");
@@ -428,7 +428,7 @@ public class StatisticsRepository : IStatisticsRepository
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select(@"""Tags"".""Id"" AS TagId,
                         COUNT(*) AS EpisodeFileCount,
-                        COALESCE(SUM(COALESCE(""EpisodeFiles"".""Size"", 0)), 0) AS SizeOnDisk")
+                        COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .Join<EpisodeFile, Series>((f, s) => f.SeriesId == s.Id)
             .Join($@"""Tags"" ON {SeriesHasTagExpression(@"""Tags"".""Id""")}")
             .GroupBy(@"""Tags"".""Id""");
@@ -444,13 +444,13 @@ public class StatisticsRepository : IStatisticsRepository
     private SqlBuilder EpisodeFilesPerQualityBuilder(SeriesFilter seriesFilter)
     {
         var qualityExpression = _database.DatabaseType == DatabaseType.PostgreSQL
-            ? @"(""EpisodeFiles"".""Quality""::json->>'quality')::int"
-            : @"CAST(JSON_EXTRACT(""EpisodeFiles"".""Quality"", '$.quality') AS INTEGER)";
+            ? @"(""RomFiles"".""Quality""::json->>'quality')::int"
+            : @"CAST(JSON_EXTRACT(""RomFiles"".""Quality"", '$.quality') AS INTEGER)";
 
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select($@"{qualityExpression} AS QualityId,
                         COUNT(*) AS EpisodeFileCount,
-                        COALESCE(SUM(COALESCE(""EpisodeFiles"".""Size"", 0)), 0) AS SizeOnDisk")
+                        COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .GroupBy(qualityExpression);
 
         if (seriesFilter != null)

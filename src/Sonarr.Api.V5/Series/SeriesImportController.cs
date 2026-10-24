@@ -7,6 +7,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V5.Series
 {
     [V5ApiController("series/import")]
+    [Route("api/v5/platform/import")]
     public class SeriesImportController : Controller
     {
         private readonly IAddSeriesService _addSeriesService;

@@ -3,13 +3,13 @@ import { Navigate, Route } from 'react-router-dom';
 import Blocklist from 'Activity/Blocklist/Blocklist';
 import History from 'Activity/History/History';
 import Queue from 'Activity/Queue/Queue';
-import AddNewSeries from 'AddSeries/AddNewSeries/AddNewSeries';
-import ImportSeries from 'AddSeries/ImportSeries/Import/ImportSeries';
-import ImportSeriesSelectFolder from 'AddSeries/ImportSeries/SelectFolder/ImportSeriesSelectFolder';
+import AddNewPlatform from 'AddPlatform/AddNewPlatform/AddNewPlatform';
+import ImportPlatform from 'AddPlatform/ImportPlatform/Import/ImportPlatform';
+import ImportPlatformSelectFolder from 'AddPlatform/ImportPlatform/SelectFolder/ImportPlatformSelectFolder';
 import CalendarPage from 'Calendar/CalendarPage';
 import NotFound from 'Components/NotFound';
-import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
-import SeriesIndex from 'Series/Index/SeriesIndex';
+import PlatformDetailsPage from 'Platform/Details/PlatformDetailsPage';
+import PlatformIndex from 'Platform/Index/PlatformIndex';
 import BiosSettings from 'Settings/Bios/BiosSettings';
 import CollectionSettings from 'Settings/Collection/CollectionSettings';
 import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
@@ -42,8 +42,7 @@ export function appRouteElements() {
   return (
     <>
       {/*
-        Home (v5) — TODO: swap to <HomePage /> when the homepage redesign lands.
-        Until then, "/" redirects to SeriesIndex and the sidebar's "Home" nav is hidden.
+        Home (v5) — redirects to PlatformIndex
       */}
 
       <Route path="/" element={<Navigate to="/platforms" replace={true} />} />
@@ -52,18 +51,18 @@ export function appRouteElements() {
         Platforms
       */}
 
-      <Route path="/platforms" element={<SeriesIndex />} />
-      <Route path="/platforms/:titleSlug" element={<SeriesDetailsPage />} />
+      <Route path="/platforms" element={<PlatformIndex />} />
+      <Route path="/platforms/:titleSlug" element={<PlatformDetailsPage />} />
       <Route
         path="/series"
         element={<Navigate to="/platforms" replace={true} />}
       />
 
-      <Route path="/add/new" element={<AddNewSeries />} />
+      <Route path="/add/new" element={<AddNewPlatform />} />
 
-      <Route path="/add/import" element={<ImportSeriesSelectFolder />} />
+      <Route path="/add/import" element={<ImportPlatformSelectFolder />} />
 
-      <Route path="/add/import/:rootFolderId" element={<ImportSeries />} />
+      <Route path="/add/import/:rootFolderId" element={<ImportPlatform />} />
 
       <Route
         path="/serieseditor"
@@ -75,7 +74,7 @@ export function appRouteElements() {
         element={<Navigate to="/platforms" replace={true} />}
       />
 
-      <Route path="/series/:titleSlug" element={<SeriesDetailsPage />} />
+      <Route path="/series/:titleSlug" element={<PlatformDetailsPage />} />
 
       <Route path="/statistics" element={<Statistics />} />
 

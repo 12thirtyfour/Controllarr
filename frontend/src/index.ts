@@ -3,11 +3,12 @@ import 'Styles/globals.css';
 import './index.css';
 
 const initializeUrl = `${
-  window.Sonarr.urlBase
+  window.Controllarr.urlBase
 }/initialize.json?t=${Date.now()}`;
 const response = await fetch(initializeUrl);
 
-window.Sonarr = await response.json();
+window.Controllarr = await response.json();
+window.Sonarr = window.Controllarr;
 
 const error = console.error;
 

@@ -12,6 +12,7 @@ using Sonarr.Http.REST.Attributes;
 namespace Sonarr.Api.V5.Episodes;
 
 [V5ApiController]
+[Route("api/v5/game")]
 public class EpisodeController : EpisodeControllerWithSignalR
 {
     public EpisodeController(ISeriesService seriesService,

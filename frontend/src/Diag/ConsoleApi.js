@@ -115,6 +115,6 @@ class ConsoleApi {
   }
 }
 
-window.SonarrApi = new ConsoleApi();
+window.ControllarrApi = window.SonarrApi = new ConsoleApi();
 
 export default ConsoleApi;

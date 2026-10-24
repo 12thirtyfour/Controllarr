@@ -6,6 +6,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V3.Series;
 
 [V3ApiController("series")]
+[Route("api/v3/platform")]
 public class SeriesFolderController : Controller
 {
     private readonly ISeriesService _seriesService;

@@ -16,8 +16,8 @@ namespace NzbDrone.Core.SeriesStats
 
     public class SeriesStatisticsRepository : ISeriesStatisticsRepository
     {
-        private const string _selectEpisodesTemplate = "SELECT /**select**/ FROM \"Episodes\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
-        private const string _selectEpisodeFilesTemplate = "SELECT /**select**/ FROM \"EpisodeFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+        private const string _selectEpisodesTemplate = "SELECT /**select**/ FROM \"Games\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+        private const string _selectEpisodeFilesTemplate = "SELECT /**select**/ FROM \"RomFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
 
         private readonly IMainDatabase _database;
 
@@ -75,8 +75,8 @@ namespace NzbDrone.Core.SeriesStats
             var falseIndicator = _database.DatabaseType == DatabaseType.PostgreSQL ? "false" : "0";
 
             return new SqlBuilder(_database.DatabaseType)
-            .Select($@"""Episodes"".""SeriesId"" AS SeriesId,
-                             ""Episodes"".""SeasonNumber"",
+            .Select($@"""Games"".""SeriesId"" AS SeriesId,
+                             ""Games"".""SeasonNumber"",
                              COUNT(*) AS TotalEpisodeCount,
                              SUM(CASE WHEN ""AirDateUtc"" <= @currentDate OR ""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS AvailableEpisodeCount,
                              SUM(CASE WHEN (""Monitored"" = {trueIndicator} AND ""AirDateUtc"" <= @currentDate) OR ""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS EpisodeCount,

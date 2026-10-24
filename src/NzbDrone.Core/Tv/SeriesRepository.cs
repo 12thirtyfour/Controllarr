@@ -55,11 +55,11 @@ namespace NzbDrone.Core.Tv
 
         public List<Series> FindByTitleInexact(string cleanTitle)
         {
-            var builder = Builder().Where($"(instr(@cleanTitle, \"Series\".\"CleanOriginalTitle\") OR instr(@cleanTitle, \"Series\".\"CleanTitle\"))", new { cleanTitle = cleanTitle });
+            var builder = Builder().Where($"(instr(@cleanTitle, \"Platforms\".\"CleanOriginalTitle\") OR instr(@cleanTitle, \"Platforms\".\"CleanTitle\"))", new { cleanTitle = cleanTitle });
 
             if (_database.DatabaseType == DatabaseType.PostgreSQL)
             {
-                builder = Builder().Where($"((strpos(@cleanTitle, \"Series\".\"CleanOriginalTitle\") > 0) OR (strpos(@cleanTitle, \"Series\".\"CleanTitle\") > 0))", new { cleanTitle = cleanTitle });
+                builder = Builder().Where($"((strpos(@cleanTitle, \"Platforms\".\"CleanOriginalTitle\") > 0) OR (strpos(@cleanTitle, \"Platforms\".\"CleanTitle\") > 0))", new { cleanTitle = cleanTitle });
             }
 
             return Query(builder).ToList();
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT \"Id\" AS Key, \"TvdbId\" AS Value FROM \"Series\"";
+                var strSql = "SELECT \"Id\" AS Key, \"TvdbId\" AS Value FROM \"Platforms\"";
                 return conn.Query<KeyValuePair<int, int>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }
@@ -99,7 +99,7 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT \"Id\" AS Key, \"Path\" AS Value FROM \"Series\"";
+                var strSql = "SELECT \"Id\" AS Key, \"Path\" AS Value FROM \"Platforms\"";
                 return conn.Query<KeyValuePair<int, string>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }
@@ -108,7 +108,7 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT \"Id\" AS Key, \"Tags\" AS Value FROM \"Series\" WHERE \"Tags\" IS NOT NULL";
+                var strSql = "SELECT \"Id\" AS Key, \"Tags\" AS Value FROM \"Platforms\" WHERE \"Tags\" IS NOT NULL";
                 return conn.Query<KeyValuePair<int, List<int>>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Tv
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT \"Id\" AS Key, \"QualityProfileId\" AS Value FROM \"Series\"";
+                var strSql = "SELECT \"Id\" AS Key, \"QualityProfileId\" AS Value FROM \"Platforms\"";
                 return conn.Query<KeyValuePair<int, int>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }

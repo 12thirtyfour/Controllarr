@@ -18,9 +18,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""Blocklist""
                                      WHERE ""Id"" IN (
                                      SELECT ""Blocklist"".""Id"" FROM ""Blocklist""
-                                     LEFT OUTER JOIN ""Series""
-                                     ON ""Blocklist"".""SeriesId"" = ""Series"".""Id""
-                                     WHERE ""Series"".""Id"" IS NULL)");
+                                     LEFT OUTER JOIN ""Platforms""
+                                     ON ""Blocklist"".""SeriesId"" = ""Platforms"".""Id""
+                                     WHERE ""Platforms"".""Id"" IS NULL)");
         }
     }
 }

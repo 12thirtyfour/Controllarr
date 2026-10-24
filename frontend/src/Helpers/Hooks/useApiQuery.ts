@@ -28,7 +28,7 @@ const useApiQuery = <T>(options: QueryOptions<T>) => {
         path: getQueryPath(path) + getQueryString(queryParams),
         headers: {
           ...options.headers,
-          'X-Api-Key': window.Sonarr.apiKey,
+          'X-Api-Key': window.Controllarr.apiKey,
           'X-Sonarr-Client': 'Sonarr',
         },
       },
