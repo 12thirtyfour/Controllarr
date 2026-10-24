@@ -77,6 +77,10 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('LibraryImport'),
             to: '/add/import',
           },
+          {
+            title: () => translate('Bios'),
+            to: '/bios',
+          },
         ],
       },
       {
@@ -161,7 +165,6 @@ const GROUPS: SidebarGroup[] = [
           { title: () => translate('Tags'), to: '/settings/tags' },
           { title: () => translate('General'), to: '/settings/general' },
           { title: () => translate('Ui'), to: '/settings/ui' },
-          { title: () => translate('Bios'), to: '/settings/bios' },
           {
             title: () => translate('RetroAchievements'),
             to: '/settings/retroachievements',

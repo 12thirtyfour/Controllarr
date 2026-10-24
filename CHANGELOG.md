@@ -13,6 +13,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.0-beta.6] - 2026-10-24
+
+### Changed
+- **Region Folder Naming on Disk (`USA`, `Europe`, `Japan`, `World`, `Unlicensed`, `Homebrew`, `ROM Hacks` instead of `Season 1`, `Season 2`)**:
+  - Updated `GameCatalogProxy.BuildDefaultRegionSeasons` so every platform region season carries its canonical region title (`0 -> "Unlicensed"`, `1 -> "USA"`, `2 -> "Europe"`, `3 -> "Japan"`, `4 -> "World"`, `5 -> "Homebrew"`, `6 -> "ROM Hacks"`).
+  - Updated `NamingConfigService.GetConfig()` and `Migration 242` (`242_rename_tv_tables_to_platform_game_rom_tables.cs`) to automatically upgrade legacy database `NamingConfig` rows (`Season {season}` -> `{Region}`, `Specials` -> `Unlicensed`, `{Series Title}` -> `{Platform}`, and `S{season` -> `{Game Title}`).
+  - Updated `AddSeriesService.EnsurePlatformFolderStructure` and `DiskScanService.MigrateLegacySeasonFolders` so newly added consoles and rescanned platforms automatically replace legacy `"Season 1"` / `"Season 2"` / `"Specials"` folders with `"USA"`, `"Europe"`, `"Japan"`, `"World"`, `"Unlicensed"`, `"Homebrew"`, and `"ROM Hacks"`.
+- **Moved `BIOS Files` (`BIOS Matrix`) Out of Settings -> Placed Under `Library` (`/bios`)**:
+  - Moved the BIOS management page out of the `Settings` sidebar and settings index (`Settings.tsx`) and placed it directly under **`Library`** in `PageSidebar.tsx` (`Add New`, `Import Library`, `BIOS Files`).
+  - Renamed **`BIOS Matrix`** to **`BIOS Files`** across the sidebar, page header (`BiosSettings.tsx`), and localization catalog (`en.json`), and registered `/bios` in `AppRoutes.tsx` with `/settings/bios` redirecting to `/bios`.
+- **Controllarr Built-In Application Updater (`System -> Updates`)**:
+  - Repointed `SonarrCloudRequestBuilder` and `UpdatePackageProvider` from `services.sonarr.tv` to Controllarr's GitHub Releases API (`https://api.github.com/repos/12thirtyfour/Controllarr/releases`).
+  - Updated `UpdatePackageProvider` to map GitHub Releases and platform-specific assets (`win-x64`, `win-x86`, `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `linux-arm`, `linux-musl-x64`, `linux-musl-arm64`, `freebsd-x64`) into `UpdatePackage` objects with SHA-256 digest verification (`UpdateVerification.cs`) and release notes parsing.
+  - Aligned `Directory.Build.props` (`AssemblyVersion` `5.0.0.*`, `AssemblyConfiguration` `develop`), `ConfigFileProvider.Branch` (`develop`), `.github/actions/package/package.sh` (`Controllarr` archive root folder), and `InstallUpdateService` (`NzbDrone.Core` & `NzbDrone.Update`) so checking for updates and installing updates from **System -> Updates** works end-to-end.
+
+---
+
 ## [1.0.0-beta.5] - 2026-10-24
 
 ### Changed

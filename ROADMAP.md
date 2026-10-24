@@ -11,10 +11,10 @@
 | **Phase 1** | Foundation, .NET 10 Upgrade, Vite SPA Migration & Database Baselines (Migrations 237–240) | ✅ Completed | [1.0.0-alpha](CHANGELOG.md#100-alpha---architectural-foundation-batches-012) |
 | **Phase 2** | HTGDB/SMDB Integration, ROM Ingestion Pipeline, Protocol Priority & Internet Archive S3/HTTP Client | ✅ Completed | [1.0.0-alpha](CHANGELOG.md#100-alpha---architectural-foundation-batches-012) |
 | **Phase 3** | Flexible Collection Curation Engine (1G1R & Completionist), Unified Path Naming, `/platforms` UI Modernization & Global Game Search | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.4](CHANGELOG.md#100-beta4---2026-10-24) |
-| **Phase 4** | Platform BIOS Matrix (Strict Add-On Isolation + Auto-Downloader), `chdman`/`dolphin-tool` Compression & Virtual Symlink Libraries | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.4](CHANGELOG.md#100-beta4---2026-10-24) |
+| **Phase 4** | Platform BIOS Files (Strict Add-On Isolation + Auto-Downloader under `Library -> BIOS Files`), `chdman`/`dolphin-tool` Compression & Virtual Symlink Libraries | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.6](CHANGELOG.md#100-beta6---2026-10-24) |
 | **Phase 5** | Multi-Architecture Docker Packaging, Port `7050` Standardization & Official GitHub Wiki Suite | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.3](CHANGELOG.md#100-beta3---2026-10-24) |
 | **Phase 6** | SD Card Multi-Device Exporter (15+ Hardware Targets), Live RetroAchievements API Integration & WebAssembly/Desktop Game Launcher | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.4](CHANGELOG.md#100-beta4---2026-10-24) |
-| **Phase 7** | Brand Unification, AppData/DB Isolation (`~/.config/Controllarr`), Database Table Renames (`Migration 242`: `Platforms`/`Games`/`RomFiles`), Collection Settings, Regional Console Themes & HTTPS Activity Queue/History | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.5](CHANGELOG.md#100-beta5---2026-10-24) |
+| **Phase 7** | Brand Unification, AppData/DB Isolation (`~/.config/Controllarr`), Database Table Renames (`Migration 242`), Built-In GitHub Releases Updater, Collection Settings, Regional Console Themes & HTTPS Activity Queue/History | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.6](CHANGELOG.md#100-beta6---2026-10-24) |
 
 ---
 

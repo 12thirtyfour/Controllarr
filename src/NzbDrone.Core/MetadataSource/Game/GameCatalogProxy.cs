@@ -1223,13 +1223,13 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             return new List<Season>
             {
-                new Season { SeasonNumber = RegionUnlicensedSeason, Monitored = false },
-                new Season { SeasonNumber = RegionUsaSeason, Monitored = true },
-                new Season { SeasonNumber = RegionEuropeSeason, Monitored = true },
-                new Season { SeasonNumber = RegionJapanSeason, Monitored = true },
-                new Season { SeasonNumber = RegionWorldSeason, Monitored = true },
-                new Season { SeasonNumber = RegionHomebrewSeason, Monitored = false },
-                new Season { SeasonNumber = RegionRomHacksSeason, Monitored = false }
+                new Season { SeasonNumber = RegionUnlicensedSeason, Title = "Unlicensed", Monitored = false },
+                new Season { SeasonNumber = RegionUsaSeason, Title = "USA", Monitored = true },
+                new Season { SeasonNumber = RegionEuropeSeason, Title = "Europe", Monitored = true },
+                new Season { SeasonNumber = RegionJapanSeason, Title = "Japan", Monitored = true },
+                new Season { SeasonNumber = RegionWorldSeason, Title = "World", Monitored = true },
+                new Season { SeasonNumber = RegionHomebrewSeason, Title = "Homebrew", Monitored = false },
+                new Season { SeasonNumber = RegionRomHacksSeason, Title = "ROM Hacks", Monitored = false }
             };
         }
 

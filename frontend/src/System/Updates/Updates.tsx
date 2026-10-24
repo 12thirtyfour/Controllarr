@@ -264,8 +264,8 @@ function Updates() {
               <div>
                 <InlineMarkdown
                   data={translate('InstallMajorVersionUpdateMessageLink', {
-                    domain: 'controllarr.org',
-                    url: 'https://controllarr.org/#downloads',
+                    domain: 'github.com/12thirtyfour/Controllarr',
+                    url: 'https://github.com/12thirtyfour/Controllarr/releases',
                   })}
                 />
               </div>

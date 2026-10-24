@@ -110,7 +110,7 @@ namespace NzbDrone.Core.Update
 
             if (_diskProvider.GetTotalSize(tempFolder) < 1.Gigabytes())
             {
-                _logger.Warn("Temporary location '{0}' has less than 1 GB free space, Sonarr may not be able to update itself.", tempFolder);
+                _logger.Warn("Temporary location '{0}' has less than 1 GB free space, Controllarr may not be able to update itself.", tempFolder);
             }
 
             var packageDestination = Path.Combine(updateSandboxFolder, updatePackage.FileName);
@@ -138,6 +138,13 @@ namespace NzbDrone.Core.Update
             _logger.ProgressInfo("Extracting Update package");
             _archiveService.Extract(packageDestination, updateSandboxFolder);
             _logger.Info("Update package extracted successfully");
+
+            var extractedSonarrFolder = Path.Combine(updateSandboxFolder, "Sonarr");
+            var expectedPackageFolder = _appFolderInfo.GetUpdatePackageFolder().TrimEnd(Path.DirectorySeparatorChar);
+            if (!_diskProvider.FolderExists(expectedPackageFolder) && _diskProvider.FolderExists(extractedSonarrFolder))
+            {
+                _diskProvider.MoveFolder(extractedSonarrFolder, expectedPackageFolder);
+            }
 
             EnsureValidBranch(updatePackage);
 
@@ -167,7 +174,7 @@ namespace NzbDrone.Core.Update
             }
 
             _logger.Info("Starting update client {0}", updateClientExePath);
-            _logger.ProgressInfo("Sonarr will restart shortly.");
+            _logger.ProgressInfo("Controllarr will restart shortly.");
 
             _processProvider.Start(updateClientExePath, GetUpdaterArgs(updateSandboxFolder));
 
@@ -293,7 +300,7 @@ namespace NzbDrone.Core.Update
                 try
                 {
                     InstallUpdate(latestAvailable);
-                    _logger.ProgressDebug("Restarting Sonarr to apply updates");
+                    _logger.ProgressDebug("Restarting Controllarr to apply updates");
                 }
                 catch (UpdateFolderNotWritableException ex)
                 {

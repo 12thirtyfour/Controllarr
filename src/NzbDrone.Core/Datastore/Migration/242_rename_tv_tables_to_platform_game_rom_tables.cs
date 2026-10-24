@@ -32,6 +32,14 @@ namespace NzbDrone.Core.Datastore.Migration
             {
                 Rename.Table("SceneMappings").To("PlatformMappings");
             }
+
+            if (Schema.Table("NamingConfig").Exists())
+            {
+                Execute.Sql("UPDATE \"NamingConfig\" SET \"SeasonFolderFormat\" = '{Region}' WHERE \"SeasonFolderFormat\" LIKE 'Season %'");
+                Execute.Sql("UPDATE \"NamingConfig\" SET \"SpecialsFolderFormat\" = 'Unlicensed' WHERE \"SpecialsFolderFormat\" = 'Specials'");
+                Execute.Sql("UPDATE \"NamingConfig\" SET \"SeriesFolderFormat\" = '{Platform}' WHERE \"SeriesFolderFormat\" = '{Series Title}'");
+                Execute.Sql("UPDATE \"NamingConfig\" SET \"StandardEpisodeFormat\" = '{Game Title}' WHERE \"StandardEpisodeFormat\" LIKE '%S{season%'");
+            }
         }
     }
 }

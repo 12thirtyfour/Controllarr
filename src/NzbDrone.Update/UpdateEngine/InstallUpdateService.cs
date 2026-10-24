@@ -52,6 +52,23 @@ namespace NzbDrone.Update.UpdateEngine
             _logger = logger;
         }
 
+        private string ResolveUpdatePackageFolder()
+        {
+            var packageFolder = _appFolderInfo.GetUpdatePackageFolder();
+            if (_diskProvider.FolderExists(packageFolder))
+            {
+                return packageFolder;
+            }
+
+            var legacySonarrFolder = Path.Combine(_appFolderInfo.GetUpdateSandboxFolder(), "Sonarr") + Path.DirectorySeparatorChar;
+            if (_diskProvider.FolderExists(legacySonarrFolder))
+            {
+                return legacySonarrFolder;
+            }
+
+            return packageFolder;
+        }
+
         private void Verify(string targetFolder, int processId)
         {
             _logger.Info("Verifying requirements before update...");
@@ -77,20 +94,24 @@ namespace NzbDrone.Update.UpdateEngine
             }
 
             _logger.Info("Verifying Update Folder");
-            if (!_diskProvider.FolderExists(_appFolderInfo.GetUpdatePackageFolder()))
+            var updatePackageFolder = ResolveUpdatePackageFolder();
+            if (!_diskProvider.FolderExists(updatePackageFolder))
             {
-                throw new DirectoryNotFoundException("Update folder doesn't exist " + _appFolderInfo.GetUpdatePackageFolder());
+                throw new DirectoryNotFoundException("Update folder doesn't exist " + updatePackageFolder);
             }
         }
 
         public void Start(string installationFolder, int processId)
         {
             _logger.Info("Installation Folder: {0}", installationFolder);
-            _logger.Info("Updating Sonarr from version {0} to version {1}", _detectExistingVersion.GetExistingVersion(installationFolder), BuildInfo.Version);
+            _logger.Info("Updating Controllarr from version {0} to version {1}", _detectExistingVersion.GetExistingVersion(installationFolder), BuildInfo.Version);
 
             Verify(installationFolder, processId);
 
-            if (installationFolder.EndsWith(@"\bin\Sonarr") || installationFolder.EndsWith(@"/bin/Sonarr"))
+            if (installationFolder.EndsWith(@"\bin\Sonarr") ||
+                installationFolder.EndsWith(@"/bin/Sonarr") ||
+                installationFolder.EndsWith(@"\bin\Controllarr") ||
+                installationFolder.EndsWith(@"/bin/Controllarr"))
             {
                 installationFolder = installationFolder.GetParentPath();
                 _logger.Info("Fixed Installation Folder: {0}", installationFolder);
@@ -115,7 +136,7 @@ namespace NzbDrone.Update.UpdateEngine
                 {
                     if (_processProvider.Exists(ProcessProvider.SONARR_CONSOLE_PROCESS_NAME) || _processProvider.Exists(ProcessProvider.SONARR_PROCESS_NAME))
                     {
-                        _logger.Error("Sonarr was restarted prematurely by external process.");
+                        _logger.Error("Controllarr was restarted prematurely by external process.");
                         return;
                     }
                 }
@@ -123,7 +144,7 @@ namespace NzbDrone.Update.UpdateEngine
                 try
                 {
                     _logger.Info("Copying new files to target folder");
-                    _diskTransferService.MirrorFolder(_appFolderInfo.GetUpdatePackageFolder(), installationFolder);
+                    _diskTransferService.MirrorFolder(ResolveUpdatePackageFolder(), installationFolder);
 
                     // Set executable flag on app and ffprobe
                     if (OsInfo.IsOsx || OsInfo.IsLinux)
@@ -157,7 +178,7 @@ namespace NzbDrone.Update.UpdateEngine
 
                         if (_processProvider.Exists(ProcessProvider.SONARR_PROCESS_NAME))
                         {
-                            _logger.Info("Sonarr was restarted by external process.");
+                            _logger.Info("Controllarr was restarted by external process.");
                             break;
                         }
                     }

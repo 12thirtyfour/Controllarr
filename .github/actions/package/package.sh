@@ -13,7 +13,8 @@ do
   name="${runtime##*/}"
   folderName="$runtime/$framework"
   sonarrFolder="$folderName/Sonarr"
-  archiveName="Sonarr.$BRANCH.$CONTROLLARR_VERSION.$name"
+  controllarrFolder="$folderName/Controllarr"
+  archiveName="Controllarr.$BRANCH.$CONTROLLARR_VERSION.$name"
 
   if [[ "$name" == 'UI' ]]; then
     continue
@@ -28,6 +29,9 @@ do
   find $sonarrFolder -name "ffprobe" -exec chmod a+x {} \;
   find $sonarrFolder -name "Sonarr" -exec chmod a+x {} \;
   find $sonarrFolder -name "Sonarr.Update" -exec chmod a+x {} \;
+
+  rm -rf "$controllarrFolder"
+  cp -r "$sonarrFolder" "$controllarrFolder"
   
   if [[ "$name" == *"osx"* ]]; then
     echo "Creating macOS package"
@@ -53,15 +57,15 @@ do
 
   echo "Packaging Artifact"
   if [[ "$name" == *"linux"* ]] || [[ "$name" == *"osx"* ]] || [[ "$name" == *"freebsd"* ]]; then
-    tar -zcf "./$artifactsFolder/$archiveName.tar.gz" -C $folderName Sonarr
+    tar -zcf "./$artifactsFolder/$archiveName.tar.gz" -C $folderName Controllarr
 	fi
     
   if [[ "$name" == *"win"* ]]; then
     if [ "$RUNNER_OS" = "Windows" ]
       then
-        (cd $folderName; 7z a -tzip "../../../$artifactsFolder/$archiveName.zip" ./Sonarr)
+        (cd $folderName; 7z a -tzip "../../../$artifactsFolder/$archiveName.zip" ./Controllarr)
       else
-      (cd $folderName; zip -rq "../../../$artifactsFolder/$archiveName.zip" ./Sonarr)
+      (cd $folderName; zip -rq "../../../$artifactsFolder/$archiveName.zip" ./Controllarr)
     fi
 	fi
 done

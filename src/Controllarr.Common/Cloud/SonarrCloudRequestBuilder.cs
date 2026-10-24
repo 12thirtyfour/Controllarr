@@ -12,10 +12,10 @@ namespace NzbDrone.Common.Cloud
     {
         public SonarrCloudRequestBuilder()
         {
-            Services = new HttpRequestBuilder("https://services.sonarr.tv/v1/")
+            Services = new HttpRequestBuilder("https://api.github.com/repos/12thirtyfour/Controllarr/")
                 .CreateFactory();
 
-            SkyHookTvdb = new HttpRequestBuilder("https://skyhook.sonarr.tv/v2/tvdb/{route}/")
+            SkyHookTvdb = new HttpRequestBuilder("https://api.github.com/repos/12thirtyfour/Controllarr/")
                 .CreateFactory();
         }
 

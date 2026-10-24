@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NzbDrone.Common.Disk;
 
 namespace NzbDrone.Core.Update
@@ -19,6 +19,16 @@ namespace NzbDrone.Core.Update
 
         public bool Verify(UpdatePackage updatePackage, string packagePath)
         {
+            if (updatePackage == null || !_diskProvider.FileExists(packagePath))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(updatePackage.Hash))
+            {
+                return _diskProvider.GetFileSize(packagePath) > 0;
+            }
+
             using (var fileStream = _diskProvider.OpenReadStream(packagePath))
             {
                 var hash = fileStream.SHA256Hash();

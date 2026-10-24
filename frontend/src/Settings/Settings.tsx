@@ -94,12 +94,6 @@ function buildSections(): SectionEntry[] {
       summary: translate('UiSettingsSummary'),
     },
     {
-      to: '/settings/bios',
-      iconName: icons.DRIVE,
-      title: translate('Bios'),
-      summary: translate('BiosSettingsSummary'),
-    },
-    {
       to: '/settings/retroachievements',
       iconName: icons.SCORE,
       title: translate('RetroAchievements'),

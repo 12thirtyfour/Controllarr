@@ -5,6 +5,7 @@ import SelectInput, { SelectInputOption } from 'Components/Form/SelectInput';
 import Label from 'Components/Label';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
@@ -17,7 +18,6 @@ import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import { kinds, sizes } from 'Helpers/Props';
 import { Kind } from 'Helpers/Props/kinds';
 import settingsStyles from 'Settings/Settings.module.css';
-import SettingsPage from 'Settings/SettingsPage';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
 import styles from './BiosSettings.module.css';
@@ -237,13 +237,10 @@ function BiosSettings() {
   }, [data]);
 
   return (
-    <SettingsPage title={translate('BiosSettings')} showSave={false}>
+    <PageContent title={translate('Bios')}>
       <PageContentBody>
         <div className={settingsStyles.section}>
-          <PageHeading
-            scope={translate('Settings')}
-            title={translate('Bios')}
-          />
+          <PageHeading scope={translate('Series')} title={translate('Bios')} />
 
           <div className={styles.filterContainer}>
             <div className={styles.filterGroup}>
@@ -388,7 +385,7 @@ function BiosSettings() {
           ) : null}
         </div>
       </PageContentBody>
-    </SettingsPage>
+    </PageContent>
   );
 }
 

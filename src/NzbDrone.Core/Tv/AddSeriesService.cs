@@ -301,9 +301,18 @@ namespace NzbDrone.Core.Tv
 
                 if (series.SeasonFolder && series.Seasons != null)
                 {
+                    MigrateLegacySeasonFolders(series.Path);
+
                     foreach (var season in series.Seasons.Where(s => s.Monitored))
                     {
                         var regionFolder = _fileNameBuilder.GetSeasonFolder(series, season.SeasonNumber);
+                        if (string.IsNullOrWhiteSpace(regionFolder) ||
+                            regionFolder.StartsWith("Season ", StringComparison.OrdinalIgnoreCase) ||
+                            regionFolder.Equals("Specials", StringComparison.OrdinalIgnoreCase))
+                        {
+                            regionFolder = ResolveCanonicalRegionFolderName(season.SeasonNumber, season.Title);
+                        }
+
                         if (!string.IsNullOrWhiteSpace(regionFolder))
                         {
                             var fullRegionPath = Path.Combine(series.Path, regionFolder);
@@ -318,6 +327,81 @@ namespace NzbDrone.Core.Tv
             catch (Exception ex)
             {
                 _logger.Warn(ex, "Unable to automatically create platform folder structure for {0} at {1}", series.Title, series.Path);
+            }
+        }
+
+        private static string ResolveCanonicalRegionFolderName(int seasonNumber, string seasonTitle)
+        {
+            if (!string.IsNullOrWhiteSpace(seasonTitle) &&
+                !seasonTitle.StartsWith("Season ", StringComparison.OrdinalIgnoreCase) &&
+                !seasonTitle.Equals("Specials", StringComparison.OrdinalIgnoreCase))
+            {
+                return seasonTitle;
+            }
+
+            return seasonNumber switch
+            {
+                0 => "Unlicensed",
+                1 => "USA",
+                2 => "Europe",
+                3 => "Japan",
+                4 => "World",
+                5 => "Homebrew",
+                6 => "ROM Hacks",
+                _ => "USA"
+            };
+        }
+
+        private void MigrateLegacySeasonFolders(string platformPath)
+        {
+            if (string.IsNullOrWhiteSpace(platformPath) || !_diskProvider.FolderExists(platformPath))
+            {
+                return;
+            }
+
+            var legacyMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Specials", "Unlicensed" },
+                { "Season 0", "Unlicensed" },
+                { "Season 00", "Unlicensed" },
+                { "Season 1", "USA" },
+                { "Season 01", "USA" },
+                { "Season 2", "Europe" },
+                { "Season 02", "Europe" },
+                { "Season 3", "Japan" },
+                { "Season 03", "Japan" },
+                { "Season 4", "World" },
+                { "Season 04", "World" },
+                { "Season 5", "Homebrew" },
+                { "Season 05", "Homebrew" },
+                { "Season 6", "ROM Hacks" },
+                { "Season 06", "ROM Hacks" }
+            };
+
+            foreach (var pair in legacyMappings)
+            {
+                var legacyPath = Path.Combine(platformPath, pair.Key);
+                if (!_diskProvider.FolderExists(legacyPath))
+                {
+                    continue;
+                }
+
+                var targetPath = Path.Combine(platformPath, pair.Value);
+                try
+                {
+                    if (_diskProvider.FolderEmpty(legacyPath))
+                    {
+                        _diskProvider.DeleteFolder(legacyPath, true);
+                    }
+                    else if (!_diskProvider.FolderExists(targetPath))
+                    {
+                        _diskProvider.MoveFolder(legacyPath, targetPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Unable to migrate legacy season folder {0} to {1}", legacyPath, targetPath);
+                }
             }
         }
 

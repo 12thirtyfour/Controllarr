@@ -56,7 +56,7 @@ namespace NzbDrone.Update.Test
         [Test]
         public void update_should_throw_if_update_folder_doesnt_exist()
         {
-            const string sandboxFolder = @"C:\Temp\NzbDrone_update\nzbdrone";
+            var sandboxFolder = Path.Combine(@"C:\Temp\", "controllarr_update", "Controllarr") + Path.DirectorySeparatorChar;
 
             GivenTargetFolderExists();
             GivenProcessExists();

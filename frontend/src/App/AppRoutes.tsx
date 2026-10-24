@@ -64,6 +64,8 @@ export function appRouteElements() {
 
       <Route path="/add/import/:rootFolderId" element={<ImportPlatform />} />
 
+      <Route path="/bios" element={<BiosSettings />} />
+
       <Route
         path="/serieseditor"
         element={<Navigate to="/platforms" replace={true} />}
@@ -145,7 +147,10 @@ export function appRouteElements() {
 
       <Route path="/settings/ui" element={<UISettings />} />
 
-      <Route path="/settings/bios" element={<BiosSettings />} />
+      <Route
+        path="/settings/bios"
+        element={<Navigate to="/bios" replace={true} />}
+      />
 
       <Route
         path="/settings/retroachievements"

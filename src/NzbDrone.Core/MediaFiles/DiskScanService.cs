@@ -127,6 +127,7 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var videoFilesStopwatch = Stopwatch.StartNew();
+            MigrateLegacySeasonFolders(series);
             var mediaFileList = FilterPaths(series.Path, GetVideoFiles(series.Path)).ToList();
             videoFilesStopwatch.Stop();
             _logger.Trace("Finished getting episode files for: {0} [{1}]", series, videoFilesStopwatch.Elapsed);
@@ -294,6 +295,90 @@ namespace NzbDrone.Core.MediaFiles
                 if (_diskProvider.FolderEmpty(path))
                 {
                     _diskProvider.DeleteFolder(path, true);
+                }
+            }
+        }
+
+        private void MigrateLegacySeasonFolders(Series series)
+        {
+            if (series == null || string.IsNullOrWhiteSpace(series.Path) || !_diskProvider.FolderExists(series.Path))
+            {
+                return;
+            }
+
+            var legacyMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Specials", "Unlicensed" },
+                { "Season 0", "Unlicensed" },
+                { "Season 00", "Unlicensed" },
+                { "Season 1", "USA" },
+                { "Season 01", "USA" },
+                { "Season 2", "Europe" },
+                { "Season 02", "Europe" },
+                { "Season 3", "Japan" },
+                { "Season 03", "Japan" },
+                { "Season 4", "World" },
+                { "Season 04", "World" },
+                { "Season 5", "Homebrew" },
+                { "Season 05", "Homebrew" },
+                { "Season 6", "ROM Hacks" },
+                { "Season 06", "ROM Hacks" }
+            };
+
+            var hadLegacyFolder = false;
+
+            foreach (var pair in legacyMappings)
+            {
+                var legacyPath = Path.Combine(series.Path, pair.Key);
+                if (!_diskProvider.FolderExists(legacyPath))
+                {
+                    continue;
+                }
+
+                hadLegacyFolder = true;
+                var targetPath = Path.Combine(series.Path, pair.Value);
+
+                try
+                {
+                    if (_diskProvider.FolderEmpty(legacyPath))
+                    {
+                        _diskProvider.DeleteFolder(legacyPath, true);
+                    }
+                    else if (!_diskProvider.FolderExists(targetPath))
+                    {
+                        _diskProvider.MoveFolder(legacyPath, targetPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Unable to migrate legacy season folder {0} to {1}", legacyPath, targetPath);
+                }
+            }
+
+            if (hadLegacyFolder && series.SeasonFolder && series.Seasons != null)
+            {
+                foreach (var season in series.Seasons.Where(s => s.Monitored))
+                {
+                    var regionName = season.SeasonNumber switch
+                    {
+                        0 => "Unlicensed",
+                        1 => "USA",
+                        2 => "Europe",
+                        3 => "Japan",
+                        4 => "World",
+                        5 => "Homebrew",
+                        6 => "ROM Hacks",
+                        _ => null
+                    };
+
+                    if (!string.IsNullOrWhiteSpace(regionName))
+                    {
+                        var regionPath = Path.Combine(series.Path, regionName);
+                        if (!_diskProvider.FolderExists(regionPath))
+                        {
+                            _diskProvider.CreateFolder(regionPath);
+                        }
+                    }
                 }
             }
         }
