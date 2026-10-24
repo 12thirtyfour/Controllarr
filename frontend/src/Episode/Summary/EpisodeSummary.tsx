@@ -12,6 +12,7 @@ import useEpisode, { EpisodeEntity } from 'Episode/useEpisode';
 import { useEpisodeFile } from 'EpisodeFile/EpisodeFileProvider';
 import { useDeleteEpisodeFile } from 'EpisodeFile/useEpisodeFiles';
 import { icons, kinds, sizes } from 'Helpers/Props';
+import { Kind } from 'Helpers/Props/kinds';
 import {
   getGameAchievementSummary,
   useRetroAchievementsLibraryVersion,
@@ -215,7 +216,7 @@ function EpisodeSummary({
             {achievementSummary.badges.map((badge) => {
               const isUnlocked = badge.unlocked || badge.hardcoreUnlocked;
               let badgePrefix = '◇ ';
-              let badgeKind = kinds.DEFAULT;
+              let badgeKind: Kind = kinds.DEFAULT;
 
               if (badge.hardcoreUnlocked) {
                 badgePrefix = '🥇 ';

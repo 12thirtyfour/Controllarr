@@ -28,7 +28,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       framework: ${{ steps.variables.outputs.framework }}
       major_version: ${{ steps.variables.outputs.major_version }}
@@ -52,39 +52,39 @@ jobs:
         include:
           - runtime: freebsd-x64
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: linux-arm
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: linux-arm64
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: linux-musl-arm64
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: linux-musl-x64
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: linux-x64
             package_tests: true
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: osx-arm64
             package_tests: true
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: osx-x64
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: win-x64
             package_tests: true
-            os: ubuntu-latest
+            os: ubuntu-24.04
           - runtime: win-x86
             package_tests: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
 
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build
         uses: ./.github/actions/build
@@ -96,13 +96,13 @@ jobs:
           package_tests: ${{ matrix.package_tests }}
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Volta
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -133,9 +133,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             artifact: tests-linux-x64
             filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
           - os: macos-latest
@@ -147,7 +147,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Test
         uses: ./.github/actions/test
@@ -166,12 +166,12 @@ jobs:
         postgres-version: [16, 17, 18]
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Test
         uses: ./.github/actions/test
         with:
-          os: ubuntu-latest
+          os: ubuntu-24.04
           artifact: tests-linux-x64
           pattern: Sonarr.*.Test.dll
           filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
@@ -183,9 +183,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             artifact: tests-linux-x64
             filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory=IntegrationTest
             binary_artifact: build-linux-x64
@@ -203,7 +203,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Test
         uses: ./.github/actions/test
@@ -253,7 +253,7 @@ jobs:
     env:
       STATUS: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Notify

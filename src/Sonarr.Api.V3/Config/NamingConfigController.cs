@@ -81,23 +81,30 @@ namespace Sonarr.Api.V3.Config
             var animeEpisodeSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
             var animeMultiEpisodeSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
 
-            sampleResource.SingleEpisodeExample = _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult) != null
+            var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardEpisodeFormat) &&
+                                           FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardEpisodeFormat);
+            var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyEpisodeFormat) &&
+                                        FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyEpisodeFormat);
+            var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeEpisodeFormat) &&
+                                        FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeEpisodeFormat);
+
+            sampleResource.SingleEpisodeExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult) != null
                     ? null
                     : singleEpisodeSampleResult.FileName;
 
-            sampleResource.MultiEpisodeExample = _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult) != null
+            sampleResource.MultiEpisodeExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult) != null
                     ? null
                     : multiEpisodeSampleResult.FileName;
 
-            sampleResource.DailyEpisodeExample = _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult) != null
+            sampleResource.DailyEpisodeExample = !hasOriginalDailyToken && _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult) != null
                     ? null
                     : dailyEpisodeSampleResult.FileName;
 
-            sampleResource.AnimeEpisodeExample = _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult) != null
+            sampleResource.AnimeEpisodeExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult) != null
                     ? null
                     : animeEpisodeSampleResult.FileName;
 
-            sampleResource.AnimeMultiEpisodeExample = _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult) != null
+            sampleResource.AnimeMultiEpisodeExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult) != null
                     ? null
                     : animeMultiEpisodeSampleResult.FileName;
 
@@ -124,11 +131,18 @@ namespace Sonarr.Api.V3.Config
             var animeEpisodeSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
             var animeMultiEpisodeSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
 
-            var singleEpisodeValidationResult = _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult);
-            var multiEpisodeValidationResult = _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult);
-            var dailyEpisodeValidationResult = _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult);
-            var animeEpisodeValidationResult = _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult);
-            var animeMultiEpisodeValidationResult = _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult);
+            var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardEpisodeFormat) &&
+                                           FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardEpisodeFormat);
+            var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyEpisodeFormat) &&
+                                        FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyEpisodeFormat);
+            var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeEpisodeFormat) &&
+                                        FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeEpisodeFormat);
+
+            var singleEpisodeValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult);
+            var multiEpisodeValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult);
+            var dailyEpisodeValidationResult = hasOriginalDailyToken ? null : _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult);
+            var animeEpisodeValidationResult = hasOriginalAnimeToken ? null : _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult);
+            var animeMultiEpisodeValidationResult = hasOriginalAnimeToken ? null : _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult);
 
             var validationFailures = new List<ValidationFailure>();
 

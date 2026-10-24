@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Update
         {
             _platformInfo = platformInfo;
             _analyticsService = analyticsService;
-            _requestBuilder = requestBuilder?.Services ?? new SonarrCloudRequestBuilder().Services;
+            _requestBuilder = requestBuilder?.Releases ?? new SonarrCloudRequestBuilder().Releases;
             _httpClient = httpClient;
             _mainDatabase = mainDatabase;
             _logger = logger;

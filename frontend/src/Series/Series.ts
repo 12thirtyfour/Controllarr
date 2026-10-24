@@ -97,6 +97,7 @@ interface Series extends ModelBase {
   monitorNewItems: MonitorNewItems;
   collectionStrategy: string | number;
   revisionPreference: string | number;
+  preferredArchiveFormat?: string | number;
   pinnedVersion?: string;
   network: string;
   originalCountry: string;
