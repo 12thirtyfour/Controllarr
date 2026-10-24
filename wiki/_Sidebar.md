@@ -5,8 +5,9 @@
   * [Quick Start Tutorial](Quick-Start.md)
 
 * **Library & Curation**
+  * [1G1R & Curation Modes](1G1R-and-Curation-Modes.md)
+  * [Supported Platforms](Supported-Platforms.md)
   * [Core Concepts & Curation](Core-Concepts.md)
-  * [Supported Consoles](Supported-Consoles.md)
   * [Ingestion & Hash Gating](Ingestion-and-Hash-Verification.md)
   * [Platform BIOS Matrix](Platform-BIOS-Matrix.md)
 

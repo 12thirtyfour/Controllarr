@@ -2,7 +2,7 @@
 
 Welcome to the official documentation and user guide for **Controllarr**, the automated console ROM and game library manager for retro and modern systems.
 
-Controllarr brings the familiar, automated architecture of media managers (like Sonarr and Radarr) into the console gaming ecosystem. Whether you are managing an 8-bit cartridge archive, organizing multidisc optical images, curating a clean **1 Game 1 ROM (1G1R)** library, verifying system BIOS files, or preparing an SD card for your favorite flash cart or handheld device, this wiki covers everything you need to know.
+Controllarr brings the familiar, automated architecture of media managers into the console gaming ecosystem. Whether you are managing an 8-bit cartridge archive, organizing multidisc optical images, curating a clean **1 Game 1 ROM (1G1R)** library, verifying system BIOS files, or preparing an SD card for your favorite flash cart or handheld device, this wiki covers everything you need to know.
 
 ---
 
@@ -10,11 +10,12 @@ Controllarr brings the familiar, automated architecture of media managers (like 
 
 ### Getting Started
 * **[Installation Guide](Installation-Guide.md)** — Setting up Controllarr on macOS, Linux, and Windows, configuring ports, reverse proxies, and database storage (SQLite / PostgreSQL).
-* **[Quick Start Tutorial](Quick-Start.md)** — Step-by-step walkthrough from adding your first console platform to playing your first game.
+* **[Quick Start Tutorial](Quick-Start.md)** — Step-by-step walkthrough from adding your first console platform (`/platforms`) to playing your first game.
 
 ### Library Organization & Curation
+* **[1G1R & Curation Modes](1G1R-and-Curation-Modes.md)** — Detailed guide to the `/platforms` UI routes, Add/Edit Platform dialog curation options, Collection Strategy, Revision Preferences, and Platform Details version grouping.
+* **[Supported Platforms & Regional Model](Supported-Platforms.md)** — Comprehensive list of supported home consoles, handhelds, short codes, and the 7-Region Model structure (USA, Europe, Japan, World, Homebrew, ROM Hacks, Prototypes).
 * **[Core Concepts & Curation](Core-Concepts.md)** — Understanding 1G1R curation, region hierarchies, revision preferences, clone lists, and naming formats.
-* **[Supported Consoles & Platforms](Supported-Consoles.md)** — Comprehensive list of supported home consoles, handhelds, add-on systems, and extension mappings.
 * **[Ingestion & Hash Verification](Ingestion-and-Hash-Verification.md)** — How Controllarr scans, verifies, and unpacks ROMs using No-Intro, Redump, and TOSEC DAT checksums (CRC32, MD5, SHA-1).
 * **[Platform BIOS Matrix](Platform-BIOS-Matrix.md)** — Inspecting, hashing, and managing required system BIOSes and firmwares for optical and cartridge systems.
 

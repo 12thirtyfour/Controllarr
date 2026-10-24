@@ -2,6 +2,22 @@
 
 Controllarr is dedicated specifically to video game consoles, handheld systems, and hardware expansion systems across every generation.
 
+For detailed information on the 7-region model, regional buckets, and directory structures, see **[Supported Platforms & Regional Model](Supported-Platforms.md)**.
+
+---
+
+## The 7-Region Model Overview
+
+Controllarr partitions platform catalogs into seven regional buckets:
+
+* **Region 1**: USA (NTSC-U) — Monitored by default
+* **Region 2**: Europe (PAL) — Monitored by default
+* **Region 3**: Japan (NTSC-J) — Monitored by default
+* **Region 4**: World / Multi-Region — Monitored by default
+* **Region 5**: Homebrew & Aftermarket — Optional (Hash-gated)
+* **Region 6**: ROM Hacks & Translations — Optional (Hash-gated)
+* **Region 0**: Prototypes, Betas & Unlicensed — Optional
+
 ---
 
 ## Supported Console Matrix
