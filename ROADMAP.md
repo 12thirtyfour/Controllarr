@@ -15,7 +15,7 @@
 | **Phase 5** | Multi-Architecture Docker Packaging, Port `7050` Standardization & Official GitHub Wiki Suite | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.3](CHANGELOG.md#100-beta3---2026-10-24) |
 | **Phase 6** | SD Card Multi-Device Exporter (15+ Hardware Targets), Live RetroAchievements API Integration & WebAssembly/Desktop Game Launcher | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.4](CHANGELOG.md#100-beta4---2026-10-24) |
 | **Phase 7** | Brand Unification, AppData/DB Isolation (`~/.config/Controllarr`), Database Table Renames (`Migration 242`), Built-In GitHub Releases Updater, Collection Settings, Regional Console Themes & HTTPS Activity Queue/History | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.6](CHANGELOG.md#100-beta6---2026-10-24) |
-| **Phase 8** | Multi-Provider Metadata Pipeline (`IGDB`, `ScreenScraper`, `TheGamesDB`, `Libretro/HTGDB`), `gamelist.xml` Export, Local DAT/SMDB Hash Cache Import, Disc Compression & `.m3u` Generation, Archive Repackaging & Sidecar Save Mobility | ✅ Completed | [1.0.0-beta.7](CHANGELOG.md#100-beta7---2026-10-24) |
+| **Phase 8** | Cross-Referenced ROM Verification Catalogs (`No-Intro`, `Redump`, `TOSEC`, `SmokeMonster HTGDB/SMDB`, `Neo Geo AES/CD`, `Switch NSWDB`), Decrypted NDS/3DS Default & `PreferEncryptedRoms` Toggle, Automated Download Cryptographic Hash Gate (`VerifiedRomHashSpecification`), Priority-Cascading Metadata Scrapers (`IGDB`, `ScreenScraper`, `TheGamesDB`, `Libretro/LaunchBox`) with API Rate-Limit Fail-Safes, `gamelist.xml` & SD Card Media Export, Local DAT/SMDB Import, Disc Compression (`.chd`/`.rvz`) & `.m3u` Generation, Archive Repackaging & Sidecar Save Mobility | ✅ Completed | [1.0.0-beta.7](CHANGELOG.md#100-beta7---2026-10-24) |
 
 ---
 
@@ -26,13 +26,11 @@
   * Continuous UI/UX polish based on live beta testing feedback.
 * **Physical Hardware & Flash-Cart Target Verification**:
   * End-to-end validation of **Virtual Symlink Libraries** (SMB/NFS network shares and local emulator mounts) on **MiSTer FPGA** and **RetroArch**.
-  * End-to-end validation of **SD Card Exporter** folder layouts and FAT32 bucketing on physical **EverDrive / FXPak Pro**, **Analogue Pocket**, **OnionOS / GarlicOS** handhelds, and **Optical Drive Emulators** (`xStation`, `GDEMU`, `Fenrir`, `GC Loader`).
+  * End-to-end validation of **SD Card Exporter** folder layouts, media/`gamelist.xml` assets, and FAT32 bucketing on physical **EverDrive / FXPak Pro**, **Analogue Pocket**, **OnionOS / GarlicOS** handhelds, and **Optical Drive Emulators** (`xStation`, `GDEMU`, `Fenrir`, `GC Loader`).
 * **Torznab / Newznab Game-Specific Indexer Attributes & Volume Factors**:
   * Extend `Torznab` and `Newznab` indexer definitions with game-specific category attributes (ROM container format hints, region tags, and download/upload ratio volume factors) for specialized private retro trackers.
-* **Live Cryptographic Hash-Gating Against HTGDB / SMDB Manifests**:
-  * Enforce automated SHA-1 / MD5 / CRC32 post-download verification against live Hardware Target Game Database (`HTGDB` / SmokeMonster `SMDB`) manifests before importing unofficial content (`ROM Hacks & Translations` and `Homebrew & Aftermarket`).
 * **Pre-Release Memory Profiling & Async Ingestion Optimization**:
-  * Memory allocation profiling and async loop tightening across large multi-thousand-entry No-Intro / Redump DAT catalog syncs and archive extraction pipelines.
+  * Memory allocation profiling and async loop tightening across large multi-thousand-entry No-Intro / Redump / SmokeMonster SMDB catalog syncs and archive extraction pipelines.
 * **Binary & Host Executable Rename**:
   * Transition the compiled binary output name (`Sonarr` / `Sonarr.exe` -> `Controllarr` / `Controllarr.exe`) alongside existing `Controllarr` AppData, database, and service isolation for the `v1.0.0` Release Candidate.
 * **v1.0.0 Release Candidate (RC) & Stable Distribution**:

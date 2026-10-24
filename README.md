@@ -30,9 +30,9 @@ Instead of wrestling with disorganized folders, unverified dumps, multi-region d
 
 1. **Pick Your Consoles**: Manage cartridge, disc, and handheld systems across all generations.
 2. **Find & Acquire**: Automatically search and grab titles across direct HTTP archives (Internet Archive), Usenet (Newznab), and BitTorrent (Torznab).
-3. **Verify Every Byte**: Check dumps against canonical **No-Intro**, **Redump**, and **TOSEC** hash databases.
+3. **Verify Every Byte**: Check dumps against cross-referenced **No-Intro**, **Redump**, **TOSEC**, **SmokeMonster HTGDB/SMDB**, **FBNeo / Neo Geo AES**, and **NSWDB** hash databases (`SHA-256`, `SHA-1`, `MD5`, `CRC32`), automatically holding unverified downloads in the Activity Queue.
 4. **Flexible Library Curation**: Maintain either a streamlined **1G1R (One Game, One ROM)** set (per-game or per-region) using drag-and-drop region ordering, or a full **Completionist** collection tracking all documented revisions, regional variants, prototypes, betas, and aftermarket releases.
-5. **Sync to Hardware**: Export curated sets formatted specifically for flash carts, ODEs, and handhelds (EverDrive, MiSTer FPGA, Analogue Pocket, OnionOS, etc.).
+5. **Sync to Hardware**: Export curated sets, media artwork, and `gamelist.xml` manifests formatted specifically for flash carts, ODEs, and handhelds (EverDrive, MiSTer FPGA, Analogue Pocket, OnionOS, etc.).
 6. **Play Instantly**: Launch games directly in your browser with embedded Libretro cores or hand off to native desktop emulators with a single click.
 
 ---
@@ -42,7 +42,8 @@ Instead of wrestling with disorganized folders, unverified dumps, multi-region d
 Detailed feature breakdowns and technical documentation are available in the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki):
 
 * **[🎯 Flexible Library & Collection Curation](https://github.com/12thirtyfour/Controllarr/wiki/Core-Concepts)**: Full control to define the exact type of library you want to maintain—whether a streamlined **1G1R (One Game, One ROM)** set (per-game or per-region) with custom drag-and-drop region ordering, or a **Completionist** collection tracking all documented revisions, regional variants, prototypes, betas, and aftermarket releases, alongside unified path naming and virtual symlink libraries.
-* **[🛡️ Canonical Hash Verification](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Validates CRC32, MD5, and SHA-1 checksums on ingestion against unified No-Intro, Redump, and TOSEC DATs.
+* **[🛡️ Canonical Hash Verification & Queue Gate](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Validates CRC32, MD5, SHA-1, and SHA-256 checksums on ingestion against cross-referenced No-Intro (including default decrypted NDS/3DS DATs with an optional `PreferEncryptedRoms` toggle), Redump, TOSEC, SmokeMonster HTGDB/SMDB, FBNeo Neo Geo, and NSWDB catalogs, holding unverified automated downloads in the Activity Queue.
+* **[🎨 Priority-Cascading Metadata Scrapers](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Configure priority order (`1..4`), API rate-limit fail-safes, and per-scraper artwork checkboxes across **ScreenScraper**, **IGDB**, **TheGamesDB**, and **Libretro / LaunchBox** to complete missing box art, screenshots, clear logos, video previews, manuals, and EmulationStation `gamelist.xml` manifests without overwriting existing files.
 * **[🗂️ Virtual Symlink Libraries](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: Maintain live, non-destructive symlinked/junctioned folder structures formatted for MiSTer FPGA, RetroArch, Analogue Pocket, OnionOS, Batocera, and ES-DE without duplicating ROM files.
 * **[💾 Hardware Target Exporter (HTGDB / SMDB)](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: One-click SD card exports with automatic FAT32-safe alphabetical bucketing (`A-M/`, `N-Z/`) for MiSTer, Analogue Pocket, OnionOS, EverDrive, and ODEs.
 * **[🕹️ Platform BIOS Files & Downloader](https://github.com/12thirtyfour/Controllarr/wiki/Platform-BIOS-Matrix)**: Inspect, checksum, and automatically download/verify 80+ required system firmwares across 29 platforms directly from **Library -> BIOS Files** or each platform's overview page.
