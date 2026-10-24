@@ -142,5 +142,37 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             results.First().Hashes.Should().ContainKey("SHA-1");
             results.First().Hashes.Should().ContainKey("SHA-256");
         }
+
+        [Test]
+        public void Scan_ShouldResolveGameFromUnifiedDatHashWhenFilenameIsObscured()
+        {
+            var romPath = Path.Combine(_tempPath, "unlabeled_dump_01.sfc");
+            File.WriteAllBytes(romPath, new byte[] { 9, 8, 7 });
+
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(c => c.FindBySha256(It.IsAny<string>()))
+                .Returns(new DatEntry
+                {
+                    GameName = "EarthBound (USA)",
+                    RomName = "EarthBound (USA).sfc"
+                });
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 1, Title = "Super Nintendo Entertainment System" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(1)).Returns(new List<Episode>
+            {
+                new Episode { Id = 42, Title = "EarthBound", SeriesId = 1, SeasonNumber = 1 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().HaveCount(1);
+            results.First().Series.Title.Should().Be("Super Nintendo Entertainment System");
+            results.First().Episodes.First().Title.Should().Be("EarthBound");
+            results.First().SeasonNumber.Should().Be(1);
+            results.First().IsHighConfidenceMatch.Should().BeTrue();
+        }
     }
 }

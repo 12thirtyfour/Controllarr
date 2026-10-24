@@ -8,6 +8,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Dat;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
@@ -84,6 +85,8 @@ namespace NzbDrone.Core.MetadataSource.Game
         private readonly IDatCacheService _datCacheService;
         private readonly IDatParserService _datParserService;
         private readonly ISmdbParserService _smdbParserService;
+        private readonly IGameCatalogService _gameCatalogService;
+        private readonly IProvideSeriesInfo _seriesInfo;
         private readonly Logger _logger;
 
         public GameMediaAssetService(
@@ -95,6 +98,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             IDatCacheService datCacheService = null,
             IDatParserService datParserService = null,
             ISmdbParserService smdbParserService = null,
+            IGameCatalogService gameCatalogService = null,
+            IProvideSeriesInfo seriesInfo = null,
             Logger logger = null)
         {
             _configService = configService;
@@ -105,6 +110,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             _datCacheService = datCacheService;
             _datParserService = datParserService;
             _smdbParserService = smdbParserService;
+            _gameCatalogService = gameCatalogService;
+            _seriesInfo = seriesInfo;
             _logger = logger;
         }
 
@@ -241,7 +248,50 @@ namespace NzbDrone.Core.MetadataSource.Game
                     datFile.Name = Path.GetFileNameWithoutExtension(effectiveName);
                 }
 
+                var matchedPlatform = _gameCatalogService?.InferPlatformForText($"{datFile.Name} {datFile.Description} {effectiveName}");
+                if (matchedPlatform != null)
+                {
+                    datFile.Description = matchedPlatform.Slug;
+                }
+
                 var inserted = _datCacheService.Insert(datFile, entries);
+                _gameCatalogService?.InvalidatePlatformCache(matchedPlatform?.TvdbId);
+
+                if (matchedPlatform != null && _seriesService != null && _episodeService != null && _seriesInfo != null)
+                {
+                    try
+                    {
+                        var existingSeries = _seriesService.FindByTvdbId(matchedPlatform.TvdbId) ??
+                                             _seriesService.FindByTitle(matchedPlatform.Name);
+                        if (existingSeries != null)
+                        {
+                            var tuple = _seriesInfo.GetSeriesInfo(matchedPlatform.TvdbId, Language.English, null);
+                            if (tuple?.Item2 != null)
+                            {
+                                var currentEpisodes = _episodeService.GetEpisodeBySeries(existingSeries.Id) ?? new List<Episode>();
+                                var currentTvdbIds = new HashSet<int>(currentEpisodes.Select(e => e.TvdbId));
+                                var newEpisodes = tuple.Item2
+                                    .Where(e => !currentTvdbIds.Contains(e.TvdbId))
+                                    .Select(e =>
+                                    {
+                                        e.SeriesId = existingSeries.Id;
+                                        return e;
+                                    })
+                                    .ToList();
+
+                                if (newEpisodes.Count > 0)
+                                {
+                                    _episodeService.InsertMany(newEpisodes);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.Debug(ex, "Unable to sync imported DAT entries into platform Games table for {0}", matchedPlatform.Name);
+                    }
+                }
+
                 return new DatImportResultModel
                 {
                     DatFile = inserted,

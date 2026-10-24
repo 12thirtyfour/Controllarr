@@ -19,6 +19,27 @@ namespace NzbDrone.Core.Dat
             using (var connection = _database.OpenConnection())
             using (var transaction = connection.BeginTransaction())
             {
+                if (!string.IsNullOrWhiteSpace(datFile.Name))
+                {
+                    var lowerName = datFile.Name.Trim().ToLowerInvariant();
+                    var existingIds = connection.Query<int>(
+                        @"SELECT ""Id"" FROM ""DatFiles"" WHERE LOWER(""Name"") = @lowerName",
+                        new { lowerName },
+                        transaction).ToList();
+
+                    foreach (var existingId in existingIds)
+                    {
+                        connection.Execute(
+                            @"DELETE FROM ""DatEntries"" WHERE ""DatFileId"" = @existingId",
+                            new { existingId },
+                            transaction);
+                        connection.Execute(
+                            @"DELETE FROM ""DatFiles"" WHERE ""Id"" = @existingId",
+                            new { existingId },
+                            transaction);
+                    }
+                }
+
                 var datFileSql = _database.DatabaseType == DatabaseType.PostgreSQL
                     ? @"INSERT INTO ""DatFiles"" (""Name"", ""Description"", ""Version"", ""Author"", ""Category"", ""CreatedAt"")
                         VALUES (@Name, @Description, @Version, @Author, @Category, @CreatedAt)
@@ -53,6 +74,40 @@ namespace NzbDrone.Core.Dat
             using (var connection = _database.OpenConnection())
             {
                 return connection.Query<DatFile>(sql).ToList();
+            }
+        }
+
+        public List<DatEntry> GetEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null)
+        {
+            var slug = (platformSlug ?? string.Empty).Trim().ToLowerInvariant();
+            var name = (platformName ?? slug).Trim().ToLowerInvariant();
+            var sys = (libretroSystemName ?? name).Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(slug) && string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(sys))
+            {
+                return new List<DatEntry>();
+            }
+
+            var sql = @"
+                SELECT e.*
+                FROM ""DatEntries"" e
+                INNER JOIN ""DatFiles"" f ON f.""Id"" = e.""DatFileId""
+                WHERE LOWER(COALESCE(f.""Description"", '')) = @slug
+                   OR LOWER(COALESCE(f.""Name"", '')) = @slug
+                   OR LOWER(COALESCE(f.""Name"", '')) LIKE @namePattern
+                   OR LOWER(COALESCE(f.""Name"", '')) LIKE @sysPattern
+                   OR LOWER(COALESCE(f.""Description"", '')) LIKE @sysPattern";
+
+            using (var connection = _database.OpenConnection())
+            {
+                return connection.Query<DatEntry>(
+                    sql,
+                    new
+                    {
+                        slug,
+                        namePattern = $"%{name}%",
+                        sysPattern = $"%{sys}%"
+                    }).ToList();
             }
         }
 

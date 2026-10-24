@@ -119,5 +119,31 @@ namespace NzbDrone.Core.Test.DatTests
             Subject.FindByMd5("invalid").Should().BeNull();
             Subject.FindBySha256("invalid").Should().BeNull();
         }
+
+        [Test]
+        public void Should_replace_existing_dat_file_on_update_without_duplicating_rows()
+        {
+            _datFile.Description = "snes";
+            Subject.Insert(_datFile, _datEntries);
+
+            var updatedEntries = new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Chrono Trigger (USA)",
+                    RomName = "Chrono Trigger (USA).sfc",
+                    Crc32 = "b19ed489"
+                }
+            };
+
+            Subject.Insert(_datFile, updatedEntries);
+
+            Subject.GetAllDatFiles().Should().HaveCount(1);
+            var platformEntries = Subject.GetEntriesForPlatform("snes", "Super Nintendo Entertainment System");
+            platformEntries.Should().HaveCount(1);
+            platformEntries[0].GameName.Should().Be("Chrono Trigger (USA)");
+            Subject.FindByCrc32("crc1").Should().BeNull();
+            Subject.FindByCrc32("b19ed489").Should().NotBeNull();
+        }
     }
 }

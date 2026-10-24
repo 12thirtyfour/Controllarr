@@ -90,6 +90,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 {
                     item.Hashes = processed.Hashes ?? new Dictionary<string, string>();
                     item.Series ??= processed.Series;
+                    item.SeasonNumber ??= processed.SeasonNumber;
                     if ((item.Episodes == null || item.Episodes.Count == 0) && processed.Episodes != null)
                     {
                         item.Episodes = processed.Episodes;
@@ -144,13 +145,66 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             Series matchedSeries = null;
             Episode matchedEpisode = null;
             var isHighConfidence = false;
+            DatEntry matchedDatEntry = null;
+
+            if (_datCacheService != null)
+            {
+                if (hashes.TryGetValue("SHA-256", out var sha256))
+                {
+                    matchedDatEntry = _datCacheService.FindBySha256(sha256);
+                }
+
+                if (matchedDatEntry == null && hashes.TryGetValue("SHA-1", out var sha1))
+                {
+                    matchedDatEntry = _datCacheService.FindBySha1(sha1);
+                }
+
+                if (matchedDatEntry == null && hashes.TryGetValue("MD5", out var md5))
+                {
+                    matchedDatEntry = _datCacheService.FindByMd5(md5);
+                }
+
+                if (matchedDatEntry == null && hashes.TryGetValue("CRC32", out var crc))
+                {
+                    matchedDatEntry = _datCacheService.FindByCrc32(crc);
+                }
+
+                if (matchedDatEntry != null)
+                {
+                    isHighConfidence = true;
+                }
+            }
+
+            var candidateTitles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+            {
+                parsedInfo.GameTitle
+            };
+
+            if (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName))
+            {
+                candidateTitles.Add(matchedDatEntry.GameName);
+                var parsedDatTitle = RomParser.ParseRomName(matchedDatEntry.GameName)?.GameTitle;
+                if (!string.IsNullOrWhiteSpace(parsedDatTitle))
+                {
+                    candidateTitles.Add(parsedDatTitle);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(matchedDatEntry?.RomName))
+            {
+                var parsedRomTitle = RomParser.ParseRomName(matchedDatEntry.RomName)?.GameTitle;
+                if (!string.IsNullOrWhiteSpace(parsedRomTitle))
+                {
+                    candidateTitles.Add(parsedRomTitle);
+                }
+            }
 
             var allPlatforms = _seriesService?.GetAllSeries() ?? new List<Series>();
             foreach (var platform in allPlatforms)
             {
                 var games = _episodeService?.GetEpisodeBySeries(platform.Id) ?? new List<Episode>();
                 matchedEpisode = games.FirstOrDefault(g =>
-                    g.Title != null && g.Title.Equals(parsedInfo.GameTitle, StringComparison.InvariantCultureIgnoreCase));
+                    g.Title != null && candidateTitles.Contains(g.Title));
 
                 if (matchedEpisode != null)
                 {
@@ -160,32 +214,13 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 }
             }
 
-            if (_datCacheService != null)
-            {
-                if (hashes.TryGetValue("SHA-256", out var sha256) && _datCacheService.FindBySha256(sha256) != null)
-                {
-                    isHighConfidence = true;
-                }
-                else if (hashes.TryGetValue("SHA-1", out var sha1) && _datCacheService.FindBySha1(sha1) != null)
-                {
-                    isHighConfidence = true;
-                }
-                else if (hashes.TryGetValue("MD5", out var md5) && _datCacheService.FindByMd5(md5) != null)
-                {
-                    isHighConfidence = true;
-                }
-                else if (hashes.TryGetValue("CRC32", out var crc) && _datCacheService.FindByCrc32(crc) != null)
-                {
-                    isHighConfidence = true;
-                }
-            }
-
             return new ManualImportItem
             {
                 Path = filePath,
                 Name = fileName,
                 Size = new FileInfo(filePath).Length,
                 Series = matchedSeries,
+                SeasonNumber = matchedEpisode?.SeasonNumber,
                 Episodes = matchedEpisode != null ? new List<Episode> { matchedEpisode } : new List<Episode>(),
                 Hashes = hashes,
                 IsHighConfidenceMatch = isHighConfidence

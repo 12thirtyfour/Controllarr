@@ -179,6 +179,44 @@ namespace NzbDrone.Core.MetadataSource.Game
             PendingPlatformGameSelections.TryRemove(platformTvdbId, out _);
         }
 
+        public void InvalidatePlatformCache(int? platformTvdbId = null)
+        {
+            if (platformTvdbId.HasValue)
+            {
+                SyncedPlatformGamesCache.TryRemove(platformTvdbId.Value, out _);
+            }
+            else
+            {
+                SyncedPlatformGamesCache.Clear();
+            }
+        }
+
+        public PlatformCatalogEntry InferPlatformForText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            if (TryGetPlatformEntryBySlug(text, out var exact))
+            {
+                return exact;
+            }
+
+            foreach (var platform in BuiltInPlatforms)
+            {
+                if ((!string.IsNullOrWhiteSpace(platform.LibretroSystemName) &&
+                     text.Contains(platform.LibretroSystemName, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(platform.Name) &&
+                     text.Contains(platform.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return platform;
+                }
+            }
+
+            return InferPlatformFromText(text);
+        }
+
         public Episode CreateEpisodeForGame(GameCatalogEntry game, int seriesId, bool monitored)
         {
             return new Episode
@@ -407,6 +445,35 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
+            try
+            {
+                var cachedDatEntries = _datCacheService?.GetEntriesForPlatform(platform.Slug, platform.Name, platform.LibretroSystemName);
+                if (cachedDatEntries != null)
+                {
+                    foreach (var datEntry in cachedDatEntries)
+                    {
+                        var rawName = !string.IsNullOrWhiteSpace(datEntry?.GameName)
+                            ? datEntry.GameName
+                            : StripKnownRomExtension(datEntry?.RomName);
+                        if (string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, "Unified DAT / SMDB Catalog");
+                        if (converted != null && seenIds.Add(converted.TvdbId) && seenNames.Add(converted.NoIntroName))
+                        {
+                            DynamicGames[converted.TvdbId] = converted;
+                            platformGames.Add(converted);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Unable to merge unified DAT entries for platform {0}", platform.Name);
+            }
+
             MarkLatestAndInitialRevisions(platformGames);
 
             var selectedGameIds = GetSelectedGameIdsForPlatform(platform.TvdbId);
@@ -616,6 +683,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     if (entries != null && entries.Count > 0)
                     {
                         datFile.Name = catalogName;
+                        datFile.Description = platform.Slug;
                         datFile.Category = sourceLabel;
                         _datCacheService.Insert(datFile, entries);
                     }

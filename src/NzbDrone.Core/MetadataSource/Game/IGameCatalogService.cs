@@ -53,6 +53,8 @@ namespace NzbDrone.Core.MetadataSource.Game
         bool HasPendingGameSelections(int platformTvdbId);
         HashSet<int> GetSelectedGameIdsForPlatform(int platformTvdbId);
         void ClearPendingPlatformSelections(int platformTvdbId);
+        void InvalidatePlatformCache(int? platformTvdbId = null);
+        PlatformCatalogEntry InferPlatformForText(string text);
         Episode CreateEpisodeForGame(GameCatalogEntry game, int seriesId, bool monitored);
     }
 }
