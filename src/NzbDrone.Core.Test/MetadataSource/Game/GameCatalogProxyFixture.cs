@@ -116,5 +116,51 @@ game (
             GameCatalogProxy.IsPreReleaseVersion("Beta", "Legend of Zelda, The (USA) (Beta)").Should().BeTrue();
             GameCatalogProxy.IsPreReleaseVersion("Retail (v1.0)", "Super Mario Bros. (World)").Should().BeFalse();
         }
+
+        [Test]
+        public void should_cross_reference_separate_databases_without_populating_duplicates()
+        {
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetEntriesForPlatform("snes", Moq.It.IsAny<string>(), Moq.It.IsAny<string>()))
+                .Returns(new System.Collections.Generic.List<NzbDrone.Core.Dat.DatEntry>
+                {
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1,
+                        GameName = "EarthBound (USA)",
+                        RomName = "EarthBound (USA).sfc",
+                        Sha1 = "1111111111111111111111111111111111111111"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 2,
+                        GameName = "1 Super Nintendo/USA/EarthBound (USA).sfc",
+                        RomName = "1 Super Nintendo/USA/EarthBound (USA).sfc",
+                        Sha1 = "1111111111111111111111111111111111111111"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 3,
+                        GameName = "Terranigma (Europe)",
+                        RomName = "Terranigma (Europe).sfc",
+                        Sha1 = "2222222222222222222222222222222222222222"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 4,
+                        GameName = "1 Super Nintendo/Europe/Terranigma (Europe).sfc",
+                        RomName = "1 Super Nintendo/Europe/Terranigma (Europe).sfc",
+                        Sha256 = "3333333333333333333333333333333333333333333333333333333333333333"
+                    }
+                });
+
+            Subject.InvalidatePlatformCache(1003);
+            var tuple = Subject.GetSeriesInfo(1003, Language.English, null);
+
+            tuple.Item2.Where(e => e.Title == "EarthBound" && e.SeasonNumber == GameCatalogProxy.RegionUsaSeason)
+                .Should().ContainSingle();
+            tuple.Item2.Where(e => e.Title == "Terranigma" && e.SeasonNumber == GameCatalogProxy.RegionEuropeSeason)
+                .Should().ContainSingle();
+        }
     }
 }

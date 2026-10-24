@@ -9,6 +9,7 @@ using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.LibraryImport
@@ -17,6 +18,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
     {
         List<ManualImportItem> Scan(string rootFolder);
         void EnrichItem(ManualImportItem item);
+        void VerifyAndEnrichLocalEpisode(LocalEpisode localEpisode);
     }
 
     public class UnmanagedDiskScanner : IUnmanagedDiskScanner
@@ -102,6 +104,34 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             catch (Exception ex)
             {
                 _logger.Debug(ex, "Unable to enrich manual import item hashes for {0}", item.Path);
+            }
+        }
+
+        public void VerifyAndEnrichLocalEpisode(LocalEpisode localEpisode)
+        {
+            if (localEpisode == null || string.IsNullOrWhiteSpace(localEpisode.Path) || !File.Exists(localEpisode.Path))
+            {
+                return;
+            }
+
+            try
+            {
+                var validExtensions = GetValidRomExtensions();
+                var processed = ProcessFile(localEpisode.Path, validExtensions);
+                if (processed != null)
+                {
+                    localEpisode.RomHashes = processed.Hashes ?? new Dictionary<string, string>();
+                    localEpisode.RomHashVerified = processed.IsHighConfidenceMatch;
+                    localEpisode.Series ??= processed.Series;
+                    if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0) && processed.Episodes != null && processed.Episodes.Count > 0)
+                    {
+                        localEpisode.Episodes = processed.Episodes;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to verify ROM hash for local episode {0}", localEpisode.Path);
             }
         }
 

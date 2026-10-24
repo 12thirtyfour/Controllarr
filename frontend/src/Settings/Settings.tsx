@@ -66,14 +66,7 @@ function buildSections(): SectionEntry[] {
       iconName: icons.CLIPBOARD,
       title: translate('Metadata'),
       summary:
-        'Configure local game media assets (Box Art, Screenshots, Video Previews, Manuals, and EmulationStation gamelist.xml)',
-    },
-    {
-      to: '/settings/metadatasource',
-      iconName: icons.GLOBE,
-      title: translate('MetadataSource'),
-      summary:
-        'Configure game catalog databases and API credentials (No-Intro/Redump, IGDB, ScreenScraper, TheGamesDB)',
+        'Configure metadata scrapers, priority cascading, API rate-limit fail-safes, per-scraper artwork checkboxes, and local DAT/SMDB verification catalogs',
     },
     {
       to: '/settings/tags',

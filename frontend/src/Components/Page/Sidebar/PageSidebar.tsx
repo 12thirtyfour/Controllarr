@@ -158,10 +158,6 @@ const GROUPS: SidebarGroup[] = [
           },
           { title: () => translate('Connect'), to: '/settings/connect' },
           { title: () => translate('Metadata'), to: '/settings/metadata' },
-          {
-            title: () => translate('MetadataSource'),
-            to: '/settings/metadatasource',
-          },
           { title: () => translate('Tags'), to: '/settings/tags' },
           { title: () => translate('General'), to: '/settings/general' },
           { title: () => translate('Ui'), to: '/settings/ui' },

@@ -17,6 +17,21 @@ namespace Sonarr.Api.V3.Games
             _gameMediaAssetService = gameMediaAssetService;
         }
 
+        [HttpGet("settings")]
+        [Produces("application/json")]
+        public ActionResult<UnifiedMetadataSettingsModel> GetUnifiedSettings()
+        {
+            return Ok(_gameMediaAssetService.GetUnifiedSettings());
+        }
+
+        [HttpPost("settings")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public ActionResult<UnifiedMetadataSettingsModel> SaveUnifiedSettings([FromBody] UnifiedMetadataSettingsModel request)
+        {
+            return Ok(_gameMediaAssetService.SaveUnifiedSettings(request));
+        }
+
         [HttpGet("sources")]
         [Produces("application/json")]
         public ActionResult<MetadataSourceConfigModel> GetSources()

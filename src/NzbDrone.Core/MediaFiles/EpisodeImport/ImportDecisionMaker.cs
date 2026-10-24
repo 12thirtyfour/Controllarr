@@ -7,6 +7,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
+using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
 
@@ -30,6 +31,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
         private readonly IDetectSample _detectSample;
         private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly ILocalEpisodeCustomFormatCalculationService _formatCalculator;
+        private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
         private readonly Logger _logger;
 
         public ImportDecisionMaker(IEnumerable<IImportDecisionEngineSpecification> specifications,
@@ -39,7 +41,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                                    IDetectSample detectSample,
                                    ITrackedDownloadService trackedDownloadService,
                                    ILocalEpisodeCustomFormatCalculationService formatCalculator,
-                                   Logger logger)
+                                   Logger logger,
+                                   IUnmanagedDiskScanner unmanagedDiskScanner = null)
         {
             _specifications = specifications;
             _mediaFileService = mediaFileService;
@@ -49,6 +52,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             _trackedDownloadService = trackedDownloadService;
             _formatCalculator = formatCalculator;
             _logger = logger;
+            _unmanagedDiskScanner = unmanagedDiskScanner;
         }
 
         public List<ImportDecision> GetImportDecisions(List<string> videoFiles, Series series)
@@ -138,6 +142,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                                            ReleaseType.Unknown;
 
                 _aggregationService.Augment(localEpisode, downloadClientItem);
+                _unmanagedDiskScanner?.VerifyAndEnrichLocalEpisode(localEpisode);
 
                 if (localEpisode.Episodes.Empty() && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
                 {
@@ -216,8 +221,6 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             }
             catch (Exception e)
             {
-                // e.Data.Add("report", remoteEpisode.Report.ToJson());
-                // e.Data.Add("parsed", remoteEpisode.ParsedEpisodeInfo.ToJson());
                 _logger.Error(e, "Couldn't evaluate decision on {0}", localEpisode.Path);
                 return new ImportRejection(ImportRejectionReason.DecisionError, $"{spec.GetType().Name}: {e.Message}");
             }

@@ -41,6 +41,10 @@ namespace NzbDrone.Core.MetadataSource.Game
         public string Overview { get; set; }
         public string PosterUrl { get; set; }
         public string VerificationSource { get; set; }
+        public string ExpectedCrc32 { get; set; }
+        public string ExpectedMd5 { get; set; }
+        public string ExpectedSha1 { get; set; }
+        public string ExpectedSha256 { get; set; }
     }
 
     public interface IGameCatalogService

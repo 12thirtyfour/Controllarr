@@ -45,6 +45,8 @@ namespace NzbDrone.Core.Parser.Model
         public bool ShouldImportExtras { get; set; }
         public List<string> PossibleExtraFiles { get; set; }
         public SubtitleTitleInfo SubtitleInfo { get; set; }
+        public bool RomHashVerified { get; set; }
+        public Dictionary<string, string> RomHashes { get; set; } = new Dictionary<string, string>();
 
         public int SeasonNumber
         {

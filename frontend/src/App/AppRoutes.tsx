@@ -20,7 +20,6 @@ import IndexerSettings from 'Settings/Indexers/IndexerSettings';
 import LibretroSettings from 'Settings/Libretro/LibretroSettings';
 import MediaManagement from 'Settings/MediaManagement/MediaManagement';
 import MetadataSettings from 'Settings/Metadata/MetadataSettings';
-import MetadataSourceSettings from 'Settings/MetadataSource/MetadataSourceSettings';
 import NotificationSettings from 'Settings/Notifications/NotificationSettings';
 import Profiles from 'Settings/Profiles/Profiles';
 import Quality from 'Settings/Quality/Quality';
@@ -142,7 +141,7 @@ export function appRouteElements() {
 
       <Route
         path="/settings/metadatasource"
-        element={<MetadataSourceSettings />}
+        element={<Navigate to="/settings/metadata" replace={true} />}
       />
 
       <Route path="/settings/tags" element={<TagSettings />} />
