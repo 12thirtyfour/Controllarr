@@ -174,8 +174,8 @@ namespace NzbDrone.Core.Notifications.Gotify
 
                         if (linkType == MetadataLinkType.Tvdb && series.TvdbId > 0)
                         {
-                            linkText = "TVDb";
-                            linkUrl = $"http://www.thetvdb.com/?tab=series&id={series.TvdbId}";
+                            linkText = "IGDB";
+                            linkUrl = "https://www.igdb.com/";
                         }
 
                         if (linkType == MetadataLinkType.Trakt && series.TvdbId > 0)

@@ -26,7 +26,7 @@ public static class NotificationMetadataLinkGenerator
 
             if (linkType == MetadataLinkType.Tvdb && series.TvdbId > 0)
             {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Tvdb, "TVDb", $"http://www.thetvdb.com/?tab=series&id={series.TvdbId}"));
+                links.Add(new NotificationMetadataLink(MetadataLinkType.Tvdb, "IGDB", "https://www.igdb.com/"));
             }
 
             if (linkType == MetadataLinkType.Trakt && series.TvdbId > 0)
