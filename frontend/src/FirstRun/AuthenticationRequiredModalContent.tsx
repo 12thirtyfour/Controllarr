@@ -56,12 +56,6 @@ export default function AuthenticationRequiredModalContent() {
 
   const wasSaving = usePrevious(isSaving);
 
-  useEffect(() => {
-    if (isFetched && settings.authenticationMethod?.value === 'none') {
-      updateSetting('authenticationMethod', 'forms');
-    }
-  }, [isFetched, settings.authenticationMethod?.value, updateSetting]);
-
   const onInputChange = useCallback(
     (change: InputChanged) => {
       // @ts-expect-error input change events aren't typed
@@ -91,7 +85,7 @@ export default function AuthenticationRequiredModalContent() {
       <ModalBody>
         <Alert kind={kinds.WARNING}>
           {translate('AuthenticationRequiredWarning')}{' '}
-          <Link to="https://github.com/Controllarr/Controllarr/wiki/Security-Guide">
+          <Link to="https://wiki.servarr.com/sonarr/faq#forced-authentication">
             {translate('MoreInfo')}
           </Link>
         </Alert>

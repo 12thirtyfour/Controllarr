@@ -1,16 +1,12 @@
 using System;
 using System.IO;
-using System.Net;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
-using Sonarr.Http.Extensions;
 
 namespace Sonarr.Http.Frontend.Mappers
 {
@@ -41,23 +37,6 @@ namespace Sonarr.Http.Frontend.Mappers
         public override bool CanHandle(string resourceUrl)
         {
             return resourceUrl.StartsWith("/login");
-        }
-
-        public override Task<IActionResult> GetResponse(HttpContext context, string resourceUrl)
-        {
-            var isLocal = IPAddress.TryParse(context.GetRemoteIP(), out var ipAddress) &&
-                          (ipAddress.IsLocalAddress() || IPAddress.IsLoopback(ipAddress));
-
-            if (_configFileProvider.AuthenticationMethod == AuthenticationType.None ||
-                (_configFileProvider.AuthenticationRequired == AuthenticationRequiredType.DisabledForLocalAddresses && isLocal) ||
-                (_configFileProvider.AuthenticationRequired == AuthenticationRequiredType.DisabledForLocalhost && ipAddress != null && IPAddress.IsLoopback(ipAddress)))
-            {
-                var returnUrl = context.Request.Query["returnUrl"].ToString();
-                var destination = string.IsNullOrWhiteSpace(returnUrl) ? _configFileProvider.UrlBase + "/" : returnUrl;
-                return Task.FromResult<IActionResult>(new RedirectResult(destination));
-            }
-
-            return base.GetResponse(context, resourceUrl);
         }
 
         protected override string GetHtmlText(HttpContext context)
