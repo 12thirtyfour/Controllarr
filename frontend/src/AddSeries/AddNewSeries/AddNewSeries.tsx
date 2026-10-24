@@ -89,7 +89,7 @@ function AddNewSeries() {
               className={styles.searchInput}
               name="seriesLookup"
               value={term}
-              placeholder="eg. Chrono Trigger, Super Nintendo, igdb:####"
+              placeholder="e.g. Pokemon, Chrono Trigger, Super Nintendo, Game Boy Advance..."
               autoFocus={true}
               onChange={handleSearchInputChange}
             />
@@ -141,7 +141,7 @@ function AddNewSeries() {
             <div>
               <Link
                 className={styles.emptyLink}
-                to="https://wiki.servarr.com/sonarr/faq#why-cant-i-add-a-new-series-when-i-know-the-tvdb-id"
+                to="/settings/metadatasource"
               >
                 {translate('WhyCantIFindMyShow')}
               </Link>

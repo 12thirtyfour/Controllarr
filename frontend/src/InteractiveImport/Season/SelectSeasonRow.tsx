@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import Link from 'Components/Link/Link';
-import translate from 'Utilities/String/translate';
+import formatSeason from 'Season/formatSeason';
 import styles from './SelectSeasonRow.module.css';
 
 interface SelectSeasonRowProps {
@@ -21,9 +21,7 @@ function SelectSeasonRow(props: SelectSeasonRowProps) {
       component="div"
       onPress={onSeasonSelectWrapper}
     >
-      {seasonNumber === 0
-        ? translate('Specials')
-        : translate('SeasonNumberToken', { seasonNumber })}
+      {formatSeason(seasonNumber)}
     </Link>
   );
 }

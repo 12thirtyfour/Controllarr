@@ -33,10 +33,10 @@ function ImportSeriesSelectFolder() {
   const wasAdding = usePrevious(isAdding);
 
   const hasRootFolders = data.length > 0;
-  const goodFolderExample = isWindows ? 'C:\\tv shows' : '/tv shows';
+  const goodFolderExample = isWindows ? 'C:\\roms' : '/roms';
   const badFolderExample = isWindows
-    ? 'C:\\tv shows\\the simpsons'
-    : '/tv shows/the simpsons';
+    ? 'C:\\roms\\Super Nintendo'
+    : '/roms/Super Nintendo';
 
   const handleAddNewRootFolderPress = useCallback(() => {
     setIsAddNewRootFolderModalOpen(true);

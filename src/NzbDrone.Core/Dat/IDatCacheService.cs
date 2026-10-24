@@ -10,5 +10,6 @@ namespace NzbDrone.Core.Dat
         DatEntry FindBySha1(string sha1);
         DatEntry FindByMd5(string md5);
         DatEntry FindBySha256(string sha256);
+        List<DatEntry> SearchByName(string query, int limit = 50);
     }
 }

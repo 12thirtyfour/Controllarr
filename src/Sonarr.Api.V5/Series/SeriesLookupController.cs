@@ -6,6 +6,7 @@ using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.SeriesStats;
@@ -18,14 +19,22 @@ namespace Sonarr.Api.V5.Series;
 public class SeriesLookupController : Controller
 {
     private readonly ISearchForNewSeries _searchProxy;
+    private readonly IGameCatalogService _gameCatalogService;
     private readonly IBuildFileNames _fileNameBuilder;
     private readonly IMapCoversToLocal _coverMapper;
     private readonly IImportListExclusionService _importListExclusionService;
     private readonly IConfigService _configService;
 
-    public SeriesLookupController(ISearchForNewSeries searchProxy, IBuildFileNames fileNameBuilder, IMapCoversToLocal coverMapper, IImportListExclusionService importListExclusionService, IConfigService configService)
+    public SeriesLookupController(
+        ISearchForNewSeries searchProxy,
+        IGameCatalogService gameCatalogService,
+        IBuildFileNames fileNameBuilder,
+        IMapCoversToLocal coverMapper,
+        IImportListExclusionService importListExclusionService,
+        IConfigService configService)
     {
         _searchProxy = searchProxy;
+        _gameCatalogService = gameCatalogService;
         _fileNameBuilder = fileNameBuilder;
         _coverMapper = coverMapper;
         _importListExclusionService = importListExclusionService;
@@ -63,7 +72,22 @@ public class SeriesLookupController : Controller
                 resource.RemotePoster = poster.RemoteUrl;
             }
 
-            resource.Folder = _fileNameBuilder.GetSeriesFolder(currentSeries);
+            if (_gameCatalogService != null &&
+                _gameCatalogService.TryGetGameEntry(currentSeries.TvdbId, out var gameEntry))
+            {
+                var platformSeries = new NzbDrone.Core.Tv.Series
+                {
+                    TvdbId = gameEntry.PlatformTvdbId,
+                    Title = gameEntry.PlatformName,
+                    Year = gameEntry.ReleaseYear
+                };
+                resource.Folder = _fileNameBuilder.GetSeriesFolder(platformSeries);
+            }
+            else
+            {
+                resource.Folder = _fileNameBuilder.GetSeriesFolder(currentSeries);
+            }
+
             resource.Folders = [];
             resource.Statistics = new SeriesStatistics().ToResource(resource.Seasons);
             resource.IsExcluded = _importListExclusionService.FindByTvdbId(currentSeries.TvdbId) is not null;

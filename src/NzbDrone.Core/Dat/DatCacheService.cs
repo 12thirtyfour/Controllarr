@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Dapper;
 using NzbDrone.Core.Datastore;
 
@@ -102,6 +103,22 @@ namespace NzbDrone.Core.Dat
             using (var connection = _database.OpenConnection())
             {
                 return connection.QueryFirstOrDefault<DatEntry>(sql, new { sha256 = sha256.ToLowerInvariant() });
+            }
+        }
+
+        public List<DatEntry> SearchByName(string query, int limit = 50)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return new List<DatEntry>();
+            }
+
+            var pattern = $"%{query.Trim().ToLowerInvariant()}%";
+            var sql = @"SELECT * FROM ""DatEntries"" WHERE LOWER(""GameName"") LIKE @pattern OR LOWER(""RomName"") LIKE @pattern LIMIT @limit";
+
+            using (var connection = _database.OpenConnection())
+            {
+                return connection.Query<DatEntry>(sql, new { pattern, limit }).ToList();
             }
         }
     }

@@ -6,12 +6,28 @@ export default function formatSeason(
   shortFormat?: boolean
 ) {
   if (seasonNumber === 0) {
-    return translate('Specials');
+    return shortFormat ? 'UNOFF' : translate('Specials');
+  }
+
+  if (seasonNumber === 1) {
+    return shortFormat ? 'USA' : 'USA (NTSC-U)';
+  }
+
+  if (seasonNumber === 2) {
+    return shortFormat ? 'EUR' : 'Europe (PAL)';
+  }
+
+  if (seasonNumber === 3) {
+    return shortFormat ? 'JPN' : 'Japan (NTSC-J)';
+  }
+
+  if (seasonNumber === 4) {
+    return shortFormat ? 'WLD' : 'World / Multi-Region';
   }
 
   if (seasonNumber > 0) {
     return shortFormat
-      ? `S${padNumber(seasonNumber, 2)}`
+      ? `R${padNumber(seasonNumber, 2)}`
       : translate('SeasonNumberToken', { seasonNumber });
   }
 

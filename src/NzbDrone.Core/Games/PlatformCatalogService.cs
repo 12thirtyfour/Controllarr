@@ -336,6 +336,214 @@ namespace NzbDrone.Core.Games
                     { "JP", "Jaguar CD" }
                 },
                 RomFileExtensions = new List<string> { ".cue", ".bin", ".iso", ".chd" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Wii U",
+                Slug = "wiiu",
+                Manufacturer = "Nintendo",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Wii U" },
+                    { "EU", "Wii U" },
+                    { "JP", "Wii U" }
+                },
+                RomFileExtensions = new List<string> { ".wua", ".wud", ".wux", ".rpx" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Virtual Boy",
+                Slug = "vb",
+                Manufacturer = "Nintendo",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Virtual Boy" },
+                    { "EU", "Virtual Boy" },
+                    { "JP", "Virtual Boy" }
+                },
+                RomFileExtensions = new List<string> { ".vb" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sega Master System",
+                Slug = "sms",
+                Manufacturer = "Sega",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Master System" },
+                    { "EU", "Master System" },
+                    { "JP", "SG-1000 Mark III" }
+                },
+                RomFileExtensions = new List<string> { ".sms" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sega Game Gear",
+                Slug = "gg",
+                Manufacturer = "Sega",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Game Gear" },
+                    { "EU", "Game Gear" },
+                    { "JP", "Game Gear" }
+                },
+                RomFileExtensions = new List<string> { ".gg" }
+            },
+            new PlatformDefinition
+            {
+                Name = "PlayStation 3",
+                Slug = "ps3",
+                Manufacturer = "Sony",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "PlayStation 3" },
+                    { "EU", "PlayStation 3" },
+                    { "JP", "PlayStation 3" }
+                },
+                RomFileExtensions = new List<string> { ".iso", ".pkg" }
+            },
+            new PlatformDefinition
+            {
+                Name = "PlayStation Vita",
+                Slug = "psvita",
+                Manufacturer = "Sony",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "PlayStation Vita" },
+                    { "EU", "PlayStation Vita" },
+                    { "JP", "PlayStation Vita" }
+                },
+                RomFileExtensions = new List<string> { ".vpk" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Xbox",
+                Slug = "xbox",
+                Manufacturer = "Microsoft",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Xbox" },
+                    { "EU", "Xbox" },
+                    { "JP", "Xbox" }
+                },
+                RomFileExtensions = new List<string> { ".iso", ".xiso" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Xbox 360",
+                Slug = "xbox360",
+                Manufacturer = "Microsoft",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Xbox 360" },
+                    { "EU", "Xbox 360" },
+                    { "JP", "Xbox 360" }
+                },
+                RomFileExtensions = new List<string> { ".iso", ".xex", ".god" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Atari 2600",
+                Slug = "atari2600",
+                Manufacturer = "Atari",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Atari 2600" },
+                    { "EU", "Atari 2600" },
+                    { "JP", "Atari 2600" }
+                },
+                RomFileExtensions = new List<string> { ".a26", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Atari 7800",
+                Slug = "atari7800",
+                Manufacturer = "Atari",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Atari 7800" },
+                    { "EU", "Atari 7800" },
+                    { "JP", "Atari 7800" }
+                },
+                RomFileExtensions = new List<string> { ".a78", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Atari Lynx",
+                Slug = "lynx",
+                Manufacturer = "Atari",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Atari Lynx" },
+                    { "EU", "Atari Lynx" },
+                    { "JP", "Atari Lynx" }
+                },
+                RomFileExtensions = new List<string> { ".lnx" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Atari Jaguar",
+                Slug = "jaguar",
+                Manufacturer = "Atari",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Atari Jaguar" },
+                    { "EU", "Atari Jaguar" },
+                    { "JP", "Atari Jaguar" }
+                },
+                RomFileExtensions = new List<string> { ".j64", ".jag" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Neo Geo",
+                Slug = "neogeo",
+                Manufacturer = "SNK",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Neo Geo" },
+                    { "EU", "Neo Geo" },
+                    { "JP", "Neo Geo" }
+                },
+                RomFileExtensions = new List<string> { ".zip", ".7z", ".neo" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Neo Geo Pocket Color",
+                Slug = "ngpc",
+                Manufacturer = "SNK",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Neo Geo Pocket Color" },
+                    { "EU", "Neo Geo Pocket Color" },
+                    { "JP", "Neo Geo Pocket Color" }
+                },
+                RomFileExtensions = new List<string> { ".ngc", ".ngp" }
+            },
+            new PlatformDefinition
+            {
+                Name = "WonderSwan Color",
+                Slug = "wonderswan",
+                Manufacturer = "Bandai",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "WonderSwan Color" },
+                    { "EU", "WonderSwan Color" },
+                    { "JP", "WonderSwan Color" }
+                },
+                RomFileExtensions = new List<string> { ".wsc", ".ws" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Arcade",
+                Slug = "arcade",
+                Manufacturer = "Arcade",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Arcade" },
+                    { "EU", "Arcade" },
+                    { "JP", "Arcade" }
+                },
+                RomFileExtensions = new List<string> { ".zip", ".7z", ".chd" }
             }
         };
 

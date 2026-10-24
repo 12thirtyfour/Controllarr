@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.SeriesStats;
@@ -16,12 +17,18 @@ namespace Sonarr.Api.V3.Series
     public class SeriesLookupController : Controller
     {
         private readonly ISearchForNewSeries _searchProxy;
+        private readonly IGameCatalogService _gameCatalogService;
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IMapCoversToLocal _coverMapper;
 
-        public SeriesLookupController(ISearchForNewSeries searchProxy, IBuildFileNames fileNameBuilder, IMapCoversToLocal coverMapper)
+        public SeriesLookupController(
+            ISearchForNewSeries searchProxy,
+            IGameCatalogService gameCatalogService,
+            IBuildFileNames fileNameBuilder,
+            IMapCoversToLocal coverMapper)
         {
             _searchProxy = searchProxy;
+            _gameCatalogService = gameCatalogService;
             _fileNameBuilder = fileNameBuilder;
             _coverMapper = coverMapper;
         }
@@ -56,7 +63,22 @@ namespace Sonarr.Api.V3.Series
                     resource.RemotePoster = poster.RemoteUrl;
                 }
 
-                resource.Folder = _fileNameBuilder.GetSeriesFolder(currentSeries);
+                if (_gameCatalogService != null &&
+                    _gameCatalogService.TryGetGameEntry(currentSeries.TvdbId, out var gameEntry))
+                {
+                    var platformSeries = new NzbDrone.Core.Tv.Series
+                    {
+                        TvdbId = gameEntry.PlatformTvdbId,
+                        Title = gameEntry.PlatformName,
+                        Year = gameEntry.ReleaseYear
+                    };
+                    resource.Folder = _fileNameBuilder.GetSeriesFolder(platformSeries);
+                }
+                else
+                {
+                    resource.Folder = _fileNameBuilder.GetSeriesFolder(currentSeries);
+                }
+
                 resource.Folders = new List<SeriesFolderResource>();
                 resource.Statistics = new SeriesStatistics().ToResource(resource.Seasons);
                 resource.Translations = currentSeries.Translations.ToResource();

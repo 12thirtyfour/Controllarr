@@ -29,6 +29,7 @@ import { align, icons, sortDirections, tooltipPositions } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import OrganizePreviewModal from 'Organize/OrganizePreviewModal';
+import formatSeason from 'Season/formatSeason';
 import SeriesHistoryModal from 'Series/History/SeriesHistoryModal';
 import SeasonInteractiveSearchModal from 'Series/Search/SeasonInteractiveSearchModal';
 import { Statistics } from 'Series/Series';
@@ -152,7 +153,7 @@ function SeriesDetailsSeason({
   const seasonNumberTitle =
     seasonNumber === 0
       ? translate('Specials')
-      : translate('SeasonNumberToken', { seasonNumber });
+      : formatSeason(seasonNumber) ?? translate('SeasonNumberToken', { seasonNumber });
 
   const handleMonitorSeasonPress = useCallback(
     (value: boolean) => {
@@ -262,7 +263,7 @@ function SeriesDetailsSeason({
     const expand =
       items.some(
         (item) =>
-          isAfter(item.airDateUtc) || isAfter(item.airDateUtc, { days: -30 })
+          isAfter(item.airDateUtc) || isAfter(item.airDateUtc, { days: -30 }) || item.monitored
       ) || items.every((item) => !item.airDateUtc);
 
     onExpandPress(seasonNumber, expand && seasonNumber > 0);

@@ -43,7 +43,7 @@ export const useLookupSeries = (
   };
 };
 
-export const useAddSeries = () => {
+export const useAddSeries = (onSuccess?: () => void) => {
   const queryClient = useQueryClient();
 
   const { isPending, error, mutate } = useApiMutation<Series, AddSeriesPayload>(
@@ -55,6 +55,9 @@ export const useAddSeries = () => {
           queryClient.setQueryData<Series[]>(['/series'], (oldSeries = []) =>
             addOrUpdateQueryClientItem(oldSeries, newSeries, 'id')
           );
+          queryClient.invalidateQueries({ queryKey: ['/series'] });
+          queryClient.invalidateQueries({ queryKey: ['/episode'] });
+          onSuccess?.();
         },
       },
     }

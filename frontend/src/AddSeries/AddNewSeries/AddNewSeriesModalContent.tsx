@@ -82,7 +82,7 @@ function AddNewSeriesModalContent({
   const isSmallScreen = useAppDimension('isSmallScreen');
   const isWindows = useIsWindows();
 
-  const { isAdding, addError, addSeries } = useAddSeries();
+  const { isAdding, addError, addSeries } = useAddSeries(onModalClose);
 
   const { settings, validationErrors, validationWarnings } = useMemo(() => {
     return {

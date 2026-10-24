@@ -4,7 +4,7 @@ using NzbDrone.Core.MetadataSource.Game.Model;
 
 namespace NzbDrone.Core.MetadataSource.Game
 {
-    public class GameMetadataProxyStub : IGameMetadataProxy
+    public class GameMetadataProxyStub
     {
         public Task<List<GamePlatform>> SearchPlatformsAsync(string query)
         {

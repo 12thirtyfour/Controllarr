@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MetadataSource.Game;
 
 namespace NzbDrone.Core.Tv
 {
@@ -15,12 +16,18 @@ namespace NzbDrone.Core.Tv
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
+        private readonly IGameCatalogService _gameCatalogService;
         private readonly Logger _logger;
 
-        public EpisodeMonitoredService(ISeriesService seriesService, IEpisodeService episodeService, Logger logger)
+        public EpisodeMonitoredService(
+            ISeriesService seriesService,
+            IEpisodeService episodeService,
+            IGameCatalogService gameCatalogService,
+            Logger logger)
         {
             _seriesService = seriesService;
             _episodeService = episodeService;
+            _gameCatalogService = gameCatalogService;
             _logger = logger;
         }
 
@@ -29,6 +36,39 @@ namespace NzbDrone.Core.Tv
             // Update the series without changing the episodes
             if (monitoringOptions == null)
             {
+                _seriesService.UpdateSeries(series, false);
+                return;
+            }
+
+            if (_gameCatalogService != null && _gameCatalogService.HasPendingGameSelections(series.TvdbId))
+            {
+                var selectedGameIds = _gameCatalogService.GetSelectedGameIdsForPlatform(series.TvdbId);
+                var episodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+                var activeRegions = new HashSet<int>();
+
+                foreach (var episode in episodes)
+                {
+                    episode.Monitored = selectedGameIds.Contains(episode.TvdbId);
+                    if (episode.Monitored)
+                    {
+                        activeRegions.Add(episode.SeasonNumber);
+                    }
+                }
+
+                if (episodes.Any())
+                {
+                    _episodeService.UpdateEpisodes(episodes);
+                }
+
+                foreach (var season in series.Seasons)
+                {
+                    if (activeRegions.Contains(season.SeasonNumber))
+                    {
+                        season.Monitored = true;
+                    }
+                }
+
+                _gameCatalogService.ClearPendingPlatformSelections(series.TvdbId);
                 _seriesService.UpdateSeries(series, false);
                 return;
             }
