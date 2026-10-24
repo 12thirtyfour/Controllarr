@@ -83,6 +83,19 @@ function normalizeRevisionPreference(val: unknown): string {
   return 'latestRevision';
 }
 
+function hasEncryptedAndDecryptedCollections(series: {
+  tvdbId?: number;
+  titleSlug?: string;
+}): boolean {
+  const slug = (series.titleSlug ?? '').toLowerCase();
+  return (
+    series.tvdbId === 1012 ||
+    series.tvdbId === 1013 ||
+    slug === 'nds' ||
+    slug === '3ds'
+  );
+}
+
 function EditSeriesModalContent({
   seriesId,
   onModalClose,
@@ -404,7 +417,7 @@ function EditSeriesModalContent({
             />
           </FormRow>
 
-          {['nds', '3ds'].includes((series.titleSlug ?? '').toLowerCase()) ? (
+          {hasEncryptedAndDecryptedCollections(series) ? (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>Prefer Encrypted ROM Hashes</FormLabel>
               <FormInputHelpText text="Controllarr defaults to Unencrypted (Decrypted) ROM verification hashes for Nintendo DS & 3DS emulators. Enable to prioritize Encrypted ROM hashes instead." />

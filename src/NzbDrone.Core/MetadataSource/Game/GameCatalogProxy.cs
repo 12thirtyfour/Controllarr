@@ -718,18 +718,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
             else if (slug == "wiiu")
             {
-                if (!preferEncryptedRoms)
-                {
-                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20U%20(Digital).dat", "No-Intro Wii U Digital (Decrypted)"));
-                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/Nintendo%20-%20Wii%20U.dat", "Wii U Catalog"));
-                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump Wii U (Encrypted)"));
-                }
-                else
-                {
-                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump Wii U (Encrypted)"));
-                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/Nintendo%20-%20Wii%20U.dat", "Wii U Catalog"));
-                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20U%20(Digital).dat", "No-Intro Wii U Digital (Decrypted)"));
-                }
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20U%20(Digital).dat", "No-Intro Wii U Digital"));
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/Nintendo%20-%20Wii%20U.dat", "Wii U Catalog"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump Wii U"));
             }
             else
             {
