@@ -29,7 +29,7 @@ namespace NzbDrone.Common.Processes
                 return;
             }
 
-            var filename = Path.Combine(_appFolderInfo.AppDataFolder, "sonarr.pid");
+            var filename = Path.Combine(_appFolderInfo.AppDataFolder, "controllarr.pid");
             try
             {
                 File.WriteAllText(filename, ProcessProvider.GetCurrentProcessId().ToString());

@@ -12,13 +12,13 @@
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL-3.0" /></a>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10" /></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript%20%7C%20Vite-61dafb.svg" alt="React Vite" /></a>
-  <a href="wiki/Home.md"><img src="https://img.shields.io/badge/docs-wiki-brightgreen.svg" alt="Wiki Documentation" /></a>
+  <a href="https://github.com/12thirtyfour/Controllarr/wiki"><img src="https://img.shields.io/badge/docs-wiki-brightgreen.svg" alt="Wiki Documentation" /></a>
   <a href="https://github.com/12thirtyfour/Controllarr/actions"><img src="https://img.shields.io/github/actions/workflow/status/12thirtyfour/Controllarr/build.yml?branch=develop&label=build" alt="Build Status" /></a>
 </p>
 
 ---
 
-> 📖 **Full Documentation**: Explore the [**Controllarr Wiki**](wiki/Home.md) for in-depth setup guides, console platform compatibility, BIOS matrices, and hardware exporter profiles.
+> 📖 **Full Documentation**: Explore the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki) for in-depth setup guides, console platform compatibility, BIOS matrices, and hardware exporter profiles.
 
 ---
 
@@ -39,16 +39,16 @@ Instead of wrestling with disorganized folders, unverified dumps, multi-region d
 
 ## Highlights
 
-Detailed feature breakdowns and technical documentation are available in the [**Controllarr Wiki**](wiki/Home.md):
+Detailed feature breakdowns and technical documentation are available in the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki):
 
-* **[🎯 1 Game 1 ROM (1G1R) & Smart Curation](wiki/Core-Concepts.md)**: Eliminate duplicate regional clutter while retaining the single best release and revision based on your custom region hierarchy.
-* **[🛡️ Canonical Hash Verification](wiki/Ingestion-and-Hash-Verification.md)**: Validates CRC32, MD5, and SHA-1 checksums on ingestion against No-Intro, Redump, and TOSEC DATs.
-* **[💾 Hardware Target Exporter (HTGDB / SMDB)](wiki/Hardware-Target-Exporter.md)**: One-click SD card exports with automatic FAT32-safe alphabetical bucketing (`A-M/`, `N-Z/`) for MiSTer, Analogue Pocket, OnionOS, EverDrive, and ODEs.
-* **[🕹️ Platform BIOS Verification Matrix](wiki/Platform-BIOS-Matrix.md)**: Inspect, checksum, and verify required system firmwares before launching or exporting games.
-* **[🏆 RetroAchievements Integration](wiki/In-Browser-Play-and-Emulators.md)**: Showcase your gaming badges, progression, and leaderboard statistics directly in your library.
-* **[🎮 Play Anywhere](wiki/In-Browser-Play-and-Emulators.md)**: Embedded WebAssembly Libretro player for instant browser gaming, plus one-click protocol launcher (`controllarr://play/{gameId}`) for native desktop emulators.
-* **[📦 Automated Archive Ingestion & Compression](wiki/Ingestion-and-Hash-Verification.md)**: Extracts `.zip`, `.7z`, and `.rar` sets, and losslessly converts disc images into compressed `.chd` (via `chdman`) and `.rvz` (via `dolphin-tool`).
-* **[🔍 3-Way Acquisition Priority](wiki/Acquisition-and-Indexers.md)**: Search across public HTTP archives (Internet Archive S3 API), Usenet (Newznab gaming categories `1000` & `8000`), and BitTorrent (Torznab).
+* **[🎯 1 Game 1 ROM (1G1R) & Smart Curation](https://github.com/12thirtyfour/Controllarr/wiki/Core-Concepts)**: Eliminate duplicate regional clutter while retaining the single best release and revision based on your custom region hierarchy.
+* **[🛡️ Canonical Hash Verification](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Validates CRC32, MD5, and SHA-1 checksums on ingestion against No-Intro, Redump, and TOSEC DATs.
+* **[💾 Hardware Target Exporter (HTGDB / SMDB)](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: One-click SD card exports with automatic FAT32-safe alphabetical bucketing (`A-M/`, `N-Z/`) for MiSTer, Analogue Pocket, OnionOS, EverDrive, and ODEs.
+* **[🕹️ Platform BIOS Verification Matrix](https://github.com/12thirtyfour/Controllarr/wiki/Platform-BIOS-Matrix)**: Inspect, checksum, and verify required system firmwares before launching or exporting games.
+* **[🏆 RetroAchievements Integration](https://github.com/12thirtyfour/Controllarr/wiki/In-Browser-Play-and-Emulators)**: Showcase your gaming badges, progression, and leaderboard statistics directly in your library.
+* **[🎮 Play Anywhere](https://github.com/12thirtyfour/Controllarr/wiki/In-Browser-Play-and-Emulators)**: Embedded WebAssembly Libretro player for instant browser gaming, plus one-click protocol launcher (`controllarr://play/{gameId}`) for native desktop emulators.
+* **[📦 Automated Archive Ingestion & Compression](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Extracts `.zip`, `.7z`, and `.rar` sets, and losslessly converts disc images into compressed `.chd` (via `chdman`) and `.rvz` (via `dolphin-tool`).
+* **[🔍 3-Way Acquisition Priority](https://github.com/12thirtyfour/Controllarr/wiki/Acquisition-and-Indexers)**: Search across public HTTP archives (Internet Archive S3 API), Usenet (Newznab gaming categories `1000` & `8000`), and BitTorrent (Torznab).
 
 ---
 
@@ -63,7 +63,7 @@ Controllarr is dedicated specifically to video game consoles, handhelds, and har
 * **NEC & SNK**: TurboGrafx-16 / PC Engine, PC Engine CD-ROM², PC-FX, Neo Geo AES/MVS, Neo Geo CD, Neo Geo Pocket.
 * **Classic & Others**: Atari (2600 through Jaguar), 3DO, Philips CD-i, Bandai WonderSwan, ColecoVision, Intellivision, Vectrex.
 
-*(Note: Controllarr focuses exclusively on dedicated console and handheld hardware; computer architectures and arcade sets are excluded. See the full [Supported Consoles Matrix](wiki/Supported-Consoles.md) for file extension and compression specifications).*
+*(Note: Controllarr focuses exclusively on dedicated console and handheld hardware; computer architectures and arcade sets are excluded. See the full [Supported Consoles Matrix](https://github.com/12thirtyfour/Controllarr/wiki/Supported-Consoles) for file extension and compression specifications).*
 
 ---
 
@@ -128,7 +128,7 @@ dotnet build src/Sonarr.sln --configuration Release
 
 Open your browser and navigate to **[http://localhost:7050](http://localhost:7050)**.
 
-*(For reverse proxies, systemd services, or container deployment, see the [Installation Guide](wiki/Installation-Guide.md) and [Quick Start Tutorial](wiki/Quick-Start.md)).*
+*(For reverse proxies, systemd services, or container deployment, see the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide) and [Quick Start Tutorial](https://github.com/12thirtyfour/Controllarr/wiki/Quick-Start)).*
 
 ---
 

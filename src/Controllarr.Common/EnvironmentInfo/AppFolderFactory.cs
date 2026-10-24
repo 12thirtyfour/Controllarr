@@ -106,7 +106,7 @@ namespace NzbDrone.Common.EnvironmentInfo
             {
                 if (OsInfo.IsOsx)
                 {
-                    var userAppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.DoNotVerify), ".config", "Sonarr");
+                    var userAppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.DoNotVerify), ".config", "Controllarr");
 
                     if (_diskProvider.FolderExists(userAppDataFolder) && !_diskProvider.FileExists(_appFolderInfo.GetConfigPath()))
                     {
@@ -115,7 +115,7 @@ namespace NzbDrone.Common.EnvironmentInfo
                     }
                 }
 
-                var oldDbFile = Path.Combine(_appFolderInfo.AppDataFolder, "nzbdrone.db");
+                var oldDbFile = Path.Combine(_appFolderInfo.AppDataFolder, "sonarr.db");
 
                 if (_startupContext.Args.ContainsKey(StartupContext.APPDATA))
                 {
@@ -253,7 +253,7 @@ namespace NzbDrone.Common.EnvironmentInfo
         {
             if (OsInfo.IsNotWindows && _diskProvider.FolderExists(_appFolderInfo.AppDataFolder))
             {
-                _diskProvider.DeleteFile(Path.Combine(_appFolderInfo.AppDataFolder, "sonarr.pid"));
+                _diskProvider.DeleteFile(Path.Combine(_appFolderInfo.AppDataFolder, "controllarr.pid"));
             }
         }
     }

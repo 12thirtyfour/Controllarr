@@ -27,6 +27,7 @@ import { InputChanged } from 'typings/inputs';
 import { SettingsStateChange } from 'typings/Settings/SettingsState';
 import translate from 'Utilities/String/translate';
 import Naming from './Naming/Naming';
+import RegionOrderingSection from './RegionOrderingSection';
 import AddRootFolder from './RootFolder/AddRootFolder';
 import {
   MediaManagementSettingsModel,
@@ -365,6 +366,8 @@ function MediaManagement() {
               </FormRow>
             </Form>
           </FieldSet>
+
+          <RegionOrderingSection />
 
           {isFetching ? (
             <FieldSet legend={translate('NamingSettings')}>

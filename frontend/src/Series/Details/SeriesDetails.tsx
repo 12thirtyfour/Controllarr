@@ -8,6 +8,10 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import {
+  normalizeRegionOrder,
+  useAddSeriesOption,
+} from 'AddSeries/addSeriesOptionsStore';
 import CommandNames from 'Commands/CommandNames';
 import { useCommands, useExecuteCommand } from 'Commands/useCommands';
 import Alert from 'Components/Alert';
@@ -244,6 +248,11 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     allCollapsed: false,
     seasons: {},
   });
+  const storedRegionOrder = useAddSeriesOption('regionOrder');
+  const orderedRegionIds = useMemo(
+    () => normalizeRegionOrder(storedRegionOrder),
+    [storedRegionOrder]
+  );
   const wasRefreshing = usePrevious(isRefreshing);
   const wasRenaming = usePrevious(isRenaming);
 
@@ -1013,38 +1022,45 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
             {isPopulated && !!seasons.length ? (
               <div>
-                <PlatformBiosSection
-                  platformSlug={titleSlug}
-                  platformPath={path}
-                />
-
-                {seasons
-                  .slice(0)
-                  .sort((a, b) => {
-                    const regionOrder: Record<number, number> = {
-                      1: 1, // USA
-                      3: 2, // JAPAN
-                      2: 3, // EUROPE
-                      4: 4, // WORLD
-                      0: 5, // Unlicensed
-                      6: 6, // ROM Hacks & Translations
-                      5: 7, // Homebrew & Aftermarket
-                    };
-                    const orderA = regionOrder[a.seasonNumber] ?? 99;
-                    const orderB = regionOrder[b.seasonNumber] ?? 99;
-                    return orderA - orderB;
-                  })
-                  .map((season) => {
+                {orderedRegionIds.map((regionId) => {
+                  if (regionId === -1) {
                     return (
-                      <SeriesDetailsSeason
-                        key={season.seasonNumber}
-                        seriesId={seriesId}
-                        {...season}
-                        isExpanded={expandedState.seasons[season.seasonNumber]}
-                        onExpandPress={handleExpandPress}
+                      <PlatformBiosSection
+                        key="bios"
+                        platformSlug={titleSlug}
+                        platformPath={path}
                       />
                     );
-                  })}
+                  }
+
+                  const season = seasons.find(
+                    (s) => s.seasonNumber === regionId
+                  );
+                  if (!season) {
+                    return null;
+                  }
+
+                  return (
+                    <SeriesDetailsSeason
+                      key={season.seasonNumber}
+                      seriesId={seriesId}
+                      {...season}
+                      isExpanded={expandedState.seasons[season.seasonNumber]}
+                      onExpandPress={handleExpandPress}
+                    />
+                  );
+                })}
+                {seasons
+                  .filter((s) => !orderedRegionIds.includes(s.seasonNumber))
+                  .map((season) => (
+                    <SeriesDetailsSeason
+                      key={season.seasonNumber}
+                      seriesId={seriesId}
+                      {...season}
+                      isExpanded={expandedState.seasons[season.seasonNumber]}
+                      onExpandPress={handleExpandPress}
+                    />
+                  ))}
               </div>
             ) : null}
 
