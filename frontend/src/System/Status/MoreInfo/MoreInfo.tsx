@@ -14,13 +14,13 @@ function MoreInfo() {
           {translate('HomePage')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://sonarr.tv/">sonarr.tv</Link>
+          <Link to="https://controllarr.org/">controllarr.org</Link>
         </DescriptionListItemDescription>
 
         <DescriptionListItemTitle>{translate('Wiki')}</DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://wiki.servarr.com/sonarr">
-            wiki.servarr.com/sonarr
+          <Link to="https://wiki.servarr.com/controllarr">
+            wiki.servarr.com/controllarr
           </Link>
         </DescriptionListItemDescription>
 
@@ -28,31 +28,35 @@ function MoreInfo() {
           {translate('Forums')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://forums.sonarr.tv/">forums.sonarr.tv</Link>
+          <Link to="https://forums.controllarr.org/">
+            forums.controllarr.org
+          </Link>
         </DescriptionListItemDescription>
 
         <DescriptionListItemTitle>
           {translate('Twitter')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://twitter.com/sonarrtv">@sonarrtv</Link>
+          <Link to="https://twitter.com/controllarr">@controllarr</Link>
         </DescriptionListItemDescription>
 
         <DescriptionListItemTitle>
           {translate('Discord')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://discord.sonarr.tv/">discord.sonarr.tv</Link>
+          <Link to="https://discord.controllarr.org/">
+            discord.controllarr.org
+          </Link>
         </DescriptionListItemDescription>
 
         <DescriptionListItemTitle>{translate('IRC')}</DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="irc://irc.libera.chat/#sonarr">
+          <Link to="irc://irc.libera.chat/#controllarr">
             {translate('IRCLinkText')}
           </Link>
         </DescriptionListItemDescription>
         <DescriptionListItemDescription>
-          <Link to="https://web.libera.chat/?channels=#sonarr">
+          <Link to="https://web.libera.chat/?channels=#controllarr">
             {translate('LiberaWebchat')}
           </Link>
         </DescriptionListItemDescription>
@@ -61,7 +65,9 @@ function MoreInfo() {
           {translate('Donations')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://sonarr.tv/donate">sonarr.tv/donate</Link>
+          <Link to="https://controllarr.org/donate">
+            controllarr.org/donate
+          </Link>
         </DescriptionListItemDescription>
 
         <DescriptionListItemTitle>
@@ -76,9 +82,6 @@ function MoreInfo() {
         <DescriptionListItemTitle>
           {translate('FeatureRequests')}
         </DescriptionListItemTitle>
-        <DescriptionListItemDescription>
-          <Link to="https://forums.sonarr.tv/">forums.sonarr.tv</Link>
-        </DescriptionListItemDescription>
         <DescriptionListItemDescription>
           <Link to="https://github.com/12thirtyfour/Controllarr/issues">
             github.com/12thirtyfour/Controllarr/issues

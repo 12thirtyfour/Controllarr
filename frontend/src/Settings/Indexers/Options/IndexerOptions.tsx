@@ -115,7 +115,7 @@ function IndexerOptions({
             <FormLabel>{translate('RssSyncInterval')}</FormLabel>
             <FormInputHelpText
               text={translate('RssSyncIntervalHelpText')}
-              link="https://wiki.servarr.com/sonarr/faq#how-does-sonarr-find-episodes"
+              link="https://wiki.servarr.com/controllarr/faq#how-does-controllarr-find-roms"
             />
             <FormInputHelpText
               text={translate('RssSyncIntervalHelpTextWarning')}

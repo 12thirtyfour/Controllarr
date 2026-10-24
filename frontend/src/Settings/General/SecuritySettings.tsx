@@ -258,7 +258,7 @@ function SecuritySettings({
         <FormLabel>{translate('TrustedNetworks')}</FormLabel>
         <FormInputHelpText
           text={translate('TrustedNetworksHelpText')}
-          link="https://wiki.servarr.com/sonarr/settings#security"
+          link="https://wiki.servarr.com/controllarr/settings#security"
         />
         <FormInputHelpText
           text={translate('RestartRequiredHelpTextWarning')}

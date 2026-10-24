@@ -31,15 +31,15 @@ function findMatchingItems<T extends ModelBase>(
   });
 }
 
-function useMatchingSeries(seriesIds: number[]) {
-  const { data: allSeries = [] } = useSeries();
+function useMatchingPlatforms(platformIds: number[]) {
+  const { data: allPlatforms = [] } = useSeries();
 
   return useMemo(() => {
-    const matchingSeries = findMatchingItems(seriesIds, allSeries);
+    const matchingPlatforms = findMatchingItems(platformIds, allPlatforms);
 
-    return matchingSeries.sort((seriesA, seriesB) => {
-      const sortTitleA = seriesA.sortTitle;
-      const sortTitleB = seriesB.sortTitle;
+    return matchingPlatforms.sort((platformA, platformB) => {
+      const sortTitleA = platformA.sortTitle;
+      const sortTitleB = platformB.sortTitle;
 
       if (sortTitleA > sortTitleB) {
         return 1;
@@ -49,7 +49,7 @@ function useMatchingSeries(seriesIds: number[]) {
 
       return 0;
     });
-  }, [seriesIds, allSeries]);
+  }, [platformIds, allPlatforms]);
 }
 
 export interface TagDetailsModalContentProps {
@@ -81,7 +81,7 @@ function TagDetailsModalContent({
   onModalClose,
   onDeleteTagPress,
 }: TagDetailsModalContentProps) {
-  const series = useMatchingSeries(seriesIds);
+  const platforms = useMatchingPlatforms(seriesIds);
 
   const delayProfiles = useDelayProfilesWithIds(delayProfileIds);
 
@@ -103,9 +103,9 @@ function TagDetailsModalContent({
           <div>{translate('TagIsNotUsedAndCanBeDeleted')}</div>
         )}
 
-        {series.length ? (
-          <ModalSection title={translate('Series')}>
-            {series.map((item) => {
+        {platforms.length ? (
+          <ModalSection title={translate('Platforms')}>
+            {platforms.map((item) => {
               return <div key={item.id}>{item.title}</div>;
             })}
           </ModalSection>

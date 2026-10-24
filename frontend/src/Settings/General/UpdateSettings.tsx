@@ -66,7 +66,7 @@ function UpdateSettings({
               ? translate('BranchUpdateMechanism')
               : translate('BranchUpdate')
           }
-          link="https://wiki.servarr.com/sonarr/settings#updates"
+          link="https://wiki.servarr.com/controllarr/settings#updates"
         />
         <FormInput
           type={inputTypes.AUTO_COMPLETE}

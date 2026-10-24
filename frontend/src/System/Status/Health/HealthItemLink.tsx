@@ -48,8 +48,8 @@ function HealthItemLink(props: HealthItemLinkProps) {
       return (
         <IconButton
           name={icons.SERIES_CONTINUING}
-          title={translate('SeriesEditor')}
-          aria-label={translate('SeriesEditor')}
+          title={translate('PlatformEditor')}
+          aria-label={translate('PlatformEditor')}
           to="/platforms"
         />
       );
