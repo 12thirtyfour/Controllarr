@@ -169,6 +169,10 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('RetroAchievements'),
             to: '/settings/retroachievements',
           },
+          {
+            title: () => translate('Libretro'),
+            to: '/settings/libretro',
+          },
         ],
       },
       {

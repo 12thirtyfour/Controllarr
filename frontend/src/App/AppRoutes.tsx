@@ -17,6 +17,7 @@ import DownloadClientSettings from 'Settings/DownloadClients/DownloadClientSetti
 import GeneralSettings from 'Settings/General/GeneralSettings';
 import ImportListSettings from 'Settings/ImportLists/ImportListSettings';
 import IndexerSettings from 'Settings/Indexers/IndexerSettings';
+import LibretroSettings from 'Settings/Libretro/LibretroSettings';
 import MediaManagement from 'Settings/MediaManagement/MediaManagement';
 import MetadataSettings from 'Settings/Metadata/MetadataSettings';
 import MetadataSourceSettings from 'Settings/MetadataSource/MetadataSourceSettings';
@@ -37,6 +38,7 @@ import Tasks from 'System/Tasks/Tasks';
 import Updates from 'System/Updates/Updates';
 import CutoffUnmet from 'Wanted/CutoffUnmet/CutoffUnmet';
 import Missing from 'Wanted/Missing/Missing';
+import WebPlayerPage from 'WebPlayer/WebPlayerPage';
 
 export function appRouteElements() {
   return (
@@ -65,6 +67,8 @@ export function appRouteElements() {
       <Route path="/add/import/:rootFolderId" element={<ImportPlatform />} />
 
       <Route path="/bios" element={<BiosSettings />} />
+
+      <Route path="/webplayer" element={<WebPlayerPage />} />
 
       <Route
         path="/serieseditor"
@@ -156,6 +160,8 @@ export function appRouteElements() {
         path="/settings/retroachievements"
         element={<RetroAchievementsSettings />}
       />
+
+      <Route path="/settings/libretro" element={<LibretroSettings />} />
 
       {/*
         System

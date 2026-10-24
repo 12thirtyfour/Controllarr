@@ -16,6 +16,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [1.0.0-beta.6] - 2026-10-24
 
 ### Added
+- **Libretro & Emulation Settings (`/settings/libretro`) & In-Browser Libretro WebAssembly Player (`/webplayer`)**:
+  - Added a dedicated **Libretro & Emulation** settings page (`Settings -> Libretro & Emulation`) to configure:
+    - **Emulation & Game Launch Behavior**: Toggle the in-browser Libretro WebAssembly (`EmulatorJS`) player, choose preferred launch mode (`In-Browser Libretro Web Player`, `Local RetroArch Desktop Process`, or `Desktop URI Protocol (controllarr://play)`), select default WebGL CRT/LCD shaders (`CRT-Mattias`, `CRT-EasyMode`, `CRT-Aperture`, `CRT-Geom`, `LCD-Grid v2`, `2xScaleHQ`, `SABR v3.0`), and toggle BIOS auto-injection, SRAM/save-state persistence, RetroAchievements session forwarding, and fullscreen launch.
+    - **Desktop RetroArch Integration**: Configure local `RetroArch` executable path, `cores/` directory, and custom `retroarch.cfg` path for direct native desktop launching (`POST /api/v3/gamelauncher/{gameId}/launch`).
+    - **WebAssembly Core Asset Delivery**: Configure the EmulatorJS / Libretro `.wasm` data URL (`https://cdn.emulatorjs.org/stable/data/` or self-hosted path).
+    - **Per-Platform Libretro Core Assignments**: Customize preferred Libretro cores across 17 console and handheld families (`NES`, `SNES`, `Game Boy`, `Game Boy Color`, `Game Boy Advance`, `Nintendo 64`, `Nintendo DS`, `Sega Genesis / Mega Drive`, `Sega Master System / Game Gear`, `Sega CD / 32X`, `Sega Saturn`, `Sony PlayStation`, `Sony PSP`, `TurboGrafx-16 / PC Engine`, `Neo Geo / Arcade`, `Atari 2600/7800/Lynx/Jaguar`, `PlayStation 2`, and `GameCube / Wii`).
+  - Added the in-browser **Libretro Web Player (`/webplayer`)** with live shader switching, ROM binary streaming (`GET /api/v3/gamelauncher/{gameId}/rom`), desktop RetroArch launch trigger, and per-game **Play Game (Libretro)** buttons in the platform library table (`EpisodeSearchCell.tsx`) and platform toolbar (`SeriesDetails.tsx`).
 - **7 New Retro & Modern Console UI Themes (`sms`, `jaguar`, `ps1`, `ps2`, `xbox`, `xbox360`, `wii`)**:
   - Added **Sega Master System (1985)** (`sms`): Matte black chassis with crimson pinstripe framing, red accents, and Sega blue selection badges.
   - Added **Atari Jaguar (1993)** (`jaguar`): Deep stealth charcoal shell with red roar accents and amber/gold "64-Bit" callouts.

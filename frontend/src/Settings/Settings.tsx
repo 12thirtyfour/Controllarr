@@ -99,6 +99,12 @@ function buildSections(): SectionEntry[] {
       title: translate('RetroAchievements'),
       summary: translate('RetroAchievementsSettingsSummary'),
     },
+    {
+      to: '/settings/libretro',
+      iconName: icons.SERIES_CONTINUING,
+      title: translate('Libretro'),
+      summary: translate('LibretroSettingsSummary'),
+    },
   ];
 }
 

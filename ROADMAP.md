@@ -41,8 +41,6 @@
 
 ## Pitched Ideas & Future Enhancements (Post-1.0 Backlog)
 
-* **Embedded In-Browser WebAssembly (`Libretro` / `EmulatorJS`) Core Streaming & Cloud Save Persistence**:
-  * Expand the WebAssembly/Desktop Game Launcher (`controllarr://play/`) to stream verified ROMs directly into bundled in-browser WebAssembly Libretro cores with persistent server-side battery save (`.srm`/`.sav`) and save-state storage.
 * **Automated Multi-Disc `.m3u` Playlist Generation**:
   * Automatically generate `.m3u` playlist files referencing `Disc 1`, `Disc 2`, etc. inside multi-disc game folders during import and Virtual Library sync for seamless disc swapping in RetroArch, MiSTer, and Batocera.
 * **Cryptographic Hash-Gated Romhack & Translation Patching Pipeline**:

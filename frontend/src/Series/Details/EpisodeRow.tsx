@@ -416,6 +416,7 @@ function EpisodeRow({
               episodeEntity="episodes"
               seriesId={seriesId}
               episodeTitle={title}
+              episodeFileId={episodeFileId}
               showOpenSeriesButton={false}
             />
           );

@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   normalizeRegionOrder,
   useAddSeriesOption,
@@ -56,6 +57,7 @@ import useSeries, {
   useSingleSeries,
   useToggleSeriesMonitored,
 } from 'Series/useSeries';
+import { loadLocalLibretroConfig } from 'Settings/Libretro/LibretroSettings';
 import QualityProfileName from 'Settings/Profiles/Quality/QualityProfileName';
 import sortByProp from 'Utilities/Array/sortByProp';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
@@ -132,6 +134,7 @@ interface SeriesDetailsProps {
 }
 
 function SeriesDetails({ seriesId }: SeriesDetailsProps) {
+  const navigate = useNavigate();
   const executeCommand = useExecuteCommand();
 
   const series = useSingleSeries(seriesId);
@@ -326,8 +329,15 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   }, []);
 
   const handlePlayNowPress = useCallback(() => {
-    window.location.href = `controllarr://play/${seriesId}`;
-  }, [seriesId]);
+    const config = loadLocalLibretroConfig();
+
+    if (config.preferredLaunchMode === 'protocol') {
+      window.location.href = `controllarr://play/${seriesId}`;
+      return;
+    }
+
+    navigate(`/webplayer?gameId=${seriesId}`);
+  }, [navigate, seriesId]);
 
   const handleSeriesHistoryModalClose = useCallback(() => {
     setIsSeriesHistoryModalOpen(false);
