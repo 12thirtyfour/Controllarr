@@ -40,7 +40,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     {
                         { "series", seriesText }
                     }),
-                    "#series-removed-from-thetvdb");
+                    "#platform-removed-from-catalog");
             }
 
             return new HealthCheck(GetType(),
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 {
                     { "series", seriesText }
                 }),
-                "#series-removed-from-thetvdb");
+                "#platform-removed-from-catalog");
         }
 
         public bool ShouldCheckOnEvent(SeriesDeletedEvent deletedEvent)

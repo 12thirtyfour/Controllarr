@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
+                Url = "https://www.igdb.com/",
                 Description = "Episode Grabbed",
                 Title = GetTitle(series, episodes),
                 Color = (int)DiscordColors.Standard,
@@ -146,7 +146,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
+                Url = "https://www.igdb.com/",
                 Description = isUpgrade ? "Episode Upgraded" : "Episode Imported",
                 Title = GetTitle(series, episodes),
                 Color = isUpgrade ? (int)DiscordColors.Upgrade : (int)DiscordColors.Success,
@@ -260,7 +260,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
+                Url = "https://www.igdb.com/",
                 Description = "Import Complete",
                 Title = GetTitle(series, episodes),
                 Color = (int)DiscordColors.Success,
@@ -367,7 +367,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
+                Url = "https://www.igdb.com/",
                 Title = GetTitle(series, episodes),
                 Description = "Episode Deleted",
                 Color = (int)DiscordColors.Danger,
@@ -394,7 +394,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
+                Url = "https://www.igdb.com/",
                 Title = series.Title,
                 Description = "Series Added",
                 Color = (int)DiscordColors.Success,
@@ -433,7 +433,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
+                Url = "https://www.igdb.com/",
                 Title = series.Title,
                 Description = deleteMessage.DeletedFilesMessage,
                 Color = (int)DiscordColors.Danger,
@@ -545,7 +545,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
                 },
-                Url = series?.TvdbId > 0 ? $"http://thetvdb.com/?tab=series&id={series.TvdbId}" : null,
+                Url = series?.TvdbId > 0 ? "https://www.igdb.com/" : null,
                 Description = "Manual interaction needed",
                 Title = GetTitle(series, episodes),
                 Color = (int)DiscordColors.Standard,
@@ -696,7 +696,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
             var links = new List<string>
             {
-                $"[The TVDB](https://thetvdb.com/?tab=series&id={series.TvdbId})",
+                "[Game Catalog](https://www.igdb.com/)",
                 $"[Trakt](https://trakt.tv/search/tvdb/{series.TvdbId}?id_type=show)"
             };
 
