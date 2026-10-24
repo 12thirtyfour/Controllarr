@@ -31,3 +31,9 @@ Before opening any PR, you must run and verify:
 
 ## Terminal Execution & Git Hygiene (Windows)
 - Always execute `git add`, `git commit`, `git push`, `gh`, `dotnet build`, and `dotnet test` directly with `BypassSandbox: true` without attempting a failing sandboxed run first (the Windows sandbox restricts `.git/index.lock` writes and `vstest.console` loopback sockets).
+
+## Jules Delegation & 5-Minute Check-In Protocol
+- **Proactive Task Splitting**: For any multi-part request, always evaluate whether independent, non-conflicting side tasks (such as unit test suites, wiki/documentation updates, isolated UI components, or standalone backend utilities) can be split off and delegated to **Jules** via GitHub Issues (`gh issue create --label "jules"`).
+- **Exact File & Symbol Verification**: Before creating a GitHub issue for Jules, verify that all file paths and class/method names referenced in the issue body exist in `origin/develop` and do not overlap with files being actively edited locally.
+- **Automatic 5-Minute Check-In Schedule**: Whenever one or more tasks are delegated to Jules, immediately set a recurring 5-minute schedule (`CronExpression: "*/5 * * * *"`) using the `schedule` tool to check `gh pr list --state open` and `gh issue view <id> --comments`.
+- **Review, Merge & Cleanup**: When Jules opens a PR, review the diff, verify it builds/tests cleanly, merge it into `develop` (`gh pr merge <PR> --merge --delete-branch`), pull `origin/develop`, and cancel the recurring schedule task via `manage_task` (`Action: "kill"`) once all delegated Jules tasks are complete.
