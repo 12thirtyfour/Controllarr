@@ -75,7 +75,9 @@ namespace NzbDrone.Core.MediaFiles.Export
         public string TargetMountPath { get; set; }
         public bool OptimizeFormatsForDevice { get; set; }
         public int ExportedCount { get; set; }
+        public int ExportedMediaAssetCount { get; set; }
         public List<string> DestinationPaths { get; set; } = new List<string>();
+        public List<string> ExportedMediaPaths { get; set; } = new List<string>();
         public List<SdCardFormatTransformation> AppliedTransformations { get; set; } = new List<SdCardFormatTransformation>();
     }
 
@@ -441,6 +443,26 @@ namespace NzbDrone.Core.MediaFiles.Export
             { "PC Engine CD", "TGFX16-CD" }
         };
 
+        private static readonly string[] MediaAssetTypes = new[]
+        {
+            "box2d",
+            "box3d",
+            "screenshots",
+            "titlescreens",
+            "marquee",
+            "videos",
+            "manuals"
+        };
+
+        private static readonly HashSet<string> AlphabeticalBuckets = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "#",
+            "A-F",
+            "G-M",
+            "N-S",
+            "T-Z"
+        };
+
         private static readonly Dictionary<string, string> EmulationStationSlugMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "SNES", "snes" },
@@ -724,10 +746,90 @@ namespace NzbDrone.Core.MediaFiles.Export
                     result.DestinationPaths.Add(finalOutputPath);
                     result.AppliedTransformations.Add(plan.Transformation);
                     result.ExportedCount++;
+
+                    ExportPlatformMediaAndGamelist(destinationFolder, item, overwrite, result);
                 }
             }
 
             return result;
+        }
+
+        private void ExportPlatformMediaAndGamelist(
+            string destinationFolder,
+            SdCardExportItem item,
+            bool overwrite,
+            SdCardExportResult result)
+        {
+            if (item?.SourceFilePath == null)
+            {
+                return;
+            }
+
+            var romDir = Path.GetDirectoryName(item.SourceFilePath);
+            if (romDir.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            var candidateSourceDirs = new List<string> { romDir };
+            var parentDir = Path.GetDirectoryName(romDir);
+            if (parentDir.IsNotNullOrWhiteSpace())
+            {
+                candidateSourceDirs.Add(parentDir);
+            }
+
+            var targetPlatformDir = AlphabeticalBuckets.Contains(Path.GetFileName(destinationFolder))
+                ? Path.GetDirectoryName(destinationFolder)
+                : destinationFolder;
+
+            if (targetPlatformDir.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            foreach (var sourceDir in candidateSourceDirs)
+            {
+                foreach (var assetType in MediaAssetTypes)
+                {
+                    var sourceMediaFolder = Path.Combine(sourceDir, "media", assetType);
+                    if (_diskProvider.FolderExists(sourceMediaFolder))
+                    {
+                        var files = _diskProvider.GetFiles(sourceMediaFolder, false);
+                        if (files != null)
+                        {
+                            foreach (var file in files)
+                            {
+                                var fileName = Path.GetFileName(file);
+                                var targetMediaFolder = Path.Combine(targetPlatformDir, "media", assetType);
+                                var targetFilePath = Path.Combine(targetMediaFolder, fileName);
+
+                                if (!result.ExportedMediaPaths.Any(p => p.Equals(targetFilePath, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    if (!_diskProvider.FolderExists(targetMediaFolder))
+                                    {
+                                        _diskProvider.CreateFolder(targetMediaFolder);
+                                    }
+
+                                    _diskProvider.CopyFile(file, targetFilePath, overwrite);
+                                    result.ExportedMediaAssetCount++;
+                                    result.ExportedMediaPaths.Add(targetFilePath);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                var sourceGamelist = Path.Combine(sourceDir, "gamelist.xml");
+                if (_diskProvider.FileExists(sourceGamelist))
+                {
+                    var targetGamelist = Path.Combine(targetPlatformDir, "gamelist.xml");
+                    if (!result.ExportedMediaPaths.Any(p => p.Equals(targetGamelist, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _diskProvider.CopyFile(sourceGamelist, targetGamelist, overwrite);
+                        result.ExportedMediaPaths.Add(targetGamelist);
+                    }
+                }
+            }
         }
 
         private bool ExecuteExportTransformation(
