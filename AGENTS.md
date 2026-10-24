@@ -37,3 +37,11 @@ Before opening any PR, you must run and verify:
 - **Exact File & Symbol Verification**: Before creating a GitHub issue for Jules, verify that all file paths and class/method names referenced in the issue body exist in `origin/develop` and do not overlap with files being actively edited locally.
 - **Automatic 5-Minute Check-In Schedule**: Whenever one or more tasks are delegated to Jules, immediately set a recurring 5-minute schedule (`CronExpression: "*/5 * * * *"`) using the `schedule` tool to check `gh pr list --state open` and `gh issue view <id> --comments`.
 - **Review, Merge & Cleanup**: When Jules opens a PR, review the diff, verify it builds/tests cleanly, merge it into `develop` (`gh pr merge <PR> --merge --delete-branch`), pull `origin/develop`, and cancel the recurring schedule task via `manage_task` (`Action: "kill"`) once all delegated Jules tasks are complete.
+
+## Documentation Synchronization Policy
+- **Mandatory Continuous Documentation Updates**: All documentation (`CHANGELOG.md`, `ROADMAP.md`, `README.md`, and the official GitHub Wiki at `https://github.com/12thirtyfour/Controllarr.wiki.git`) must be kept 100% up to date at all times.
+- **Changelog & Roadmap Lifecycle**:
+  - Whenever a feature, bug fix, or architectural change is completed, immediately document it in `CHANGELOG.md`.
+  - Whenever a roadmap item is completed, move it off the active section of `ROADMAP.md` into `CHANGELOG.md`.
+  - Whenever new feature ideas or enhancements are pitched by the user, add them to `ROADMAP.md`.
+- **Wiki Synchronization**: Whenever user-facing workflows, settings, curation rules, or supported hardware/platforms change, update the corresponding pages in `Controllarr.wiki.git` in the same session.

@@ -18,7 +18,7 @@
 
 ---
 
-> 📖 **Full Documentation**: Explore the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki) for in-depth setup guides, console platform compatibility, BIOS matrices, and hardware exporter profiles.
+> 📖 **Full Documentation**: Explore the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki) for in-depth setup guides, console platform compatibility, BIOS matrices, virtual symlink libraries, and hardware exporter profiles. Track release history in [**CHANGELOG.md**](CHANGELOG.md) and active/upcoming milestones in [**ROADMAP.md**](ROADMAP.md).
 
 ---
 
@@ -41,14 +41,15 @@ Instead of wrestling with disorganized folders, unverified dumps, multi-region d
 
 Detailed feature breakdowns and technical documentation are available in the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki):
 
-* **[🎯 1 Game 1 ROM (1G1R) & Smart Curation](https://github.com/12thirtyfour/Controllarr/wiki/Core-Concepts)**: Eliminate duplicate regional clutter while retaining the single best release and revision based on your custom region hierarchy.
-* **[🛡️ Canonical Hash Verification](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Validates CRC32, MD5, and SHA-1 checksums on ingestion against No-Intro, Redump, and TOSEC DATs.
+* **[🎯 1 Game 1 ROM (1G1R) & Smart Curation](https://github.com/12thirtyfour/Controllarr/wiki/Core-Concepts)**: Eliminate duplicate regional clutter and pre-release demos/prototypes while retaining the single best retail release and revision based on your custom drag-and-drop region hierarchy.
+* **[🛡️ Canonical Hash Verification](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Validates CRC32, MD5, and SHA-1 checksums on ingestion against unified No-Intro, Redump, and TOSEC DATs.
+* **[🗂️ Virtual Symlink Libraries](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: Maintain live, non-destructive symlinked/junctioned folder structures formatted for MiSTer FPGA, RetroArch, Analogue Pocket, OnionOS, Batocera, and ES-DE without duplicating ROM files.
 * **[💾 Hardware Target Exporter (HTGDB / SMDB)](https://github.com/12thirtyfour/Controllarr/wiki/Hardware-Target-Exporter)**: One-click SD card exports with automatic FAT32-safe alphabetical bucketing (`A-M/`, `N-Z/`) for MiSTer, Analogue Pocket, OnionOS, EverDrive, and ODEs.
-* **[🕹️ Platform BIOS Verification Matrix](https://github.com/12thirtyfour/Controllarr/wiki/Platform-BIOS-Matrix)**: Inspect, checksum, and verify required system firmwares before launching or exporting games.
+* **[🕹️ Platform BIOS Verification Matrix & Downloader](https://github.com/12thirtyfour/Controllarr/wiki/Platform-BIOS-Matrix)**: Inspect, checksum, and automatically download/verify 80+ required system firmwares across 29 platforms.
 * **[🏆 RetroAchievements Integration](https://github.com/12thirtyfour/Controllarr/wiki/In-Browser-Play-and-Emulators)**: Showcase your gaming badges, progression, and leaderboard statistics directly in your library.
 * **[🎮 Play Anywhere](https://github.com/12thirtyfour/Controllarr/wiki/In-Browser-Play-and-Emulators)**: Embedded WebAssembly Libretro player for instant browser gaming, plus one-click protocol launcher (`controllarr://play/{gameId}`) for native desktop emulators.
 * **[📦 Automated Archive Ingestion & Compression](https://github.com/12thirtyfour/Controllarr/wiki/Ingestion-and-Hash-Verification)**: Extracts `.zip`, `.7z`, and `.rar` sets, and losslessly converts disc images into compressed `.chd` (via `chdman`) and `.rvz` (via `dolphin-tool`).
-* **[🔍 3-Way Acquisition Priority](https://github.com/12thirtyfour/Controllarr/wiki/Acquisition-and-Indexers)**: Search across public HTTP archives (Internet Archive S3 API), Usenet (Newznab gaming categories `1000` & `8000`), and BitTorrent (Torznab).
+* **[🔍 3-Way Acquisition Priority & Live HTTPS Queue](https://github.com/12thirtyfour/Controllarr/wiki/Acquisition-and-Indexers)**: Search and stream across public HTTP archives (Internet Archive S3 API with live Activity Queue speed & import history), Usenet (Newznab gaming categories `1000` & `8000`), and BitTorrent (Torznab).
 
 ---
 
@@ -146,6 +147,7 @@ We stand on the shoulders of incredible open-source projects, preservation datab
 * **[Libretro / RetroArch](https://github.com/libretro/RetroArch)** — Web emulation cores and desktop launch targets.
 * **`chdman` / [MAME Project](https://github.com/mamedev/mame)** — Optical disc compression into `.chd`.
 * **`dolphin-tool` / [Dolphin Project](https://github.com/dolphin-emu/dolphin)** — GameCube & Wii `.rvz` disc compression.
+* **[Evan-Amos](https://commons.wikimedia.org/wiki/User:Evan-Amos) ([Vanamo Media](https://github.com/evan-amos))** — High-resolution public-domain (CC0) console hardware photography.
 
 ---
 
