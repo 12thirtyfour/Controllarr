@@ -11,10 +11,10 @@ namespace NzbDrone.Core.Organizer
 {
     public static class FileNameValidation
     {
-        private static readonly Regex SeasonFolderRegex = new Regex(@"(\{season(\:\d+)?\})",
+        private static readonly Regex SeasonFolderRegex = new Regex(@"(\{(?:season(?:\:\d+|[- ._](?:Clean)?Title)?|Region(?:[- ._]Code)?|Game[- ._](?:Clean)?Title|Episode[- ._](?:Clean)?Title)\})",
                                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        internal static readonly Regex OriginalTokenRegex = new Regex(@"(\{original[- ._](?:title|filename)\})",
+        internal static readonly Regex OriginalTokenRegex = new Regex(@"(\{(?:original[- ._](?:title|filename)|(?:game|episode)[- ._](?:clean)?title)\})",
                                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public static IRuleBuilderOptions<T, string> ValidEpisodeFormat<T>(this IRuleBuilder<T, string> ruleBuilder)

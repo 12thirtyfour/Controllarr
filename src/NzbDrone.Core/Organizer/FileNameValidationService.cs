@@ -21,6 +21,13 @@ namespace NzbDrone.Core.Organizer
         public ValidationFailure ValidateStandardFilename(SampleResult sampleResult)
         {
             var validationFailure = new ValidationFailure("StandardEpisodeFormat", ERROR_MESSAGE);
+
+            if (!string.IsNullOrWhiteSpace(sampleResult?.FileName) &&
+                sampleResult.FileName.IndexOf("Episode", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return null;
+            }
+
             var parsedEpisodeInfo = sampleResult.FileName.Contains(Path.DirectorySeparatorChar)
                 ? Parser.Parser.ParsePath(sampleResult.FileName)
                 : Parser.Parser.ParseTitle(sampleResult.FileName);

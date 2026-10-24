@@ -1,8 +1,4 @@
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  setAddSeriesOption,
-  useAddSeriesOptions,
-} from 'AddSeries/addSeriesOptionsStore';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
@@ -11,7 +7,6 @@ import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
-import SelectInput, { SelectInputOption } from 'Components/Form/SelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
@@ -26,37 +21,11 @@ import { InputChanged } from 'typings/inputs';
 import { SettingsStateChange } from 'typings/Settings/SettingsState';
 import translate from 'Utilities/String/translate';
 import Naming from './Naming/Naming';
-import RegionOrderingSection from './RegionOrderingSection';
 import AddRootFolder from './RootFolder/AddRootFolder';
 import {
   MediaManagementSettingsModel,
   useManageMediaManagementSettings,
 } from './useMediaManagementSettings';
-
-const defaultLibraryStyleOptions: SelectInputOption[] = [
-  { key: '1g1r', value: '1G1R (1 Game 1 ROM)' },
-  {
-    key: 'completionist',
-    value: 'Completionist (All Revisions, Regions & Variants)',
-  },
-];
-
-const default1g1rScopeOptions: SelectInputOption[] = [
-  { key: 'oneGameOneRom', value: 'Per Game' },
-  { key: 'oneGamePerRegionPerConsole', value: 'Per Region' },
-];
-
-const defaultRevisionPreferenceOptions: SelectInputOption[] = [
-  {
-    key: 'latestRevision',
-    value: 'Newest / Latest Revision (Rev A, v1.1, v1.2)',
-  },
-  {
-    key: 'initialRelease',
-    value: 'Original Retail Release (Rev 0 / v1.0)',
-  },
-  { key: 'pinned', value: 'Pinned Version / Tag' },
-];
 
 const episodeTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
   {
@@ -166,12 +135,6 @@ const seasonPackUpgradeOptions: EnhancedSelectInputValue<string>[] = [
 function MediaManagement() {
   const showAdvancedSettings = useShowAdvancedSettings();
   const isWindows = useIsWindows();
-  const addOptions = useAddSeriesOptions();
-  const [onePerRegion1g1r, setOnePerRegion1g1r] = useState<boolean>(
-    () =>
-      String(addOptions.collectionStrategy) === 'oneGamePerRegionPerConsole' ||
-      String(addOptions.collectionStrategy) === '2'
-  );
 
   const {
     isFetching,
@@ -217,66 +180,6 @@ function MediaManagement() {
     [updateSetting]
   );
 
-  const isCompletionistDefault =
-    String(addOptions.collectionStrategy) === 'preservationist' ||
-    String(addOptions.collectionStrategy) === '1';
-
-  const handleDefaultLibraryStyleChange = useCallback(
-    ({ value }: InputChanged<string>) => {
-      if (value === 'completionist') {
-        setAddSeriesOption('collectionStrategy', 'preservationist');
-      } else {
-        setAddSeriesOption(
-          'collectionStrategy',
-          onePerRegion1g1r ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
-        );
-      }
-    },
-    [onePerRegion1g1r]
-  );
-
-  const handle1g1rScopeChange = useCallback(
-    ({ value }: InputChanged<string>) => {
-      const useMulti = value === 'oneGamePerRegionPerConsole';
-      setOnePerRegion1g1r(useMulti);
-
-      if (
-        String(addOptions.collectionStrategy) !== 'preservationist' &&
-        String(addOptions.collectionStrategy) !== '1'
-      ) {
-        setAddSeriesOption(
-          'collectionStrategy',
-          useMulti ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
-        );
-      }
-    },
-    [addOptions.collectionStrategy]
-  );
-
-  const handleDefaultRevisionChange = useCallback(
-    ({ value }: InputChanged<string>) => {
-      setAddSeriesOption('revisionPreference', String(value));
-    },
-    []
-  );
-
-  const handlePinnedVersionChange = useCallback(
-    ({ value }: InputChanged<string>) => {
-      setAddSeriesOption('pinnedVersion', value);
-    },
-    []
-  );
-
-  let defaultRevisionValue = String(
-    addOptions.revisionPreference || 'latestRevision'
-  );
-
-  if (String(addOptions.revisionPreference) === '1') {
-    defaultRevisionValue = 'initialRelease';
-  } else if (String(addOptions.revisionPreference) === '2') {
-    defaultRevisionValue = 'pinned';
-  }
-
   return (
     <SettingsPage
       title={translate('MediaManagementSettings')}
@@ -295,66 +198,6 @@ function MediaManagement() {
             setChildSave={handleSetNamingSave}
             onChildStateChange={setNaming}
           />
-
-          <FieldSet
-            legend="Default Library Curation (1G1R & Completionist)"
-            caption="Set your global library curation defaults. Even if you select Completionist globally, your 1G1R preferences below will be inherited whenever you override a specific console to 1G1R."
-          >
-            <Form>
-              <FormRow size={sizes.MEDIUM}>
-                <FormLabel>Default Library Style</FormLabel>
-                <FormInputHelpText text="Default collection strategy applied when adding new consoles/platforms" />
-                <SelectInput<string>
-                  name="defaultLibraryStyle"
-                  value={isCompletionistDefault ? 'completionist' : '1g1r'}
-                  values={defaultLibraryStyleOptions}
-                  onChange={handleDefaultLibraryStyleChange}
-                />
-              </FormRow>
-
-              <FormRow size={sizes.MEDIUM}>
-                <FormLabel>1G1R Scope</FormLabel>
-                <FormInputHelpText text="Choose whether 1G1R keeps 1 preferred ROM per game across the console (Per Game) or 1 preferred ROM inside each monitored region (Per Region)" />
-                <SelectInput<string>
-                  name="oneGameOneRomScope"
-                  value={
-                    onePerRegion1g1r
-                      ? 'oneGamePerRegionPerConsole'
-                      : 'oneGameOneRom'
-                  }
-                  values={default1g1rScopeOptions}
-                  onChange={handle1g1rScopeChange}
-                />
-              </FormRow>
-
-              <FormRow size={sizes.MEDIUM}>
-                <FormLabel>1G1R Default Version Preference</FormLabel>
-                <FormInputHelpText text="Which ROM version/revision to prefer in 1G1R mode (used globally or when overriding a console to 1G1R)" />
-                <SelectInput<string>
-                  name="defaultRevisionPreference"
-                  value={defaultRevisionValue}
-                  values={defaultRevisionPreferenceOptions}
-                  onChange={handleDefaultRevisionChange}
-                />
-              </FormRow>
-
-              {defaultRevisionValue === 'pinned' ? (
-                <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>Default Pinned Version Tag</FormLabel>
-                  <FormInputHelpText text="Revision tag to pin when Pinned Version is selected (e.g. Rev A, Rev 1, v1.1)" />
-                  <FormInput
-                    type={inputTypes.TEXT}
-                    name="pinnedVersion"
-                    value={addOptions.pinnedVersion ?? ''}
-                    placeholder="e.g. Rev A, Rev 1, v1.1"
-                    onChange={handlePinnedVersionChange}
-                  />
-                </FormRow>
-              ) : null}
-            </Form>
-          </FieldSet>
-
-          <RegionOrderingSection />
 
           {isFetching ? (
             <FieldSet legend={translate('NamingSettings')}>

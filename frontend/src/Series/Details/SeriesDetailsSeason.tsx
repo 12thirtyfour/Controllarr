@@ -42,7 +42,6 @@ import { Statistics } from 'Series/Series';
 import { useSingleSeries, useToggleSeasonMonitored } from 'Series/useSeries';
 import { TableOptionsChangePayload } from 'typings/Table';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
-import isAfter from 'Utilities/Date/isAfter';
 import isBefore from 'Utilities/Date/isBefore';
 import formatBytes from 'Utilities/Number/formatBytes';
 import translate from 'Utilities/String/translate';
@@ -264,22 +263,7 @@ function SeriesDetailsSeason({
         return;
       }
 
-      const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
-      const alternateVersionCount =
-        !isCompletionist && entries.length > 1 ? entries.length - 1 : 0;
-
-      if (isCompletionist || isGroupExpanded) {
-        entries.forEach((entry, idx) => {
-          rows.push({
-            item: entry.item,
-            versionLabel: entry.versionLabel,
-            isAlternateGroup,
-            alternateVersionCount: idx === 0 ? alternateVersionCount : 0,
-            isGroupExpanded,
-            groupKey,
-          });
-        });
-      } else {
+      if (!isCompletionist) {
         const monitoredRetailEntry = retailEntries.find(
           (e) => e.item.monitored
         );
@@ -292,6 +276,36 @@ function SeriesDetailsSeason({
         rows.push({
           item: preferredEntry.item,
           versionLabel: preferredEntry.versionLabel,
+          isAlternateGroup,
+          alternateVersionCount: 0,
+          isGroupExpanded: false,
+          groupKey,
+        });
+
+        return;
+      }
+
+      const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
+      const alternateVersionCount = entries.length > 1 ? entries.length - 1 : 0;
+
+      if (isGroupExpanded) {
+        entries.forEach((entry, idx) => {
+          rows.push({
+            item: entry.item,
+            versionLabel: entry.versionLabel,
+            isAlternateGroup,
+            alternateVersionCount: idx === 0 ? alternateVersionCount : 0,
+            isGroupExpanded,
+            groupKey,
+          });
+        });
+      } else {
+        const monitoredEntry = entries.find((e) => e.item.monitored);
+        const primaryEntry = monitoredEntry ?? entries[0];
+
+        rows.push({
+          item: primaryEntry.item,
+          versionLabel: primaryEntry.versionLabel,
           isAlternateGroup,
           alternateVersionCount,
           isGroupExpanded: false,
@@ -408,15 +422,7 @@ function SeriesDetailsSeason({
 
     hasSetInitalExpand.current = true;
 
-    const expand =
-      items.some(
-        (item) =>
-          isAfter(item.airDateUtc) ||
-          isAfter(item.airDateUtc, { days: -30 }) ||
-          item.monitored
-      ) || items.every((item) => !item.airDateUtc);
-
-    onExpandPress(seasonNumber, expand && seasonNumber > 0);
+    onExpandPress(seasonNumber, false);
   }, [items, seriesId, seasonNumber, onExpandPress]);
 
   useEffect(() => {

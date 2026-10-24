@@ -47,14 +47,16 @@ export const useImportSeries = () => {
         ) {
           const newSeries: Series = {
             ...selectedSeries,
-            monitored: true,
+            monitored: item.monitor !== 'none',
             monitorNewItems: 'all',
-            qualityProfileId: item.qualityProfileId,
+            qualityProfileId: item.qualityProfileId || 1,
             path: item.path,
             seriesType: item.seriesType,
             language: item.language,
             seasonType: item.seasonType,
-            seasonFolder: item.seasonFolder,
+            seasonFolder: true,
+            collectionStrategy: item.collectionStrategy || 'oneGameOneRom',
+            preferredArchiveFormat: item.enableCompression ? 'auto' : 'none',
             addOptions: {
               monitor: item.monitor,
               searchForMissingEpisodes: false,

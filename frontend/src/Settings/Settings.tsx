@@ -24,6 +24,13 @@ function buildSections(): SectionEntry[] {
       summary: translate('MediaManagementSettingsSummary'),
     },
     {
+      to: '/settings/collection',
+      iconName: icons.SERIES_CONTINUING,
+      title: 'Collection Settings',
+      summary:
+        'Configure default collection strategy (1G1R or Completionist), 1G1R scope & revision preferences, unofficial content defaults, and drag-and-drop region ordering',
+    },
+    {
       to: '/settings/profiles',
       iconName: icons.PROFILE,
       title: 'Virtual Libraries',

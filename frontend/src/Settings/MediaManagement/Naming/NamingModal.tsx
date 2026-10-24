@@ -33,15 +33,6 @@ interface TokenGroup {
   isFullFilename?: boolean;
 }
 
-interface TokenFlags {
-  season: boolean;
-  seasonTitle: boolean;
-  episode: boolean;
-  daily: boolean;
-  anime: boolean;
-  additional: boolean;
-}
-
 type SeparatorInputOption = Omit<SelectInputOption, 'key'> & {
   key: TokenSeparator;
 };
@@ -98,80 +89,78 @@ const caseOptions: CaseInputOption[] = [
   },
 ];
 
-const romFilePresets: Token[] = [
+const romPathPresets: Token[] = [
   {
-    token: '{Episode Title}',
-    example: 'Super Mario Bros. (USA) (Rev 1)',
-  },
-  {
-    token: '{Episode CleanTitle}',
-    example: 'Super Mario Bros USA Rev 1',
-  },
-  {
-    token: '{Series Title} - {Episode Title}',
-    example: 'Nintendo Entertainment System - Super Mario Bros. (USA)',
-  },
-  {
-    token: '{Episode Title}/{Episode Title}',
+    token: '{Platform}/{Region}/{Game Title}',
     example:
-      'Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
+      'Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1)',
+  },
+  {
+    token: '{Platform Short}/{Region Code}/{Game CleanTitle} ({Release Year})',
+    example: 'NES/US/Super Mario Bros (1985)',
+  },
+  {
+    token: '{Platform}/{Game Title}/{Game Title}',
+    example:
+      'PlayStation/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
+  },
+  {
+    token: '{Manufacturer}/{Platform}/{Region}/{Game Title}',
+    example:
+      'Nintendo/Nintendo Entertainment System/USA/The Legend of Zelda (USA) (Rev 1)',
   },
 ];
 
 const platformTokens: Token[] = [
   {
-    token: '{Series Title}',
+    token: '{Platform}',
     example: 'Nintendo Entertainment System',
   },
   {
-    token: '{Series CleanTitle}',
-    example: 'Nintendo Entertainment System',
+    token: '{Platform Short}',
+    example: 'NES',
   },
   {
-    token: '{Series TitleYear}',
-    example: 'Nintendo Entertainment System (1985)',
+    token: '{Manufacturer}',
+    example: 'Nintendo',
   },
   {
-    token: '{Series TitleFirstCharacter}',
-    example: 'N',
-  },
-  {
-    token: '{Series Year}',
+    token: '{Platform Year}',
     example: '1985',
   },
 ];
 
 const regionTokens: Token[] = [
   {
-    token: '{Season Title}',
+    token: '{Region}',
     example: 'USA',
   },
   {
-    token: '{Season CleanTitle}',
-    example: 'USA',
-  },
-  {
-    token: '{season:0}',
-    example: '1',
-  },
-  {
-    token: '{season:00}',
-    example: '01',
+    token: '{Region Code}',
+    example: 'US',
   },
 ];
 
 const gameTitleTokens: Token[] = [
   {
-    token: '{Episode Title}',
+    token: '{Game Title}',
     example: 'The Legend of Zelda (USA) (Rev 1)',
   },
   {
-    token: '{Episode CleanTitle}',
-    example: 'The Legend of Zelda USA Rev 1',
+    token: '{Game CleanTitle}',
+    example: 'The Legend of Zelda',
   },
   {
-    token: '{Air-Date}',
-    example: '1986-02-21',
+    token: '{Release Year}',
+    example: '1986',
+  },
+  {
+    token: '{Version}',
+    example: 'Rev 1',
+  },
+  {
+    token: '{Disc}',
+    example: 'Disc 1',
   },
 ];
 
@@ -186,62 +175,49 @@ const originalTokens: Token[] = [
   },
 ];
 
-function getNamingTokenGroups({
-  season,
-  seasonTitle,
-  episode,
-  additional,
-}: TokenFlags): TokenGroup[] {
-  const groups: TokenGroup[] = [];
-
-  if (episode) {
-    groups.push({
-      legend: 'ROM Naming Presets',
-      caption: 'Click a preset to replace the full ROM naming pattern',
-      tokens: romFilePresets,
+function getNamingTokenGroups(): TokenGroup[] {
+  return [
+    {
+      legend: 'Preset Path Templates',
+      caption:
+        'Click a preset to replace the full Library Path & ROM Naming Format',
+      tokens: romPathPresets,
       size: sizes.LARGE,
       isFullFilename: true,
-    });
-  }
-
-  groups.push({
-    legend: 'Platform / Console Tokens',
-    tokens: platformTokens,
-  });
-
-  if (season || seasonTitle) {
-    groups.push({
-      legend: 'Region Folder Tokens (USA, Europe, Japan, Homebrew, ROM Hacks)',
+    },
+    {
+      legend: 'Platform / Console Variables',
+      tokens: platformTokens,
+    },
+    {
+      legend:
+        'Region Variables (USA, Europe, Japan, World, Unlicensed, Hacks, Homebrew)',
       tokens: regionTokens,
-    });
-  }
-
-  if (episode || additional) {
-    groups.push({
-      legend: 'Game / ROM Title & Release Date Tokens',
+    },
+    {
+      legend: 'Game & ROM Variables',
       tokens: gameTitleTokens,
-    });
-
-    groups.push({
-      legend: 'Original Dump Filename Tokens',
+    },
+    {
+      legend: 'Original Dump Filename Variables',
       tokens: originalTokens,
       size: sizes.LARGE,
-    });
-  }
-
-  return groups;
+    },
+  ];
 }
 
 export interface NamingModalOptions {
-  name: keyof Pick<
-    NamingSettingsModel,
-    | 'standardEpisodeFormat'
-    | 'dailyEpisodeFormat'
-    | 'animeEpisodeFormat'
-    | 'seriesFolderFormat'
-    | 'seasonFolderFormat'
-    | 'specialsFolderFormat'
-  >;
+  name:
+    | keyof Pick<
+        NamingSettingsModel,
+        | 'standardEpisodeFormat'
+        | 'dailyEpisodeFormat'
+        | 'animeEpisodeFormat'
+        | 'seriesFolderFormat'
+        | 'seasonFolderFormat'
+        | 'specialsFolderFormat'
+      >
+    | 'unifiedPathFormat';
   season?: boolean;
   seasonTitle?: boolean;
   episode?: boolean;
@@ -258,19 +234,7 @@ interface NamingModalProps extends NamingModalOptions {
 }
 
 function NamingModal(props: NamingModalProps) {
-  const {
-    isOpen,
-    name,
-    value,
-    season = false,
-    seasonTitle = false,
-    episode = false,
-    daily = false,
-    anime = false,
-    additional = false,
-    onInputChange,
-    onModalClose,
-  } = props;
+  const { isOpen, name, value, onInputChange, onModalClose } = props;
 
   const [tokenSeparator, setTokenSeparator] = useState<TokenSeparator>(' ');
   const [tokenCase, setTokenCase] = useState<TokenCase>('title');
@@ -329,23 +293,12 @@ function NamingModal(props: NamingModalProps) {
     [name, value, selectionEnd, selectionStart, onInputChange]
   );
 
-  const tokenGroups = getNamingTokenGroups({
-    season,
-    seasonTitle,
-    episode,
-    daily,
-    anime,
-    additional,
-  });
+  const tokenGroups = getNamingTokenGroups();
 
   return (
     <Modal isOpen={isOpen} onModalClose={onModalClose}>
       <ModalContent onModalClose={onModalClose}>
-        <ModalHeader>
-          {episode
-            ? translate('FileNameTokens')
-            : translate('FolderNameTokens')}
-        </ModalHeader>
+        <ModalHeader>Library Path &amp; ROM Naming Variables</ModalHeader>
 
         <ModalBody>
           <div className={styles.builder}>
@@ -390,7 +343,11 @@ function NamingModal(props: NamingModalProps) {
 
           <div className={styles.instruction}>
             <Icon name={icons.INFO} size={14} />
-            <span>{translate('NamingTokenSelectHelpText')}</span>
+            <span>
+              Click a preset path template or insert individual console, region,
+              and game variables below. Use forward slashes (/) to separate
+              folders.
+            </span>
           </div>
 
           {tokenGroups.map((group) => (

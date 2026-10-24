@@ -196,9 +196,11 @@ function ImportSeriesFooter() {
         id,
         language: defaultLanguage,
         monitor: defaults.monitor,
-        qualityProfileId: defaults.qualityProfileId,
-        seasonFolder: defaults.seasonFolder,
+        qualityProfileId: defaults.qualityProfileId || 1,
+        seasonFolder: true,
         seriesType: defaults.seriesType,
+        collectionStrategy: defaults.collectionStrategy,
+        enableCompression: defaults.enableCompression,
       });
     });
   }, [defaults, defaultLanguage, importableIds]);

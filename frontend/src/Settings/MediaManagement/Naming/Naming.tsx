@@ -13,7 +13,7 @@ import useModalOpenState from 'Helpers/Hooks/useModalOpenState';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
-import NamingModal, { NamingModalOptions } from './NamingModal';
+import NamingModal from './NamingModal';
 import {
   NamingSettingsModel,
   useManageNamingSettings,
@@ -26,6 +26,109 @@ interface NamingProps {
     isSaving: boolean;
     hasPendingChanges: boolean;
   }) => void;
+}
+
+const DEFAULT_UNIFIED_PATH_FORMAT = '{Platform}/{Region}/{Game Title}';
+
+function normalizeSegmentToConsoleVariables(
+  segment: string,
+  fallback: string
+): string {
+  const trimmed = (segment ?? '').trim();
+
+  if (!trimmed) {
+    return fallback;
+  }
+
+  if (
+    trimmed === '{Series Title}' ||
+    trimmed === '{Series CleanTitle}' ||
+    trimmed === '{Series.Title}'
+  ) {
+    return '{Platform}';
+  }
+
+  if (
+    trimmed === 'Season {season}' ||
+    trimmed === 'Season {season:00}' ||
+    trimmed === '{Season Title}' ||
+    trimmed === '{Season CleanTitle}'
+  ) {
+    return '{Region}';
+  }
+
+  if (
+    trimmed.includes('S{season') ||
+    trimmed === '{Episode Title}' ||
+    trimmed === '{Episode CleanTitle}'
+  ) {
+    return '{Game Title}';
+  }
+
+  return trimmed
+    .replace(/\{Series Title\}/gi, '{Platform}')
+    .replace(/\{Series CleanTitle\}/gi, '{Platform}')
+    .replace(/\{Series Year\}/gi, '{Platform Year}')
+    .replace(/\{Season Title\}/gi, '{Region}')
+    .replace(/\{Season CleanTitle\}/gi, '{Region}')
+    .replace(/\{Episode Title\}/gi, '{Game Title}')
+    .replace(/\{Episode CleanTitle\}/gi, '{Game CleanTitle}');
+}
+
+function splitUnifiedPathIntoBackendFields(rawPath: string): {
+  seriesFolderFormat: string;
+  seasonFolderFormat: string;
+  standardEpisodeFormat: string;
+} {
+  const segments = rawPath
+    .split('/')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return {
+      seriesFolderFormat: '{Platform}',
+      seasonFolderFormat: '{Region}',
+      standardEpisodeFormat: '{Game Title}',
+    };
+  }
+
+  if (segments.length === 1) {
+    return {
+      seriesFolderFormat: '{Platform}',
+      seasonFolderFormat: '{Region}',
+      standardEpisodeFormat: segments[0],
+    };
+  }
+
+  if (segments.length === 2) {
+    return {
+      seriesFolderFormat: segments[0],
+      seasonFolderFormat: '{Region}',
+      standardEpisodeFormat: segments[1],
+    };
+  }
+
+  const regionIdx = segments.findIndex(
+    (s, idx) =>
+      idx >= 1 &&
+      idx < segments.length - 1 &&
+      (/\{Region/i.test(s) || /\{Season/i.test(s))
+  );
+
+  if (regionIdx >= 1) {
+    return {
+      seriesFolderFormat: segments.slice(0, regionIdx).join('/'),
+      seasonFolderFormat: segments[regionIdx],
+      standardEpisodeFormat: segments.slice(regionIdx + 1).join('/'),
+    };
+  }
+
+  return {
+    seriesFolderFormat: segments[0],
+    seasonFolderFormat: segments[1],
+    standardEpisodeFormat: segments.slice(2).join('/'),
+  };
 }
 
 function Naming({ setChildSave, onChildStateChange }: NamingProps) {
@@ -42,38 +145,67 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
 
   const [isNamingModalOpen, setNamingModalOpen, setNamingModalClosed] =
     useModalOpenState(false);
-  const [namingModalOptions, setNamingModalOptions] =
-    useState<NamingModalOptions | null>(null);
 
-  // Prepopulate default Game/Platform/Region naming formats if still set to legacy TV defaults
+  const [unifiedPathFormat, setUnifiedPathFormat] = useState<string>(
+    DEFAULT_UNIFIED_PATH_FORMAT
+  );
+  const [initializedFromSettings, setInitializedFromSettings] =
+    useState<boolean>(false);
+
   useEffect(() => {
-    if (!hasSettings) {
+    if (!hasSettings || initializedFromSettings) {
       return;
     }
 
-    if (
-      settings.seasonFolderFormat.value === 'Season {season}' ||
-      !settings.seasonFolderFormat.value
-    ) {
-      updateSetting('seasonFolderFormat', '{Season Title}');
+    const normalizedSeries = normalizeSegmentToConsoleVariables(
+      settings.seriesFolderFormat.value,
+      '{Platform}'
+    );
+    const normalizedSeason = normalizeSegmentToConsoleVariables(
+      settings.seasonFolderFormat.value,
+      '{Region}'
+    );
+    const normalizedEpisode = normalizeSegmentToConsoleVariables(
+      settings.standardEpisodeFormat.value,
+      '{Game Title}'
+    );
+
+    if (settings.seriesFolderFormat.value !== normalizedSeries) {
+      updateSetting('seriesFolderFormat', normalizedSeries);
     }
 
-    if (
-      settings.standardEpisodeFormat.value.includes(
-        'S{season:00}E{episode:00}'
-      ) ||
-      !settings.standardEpisodeFormat.value
-    ) {
-      updateSetting('standardEpisodeFormat', '{Episode Title}');
+    if (settings.seasonFolderFormat.value !== normalizedSeason) {
+      updateSetting('seasonFolderFormat', normalizedSeason);
     }
 
-    if (!settings.seriesFolderFormat.value) {
-      updateSetting('seriesFolderFormat', '{Series Title}');
+    if (settings.standardEpisodeFormat.value !== normalizedEpisode) {
+      updateSetting('standardEpisodeFormat', normalizedEpisode);
     }
-  }, [hasSettings, settings, updateSetting]);
+
+    setUnifiedPathFormat(
+      `${normalizedSeries}/${normalizedSeason}/${normalizedEpisode}`
+    );
+    setInitializedFromSettings(true);
+  }, [hasSettings, initializedFromSettings, settings, updateSetting]);
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
+      if (change.name === 'unifiedPathFormat') {
+        const nextPath = String(change.value ?? '');
+        setUnifiedPathFormat(nextPath);
+
+        const {
+          seriesFolderFormat,
+          seasonFolderFormat,
+          standardEpisodeFormat,
+        } = splitUnifiedPathIntoBackendFields(nextPath);
+
+        updateSetting('seriesFolderFormat', seriesFolderFormat);
+        updateSetting('seasonFolderFormat', seasonFolderFormat);
+        updateSetting('standardEpisodeFormat', standardEpisodeFormat);
+        return;
+      }
+
       const key = change.name as keyof NamingSettingsModel;
 
       updateSetting(key, change.value as NamingSettingsModel[typeof key]);
@@ -81,35 +213,9 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     [updateSetting]
   );
 
-  const handleStandardNamingModalOpenClick = useCallback(() => {
+  const handleUnifiedNamingModalOpenClick = useCallback(() => {
     setNamingModalOpen();
-
-    setNamingModalOptions({
-      name: 'standardEpisodeFormat',
-      season: true,
-      seasonTitle: true,
-      episode: true,
-      additional: true,
-    });
-  }, [setNamingModalOpen, setNamingModalOptions]);
-
-  const handleSeriesFolderNamingModalOpenClick = useCallback(() => {
-    setNamingModalOpen();
-
-    setNamingModalOptions({
-      name: 'seriesFolderFormat',
-    });
-  }, [setNamingModalOpen, setNamingModalOptions]);
-
-  const handleSeasonFolderNamingModalOpenClick = useCallback(() => {
-    setNamingModalOpen();
-
-    setNamingModalOptions({
-      name: 'seasonFolderFormat',
-      season: true,
-      seasonTitle: true,
-    });
-  }, [setNamingModalOpen, setNamingModalOptions]);
+  }, [setNamingModalOpen]);
 
   const replaceIllegalCharacters =
     hasSettings && settings.replaceIllegalCharacters.value;
@@ -142,10 +248,22 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     setChildSave(saveSettings);
   }, [setChildSave, saveSettings]);
 
+  const formatErrors = [
+    ...(settings.seriesFolderFormat?.errors ?? []),
+    ...(settings.seasonFolderFormat?.errors ?? []),
+    ...(settings.standardEpisodeFormat?.errors ?? []),
+  ];
+
+  const formatWarnings = [
+    ...(settings.seriesFolderFormat?.warnings ?? []),
+    ...(settings.seasonFolderFormat?.warnings ?? []),
+    ...(settings.standardEpisodeFormat?.warnings ?? []),
+  ];
+
   return (
     <FieldSet
       legend={translate('EpisodeNaming')}
-      caption="Configure how Controllarr organizes Platform folders, Region folders, and ROM filenames (Default: {Platform}/{Region}/{Game})"
+      caption="Configure your unified folder and ROM naming structure using platform, region, and game variables (Default: {Platform}/{Region}/{Game Title})"
     >
       {isFetching ? <LoadingIndicator /> : null}
       {!isFetching && error ? (
@@ -157,7 +275,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         <Form>
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('RenameEpisodes')}</FormLabel>
-            <FormInputHelpText text="Automatically rename imported ROMs using your canonical DAT / No-Intro / Redump naming format" />
+            <FormInputHelpText text="Automatically rename imported ROMs and organize folders using your Library Path & ROM Naming Format" />
             <FormInput
               type={inputTypes.CHECK}
               name="renameEpisodes"
@@ -211,71 +329,33 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
             </FormRow>
           ) : null}
 
-          <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('SeriesFolderFormat')}</FormLabel>
-            <FormInputHelpText text="Top-level console directory under your Root Folder (Example: Nintendo Entertainment System)" />
-            <FormInput
-              inputClassName={styles.namingInput}
-              type={inputTypes.TEXT}
-              name="seriesFolderFormat"
-              buttons={
-                <FormInputButton
-                  onPress={handleSeriesFolderNamingModalOpenClick}
-                >
-                  ?
-                </FormInputButton>
-              }
-              onChange={handleInputChange}
-              {...settings.seriesFolderFormat}
-            />
-          </FormRow>
-
-          <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('SeasonFolderFormat')}</FormLabel>
-            <FormInputHelpText text="Regional subfolder inside the platform folder (Example: USA, Europe, Japan, Homebrew, ROM Hacks)" />
-            <FormInput
-              inputClassName={styles.namingInput}
-              type={inputTypes.TEXT}
-              name="seasonFolderFormat"
-              buttons={
-                <FormInputButton
-                  onPress={handleSeasonFolderNamingModalOpenClick}
-                >
-                  ?
-                </FormInputButton>
-              }
-              onChange={handleInputChange}
-              {...settings.seasonFolderFormat}
-            />
-          </FormRow>
-
           <FormRow size={sizes.LARGE}>
-            <FormLabel>{translate('StandardEpisodeFormat')}</FormLabel>
-            <FormInputHelpText text="ROM filename structure inside the region folder (Example: Super Mario Bros. (USA) (Rev 1).nes)" />
-            <FormInputHelpText text="Full Path Preview: {RootFolder}/Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes" />
+            <FormLabel>Library Path &amp; ROM Naming Format</FormLabel>
+            <FormInputHelpText text="Unified path format under your Root Folder using forward slashes (/) for folders. Click '?' to browse Platform, Region, and Game variables." />
+            <FormInputHelpText text="Default Preview: {RootFolder}/Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes" />
             <FormInput
               inputClassName={styles.namingInput}
               type={inputTypes.TEXT}
-              name="standardEpisodeFormat"
+              name="unifiedPathFormat"
+              value={unifiedPathFormat}
+              errors={formatErrors}
+              warnings={formatWarnings}
               buttons={
-                <FormInputButton onPress={handleStandardNamingModalOpenClick}>
+                <FormInputButton onPress={handleUnifiedNamingModalOpenClick}>
                   ?
                 </FormInputButton>
               }
               onChange={handleInputChange}
-              {...settings.standardEpisodeFormat}
             />
           </FormRow>
 
-          {namingModalOptions ? (
-            <NamingModal
-              isOpen={isNamingModalOpen}
-              {...namingModalOptions}
-              value={settings[namingModalOptions.name].value}
-              onInputChange={handleInputChange}
-              onModalClose={setNamingModalClosed}
-            />
-          ) : null}
+          <NamingModal
+            isOpen={isNamingModalOpen}
+            name="unifiedPathFormat"
+            value={unifiedPathFormat}
+            onInputChange={handleInputChange}
+            onModalClose={setNamingModalClosed}
+          />
         </Form>
       ) : null}
     </FieldSet>

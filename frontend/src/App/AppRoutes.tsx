@@ -11,6 +11,7 @@ import NotFound from 'Components/NotFound';
 import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
 import SeriesIndex from 'Series/Index/SeriesIndex';
 import BiosSettings from 'Settings/Bios/BiosSettings';
+import CollectionSettings from 'Settings/Collection/CollectionSettings';
 import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
 import DownloadClientSettings from 'Settings/DownloadClients/DownloadClientSettings';
 import GeneralSettings from 'Settings/General/GeneralSettings';
@@ -109,6 +110,8 @@ export function appRouteElements() {
       <Route path="/settings" element={<Settings />} />
 
       <Route path="/settings/mediamanagement" element={<MediaManagement />} />
+
+      <Route path="/settings/collection" element={<CollectionSettings />} />
 
       <Route path="/settings/profiles" element={<Profiles />} />
 

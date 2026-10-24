@@ -2,16 +2,12 @@ import React, { useCallback, useMemo } from 'react';
 import {
   AddSeriesOptions,
   setAddSeriesOption,
-  useAddSeriesLanguage,
   useAddSeriesOptions,
 } from 'AddSeries/addSeriesOptionsStore';
 import EnhancedSelectInput, {
   EnhancedSelectInputValue,
 } from 'Components/Form/Select/EnhancedSelectInput';
-import LanguageSelectInput from 'Components/Form/Select/LanguageSelectInput';
 import MonitorEpisodesSelectInput from 'Components/Form/Select/MonitorEpisodesSelectInput';
-import QualityProfileSelectInput from 'Components/Form/Select/QualityProfileSelectInput';
-import SeriesTypeSelectInput from 'Components/Form/Select/SeriesTypeSelectInput';
 import Button from 'Components/Link/Button';
 import { kinds } from 'Helpers/Props';
 import Language from 'Language/Language';
@@ -19,7 +15,11 @@ import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
 import styles from './ImportSeriesDefaults.module.css';
 
-const HIDE_HINT = { includeHint: false };
+const COLLECTION_TYPE_OPTIONS: EnhancedSelectInputValue<string>[] = [
+  { key: 'oneGameOneRom', value: '1G1R (Per Game)' },
+  { key: 'oneGamePerRegionPerConsole', value: '1G1R (Per Region)' },
+  { key: 'preservationist', value: 'Completionist (All Revisions)' },
+];
 
 interface ImportSeriesDefaultsProps {
   isApplyDisabled: boolean;
@@ -30,14 +30,16 @@ function ImportSeriesDefaults({
   isApplyDisabled,
   onApplyDefaults,
 }: ImportSeriesDefaultsProps) {
-  const { monitor, qualityProfileId, seasonFolder, seriesType } =
-    useAddSeriesOptions();
-  const language = useAddSeriesLanguage();
+  const {
+    monitor,
+    collectionStrategy = 'oneGameOneRom',
+    enableCompression = true,
+  } = useAddSeriesOptions();
 
-  const seasonFolderOptions: EnhancedSelectInputValue<boolean>[] = useMemo(
+  const compressionOptions: EnhancedSelectInputValue<boolean>[] = useMemo(
     () => [
-      { key: true, value: translate('Yes') },
-      { key: false, value: translate('No') },
+      { key: true, value: 'Enabled (Auto Format)' },
+      { key: false, value: 'Disabled (Uncompressed)' },
     ],
     []
   );
@@ -70,48 +72,23 @@ function ImportSeriesDefaults({
         </div>
 
         <div className={styles.setting}>
-          <div className={styles.settingLabel}>
-            {translate('QualityProfile')}
-          </div>
-          <QualityProfileSelectInput
-            name="qualityProfileId"
-            value={qualityProfileId}
-            modalTitle={translate('QualityProfile')}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        <div className={styles.setting}>
-          <div className={styles.settingLabel}>{translate('SeriesType')}</div>
-          <SeriesTypeSelectInput
-            name="seriesType"
-            value={seriesType}
-            modalTitle={translate('SeriesType')}
-            selectedValueOptions={HIDE_HINT}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        <div className={styles.setting}>
-          <div className={styles.settingLabel}>
-            {translate('MetadataLanguage')}
-          </div>
-          <LanguageSelectInput
-            name="language"
-            value={language}
-            modalTitle={translate('MetadataLanguage')}
-            includeAny={false}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        <div className={styles.setting}>
-          <div className={styles.settingLabel}>{translate('SeasonFolder')}</div>
+          <div className={styles.settingLabel}>Collection Type</div>
           <EnhancedSelectInput
-            name="seasonFolder"
-            value={seasonFolder}
-            modalTitle={translate('SeasonFolder')}
-            values={seasonFolderOptions}
+            name="collectionStrategy"
+            value={collectionStrategy}
+            modalTitle="Collection Type"
+            values={COLLECTION_TYPE_OPTIONS}
+            onChange={handleInputChange}
+          />
+        </div>
+
+        <div className={styles.setting}>
+          <div className={styles.settingLabel}>Compression</div>
+          <EnhancedSelectInput
+            name="enableCompression"
+            value={enableCompression}
+            modalTitle="Compression"
+            values={compressionOptions}
             onChange={handleInputChange}
           />
         </div>

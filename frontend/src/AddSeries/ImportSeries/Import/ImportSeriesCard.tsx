@@ -1,15 +1,11 @@
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useSelect } from 'App/Select/SelectContext';
 import CheckInput from 'Components/Form/CheckInput';
 import EnhancedSelectInput, {
   EnhancedSelectInputValue,
 } from 'Components/Form/Select/EnhancedSelectInput';
-import LanguageSelectInput from 'Components/Form/Select/LanguageSelectInput';
 import MonitorEpisodesSelectInput from 'Components/Form/Select/MonitorEpisodesSelectInput';
-import QualityProfileSelectInput from 'Components/Form/Select/QualityProfileSelectInput';
-import SeasonTypeSelectInput from 'Components/Form/Select/SeasonTypeSelectInput';
-import SeriesTypeSelectInput from 'Components/Form/Select/SeriesTypeSelectInput';
 import Label from 'Components/Label';
 import { kinds } from 'Helpers/Props';
 import SeriesPoster from 'Series/SeriesPoster';
@@ -25,7 +21,11 @@ import {
 import ImportSeriesSelectSeries from './SelectSeries/ImportSeriesSelectSeries';
 import styles from './ImportSeriesCard.module.css';
 
-const HIDE_HINT = { includeHint: false };
+const COLLECTION_TYPE_OPTIONS: EnhancedSelectInputValue<string>[] = [
+  { key: 'oneGameOneRom', value: '1G1R (Per Game)' },
+  { key: 'oneGamePerRegionPerConsole', value: '1G1R (Per Region)' },
+  { key: 'preservationist', value: 'Completionist (All Revisions)' },
+];
 
 function getMatchStatusLabel(eligibility: ImportSeriesEligibility) {
   switch (eligibility) {
@@ -62,12 +62,9 @@ function ImportSeriesCard({
 
   const {
     relativePath,
-    language,
     monitor,
-    qualityProfileId,
-    seasonFolder,
-    seasonType,
-    seriesType,
+    collectionStrategy = 'oneGameOneRom',
+    enableCompression = true,
     selectedSeries,
   } = item ?? {};
 
@@ -112,35 +109,10 @@ function ImportSeriesCard({
 
   const [isSearching, setIsSearching] = useState(false);
 
-  const seasonTypes = useMemo(
-    () =>
-      selectedSeries?.seasonTypes?.length
-        ? selectedSeries.seasonTypes
-        : [
-            {
-              type: 'official',
-              name: translate('AiredOrder'),
-              seasonNumbers: [],
-              episodeCount: 0,
-            },
-          ],
-    [selectedSeries]
-  );
-
-  useEffect(() => {
-    if (
-      selectedSeries &&
-      seasonType &&
-      !seasonTypes.some((s) => s.type === seasonType)
-    ) {
-      updateImportSeriesItem({ id, seasonType: 'official' });
-    }
-  }, [id, selectedSeries, seasonType, seasonTypes]);
-
-  const seasonFolderOptions: EnhancedSelectInputValue<boolean>[] = useMemo(
+  const compressionOptions: EnhancedSelectInputValue<boolean>[] = useMemo(
     () => [
-      { key: true, value: translate('Yes') },
-      { key: false, value: translate('No') },
+      { key: true, value: 'Enabled (Auto Format)' },
+      { key: false, value: 'Disabled (Uncompressed)' },
     ],
     []
   );
@@ -249,76 +221,26 @@ function ImportSeriesCard({
             </div>
 
             <div className={styles.setting}>
-              <div className={styles.settingLabel}>
-                {translate('QualityProfile')}
-              </div>
-
-              <QualityProfileSelectInput
-                name="qualityProfileId"
-                value={qualityProfileId}
-                modalTitle={translate('QualityProfile')}
-                isDisabled={!selectedSeries}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className={styles.setting}>
-              <div className={styles.settingLabel}>
-                {translate('SeriesType')}
-              </div>
-
-              <SeriesTypeSelectInput
-                name="seriesType"
-                value={seriesType}
-                modalTitle={translate('SeriesType')}
-                isDisabled={!selectedSeries}
-                selectedValueOptions={HIDE_HINT}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className={styles.setting}>
-              <div className={styles.settingLabel}>
-                {translate('SeasonType')}
-              </div>
-
-              <SeasonTypeSelectInput
-                name="seasonType"
-                value={seasonType}
-                seasonTypes={seasonTypes}
-                modalTitle={translate('SeasonType')}
-                isDisabled={!selectedSeries}
-                includeMixed={false}
-                includeNoChange={false}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className={styles.setting}>
-              <div className={styles.settingLabel}>
-                {translate('MetadataLanguage')}
-              </div>
-
-              <LanguageSelectInput
-                name="language"
-                value={language}
-                modalTitle={translate('MetadataLanguage')}
-                isDisabled={!selectedSeries}
-                includeAny={false}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className={styles.setting}>
-              <div className={styles.settingLabel}>
-                {translate('SeasonFolder')}
-              </div>
+              <div className={styles.settingLabel}>Collection Type</div>
 
               <EnhancedSelectInput
-                name="seasonFolder"
-                value={seasonFolder}
-                modalTitle={translate('SeasonFolder')}
-                values={seasonFolderOptions}
+                name="collectionStrategy"
+                value={collectionStrategy}
+                modalTitle="Collection Type"
+                values={COLLECTION_TYPE_OPTIONS}
+                isDisabled={!selectedSeries}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className={styles.setting}>
+              <div className={styles.settingLabel}>Compression</div>
+
+              <EnhancedSelectInput
+                name="enableCompression"
+                value={enableCompression}
+                modalTitle="Compression"
+                values={compressionOptions}
                 isDisabled={!selectedSeries}
                 onChange={handleInputChange}
               />

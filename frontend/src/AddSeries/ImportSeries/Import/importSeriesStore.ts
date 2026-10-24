@@ -39,6 +39,8 @@ export interface ImportSeriesItem {
   relativePath: string;
   seasonFolder: boolean;
   seasonType: string;
+  collectionStrategy: string;
+  enableCompression: boolean;
   selectedSeries?: Series;
   seriesType: SeriesType;
   name: string;
@@ -62,8 +64,13 @@ const importSeriesStore = create<ImportSeriesState>()(() => defaultState);
 export const useEnsureImportSeriesItems = (
   unmappedFolders: UnamppedFolderItem[]
 ) => {
-  const { monitor, qualityProfileId, seriesType, seasonFolder } =
-    useAddSeriesOptions();
+  const {
+    monitor,
+    qualityProfileId,
+    seriesType,
+    collectionStrategy,
+    enableCompression,
+  } = useAddSeriesOptions();
   const language = useAddSeriesLanguage();
 
   useEffect(() => {
@@ -79,10 +86,12 @@ export const useEnsureImportSeriesItems = (
         ...unmappedFolder,
         language,
         monitor,
-        qualityProfileId,
+        qualityProfileId: qualityProfileId || 1,
         seriesType,
-        seasonFolder,
+        seasonFolder: true,
         seasonType: 'official',
+        collectionStrategy: collectionStrategy || 'oneGameOneRom',
+        enableCompression: enableCompression ?? true,
         hasSearched: false,
       };
 
@@ -99,7 +108,8 @@ export const useEnsureImportSeriesItems = (
     monitor,
     qualityProfileId,
     seriesType,
-    seasonFolder,
+    collectionStrategy,
+    enableCompression,
   ]);
 };
 

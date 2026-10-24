@@ -58,5 +58,28 @@ namespace NzbDrone.Core.Test.BiosTests
             Subject.VerifyBios(biosPath, expectedMd5, expectedSha1).Should().BeTrue();
             Subject.VerifyBios(biosPath, "bad_md5", expectedSha1).Should().BeFalse();
         }
+
+        [Test]
+        public void Should_strictly_isolate_addon_bios_files_from_base_consoles()
+        {
+            Subject.GetCatalog("nes").Should().BeEmpty();
+            Subject.GetCatalog("fds").Select(b => b.FileName).Should().Contain("disksys.rom");
+
+            Subject.GetCatalog("snes").Should().BeEmpty();
+            Subject.GetCatalog("sgb").Select(b => b.FileName).Should().Contain("sgb_bios.bin");
+            Subject.GetCatalog("satellaview").Select(b => b.FileName).Should().Contain("BS-X.bin");
+
+            Subject.GetCatalog("genesis").Should().BeEmpty();
+            Subject.GetCatalog("segacd").Select(b => b.FileName).Should().Contain("bios_CD_U.bin");
+
+            Subject.GetCatalog("tg16").Should().BeEmpty();
+            Subject.GetCatalog("tgcd").Select(b => b.FileName).Should().Contain("syscard3.pce");
+
+            Subject.GetCatalog("jaguar").Should().BeEmpty();
+            Subject.GetCatalog("jaguarcd").Select(b => b.FileName).Should().Contain("jagcd.rom");
+
+            Subject.GetCatalog("n64").Should().BeEmpty();
+            Subject.GetCatalog("64dd").Select(b => b.FileName).Should().Contain("64DD_IPL.bin");
+        }
     }
 }

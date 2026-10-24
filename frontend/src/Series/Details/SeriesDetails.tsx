@@ -265,7 +265,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     useState(false);
   const [expandedState, setExpandedState] = useState<ExpandedState>({
     allExpanded: false,
-    allCollapsed: false,
+    allCollapsed: true,
     seasons: {},
   });
   const storedRegionOrder = useAddSeriesOption('regionOrder');

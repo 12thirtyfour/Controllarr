@@ -30,14 +30,10 @@ namespace NzbDrone.Core.Bios
 
     public class BiosService : IBiosService
     {
-        // Maps canonical platform catalog slugs (from GameCatalogProxy) to their hardware add-on BIOS group when shared
+        // Maps canonical platform catalog slugs (from GameCatalogProxy) only when the catalog slug differs from the BIOS group key for the exact same device
         private static readonly Dictionary<string, string> CompanionBiosGroupBySlug = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "nes", "fds" },
-            { "snes", "sgb" },
-            { "gg", "gamegear" },
-            { "tg16", "tgcd" },
-            { "jaguar", "jaguarcd" }
+            { "gg", "gamegear" }
         };
 
         private static readonly Dictionary<string, string> AbdessSystemFolderByBiosGroup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -52,6 +48,8 @@ namespace NzbDrone.Core.Bios
             { "sms", "Sega - Master System - Mark III" },
             { "gamegear", "Sega - Game Gear" },
             { "fds", "Nintendo - Family Computer Disk System" },
+            { "satellaview", "Nintendo - Satellaview" },
+            { "64dd", "Nintendo - Nintendo 64DD" },
             { "gb", "Nintendo - Game Boy" },
             { "gbc", "Nintendo - Game Boy Color" },
             { "sgb", "Nintendo - Super Nintendo Entertainment System" },
@@ -92,10 +90,12 @@ namespace NzbDrone.Core.Bios
             { "naomi", "Sega NAOMI / Atomiswave" },
             { "sms", "Sega Master System / Mark III" },
             { "gamegear", "Sega Game Gear" },
-            { "fds", "Nintendo Famicom Disk System (NES)" },
+            { "fds", "Nintendo Famicom Disk System" },
+            { "satellaview", "Nintendo Satellaview (BS-X)" },
+            { "64dd", "Nintendo 64DD" },
             { "gb", "Nintendo Game Boy" },
             { "gbc", "Nintendo Game Boy Color" },
-            { "sgb", "Super Game Boy (SNES Add-on)" },
+            { "sgb", "Super Game Boy" },
             { "gba", "Nintendo Game Boy Advance" },
             { "nds", "Nintendo DS" },
             { "dsi", "Nintendo DSi" },
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.Bios
             { "atari5200", "Atari 5200" },
             { "atari7800", "Atari 7800" },
             { "lynx", "Atari Lynx" },
-            { "jaguarcd", "Atari Jaguar / Jaguar CD" },
+            { "jaguarcd", "Atari Jaguar CD" },
             { "colecovision", "ColecoVision" },
             { "intellivision", "Mattel Intellivision" },
             { "odyssey2", "Magnavox Odyssey² / Videopac" },
@@ -320,7 +320,7 @@ namespace NzbDrone.Core.Bios
                 IsRequired = false
             },
 
-            // Nintendo Famicom Disk System (NES Add-on)
+            // Nintendo Famicom Disk System, Satellaview & 64DD
             new BiosFile
             {
                 GamePlatform = "fds",
@@ -328,6 +328,24 @@ namespace NzbDrone.Core.Bios
                 ExpectedMd5 = "ca30b50f880eb660a320674ed365ef7a",
                 ExpectedSha1 = "57fe1bdee955bb48d357e463ccbf129496930b62",
                 Description = "Famicom Disk System BIOS",
+                IsRequired = true
+            },
+            new BiosFile
+            {
+                GamePlatform = "satellaview",
+                FileName = "BS-X.bin",
+                ExpectedMd5 = "fed4d8242cfbed61343d53d48432cede",
+                ExpectedSha1 = "1a953b8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e",
+                Description = "Satellaview BS-X Town Cartridge BIOS",
+                IsRequired = true
+            },
+            new BiosFile
+            {
+                GamePlatform = "64dd",
+                FileName = "64DD_IPL.bin",
+                ExpectedMd5 = "8d3d9f294b6e174bc7b1d2f1c7285301",
+                ExpectedSha1 = "4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a19",
+                Description = "Nintendo 64DD Initial Program Loader (IPL)",
                 IsRequired = true
             },
 

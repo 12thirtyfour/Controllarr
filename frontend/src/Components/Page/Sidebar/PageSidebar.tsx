@@ -138,6 +138,10 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('MediaManagement'),
             to: '/settings/mediamanagement',
           },
+          {
+            title: () => 'Collection Settings',
+            to: '/settings/collection',
+          },
           { title: () => 'Virtual Libraries', to: '/settings/profiles' },
           { title: () => translate('Indexers'), to: '/settings/indexers' },
           {

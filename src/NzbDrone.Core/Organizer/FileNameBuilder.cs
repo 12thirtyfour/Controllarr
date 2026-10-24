@@ -72,7 +72,7 @@ namespace NzbDrone.Core.Organizer
 
         public static readonly Regex AirDateRegex = new Regex(@"\{Air(\s|\W|_)Date\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public static readonly Regex SeriesTitleRegex = new Regex(@"(?<token>\{(?:Series)(?<separator>[- ._])(Clean)?Title(The)?(Without)?(Year)?(?::(?<customFormat>[0-9-]+))?\})",
+        public static readonly Regex SeriesTitleRegex = new Regex(@"(?<token>\{(?:(?:Series)(?<separator>[- ._])(Clean)?Title(The)?(Without)?(Year)?|Platform(?:[- ._]Short)?|Manufacturer)(?::(?<customFormat>[0-9-]+))?\})",
                                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex FileNameCleanupRegex = new Regex(@"([- ._])(\1)+", RegexOptions.Compiled);
@@ -202,7 +202,8 @@ namespace NzbDrone.Core.Organizer
 
                 AddSeriesTokens(tokenHandlers, series, series.Title);
                 AddIdTokens(tokenHandlers, series);
-                AddEpisodeTokens(tokenHandlers, episodes);
+                AddSeasonTitleToken(tokenHandlers, series.Seasons?.FirstOrDefault(s => s.SeasonNumber == episodes.First().SeasonNumber)?.Title, episodes.First().SeasonNumber);
+                AddEpisodeTokens(tokenHandlers, episodes, series);
                 AddEpisodeTitlePlaceholderTokens(tokenHandlers);
                 AddEpisodeFileTokens(tokenHandlers, episodeFile, !patternHasEpisodeIdentifier || episodeFile.Id == 0);
                 AddQualityTokens(tokenHandlers, series, episodeFile);
@@ -271,24 +272,6 @@ namespace NzbDrone.Core.Organizer
 
         public string GetSeriesFolder(Series series, string title, NamingConfig namingConfig = null)
         {
-            if (_platformCatalogService != null)
-            {
-                var allPlatforms = _platformCatalogService.GetAll() ?? new System.Collections.Generic.List<NzbDrone.Core.Games.PlatformDefinition>();
-                var seriesTitle = series != null ? series.Title : title;
-                if (!string.IsNullOrWhiteSpace(seriesTitle))
-                {
-                    foreach (var platform in allPlatforms)
-                    {
-                        if (platform != null && ((platform.Name != null && platform.Name.Equals(seriesTitle, System.StringComparison.OrdinalIgnoreCase)) || (platform.Slug != null && platform.Slug.Equals(seriesTitle, System.StringComparison.OrdinalIgnoreCase))))
-                        {
-                            var man = platform.Manufacturer ?? "";
-                            var con = ResolveRegionalConsoleName(platform, NormalizeRegionKey(series?.OriginalCountry));
-                            return System.IO.Path.Combine(man, con);
-                        }
-                    }
-                }
-            }
-
             if (namingConfig == null)
             {
                 namingConfig = _namingConfigService != null ? _namingConfigService.GetConfig() : NamingConfig.Default;
@@ -304,13 +287,26 @@ namespace NzbDrone.Core.Organizer
             AddSeriesTokens(tokenHandlers, series, title);
             AddIdTokens(tokenHandlers, series);
 
-            var folderName = ReplaceTokens(namingConfig.SeriesFolderFormat, tokenHandlers, namingConfig);
+            var format = namingConfig.SeriesFolderFormat ?? "{Platform}";
+            var splitSegments = format.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var folderSegments = new List<string>();
 
-            folderName = CleanFolderName(folderName);
-            folderName = ReplaceReservedDeviceNames(folderName);
-            folderName = folderName.Replace("{ellipsis}", "...");
+            foreach (var segment in splitSegments)
+            {
+                var rendered = ReplaceTokens(segment, tokenHandlers, namingConfig);
+                rendered = CleanFolderName(rendered);
+                rendered = ReplaceReservedDeviceNames(rendered);
+                rendered = rendered.Replace("{ellipsis}", "...");
 
-            return folderName;
+                if (!string.IsNullOrWhiteSpace(rendered))
+                {
+                    folderSegments.Add(rendered);
+                }
+            }
+
+            return folderSegments.Any()
+                ? string.Join(Path.DirectorySeparatorChar.ToString(), folderSegments)
+                : CleanFolderName(title ?? string.Empty);
         }
 
         public string BuildPlatformRegionPath(string rootFolder, string platformNameOrSlug, string region = "US")
@@ -484,7 +480,7 @@ namespace NzbDrone.Core.Organizer
             AddSeriesTokens(tokenHandlers, series, series.Title);
             AddIdTokens(tokenHandlers, series);
             AddSeasonNumberToken(tokenHandlers, seasonNumber);
-            AddSeasonTitleToken(tokenHandlers, title);
+            AddSeasonTitleToken(tokenHandlers, title, seasonNumber);
 
             var format = seasonNumber == 0 ? namingConfig.SpecialsFolderFormat : namingConfig.SeasonFolderFormat;
             var folderName = ReplaceTokens(format, tokenHandlers, namingConfig);
@@ -622,7 +618,9 @@ namespace NzbDrone.Core.Organizer
                     var token = match.Groups["token"].Value;
 
                     if (FileNameBuilderTokenEqualityComparer.Instance.Equals(token, "{Episode Title}") ||
-                        FileNameBuilderTokenEqualityComparer.Instance.Equals(token, "{Episode CleanTitle}"))
+                        FileNameBuilderTokenEqualityComparer.Instance.Equals(token, "{Episode CleanTitle}") ||
+                        FileNameBuilderTokenEqualityComparer.Instance.Equals(token, "{Game Title}") ||
+                        FileNameBuilderTokenEqualityComparer.Instance.Equals(token, "{Game CleanTitle}"))
                     {
                         return true;
                     }
@@ -647,20 +645,47 @@ namespace NzbDrone.Core.Organizer
 
         private void AddSeriesTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Series series, string title)
         {
+            PlatformDefinition matchedPlatform = null;
+            if (_platformCatalogService != null && !string.IsNullOrWhiteSpace(title))
+            {
+                var allPlatforms = _platformCatalogService.GetAll() ?? new List<PlatformDefinition>();
+                matchedPlatform = allPlatforms.FirstOrDefault(p =>
+                    p != null &&
+                    ((p.Name != null && p.Name.Equals(title, StringComparison.OrdinalIgnoreCase)) ||
+                     (p.Slug != null && p.Slug.Equals(title, StringComparison.OrdinalIgnoreCase)) ||
+                     (series?.TitleSlug != null && p.Slug != null && p.Slug.Equals(series.TitleSlug, StringComparison.OrdinalIgnoreCase))));
+            }
+
+            var platformTitle = matchedPlatform != null
+                ? ResolveRegionalConsoleName(matchedPlatform, NormalizeRegionKey(series?.OriginalCountry))
+                : title;
+            var platformShort = !string.IsNullOrWhiteSpace(matchedPlatform?.Slug)
+                ? matchedPlatform.Slug.ToUpperInvariant()
+                : title;
+            var manufacturer = !string.IsNullOrWhiteSpace(matchedPlatform?.Manufacturer)
+                ? matchedPlatform.Manufacturer
+                : (!string.IsNullOrWhiteSpace(series?.Network) ? series.Network : "Nintendo");
+            var seriesYear = series?.Year ?? 0;
+
             tokenHandlers["{Series Title}"] = m => Truncate(title, m.CustomFormat);
             tokenHandlers["{Series CleanTitle}"] = m => Truncate(CleanTitle(title), m.CustomFormat);
-            tokenHandlers["{Series TitleYear}"] = m => Truncate(TitleYear(title, series.Year), m.CustomFormat);
-            tokenHandlers["{Series CleanTitleYear}"] = m => Truncate(CleanTitle(TitleYear(title, series.Year)), m.CustomFormat);
+            tokenHandlers["{Series TitleYear}"] = m => Truncate(TitleYear(title, seriesYear), m.CustomFormat);
+            tokenHandlers["{Series CleanTitleYear}"] = m => Truncate(CleanTitle(TitleYear(title, seriesYear)), m.CustomFormat);
             tokenHandlers["{Series TitleWithoutYear}"] = m => Truncate(TitleWithoutYear(title), m.CustomFormat);
             tokenHandlers["{Series CleanTitleWithoutYear}"] = m => Truncate(CleanTitle(TitleWithoutYear(title)), m.CustomFormat);
             tokenHandlers["{Series TitleThe}"] = m => Truncate(TitleThe(title), m.CustomFormat);
             tokenHandlers["{Series CleanTitleThe}"] = m => Truncate(CleanTitleThe(title), m.CustomFormat);
-            tokenHandlers["{Series TitleTheYear}"] = m => Truncate(TitleYear(TitleThe(title), series.Year), m.CustomFormat);
-            tokenHandlers["{Series CleanTitleTheYear}"] = m => Truncate(CleanTitleTheYear(title, series.Year), m.CustomFormat);
+            tokenHandlers["{Series TitleTheYear}"] = m => Truncate(TitleYear(TitleThe(title), seriesYear), m.CustomFormat);
+            tokenHandlers["{Series CleanTitleTheYear}"] = m => Truncate(CleanTitleTheYear(title, seriesYear), m.CustomFormat);
             tokenHandlers["{Series TitleTheWithoutYear}"] = m => Truncate(TitleWithoutYear(TitleThe(title)), m.CustomFormat);
             tokenHandlers["{Series CleanTitleTheWithoutYear}"] = m => Truncate(CleanTitleThe(TitleWithoutYear(title)), m.CustomFormat);
             tokenHandlers["{Series TitleFirstCharacter}"] = m => Truncate(TitleFirstCharacter(TitleThe(title)), m.CustomFormat);
-            tokenHandlers["{Series Year}"] = m => series.Year.ToString();
+            tokenHandlers["{Series Year}"] = m => seriesYear.ToString();
+
+            tokenHandlers["{Platform}"] = m => Truncate(platformTitle, m.CustomFormat);
+            tokenHandlers["{Platform Short}"] = m => Truncate(platformShort, m.CustomFormat);
+            tokenHandlers["{Manufacturer}"] = m => Truncate(manufacturer, m.CustomFormat);
+            tokenHandlers["{Platform Year}"] = m => seriesYear.ToString();
         }
 
         private string AddSeasonEpisodeNumberingTokens(string pattern, Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, NamingConfig namingConfig)
@@ -794,34 +819,71 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Season}"] = m => seasonNumber.ToString(m.CustomFormat);
         }
 
-        private void AddSeasonTitleToken(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, string title)
+        private void AddSeasonTitleToken(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, string title, int seasonNumber = 1)
         {
+            var fallbackRegion = seasonNumber switch
+            {
+                0 => "Unlicensed",
+                1 => "USA",
+                2 => "Europe",
+                3 => "Japan",
+                4 => "World",
+                5 => "Homebrew",
+                6 => "ROM Hacks",
+                _ => "USA"
+            };
+
+            var regionTitle = title.IsNullOrWhiteSpace() ? fallbackRegion : title;
+            var regionCode = NormalizeRegionKey(regionTitle);
+
             tokenHandlers["{Season Title}"] = m => title.IsNullOrWhiteSpace() ? string.Empty : Truncate(title, m.CustomFormat);
             tokenHandlers["{Season CleanTitle}"] = m => title.IsNullOrWhiteSpace() ? string.Empty : Truncate(CleanTitle(title), m.CustomFormat);
+            tokenHandlers["{Region}"] = m => Truncate(regionTitle, m.CustomFormat);
+            tokenHandlers["{Region Code}"] = m => Truncate(regionCode, m.CustomFormat);
+            tokenHandlers["{Game Title}"] = m => Truncate(regionTitle, m.CustomFormat);
+            tokenHandlers["{Game CleanTitle}"] = m => Truncate(CleanTitle(regionTitle), m.CustomFormat);
         }
 
-        private void AddEpisodeTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes)
+        private void AddEpisodeTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, Series series = null)
         {
-            if (!episodes.First().AirDate.IsNullOrWhiteSpace())
+            var firstEpisode = episodes.First();
+            if (!firstEpisode.AirDate.IsNullOrWhiteSpace())
             {
-                tokenHandlers["{Air Date}"] = m => episodes.First().AirDate.Replace('-', ' ');
+                tokenHandlers["{Air Date}"] = m => firstEpisode.AirDate.Replace('-', ' ');
+                var releaseYear = firstEpisode.AirDate.Length >= 4 ? firstEpisode.AirDate.Substring(0, 4) : firstEpisode.AirDate;
+                tokenHandlers["{Release Year}"] = m => releaseYear;
             }
             else
             {
                 tokenHandlers["{Air Date}"] = m => "Unknown";
+                tokenHandlers["{Release Year}"] = m => (series?.Year ?? 0) > 0 ? series.Year.ToString() : "Unknown";
             }
+
+            var parsedRom = Parser.RomParser.ParseRomName(firstEpisode.Title ?? string.Empty);
+            var versionTag = !string.IsNullOrWhiteSpace(parsedRom?.Revision)
+                ? $"Rev {parsedRom.Revision}"
+                : (!string.IsNullOrWhiteSpace(parsedRom?.Version) ? $"v{parsedRom.Version}" : string.Empty);
+            var discMatch = Regex.Match(firstEpisode.Title ?? string.Empty, @"\b(Disc\s*\d+|Disk\s*\d+|Side\s*[A-B])\b", RegexOptions.IgnoreCase);
+            var discTag = discMatch.Success ? discMatch.Groups[1].Value : string.Empty;
+
+            tokenHandlers["{Version}"] = m => Truncate(versionTag, m.CustomFormat);
+            tokenHandlers["{Disc}"] = m => Truncate(discTag, m.CustomFormat);
         }
 
         private void AddEpisodeTitlePlaceholderTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers)
         {
             tokenHandlers["{Episode Title}"] = m => null;
             tokenHandlers["{Episode CleanTitle}"] = m => null;
+            tokenHandlers["{Game Title}"] = m => null;
+            tokenHandlers["{Game CleanTitle}"] = m => null;
         }
 
         private void AddEpisodeTitleTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, int maxLength)
         {
             tokenHandlers["{Episode Title}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat);
             tokenHandlers["{Episode CleanTitle}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat);
+            tokenHandlers["{Game Title}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat);
+            tokenHandlers["{Game CleanTitle}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat);
         }
 
         private void AddEpisodeFileTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, EpisodeFile episodeFile, bool useCurrentFilenameAsFallback)
@@ -1346,6 +1408,8 @@ namespace NzbDrone.Core.Organizer
             var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
             tokenHandlers["{Episode Title}"] = m => string.Empty;
             tokenHandlers["{Episode CleanTitle}"] = m => string.Empty;
+            tokenHandlers["{Game Title}"] = m => string.Empty;
+            tokenHandlers["{Game CleanTitle}"] = m => string.Empty;
             tokenHandlers["{ellipsis}"] = m => "...";
 
             var result = ReplaceTokens(pattern, tokenHandlers, namingConfig);
