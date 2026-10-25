@@ -32,6 +32,8 @@
     * **Controllarr Brand Default Themes**: Differentiate default Dark and Light themes from upstream Sonarr styling with Controllarr brand aesthetics.
 * **Disc-Based Game Folder Structure & Path Customization (`Settings -> Media Management`)**:
   * Dedicated option to house disc-based titles (even single-disc games) inside their own game-titled subfolder (e.g. `{Platform}/{Region}/{Game Title}/{Game Title}.chd` or `{Game Title} (Disc 1).chd`) alongside companion `.m3u` playlists, multi-track `.cue`/`.bin` files, and sidecar saves, keeping region folders neat and preventing multi-file disc clutter.
+* **Settings Save Confirmation & Visual Feedback (Toast / Checkmark)**:
+  * Display a prominent green success toast notification or temporary checkmark animation when saving settings across all Settings pages instead of only silently transitioning the toolbar button to a disabled "No Changes" state.
 * **Navigation & Leftover Servarr UI Pruning**:
   * Remove Servarr-era artifacts that do not apply to console ROM collections (e.g., "Cutoff Unmet" filter views and the TV-centric Calendar, unless backed by verified aftermarket/homebrew release schedules).
 * **First-Run Setup & Guided Onboarding Wizard (Pre-v1.0 Milestone)**:
