@@ -2,7 +2,7 @@
 
 ## Identity & Architecture
 - Lead engineering agent for Controllarr, an automated console ROM and game library manager for Usenet and BitTorrent users, forked from the Sonarr architecture pattern.
-- Primary Branch Target: develop (transitioning to main).
+- Branch Model: `develop` is the staging/testing branch (no automated CI/CD builds on push; dev users build from source); `main` is the production/stable branch that runs full multi-architecture builds, checks, packaging (all 10 OS/arch targets + multi-arch Docker), and publishes official `v1.0.0+` GitHub Releases.
 - Target Application Port: 7050.
 
 ## Tech Stack & Persistence
@@ -24,13 +24,16 @@
 - Hardware Target Game Database (HTGDB) / SourceMaterial Database (SMDB) folder layouts for flash-carts and ODEs (MiSTer, OnionOS, Analogue Pocket, EverDrive, etc.).
 - Strict cryptographic hash-gating for unofficial content, ROM hacks, and homebrew.
 
-## Pre-Commit Verification Gate
-Before opening any PR, you must run and verify:
-1. `dotnet build --configuration Release` (must yield 0 errors, 0 warnings).
-2. `dotnet test --filter "FullyQualifiedName!~Integration"` (must pass cleanly, ignoring known legacy Sonarr.Http.Test failures).
+## Proportional Verification & Push Hygiene
+Match local build/test verification to the scope of the changes made:
+1. **Documentation-only changes** (`README.md`, `ROADMAP.md`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md`, `AGENTS.md`, Wiki): Do **not** run `dotnet build`, `dotnet test`, or `yarn build`.
+2. **Frontend UI / CSS / cosmetic-only changes**: Run `corepack yarn --cwd frontend build` (and `typecheck` when TypeScript interfaces change); do **not** run backend `dotnet build` or `dotnet test`.
+3. **Backend C# logic changes**: Run `dotnet build src/Sonarr.sln --configuration Release` (must yield 0 errors, 0 warnings) and run **targeted** unit tests (`dotnet test --no-build --configuration Release --filter "FullyQualifiedName~<RelevantFixture>"`) covering the modified service/domain.
+4. **Full Release / Merge-to-Main Gate**: Run full `dotnet build --configuration Release`, `corepack yarn --cwd frontend build`, and `dotnet test --filter "FullyQualifiedName!~Integration"` before merging `develop` into `main` for an official release.
+5. **Batched Pushing (`git commit` vs `git push`)**: Commit atomic progress locally (`git commit`), and only `git push` to `origin/develop` when a milestone/session is ready or when explicitly requested by the user.
 
-## Terminal Execution & Git Hygiene (Windows)
-- Always execute `git add`, `git commit`, `git push`, `gh`, `dotnet build`, and `dotnet test` directly with `BypassSandbox: true` without attempting a failing sandboxed run first (the Windows sandbox restricts `.git/index.lock` writes and `vstest.console` loopback sockets).
+## Terminal Execution (Windows)
+- Always execute `git add`, `git commit`, `git push`, `gh`, `dotnet build`, and `dotnet test` directly without attempting a failing sandboxed run first (the Windows sandbox restricts `.git/index.lock` writes and `vstest.console` loopback sockets).
 
 ## Jules Delegation & 5-Minute Check-In Protocol
 - **Proactive Task Splitting & Session Conservation**: For multi-part requests, evaluate whether independent, non-conflicting side tasks can be delegated to **Jules** via GitHub Issues (`gh issue create --label "jules"`). To conserve the 100/day session limit, bundle related side tasks into a single comprehensive issue rather than spawning multiple small issues, and **always reuse existing sessions** for follow-up changes or fixes by commenting on the existing Issue or PR thread instead of creating a new issue.
