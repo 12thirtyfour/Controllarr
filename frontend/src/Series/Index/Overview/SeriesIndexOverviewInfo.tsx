@@ -31,6 +31,7 @@ interface SeriesIndexOverviewInfoProps {
   sizeOnDisk?: number;
   tags: number[];
   sortKey: string;
+  onMonitorPress?: () => void;
 }
 
 const SeriesIndexOverviewInfo = forwardRef<
@@ -58,6 +59,7 @@ const SeriesIndexOverviewInfo = forwardRef<
     sizeOnDisk = 0,
     tags,
     sortKey,
+    onMonitorPress,
   } = props;
 
   const uiSettings = useUiSettingsValues();
@@ -95,9 +97,31 @@ const SeriesIndexOverviewInfo = forwardRef<
 
   if (showMonitored || sortKey === 'monitored') {
     chips.push(
-      <span key="monitored" className={styles.chip}>
-        {monitored ? translate('Monitored') : translate('Unmonitored')}
-      </span>
+      onMonitorPress ? (
+        <span
+          key="monitored"
+          className={classNames(styles.chip, styles.interactiveChip)}
+          role="button"
+          tabIndex={0}
+          title={
+            monitored
+              ? translate('ToggleMonitoredToUnmonitored')
+              : translate('ToggleUnmonitoredToMonitored')
+          }
+          onClick={onMonitorPress}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              onMonitorPress();
+            }
+          }}
+        >
+          {monitored ? translate('Monitored') : translate('Unmonitored')}
+        </span>
+      ) : (
+        <span key="monitored" className={styles.chip}>
+          {monitored ? translate('Monitored') : translate('Unmonitored')}
+        </span>
+      )
     );
   }
 

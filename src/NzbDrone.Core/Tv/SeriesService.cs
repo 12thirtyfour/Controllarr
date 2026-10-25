@@ -220,18 +220,81 @@ namespace NzbDrone.Core.Tv
 
             if (updateEpisodesToMatchSeason)
             {
-                foreach (var season in series.Seasons)
+                if (storedSeries != null && series.Monitored != storedSeries.Monitored)
                 {
-                    var storedSeason = storedSeries.Seasons.FirstOrDefault(s => s.SeasonNumber == season.SeasonNumber);
-
-                    if (storedSeason != null && season.Monitored != storedSeason.Monitored)
+                    if (series.Monitored)
                     {
-                        _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, season.Monitored);
+                        if (series.Seasons != null)
+                        {
+                            foreach (var season in series.Seasons)
+                            {
+                                if (season.SeasonNumber >= 1 && season.SeasonNumber < GameCatalogProxy.RegionUnlicensedSeason)
+                                {
+                                    season.Monitored = true;
+                                }
+
+                                if (season.Monitored)
+                                {
+                                    _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, true);
+                                    episodeMonitoredChanged = true;
+                                }
+                            }
+
+                            if (!series.Seasons.Any(s => s.Monitored))
+                            {
+                                foreach (var season in series.Seasons.Where(s => s.SeasonNumber > 0))
+                                {
+                                    season.Monitored = true;
+                                    _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, true);
+                                    episodeMonitoredChanged = true;
+                                }
+                            }
+                        }
+
+                        ApplyOneGameOneRomMonitoringIfNeeded(series, storedSeries, ref episodeMonitoredChanged);
+                    }
+                    else
+                    {
+                        if (series.Seasons != null)
+                        {
+                            foreach (var season in series.Seasons)
+                            {
+                                season.Monitored = false;
+                            }
+                        }
+
+                        var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+                        foreach (var ep in allEpisodes)
+                        {
+                            ep.Monitored = false;
+                        }
+
+                        if (allEpisodes.Any())
+                        {
+                            _episodeService.UpdateEpisodes(allEpisodes);
+                        }
+
                         episodeMonitoredChanged = true;
                     }
                 }
+                else
+                {
+                    if (series.Seasons != null)
+                    {
+                        foreach (var season in series.Seasons)
+                        {
+                            var storedSeason = storedSeries?.Seasons?.FirstOrDefault(s => s.SeasonNumber == season.SeasonNumber);
 
-                ApplyOneGameOneRomMonitoringIfNeeded(series, storedSeries, ref episodeMonitoredChanged);
+                            if (storedSeason != null && season.Monitored != storedSeason.Monitored)
+                            {
+                                _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, season.Monitored);
+                                episodeMonitoredChanged = true;
+                            }
+                        }
+                    }
+
+                    ApplyOneGameOneRomMonitoringIfNeeded(series, storedSeries, ref episodeMonitoredChanged);
+                }
             }
 
             // Never update AddOptions when updating a series, keep it the same as the existing stored series.

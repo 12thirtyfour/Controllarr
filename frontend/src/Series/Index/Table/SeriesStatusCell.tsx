@@ -3,11 +3,9 @@ import Icon from 'Components/Icon';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
 import StatusIndicator from 'Components/StatusIndicator';
 import VirtualTableRowCell from 'Components/Table/Cells/TableRowCell';
-import { icons } from 'Helpers/Props';
 import { SeriesStatus } from 'Series/Series';
 import { getSeriesStatusDetails } from 'Series/SeriesStatus';
 import { useToggleSeriesMonitored } from 'Series/useSeries';
-import translate from 'Utilities/String/translate';
 import styles from './SeriesStatusCell.module.css';
 
 interface SeriesStatusCellProps {
@@ -38,30 +36,12 @@ function SeriesStatusCell({
 
   return (
     <Component className={className} {...otherProps}>
-      {isSelectMode ? (
-        <MonitorToggleButton
-          className={styles.statusIcon}
-          monitored={monitored}
-          isSaving={isTogglingSeriesMonitored}
-          onPress={onMonitoredPress}
-        />
-      ) : (
-        <StatusIndicator
-          className={styles.statusIcon}
-          label={
-            monitored
-              ? translate('SeriesIsMonitored')
-              : translate('SeriesIsUnmonitored')
-          }
-          title={
-            monitored
-              ? translate('SeriesIsMonitored')
-              : translate('SeriesIsUnmonitored')
-          }
-        >
-          <Icon name={icons.MONITORED} filled={monitored} />
-        </StatusIndicator>
-      )}
+      <MonitorToggleButton
+        className={styles.statusIcon}
+        monitored={monitored}
+        isSaving={isTogglingSeriesMonitored}
+        onPress={onMonitoredPress}
+      />
 
       <StatusIndicator
         className={styles.statusIcon}

@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Single-Source Internet Archive Settings**:
+  - Eliminated duplicate configuration fields (Base URL, S3 Access Key, S3 Secret Key, Primary Archive URLs) from the Internet Archive Download Client.
+  - The download client now dynamically sources connection details, primary archive URLs, and S3 credentials directly from the configured Internet Archive Indexer, presenting users with a streamlined form containing only the client-specific `Download Path` setting.
 - **Primary Archive URLs & Direct Single-ROM Acquisition**:
   - Replaced ambiguous "Preferred Archives" with a dedicated "Primary Archive URLs" configuration in both Internet Archive Indexer and Internet Archive Download Client settings.
   - Users can specify explicit archive item links or identifiers (e.g. `https://archive.org/details/htgdb-gamepacks`).
@@ -45,6 +48,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Planned upcoming hardware SD card export workflow location in sidebar navigation under `Library -> Export` (`/export`).
 
 ### Fixed
+- **General Library Monitor Toggle & Full Console Wanted Cascading**:
+  - **Interactive Library Toggles**: Fixed the monitor toggle across general library views (Table, Poster, and Overview) so that clicking the bookmark/status icon immediately toggles the console's monitoring state with active saving spinners, removing the restriction that kept it static and non-interactive outside of bulk-select mode.
+  - **Full Console Wanted Cascading**: Toggling a platform to monitored (`Monitored = true`) now marks the entire console as wanted by automatically monitoring all standard retail regions (USA, Europe, Japan, etc.) and cascading monitoring to all games (episodes) according to the configured 1G1R or Completionist curation strategy. Toggling to unmonitored immediately unmonitors all regions and games.
+  - **Instant UI Cache Synchronization**: Updated `useToggleSeriesMonitored` to automatically invalidate `['/episode']` and `['/series']` queries on mutation success, ensuring the platform details page and general library views instantly refresh to reflect the updated monitoring state across all games.
 - **Library Platform Population Quality Improvements (SNES & All Consoles)**:
   - **Index Number Prefix Stripping**: Fixed games displaying numeric list prefixes like `001 `, `002 `, `01 - `, `0001 - ` in titles when importing SmokeMonster EverDrive playlists or numbered DAT sets, while safely preserving genuine numeric titles (such as *1942*, *2020 Super Baseball*, *3 Ninjas Kick Back*, *7th Saga*).
   - **Duplicate Playlist Exclusion**: Skipped EverDrive duplicate subfolders (`Game Series Collections`, `Best-Of`, `Top 100`) during SMDB parsing so only canonical platform games are indexed.

@@ -44,6 +44,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         private readonly IHttpClient _httpClient;
         private readonly IManageCommandQueue _commandQueue;
         private readonly IAppFolderInfo _appFolderInfo;
+        private readonly IIndexerFactory _indexerFactory;
 
         public override string Name => "InternetArchive";
 
@@ -56,12 +57,87 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                                Logger logger,
                                ILocalizationService localizationService,
                                IManageCommandQueue commandQueue = null,
-                               IAppFolderInfo appFolderInfo = null)
+                               IAppFolderInfo appFolderInfo = null,
+                               IIndexerFactory indexerFactory = null)
             : base(configService, diskProvider, remotePathMappingService, logger, localizationService)
         {
             _httpClient = httpClient;
             _commandQueue = commandQueue;
             _appFolderInfo = appFolderInfo;
+            _indexerFactory = indexerFactory;
+        }
+
+        private InternetArchiveIndexerSettings GetIndexerSettings()
+        {
+            try
+            {
+                var indexer = _indexerFactory?.All()?.FirstOrDefault(i =>
+                    i.Implementation == "InternetArchiveIndexer" ||
+                    i.Settings is InternetArchiveIndexerSettings);
+
+                return indexer?.Settings as InternetArchiveIndexerSettings;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public string GetS3AccessKey()
+        {
+            if (!string.IsNullOrWhiteSpace(Settings?.S3AccessKey))
+            {
+                return Settings.S3AccessKey.Trim();
+            }
+
+            return GetIndexerSettings()?.S3AccessKey?.Trim();
+        }
+
+        public string GetS3SecretKey()
+        {
+            if (!string.IsNullOrWhiteSpace(Settings?.S3SecretKey))
+            {
+                return Settings.S3SecretKey.Trim();
+            }
+
+            return GetIndexerSettings()?.S3SecretKey?.Trim();
+        }
+
+        public IEnumerable<string> GetPrimaryArchiveUrls()
+        {
+            if (Settings?.PrimaryArchiveUrls != null && Settings.PrimaryArchiveUrls.Any())
+            {
+                return Settings.PrimaryArchiveUrls;
+            }
+
+            return GetIndexerSettings()?.PrimaryArchiveUrls ?? Array.Empty<string>();
+        }
+
+        public string GetBaseUrl()
+        {
+            if (!string.IsNullOrWhiteSpace(Settings?.UrlBase))
+            {
+                return Settings.UrlBase.TrimEnd('/');
+            }
+
+            var indexerUrl = GetIndexerSettings()?.BaseUrl;
+            if (!string.IsNullOrWhiteSpace(indexerUrl))
+            {
+                return indexerUrl.TrimEnd('/');
+            }
+
+            return "https://archive.org";
+        }
+
+        public bool ShouldAllowAnonymousFallback()
+        {
+            var indexerSettings = GetIndexerSettings();
+            if (indexerSettings?.RequireCredentials == true)
+            {
+                return false;
+            }
+
+            return Settings?.AllowAnonymousFallback ?? true;
         }
 
         public string GetWorkingFolder()
@@ -200,16 +276,18 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Controllarr/10.0");
 
                 using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
-                if (!string.IsNullOrWhiteSpace(Settings?.S3AccessKey) && !string.IsNullOrWhiteSpace(Settings?.S3SecretKey))
+                var s3AccessKey = GetS3AccessKey();
+                var s3SecretKey = GetS3SecretKey();
+                if (!string.IsNullOrWhiteSpace(s3AccessKey) && !string.IsNullOrWhiteSpace(s3SecretKey))
                 {
-                    req.Headers.TryAddWithoutValidation("Authorization", $"LOW {Settings.S3AccessKey.Trim()}:{Settings.S3SecretKey.Trim()}");
+                    req.Headers.TryAddWithoutValidation("Authorization", $"LOW {s3AccessKey}:{s3SecretKey}");
                 }
 
                 var resp = await client.SendAsync(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                 if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
                     resp.Dispose();
-                    if (Settings?.AllowAnonymousFallback == true)
+                    if (ShouldAllowAnonymousFallback())
                     {
                         _logger.Warn("InternetArchive authenticated stream failed with {0}, falling back to anonymous.", resp.StatusCode);
                         using var anonReq = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
@@ -303,9 +381,11 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 request.AllowAutoRedirect = true;
                 request.SuppressHttpErrorStatusCodes = new[] { System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.Forbidden };
 
-                if (!string.IsNullOrWhiteSpace(Settings.S3AccessKey) && !string.IsNullOrWhiteSpace(Settings.S3SecretKey))
+                var s3AccessKey = GetS3AccessKey();
+                var s3SecretKey = GetS3SecretKey();
+                if (!string.IsNullOrWhiteSpace(s3AccessKey) && !string.IsNullOrWhiteSpace(s3SecretKey))
                 {
-                    request.Headers.Add("Authorization", $"LOW {Settings.S3AccessKey.Trim()}:{Settings.S3SecretKey.Trim()}");
+                    request.Headers.Add("Authorization", $"LOW {s3AccessKey}:{s3SecretKey}");
                 }
 
                 var response = await RetryStrategy
@@ -314,7 +394,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
                 if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
                 {
-                    if (Settings.AllowAnonymousFallback)
+                    if (ShouldAllowAnonymousFallback())
                     {
                         _logger.Warn("InternetArchive authenticated request failed with {0}, falling back to anonymous.", response.StatusCode);
                         request.Headers.Remove("Authorization");
@@ -385,12 +465,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public bool IsPreferredArchiveUrl(string downloadUrl)
         {
-            if (string.IsNullOrWhiteSpace(downloadUrl) || Settings?.PrimaryArchiveUrls == null)
+            if (string.IsNullOrWhiteSpace(downloadUrl))
             {
                 return false;
             }
 
-            var preferredList = Settings.PrimaryArchiveUrls
+            var preferredList = GetPrimaryArchiveUrls()
                 .Where(a => !string.IsNullOrWhiteSpace(a))
                 .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
                 .Where(a => !string.IsNullOrWhiteSpace(a))
@@ -486,13 +566,13 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 return downloadUrl;
             }
 
-            var preferredArchive = Settings?.PrimaryArchiveUrls?.FirstOrDefault(a => !string.IsNullOrWhiteSpace(a))?.Trim();
+            var preferredArchive = GetPrimaryArchiveUrls()?.FirstOrDefault(a => !string.IsNullOrWhiteSpace(a))?.Trim();
             if (!string.IsNullOrWhiteSpace(preferredArchive))
             {
                 preferredArchive = InternetArchiveIndexerSettings.ExtractIdentifier(preferredArchive);
             }
 
-            var baseUrl = string.IsNullOrWhiteSpace(Settings?.UrlBase) ? "https://archive.org" : Settings.UrlBase.TrimEnd('/');
+            var baseUrl = GetBaseUrl();
 
             if (!string.IsNullOrWhiteSpace(preferredArchive))
             {

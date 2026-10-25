@@ -901,6 +901,13 @@ export const useToggleSeriesMonitored = (seriesId: number) => {
             series.id === updatedSeries.id ? updatedSeries : series
           );
         });
+
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const firstKey = query.queryKey[0];
+            return firstKey === '/episode' || firstKey === '/series';
+          },
+        });
       },
     },
   });

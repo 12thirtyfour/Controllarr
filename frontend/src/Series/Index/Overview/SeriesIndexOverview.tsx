@@ -3,6 +3,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
 import IconButton from 'Components/Link/IconButton';
+import MonitorToggleButton from 'Components/MonitorToggleButton';
 import Link from 'Components/Link/Link';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import useMeasure from 'Helpers/Hooks/useMeasure';
@@ -13,6 +14,7 @@ import SeriesIndexProgressBar from 'Series/Index/ProgressBar/SeriesIndexProgress
 import SeriesIndexPosterSelect from 'Series/Index/Select/SeriesIndexPosterSelect';
 import { SeriesStatus, Statistics } from 'Series/Series';
 import { useSeriesOverviewOptions } from 'Series/seriesOptionsStore';
+import { useToggleSeriesMonitored } from 'Series/useSeries';
 import SeriesPoster from 'Series/SeriesPoster';
 import translate from 'Utilities/String/translate';
 import useSeriesIndexItem from '../useSeriesIndexItem';
@@ -67,6 +69,12 @@ function SeriesIndexOverview(props: SeriesIndexOverviewProps) {
   const overviewOptions = useSeriesOverviewOptions();
 
   const executeCommand = useExecuteCommand();
+  const { toggleSeriesMonitored, isTogglingSeriesMonitored } =
+    useToggleSeriesMonitored(seriesId);
+
+  const onMonitorPress = useCallback(() => {
+    toggleSeriesMonitored({ monitored: !series?.monitored });
+  }, [series?.monitored, toggleSeriesMonitored]);
   const [isEditSeriesModalOpen, setIsEditSeriesModalOpen] = useState(false);
   const [isDeleteSeriesModalOpen, setIsDeleteSeriesModalOpen] = useState(false);
 
@@ -209,6 +217,12 @@ function SeriesIndexOverview(props: SeriesIndexOverviewProps) {
             </Link>
 
             <div className={styles.actions}>
+              <MonitorToggleButton
+                className={styles.action}
+                monitored={monitored}
+                isSaving={isTogglingSeriesMonitored}
+                onPress={onMonitorPress}
+              />
               <SpinnerIconButton
                 className={styles.action}
                 name={icons.REFRESH}
@@ -266,6 +280,7 @@ function SeriesIndexOverview(props: SeriesIndexOverviewProps) {
             showPath={overviewOptions.showPath}
             showSizeOnDisk={overviewOptions.showSizeOnDisk}
             showTags={overviewOptions.showTags}
+            onMonitorPress={onMonitorPress}
             tags={tags}
           />
         </div>

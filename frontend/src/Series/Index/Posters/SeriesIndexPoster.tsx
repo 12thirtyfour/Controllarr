@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
 import IconButton from 'Components/Link/IconButton';
+import MonitorToggleButton from 'Components/MonitorToggleButton';
 import Link from 'Components/Link/Link';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import SeriesTagList from 'Components/SeriesTagList';
@@ -12,6 +13,7 @@ import EditSeriesModal from 'Series/Edit/EditSeriesModal';
 import SeriesIndexProgressBar from 'Series/Index/ProgressBar/SeriesIndexProgressBar';
 import SeriesIndexPosterSelect from 'Series/Index/Select/SeriesIndexPosterSelect';
 import { SeriesStatus, Statistics } from 'Series/Series';
+import { useToggleSeriesMonitored } from 'Series/useSeries';
 import {
   ShowStatusMode,
   useSeriesPosterOptions,
@@ -73,6 +75,12 @@ function SeriesIndexPoster(props: SeriesIndexPosterProps) {
     useUiSettingsValues();
 
   const executeCommand = useExecuteCommand();
+  const { toggleSeriesMonitored, isTogglingSeriesMonitored } =
+    useToggleSeriesMonitored(seriesId);
+
+  const onMonitorPress = useCallback(() => {
+    toggleSeriesMonitored({ monitored: !series?.monitored });
+  }, [series?.monitored, toggleSeriesMonitored]);
   const [hasPosterError, setHasPosterError] = useState(false);
   const [isEditSeriesModalOpen, setIsEditSeriesModalOpen] = useState(false);
   const [isDeleteSeriesModalOpen, setIsDeleteSeriesModalOpen] = useState(false);
@@ -167,6 +175,12 @@ function SeriesIndexPoster(props: SeriesIndexPosterProps) {
         ) : null}
 
         <div className={styles.controls}>
+          <MonitorToggleButton
+            className={styles.action}
+            monitored={monitored}
+            isSaving={isTogglingSeriesMonitored}
+            onPress={onMonitorPress}
+          />
           <SpinnerIconButton
             className={styles.action}
             name={icons.REFRESH}
@@ -244,7 +258,19 @@ function SeriesIndexPoster(props: SeriesIndexPosterProps) {
 
       {showMonitored || (showQualityProfile && !!qualityProfile?.name) ? (
         <div className={styles.meta}>
-          {showMonitored ? monitoredLabel : null}
+          {showMonitored ? (
+            <Link
+              className={styles.monitoredLink}
+              title={
+                monitored
+                  ? translate('ToggleMonitoredToUnmonitored')
+                  : translate('ToggleUnmonitoredToMonitored')
+              }
+              onPress={onMonitorPress}
+            >
+              {monitoredLabel}
+            </Link>
+          ) : null}
 
           {showMonitored && showQualityProfile && !!qualityProfile?.name ? (
             <span className={styles.metaSep}> · </span>

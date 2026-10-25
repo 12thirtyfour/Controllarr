@@ -101,5 +101,48 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
 
             result.Tags.Should().BeEquivalentTo(new[] { 2, 3 });
         }
+
+        [Test]
+        public void should_monitor_all_retail_seasons_and_episodes_when_series_monitored_becomes_true()
+        {
+            _existingSeries.Monitored = false;
+            _fakeSeries.Monitored = true;
+
+            GivenExistingSeries();
+
+            Subject.UpdateSeries(_fakeSeries);
+
+            _fakeSeries.Seasons.All(s => s.Monitored).Should().BeTrue();
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 1, true), Times.Once());
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 2, true), Times.Once());
+        }
+
+        [Test]
+        public void should_unmonitor_all_seasons_and_episodes_when_series_monitored_becomes_false()
+        {
+            _existingSeries.Monitored = true;
+            _fakeSeries.Monitored = false;
+
+            var fakeEpisodes = new List<Episode>
+            {
+                new Episode { Id = 10, SeriesId = _fakeSeries.Id, Monitored = true },
+                new Episode { Id = 20, SeriesId = _fakeSeries.Id, Monitored = true }
+            };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(_fakeSeries.Id))
+                  .Returns(fakeEpisodes);
+
+            GivenExistingSeries();
+
+            Subject.UpdateSeries(_fakeSeries);
+
+            _fakeSeries.Seasons.All(s => !s.Monitored).Should().BeTrue();
+            fakeEpisodes.All(e => !e.Monitored).Should().BeTrue();
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.UpdateEpisodes(fakeEpisodes), Times.Once());
+        }
     }
 }

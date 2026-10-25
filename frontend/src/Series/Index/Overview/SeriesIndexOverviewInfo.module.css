@@ -48,3 +48,13 @@
   margin-right: 4px;
   color: color-mix(in oklch, var(--inkMuted) 30%, var(--inkFaint));
 }
+
+.interactiveChip {
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--primaryColor, #5d9cec);
+    border-color: var(--primaryColor, #5d9cec);
+  }
+}

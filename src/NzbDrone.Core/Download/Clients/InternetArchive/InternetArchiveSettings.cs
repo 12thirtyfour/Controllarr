@@ -11,7 +11,6 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
     {
         public InternetArchiveSettingsValidator()
         {
-            RuleFor(c => c.UrlBase).ValidRootUrl();
             RuleFor(c => c.DownloadPath).IsValidPath().When(c => !string.IsNullOrWhiteSpace(c.DownloadPath));
         }
     }
@@ -26,19 +25,14 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             PrimaryArchiveUrls = Array.Empty<string>();
         }
 
-        [FieldDefinition(0, Label = "UrlBase", Type = FieldType.Textbox)]
+        [FieldDefinition(0, Label = "Download Path", Type = FieldType.Path, HelpText = "Optional download directory. Defaults to AppData/downloads.")]
+        public string DownloadPath { get; set; }
+
+        // Retained for backward-compatibility with serialized database records; connection and S3 credentials are now sourced directly from the Internet Archive Indexer
         public string UrlBase { get; set; }
-
-        [FieldDefinition(1, Label = "S3 Access Key", Type = FieldType.Textbox)]
         public string S3AccessKey { get; set; }
-
-        [FieldDefinition(2, Label = "S3 Secret Key", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string S3SecretKey { get; set; }
-
-        [FieldDefinition(3, Label = "Allow Anonymous Fallback", Type = FieldType.Checkbox)]
         public bool AllowAnonymousFallback { get; set; } = true;
-
-        [FieldDefinition(4, Label = "Primary Archive URLs", Type = FieldType.Tag, HelpText = "Links or identifiers to Internet Archive collections/items (e.g. https://archive.org/details/htgdb-gamepacks) that act as primary resources before searching archive.org directly.")]
         public IEnumerable<string> PrimaryArchiveUrls { get; set; }
 
         public IEnumerable<string> PreferredArchives
@@ -46,9 +40,6 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             get => PrimaryArchiveUrls;
             set => PrimaryArchiveUrls = value;
         }
-
-        [FieldDefinition(5, Label = "Download Path", Type = FieldType.Path, HelpText = "Optional download directory. Defaults to AppData/downloads.")]
-        public string DownloadPath { get; set; }
 
         public override NzbDroneValidationResult Validate()
         {

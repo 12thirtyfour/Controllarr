@@ -15,6 +15,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.InternetArchive;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -248,6 +249,49 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
 
             Subject.RemoveItem(items[0], false);
             Subject.GetItems().Should().BeEmpty();
+        }
+
+        [Test]
+        public async Task should_use_s3_credentials_and_primary_archive_from_indexer_when_downloader_settings_are_empty()
+        {
+            // Empty downloader settings
+            _settings.S3AccessKey = string.Empty;
+            _settings.S3SecretKey = string.Empty;
+            _settings.PrimaryArchiveUrls = Array.Empty<string>();
+
+            var indexerSettings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                S3AccessKey = "indexer_access_key",
+                S3SecretKey = "indexer_secret_key",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var indexerDef = new IndexerDefinition
+            {
+                Implementation = "InternetArchiveIndexer",
+                Settings = indexerSettings
+            };
+
+            Mocker.GetMock<IIndexerFactory>()
+                  .Setup(f => f.All())
+                  .Returns(new List<IndexerDefinition> { indexerDef });
+
+            HttpRequest capturedRequest = null;
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .Callback<HttpRequest, CancellationToken>((req, token) => capturedRequest = req)
+                  .ReturnsAsync(new HttpResponse(new HttpRequest("https://archive.org"), new HttpHeader(), new byte[0]));
+
+            var release = new ReleaseInfo { DownloadUrl = "Super Mario World.sfc", Title = "Super Mario World" };
+            var remoteEpisode = new RemoteEpisode { Release = release };
+
+            await Subject.Download(remoteEpisode, null);
+
+            capturedRequest.Should().NotBeNull();
+            capturedRequest.Url.FullUri.Should().Be("https://archive.org/download/htgdb-gamepacks/Super Mario World.sfc");
+            capturedRequest.Headers.GetValues("Authorization").Should().ContainSingle();
+            capturedRequest.Headers.GetValues("Authorization").First().Should().Be("LOW indexer_access_key:indexer_secret_key");
         }
     }
 }
