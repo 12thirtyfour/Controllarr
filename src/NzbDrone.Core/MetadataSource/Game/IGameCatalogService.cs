@@ -58,6 +58,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         HashSet<int> GetSelectedGameIdsForPlatform(int platformTvdbId);
         void ClearPendingPlatformSelections(int platformTvdbId);
         void InvalidatePlatformCache(int? platformTvdbId = null);
+        int SyncPlatformDatCatalogs(int platformTvdbId, bool forceRefresh = false, string seasonType = null);
         PlatformCatalogEntry InferPlatformForText(string text);
         Episode CreateEpisodeForGame(GameCatalogEntry game, int seriesId, bool monitored);
     }

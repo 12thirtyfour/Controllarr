@@ -185,6 +185,27 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
         }
 
+        public int SyncPlatformDatCatalogs(int platformTvdbId, bool forceRefresh = false, string seasonType = null)
+        {
+            if (!TryGetPlatformEntry(platformTvdbId, out var platform))
+            {
+                return 0;
+            }
+
+            if (forceRefresh)
+            {
+                InvalidatePlatformCache(platformTvdbId);
+            }
+
+            var encryptionPref = ParseEncryptionPreference(seasonType);
+            var synced = SyncOnlineCatalogForPlatform(
+                platform,
+                encryptionPref == Games.EncryptionPreference.Encrypted,
+                forceRefresh);
+
+            return synced?.Count ?? 0;
+        }
+
         public PlatformCatalogEntry InferPlatformForText(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -588,14 +609,17 @@ namespace NzbDrone.Core.MetadataSource.Game
             return new Tuple<Series, List<Episode>>(series, episodes);
         }
 
-        private List<GameCatalogEntry> SyncOnlineCatalogForPlatform(PlatformCatalogEntry platform, bool preferEncryptedRoms = false)
+        private List<GameCatalogEntry> SyncOnlineCatalogForPlatform(
+            PlatformCatalogEntry platform,
+            bool preferEncryptedRoms = false,
+            bool forceRefresh = false)
         {
             if (platform == null || string.IsNullOrWhiteSpace(platform.LibretroSystemName) || _httpClient == null)
             {
                 return new List<GameCatalogEntry>();
             }
 
-            if (!preferEncryptedRoms && SyncedPlatformGamesCache.TryGetValue(platform.TvdbId, out var cached))
+            if (!forceRefresh && !preferEncryptedRoms && SyncedPlatformGamesCache.TryGetValue(platform.TvdbId, out var cached))
             {
                 return cached;
             }
@@ -625,7 +649,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (parsedEntries.Count > 0)
                         {
                             syncedList.AddRange(parsedEntries);
-                            TryCacheRemoteDatContent(platform, feed.SourceLabel, response.Content);
+                            TryCacheRemoteDatContent(platform, feed.SourceLabel, response.Content, forceRefresh);
                         }
                     }
                 }
@@ -642,7 +666,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var smdbResponse = _httpClient.Execute(smdbRequest);
                     if (smdbResponse != null && !smdbResponse.HasHttpError && !string.IsNullOrWhiteSpace(smdbResponse.Content))
                     {
-                        var smdbEntries = ParseSmokeMonsterSmdbContent(platform, smdbResponse.Content, releaseYearLookup, seenNames);
+                        var smdbEntries = ParseSmokeMonsterSmdbContent(platform, smdbResponse.Content, releaseYearLookup, seenNames, forceRefresh);
                         if (smdbEntries.Count > 0)
                         {
                             syncedList.AddRange(smdbEntries);
@@ -661,7 +685,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var nswdbResponse = _httpClient.Execute(nswdbRequest);
                     if (nswdbResponse != null && !nswdbResponse.HasHttpError && !string.IsNullOrWhiteSpace(nswdbResponse.Content))
                     {
-                        var nswdbEntries = ParseNswdbXmlContent(platform, nswdbResponse.Content, seenNames);
+                        var nswdbEntries = ParseNswdbXmlContent(platform, nswdbResponse.Content, seenNames, forceRefresh);
                         if (nswdbEntries.Count > 0)
                         {
                             syncedList.AddRange(nswdbEntries);
@@ -834,7 +858,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             PlatformCatalogEntry platform,
             string smdbContent,
             Dictionary<string, int> releaseYearLookup,
-            HashSet<string> seenNames)
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
         {
             var results = new List<GameCatalogEntry>();
             var datEntries = new List<DatEntry>();
@@ -900,7 +925,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     var catalogName = $"{platform.LibretroSystemName} (SmokeMonster SMDB)";
                     var existing = _datCacheService.GetAllDatFiles();
-                    if (existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    if (forceRefresh || existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
                     {
                         _datCacheService.Insert(
                             new DatFile
@@ -925,7 +950,8 @@ namespace NzbDrone.Core.MetadataSource.Game
         private List<GameCatalogEntry> ParseNswdbXmlContent(
             PlatformCatalogEntry platform,
             string xmlContent,
-            HashSet<string> seenNames)
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
         {
             var results = new List<GameCatalogEntry>();
             var datEntries = new List<DatEntry>();
@@ -994,7 +1020,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     var catalogName = $"{platform.LibretroSystemName} (NSWDB)";
                     var existing = _datCacheService.GetAllDatFiles();
-                    if (existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    if (forceRefresh || existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
                     {
                         _datCacheService.Insert(
                             new DatFile
@@ -1052,7 +1078,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             return lookup;
         }
 
-        private void TryCacheRemoteDatContent(PlatformCatalogEntry platform, string sourceLabel, string datContent)
+        private void TryCacheRemoteDatContent(PlatformCatalogEntry platform, string sourceLabel, string datContent, bool forceRefresh = false)
         {
             if (_datCacheService == null || _datParserService == null || string.IsNullOrWhiteSpace(datContent))
             {
@@ -1063,7 +1089,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 var catalogName = $"{platform.LibretroSystemName} ({sourceLabel})";
                 var existing = _datCacheService.GetAllDatFiles();
-                if (existing != null && existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                if (!forceRefresh && existing != null && existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
                 {
                     return;
                 }

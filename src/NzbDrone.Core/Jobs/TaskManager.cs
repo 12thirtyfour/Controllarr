@@ -7,6 +7,7 @@ using NzbDrone.Core.Backup;
 using NzbDrone.Core.Caching;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Configuration.Events;
+using NzbDrone.Core.Dat.Commands;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.HealthCheck;
@@ -108,6 +109,12 @@ namespace NzbDrone.Core.Jobs
                     {
                         Interval = 12 * 60,
                         TypeName = typeof(RefreshSeriesCommand).FullName
+                    },
+
+                    new ScheduledTask
+                    {
+                        Interval = 24 * 60,
+                        TypeName = typeof(UpdateDatCatalogsCommand).FullName
                     },
 
                     new ScheduledTask

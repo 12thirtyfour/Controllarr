@@ -15,7 +15,7 @@
 | **Phase 5** | Multi-Architecture Docker Packaging, Port `7050` Standardization & Official GitHub Wiki Suite | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.3](CHANGELOG.md#100-beta3---2026-10-24) |
 | **Phase 6** | SD Card Multi-Device Exporter (15+ Hardware Targets), Live RetroAchievements API Integration & WebAssembly/Desktop Game Launcher | ✅ Completed | [1.0.0-beta.1](CHANGELOG.md#100-beta1---2026-10-23) / [1.0.0-beta.4](CHANGELOG.md#100-beta4---2026-10-24) |
 | **Phase 7** | Brand Unification, AppData/DB Isolation (`~/.config/Controllarr`), Database Table Renames (`Migration 242`), Built-In GitHub Releases Updater, Collection Settings, Regional Console Themes & HTTPS Activity Queue/History | ✅ Completed | [1.0.0-beta.2](CHANGELOG.md#100-beta2---2026-10-23) / [1.0.0-beta.6](CHANGELOG.md#100-beta6---2026-10-24) |
-| **Phase 8** | Cross-Referenced ROM Verification Catalogs (`No-Intro`, `Redump`, `TOSEC`, `SmokeMonster HTGDB/SMDB`, `Neo Geo AES/CD`, `Switch NSWDB`), Decrypted NDS/3DS Default & `PreferEncryptedRoms` Toggle, Automated Download Cryptographic Hash Gate (`VerifiedRomHashSpecification`), Priority-Cascading Metadata Scrapers (`IGDB`, `ScreenScraper`, `TheGamesDB`, `Libretro/LaunchBox`) with API Rate-Limit Fail-Safes, `gamelist.xml` & SD Card Media Export, Local DAT/SMDB Import, Disc Compression (`.chd`/`.rvz`) & `.m3u` Generation, Archive Repackaging, Sidecar Save Mobility, Compiled Binary Rename (`Controllarr`) & Production Multi-Arch `Dockerfile` + `docker-compose.yml` | ✅ Completed | [1.0.0-beta.7](CHANGELOG.md#100-beta7---2026-10-24) |
+| **Phase 8** | Cross-Referenced ROM Verification Catalogs (`No-Intro`, `Redump`, `TOSEC`, `SmokeMonster HTGDB/SMDB`, `Neo Geo AES/CD`, `Switch NSWDB`), 3-Way `EncryptionPreference` (`NotEncrypted`, `Encrypted`, `Both`) & Encrypted Version Grouping, Automated Download Cryptographic Hash Gate (`VerifiedRomHashSpecification`), Priority-Cascading Metadata Scrapers (`IGDB`, `ScreenScraper`, `TheGamesDB`, `Libretro/LaunchBox`) with API Rate-Limit Fail-Safes, `gamelist.xml` & SD Card Media Export, Local DAT/SMDB Import, Scheduled Daily DAT Catalog Auto-Updates (`UpdateDatCatalogsCommand`), Cryptographic Hash-Gated `.ips`/`.bps`/`.xdelta` Romhack & Translation Patching Pipeline (`RomPatchingService`), Disc Compression (`.chd`/`.rvz`) & `.m3u` Generation, Archive Repackaging, Sidecar Save Mobility, Compiled Binary Rename (`Controllarr`) & Production Multi-Arch `Dockerfile` + `docker-compose.yml` | ✅ Completed | [1.0.0-beta.7](CHANGELOG.md#100-beta7---2026-10-24) |
 
 ---
 
@@ -36,9 +36,5 @@
 
 ## Pitched Ideas & Future Enhancements (Post-1.0 Backlog)
 
-* **Cryptographic Hash-Gated Romhack & Translation Patching Pipeline**:
-  * Automatically apply `.ips`, `.bps`, and `.xdelta` translation or romhack patches on top of hash-verified retail base ROMs, outputting patched copies into the `Hacks & Translations` section without modifying the clean retail 1G1R file.
-* **Scheduled DAT Catalog Auto-Updates**:
-  * Background task to periodically pull updated No-Intro, Redump, and TOSEC DAT snapshots so newly dumped revisions, translations, and aftermarket releases appear automatically.
 * **Battery Save & Save State Synchronization**:
   * Optional bi-directional backup and synchronization of `.srm`/`.sav` battery saves and emulator save states across local emulators, network shares, and handheld SD cards.

@@ -9,6 +9,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
@@ -34,6 +35,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IRuntimeInfo _runtimeInfo;
         private readonly IConfigService _configService;
         private readonly IRejectedFileExtensionService _rejectedFileExtensionService;
+        private readonly IRomPatchingService _romPatchingService;
         private readonly Logger _logger;
 
         public DownloadedEpisodesImportService(IDiskProvider diskProvider,
@@ -46,7 +48,8 @@ namespace NzbDrone.Core.MediaFiles
                                                IRuntimeInfo runtimeInfo,
                                                IConfigService configService,
                                                IRejectedFileExtensionService rejectedFileExtensionService,
-                                               Logger logger)
+                                               Logger logger,
+                                               IRomPatchingService romPatchingService = null)
         {
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
@@ -58,6 +61,7 @@ namespace NzbDrone.Core.MediaFiles
             _runtimeInfo = runtimeInfo;
             _configService = configService;
             _rejectedFileExtensionService = rejectedFileExtensionService;
+            _romPatchingService = romPatchingService;
             _logger = logger;
         }
 
@@ -216,8 +220,34 @@ namespace NzbDrone.Core.MediaFiles
                 };
             }
 
-            var decisions = _importDecisionMaker.GetImportDecisions(videoFiles.ToList(), series, downloadClientItem, downloadClientItemInfo, folderInfo, true);
+            var patchResults = new List<ImportResult>();
+            var remainingVideoFiles = new List<string>();
+
+            foreach (var candidateFile in videoFiles)
+            {
+                var ext = Path.GetExtension(candidateFile);
+                if (_romPatchingService != null &&
+                    !string.IsNullOrWhiteSpace(ext) &&
+                    MediaFileExtensions.PatchExtensions.Contains(ext))
+                {
+                    var patchOutcome = _romPatchingService.TryApplyPatchFileForSeries(candidateFile, series);
+                    if (patchOutcome != null && patchOutcome.Success)
+                    {
+                        patchResults.Add(new ImportResult(new ImportDecision(new LocalEpisode
+                        {
+                            Path = patchOutcome.OutputRomPath ?? candidateFile,
+                            Series = series
+                        })));
+                        continue;
+                    }
+                }
+
+                remainingVideoFiles.Add(candidateFile);
+            }
+
+            var decisions = _importDecisionMaker.GetImportDecisions(remainingVideoFiles, series, downloadClientItem, downloadClientItemInfo, folderInfo, true);
             var importResults = _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+            importResults.AddRange(patchResults);
 
             if (importMode == ImportMode.Auto)
             {
@@ -331,6 +361,24 @@ namespace NzbDrone.Core.MediaFiles
                            {
                                FileIsLockedResult(fileInfo.FullName)
                            };
+                }
+            }
+
+            if (_romPatchingService != null && MediaFileExtensions.PatchExtensions.Contains(extension))
+            {
+                var patchOutcome = _romPatchingService.TryApplyPatchFileForSeries(fileInfo.FullName, series);
+                if (patchOutcome != null && patchOutcome.Success)
+                {
+                    var patchedEpisode = new LocalEpisode
+                    {
+                        Path = patchOutcome.OutputRomPath ?? fileInfo.FullName,
+                        Series = series
+                    };
+
+                    return new List<ImportResult>
+                    {
+                        new ImportResult(new ImportDecision(patchedEpisode))
+                    };
                 }
             }
 

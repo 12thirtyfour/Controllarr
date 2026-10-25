@@ -40,6 +40,34 @@ interface DatImportResult {
   entryCount: number;
 }
 
+interface DatCatalogSyncResult {
+  platformsSynced: number;
+  totalEntriesSynced: number;
+  syncedPlatformNames?: string[];
+}
+
+interface RomPatchRequest {
+  seriesId?: number;
+  baseRomPath?: string;
+  patchFilePath?: string;
+  patchFileName?: string;
+  patchBase64Content?: string;
+  outputTitle?: string;
+}
+
+interface RomPatchResult {
+  success: boolean;
+  message: string;
+  format?: string;
+  baseRomPath?: string;
+  outputRomPath?: string;
+  outputCrc32?: string;
+  outputSha1?: string;
+  outputSha256?: string;
+  verifiedInCatalog?: boolean;
+  matchedCatalogName?: string;
+}
+
 interface MetadataScraperConfig {
   id: string;
   name: string;
@@ -198,6 +226,10 @@ function MetadataSettings() {
   const [savedNotice, setSavedNotice] = useState(false);
   const [datServerPath, setDatServerPath] = useState('');
   const [datImportStatus, setDatImportStatus] = useState<string | null>(null);
+  const [patchServerPath, setPatchServerPath] = useState('');
+  const [baseRomServerPath, setBaseRomServerPath] = useState('');
+  const [patchOutputTitle, setPatchOutputTitle] = useState('');
+  const [patchStatus, setPatchStatus] = useState<RomPatchResult | null>(null);
 
   const { data: backendSettings } = useApiQuery<UnifiedMetadataSettings>({
     path: '/gamemetadata/settings',
@@ -207,6 +239,44 @@ function MetadataSettings() {
     DatFileRecord[]
   >({
     path: '/gamemetadata/dats',
+  });
+
+  const { mutate: syncOnlineDats, isPending: isSyncingOnlineDats } =
+    useApiMutation<DatCatalogSyncResult, Record<string, never>>({
+      path: '/gamemetadata/dats/sync',
+      method: 'POST',
+      mutationOptions: {
+        onSuccess: (result) => {
+          const platformsCount = result?.platformsSynced ?? 0;
+          const entriesCount = result?.totalEntriesSynced ?? 0;
+          setDatImportStatus(
+            `Synced online No-Intro, Redump, TOSEC, SmokeMonster SMDB, and NSWDB catalogs across ${platformsCount} platform(s) (${entriesCount.toLocaleString()} entries verified).`
+          );
+          refetchDats();
+        },
+        onError: () => {
+          setDatImportStatus('Failed to sync online DAT / SMDB catalogs.');
+        },
+      },
+    });
+
+  const { mutate: applyRomPatch, isPending: isApplyingPatch } = useApiMutation<
+    RomPatchResult,
+    RomPatchRequest
+  >({
+    path: '/gamemetadata/patches/apply',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (result) => {
+        setPatchStatus(result);
+      },
+      onError: () => {
+        setPatchStatus({
+          success: false,
+          message: 'Failed to apply ROM patch.',
+        });
+      },
+    },
   });
 
   const { mutate: importDatFile, isPending: isImportingDat } = useApiMutation<
@@ -357,6 +427,47 @@ function MetadataSettings() {
     [importDatFile]
   );
 
+  const handleSyncOnlineDatsPress = useCallback(() => {
+    syncOnlineDats({});
+  }, [syncOnlineDats]);
+
+  const handlePatchUploadChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (dataUrl) {
+          applyRomPatch({
+            patchFileName: file.name,
+            patchBase64Content: dataUrl,
+            baseRomPath: baseRomServerPath.trim() || undefined,
+            outputTitle: patchOutputTitle.trim() || undefined,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    },
+    [applyRomPatch, baseRomServerPath, patchOutputTitle]
+  );
+
+  const handleApplyServerPatchPress = useCallback(() => {
+    if (!patchServerPath.trim()) {
+      return;
+    }
+
+    applyRomPatch({
+      patchFilePath: patchServerPath.trim(),
+      baseRomPath: baseRomServerPath.trim() || undefined,
+      outputTitle: patchOutputTitle.trim() || undefined,
+    });
+  }, [applyRomPatch, patchServerPath, baseRomServerPath, patchOutputTitle]);
+
   const sortedScrapers = [...settings.scrapers].sort(
     (a, b) => a.priority - b.priority
   );
@@ -431,7 +542,7 @@ function MetadataSettings() {
                   placeholder="C:\DATs\Nintendo - Super Nintendo Entertainment System.dat"
                   onChange={handleDatPathChange}
                 />
-                <div style={{ marginTop: '8px' }}>
+                <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
                   <Button
                     kind={kinds.PRIMARY}
                     size={sizes.SMALL}
@@ -439,6 +550,16 @@ function MetadataSettings() {
                     onPress={handleImportServerPathPress}
                   >
                     {isImportingDat ? 'Importing...' : 'Import Server File'}
+                  </Button>
+                  <Button
+                    kind={kinds.DEFAULT}
+                    size={sizes.SMALL}
+                    isDisabled={isSyncingOnlineDats}
+                    onPress={handleSyncOnlineDatsPress}
+                  >
+                    {isSyncingOnlineDats
+                      ? 'Syncing Online Catalogs...'
+                      : 'Sync Online DAT & SMDB Catalogs Now (Daily Scheduled)'}
                   </Button>
                 </div>
               </FormRow>
@@ -463,6 +584,87 @@ function MetadataSettings() {
                   </div>
                 </FormRow>
               ) : null}
+            </FieldSet>
+
+            <FieldSet
+              legend="Cryptographic Hash-Gated Romhack & Translation Patcher (.ips / .bps / .xdelta)"
+              caption="Automatically or manually apply .ips, .bps, and .xdelta / VCDIFF patches onto verified retail base ROMs in your library, outputting the patched copy into the ROM Hacks & Translations folder without modifying your clean 1G1R retail file."
+            >
+              {patchStatus ? (
+                <Alert
+                  kind={patchStatus.success ? kinds.SUCCESS : kinds.DANGER}
+                >
+                  {patchStatus.message}
+                  {patchStatus.outputRomPath
+                    ? ` → ${patchStatus.outputRomPath}`
+                    : ''}
+                </Alert>
+              ) : null}
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Optional Base Retail ROM Path</FormLabel>
+                <FormInputHelpText text="Leave blank to automatically discover the matching retail base ROM in your library by BPS source CRC32 or title, or specify an explicit retail ROM path" />
+                <FormInput
+                  type={inputTypes.TEXT}
+                  name="baseRomServerPath"
+                  value={baseRomServerPath}
+                  placeholder="(Auto-discover from platform library)"
+                  onChange={({ value }: InputChanged<string>) =>
+                    setBaseRomServerPath(value ?? '')
+                  }
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Optional Output Hack / Translation Title</FormLabel>
+                <FormInputHelpText text="Leave blank to use the matched HTGDB / SMDB / DAT canonical name or patch filename" />
+                <FormInput
+                  type={inputTypes.TEXT}
+                  name="patchOutputTitle"
+                  value={patchOutputTitle}
+                  placeholder="e.g. Mother 3 [T+Eng v1.3] (Hack)"
+                  onChange={({ value }: InputChanged<string>) =>
+                    setPatchOutputTitle(value ?? '')
+                  }
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Upload & Apply Patch File (.ips / .bps / .xdelta / .zip)</FormLabel>
+                <FormInputHelpText text="Select a local .ips, .bps, .xdelta, .vcdiff, or .zip patch file to apply onto the verified retail base ROM" />
+                <input
+                  type="file"
+                  accept=".ips,.bps,.xdelta,.vcdiff,.zip"
+                  disabled={isApplyingPatch}
+                  onChange={handlePatchUploadChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Or Apply Patch from Server Path</FormLabel>
+                <FormInputHelpText text="Full server path to a .ips, .bps, .xdelta, .vcdiff, or .zip patch file" />
+                <FormInput
+                  type={inputTypes.TEXT}
+                  name="patchServerPath"
+                  value={patchServerPath}
+                  placeholder="C:\Patches\Super Mario Bros. 3Mix.bps"
+                  onChange={({ value }: InputChanged<string>) =>
+                    setPatchServerPath(value ?? '')
+                  }
+                />
+                <div style={{ marginTop: '8px' }}>
+                  <Button
+                    kind={kinds.PRIMARY}
+                    size={sizes.SMALL}
+                    isDisabled={isApplyingPatch || !patchServerPath.trim()}
+                    onPress={handleApplyServerPatchPress}
+                  >
+                    {isApplyingPatch
+                      ? 'Applying Patch...'
+                      : 'Apply Patch to Retail Base ROM'}
+                  </Button>
+                </div>
+              </FormRow>
             </FieldSet>
 
             {sortedScrapers.map((scraper) => (

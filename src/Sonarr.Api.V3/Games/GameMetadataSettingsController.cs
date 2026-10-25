@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Dat;
+using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.MetadataSource.Game;
 using Sonarr.Http;
 
@@ -11,10 +12,17 @@ namespace Sonarr.Api.V3.Games
     public class GameMetadataSettingsController : Controller
     {
         private readonly IGameMediaAssetService _gameMediaAssetService;
+        private readonly IDatCatalogUpdateService _datCatalogUpdateService;
+        private readonly IRomPatchingService _romPatchingService;
 
-        public GameMetadataSettingsController(IGameMediaAssetService gameMediaAssetService)
+        public GameMetadataSettingsController(
+            IGameMediaAssetService gameMediaAssetService,
+            IDatCatalogUpdateService datCatalogUpdateService = null,
+            IRomPatchingService romPatchingService = null)
         {
             _gameMediaAssetService = gameMediaAssetService;
+            _datCatalogUpdateService = datCatalogUpdateService;
+            _romPatchingService = romPatchingService;
         }
 
         [HttpGet("settings")]
@@ -75,6 +83,30 @@ namespace Sonarr.Api.V3.Games
         public ActionResult<DatImportResultModel> ImportDat([FromBody] DatImportRequestModel request)
         {
             return Ok(_gameMediaAssetService.ImportDatOrSmdb(request));
+        }
+
+        [HttpPost("dats/sync")]
+        [Produces("application/json")]
+        public ActionResult<DatCatalogSyncResultModel> SyncOnlineDatCatalogs()
+        {
+            return Ok(_datCatalogUpdateService?.SyncLibraryDatCatalogs() ?? new DatCatalogSyncResultModel());
+        }
+
+        [HttpPost("patches/apply")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public ActionResult<RomPatchResultModel> ApplyRomPatch([FromBody] RomPatchRequestModel request)
+        {
+            if (_romPatchingService == null)
+            {
+                return Ok(new RomPatchResultModel
+                {
+                    Success = false,
+                    Message = "ROM patching service is unavailable."
+                });
+            }
+
+            return Ok(_romPatchingService.ApplyPatchToLibrary(request));
         }
     }
 }

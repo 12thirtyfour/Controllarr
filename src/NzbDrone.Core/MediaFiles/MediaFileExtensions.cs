@@ -122,6 +122,10 @@ namespace NzbDrone.Core.MediaFiles
             { ".col", Quality.Unknown },
             { ".int", Quality.Unknown },
             { ".vec", Quality.Unknown },
+            { ".ips", Quality.Unknown },
+            { ".bps", Quality.Unknown },
+            { ".xdelta", Quality.Unknown },
+            { ".vcdiff", Quality.Unknown },
         };
 
         public static HashSet<string> Extensions => new(FileExtensions.Keys, StringComparer.OrdinalIgnoreCase);
@@ -136,9 +140,12 @@ namespace NzbDrone.Core.MediaFiles
             ".nes", ".unf", ".fds", ".sfc", ".smc", ".z64", ".n64", ".v64", ".gb", ".gbc", ".gba", ".nds",
             ".3ds", ".cia", ".vb", ".sg", ".sms", ".md", ".smd", ".gen", ".32x", ".cdi", ".gdi", ".cue",
             ".gg", ".pbp", ".cso", ".vpk", ".xbe", ".xex", ".pce", ".neo", ".ngp", ".ngc", ".a26", ".a52",
-            ".a78", ".j64", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec", ".iso", ".bin", ".img", ".nrg"
+            ".a78", ".j64", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec", ".iso", ".bin", ".img", ".nrg",
+            ".ips", ".bps", ".xdelta", ".vcdiff"
         ],
         StringComparer.OrdinalIgnoreCase);
+
+        public static HashSet<string> PatchExtensions => new([".ips", ".bps", ".xdelta", ".vcdiff"], StringComparer.OrdinalIgnoreCase);
 
         public static Quality GetQualityForExtension(string extension)
         {
