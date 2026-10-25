@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **43 Console Hardware Themes & Live Preview (`Settings -> UI`)**:
   - Implemented 1 dedicated hardware theme per supported console across Nintendo (NES, Famicom, SNES, Super Famicom, N64, GameCube, Wii, Wii U, Switch, Game Boy DMG-01, Game Boy Color, Game Boy Advance, Nintendo DS, Nintendo 3DS, Virtual Boy, Pokemon Mini), Sega (SG-1000, Master System, Genesis / Mega Drive, Sega CD, 32X, Saturn, Dreamcast, Game Gear), Sony (PlayStation, PS2, PS3, PSP, PS Vita), Microsoft (Xbox, Xbox 360), SNK (Neo Geo AES, Neo Geo CD, Neo Geo Pocket), Atari (2600, 5200, 7800, Lynx, Jaguar), NEC (PC Engine / TG-16, SuperGrafx, PC Engine CD), and Bandai (WonderSwan).
   - Alphabetized the theme dropdown selector immediately following `Auto`, `Light`, and `Dark`.
-  - Added instant live theme previewing when changing selections in `Settings -> UI`, reverting if unsaved.
+  - Theme selections in `Settings -> UI` apply and save immediately on selection (no Save click required).
   - Added dynamic per-console theme matching (`Match console theme on platform page`) in UI settings.
   - Redesigned Nintendo Famicom, Game Boy DMG-01, and Xbox 360 color palettes to match authentic hardware aesthetics.
 - **Out-of-the-Box Internet Archive Indexer & HTTP Downloader**:

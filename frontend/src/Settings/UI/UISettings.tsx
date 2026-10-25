@@ -23,7 +23,11 @@ import { InputChanged } from 'typings/inputs';
 import timeZoneOptions from 'Utilities/Date/timeZoneOptions';
 import titleCase from 'Utilities/String/titleCase';
 import translate from 'Utilities/String/translate';
-import { ThemeName, useManageUiSettings } from './useUiSettings';
+import {
+  ThemeName,
+  useManageUiSettings,
+  useSaveUiSettings,
+} from './useUiSettings';
 
 const createDateFormatOption = (format: string) => ({
   key: format,
@@ -99,6 +103,8 @@ function UISettings() {
     saveSettings,
     updateSetting,
   } = useManageUiSettings();
+
+  const saveThemeSetting = useSaveUiSettings();
 
   const isFetching = isLanguagesFetching || isSettingsFetching;
   const isPopulated = isLanguagesPopulated && isSettingsPopulated;
@@ -179,14 +185,17 @@ function UISettings() {
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
-      if (change.name === 'theme') {
-        setPreviewTheme(change.value as ThemeName);
-      }
-
       // @ts-expect-error name needs to be keyof UiSettingsModel
       updateSetting(change.name, change.value);
+
+      if (change.name === 'theme') {
+        // Themes apply and persist immediately on selection (no Save required).
+        // The override keeps the UI in sync while the save request is in flight.
+        setPreviewTheme(change.value as ThemeName);
+        saveThemeSetting({ theme: change.value as ThemeName });
+      }
     },
-    [updateSetting]
+    [updateSetting, saveThemeSetting]
   );
 
   const handleMatchConsoleThemeChange = useCallback(
@@ -298,7 +307,7 @@ function UISettings() {
               >
                 <FormRow>
                   <FormLabel>{translate('Theme')}</FormLabel>
-                  <FormInputHelpText text="Select your default global theme (previews live on selection; click Save Changes to keep)" />
+                  <FormInputHelpText text="Select your default global theme (applies and saves immediately)" />
                   <FormInput
                     type={inputTypes.SELECT}
                     name="theme"

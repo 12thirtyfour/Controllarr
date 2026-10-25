@@ -23,7 +23,7 @@
 
 * **Console Theme Overhauls, Live Preview & Dynamic Per-Platform Theming**:
   * **Alphabetized Theme Dropdown**: Keep `Auto`, `Light`, and `Dark` at the top of the selector in `Settings -> UI`, followed by all console themes strictly in alphabetical order for effortless scanning.
-  * **Instant Live Preview**: Switching the theme dropdown in `Settings -> UI` dynamically applies styles on the fly for immediate preview without persisting to database until the user clicks Save (reverting on cancel or navigation).
+  * **Instant Theme Apply**: Selecting a theme in `Settings -> UI` applies and saves it immediately, without requiring a separate Save click.
   * **Dynamic Per-Console Theme Matching**: Add a checkbox setting in `Settings -> UI` (between the Theme selector and Color Impaired toggle) to automatically apply the corresponding console theme when viewing that platform's details page, reverting to the user's global default theme on all other pages.
   * **Theme Palette Redesigns**:
     * **Nintendo Famicom (1983)**: Replace high-contrast harsh red with iconic Famicom palette—deep maroon/burgundy shell accents, warm ivory/cream body, gold controller faceplates, and charcoal accents.
