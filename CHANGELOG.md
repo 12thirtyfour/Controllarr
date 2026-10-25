@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Console Region Naming Preference (`Settings -> UI`)**:
+  - Added a `Console Region Naming` setting in UI Settings providing a dropdown to select between `North America / USA` (e.g., Sega Genesis, NES, TurboGrafx-16), `Europe / PAL` (e.g., Sega Mega Drive, NES, TurboGrafx), and `Japan / NTSC-J` (e.g., Sega Mega Drive, Famicom, PC Engine).
+  - Dynamically updates console titles across the entire library level (posters, overview, tables, search suggestions) as well as within platform details and region views without requiring disk renames or database migrations, and without affecting game search priority or 1G1R curation.
+  - Enhanced region headers to display authentic regional console names (e.g. `Europe (PAL — Mega Drive)`, `Japan (NTSC-J — Famicom)`, `Japan (NTSC-J — PC Engine)`).
 - **Settings Menu & Uniform Tile Layout Reordering**:
   - Reordered the sidebar Settings submenu and the Settings overview tiles into the standardized sequence: General, UI, Media Management, Collection Settings, Virtual Libraries, Indexers, Download Clients, Metadata, Connect, Import Lists, Tags, RetroAchievements, and Libretro & Emulation.
   - Enforced uniform card dimensions across all 13 tiles with `grid-auto-rows: 1fr`, consistent `min-height: 154px`, 3-line clamped summaries (`-webkit-line-clamp: 3`), single-line nowrap titles with ellipsis and accessible tooltips, and balanced summary descriptions.
@@ -33,6 +37,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Planned upcoming hardware SD card export workflow location in sidebar navigation under `Library -> Export` (`/export`).
 
 ### Fixed
+- **Replaced Legacy TV Verbiage with Controllarr Terminology**:
+  - Replaced legacy TV episode and season search formatting (e.g. `[Sega Master System : S00E126]` or `[Platform : S01]`) with clean game and region representations (`[Platform - Game Title (Region)]` or `[Platform : Region #Number]`).
+  - Purged TV terminology across indexer search, decision engine, and refresh logging (e.g., replaced "episodes" with "games", "reports" with "releases", "seasons" with "regions", and "No results found" with "No releases found").
 - **Internet Archive Working Folder & Path Traversal Exception**:
   - Fixed illegal path character exception (`ArgumentException: Illegal characters in path`) in `InternetArchive.cs` caused by resolving `DownloadClientWorkingFolders` (`"_UNPACK_|_FAILED_"`) as a directory path, which froze downloads at 0% in the queue indefinitely.
   - Resolved working directory to configured `DownloadPath` or `<AppData>/downloads`, with pre-download folder creation and path traversal verification. Added optional `Download Path` setting in `InternetArchiveSettings`.

@@ -1,3 +1,6 @@
+using System.Linq;
+using NzbDrone.Core.Games;
+
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class AnimeEpisodeSearchCriteria : SearchCriteriaBase
@@ -9,7 +12,15 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            return $"[{Series.Title} : S{SeasonNumber:00}E{EpisodeNumber:00} ({AbsoluteEpisodeNumber:00})]";
+            var gameTitle = Episodes?.FirstOrDefault()?.Title;
+            var region = RegionHelper.GetRegionName(SeasonNumber);
+
+            if (!string.IsNullOrWhiteSpace(gameTitle))
+            {
+                return $"[{Series.Title} - {gameTitle} ({region})]";
+            }
+
+            return $"[{Series.Title} : {region} #{EpisodeNumber}]";
         }
     }
 }

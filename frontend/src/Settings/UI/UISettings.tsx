@@ -78,6 +78,12 @@ export const timeFormatOptions: EnhancedSelectInputValue<string>[] = [
   { key: 'HH:mm', value: '17:00/17:30' },
 ];
 
+export const consoleRegionOptions: EnhancedSelectInputValue<string>[] = [
+  { key: 'US', value: 'North America / USA (Genesis, NES, TurboGrafx-16)' },
+  { key: 'EU', value: 'Europe / PAL (Mega Drive, NES, TurboGrafx)' },
+  { key: 'JP', value: 'Japan / NTSC-J (Mega Drive, Famicom, PC Engine)' },
+];
+
 function UISettings() {
   const {
     data: languageItems = [],
@@ -193,6 +199,10 @@ function UISettings() {
         // The override keeps the UI in sync while the save request is in flight.
         setPreviewTheme(change.value as ThemeName);
         saveThemeSetting({ theme: change.value as ThemeName });
+      }
+
+      if (change.name === 'consoleRegion') {
+        saveThemeSetting({ consoleRegion: change.value as string });
       }
     },
     [updateSetting, saveThemeSetting]
@@ -325,6 +335,19 @@ function UISettings() {
                     name="matchConsoleTheme"
                     value={matchConsoleTheme}
                     onChange={handleMatchConsoleThemeChange}
+                  />
+                </FormRow>
+
+                <FormRow>
+                  <FormLabel>Console Region Naming</FormLabel>
+                  <FormInputHelpText text="Default console titles across the library and region views to this specific region (e.g., Genesis vs. Mega Drive, NES vs. Famicom, TG-16 vs. PC Engine). This does not impact game search priority or region selection." />
+                  <FormInput
+                    type={inputTypes.SELECT}
+                    name="consoleRegion"
+                    values={consoleRegionOptions}
+                    onChange={handleInputChange}
+                    {...settings.consoleRegion}
+                    value={settings.consoleRegion?.value ?? 'US'}
                   />
                 </FormRow>
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.Games;
 
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
@@ -14,7 +15,8 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            return $"[{Series.Title} : S{SeasonNumber:00}]";
+            var region = RegionHelper.GetRegionName(SeasonNumber);
+            return $"[{Series.Title} : {region}]";
         }
     }
 }

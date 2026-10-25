@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Tv
 
                 if (missing.Any())
                 {
-                    _logger.Info("Searching for {MissingCount} episodes from '{SeriesTitle}' that were recently added or had absolute episode number added", missing.Count, series.Title);
+                    _logger.Info("Searching for {MissingCount} games from '{SeriesTitle}' that were recently added or had absolute episode number added", missing.Count, series.Title);
                     _commandQueueManager.Push(new EpisodeSearchCommand(missing.Select(e => e.Id).ToList()));
                 }
             }

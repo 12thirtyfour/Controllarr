@@ -65,25 +65,54 @@ export function getRegionalConsoleName(
   }
 
   if (
-    normalized.includes('nintendo-entertainment-system') &&
-    !normalized.includes('super')
+    normalized.includes('nintendo-entertainment-system') ||
+    normalized.includes('famicom') ||
+    normalized === 'nes'
   ) {
-    return seasonNumber === 3 ? 'Famicom' : null;
+    if (seasonNumber === 1) return 'NES';
+    if (seasonNumber === 3) return 'Famicom';
   }
 
-  if (normalized.includes('super-nintendo')) {
-    return seasonNumber === 3 ? 'Super Famicom' : null;
+  if (
+    normalized.includes('super-nintendo') ||
+    normalized.includes('super-famicom') ||
+    normalized === 'snes'
+  ) {
+    if (seasonNumber === 1) return 'Super Nintendo';
+    if (seasonNumber === 3) return 'Super Famicom';
   }
 
   if (normalized.includes('genesis') || normalized.includes('mega-drive')) {
-    return seasonNumber === 2 || seasonNumber === 3 ? 'Mega Drive' : null;
+    if (seasonNumber === 1) return 'Genesis';
+    if (seasonNumber === 2 || seasonNumber === 3) return 'Mega Drive';
+  }
+
+  if (
+    normalized.includes('master-system') ||
+    normalized.includes('mark-iii') ||
+    normalized === 'sms'
+  ) {
+    if (seasonNumber === 1 || seasonNumber === 2) return 'Master System';
+    if (seasonNumber === 3) return 'Sega Mark III';
   }
 
   if (
     normalized.includes('turbografx-16') ||
-    normalized.includes('pc-engine')
+    normalized.includes('pc-engine') ||
+    normalized === 'tg16'
   ) {
-    return seasonNumber === 3 ? 'PC Engine' : null;
+    if (seasonNumber === 1) return 'TurboGrafx-16';
+    if (seasonNumber === 2) return 'TurboGrafx';
+    if (seasonNumber === 3) return 'PC Engine';
+  }
+
+  if (
+    normalized.includes('turbografx-cd') ||
+    normalized.includes('pc-engine-cd') ||
+    normalized === 'tgcd'
+  ) {
+    if (seasonNumber === 1 || seasonNumber === 2) return 'TurboGrafx-CD';
+    if (seasonNumber === 3) return 'PC Engine CD-ROM²';
   }
 
   return null;

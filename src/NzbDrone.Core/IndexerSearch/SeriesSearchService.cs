@@ -39,7 +39,7 @@ namespace NzbDrone.Core.IndexerSearch
 
             if (series.Seasons.None(s => s.Monitored))
             {
-                _logger.Debug("No seasons of {0} are monitored, searching for all monitored episodes", series.Title);
+                _logger.Debug("No regions of {0} are monitored, searching for all monitored games", series.Title);
 
                 var episodes = _episodeService.GetEpisodeBySeries(series.Id)
                     .Where(e => e.Monitored &&
@@ -61,7 +61,7 @@ namespace NzbDrone.Core.IndexerSearch
                 {
                     if (!season.Monitored)
                     {
-                        _logger.Debug("Season {0} of {1} is not monitored, skipping search", season.SeasonNumber, series.Title);
+                        _logger.Debug("Region {0} of {1} is not monitored, skipping search", season.SeasonNumber, series.Title);
                         continue;
                     }
 

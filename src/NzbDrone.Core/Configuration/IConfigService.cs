@@ -77,6 +77,7 @@ namespace NzbDrone.Core.Configuration
         string TimeZone { get; set; }
         bool ShowRelativeDates { get; set; }
         bool EnableColorImpairedMode { get; set; }
+        string ConsoleRegion { get; set; }
         int UILanguage { get; set; }
         int PreferredMetadataLanguage { get; set; }
 

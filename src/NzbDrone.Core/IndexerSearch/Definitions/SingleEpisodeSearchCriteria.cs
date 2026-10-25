@@ -1,3 +1,6 @@
+using System.Linq;
+using NzbDrone.Core.Games;
+
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class SingleEpisodeSearchCriteria : SearchCriteriaBase
@@ -7,7 +10,15 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            return string.Format("[{0} : S{1:00}E{2:00}]", Series.Title, SeasonNumber, EpisodeNumber);
+            var gameTitle = Episodes?.FirstOrDefault()?.Title;
+            var region = RegionHelper.GetRegionName(SeasonNumber);
+
+            if (!string.IsNullOrWhiteSpace(gameTitle))
+            {
+                return string.Format("[{0} - {1} ({2})]", Series.Title, gameTitle, region);
+            }
+
+            return string.Format("[{0} : {1} #{2}]", Series.Title, region, EpisodeNumber);
         }
     }
 }

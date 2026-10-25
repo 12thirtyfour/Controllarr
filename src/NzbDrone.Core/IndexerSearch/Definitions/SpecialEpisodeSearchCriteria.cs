@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
@@ -8,14 +8,14 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            var episodeTitles = EpisodeQueryTitles.ToList();
+            var episodeTitles = EpisodeQueryTitles?.ToList();
 
-            if (episodeTitles.Count > 0)
+            if (episodeTitles != null && episodeTitles.Count > 0)
             {
-                return $"[{Series.Title} ({Series.SeriesType})] Specials";
+                return $"[{Series.Title}] Unlicensed / Homebrew: {string.Join(", ", episodeTitles)}";
             }
 
-            return $"[{Series.Title} ({Series.SeriesType}): {string.Join(",", EpisodeQueryTitles)}]";
+            return $"[{Series.Title}] Unlicensed / Homebrew";
         }
     }
 }

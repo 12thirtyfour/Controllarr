@@ -64,7 +64,7 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 if (string.IsNullOrWhiteSpace(episode.AirDate))
                 {
-                    _logger.Error("Daily episode is missing an air date. Try refreshing the series info.");
+                    _logger.Error("Game release is missing release date. Try refreshing platform info.");
                     throw new SearchFailedException("Air date is missing");
                 }
 
@@ -104,7 +104,7 @@ namespace NzbDrone.Core.IndexerSearch
 
             if (episodes.Count == 0)
             {
-                _logger.Debug("No wanted episodes found for season {0}", seasonNumber);
+                _logger.Debug("No wanted games found for region {0}", seasonNumber);
                 return new List<DownloadDecision>();
             }
 
@@ -565,7 +565,7 @@ namespace NzbDrone.Core.IndexerSearch
 
             var reports = batch.SelectMany(x => x).ToList();
 
-            _logger.ProgressDebug("Total of {0} reports were found for {1} from {2} indexers", reports.Count, criteriaBase, indexers.Count);
+            _logger.ProgressDebug("Total of {0} releases were found for {1} from {2} indexers", reports.Count, criteriaBase, indexers.Count);
 
             // Update the last search time for all episodes if at least 1 indexer was searched.
             if (indexers.Any())

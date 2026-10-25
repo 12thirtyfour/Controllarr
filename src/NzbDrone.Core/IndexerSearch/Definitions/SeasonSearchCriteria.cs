@@ -1,3 +1,5 @@
+using NzbDrone.Core.Games;
+
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class SeasonSearchCriteria : SearchCriteriaBase
@@ -6,7 +8,8 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            return string.Format("[{0} : S{1:00}]", Series.Title, SeasonNumber);
+            var region = RegionHelper.GetRegionName(SeasonNumber);
+            return string.Format("[{0} : {1}]", Series.Title, region);
         }
     }
 }

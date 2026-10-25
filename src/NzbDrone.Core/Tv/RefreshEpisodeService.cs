@@ -28,7 +28,7 @@ namespace NzbDrone.Core.Tv
 
         public void RefreshEpisodeInfo(Series series, IEnumerable<Episode> remoteEpisodes)
         {
-            _logger.Info("Starting episode info refresh for: {0}", series);
+            _logger.Info("Starting game info refresh for: {0}", series);
             var successCount = 0;
             var failCount = 0;
 
@@ -132,14 +132,14 @@ namespace NzbDrone.Core.Tv
 
             if (failCount != 0)
             {
-                _logger.Info("Finished episode refresh for series: {0}. Successful: {1} - Failed: {2} ",
+                _logger.Info("Finished game refresh for platform: {0}. Successful: {1} - Failed: {2} ",
                     series.Title,
                     successCount,
                     failCount);
             }
             else
             {
-                _logger.Info("Finished episode refresh for series: {0}.", series);
+                _logger.Info("Finished game refresh for platform: {0}.", series);
             }
         }
 

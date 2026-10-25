@@ -65,7 +65,7 @@ namespace NzbDrone.Core.DecisionEngine
             }
             else
             {
-                _logger.ProgressInfo("No results found");
+                _logger.ProgressInfo("No releases found");
             }
 
             var reportNumber = 1;

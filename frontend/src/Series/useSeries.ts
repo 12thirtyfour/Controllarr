@@ -18,6 +18,8 @@ import sortByProp from 'Utilities/Array/sortByProp';
 import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
 import clientSideFilterAndSort from 'Utilities/Filter/clientSideFilterAndSort';
 import translate from 'Utilities/String/translate';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
+import getRegionalPlatformTitle from 'Utilities/Platform/getRegionalPlatformTitle';
 import Series, { Season, Statistics } from './Series';
 import { useSeriesOptions } from './seriesOptionsStore';
 
@@ -617,17 +619,48 @@ const useSeries = () => {
     },
   });
 
-  const seriesMap = useMemo(() => {
+  const uiSettings = useUiSettingsValues();
+  const consoleRegion = uiSettings?.consoleRegion ?? 'US';
+
+  const localizedData = useMemo(() => {
     if (!data) {
+      return DEFAULT_SERIES;
+    }
+
+    if (!consoleRegion || consoleRegion === 'US') {
+      return data;
+    }
+
+    return data.map((series) => {
+      const localizedTitle = getRegionalPlatformTitle(
+        series.titleSlug || series.title,
+        consoleRegion,
+        series.title
+      );
+
+      if (localizedTitle === series.title) {
+        return series;
+      }
+
+      return {
+        ...series,
+        originalTitle: series.originalTitle ?? series.title,
+        title: localizedTitle,
+      };
+    });
+  }, [data, consoleRegion]);
+
+  const seriesMap = useMemo(() => {
+    if (!localizedData) {
       return new Map<number, Series>();
     }
 
-    return new Map<number, Series>(data.map((series) => [series.id, series]));
-  }, [data]);
+    return new Map<number, Series>(localizedData.map((series) => [series.id, series]));
+  }, [localizedData]);
 
   return {
     ...result,
-    data: data ?? DEFAULT_SERIES,
+    data: localizedData,
     seriesMap,
   };
 };

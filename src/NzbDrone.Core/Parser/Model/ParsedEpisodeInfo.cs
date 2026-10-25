@@ -127,44 +127,39 @@ namespace NzbDrone.Core.Parser.Model
 
         public override string ToString()
         {
-            var episodeString = "[Unknown Episode]";
+            var gameString = "[Unknown Game]";
 
             if (IsDaily && EpisodeNumbers.Empty())
             {
-                episodeString = string.Format("{0}", AirDate);
+                gameString = string.Format("{0}", AirDate);
             }
             else if (FullSeason)
             {
                 if (IsMultiSeason)
                 {
-                    episodeString = string.Format("Season {0:00}-{1:00}", SeasonNumbers.First(), SeasonNumbers.Last());
+                    gameString = string.Format("Regions {0}-{1}", NzbDrone.Core.Games.RegionHelper.GetRegionName(SeasonNumbers.First()), NzbDrone.Core.Games.RegionHelper.GetRegionName(SeasonNumbers.Last()));
                 }
                 else
                 {
-                    episodeString = SeasonNumber.HasValue ? string.Format("Season {0:00}", SeasonNumber) : "[Unknown Season]";
+                    gameString = SeasonNumber.HasValue ? NzbDrone.Core.Games.RegionHelper.GetRegionName(SeasonNumber.Value) : "[Unknown Region]";
                 }
             }
             else if (EpisodeNumbers != null && EpisodeNumbers.Any())
             {
-                episodeString = string.Format("S{0:00}E{1}", SeasonNumber, string.Join("-", EpisodeNumbers.Select(c => c.ToString("00"))));
+                var region = SeasonNumber.HasValue ? NzbDrone.Core.Games.RegionHelper.GetRegionName(SeasonNumber.Value) : "Game";
+                gameString = string.Format("{0} #{1}", region, string.Join("-", EpisodeNumbers));
             }
             else if (AbsoluteEpisodeNumbers != null && AbsoluteEpisodeNumbers.Any())
             {
-                episodeString = string.Format("{0}", string.Join("-", AbsoluteEpisodeNumbers.Select(c => c.ToString("000"))));
+                gameString = string.Format("Game #{0}", string.Join("-", AbsoluteEpisodeNumbers));
             }
             else if (Special)
             {
-                if (SeasonNumber.HasValue && SeasonNumber != 0)
-                {
-                    episodeString = string.Format("[Unknown Season {0:00} Special]", SeasonNumber);
-                }
-                else
-                {
-                    episodeString = "[Unknown Special]";
-                }
+                var region = SeasonNumber.HasValue ? NzbDrone.Core.Games.RegionHelper.GetRegionName(SeasonNumber.Value) : "Unlicensed";
+                gameString = string.Format("{0} Special", region);
             }
 
-            return string.Format("{0} - {1} {2}", SeriesTitle, episodeString, Quality);
+            return string.Format("{0} - {1} {2}", SeriesTitle, gameString, Quality);
         }
     }
 }
