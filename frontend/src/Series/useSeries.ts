@@ -902,12 +902,8 @@ export const useToggleSeriesMonitored = (seriesId: number) => {
           );
         });
 
-        queryClient.invalidateQueries({
-          predicate: (query) => {
-            const firstKey = query.queryKey[0];
-            return firstKey === '/episode' || firstKey === '/series';
-          },
-        });
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
+        queryClient.invalidateQueries({ queryKey: ['/series'] });
       },
     },
   });
@@ -965,6 +961,9 @@ export const useToggleSeasonMonitored = (seriesId: number) => {
             return series;
           });
         });
+
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
+        queryClient.invalidateQueries({ queryKey: ['/series'] });
       },
     },
   });
