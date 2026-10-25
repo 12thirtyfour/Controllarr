@@ -23,7 +23,7 @@ namespace Sonarr.Http.Authentication
 {
     public static class AuthenticationBuilderExtensions
     {
-        private const string AuthorizedProperty = "sonarr.authorized";
+        private const string AuthorizedProperty = "controllarr.authorized";
 
         private static readonly Logger Logger = LogManager.GetLogger(nameof(AuthenticationBuilderExtensions));
 

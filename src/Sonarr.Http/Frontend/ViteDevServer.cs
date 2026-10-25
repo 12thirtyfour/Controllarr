@@ -28,7 +28,7 @@ namespace Sonarr.Http.Frontend
 
         public ViteDevServer(string baseAddress = null)
         {
-            _baseAddress = baseAddress ?? Environment.GetEnvironmentVariable("SONARR_VITE_DEV_SERVER") ?? DefaultBaseAddress;
+            _baseAddress = baseAddress ?? Environment.GetEnvironmentVariable("CONTROLLARR_VITE_DEV_SERVER") ?? Environment.GetEnvironmentVariable("SONARR_VITE_DEV_SERVER") ?? DefaultBaseAddress;
             _httpClient = new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(10)

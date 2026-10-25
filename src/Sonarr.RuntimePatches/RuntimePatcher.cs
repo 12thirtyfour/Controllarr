@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
@@ -52,7 +52,7 @@ namespace NzbDrone.RuntimePatches
 
             if (patches.Any())
             {
-                var harmony = new Harmony("tv.sonarr");
+                var harmony = new Harmony("com.controllarr");
 
                 foreach (var patch in patches)
                 {

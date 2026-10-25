@@ -2,6 +2,10 @@
 <RunSettings>
     <RunConfiguration>
         <EnvironmentVariables>
+            <Controllarr__Postgres__Host>192.168.100.5</Controllarr__Postgres__Host>
+            <Controllarr__Postgres__Port>5432</Controllarr__Postgres__Port>
+            <Controllarr__Postgres__User>abc</Controllarr__Postgres__User>
+            <Controllarr__Postgres__Password>abc</Controllarr__Postgres__Password>
             <Sonarr__Postgres__Host>192.168.100.5</Sonarr__Postgres__Host>
 			<Sonarr__Postgres__Port>5432</Sonarr__Postgres__Port>
 			<Sonarr__Postgres__User>abc</Sonarr__Postgres__User>

@@ -20,7 +20,13 @@ namespace NzbDrone.Core.Datastore
                 .Build();
 
             var postgresOptions = new PostgresOptions();
-            config.GetSection("Sonarr:Postgres").Bind(postgresOptions);
+            var section = config.GetSection("Controllarr:Postgres");
+            if (!section.Exists() || string.IsNullOrEmpty(section["Host"]))
+            {
+                section = config.GetSection("Sonarr:Postgres");
+            }
+
+            section.Bind(postgresOptions);
 
             return postgresOptions;
         }

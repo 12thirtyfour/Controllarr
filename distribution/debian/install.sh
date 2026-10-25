@@ -1,5 +1,5 @@
 #!/bin/bash
-### Description: Sonarr .NET Debian install
+### Description: Controllarr .NET Debian install
 ### Originally written for Radarr by: DoctorArr - doctorarr@the-rowlands.co.uk on 2021-10-01 v1.0
 ### Updates for servarr suite made by Bakerboy448, DoctorArr, brightghost, aeramor and VP-EN
 ### Version v1.0.0 2023-12-29 - StevieTV - adapted from servarr script for Sonarr installs
@@ -23,7 +23,7 @@ scriptdate="2025-04-05"
 
 set -euo pipefail
 
-echo "Running Sonarr Install Script - Version [$scriptversion] as of [$scriptdate]"
+echo "Running Controllarr Install Script - Version [$scriptversion] as of [$scriptdate]"
 
 # Am I root?, need root!
 
@@ -32,8 +32,8 @@ if [ "$EUID" -ne 0 ]; then
     exit
 fi
 
-app="sonarr"
-app_port="8989"
+app="controllarr"
+app_port="7050"
 app_prereq="curl sqlite3 wget"
 app_umask="0002"
 branch="main"
@@ -191,11 +191,11 @@ apt update && apt install -y $app_prereq
 echo ""
 ARCH=$(dpkg --print-architecture)
 # get arch
-dlbase="https://services.sonarr.tv/v1/download/$branch/latest?version=4&os=linux"
+dlbase="https://github.com/12thirtyfour/Controllarr/releases/latest/download"
 case "$ARCH" in
-"amd64") DLURL="${dlbase}&arch=x64" ;;
-"armhf") DLURL="${dlbase}&arch=arm" ;;
-"arm64") DLURL="${dlbase}&arch=arm64" ;;
+"amd64") DLURL="${dlbase}/Controllarr.main.linux-core-x64.tar.gz" ;;
+"armhf") DLURL="${dlbase}/Controllarr.main.linux-core-arm.tar.gz" ;;
+"arm64") DLURL="${dlbase}/Controllarr.main.linux-core-arm64.tar.gz" ;;
 *)
     echo "Arch not supported"
     exit 1

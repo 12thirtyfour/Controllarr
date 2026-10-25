@@ -152,6 +152,7 @@ namespace NzbDrone.Test.Common
             StringDictionary envVars = new();
             if (!_enableAuth)
             {
+                envVars.Add("Controllarr__Auth__Method", "None");
                 envVars.Add("Sonarr__Auth__Method", "None");
             if (!string.IsNullOrEmpty(XemMockUrl))
             {

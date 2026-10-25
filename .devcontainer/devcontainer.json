@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
-  "name": "Sonarr",
+  "name": "Controllarr",
   "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
   "features": {
     "ghcr.io/devcontainers/features/node:2": {
@@ -10,7 +10,7 @@
       "nvmVersion": "latest"
     }
   },
-  "forwardPorts": [8989],
+  "forwardPorts": [7050],
   "customizations": {
     "vscode": {
       "extensions": ["esbenp.prettier-vscode"]

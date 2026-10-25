@@ -131,7 +131,7 @@ namespace NzbDrone.Common.Instrumentation
 
             coloredConsoleTarget.Name = "consoleLogger";
 
-            var logFormat = Enum.TryParse<ConsoleLogFormat>(Environment.GetEnvironmentVariable("SONARR__LOG__CONSOLEFORMAT"), out var formatEnumValue)
+            var logFormat = Enum.TryParse<ConsoleLogFormat>(Environment.GetEnvironmentVariable("CONTROLLARR__LOG__CONSOLEFORMAT") ?? Environment.GetEnvironmentVariable("SONARR__LOG__CONSOLEFORMAT"), out var formatEnumValue)
                 ? formatEnumValue
                 : ConsoleLogFormat.Standard;
 
