@@ -94,6 +94,8 @@ export interface ReleaseInfo {
   leechers?: number;
   magnetUrl?: string;
   infoHash?: string;
+  requiresCredentials?: boolean;
+  missingCredentials?: boolean;
 }
 
 export interface Decision {

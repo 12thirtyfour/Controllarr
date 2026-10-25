@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
             for (var page = 1; page <= MaxPages; page++)
             {
-                var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&sort[]=publicdate+desc&rows={PageSize}&page={page}&output=json";
+                var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&fl[]=access-restricted-item&sort[]=publicdate+desc&rows={PageSize}&page={page}&output=json";
                 yield return new IndexerRequest(new HttpRequest(url, HttpAccept.Json));
             }
         }

@@ -96,6 +96,11 @@ public class ReleaseController : RestController<ReleaseResource>
             throw new NzbDroneClientException(HttpStatusCode.NotFound, "Couldn't find requested release in cache, try searching again");
         }
 
+        if (remoteEpisode.Release.RequiresCredentials && remoteEpisode.Release.MissingCredentials)
+        {
+            throw new NzbDroneClientException(HttpStatusCode.BadRequest, "Download requires credentials (S3 Access/Secret Key) which are not configured");
+        }
+
         try
         {
             if (release.Override != null)
@@ -290,7 +295,8 @@ public class ReleaseController : RestController<ReleaseResource>
     private ReleaseHistoryResource? AddHistory(ReleaseInfo release, List<EpisodeHistory> history)
     {
         var grabbed = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed &&
-                                                  ((h.Data.TryGetValue("guid", out var guid) && guid == release.Guid) ||
+                                                  (((h.Data.TryGetValue("guid", out var guid) && string.Equals(guid, release.Guid, StringComparison.OrdinalIgnoreCase)) ||
+                                                    (h.Data.TryGetValue("Guid", out var capitalGuid) && string.Equals(capitalGuid, release.Guid, StringComparison.OrdinalIgnoreCase))) ||
                                                    (h.Data.TryGetValue("nzbInfoUrl", out var infoUrl) && infoUrl.IsNotNullOrWhiteSpace() && infoUrl.Equals(release.InfoUrl, StringComparison.Ordinal))));
 
         if (grabbed == null && release.DownloadProtocol == DownloadProtocol.Torrent)

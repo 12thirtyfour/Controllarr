@@ -48,6 +48,20 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
         [JsonProperty("downloads")]
         public int? Downloads { get; set; }
+
+        [JsonProperty("access-restricted-item")]
+        public object AccessRestrictedItem { get; set; }
+
+        public bool IsAccessRestricted()
+        {
+            if (AccessRestrictedItem == null)
+            {
+                return false;
+            }
+
+            var str = AccessRestrictedItem.ToString();
+            return string.Equals(str, "true", StringComparison.OrdinalIgnoreCase) || str == "1";
+        }
     }
 
     public class InternetArchiveParser : IParseIndexerResponse
@@ -104,6 +118,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
                 var title = doc.Title.IsNotNullOrWhiteSpace() ? doc.Title : doc.Identifier;
                 var publishDate = doc.PublicDate ?? doc.Date ?? DateTime.UtcNow;
+                var requiresCredentials = doc.IsAccessRestricted() || (_settings != null && _settings.RequireCredentials);
 
                 var releaseInfo = new ReleaseInfo
                 {
@@ -113,7 +128,8 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     DownloadUrl = $"{baseUrl}/compress/{doc.Identifier}",
                     InfoUrl = $"{baseUrl}/details/{doc.Identifier}",
                     DownloadProtocol = DownloadProtocol.Http,
-                    PublishDate = publishDate.ToUniversalTime()
+                    PublishDate = publishDate.ToUniversalTime(),
+                    RequiresCredentials = requiresCredentials
                 };
 
                 results.Add(releaseInfo);

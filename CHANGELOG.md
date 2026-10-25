@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Interactive Search Credentials Tagging & Download Gating**:
+  - Releases requiring credentials (such as Internet Archive S3 Access/Secret Keys or archive.org `access-restricted-item` releases) are clearly tagged in interactive search results with a `Requires Credentials` badge (rendered in warning/danger styling when credentials are unpopulated, or info styling when configured).
+  - Hard download gating prevents grabbing releases when required credentials are not configured, rejecting downloads with `DownloadRejectionReason.RequiresCredentials` and disabling the download button with an informative tooltip directing users to configure keys in Settings.
+  - Added `Require S3 Credentials` toggle in Internet Archive indexer settings and automatic detection of archive.org `access-restricted-item` metadata.
 - **43 Console Hardware Themes & Live Preview (`Settings -> UI`)**:
   - Implemented 1 dedicated hardware theme per supported console across Nintendo (NES, Famicom, SNES, Super Famicom, N64, GameCube, Wii, Wii U, Switch, Game Boy DMG-01, Game Boy Color, Game Boy Advance, Nintendo DS, Nintendo 3DS, Virtual Boy, Pokemon Mini), Sega (SG-1000, Master System, Genesis / Mega Drive, Sega CD, 32X, Saturn, Dreamcast, Game Gear), Sony (PlayStation, PS2, PS3, PSP, PS Vita), Microsoft (Xbox, Xbox 360), SNK (Neo Geo AES, Neo Geo CD, Neo Geo Pocket), Atari (2600, 5200, 7800, Lynx, Jaguar), NEC (PC Engine / TG-16, SuperGrafx, PC Engine CD), and Bandai (WonderSwan).
   - Alphabetized the theme dropdown selector immediately following `Auto`, `Light`, and `Dark`.
@@ -26,6 +30,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Planned upcoming hardware SD card export workflow location in sidebar navigation under `Library -> Export` (`/export`).
 
 ### Fixed
+- **Internet Archive Working Folder & Path Traversal Exception**:
+  - Fixed illegal path character exception (`ArgumentException: Illegal characters in path`) in `InternetArchive.cs` caused by resolving `DownloadClientWorkingFolders` (`"_UNPACK_|_FAILED_"`) as a directory path, which froze downloads at 0% in the queue indefinitely.
+  - Resolved working directory to configured `DownloadPath` or `<AppData>/downloads`, with pre-download folder creation and path traversal verification. Added optional `Download Path` setting in `InternetArchiveSettings`.
+- **Interactive Search Manual Grab Payload & Activity History Tracking**:
+  - Fixed `handleGrabPress` in `InteractiveSearchRow` to pass `searchInfo: searchPayload` when grabbing releases, ensuring series and episode mappings resolve correctly.
+  - Converted `EpisodeHistory.Data` dictionary to `StringComparer.OrdinalIgnoreCase` and fixed case-insensitive Guid matching in `ReleaseController`, ensuring grabbed releases and failed downloads properly link and display in Activity History.
+  - Enhanced `QueueController` (V3 and V5) to record `DownloadFailed` history events when failed downloads are removed from the queue even if not blocklisted.
 - **Navigation & Servarr Legacy Pruning**:
   - Renamed primary sidebar navigation item from `Platforms` back to `Library`.
   - Pruned legacy TV-centric `Cutoff Unmet` (`/wanted/cutoff`) and `Calendar` (`/calendar`) navigation routes.

@@ -50,6 +50,7 @@ export interface OverrideMatchModalContentProps {
   isGrabbing: boolean;
   grabError?: string;
   grabRelease: ReturnType<typeof useGrabRelease>['grabRelease'];
+  missingCredentials?: boolean;
   onModalClose(): void;
 }
 
@@ -63,6 +64,7 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
     isGrabbing,
     grabError,
     grabRelease,
+    missingCredentials,
     onModalClose,
   } = props;
 
@@ -178,6 +180,10 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
   );
 
   const onGrabPress = useCallback(() => {
+    if (missingCredentials) {
+      setError(translate('CredentialsRequiredMissingHelpText'));
+      return;
+    }
     if (!seriesId) {
       setError(translate('OverrideGrabNoSeries'));
       return;
@@ -211,6 +217,7 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
     quality,
     languages,
     downloadClientId,
+    missingCredentials,
     setError,
     grabRelease,
   ]);
@@ -313,13 +320,14 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
       </ModalBody>
 
       <ModalFooter className={styles.footer}>
-        <div className={styles.error}>{error || grabError}</div>
+        <div className={styles.error}>{error || grabError || (missingCredentials ? translate('CredentialsRequiredMissingHelpText') : null)}</div>
 
         <div className={styles.buttons}>
           <Button onPress={onModalClose}>{translate('Cancel')}</Button>
 
           <SpinnerErrorButton
             isSpinning={isGrabbing}
+            isDisabled={isGrabbing || missingCredentials}
             error={grabError}
             onPress={onGrabPress}
           >

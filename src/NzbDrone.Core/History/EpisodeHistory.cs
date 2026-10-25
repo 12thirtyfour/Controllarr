@@ -18,7 +18,7 @@ namespace NzbDrone.Core.History
 
         public EpisodeHistory()
         {
-            Data = new Dictionary<string, string>();
+            Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
         public int EpisodeId { get; set; }

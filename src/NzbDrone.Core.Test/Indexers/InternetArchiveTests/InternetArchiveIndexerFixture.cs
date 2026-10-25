@@ -72,6 +72,65 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             release.InfoUrl.Should().Be("https://archive.org/details/snes_no_intro_romset");
             release.Size.Should().Be(104857600);
             release.PublishDate.Should().Be(DateTime.Parse("2021-01-01T00:00:00Z").ToUniversalTime());
+            release.RequiresCredentials.Should().BeFalse();
+        }
+
+        [Test]
+        public async Task should_mark_requires_credentials_true_when_doc_is_access_restricted()
+        {
+            var jsonResponse = @"{
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""restricted_rom"",
+                            ""title"": ""Restricted ROM"",
+                            ""access-restricted-item"": ""true"",
+                            ""item_size"": 1024
+                        }
+                    ]
+                }
+            }";
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), jsonResponse));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(1);
+            releases.First().RequiresCredentials.Should().BeTrue();
+        }
+
+        [Test]
+        public async Task should_mark_requires_credentials_true_when_indexer_setting_is_enabled()
+        {
+            var settings = (InternetArchiveIndexerSettings)Subject.Definition.Settings;
+            settings.RequireCredentials = true;
+
+            var jsonResponse = @"{
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""public_rom"",
+                            ""title"": ""Public ROM"",
+                            ""item_size"": 1024
+                        }
+                    ]
+                }
+            }";
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), jsonResponse));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(1);
+            releases.First().RequiresCredentials.Should().BeTrue();
         }
 
         [Test]

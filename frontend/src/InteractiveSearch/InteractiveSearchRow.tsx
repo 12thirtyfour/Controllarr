@@ -104,8 +104,8 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     mappedAbsoluteEpisodeNumbers,
     mappedEpisodeInfo,
     episodeRequested,
-    downloadAllowed,
     searchPayload,
+    downloadAllowed,
   } = props;
 
   const { rejections = [] } = decision;
@@ -133,6 +133,9 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     leechers,
     protocol,
     indexerFlags = 0,
+    requiresCredentials,
+    missingCredentials,
+
   } = release;
 
   const { longDateFormat, timeFormat } = useUiSettingsValues();
@@ -183,10 +186,14 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
   }, [decision]);
 
   const handleGrabPress = useCallback(() => {
+    if (missingCredentials) {
+      return;
+    }
     if (downloadAllowed) {
       grabRelease({
         guid,
         indexerId,
+        searchInfo: searchPayload,
       });
 
       return;
@@ -196,12 +203,17 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
   }, [
     guid,
     indexerId,
+    searchPayload,
     downloadAllowed,
+
     grabRelease,
     setIsConfirmGrabModalOpen,
   ]);
 
   const onGrabConfirm = useCallback(() => {
+    if (missingCredentials) {
+      return;
+    }
     setIsConfirmGrabModalOpen(false);
 
     grabRelease({
@@ -209,7 +221,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       indexerId,
       searchInfo: searchPayload,
     });
-  }, [guid, indexerId, searchPayload, grabRelease, setIsConfirmGrabModalOpen]);
+  }, [guid, indexerId, searchPayload, missingCredentials, grabRelease, setIsConfirmGrabModalOpen]);
 
   const onGrabCancel = useCallback(() => {
     setIsConfirmGrabModalOpen(false);
@@ -244,6 +256,23 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       <VirtualTableRowCell className={styles.title}>
         <div className={styles.titleContent}>
           <Link to={infoUrl}>{title}</Link>
+          {requiresCredentials && (
+            <Label
+              kind={missingCredentials ? kinds.DANGER : kinds.INFO}
+              className={styles.credentialsLabel}
+              title={
+                missingCredentials
+                  ? translate('CredentialsRequiredMissingHelpText')
+                  : translate('CredentialsConfiguredHelpText')
+              }
+            >
+              {translate(
+                missingCredentials
+                  ? 'RequiresCredentials'
+                  : 'UsesCredentials'
+              )}
+            </Label>
+          )}
           {isPinned && (
             <Label kind="info" className={styles.pinnedLabel}>
               Pinned
@@ -379,12 +408,18 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         <SpinnerIconButton
           name={getDownloadIcon(isGrabbing, isGrabbed, grabError)}
           kind={getDownloadKind(isGrabbed, grabError)}
-          title={getDownloadTooltip(isGrabbing, isGrabbed, grabError)}
+          title={
+            missingCredentials
+              ? translate('CredentialsRequiredMissingHelpText')
+              : getDownloadTooltip(isGrabbing, isGrabbed, grabError)
+          }
+          isDisabled={isGrabbing || isGrabbed || missingCredentials}
           isSpinning={isGrabbing}
           onPress={handleGrabPress}
         />
 
-        <Link
+        {!missingCredentials && (
+          <Link
           className={styles.manualDownloadContent}
           title={translate('OverrideAndAddToDownloadQueue')}
           onPress={onOverridePress}
@@ -403,6 +438,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
             />
           </div>
         </Link>
+        )}
         {series && (
           <IconButton
             name={icons.PIN}
@@ -448,6 +484,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         grabError={grabError}
         grabRelease={grabRelease}
         onModalClose={onOverrideModalClose}
+        missingCredentials={missingCredentials}
       />
     </div>
   );

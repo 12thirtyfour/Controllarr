@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
@@ -41,6 +42,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         private readonly IHttpClient _httpClient;
         private readonly IManageCommandQueue _commandQueue;
+        private readonly IAppFolderInfo _appFolderInfo;
 
         public override string Name => "InternetArchive";
 
@@ -52,11 +54,28 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                                IRemotePathMappingService remotePathMappingService,
                                Logger logger,
                                ILocalizationService localizationService,
-                               IManageCommandQueue commandQueue = null)
+                               IManageCommandQueue commandQueue = null,
+                               IAppFolderInfo appFolderInfo = null)
             : base(configService, diskProvider, remotePathMappingService, logger, localizationService)
         {
             _httpClient = httpClient;
             _commandQueue = commandQueue;
+            _appFolderInfo = appFolderInfo;
+        }
+
+        public string GetWorkingFolder()
+        {
+            if (!string.IsNullOrWhiteSpace(Settings?.DownloadPath))
+            {
+                return Settings.DownloadPath;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_appFolderInfo?.AppDataFolder))
+            {
+                return Path.Combine(_appFolderInfo.AppDataFolder, "downloads");
+            }
+
+            return Path.Combine(Path.GetTempPath(), "Controllarr", "downloads");
         }
 
         public static void ClearTrackedItems()
@@ -111,7 +130,9 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
             var rawTitle = remoteEpisode?.Release?.Title ?? "rom_download";
             var filename = Parser.Parser.CleanSeriesTitle(rawTitle) + extension;
-            var workingFolder = _configService.DownloadClientWorkingFolders;
+            var workingFolder = GetWorkingFolder();
+            _diskProvider.EnsureFolder(workingFolder);
+
             var downloadPath = Path.Combine(workingFolder, filename);
             var fullDestinationPath = Path.GetFullPath(downloadPath);
 
@@ -186,11 +207,18 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                         _logger.Warn("InternetArchive authenticated stream failed with {0}, falling back to anonymous.", resp.StatusCode);
                         using var anonReq = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
                         resp = await client.SendAsync(anonReq, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        {
+                            state.Status = DownloadItemStatus.Failed;
+                            state.ErrorMessage = $"HTTP {(int)resp.StatusCode} ({resp.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
+                            _logger.Warn("InternetArchive anonymous stream also failed with {0}.", resp.StatusCode);
+                            return;
+                        }
                     }
                     else
                     {
                         state.Status = DownloadItemStatus.Failed;
-                        state.ErrorMessage = $"HTTP {(int)resp.StatusCode} ({resp.StatusCode})";
+                        state.ErrorMessage = $"HTTP {(int)resp.StatusCode} ({resp.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
                         return;
                     }
                 }
@@ -284,12 +312,20 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                         _logger.Warn("InternetArchive authenticated request failed with {0}, falling back to anonymous.", response.StatusCode);
                         request.Headers.Remove("Authorization");
                         response = await _httpClient.GetAsync(request, CancellationToken.None).ConfigureAwait(false);
+                        if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
+                        {
+                            _logger.Warn("InternetArchive anonymous request also failed with {0}.", response.StatusCode);
+                            state.Status = DownloadItemStatus.Failed;
+                            state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
+                            TrackedItems.TryRemove(downloadPath, out _);
+                            return null;
+                        }
                     }
                     else
                     {
                         _logger.Warn("InternetArchive authenticated request failed with {0} and anonymous fallback is disabled.", response.StatusCode);
                         state.Status = DownloadItemStatus.Failed;
-                        state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode})";
+                        state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
                         TrackedItems.TryRemove(downloadPath, out _);
                         return null;
                     }
@@ -425,7 +461,8 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         protected override void Test(List<ValidationFailure> failures)
         {
-            failures.AddIfNotNull(TestFolder(_configService.DownloadClientWorkingFolders, "DownloadClientWorkingFolders"));
+            var folder = GetWorkingFolder();
+            failures.AddIfNotNull(TestFolder(folder, "DownloadPath"));
         }
 
         private string ResolveDownloadUrl(string downloadUrl)

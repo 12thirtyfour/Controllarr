@@ -48,6 +48,9 @@ namespace NzbDrone.Core.Parser.Model
         [JsonIgnore]
         public PendingReleaseReason? PendingReleaseReason { get; set; }
 
+        public bool RequiresCredentials { get; set; }
+        public bool MissingCredentials { get; set; }
+
         public int Age
         {
             get

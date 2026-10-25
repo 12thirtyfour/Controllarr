@@ -359,6 +359,17 @@ namespace Sonarr.Api.V3.Queue
             {
                 _failedDownloadService.MarkAsFailed(trackedDownload, null, null, skipRedownload);
             }
+            else if (trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed || trackedDownload.State == TrackedDownloadState.FailedPending)
+            {
+                try
+                {
+                    _failedDownloadService.MarkAsFailed(trackedDownload, trackedDownload.DownloadItem.Message ?? "Failed download removed from queue", null, skipRedownload: true);
+                }
+                catch (Exception)
+                {
+                    // Ignored if history item cannot be found
+                }
+            }
 
             if (!removeFromClient && !blocklist && !changeCategory)
             {

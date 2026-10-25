@@ -26,6 +26,8 @@ public class ReleaseInfoResource
     public int? Leechers { get; set; }
     public DownloadProtocol Protocol { get; set; }
     public int IndexerFlags { get; set; }
+    public bool RequiresCredentials { get; set; }
+    public bool MissingCredentials { get; set; }
 }
 
 public static class ReleaseInfoResourceMapper
@@ -58,6 +60,8 @@ public static class ReleaseInfoResourceMapper
             Leechers = (torrentInfo.Peers.HasValue && torrentInfo.Seeders.HasValue) ? (torrentInfo.Peers.Value - torrentInfo.Seeders.Value) : (int?)null,
             Protocol = releaseInfo.DownloadProtocol,
             IndexerFlags = (int)indexerFlags,
+            RequiresCredentials = releaseInfo.RequiresCredentials,
+            MissingCredentials = releaseInfo.MissingCredentials,
         };
     }
 }

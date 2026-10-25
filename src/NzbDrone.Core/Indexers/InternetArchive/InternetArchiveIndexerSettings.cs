@@ -42,10 +42,13 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         [FieldDefinition(3, Label = "S3 Secret Key", Type = FieldType.Password, Privacy = PrivacyLevel.Password, HelpText = "Optional Internet Archive S3 Secret Key")]
         public string S3SecretKey { get; set; }
 
-        [FieldDefinition(4, Type = FieldType.Select, SelectOptions = typeof(RealLanguageFieldConverter), Label = "Multi-Language", HelpText = "IndexerSettingsMultiLanguageReleaseHelpText", Advanced = true)]
+        [FieldDefinition(4, Label = "Require S3 Credentials", Type = FieldType.Checkbox, HelpText = "Require S3 credentials for all releases from this indexer")]
+        public bool RequireCredentials { get; set; }
+
+        [FieldDefinition(5, Type = FieldType.Select, SelectOptions = typeof(RealLanguageFieldConverter), Label = "Multi-Language", HelpText = "IndexerSettingsMultiLanguageReleaseHelpText", Advanced = true)]
         public IEnumerable<int> MultiLanguages { get; set; }
 
-        [FieldDefinition(5, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText")]
+        [FieldDefinition(6, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText")]
         public IEnumerable<int> FailDownloads { get; set; }
 
         public NzbDroneValidationResult Validate()

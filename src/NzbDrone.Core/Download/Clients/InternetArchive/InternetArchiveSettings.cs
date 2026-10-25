@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
+using NzbDrone.Core.Validation.Paths;
 
 namespace NzbDrone.Core.Download.Clients.InternetArchive
 {
@@ -11,6 +12,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         public InternetArchiveSettingsValidator()
         {
             RuleFor(c => c.UrlBase).ValidRootUrl();
+            RuleFor(c => c.DownloadPath).IsValidPath().When(c => !string.IsNullOrWhiteSpace(c.DownloadPath));
         }
     }
 
@@ -38,6 +40,9 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         [FieldDefinition(4, Label = "Preferred Archives", Type = FieldType.Tag)]
         public IEnumerable<string> PreferredArchives { get; set; }
+
+        [FieldDefinition(5, Label = "Download Path", Type = FieldType.Path, HelpText = "Optional download directory. Defaults to AppData/downloads.")]
+        public string DownloadPath { get; set; }
 
         public override NzbDroneValidationResult Validate()
         {

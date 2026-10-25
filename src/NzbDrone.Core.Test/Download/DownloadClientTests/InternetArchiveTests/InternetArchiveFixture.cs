@@ -9,6 +9,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
@@ -38,6 +39,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
             Mocker.GetMock<IConfigService>().SetupGet(s => s.DownloadClientWorkingFolders)
                   .Returns(Path.Combine(TempFolder, "downloads"));
 
+            Mocker.GetMock<IAppFolderInfo>().SetupGet(s => s.AppDataFolder)
+                  .Returns(Path.Combine(TempFolder, "appdata"));
+
             Mocker.GetMock<IDiskProvider>().Setup(s => s.OpenWriteStream(It.IsAny<string>()))
                   .Returns(() => new FileStream(Path.GetTempFileName(), FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite, 81920, FileOptions.DeleteOnClose));
         }
@@ -50,6 +54,20 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
             settings.AllowAnonymousFallback.Should().BeTrue();
             settings.PreferredArchives.Should().NotBeNull();
             Subject.Protocol.Should().Be(DownloadProtocol.Http);
+        }
+
+        [Test]
+        public void should_use_app_data_downloads_when_download_path_is_not_set()
+        {
+            Subject.GetWorkingFolder().Should().Be(Path.Combine(TempFolder, "appdata", "downloads"));
+        }
+
+        [Test]
+        public void should_use_configured_download_path_when_set()
+        {
+            var customPath = Path.Combine(TempFolder, "custom_downloads");
+            _settings.DownloadPath = customPath;
+            Subject.GetWorkingFolder().Should().Be(customPath);
         }
 
         [Test]

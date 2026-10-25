@@ -50,7 +50,7 @@ public static class ReleaseResourceMapper
             MappedAbsoluteEpisodeNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber!.Value).ToArray(),
             MappedEpisodeInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
             EpisodeRequested = remoteEpisode.EpisodeRequested,
-            DownloadAllowed = remoteEpisode.DownloadAllowed,
+            DownloadAllowed = remoteEpisode.DownloadAllowed && !releaseInfo.MissingCredentials,
             CustomFormatScore = remoteEpisode.CustomFormatScore,
             CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
             SceneMapping = remoteEpisode.SceneMapping?.ToResource(),
