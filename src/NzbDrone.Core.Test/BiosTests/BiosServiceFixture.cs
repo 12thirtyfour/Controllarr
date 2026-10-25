@@ -4,7 +4,10 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Test.Framework;
 
@@ -80,6 +83,66 @@ namespace NzbDrone.Core.Test.BiosTests
 
             Subject.GetCatalog("n64").Should().BeEmpty();
             Subject.GetCatalog("64dd").Select(b => b.FileName).Should().Contain("64DD_IPL.bin");
+        }
+
+        [Test]
+        public void Should_discard_invalid_bios_file_when_scanning_directory()
+        {
+            var corruptBiosPath = Path.Combine(_tempDir, "disksys.rom");
+            File.WriteAllBytes(corruptBiosPath, Encoding.UTF8.GetBytes("corrupted_fds_payload"));
+
+            var results = Subject.ScanAndVerifyBiosDirectory(_tempDir, "fds");
+
+            File.Exists(corruptBiosPath).Should().BeFalse("corrupt BIOS file must be discarded from disk");
+            var fdsBios = results.FirstOrDefault(b => b.FileName == "disksys.rom");
+            fdsBios.Should().NotBeNull();
+            fdsBios.IsVerified.Should().BeFalse();
+            fdsBios.Status.Should().Be(2);
+        }
+
+        [Test]
+        public void Should_discard_downloaded_payload_if_it_fails_hash_verification()
+        {
+            Mocker.GetMock<IAppFolderInfo>()
+                  .SetupGet(a => a.AppDataFolder)
+                  .Returns(_tempDir);
+
+            var badPayload = Encoding.UTF8.GetBytes("bad_server_payload");
+            var mockResponse = new HttpResponse(new HttpRequest("https://test.example/disksys.rom"), new HttpHeader(), badPayload);
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(c => c.Get(It.IsAny<HttpRequest>()))
+                  .Returns(mockResponse);
+
+            var results = Subject.DownloadMissingBios("fds", "disksys.rom");
+
+            var expectedDestination = Path.Combine(_tempDir, "bios", "fds", "disksys.rom");
+            File.Exists(expectedDestination).Should().BeFalse("unverified downloaded payload must be discarded from disk");
+
+            var fdsBios = results.FirstOrDefault(b => b.FileName == "disksys.rom");
+            fdsBios.Should().NotBeNull();
+            fdsBios.IsVerified.Should().BeFalse();
+        }
+
+        [Test]
+        public void Should_discard_invalid_existing_file_in_platform_bios_directory_on_catalog_check()
+        {
+            Mocker.GetMock<IAppFolderInfo>()
+                  .SetupGet(a => a.AppDataFolder)
+                  .Returns(_tempDir);
+
+            var biosDir = Path.Combine(_tempDir, "bios", "fds");
+            Directory.CreateDirectory(biosDir);
+            var corruptPath = Path.Combine(biosDir, "disksys.rom");
+            File.WriteAllBytes(corruptPath, Encoding.UTF8.GetBytes("corrupted_payload"));
+
+            var catalog = Subject.GetCatalog("fds");
+
+            File.Exists(corruptPath).Should().BeFalse("existing corrupt BIOS file must be discarded upon hash verification failure");
+            var entry = catalog.FirstOrDefault(b => b.FileName == "disksys.rom");
+            entry.Should().NotBeNull();
+            entry.IsVerified.Should().BeFalse();
+            entry.Status.Should().Be(2);
         }
     }
 }

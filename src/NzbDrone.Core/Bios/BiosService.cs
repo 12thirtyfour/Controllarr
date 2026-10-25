@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
@@ -795,9 +794,38 @@ namespace NzbDrone.Core.Bios
 
                 if (matchingFile != null)
                 {
-                    entry.ResolvedPath = matchingFile;
-                    entry.IsVerified = VerifyBios(matchingFile, entry.ExpectedMd5, entry.ExpectedSha1);
-                    entry.Status = entry.IsVerified ? 1 : 2;
+                    entry.ResolvedPath = FormatDisplayPath(matchingFile);
+                    var valid = VerifyBios(matchingFile, entry.ExpectedMd5, entry.ExpectedSha1);
+                    if (valid)
+                    {
+                        entry.IsVerified = true;
+                        entry.Status = 1;
+                    }
+                    else
+                    {
+                        _logger.Warn("BIOS file {0} at {1} failed hash verification. Discarding invalid file and replacing with verified copy.", entry.FileName, matchingFile);
+                        try
+                        {
+                            File.Delete(matchingFile);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(ex, "Failed to discard invalid BIOS file at {0}", matchingFile);
+                        }
+
+                        var targetDir = Path.GetDirectoryName(matchingFile);
+                        var replaced = TryDownloadAndVerifyBios(entry, targetDir, platformSlug);
+                        if (replaced)
+                        {
+                            entry.IsVerified = true;
+                            entry.Status = 1;
+                        }
+                        else
+                        {
+                            entry.IsVerified = false;
+                            entry.Status = 2;
+                        }
+                    }
                 }
             }
 
@@ -815,112 +843,180 @@ namespace NzbDrone.Core.Bios
 
             foreach (var entry in targets)
             {
-                var destinationPath = string.Empty;
-                try
+                var targetDir = ResolveTargetBiosDirectory(entry.GamePlatform, platformSlug);
+                if (string.IsNullOrWhiteSpace(targetDir))
                 {
-                    var targetDir = ResolveTargetBiosDirectory(entry.GamePlatform, platformSlug);
-                    if (string.IsNullOrWhiteSpace(targetDir))
+                    targetDir = Path.Combine(
+                        _appFolderInfo?.AppDataFolder ?? Path.GetTempPath(),
+                        "bios",
+                        entry.GamePlatform);
+                }
+
+                TryDownloadAndVerifyBios(entry, targetDir, platformSlug);
+            }
+
+            return GetCatalog(platformSlug);
+        }
+
+        private bool TryDownloadAndVerifyBios(BiosFile entry, string targetDir, string platformSlug = null)
+        {
+            if (string.IsNullOrWhiteSpace(targetDir))
+            {
+                return false;
+            }
+
+            var destinationPath = Path.Combine(targetDir, entry.FileName);
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                Directory.CreateDirectory(targetDir);
+
+                if (File.Exists(destinationPath))
+                {
+                    if (VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1))
                     {
-                        targetDir = Path.Combine(
-                            _appFolderInfo?.AppDataFolder ?? Path.GetTempPath(),
-                            "bios",
-                            entry.GamePlatform);
+                        entry.ResolvedPath = FormatDisplayPath(destinationPath);
+                        entry.IsVerified = true;
+                        entry.Status = 1;
+                        return true;
                     }
 
-                    Directory.CreateDirectory(targetDir);
-                    destinationPath = Path.Combine(targetDir, entry.FileName);
+                    _logger.Warn("Discarding invalid BIOS file at {0} before acquiring replacement", destinationPath);
+                    try
+                    {
+                        File.Delete(destinationPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, "Failed to delete invalid BIOS file at {0}", destinationPath);
+                    }
+                }
 
-                    var candidateUrls = BuildCandidateDownloadUrls(entry);
-                    var downloaded = false;
-                    var usedUrl = candidateUrls.FirstOrDefault() ?? string.Empty;
-                    var stopwatch = Stopwatch.StartNew();
+                if (_httpClient == null)
+                {
+                    return false;
+                }
+
+                var candidateUrls = BuildCandidateDownloadUrls(entry);
+                var downloaded = false;
+                var usedUrl = candidateUrls.FirstOrDefault() ?? string.Empty;
+
+                InternetArchive.TrackTransferState(
+                    destinationPath,
+                    $"[BIOS] {entry.FileName} ({entry.PlatformTitle})",
+                    destinationPath,
+                    524288L,
+                    0L,
+                    0d,
+                    DownloadItemStatus.Downloading);
+
+                foreach (var url in candidateUrls)
+                {
+                    try
+                    {
+                        var request = new HttpRequest(url)
+                        {
+                            SuppressHttpError = true,
+                            AllowAutoRedirect = true,
+                            RequestTimeout = TimeSpan.FromSeconds(12)
+                        };
+
+                        var response = _httpClient.Get(request);
+                        if (response != null && !response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
+                        {
+                            File.WriteAllBytes(destinationPath, response.ResponseData);
+
+                            if (VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1))
+                            {
+                                downloaded = true;
+                                usedUrl = url;
+                                break;
+                            }
+
+                            _logger.Warn("Downloaded BIOS file {0} from {1} does not match expected hashes. Discarding invalid payload.", entry.FileName, url);
+                            try
+                            {
+                                File.Delete(destinationPath);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error(ex, "Failed to delete invalid downloaded BIOS file at {0}", destinationPath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Mirror fetch failed for BIOS {0} from {1}", entry.FileName, url);
+                        if (File.Exists(destinationPath))
+                        {
+                            try
+                            {
+                                File.Delete(destinationPath);
+                            }
+                            catch
+                            {
+                            }
+                        }
+                    }
+                }
+
+                if (downloaded && File.Exists(destinationPath))
+                {
+                    stopwatch.Stop();
+                    var fileLength = new FileInfo(destinationPath).Length;
+                    var elapsedSec = Math.Max(0.05d, stopwatch.Elapsed.TotalSeconds);
+                    var speed = fileLength / elapsedSec;
 
                     InternetArchive.TrackTransferState(
                         destinationPath,
                         $"[BIOS] {entry.FileName} ({entry.PlatformTitle})",
                         destinationPath,
-                        524288L,
-                        0L,
-                        0d,
-                        DownloadItemStatus.Downloading);
+                        fileLength,
+                        fileLength,
+                        speed,
+                        DownloadItemStatus.Completed);
 
-                    if (_httpClient != null)
-                    {
-                        foreach (var url in candidateUrls)
-                        {
-                            try
-                            {
-                                var request = new HttpRequest(url)
-                                {
-                                    SuppressHttpError = true,
-                                    AllowAutoRedirect = true,
-                                    RequestTimeout = TimeSpan.FromSeconds(12)
-                                };
+                    entry.ResolvedPath = FormatDisplayPath(destinationPath);
+                    entry.IsVerified = true;
+                    entry.Status = 1;
 
-                                var response = _httpClient.Get(request);
-                                if (response != null && !response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
-                                {
-                                    File.WriteAllBytes(destinationPath, response.ResponseData);
-                                    downloaded = true;
-                                    usedUrl = url;
-                                    break;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.Debug(ex, "Mirror fetch failed for BIOS {0} from {1}", entry.FileName, url);
-                            }
-                        }
-
-                        if (!downloaded)
-                        {
-                            // Fallback firmware binary synthesis when external HTTP mirrors are unreachable or rate-limited
-                            var fallbackPayload = BuildDeterministicBiosPayload(entry);
-                            File.WriteAllBytes(destinationPath, fallbackPayload);
-                            downloaded = true;
-                        }
-                    }
-
-                    if (downloaded && File.Exists(destinationPath))
-                    {
-                        stopwatch.Stop();
-                        var fileLength = new FileInfo(destinationPath).Length;
-                        var elapsedSec = Math.Max(0.05d, stopwatch.Elapsed.TotalSeconds);
-                        var speed = fileLength / elapsedSec;
-
-                        InternetArchive.TrackTransferState(
-                            destinationPath,
-                            $"[BIOS] {entry.FileName} ({entry.PlatformTitle})",
-                            destinationPath,
-                            fileLength,
-                            fileLength,
-                            speed,
-                            DownloadItemStatus.Completed);
-
-                        entry.ResolvedPath = destinationPath;
-                        entry.IsVerified = true;
-                        entry.Status = 1;
-
-                        RecordBiosDownloadHistory(entry, platformSlug, destinationPath, usedUrl, fileLength);
-                        InternetArchive.RemoveTrackedTransfer(destinationPath);
-                    }
-                    else
-                    {
-                        InternetArchive.RemoveTrackedTransfer(destinationPath);
-                    }
+                    RecordBiosDownloadHistory(entry, platformSlug, destinationPath, usedUrl, fileLength);
+                    InternetArchive.RemoveTrackedTransfer(destinationPath);
+                    return true;
                 }
-                catch (Exception ex)
+
+                InternetArchive.RemoveTrackedTransfer(destinationPath);
+                if (File.Exists(destinationPath))
                 {
-                    if (!string.IsNullOrWhiteSpace(destinationPath))
+                    try
                     {
-                        InternetArchive.RemoveTrackedTransfer(destinationPath);
+                        File.Delete(destinationPath);
                     }
-
-                    _logger.Warn(ex, "Failed to download BIOS file {0} for {1}", entry.FileName, entry.GamePlatform);
+                    catch
+                    {
+                    }
                 }
-            }
 
-            return GetCatalog(platformSlug);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                InternetArchive.RemoveTrackedTransfer(destinationPath);
+                if (File.Exists(destinationPath))
+                {
+                    try
+                    {
+                        File.Delete(destinationPath);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                _logger.Warn(ex, "Failed to download replacement BIOS file {0} for {1}", entry.FileName, entry.GamePlatform);
+                return false;
+            }
         }
 
         public bool VerifyBios(string filePath, string expectedMd5, string expectedSha1)
@@ -1008,15 +1104,6 @@ namespace NzbDrone.Core.Bios
             urls.Add($"https://archive.org/download/retroarch_bios/system/{escapedFile}");
 
             return urls;
-        }
-
-        private static byte[] BuildDeterministicBiosPayload(BiosFile entry)
-        {
-            var header = $"CONTROLLARR_FIRMWARE:{entry.GamePlatform}:{entry.FileName}:{entry.ExpectedMd5}:{entry.ExpectedSha1}\n";
-            var headerBytes = Encoding.UTF8.GetBytes(header);
-            var payload = new byte[Math.Max(4096, headerBytes.Length)];
-            Buffer.BlockCopy(headerBytes, 0, payload, 0, headerBytes.Length);
-            return payload;
         }
 
         private void RecordBiosDownloadHistory(
@@ -1147,8 +1234,36 @@ namespace NzbDrone.Core.Bios
                     if (exists)
                     {
                         var valid = VerifyBios(foundPath, entry.ExpectedMd5, entry.ExpectedSha1);
-                        entry.IsVerified = valid || new FileInfo(foundPath).Length > 0;
-                        entry.Status = entry.IsVerified ? 1 : 2;
+                        if (valid)
+                        {
+                            entry.IsVerified = true;
+                            entry.Status = 1;
+                        }
+                        else
+                        {
+                            _logger.Warn("BIOS file {0} at {1} failed hash verification. Discarding invalid file and replacing with verified copy.", entry.FileName, foundPath);
+                            try
+                            {
+                                File.Delete(foundPath);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error(ex, "Failed to discard invalid BIOS file at {0}", foundPath);
+                            }
+
+                            var targetDir = Path.GetDirectoryName(foundPath) ?? biosDir;
+                            var replaced = TryDownloadAndVerifyBios(entry, targetDir, requestedPlatformSlug);
+                            if (replaced)
+                            {
+                                entry.IsVerified = true;
+                                entry.Status = 1;
+                            }
+                            else
+                            {
+                                entry.IsVerified = false;
+                                entry.Status = 2;
+                            }
+                        }
                     }
                 }
             }

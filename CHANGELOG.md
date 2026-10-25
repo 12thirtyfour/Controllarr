@@ -45,6 +45,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed `ValidUrlBase()` validator in `InternetArchiveSettingsValidator` to use `ValidRootUrl()`, properly validating `https://archive.org`.
 
 ### Changed
+- **BIOS Hash Verification, Discard & Replacement Pipeline**:
+  - Enforced strict cryptographic checksum validation (`MD5` and `SHA-1`) across all platform system BIOS and firmware files.
+  - Any BIOS file found on disk or downloaded from a mirror that does not match expected canonical hashes is immediately discarded (deleted from disk) rather than retained in the library.
+  - Automatically triggers replacement acquisition from verified mirrors when an invalid or corrupted BIOS file is detected.
+  - Removed unverified synthetic firmware fallback generation, ensuring only cryptographically verified dumps can achieve `Present` (`1`) verification status.
 - **Default ROM Library Naming Scheme (`{Manufacturer}/{Platform}/{Region}/{Game Title}`)**:
   - Updated default folder and file naming across backend (`NamingConfig.Default`, `NamingConfigService`) and frontend (`Naming.tsx`, `NamingModal.tsx`) to prepend `{Manufacturer}` prior to `{Platform}` (e.g. `Nintendo/Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes` and `Sony/PlayStation/USA/Final Fantasy VII (USA) (Disc 1)/...`).
   - Added automatic legacy naming config upgrade migrating `{Platform}` or `{Series Title}` to `{Manufacturer}/{Platform}`.
