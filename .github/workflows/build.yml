@@ -1,19 +1,27 @@
-name: Build
+name: Build & Release
+
+# Branch model:
+# - `develop` is the staging/testing branch. It intentionally has NO automated builds.
+#   Anyone wanting to run develop builds from source.
+# - `main` is the stable branch. Every push/merge to `main` runs the full build + test suite,
+#   then packages all 10 OS/arch targets plus the multi-arch Docker image and publishes a
+#   GitHub Release for `RELEASE_VERSION` (skipped if that release already exists).
+# - Pushing a version tag (e.g. `v1.0.1` or `v1.1.0-rc.1`) publishes that exact version.
+#   Tags containing a `-` suffix are published as pre-releases.
+# - Pull requests targeting `main` run build + tests only (no packaging or publishing).
+#
+# To cut a new release: bump RELEASE_VERSION below (or push a `vX.Y.Z` tag) and merge to `main`.
 
 on:
   push:
     branches:
-      - develop
       - main
-    paths-ignore:
-      - "src/Sonarr.Api.*/openapi.json"
+    tags:
+      - "v*"
   pull_request:
     branches:
-      - develop
       - main
-    paths-ignore:
-      - "src/NzbDrone.Core/Localization/Core/**"
-      - "src/Sonarr.Api.*/openapi.json"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -22,9 +30,7 @@ concurrency:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   FRAMEWORK: net10.0
-  RAW_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-  CONTROLLARR_MAJOR_VERSION: 5
-  VERSION: 5.0.0
+  RELEASE_VERSION: 1.0.0
 
 jobs:
   prepare:
@@ -33,16 +39,43 @@ jobs:
       framework: ${{ steps.variables.outputs.framework }}
       major_version: ${{ steps.variables.outputs.major_version }}
       version: ${{ steps.variables.outputs.version }}
+      release_version: ${{ steps.variables.outputs.release_version }}
+      prerelease: ${{ steps.variables.outputs.prerelease }}
       branch: ${{ steps.variables.outputs.branch }}
+      publish: ${{ steps.variables.outputs.publish }}
     steps:
       - name: Setup Environment Variables
         id: variables
         shell: bash
         run: |
-          echo "framework=${{ env.FRAMEWORK }}" >> "$GITHUB_OUTPUT"
-          echo "major_version=${{ env.CONTROLLARR_MAJOR_VERSION }}" >> "$GITHUB_OUTPUT"
-          echo "version=${{ env.VERSION }}.$((${{ github.run_number }}))" >> "$GITHUB_OUTPUT"
-          echo "branch=${RAW_BRANCH_NAME//\//-}" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            release_version="${GITHUB_REF_NAME#v}"
+          else
+            release_version="${RELEASE_VERSION}"
+          fi
+
+          # Numeric part (e.g. 1.0.0 from 1.0.0-rc.1) is used for the 4-part assembly version.
+          numeric_version="${release_version%%-*}"
+
+          if [[ "${release_version}" == *-* ]]; then
+            prerelease=true
+          else
+            prerelease=false
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            publish=false
+          else
+            publish=true
+          fi
+
+          echo "framework=${FRAMEWORK}" >> "$GITHUB_OUTPUT"
+          echo "major_version=${numeric_version%%.*}" >> "$GITHUB_OUTPUT"
+          echo "version=${numeric_version}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+          echo "branch=main" >> "$GITHUB_OUTPUT"
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
 
   backend:
     needs: prepare
@@ -217,7 +250,7 @@ jobs:
           binary_path: ${{ matrix.binary_path }}
 
   deploy:
-    if: ${{ github.ref_name == 'develop' }}
+    if: ${{ needs.prepare.outputs.publish == 'true' }}
     needs:
       [
         prepare,
@@ -227,45 +260,14 @@ jobs:
         unit_test_postgres,
         integration_test,
       ]
-    secrets: inherit
     uses: ./.github/workflows/deploy.yml
     permissions:
       contents: write
+      packages: write
     with:
       framework: ${{ needs.prepare.outputs.framework }}
-      branch: ${{ github.ref_name }}
+      branch: ${{ needs.prepare.outputs.branch }}
       major_version: ${{ needs.prepare.outputs.major_version }}
       version: ${{ needs.prepare.outputs.version }}
-
-  notify:
-    name: Discord Notification
-    needs:
-      [
-        prepare,
-        backend,
-        frontend,
-        unit_test,
-        unit_test_postgres,
-        integration_test,
-        deploy,
-      ]
-    if: ${{ !cancelled() && github.ref_name == 'develop' }}
-    env:
-      STATUS: ${{ contains(needs.*.result, 'failure') && 'failure' || 'success' }}
-      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Notify
-        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
-        uses: tsickert/discord-webhook@v7.0.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          username: "GitHub Actions"
-          avatar-url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-          embed-title: "${{ github.workflow }}: ${{ env.STATUS == 'success' && 'Success' || 'Failure' }}"
-          embed-url: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          embed-description: |
-            **Branch** ${{ github.ref }}
-            **Build** ${{ needs.prepare.outputs.version }}
-          embed-color: ${{ env.STATUS == 'success' && '3066993' || '15158332' }}
+      release_version: ${{ needs.prepare.outputs.release_version }}
+      prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}

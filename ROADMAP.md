@@ -21,21 +21,6 @@
 
 ## Active Phase: Beta Verification & v1.0 Release Candidate
 
-* **Console Theme Overhauls, Live Preview & Dynamic Per-Platform Theming**:
-  * **Alphabetized Theme Dropdown**: Keep `Auto`, `Light`, and `Dark` at the top of the selector in `Settings -> UI`, followed by all console themes strictly in alphabetical order for effortless scanning.
-  * **Instant Theme Apply**: Selecting a theme in `Settings -> UI` applies and saves it immediately, without requiring a separate Save click.
-  * **Dynamic Per-Console Theme Matching**: Add a checkbox setting in `Settings -> UI` (between the Theme selector and Color Impaired toggle) to automatically apply the corresponding console theme when viewing that platform's details page, reverting to the user's global default theme on all other pages.
-  * **Theme Palette Redesigns**:
-    * **Nintendo Famicom (1983)**: Replace high-contrast harsh red with iconic Famicom palette—deep maroon/burgundy shell accents, warm ivory/cream body, gold controller faceplates, and charcoal accents.
-    * **Nintendo Game Boy DMG-01 (1989)**: Evolve beyond monolithic monochrome green to incorporate the warm off-white/gray DMG shell, dark slate-blue screen lens bezel, magenta/burgundy button accents, and olive dot-matrix LCD matrix accents.
-    * **Microsoft Xbox 360 (2005)**: Redesign as a crisp light theme based on the original 2005 matte white console chassis, Ring-of-Light emerald blade greens, chrome accents, and subtle 4-color button highlights (green, red, blue, yellow).
-    * **Controllarr Brand Default Themes**: Differentiate default Dark and Light themes from upstream Sonarr styling with Controllarr brand aesthetics.
-* **Disc-Based Game Folder Structure & Path Customization (`Settings -> Media Management`)**:
-  * Dedicated option to house disc-based titles (even single-disc games) inside their own game-titled subfolder (e.g. `{Platform}/{Region}/{Game Title}/{Game Title}.chd` or `{Game Title} (Disc 1).chd`) alongside companion `.m3u` playlists, multi-track `.cue`/`.bin` files, and sidecar saves, keeping region folders neat and preventing multi-file disc clutter.
-* **Settings Save Confirmation & Visual Feedback (Toast / Checkmark)**:
-  * Display a prominent green success toast notification or temporary checkmark animation when saving settings across all Settings pages instead of only silently transitioning the toolbar button to a disabled "No Changes" state.
-* **Navigation & Leftover Servarr UI Pruning**:
-  * Remove Servarr-era artifacts that do not apply to console ROM collections (e.g., "Cutoff Unmet" filter views and the TV-centric Calendar, unless backed by verified aftermarket/homebrew release schedules).
 * **First-Run Setup & Guided Onboarding Wizard (Pre-v1.0 Milestone)**:
   * Interactive first-run setup wizard launching on initial boot before handing off to the dashboard:
     1. Authentication & Login Security (Forms, Basic, or Disabled).
@@ -52,7 +37,8 @@
 * **Torznab / Newznab Game-Specific Indexer Attributes & Volume Factors**:
   * Extend `Torznab` and `Newznab` indexer definitions with game-specific category attributes (ROM container format hints, region tags, and download/upload ratio volume factors) for specialized private retro trackers.
 * **v1.0.0 Release Candidate (RC) & Stable Distribution**:
-  * Tagging `v1.0.0-rc.1` and publishing standalone multi-architecture release binaries and Docker images.
+  * Create the `main` branch from `develop` once Phase 1 QA is complete, then push tag `v1.0.0-rc.1` to publish the first pre-release (all 10 OS/arch binaries + multi-arch Docker image to `ghcr.io/12thirtyfour/controllarr`) via the `main`-only release pipeline.
+  * Promote to stable `v1.0.0` by merging the final RC state into `main`.
 
 ---
 

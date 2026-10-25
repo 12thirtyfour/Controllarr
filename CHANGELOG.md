@@ -44,6 +44,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Internet Archive Downloader Validation**:
   - Fixed `ValidUrlBase()` validator in `InternetArchiveSettingsValidator` to use `ValidRootUrl()`, properly validating `https://archive.org`.
 
+### Changed
+- **GitHub Branch, CI/CD & Release Housekeeping (`develop` staging / `main` stable)**:
+  - `develop` no longer triggers any GitHub Actions builds; it is the staging/testing branch and dev users build from source.
+  - Renamed `build_v5.yml` to `build.yml` (`Build & Release`): runs only on pushes/merges to `main`, `v*` version tags, pull requests targeting `main` (build + tests only), and manual dispatch.
+  - Replaced Sonarr's hardcoded `5.0.0.<run>` versioning (which published a new pre-release on every `develop` push) with a single `RELEASE_VERSION` (`1.0.0`). Releases are tagged `vX.Y.Z`, skipped if that release already exists, and tags with a `-` suffix (e.g. `v1.0.0-rc.1`) publish as pre-releases.
+  - `deploy.yml` now packages all 10 OS/arch targets and builds/pushes the multi-arch Docker image (`linux/amd64`, `linux/arm64`) to `ghcr.io/12thirtyfour/controllarr` (`<version>` and `latest` tags).
+  - Removed leftover Sonarr workflow bloat: Discord webhook notifications, the `services.controllarr.tv` update publisher, `api_docs.yml`, `lock.yml`, `close_stale_draft_prs.yml`, and the repo-gated `labeler.yml` / `conflict_labeler.yml` workflows (plus `.github/labeler.yml`).
+  - Deleted the 10 leftover `v5.0.0.*` pre-releases and tags from GitHub.
+  - Fixed the README build badge to track `build.yml` on `main` and documented the branch/release model.
+
 - Multi-OS beta testing and telemetry triage across macOS, Windows, and Linux.
 - Physical flash cart, handheld CFW, and ODE hardware target verification runs.
 

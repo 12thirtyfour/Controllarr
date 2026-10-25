@@ -13,7 +13,7 @@
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-purple.svg" alt=".NET 10" /></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript%20%7C%20Vite-61dafb.svg" alt="React Vite" /></a>
   <a href="https://github.com/12thirtyfour/Controllarr/wiki"><img src="https://img.shields.io/badge/docs-wiki-brightgreen.svg" alt="Wiki Documentation" /></a>
-  <a href="https://github.com/12thirtyfour/Controllarr/actions"><img src="https://img.shields.io/github/actions/workflow/status/12thirtyfour/Controllarr/build.yml?branch=develop&label=build" alt="Build Status" /></a>
+  <a href="https://github.com/12thirtyfour/Controllarr/actions"><img src="https://img.shields.io/github/actions/workflow/status/12thirtyfour/Controllarr/build.yml?branch=main&label=build" alt="Build Status" /></a>
 </p>
 
 ---
@@ -130,6 +130,10 @@ dotnet build src/Sonarr.sln --configuration Release
 ```
 
 Open your browser and navigate to **[http://localhost:7050](http://localhost:7050)**.
+
+### Branches & Releases
+* **`main`** (stable): Every merge to `main` runs the full build and test suite and publishes an official [GitHub Release](https://github.com/12thirtyfour/Controllarr/releases) with binaries for all 10 OS/architecture targets plus the multi-arch Docker image (`ghcr.io/12thirtyfour/controllarr`).
+* **`develop`** (staging/testing): No automated builds. To run the latest development code, clone the `develop` branch and build from source using the steps above.
 
 ### Docker & Docker Compose
 ```yaml
