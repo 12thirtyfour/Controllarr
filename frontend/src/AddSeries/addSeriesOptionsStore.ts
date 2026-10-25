@@ -86,6 +86,7 @@ export interface AddSeriesOptions {
   seasonFolder: boolean;
   collectionStrategy: string;
   revisionPreference: string;
+  encryptionPreference: string;
   pinnedVersion: string;
   enableCompression: boolean;
   preferEncryptedRoms: boolean;
@@ -109,6 +110,7 @@ const { useOptions, useOption, setOption } =
       seasonFolder: true,
       collectionStrategy: 'oneGameOneRom',
       revisionPreference: 'latestRevision',
+      encryptionPreference: 'notEncrypted',
       pinnedVersion: '',
       enableCompression: true,
       preferEncryptedRoms: false,

@@ -199,8 +199,14 @@ namespace Sonarr.Api.V3.Series
 
             var model = seriesResource.ToModel(series);
 
-            // Don't change the season type for an existing series
-            model.SeasonType = seasonType;
+            // Preserve existing seasonType unless encryption preference or seasonType was explicitly updated
+            if (seriesResource.SeasonType.IsNullOrWhiteSpace() &&
+                seriesResource.EncryptionPreference == series.EncryptionPreference &&
+                seriesResource.PreferEncryptedRoms == series.PreferEncryptedRoms)
+            {
+                model.SeasonType = seasonType;
+            }
+
             model.Language = seriesResource.Language ?? language;
 
             _seriesService.UpdateSeries(model, sourcePath, destinationPath, moveFiles);

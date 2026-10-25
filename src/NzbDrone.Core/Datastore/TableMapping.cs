@@ -118,6 +118,8 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(s => s.RootFolderPath)
                   .Ignore(s => s.Translations)
                   .Ignore(s => s.PreferredArchiveFormat)
+                  .Ignore(s => s.PreferEncryptedRoms)
+                  .Ignore(s => s.EncryptionPreference)
                   .HasOne(s => s.QualityProfile, s => s.QualityProfileId);
 
             Mapper.Entity<SeriesTranslation>("PlatformTranslations").RegisterModel();

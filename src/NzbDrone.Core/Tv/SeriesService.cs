@@ -253,7 +253,7 @@ namespace NzbDrone.Core.Tv
                 s.SeasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
                 s.SeasonNumber == GameCatalogProxy.RegionRomHacksSeason);
 
-            if (!isCatalogPlatform || series.CollectionStrategy == CollectionStrategy.Preservationist)
+            if (!isCatalogPlatform)
             {
                 return;
             }
@@ -261,7 +261,8 @@ namespace NzbDrone.Core.Tv
             if (!episodeMonitoredChanged &&
                 (storedSeries == null ||
                  (series.CollectionStrategy == storedSeries.CollectionStrategy &&
-                  series.RevisionPreference == storedSeries.RevisionPreference)))
+                  series.RevisionPreference == storedSeries.RevisionPreference &&
+                  series.EncryptionPreference == storedSeries.EncryptionPreference)))
             {
                 return;
             }
@@ -274,12 +275,33 @@ namespace NzbDrone.Core.Tv
 
             var monitoredSeasonSet = series.Seasons.Where(s => s.Monitored).Select(s => s.SeasonNumber).ToHashSet();
             var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
+            var encryptionPref = series.EncryptionPreference;
 
             foreach (var group in allEpisodes
                 .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
                 .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
             {
                 var groupList = group.ToList();
+
+                if (series.CollectionStrategy == CollectionStrategy.Preservationist)
+                {
+                    var hasEncryptedInGroup = groupList.Any(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title));
+                    var hasUnencryptedInGroup = groupList.Any(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title));
+
+                    foreach (var item in groupList)
+                    {
+                        var isEnc = GameCatalogProxy.IsEncryptedVersion(item.FinaleType, item.Title);
+                        item.Monitored = encryptionPref switch
+                        {
+                            EncryptionPreference.Encrypted => isEnc || !hasEncryptedInGroup,
+                            EncryptionPreference.Both => true,
+                            _ => !isEnc || !hasUnencryptedInGroup
+                        };
+                    }
+
+                    continue;
+                }
+
                 var retailList = groupList
                     .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
                     .ToList();
@@ -294,10 +316,44 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
-                var preferred = preferInitial ? retailList.First() : retailList.Last();
+                var unencryptedRetail = retailList
+                    .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                    .ToList();
+                var encryptedRetail = retailList
+                    .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                    .ToList();
+
+                var preferredEpisodes = new HashSet<Episode>();
+
+                if (encryptionPref == EncryptionPreference.NotEncrypted ||
+                    encryptionPref == EncryptionPreference.Both)
+                {
+                    if (unencryptedRetail.Count > 0)
+                    {
+                        preferredEpisodes.Add(preferInitial ? unencryptedRetail.First() : unencryptedRetail.Last());
+                    }
+                    else if (encryptionPref == EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                    {
+                        preferredEpisodes.Add(preferInitial ? encryptedRetail.First() : encryptedRetail.Last());
+                    }
+                }
+
+                if (encryptionPref == EncryptionPreference.Encrypted ||
+                    encryptionPref == EncryptionPreference.Both)
+                {
+                    if (encryptedRetail.Count > 0)
+                    {
+                        preferredEpisodes.Add(preferInitial ? encryptedRetail.First() : encryptedRetail.Last());
+                    }
+                    else if (encryptionPref == EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                    {
+                        preferredEpisodes.Add(preferInitial ? unencryptedRetail.First() : unencryptedRetail.Last());
+                    }
+                }
+
                 foreach (var item in groupList)
                 {
-                    item.Monitored = item.Id == preferred.Id;
+                    item.Monitored = preferredEpisodes.Contains(item);
                 }
             }
 

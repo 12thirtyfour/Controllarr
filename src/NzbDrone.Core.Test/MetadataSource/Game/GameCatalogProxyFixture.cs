@@ -197,9 +197,22 @@ game (
 
             Subject.InvalidatePlatformCache();
 
-            // 1. Nintendo DS (1012) defaults to Decrypted catalog
-            var ndsTuple = Subject.GetSeriesInfo(1012, Language.English, null);
-            ndsTuple.Item2.Should().Contain(e => e.Title.Contains("Chrono Trigger"));
+            // 1. Nintendo DS (1012) includes both Decrypted and Encrypted versions under the same base game
+            //    and monitors NotEncrypted by default, Encrypted when "encrypted", or both when "both".
+            var ndsNotEncrypted = Subject.GetSeriesInfo(1012, Language.English, "notEncrypted");
+            ndsNotEncrypted.Item2.Should().Contain(e => e.Title.Contains("Chrono Trigger"));
+            var heartGoldUnencrypted = ndsNotEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version");
+            var heartGoldEncrypted = ndsNotEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version (Encrypted)" && e.FinaleType == "Encrypted");
+            heartGoldUnencrypted.Monitored.Should().BeTrue();
+            heartGoldEncrypted.Monitored.Should().BeFalse();
+
+            var ndsEncrypted = Subject.GetSeriesInfo(1012, Language.English, "encrypted");
+            ndsEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version").Monitored.Should().BeFalse();
+            ndsEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version (Encrypted)").Monitored.Should().BeTrue();
+
+            var ndsBoth = Subject.GetSeriesInfo(1012, Language.English, "both");
+            ndsBoth.Item2.First(e => e.Title == "Pokemon - HeartGold Version").Monitored.Should().BeTrue();
+            ndsBoth.Item2.First(e => e.Title == "Pokemon - HeartGold Version (Encrypted)").Monitored.Should().BeTrue();
 
             // 2. SNK Neo Geo (1038) syncs SmokeMonster NeoSD SMDB
             var neoGeoTuple = Subject.GetSeriesInfo(1038, Language.English, null);

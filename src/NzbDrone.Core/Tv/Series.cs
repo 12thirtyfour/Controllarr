@@ -46,8 +46,62 @@ namespace NzbDrone.Core.Tv
 
         public bool PreferEncryptedRoms
         {
-            get => UseSceneNumbering;
-            set => UseSceneNumbering = value;
+            get => EncryptionPreference == Games.EncryptionPreference.Encrypted;
+            set
+            {
+                UseSceneNumbering = value;
+                if (value && !string.Equals(SeasonType, "both", StringComparison.OrdinalIgnoreCase))
+                {
+                    SeasonType = "encrypted";
+                }
+                else if (!value && string.Equals(SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase))
+                {
+                    SeasonType = "notEncrypted";
+                }
+            }
+        }
+
+        public Games.EncryptionPreference EncryptionPreference
+        {
+            get
+            {
+                if (string.Equals(SeasonType, "both", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Games.EncryptionPreference.Both;
+                }
+
+                if (string.Equals(SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase) || UseSceneNumbering)
+                {
+                    return Games.EncryptionPreference.Encrypted;
+                }
+
+                return Games.EncryptionPreference.NotEncrypted;
+            }
+            set
+            {
+                switch (value)
+                {
+                    case Games.EncryptionPreference.Encrypted:
+                        SeasonType = "encrypted";
+                        UseSceneNumbering = true;
+                        break;
+                    case Games.EncryptionPreference.Both:
+                        SeasonType = "both";
+                        UseSceneNumbering = false;
+                        break;
+                    default:
+                        if (string.Equals(SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(SeasonType, "both", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(SeasonType, "notEncrypted", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(SeasonType, "decrypted", StringComparison.OrdinalIgnoreCase))
+                        {
+                            SeasonType = "notEncrypted";
+                        }
+
+                        UseSceneNumbering = false;
+                        break;
+                }
+            }
         }
 
         public SeriesStatusType Status { get; set; }

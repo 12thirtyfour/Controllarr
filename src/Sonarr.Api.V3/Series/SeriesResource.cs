@@ -56,6 +56,7 @@ namespace Sonarr.Api.V3.Series
         public string PinnedVersion { get; set; }
         public string PreferredArchiveFormat { get; set; }
         public bool PreferEncryptedRoms { get; set; }
+        public NzbDrone.Core.Games.EncryptionPreference EncryptionPreference { get; set; }
 
         public bool UseSceneNumbering { get; set; }
         public int Runtime { get; set; }
@@ -140,6 +141,7 @@ namespace Sonarr.Api.V3.Series
                        PinnedVersion = model.PinnedVersion,
                        PreferredArchiveFormat = model.PreferredArchiveFormat,
                        PreferEncryptedRoms = model.PreferEncryptedRoms,
+                       EncryptionPreference = model.EncryptionPreference,
 
                        UseSceneNumbering = model.UseSceneNumbering,
                        Runtime = model.Runtime,
@@ -216,9 +218,14 @@ namespace Sonarr.Api.V3.Series
                        RevisionPreference = resource.RevisionPreference,
                        PinnedVersion = resource.PinnedVersion,
                        PreferredArchiveFormat = resource.PreferredArchiveFormat ?? resource.Certification,
-                       PreferEncryptedRoms = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
-
                        UseSceneNumbering = resource.UseSceneNumbering,
+                       PreferEncryptedRoms = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
+                       EncryptionPreference = resource.EncryptionPreference != NzbDrone.Core.Games.EncryptionPreference.NotEncrypted
+                           ? resource.EncryptionPreference
+                           : (resource.PreferEncryptedRoms || resource.UseSceneNumbering
+                               ? NzbDrone.Core.Games.EncryptionPreference.Encrypted
+                               : NzbDrone.Core.Games.EncryptionPreference.NotEncrypted),
+
                        Runtime = resource.Runtime,
                        TvdbId = resource.TvdbId,
                        TvRageId = resource.TvRageId,

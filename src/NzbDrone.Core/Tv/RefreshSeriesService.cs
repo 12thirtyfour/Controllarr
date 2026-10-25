@@ -73,7 +73,14 @@ namespace NzbDrone.Core.Tv
                                           series.TvdbId == 1013 ||
                                           string.Equals(series.TitleSlug, "nds", StringComparison.OrdinalIgnoreCase) ||
                                           string.Equals(series.TitleSlug, "3ds", StringComparison.OrdinalIgnoreCase);
-                var effectiveSeasonType = hasEncryptedCatalog && series.PreferEncryptedRoms ? "encrypted" : series.SeasonType;
+                var effectiveSeasonType = hasEncryptedCatalog
+                    ? series.EncryptionPreference switch
+                    {
+                        Games.EncryptionPreference.Encrypted => "encrypted",
+                        Games.EncryptionPreference.Both => "both",
+                        _ => series.SeasonType
+                    }
+                    : series.SeasonType;
                 var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, effectiveSeasonType);
                 seriesInfo = tuple.Item1;
                 episodes = tuple.Item2;

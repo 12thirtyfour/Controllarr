@@ -55,6 +55,10 @@ function isPreReleaseLabel(label: string) {
   return /\b(proto|prototype|beta|demo|sample)\b/i.test(label);
 }
 
+function isEncryptedLabel(label: string) {
+  return /\bencrypted\b/i.test(label);
+}
+
 function parseBaseGameAndVersion(item: Episode) {
   const rawTitle = item.title ?? '';
 
@@ -72,7 +76,7 @@ function parseBaseGameAndVersion(item: Episode) {
   }
 
   const match = rawTitle.match(
-    /^(.*?)\s*\((Rev\s*[A-Z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Beta[^)]*|Proto[^)]*|Prototype[^)]*|Demo[^)]*|Sample[^)]*|Virtual Console[^)]*|GameCube[^)]*|Classic NES[^)]*|Animal Crossing|e-Reader|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)\)$/i
+    /^(.*?)\s*\((Rev\s*[A-Z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Encrypted[^)]*|Beta[^)]*|Proto[^)]*|Prototype[^)]*|Demo[^)]*|Sample[^)]*|Virtual Console[^)]*|GameCube[^)]*|Classic NES[^)]*|Animal Crossing|e-Reader|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)\)$/i
   );
 
   if (match) {
@@ -247,11 +251,19 @@ function SeriesDetailsSeason({
       const isAlternateGroup = groupIndex % 2 === 1;
       groupIndex++;
 
-      // Sort retail releases before Prototype/Beta/Demo/Sample pre-releases
+      // Sort unencrypted retail releases first, then encrypted retail releases, then Prototype/Beta/Demo/Sample pre-releases
       const entries = [...rawEntries].sort((a, b) => {
-        const aPre = isPreReleaseLabel(a.versionLabel) ? 1 : 0;
-        const bPre = isPreReleaseLabel(b.versionLabel) ? 1 : 0;
-        return aPre - bPre;
+        const aBucket = isPreReleaseLabel(a.versionLabel)
+          ? 2
+          : isEncryptedLabel(a.versionLabel)
+          ? 1
+          : 0;
+        const bBucket = isPreReleaseLabel(b.versionLabel)
+          ? 2
+          : isEncryptedLabel(b.versionLabel)
+          ? 1
+          : 0;
+        return aBucket - bBucket;
       });
 
       const retailEntries = entries.filter(
@@ -260,28 +272,6 @@ function SeriesDetailsSeason({
 
       // Demos, Protos, Betas, and Samples are never considered for 1G1R at all
       if (!isCompletionist && retailEntries.length === 0) {
-        return;
-      }
-
-      if (!isCompletionist) {
-        const monitoredRetailEntry = retailEntries.find(
-          (e) => e.item.monitored
-        );
-        const preferredEntry =
-          monitoredRetailEntry ??
-          (preferOriginalRelease
-            ? retailEntries[0]
-            : retailEntries[retailEntries.length - 1]);
-
-        rows.push({
-          item: preferredEntry.item,
-          versionLabel: preferredEntry.versionLabel,
-          isAlternateGroup,
-          alternateVersionCount: 0,
-          isGroupExpanded: false,
-          groupKey,
-        });
-
         return;
       }
 
@@ -300,8 +290,25 @@ function SeriesDetailsSeason({
           });
         });
       } else {
-        const monitoredEntry = entries.find((e) => e.item.monitored);
-        const primaryEntry = monitoredEntry ?? entries[0];
+        const monitoredRetailEntry = retailEntries.find(
+          (e) => e.item.monitored
+        );
+        const monitoredEntry =
+          monitoredRetailEntry ?? entries.find((e) => e.item.monitored);
+        const unencryptedRetailEntries = retailEntries.filter(
+          (e) => !isEncryptedLabel(e.versionLabel)
+        );
+        const fallbackPool =
+          unencryptedRetailEntries.length > 0
+            ? unencryptedRetailEntries
+            : retailEntries;
+        const fallbackRetail =
+          fallbackPool.length > 0
+            ? preferOriginalRelease
+              ? fallbackPool[0]
+              : fallbackPool[fallbackPool.length - 1]
+            : entries[0];
+        const primaryEntry = monitoredEntry ?? fallbackRetail;
 
         rows.push({
           item: primaryEntry.item,

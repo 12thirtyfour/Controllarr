@@ -63,6 +63,21 @@ const REVISION_PREFERENCE_OPTIONS = [
   },
 ];
 
+const ENCRYPTION_PREFERENCE_OPTIONS = [
+  {
+    key: 'notEncrypted',
+    value: 'Not Encrypted (Decrypted)',
+  },
+  {
+    key: 'encrypted',
+    value: 'Encrypted',
+  },
+  {
+    key: 'both',
+    value: 'Both (Encrypted & Not Encrypted)',
+  },
+];
+
 function normalizeCollectionStrategy(val: unknown): string {
   if (val === 1 || val === '1' || val === 'preservationist') {
     return 'preservationist';
@@ -81,6 +96,33 @@ function normalizeRevisionPreference(val: unknown): string {
   }
 
   return 'latestRevision';
+}
+
+function normalizeEncryptionPreference(
+  val: unknown,
+  seasonTypeFallback?: string,
+  preferEncryptedFallback?: boolean
+): string {
+  if (
+    val === 2 ||
+    val === '2' ||
+    val === 'both' ||
+    seasonTypeFallback === 'both'
+  ) {
+    return 'both';
+  }
+
+  if (
+    val === 1 ||
+    val === '1' ||
+    val === 'encrypted' ||
+    seasonTypeFallback === 'encrypted' ||
+    (val === undefined && preferEncryptedFallback)
+  ) {
+    return 'encrypted';
+  }
+
+  return 'notEncrypted';
 }
 
 function hasEncryptedAndDecryptedCollections(series: {
@@ -150,6 +192,11 @@ function EditSeriesModalContent({
         revisionPreference: normalizeRevisionPreference(
           series.revisionPreference
         ),
+        encryptionPreference: normalizeEncryptionPreference(
+          series.encryptionPreference,
+          series.seasonType,
+          Boolean(series.preferEncryptedRoms ?? series.useSceneNumbering)
+        ),
         pinnedVersion: series.pinnedVersion ?? '',
         preferEncryptedRoms: Boolean(
           series.preferEncryptedRoms ?? series.useSceneNumbering
@@ -171,6 +218,13 @@ function EditSeriesModalContent({
                 pendingChanges.revisionPreference
               ) as unknown as number,
             }),
+        ...(pendingChanges.encryptionPreference === undefined
+          ? {}
+          : {
+              encryptionPreference: normalizeEncryptionPreference(
+                pendingChanges.encryptionPreference
+              ) as unknown as number,
+            }),
       },
       saveError
     );
@@ -186,6 +240,8 @@ function EditSeriesModalContent({
     tags,
     series.collectionStrategy,
     series.revisionPreference,
+    series.encryptionPreference,
+    series.seasonType,
     series.pinnedVersion,
     series.preferEncryptedRoms,
     series.useSceneNumbering,
@@ -240,6 +296,15 @@ function EditSeriesModalContent({
 
   const handleInputChange = useCallback(
     ({ name, value }: InputChanged) => {
+      if (name === 'encryptionPreference') {
+        const normalized = normalizeEncryptionPreference(value);
+        setPendingChange('encryptionPreference', normalized);
+        setPendingChange('seasonType', normalized);
+        setPendingChange('preferEncryptedRoms', normalized === 'encrypted');
+        setPendingChange('useSceneNumbering', normalized === 'encrypted');
+        return;
+      }
+
       // @ts-expect-error name needs to be keyof Series
       setPendingChange(name, value);
     },
@@ -419,13 +484,14 @@ function EditSeriesModalContent({
 
           {hasEncryptedAndDecryptedCollections(series) ? (
             <FormRow size={sizes.MEDIUM}>
-              <FormLabel>Prefer Encrypted ROM Hashes</FormLabel>
-              <FormInputHelpText text="Controllarr defaults to Unencrypted (Decrypted) ROM verification hashes for Nintendo DS & 3DS emulators. Enable to prioritize Encrypted ROM hashes instead." />
+              <FormLabel>ROM Encryption Preference</FormLabel>
+              <FormInputHelpText text="Choose whether to monitor Not Encrypted (Decrypted), Encrypted, or Both ROM versions. Encrypted dumps appear as a version under each game." />
               <FormInput
-                type={inputTypes.CHECK}
-                name="preferEncryptedRoms"
+                type={inputTypes.SELECT}
+                name="encryptionPreference"
+                values={ENCRYPTION_PREFERENCE_OPTIONS}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                {...(settings as any).preferEncryptedRoms}
+                {...(settings as any).encryptionPreference}
                 onChange={handleInputChange}
               />
             </FormRow>

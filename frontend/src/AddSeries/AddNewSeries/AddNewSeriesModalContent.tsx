@@ -65,6 +65,21 @@ const REVISION_PREFERENCE_OPTIONS = [
   { key: 'pinned', value: 'Pinned Version / Tag' },
 ];
 
+const ENCRYPTION_PREFERENCE_OPTIONS = [
+  {
+    key: 'notEncrypted',
+    value: 'Not Encrypted (Decrypted)',
+  },
+  {
+    key: 'encrypted',
+    value: 'Encrypted',
+  },
+  {
+    key: 'both',
+    value: 'Both (Encrypted & Not Encrypted)',
+  },
+];
+
 const DISC_PLATFORMS = new Set([
   'ps1',
   'ps2',
@@ -127,6 +142,26 @@ function normalizeRevisionPreference(val: unknown): string {
   }
 
   return 'latestRevision';
+}
+
+function normalizeEncryptionPreference(
+  val: unknown,
+  preferEncryptedFallback?: boolean
+): string {
+  if (val === 2 || val === '2' || val === 'both') {
+    return 'both';
+  }
+
+  if (
+    val === 1 ||
+    val === '1' ||
+    val === 'encrypted' ||
+    (val === undefined && preferEncryptedFallback)
+  ) {
+    return 'encrypted';
+  }
+
+  return 'notEncrypted';
 }
 
 function hasEncryptedAndDecryptedCollections(series: {
@@ -204,6 +239,7 @@ function AddNewSeriesModalContent({
     searchForMissingEpisodes,
     collectionStrategy,
     revisionPreference,
+    encryptionPreference,
     pinnedVersion,
     enableCompression,
     preferEncryptedRoms,
@@ -220,6 +256,10 @@ function AddNewSeriesModalContent({
   );
   const normalizedRevision = normalizeRevisionPreference(
     revisionPreference?.value
+  );
+  const normalizedEncryption = normalizeEncryptionPreference(
+    encryptionPreference?.value,
+    Boolean(preferEncryptedRoms?.value)
   );
   const autoCompressionLabel = getPlatformCompressionFormat(
     series.titleSlug || series.title
@@ -277,14 +317,19 @@ function AddNewSeriesModalContent({
       preferredArchiveFormat: Boolean(enableCompression?.value ?? true)
         ? 'auto'
         : 'none',
+      encryptionPreference: hasEncryptedAndDecryptedCollections(series)
+        ? normalizedEncryption
+        : 'notEncrypted',
       preferEncryptedRoms:
         hasEncryptedAndDecryptedCollections(series) &&
-        Boolean(preferEncryptedRoms?.value ?? false),
+        normalizedEncryption === 'encrypted',
       useSceneNumbering:
         hasEncryptedAndDecryptedCollections(series) &&
-        Boolean(preferEncryptedRoms?.value ?? false),
+        normalizedEncryption === 'encrypted',
       seriesType,
-      seasonType,
+      seasonType: hasEncryptedAndDecryptedCollections(series)
+        ? normalizedEncryption
+        : seasonType,
       language,
       seasonFolder: true,
       tags: tags.value,
@@ -299,9 +344,9 @@ function AddNewSeriesModalContent({
     qualityProfileId,
     normalizedStrategy,
     normalizedRevision,
+    normalizedEncryption,
     pinnedVersion,
     enableCompression,
-    preferEncryptedRoms,
     trackUnlicensed,
     trackHomebrew,
     trackRomHacks,
@@ -493,14 +538,15 @@ function AddNewSeriesModalContent({
 
                   {hasEncryptedAndDecryptedCollections(series) ? (
                     <FormRow>
-                      <FormLabel>Prefer Encrypted ROM Hashes</FormLabel>
-                      <FormInputHelpText text="Controllarr defaults to Unencrypted (Decrypted) ROM verification hashes for Nintendo DS & 3DS emulators. Enable to prioritize Encrypted ROM hashes instead." />
+                      <FormLabel>ROM Encryption Preference</FormLabel>
+                      <FormInputHelpText text="Choose whether to monitor Not Encrypted (Decrypted), Encrypted, or Both ROM versions. Encrypted dumps appear as a version under each game." />
                       <FormInput
-                        type={inputTypes.CHECK}
-                        name="preferEncryptedRoms"
+                        type={inputTypes.SELECT}
+                        name="encryptionPreference"
+                        values={ENCRYPTION_PREFERENCE_OPTIONS}
                         onChange={handleInputChange}
-                        {...preferEncryptedRoms}
-                        value={Boolean(preferEncryptedRoms?.value ?? false)}
+                        {...encryptionPreference}
+                        value={normalizedEncryption}
                       />
                     </FormRow>
                   ) : null}

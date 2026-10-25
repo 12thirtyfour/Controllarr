@@ -157,35 +157,87 @@ namespace NzbDrone.Core.Tv
                         }
                     }
 
-                    if (series.CollectionStrategy != CollectionStrategy.Preservationist)
+                    var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
+                    var encryptionPref = series.EncryptionPreference;
+
+                    foreach (var group in allEpisodes
+                        .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                        .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
                     {
-                        var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
-                        foreach (var group in allEpisodes
-                            .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
-                            .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
+                        var groupList = group.ToList();
+
+                        if (series.CollectionStrategy == CollectionStrategy.Preservationist)
                         {
-                            var groupList = group.ToList();
+                            var hasEncryptedInGroup = groupList.Any(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title));
+                            var hasUnencryptedInGroup = groupList.Any(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title));
 
-                            // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
-                            var retailList = groupList
-                                .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
-                                .ToList();
-
-                            if (retailList.Count == 0)
-                            {
-                                foreach (var item in groupList)
-                                {
-                                    item.Monitored = false;
-                                }
-
-                                continue;
-                            }
-
-                            var preferred = preferInitial ? retailList.First() : retailList.Last();
                             foreach (var item in groupList)
                             {
-                                item.Monitored = item.Id == preferred.Id;
+                                var isEnc = GameCatalogProxy.IsEncryptedVersion(item.FinaleType, item.Title);
+                                item.Monitored = encryptionPref switch
+                                {
+                                    EncryptionPreference.Encrypted => isEnc || !hasEncryptedInGroup,
+                                    EncryptionPreference.Both => true,
+                                    _ => !isEnc || !hasUnencryptedInGroup
+                                };
                             }
+
+                            continue;
+                        }
+
+                        // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
+                        var retailList = groupList
+                            .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
+                            .ToList();
+
+                        if (retailList.Count == 0)
+                        {
+                            foreach (var item in groupList)
+                            {
+                                item.Monitored = false;
+                            }
+
+                            continue;
+                        }
+
+                        var unencryptedRetail = retailList
+                            .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                            .ToList();
+                        var encryptedRetail = retailList
+                            .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                            .ToList();
+
+                        var preferredEpisodes = new HashSet<Episode>();
+
+                        if (encryptionPref == EncryptionPreference.NotEncrypted ||
+                            encryptionPref == EncryptionPreference.Both)
+                        {
+                            if (unencryptedRetail.Count > 0)
+                            {
+                                preferredEpisodes.Add(preferInitial ? unencryptedRetail.First() : unencryptedRetail.Last());
+                            }
+                            else if (encryptionPref == EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                            {
+                                preferredEpisodes.Add(preferInitial ? encryptedRetail.First() : encryptedRetail.Last());
+                            }
+                        }
+
+                        if (encryptionPref == EncryptionPreference.Encrypted ||
+                            encryptionPref == EncryptionPreference.Both)
+                        {
+                            if (encryptedRetail.Count > 0)
+                            {
+                                preferredEpisodes.Add(preferInitial ? encryptedRetail.First() : encryptedRetail.Last());
+                            }
+                            else if (encryptionPref == EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                            {
+                                preferredEpisodes.Add(preferInitial ? unencryptedRetail.First() : unencryptedRetail.Last());
+                            }
+                        }
+
+                        foreach (var item in groupList)
+                        {
+                            item.Monitored = preferredEpisodes.Contains(item);
                         }
                     }
 

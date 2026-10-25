@@ -233,23 +233,38 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         public Tuple<Series, List<Episode>> GetSeriesInfo(int tvdbSeriesId, Language language, string seasonType)
         {
-            var preferEncryptedRoms = string.Equals(seasonType, "encrypted", StringComparison.OrdinalIgnoreCase);
+            var encryptionPreference = ParseEncryptionPreference(seasonType);
 
             if (TryGetGameEntry(tvdbSeriesId, out var gameEntry) &&
                 TryGetPlatformEntry(gameEntry.PlatformTvdbId, out var parentPlatform))
             {
                 RegisterGameSelection(gameEntry.TvdbId);
-                return BuildPlatformSeriesAndEpisodes(parentPlatform, preferEncryptedRoms);
+                return BuildPlatformSeriesAndEpisodes(parentPlatform, encryptionPreference);
             }
 
             if (TryGetPlatformEntry(tvdbSeriesId, out var platformEntry))
             {
-                return BuildPlatformSeriesAndEpisodes(platformEntry, preferEncryptedRoms);
+                return BuildPlatformSeriesAndEpisodes(platformEntry, encryptionPreference);
             }
 
             var fallbackPlatform = CreateFallbackPlatformEntry(tvdbSeriesId);
 
-            return BuildPlatformSeriesAndEpisodes(fallbackPlatform, preferEncryptedRoms);
+            return BuildPlatformSeriesAndEpisodes(fallbackPlatform, encryptionPreference);
+        }
+
+        public static Games.EncryptionPreference ParseEncryptionPreference(string seasonType)
+        {
+            if (string.Equals(seasonType, "both", StringComparison.OrdinalIgnoreCase))
+            {
+                return Games.EncryptionPreference.Both;
+            }
+
+            if (string.Equals(seasonType, "encrypted", StringComparison.OrdinalIgnoreCase))
+            {
+                return Games.EncryptionPreference.Encrypted;
+            }
+
+            return Games.EncryptionPreference.NotEncrypted;
         }
 
         public List<Series> SearchForNewSeries(string title, Language language)
@@ -407,7 +422,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             return SearchForNewSeries($"tvdb:{tmdbId}", language);
         }
 
-        private Tuple<Series, List<Episode>> BuildPlatformSeriesAndEpisodes(PlatformCatalogEntry platform, bool preferEncryptedRoms = false)
+        private Tuple<Series, List<Episode>> BuildPlatformSeriesAndEpisodes(
+            PlatformCatalogEntry platform,
+            Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted)
         {
             var series = MapPlatformToSeries(platform);
             var episodes = new List<Episode>();
@@ -447,7 +464,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            var syncedGames = SyncOnlineCatalogForPlatform(platform, preferEncryptedRoms);
+            var syncedGames = SyncOnlineCatalogForPlatform(
+                platform,
+                encryptionPreference == Games.EncryptionPreference.Encrypted);
             foreach (var synced in syncedGames)
             {
                 if (TryRegisterCrossReferencedGame(synced))
@@ -518,12 +537,13 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var selectedGameIds = GetSelectedGameIdsForPlatform(platform.TvdbId);
             var hasExplicitSelection = selectedGameIds.Count > 0;
+            var defaultMonitoredGameIds = GetDefaultMonitoredGameIds(platformGames, encryptionPreference);
 
             var episodeCounters = new Dictionary<int, int>();
 
             foreach (var game in platformGames
                 .OrderBy(g => g.BaseTitle ?? g.Title, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(g => IsPreReleaseVersion(g.RevisionTag, g.NoIntroName) ? 1 : 0)
+                .ThenBy(g => IsPreReleaseVersion(g.RevisionTag, g.NoIntroName) ? 2 : (IsEncryptedVersion(g.RevisionTag, g.NoIntroName) ? 1 : 0))
                 .ThenBy(g => GetRevisionSortOrder(g.RevisionTag))
                 .ThenBy(g => g.Title, StringComparer.OrdinalIgnoreCase))
             {
@@ -540,7 +560,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 var isMonitored = hasExplicitSelection
                     ? selectedGameIds.Contains(game.TvdbId)
-                    : !isUnofficial && game.IsLatestRevision;
+                    : !isUnofficial && defaultMonitoredGameIds.Contains(game.TvdbId);
 
                 episodes.Add(CreateEpisodeForGame(game, 0, isMonitored));
             }
@@ -1108,6 +1128,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                     continue;
                 }
 
+                if (sourceLabel != null &&
+                    sourceLabel.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase) &&
+                    !rawName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase))
+                {
+                    rawName = $"{rawName} (Encrypted)";
+                }
+
                 if (!seenNames.Add(rawName))
                 {
                     continue;
@@ -1162,13 +1189,14 @@ namespace NzbDrone.Core.MetadataSource.Game
             string verificationSource,
             string customSummary = null)
         {
-            var parsed = RomParser.ParseRomName(noIntroName);
+            var cleanNoIntroForParse = noIntroName.Replace(" (Encrypted)", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
+            var parsed = RomParser.ParseRomName(cleanNoIntroForParse);
             var baseTitle = !string.IsNullOrWhiteSpace(parsed?.GameTitle)
                 ? NormalizeTitleArticle(parsed.GameTitle)
-                : NormalizeTitleArticle(StripParentheses(noIntroName));
+                : NormalizeTitleArticle(StripParentheses(cleanNoIntroForParse));
 
-            var regionSeason = ClassifyRegionAndCategory(noIntroName, parsed, verificationSource);
-            var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionSeason);
+            var regionSeason = ClassifyRegionAndCategory(cleanNoIntroForParse, parsed, verificationSource);
+            var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionSeason, verificationSource);
             var displayTitle = string.IsNullOrWhiteSpace(revisionTag) || revisionTag == "Retail (v1.0)"
                 ? baseTitle
                 : $"{baseTitle} ({revisionTag})";
@@ -1176,6 +1204,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var tvdbId = ComputeDeterministicGameId(platform.Slug, noIntroName);
             var regionName = GetRegionDisplayName(regionSeason);
             var isPreRelease = IsPreReleaseVersion(revisionTag, noIntroName);
+            var isEncrypted = IsEncryptedVersion(revisionTag, noIntroName);
 
             return new GameCatalogEntry
             {
@@ -1183,8 +1212,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 Title = displayTitle,
                 BaseTitle = baseTitle,
                 RevisionTag = revisionTag,
-                IsLatestRevision = !isPreRelease,
-                IsInitialRelease = !isPreRelease && revisionTag == "Retail (v1.0)",
+                IsLatestRevision = !isPreRelease && !isEncrypted,
+                IsInitialRelease = !isPreRelease && !isEncrypted && revisionTag == "Retail (v1.0)",
                 NoIntroName = noIntroName,
                 PlatformTvdbId = platform.TvdbId,
                 PlatformSlug = platform.Slug,
@@ -1199,9 +1228,82 @@ namespace NzbDrone.Core.MetadataSource.Game
                 Overview = !string.IsNullOrWhiteSpace(customSummary)
                     ? $"{customSummary} ({verificationSource}: {noIntroName})"
                     : $"Verified {platform.Name} release ({noIntroName}) [{regionName} • {revisionTag}].",
-                PosterUrl = BuildLibretroBoxartUrl(platform.LibretroSystemName, noIntroName),
+                PosterUrl = BuildLibretroBoxartUrl(platform.LibretroSystemName, cleanNoIntroForParse),
                 VerificationSource = verificationSource
             };
+        }
+
+        public static bool IsEncryptedVersion(string revisionTag, string noIntroNameOrTitle = null)
+        {
+            if (!string.IsNullOrWhiteSpace(revisionTag) &&
+                revisionTag.Contains("Encrypted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(noIntroNameOrTitle) &&
+                noIntroNameOrTitle.Contains("(Encrypted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static HashSet<int> GetDefaultMonitoredGameIds(
+            List<GameCatalogEntry> games,
+            Games.EncryptionPreference encryptionPreference)
+        {
+            var monitoredIds = new HashSet<int>();
+
+            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{(g.BaseTitle ?? g.Title).ToLowerInvariant()}"))
+            {
+                var retailItems = group
+                    .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName))
+                    .OrderBy(i => GetRevisionSortOrder(i.RevisionTag))
+                    .ThenBy(i => i.NoIntroName, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (retailItems.Count == 0)
+                {
+                    continue;
+                }
+
+                var unencryptedRetail = retailItems
+                    .Where(i => !IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
+                var encryptedRetail = retailItems
+                    .Where(i => IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
+
+                if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
+                {
+                    if (unencryptedRetail.Count > 0)
+                    {
+                        monitoredIds.Add(unencryptedRetail.Last().TvdbId);
+                    }
+                    else if (encryptionPreference == Games.EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                    {
+                        monitoredIds.Add(encryptedRetail.Last().TvdbId);
+                    }
+                }
+
+                if (encryptionPreference == Games.EncryptionPreference.Encrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
+                {
+                    if (encryptedRetail.Count > 0)
+                    {
+                        monitoredIds.Add(encryptedRetail.Last().TvdbId);
+                    }
+                    else if (encryptionPreference == Games.EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                    {
+                        monitoredIds.Add(unencryptedRetail.Last().TvdbId);
+                    }
+                }
+            }
+
+            return monitoredIds;
         }
 
         public static bool IsPreReleaseVersion(string revisionTag, string noIntroName = null)
@@ -1237,14 +1339,18 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 var items = group.ToList();
 
-                // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
-                var retailItems = items.Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName)).ToList();
-                var preReleaseItems = items.Where(i => IsPreReleaseVersion(i.RevisionTag, i.NoIntroName)).ToList();
+                // Prototypes, Betas, and Encrypted variants do not replace the primary unencrypted retail entry in search
+                var retailItems = items
+                    .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName) && !IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
+                var nonPrimaryItems = items
+                    .Where(i => IsPreReleaseVersion(i.RevisionTag, i.NoIntroName) || IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
 
-                foreach (var pre in preReleaseItems)
+                foreach (var nonPrimary in nonPrimaryItems)
                 {
-                    pre.IsInitialRelease = false;
-                    pre.IsLatestRevision = false;
+                    nonPrimary.IsInitialRelease = false;
+                    nonPrimary.IsLatestRevision = false;
                 }
 
                 if (retailItems.Count == 0)
@@ -1313,7 +1419,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             return sb.ToString();
         }
 
-        private static string ExtractRevisionTag(string noIntroName, Parser.Model.ParsedRomInfo parsed, int regionSeason)
+        private static string ExtractRevisionTag(
+            string noIntroName,
+            Parser.Model.ParsedRomInfo parsed,
+            int regionSeason,
+            string verificationSource = null)
         {
             var parts = new List<string>();
 
@@ -1354,6 +1464,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                      noIntroName.Contains("(Switch Online)", StringComparison.OrdinalIgnoreCase))
             {
                 parts.Add("Re-Release");
+            }
+
+            if (noIntroName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(verificationSource) &&
+                 verificationSource.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase)))
+            {
+                parts.Add("Encrypted");
             }
 
             if (parts.Count > 0)
@@ -1901,9 +2018,23 @@ namespace NzbDrone.Core.MetadataSource.Game
             void Add(string slug, string noIntroName, int year, string summary, string source = "No-Intro")
             {
                 var platform = BuiltInPlatforms.First(p => p.Slug == slug);
-                var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, year, source, summary);
+                var isDualEncryptionPlatform = slug == "nds" || slug == "3ds";
+                var effectiveSource = isDualEncryptionPlatform && source == "No-Intro" ? "No-Intro (Decrypted)" : source;
+                var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, year, effectiveSource, summary);
                 entry.TvdbId = id++;
                 games.Add(entry);
+
+                if (isDualEncryptionPlatform && !noIntroName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase))
+                {
+                    var encryptedEntry = CreateCatalogEntryFromNoIntroName(
+                        platform,
+                        $"{noIntroName} (Encrypted)",
+                        year,
+                        "No-Intro (Encrypted)",
+                        $"{summary} (Encrypted ROM dump)");
+                    encryptedEntry.TvdbId = id++;
+                    games.Add(encryptedEntry);
+                }
             }
 
             // Pokémon Series (GB, GBC, GBA, N64, GCN, NDS, 3DS, Switch)
