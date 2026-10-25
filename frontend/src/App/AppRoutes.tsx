@@ -113,18 +113,15 @@ export function appRouteElements() {
 
       <Route path="/settings" element={<Settings />} />
 
+      <Route path="/settings/general" element={<GeneralSettings />} />
+
+      <Route path="/settings/ui" element={<UISettings />} />
+
       <Route path="/settings/mediamanagement" element={<MediaManagement />} />
 
       <Route path="/settings/collection" element={<CollectionSettings />} />
 
       <Route path="/settings/profiles" element={<Profiles />} />
-
-      <Route path="/settings/quality" element={<Quality />} />
-
-      <Route
-        path="/settings/customformats"
-        element={<CustomFormatSettingsPage />}
-      />
 
       <Route path="/settings/indexers" element={<IndexerSettings />} />
 
@@ -133,10 +130,6 @@ export function appRouteElements() {
         element={<DownloadClientSettings />}
       />
 
-      <Route path="/settings/importlists" element={<ImportListSettings />} />
-
-      <Route path="/settings/connect" element={<NotificationSettings />} />
-
       <Route path="/settings/metadata" element={<MetadataSettings />} />
 
       <Route
@@ -144,16 +137,11 @@ export function appRouteElements() {
         element={<Navigate to="/settings/metadata" replace={true} />}
       />
 
+      <Route path="/settings/connect" element={<NotificationSettings />} />
+
+      <Route path="/settings/importlists" element={<ImportListSettings />} />
+
       <Route path="/settings/tags" element={<TagSettings />} />
-
-      <Route path="/settings/general" element={<GeneralSettings />} />
-
-      <Route path="/settings/ui" element={<UISettings />} />
-
-      <Route
-        path="/settings/bios"
-        element={<Navigate to="/bios" replace={true} />}
-      />
 
       <Route
         path="/settings/retroachievements"
@@ -161,6 +149,18 @@ export function appRouteElements() {
       />
 
       <Route path="/settings/libretro" element={<LibretroSettings />} />
+
+      <Route path="/settings/quality" element={<Quality />} />
+
+      <Route
+        path="/settings/customformats"
+        element={<CustomFormatSettingsPage />}
+      />
+
+      <Route
+        path="/settings/bios"
+        element={<Navigate to="/bios" replace={true} />}
+      />
 
       {/*
         System

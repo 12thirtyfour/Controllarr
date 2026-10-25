@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Settings Menu & Uniform Tile Layout Reordering**:
+  - Reordered the sidebar Settings submenu and the Settings overview tiles into the standardized sequence: General, UI, Media Management, Collection Settings, Virtual Libraries, Indexers, Download Clients, Metadata, Connect, Import Lists, Tags, RetroAchievements, and Libretro & Emulation.
+  - Enforced uniform card dimensions across all 13 tiles with `grid-auto-rows: 1fr`, consistent `min-height: 154px`, 3-line clamped summaries (`-webkit-line-clamp: 3`), single-line nowrap titles with ellipsis and accessible tooltips, and balanced summary descriptions.
 - **Interactive Search Credentials Tagging & Download Gating**:
   - Releases requiring credentials (such as Internet Archive S3 Access/Secret Keys or archive.org `access-restricted-item` releases) are clearly tagged in interactive search results with a `Requires Credentials` badge (rendered in warning/danger styling when credentials are unpopulated, or info styling when configured).
   - Hard download gating prevents grabbing releases when required credentials are not configured, rejecting downloads with `DownloadRejectionReason.RequiresCredentials` and disabling the download button with an informative tooltip directing users to configure keys in Settings.

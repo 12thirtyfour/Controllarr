@@ -129,6 +129,8 @@ const GROUPS: SidebarGroup[] = [
         title: () => translate('Settings'),
         to: '/settings',
         children: [
+          { title: () => translate('General'), to: '/settings/general' },
+          { title: () => translate('Ui'), to: '/settings/ui' },
           {
             title: () => translate('MediaManagement'),
             to: '/settings/mediamanagement',
@@ -143,15 +145,13 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('DownloadClients'),
             to: '/settings/downloadclients',
           },
+          { title: () => translate('Metadata'), to: '/settings/metadata' },
+          { title: () => translate('Connect'), to: '/settings/connect' },
           {
             title: () => translate('ImportLists'),
             to: '/settings/importlists',
           },
-          { title: () => translate('Connect'), to: '/settings/connect' },
-          { title: () => translate('Metadata'), to: '/settings/metadata' },
           { title: () => translate('Tags'), to: '/settings/tags' },
-          { title: () => translate('General'), to: '/settings/general' },
-          { title: () => translate('Ui'), to: '/settings/ui' },
           {
             title: () => translate('RetroAchievements'),
             to: '/settings/retroachievements',
