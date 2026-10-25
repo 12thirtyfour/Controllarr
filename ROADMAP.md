@@ -21,6 +21,22 @@
 
 ## Active Phase: Beta Verification & v1.0 Release Candidate
 
+* **Console Theme Overhauls, Live Preview & Dynamic Per-Platform Theming**:
+  * **Instant Live Preview**: Switching the theme dropdown in `Settings -> UI` dynamically applies styles on the fly for immediate preview without persisting to database until the user clicks Save (reverting on cancel or navigation).
+  * **Dynamic Per-Console Theme Matching**: Add a checkbox setting in `Settings -> UI` (between the Theme selector and Color Impaired toggle) to automatically apply the corresponding console theme when viewing that platform's details page, reverting to the user's global default theme on all other pages.
+  * **Theme Palette Redesigns**:
+    * **Nintendo Famicom (1983)**: Replace high-contrast harsh red with iconic Famicom palette—deep maroon/burgundy shell accents, warm ivory/cream body, gold controller faceplates, and charcoal accents.
+    * **Nintendo Game Boy DMG-01 (1989)**: Evolve beyond monolithic monochrome green to incorporate the warm off-white/gray DMG shell, dark slate-blue screen lens bezel, magenta/burgundy button accents, and olive dot-matrix LCD matrix accents.
+    * **Microsoft Xbox 360 (2005)**: Redesign as a crisp light theme based on the original 2005 matte white console chassis, Ring-of-Light emerald blade greens, chrome accents, and subtle 4-color button highlights (green, red, blue, yellow).
+    * **Controllarr Brand Default Themes**: Differentiate default Dark and Light themes from upstream Sonarr styling with Controllarr brand aesthetics.
+* **Navigation & Leftover Servarr UI Pruning**:
+  * Remove Servarr-era artifacts that do not apply to console ROM collections (e.g., "Cutoff Unmet" filter views and the TV-centric Calendar, unless backed by verified aftermarket/homebrew release schedules).
+* **First-Run Setup & Guided Onboarding Wizard (Pre-v1.0 Milestone)**:
+  * Interactive first-run setup wizard launching on initial boot before handing off to the dashboard:
+    1. Authentication & Login Security (Forms, Basic, or Disabled).
+    2. Primary Root Folder configuration for game libraries.
+    3. Default Metadata Scrapers enablement (ScreenScraper, IGDB, Libretro Thumbnails).
+    4. Default Acquisition Indexer (Internet Archive HTTP client enabled out-of-the-box).
 * **Multi-OS Live Beta Testing**:
   * Real-world library management, Usenet (`Newznab`), BitTorrent (`Torznab`), and HTTPS (`InternetArchive`) acquisition testing across macOS, Windows, and Linux.
   * Continuous UI/UX polish based on live beta testing feedback.
