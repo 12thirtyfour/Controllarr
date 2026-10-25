@@ -36,6 +36,10 @@ import useEpisodes from 'Episode/useEpisodes';
 import useEpisodeFiles from 'EpisodeFile/useEpisodeFiles';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import {
+  resolveConsoleThemeFromSlug,
+  setActivePlatformTheme,
+} from 'Helpers/Hooks/useTheme';
+import {
   icons,
   kinds,
   sizes,
@@ -141,6 +145,17 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
   const { toggleSeriesMonitored, isTogglingSeriesMonitored } =
     useToggleSeriesMonitored(seriesId);
   const { data: allSeries } = useSeries();
+
+  useLayoutEffect(() => {
+    const consoleTheme = resolveConsoleThemeFromSlug(
+      series?.titleSlug || series?.title
+    );
+    setActivePlatformTheme(consoleTheme);
+
+    return () => {
+      setActivePlatformTheme(null);
+    };
+  }, [series?.titleSlug, series?.title]);
 
   const monitored = series?.monitored ?? false;
 

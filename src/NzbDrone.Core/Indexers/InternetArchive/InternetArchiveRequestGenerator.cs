@@ -58,19 +58,64 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         private IndexerPageableRequestChain GetSearchRequestsForTitles(SearchCriteriaBase searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
-            var titles = searchCriteria.SceneTitles?.Where(t => !t.IsNullOrWhiteSpace()).ToList() ?? new List<string>();
+            var terms = new List<string>();
 
-            if (titles.Empty() && searchCriteria.Series?.Title != null)
+            if (searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
             {
-                titles.Add(searchCriteria.Series.Title);
+                foreach (var episode in searchCriteria.Episodes)
+                {
+                    if (!episode.Title.IsNullOrWhiteSpace())
+                    {
+                        var cleanTitle = CleanGameTitleForSearch(episode.Title);
+                        if (!terms.Contains(cleanTitle))
+                        {
+                            terms.Add(cleanTitle);
+                        }
+                    }
+                }
             }
 
-            foreach (var title in titles)
+            if (terms.Empty())
             {
-                pageableRequests.Add(GetPagedRequests(title));
+                var titles = searchCriteria.SceneTitles?.Where(t => !t.IsNullOrWhiteSpace()).ToList() ?? new List<string>();
+
+                if (titles.Empty() && searchCriteria.Series?.Title != null)
+                {
+                    titles.Add(searchCriteria.Series.Title);
+                }
+
+                terms.AddRange(titles);
+            }
+
+            foreach (var term in terms.Distinct())
+            {
+                pageableRequests.Add(GetPagedRequests(term));
             }
 
             return pageableRequests;
+        }
+
+        private static string CleanGameTitleForSearch(string rawTitle)
+        {
+            if (string.IsNullOrWhiteSpace(rawTitle))
+            {
+                return string.Empty;
+            }
+
+            var clean = rawTitle;
+            var parenIdx = clean.IndexOf('(');
+            if (parenIdx > 0)
+            {
+                clean = clean.Substring(0, parenIdx);
+            }
+
+            var bracketIdx = clean.IndexOf('[');
+            if (bracketIdx > 0)
+            {
+                clean = clean.Substring(0, bracketIdx);
+            }
+
+            return clean.Trim();
         }
 
         private IEnumerable<IndexerRequest> GetPagedRequests(string term)
@@ -107,12 +152,14 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 return collectionQuery ?? "*:*";
             }
 
+            var escapedTerm = term.Replace("\"", "\\\"");
+
             if (collectionQuery != null)
             {
-                return $"{collectionQuery} AND ({term})";
+                return $"({collectionQuery} OR mediatype:software) AND (\"{escapedTerm}\" OR {term})";
             }
 
-            return term;
+            return $"mediatype:software AND (\"{escapedTerm}\" OR {term})";
         }
     }
 }

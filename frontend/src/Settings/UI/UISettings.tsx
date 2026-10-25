@@ -1,5 +1,5 @@
 import moment from 'moment-timezone';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
@@ -11,6 +11,10 @@ import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectI
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
+import {
+  setPreviewTheme,
+  usePlatformThemeMatching,
+} from 'Helpers/Hooks/useTheme';
 import { inputTypes, kinds } from 'Helpers/Props';
 import { useFilteredLanguages } from 'Language/useLanguages';
 import settingsStyles from 'Settings/Settings.module.css';
@@ -19,7 +23,7 @@ import { InputChanged } from 'typings/inputs';
 import timeZoneOptions from 'Utilities/Date/timeZoneOptions';
 import titleCase from 'Utilities/String/titleCase';
 import translate from 'Utilities/String/translate';
-import { useManageUiSettings } from './useUiSettings';
+import { ThemeName, useManageUiSettings } from './useUiSettings';
 
 const createDateFormatOption = (format: string) => ({
   key: format,
@@ -109,40 +113,92 @@ function UISettings() {
     });
   }, [languageItems]);
 
+  const [matchConsoleTheme, setMatchConsoleTheme] = usePlatformThemeMatching();
+
+  useEffect(() => {
+    return () => {
+      setPreviewTheme(null);
+    };
+  }, []);
+
   // Must stay in sync with the theme selectors in frontend/src/Styles/Themes/themes.css.
+  // Auto / Light / Dark first, followed by all console themes strictly in alphabetical order.
+  const consoleThemes: EnhancedSelectInputValue<string>[] = [
+    { key: 'atari2600', value: 'Atari 2600 Woodgrain (1977)' },
+    { key: 'atari7800', value: 'Atari 7800 ProSystem (1986)' },
+    { key: 'jaguar', value: 'Atari Jaguar (1993)' },
+    { key: 'jaguarcd', value: 'Atari Jaguar CD (1995)' },
+    { key: 'lynx', value: 'Atari Lynx (1989)' },
+    { key: 'wonderswan', value: 'Bandai WonderSwan Color (2000)' },
+    { key: 'famicom', value: 'Famicom (1983)' },
+    { key: 'fds', value: 'Famicom Disk System (1986)' },
+    { key: 'dmg', value: 'Game Boy DMG-01 (1989)' },
+    { key: 'gba', value: 'Game Boy Advance (2001)' },
+    { key: 'gbc', value: 'Game Boy Color (1998)' },
+    { key: 'gamecube', value: 'GameCube Indigo (2001)' },
+    { key: 'xbox', value: 'Microsoft Xbox (2001)' },
+    { key: 'xbox360', value: 'Microsoft Xbox 360 (2005)' },
+    { key: 'tg16', value: 'NEC TurboGrafx-16 (1989)' },
+    { key: 'tgcd', value: 'NEC TurboGrafx-CD (1988)' },
+    { key: 'nes', value: 'NES (1985)' },
+    { key: '3ds', value: 'Nintendo 3DS (2011)' },
+    { key: 'n64', value: 'Nintendo 64 (1996)' },
+    { key: '64dd', value: 'Nintendo 64DD (1999)' },
+    { key: 'nds', value: 'Nintendo DS (2004)' },
+    { key: 'satellaview', value: 'Nintendo Satellaview BS-X (1995)' },
+    { key: 'switch', value: 'Nintendo Switch (2017)' },
+    { key: 'vb', value: 'Nintendo Virtual Boy (1995)' },
+    { key: 'wii', value: 'Nintendo Wii (2006)' },
+    { key: 'wiiu', value: 'Nintendo Wii U (2012)' },
+    { key: '32x', value: 'Sega 32X (1994)' },
+    { key: 'segacd', value: 'Sega CD (1991)' },
+    { key: 'dreamcast', value: 'Sega Dreamcast (1998)' },
+    { key: 'gg', value: 'Sega Game Gear (1990)' },
+    { key: 'genesis', value: 'Sega Genesis (1989)' },
+    { key: 'sms', value: 'Sega Master System (1985)' },
+    { key: 'megadrive', value: 'Sega Mega Drive (1988)' },
+    { key: 'saturn', value: 'Sega Saturn (1994)' },
+    { key: 'snes', value: 'SNES North America (1991)' },
+    { key: 'neogeo', value: 'SNK Neo Geo AES (1990)' },
+    { key: 'ngpc', value: 'SNK Neo Geo Pocket Color (1999)' },
+    { key: 'ps1', value: 'Sony PlayStation (1994)' },
+    { key: 'ps2', value: 'Sony PlayStation 2 (2000)' },
+    { key: 'ps3', value: 'Sony PlayStation 3 (2006)' },
+    { key: 'psp', value: 'Sony PlayStation Portable (2004)' },
+    { key: 'psvita', value: 'Sony PlayStation Vita (2011)' },
+    { key: 'superfamicom', value: 'Super Famicom (1990)' },
+  ].sort((a, b) => a.value.localeCompare(b.value));
+
   const themeOptions = [
     ...['auto', 'light', 'dark'].map((theme) => ({
       key: theme,
       value: titleCase(theme),
     })),
-    { key: 'nes', value: 'NES (1985)' },
-    { key: 'famicom', value: 'Famicom (1983)' },
-    { key: 'sms', value: 'Sega Master System (1985)' },
-    { key: 'snes', value: 'SNES North America (1991)' },
-    { key: 'superfamicom', value: 'Super Famicom (1990)' },
-    { key: 'genesis', value: 'Sega Genesis (1989)' },
-    { key: 'megadrive', value: 'Sega Mega Drive (1988)' },
-    { key: 'dmg', value: 'Game Boy DMG-01 (1989)' },
-    { key: 'tg16', value: 'TurboGrafx-16 (1989)' },
-    { key: 'jaguar', value: 'Atari Jaguar (1993)' },
-    { key: 'ps1', value: 'Sony PlayStation (1994)' },
-    { key: 'ps2', value: 'Sony PlayStation 2 (2000)' },
-    { key: 'gamecube', value: 'GameCube Indigo (2001)' },
-    { key: 'xbox', value: 'Microsoft Xbox (2001)' },
-    { key: 'xbox360', value: 'Microsoft Xbox 360 (2005)' },
-    { key: 'wii', value: 'Nintendo Wii (2006)' },
+    ...consoleThemes,
   ];
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
+      if (change.name === 'theme') {
+        setPreviewTheme(change.value as ThemeName);
+      }
+
       // @ts-expect-error name needs to be keyof UiSettingsModel
       updateSetting(change.name, change.value);
     },
     [updateSetting]
   );
 
+  const handleMatchConsoleThemeChange = useCallback(
+    (change: InputChanged) => {
+      setMatchConsoleTheme(Boolean(change.value));
+    },
+    [setMatchConsoleTheme]
+  );
+
   const handleSavePress = useCallback(() => {
     saveSettings();
+    setPreviewTheme(null);
   }, [saveSettings]);
 
   return (
@@ -170,37 +226,6 @@ function UISettings() {
               validationErrors={validationErrors}
               validationWarnings={validationWarnings}
             >
-              <FieldSet
-                legend={translate('Calendar')}
-                caption={translate('CalendarCaption')}
-              >
-                <FormRow>
-                  <FormLabel>{translate('FirstDayOfWeek')}</FormLabel>
-
-                  <FormInput
-                    type={inputTypes.SELECT}
-                    name="firstDayOfWeek"
-                    values={firstDayOfWeekOptions}
-                    onChange={handleInputChange}
-                    {...settings.firstDayOfWeek}
-                  />
-                </FormRow>
-
-                <FormRow>
-                  <FormLabel>{translate('WeekColumnHeader')}</FormLabel>
-                  <FormInputHelpText
-                    text={translate('WeekColumnHeaderHelpText')}
-                  />
-                  <FormInput
-                    type={inputTypes.SELECT}
-                    name="calendarWeekColumnHeader"
-                    values={weekColumnOptions}
-                    onChange={handleInputChange}
-                    {...settings.calendarWeekColumnHeader}
-                  />
-                </FormRow>
-              </FieldSet>
-
               <FieldSet
                 legend={translate('Dates')}
                 caption={translate('DatesCaption')}
@@ -273,13 +298,24 @@ function UISettings() {
               >
                 <FormRow>
                   <FormLabel>{translate('Theme')}</FormLabel>
-                  <FormInputHelpText text={translate('ThemeHelpText')} />
+                  <FormInputHelpText text="Select your default global theme (previews live on selection; click Save Changes to keep)" />
                   <FormInput
                     type={inputTypes.SELECT}
                     name="theme"
                     values={themeOptions}
                     onChange={handleInputChange}
                     {...settings.theme}
+                  />
+                </FormRow>
+
+                <FormRow>
+                  <FormLabel>Match Console Theme on Platform Pages</FormLabel>
+                  <FormInputHelpText text="Automatically display a console's hardware theme when viewing its platform page (any page without a console theme uses your default theme)" />
+                  <FormInput
+                    type={inputTypes.CHECK}
+                    name="matchConsoleTheme"
+                    value={matchConsoleTheme}
+                    onChange={handleMatchConsoleThemeChange}
                   />
                 </FormRow>
 

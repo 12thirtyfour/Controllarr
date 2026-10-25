@@ -37,6 +37,42 @@ namespace NzbDrone.Core.Download
             return base.Active().Where(c => c.Enable).ToList();
         }
 
+        protected override void InitializeProviders()
+        {
+            base.InitializeProviders();
+
+            try
+            {
+                var existing = All();
+                if (!existing.Any(c => string.Equals(c.Implementation, "InternetArchive", StringComparison.OrdinalIgnoreCase) ||
+                                       string.Equals(c.Name, "Internet Archive", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var iaClient = _providers.FirstOrDefault(p => p.GetType().Name == "InternetArchive");
+                    if (iaClient != null)
+                    {
+                        var definition = new DownloadClientDefinition
+                        {
+                            Name = "Internet Archive",
+                            Implementation = "InternetArchive",
+                            ConfigContract = iaClient.ConfigContract.Name,
+                            Settings = (IProviderConfig)Activator.CreateInstance(iaClient.ConfigContract),
+                            Enable = true,
+                            Protocol = iaClient.Protocol,
+                            Priority = 1
+                        };
+
+                        SetProviderCharacteristics(iaClient, definition);
+                        Create(definition);
+                        _logger.Info("Seeded default Internet Archive download client");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to seed default Internet Archive download client");
+            }
+        }
+
         public override void SetProviderCharacteristics(IDownloadClient provider, DownloadClientDefinition definition)
         {
             base.SetProviderCharacteristics(provider, definition);

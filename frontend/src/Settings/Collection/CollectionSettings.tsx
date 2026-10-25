@@ -46,6 +46,7 @@ const defaultRevisionPreferenceOptions: SelectInputOption[] = [
 
 function CollectionSettings() {
   const addOptions = useAddSeriesOptions();
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [onePerRegion1g1r, setOnePerRegion1g1r] = useState<boolean>(
     () =>
       String(addOptions.collectionStrategy) === 'oneGamePerRegionPerConsole' ||
@@ -55,6 +56,14 @@ function CollectionSettings() {
   const isCompletionistDefault =
     String(addOptions.collectionStrategy) === 'preservationist' ||
     String(addOptions.collectionStrategy) === '1';
+
+  const markDirty = useCallback(() => {
+    setHasPendingChanges(true);
+  }, []);
+
+  const handleSavePress = useCallback(() => {
+    setHasPendingChanges(false);
+  }, []);
 
   const handleDefaultLibraryStyleChange = useCallback(
     ({ value }: InputChanged<string>) => {
@@ -66,6 +75,7 @@ function CollectionSettings() {
           onePerRegion1g1r ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
         );
       }
+      setHasPendingChanges(true);
     },
     [onePerRegion1g1r]
   );
@@ -84,6 +94,7 @@ function CollectionSettings() {
           useMulti ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
         );
       }
+      setHasPendingChanges(true);
     },
     [addOptions.collectionStrategy]
   );
@@ -91,6 +102,7 @@ function CollectionSettings() {
   const handleDefaultRevisionChange = useCallback(
     ({ value }: InputChanged<string>) => {
       setAddSeriesOption('revisionPreference', String(value));
+      setHasPendingChanges(true);
     },
     []
   );
@@ -98,6 +110,7 @@ function CollectionSettings() {
   const handlePinnedVersionChange = useCallback(
     ({ value }: InputChanged<string>) => {
       setAddSeriesOption('pinnedVersion', value);
+      setHasPendingChanges(true);
     },
     []
   );
@@ -111,6 +124,7 @@ function CollectionSettings() {
         name === 'trackHomebrew'
       ) {
         setAddSeriesOption(name, Boolean(value));
+        setHasPendingChanges(true);
       }
     },
     []
@@ -127,7 +141,12 @@ function CollectionSettings() {
   }
 
   return (
-    <SettingsPage title="Collection Settings" showSave={false}>
+    <SettingsPage
+      title="Collection Settings"
+      showSave={true}
+      hasPendingChanges={hasPendingChanges}
+      onSavePress={handleSavePress}
+    >
       <PageContentBody>
         <div className={settingsStyles.section}>
           <PageHeading
@@ -241,7 +260,7 @@ function CollectionSettings() {
             </Form>
           </FieldSet>
 
-          <RegionOrderingSection />
+          <RegionOrderingSection onOrderChange={markDirty} />
         </div>
       </PageContentBody>
     </SettingsPage>

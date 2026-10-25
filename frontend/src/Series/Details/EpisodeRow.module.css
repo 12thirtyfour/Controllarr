@@ -1,6 +1,10 @@
 .title {
   composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
 
+  width: 100%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

@@ -66,7 +66,7 @@ const GROUPS: SidebarGroup[] = [
       },
       {
         iconName: icons.SERIES_CONTINUING,
-        title: () => translate('Series'),
+        title: () => 'Library',
         to: '/platforms',
         children: [
           {
@@ -84,11 +84,6 @@ const GROUPS: SidebarGroup[] = [
         ],
       },
       {
-        iconName: icons.CALENDAR,
-        title: () => translate('Calendar'),
-        to: '/calendar',
-      },
-      {
         iconName: icons.STATISTICS,
         title: () => translate('Statistics'),
         to: '/statistics',
@@ -101,10 +96,6 @@ const GROUPS: SidebarGroup[] = [
           {
             title: () => translate('Missing'),
             to: '/wanted/missing',
-          },
-          {
-            title: () => translate('CutoffUnmet'),
-            to: '/wanted/cutoffunmet',
           },
         ],
       },

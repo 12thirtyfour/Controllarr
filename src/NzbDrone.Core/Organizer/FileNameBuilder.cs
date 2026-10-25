@@ -184,6 +184,13 @@ namespace NzbDrone.Core.Organizer
             {
                 pattern = namingConfig.AnimeEpisodeFormat;
             }
+            else if (series.SeriesType == SeriesTypes.Standard &&
+                     IsDiscBasedGame(series, extension) &&
+                     !namingConfig.DailyEpisodeFormat.IsNullOrWhiteSpace() &&
+                     !AirDateRegex.IsMatch(namingConfig.DailyEpisodeFormat))
+            {
+                pattern = namingConfig.DailyEpisodeFormat;
+            }
 
             var splitPatterns = pattern.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
             var components = new List<string>();
@@ -1486,6 +1493,28 @@ namespace NzbDrone.Core.Organizer
             int.TryParse(formatter, out var maxCustomLength);
 
             return maxCustomLength;
+        }
+
+        private static bool IsDiscBasedGame(Series series, string extension)
+        {
+            if (!string.IsNullOrWhiteSpace(extension))
+            {
+                var ext = extension.Trim().ToLowerInvariant();
+                if (ext == ".chd" || ext == ".rvz" || ext == ".iso" || ext == ".cue" ||
+                    ext == ".gdi" || ext == ".cdi" || ext == ".gcm" || ext == ".ciso" ||
+                    ext == ".wbfs" || ext == ".wua" || ext == ".wux" || ext == ".wud" ||
+                    ext == ".cso" || ext == ".pbp" || ext == ".mdf" || ext == ".mds" ||
+                    ext == ".nrg" || ext == ".ccd" || ext == ".img" || ext == ".xiso")
+                {
+                    return true;
+                }
+            }
+
+            var slug = (series?.TitleSlug ?? string.Empty).Trim().ToLowerInvariant();
+            return slug == "ps1" || slug == "ps2" || slug == "ps3" || slug == "psp" ||
+                   slug == "saturn" || slug == "dreamcast" || slug == "segacd" ||
+                   slug == "gamecube" || slug == "wii" || slug == "wiiu" ||
+                   slug == "tgcd" || slug == "jaguarcd" || slug == "xbox" || slug == "xbox360";
         }
     }
 

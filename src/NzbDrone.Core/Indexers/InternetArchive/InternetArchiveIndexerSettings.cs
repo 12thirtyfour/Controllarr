@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         public InternetArchiveIndexerSettings()
         {
             BaseUrl = "https://archive.org";
-            Collections = new[] { "no-intro_romsets", "redump", "softwarelibrary" };
+            Collections = new[] { "no-intro_romsets", "redump", "softwarelibrary", "retroarch_system", "open_source_software" };
             S3AccessKey = string.Empty;
             S3SecretKey = string.Empty;
             MultiLanguages = Array.Empty<int>();

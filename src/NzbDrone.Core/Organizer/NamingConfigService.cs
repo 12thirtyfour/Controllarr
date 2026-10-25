@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Organizer
                         defaultConfig.SeasonFolderFormat = "{Region}";
                         defaultConfig.SpecialsFolderFormat = "Unlicensed";
                         defaultConfig.StandardEpisodeFormat = "{Game Title}";
-                        defaultConfig.DailyEpisodeFormat = "{Game Title}";
+                        defaultConfig.DailyEpisodeFormat = "{Game Title}/{Game Title}";
                         defaultConfig.AnimeEpisodeFormat = "{Game Title}";
 
                         _repository.Insert(defaultConfig);

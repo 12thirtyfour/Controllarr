@@ -8,6 +8,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **43 Console Hardware Themes & Live Preview (`Settings -> UI`)**:
+  - Implemented 1 dedicated hardware theme per supported console across Nintendo (NES, Famicom, SNES, Super Famicom, N64, GameCube, Wii, Wii U, Switch, Game Boy DMG-01, Game Boy Color, Game Boy Advance, Nintendo DS, Nintendo 3DS, Virtual Boy, Pokemon Mini), Sega (SG-1000, Master System, Genesis / Mega Drive, Sega CD, 32X, Saturn, Dreamcast, Game Gear), Sony (PlayStation, PS2, PS3, PSP, PS Vita), Microsoft (Xbox, Xbox 360), SNK (Neo Geo AES, Neo Geo CD, Neo Geo Pocket), Atari (2600, 5200, 7800, Lynx, Jaguar), NEC (PC Engine / TG-16, SuperGrafx, PC Engine CD), and Bandai (WonderSwan).
+  - Alphabetized the theme dropdown selector immediately following `Auto`, `Light`, and `Dark`.
+  - Added instant live theme previewing when changing selections in `Settings -> UI`, reverting if unsaved.
+  - Added dynamic per-console theme matching (`Match console theme on platform page`) in UI settings.
+  - Redesigned Nintendo Famicom, Game Boy DMG-01, and Xbox 360 color palettes to match authentic hardware aesthetics.
+- **Out-of-the-Box Internet Archive Indexer & HTTP Downloader**:
+  - Automatically seeds default Internet Archive indexer and built-in HTTP downloader on initial launch, enabling instant out-of-the-box ROM acquisition with optional S3 archive credentials for locked items.
+  - Added ROM-aware release matching in `DownloadDecisionMaker` (`TryParseRomRelease`) to match platform packs and individual ROM titles directly against library games during interactive and automatic search.
+- **Disc-Based Game Subfolder Customization (`Settings -> Media Management`)**:
+  - Added option to place disc-based games (even single-disc titles) inside their own game-titled subfolder (`{Platform}/{Region}/{Game Title}/{Game Title}.chd`), preventing multi-track `.cue`/`.bin` and `.m3u` clutter.
+- **Settings Save Confirmation**:
+  - Added visual save confirmation toast and checkmark animation across all Settings pages upon saving, as well as an explicit Save button on `Settings -> Collection`.
+- **Navigation Export Placement**:
+  - Planned upcoming hardware SD card export workflow location in sidebar navigation under `Library -> Export` (`/export`).
+
+### Fixed
+- **Navigation & Servarr Legacy Pruning**:
+  - Renamed primary sidebar navigation item from `Platforms` back to `Library`.
+  - Pruned legacy TV-centric `Cutoff Unmet` (`/wanted/cutoff`) and `Calendar` (`/calendar`) navigation routes.
+- **Root Folder / Path Browser Autocomplete**:
+  - Configured path autocomplete dropdown to appear strictly when the user types in the input field, preventing the suggestion overlay from blocking mouse clicks in the filesystem browser.
+- **Platform Add Monitoring & Simplified 1G1R Encryption Preference**:
+  - Fixed initial episode monitoring on newly added platforms so `Platform Only` unmonitors all regions/episodes cleanly, and `1G1R` / `Completionist` properly monitor retail regions.
+  - Moved ROM Encryption Preference directly under Revision in Add Platform modal, simplified options to `Decrypted` and `Encrypted`, and restricted it strictly to 1G1R curation.
+- **Platform Game Table Responsive Resizing & Title Truncation**:
+  - Fixed dynamic column sizing in platform region tables with ellipsis text truncation (`text-overflow: ellipsis`) so all game metadata columns remain visible without requiring horizontal scrolling.
+- **Catalog ROM Classification**:
+  - Fixed classification of fan translations (`[T-En]`, `[T+En]`, `(Translation)`) and ROM hacks (`(Hack)`) so they are routed strictly to `ROM Hacks & Translations` rather than retail regions.
+- **BIOS Files Storage & Display (`Library -> BIOS Files`)**:
+  - Standardized physical storage folder on disk to uppercase `BIOS` (`{Platform}/BIOS/`), with backward-compatible fallback detection.
+  - Alphabetized platforms in BIOS table view, relocated `Expected Hashes` to the right of `Verified`, and truncated displayed paths to start at the root folder name.
+- **Internet Archive Downloader Validation**:
+  - Fixed `ValidUrlBase()` validator in `InternetArchiveSettingsValidator` to use `ValidRootUrl()`, properly validating `https://archive.org`.
+
 - Multi-OS beta testing and telemetry triage across macOS, Windows, and Linux.
 - Physical flash cart, handheld CFW, and ODE hardware target verification runs.
 

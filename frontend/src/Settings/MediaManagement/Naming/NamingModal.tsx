@@ -217,7 +217,8 @@ export interface NamingModalOptions {
         | 'seasonFolderFormat'
         | 'specialsFolderFormat'
       >
-    | 'unifiedPathFormat';
+    | 'unifiedPathFormat'
+    | 'discPathFormat';
   season?: boolean;
   seasonTitle?: boolean;
   episode?: boolean;

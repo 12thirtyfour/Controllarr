@@ -39,11 +39,6 @@ const COLUMNS: Column[] = [
     isVisible: true,
   },
   {
-    name: 'expectedHashes',
-    label: () => translate('ExpectedHashes'),
-    isVisible: true,
-  },
-  {
     name: 'status',
     label: () => translate('VerificationStatus'),
     isVisible: true,
@@ -51,6 +46,11 @@ const COLUMNS: Column[] = [
   {
     name: 'actions',
     label: 'Actions',
+    isVisible: true,
+  },
+  {
+    name: 'expectedHashes',
+    label: () => translate('ExpectedHashes'),
     isVisible: true,
   },
 ];
@@ -230,17 +230,6 @@ function PlatformBiosSection({ platformSlug }: PlatformBiosSectionProps) {
                     </TableRowCell>
 
                     <TableRowCell>
-                      <div className={styles.hashContainer}>
-                        {md5 ? (
-                          <div className={styles.hash}>MD5: {md5}</div>
-                        ) : null}
-                        {sha1 ? (
-                          <div className={styles.hash}>SHA1: {sha1}</div>
-                        ) : null}
-                      </div>
-                    </TableRowCell>
-
-                    <TableRowCell>
                       <Label kind={statusKind}>{statusText}</Label>
                     </TableRowCell>
 
@@ -257,6 +246,17 @@ function PlatformBiosSection({ platformSlug }: PlatformBiosSectionProps) {
                           onDownload={handleDownloadSingle}
                         />
                       )}
+                    </TableRowCell>
+
+                    <TableRowCell>
+                      <div className={styles.hashContainer}>
+                        {md5 ? (
+                          <div className={styles.hash}>MD5: {md5}</div>
+                        ) : null}
+                        {sha1 ? (
+                          <div className={styles.hash}>SHA1: {sha1}</div>
+                        ) : null}
+                      </div>
                     </TableRowCell>
                   </TableRow>
                 );

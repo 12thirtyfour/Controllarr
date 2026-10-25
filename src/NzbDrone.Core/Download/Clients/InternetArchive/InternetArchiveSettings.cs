@@ -10,7 +10,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
     {
         public InternetArchiveSettingsValidator()
         {
-            RuleFor(c => c.UrlBase).ValidUrlBase();
+            RuleFor(c => c.UrlBase).ValidRootUrl();
         }
     }
 

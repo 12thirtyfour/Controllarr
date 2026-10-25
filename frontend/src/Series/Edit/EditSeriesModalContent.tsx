@@ -66,15 +66,11 @@ const REVISION_PREFERENCE_OPTIONS = [
 const ENCRYPTION_PREFERENCE_OPTIONS = [
   {
     key: 'notEncrypted',
-    value: 'Not Encrypted (Decrypted)',
+    value: 'Decrypted',
   },
   {
     key: 'encrypted',
     value: 'Encrypted',
-  },
-  {
-    key: 'both',
-    value: 'Both (Encrypted & Not Encrypted)',
   },
 ];
 
@@ -103,15 +99,6 @@ function normalizeEncryptionPreference(
   seasonTypeFallback?: string,
   preferEncryptedFallback?: boolean
 ): string {
-  if (
-    val === 2 ||
-    val === '2' ||
-    val === 'both' ||
-    seasonTypeFallback === 'both'
-  ) {
-    return 'both';
-  }
-
   if (
     val === 1 ||
     val === '1' ||
@@ -417,6 +404,23 @@ function EditSeriesModalContent({
             />
           </FormRow>
 
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {String((settings as any).collectionStrategy?.value) !==
+            'preservationist' && hasEncryptedAndDecryptedCollections(series) ? (
+            <FormRow size={sizes.MEDIUM}>
+              <FormLabel>ROM Encryption Preference</FormLabel>
+              <FormInputHelpText text="Choose whether to monitor Decrypted or Encrypted ROMs in 1G1R mode (Completionist automatically monitors both)." />
+              <FormInput
+                type={inputTypes.SELECT}
+                name="encryptionPreference"
+                values={ENCRYPTION_PREFERENCE_OPTIONS}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                {...(settings as any).encryptionPreference}
+                onChange={handleInputChange}
+              />
+            </FormRow>
+          ) : null}
+
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>{translate('Monitored')}</FormLabel>
 
@@ -478,24 +482,9 @@ function EditSeriesModalContent({
               type={inputTypes.CHECK}
               name="trackHomebrew"
               value={isHomebrewMonitored}
-              onChange={handleRegionMonitorToggle ? handleHomebrewMonitorChange : handleInputChange}
+              onChange={handleHomebrewMonitorChange}
             />
           </FormRow>
-
-          {hasEncryptedAndDecryptedCollections(series) ? (
-            <FormRow size={sizes.MEDIUM}>
-              <FormLabel>ROM Encryption Preference</FormLabel>
-              <FormInputHelpText text="Choose whether to monitor Not Encrypted (Decrypted), Encrypted, or Both ROM versions. Encrypted dumps appear as a version under each game." />
-              <FormInput
-                type={inputTypes.SELECT}
-                name="encryptionPreference"
-                values={ENCRYPTION_PREFERENCE_OPTIONS}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                {...(settings as any).encryptionPreference}
-                onChange={handleInputChange}
-              />
-            </FormRow>
-          ) : null}
 
           <FormRow size={sizes.MEDIUM}>
             <FormLabel>

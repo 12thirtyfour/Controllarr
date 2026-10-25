@@ -47,7 +47,11 @@ function SortableRegionRow({ item, index }: SortableRegionRowProps) {
   );
 }
 
-function RegionOrderingSection() {
+interface RegionOrderingSectionProps {
+  onOrderChange?: () => void;
+}
+
+function RegionOrderingSection({ onOrderChange }: RegionOrderingSectionProps) {
   const storedOrder = useAddSeriesOption('regionOrder');
   const normalizedOrder = useMemo(
     () => normalizeRegionOrder(storedOrder),
@@ -76,24 +80,29 @@ function RegionOrderingSection() {
     setLocalIds((current) => (current ? move(current, event) : current));
   }, []);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    setLocalIds((current) => {
-      if (current && !event.canceled) {
-        const nextIds = move(current, event);
-        setAddSeriesOption(
-          'regionOrder',
-          nextIds.map((id) => Number(id))
-        );
-      }
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setLocalIds((current) => {
+        if (current && !event.canceled) {
+          const nextIds = move(current, event);
+          setAddSeriesOption(
+            'regionOrder',
+            nextIds.map((id) => Number(id))
+          );
+          onOrderChange?.();
+        }
 
-      return null;
-    });
-  }, []);
+        return null;
+      });
+    },
+    [onOrderChange]
+  );
 
   const handleResetDefault = useCallback(() => {
     setLocalIds(null);
     setAddSeriesOption('regionOrder', [...DEFAULT_REGION_ORDER]);
-  }, []);
+    onOrderChange?.();
+  }, [onOrderChange]);
 
   return (
     <FieldSet

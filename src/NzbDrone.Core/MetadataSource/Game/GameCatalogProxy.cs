@@ -908,7 +908,32 @@ namespace NzbDrone.Core.MetadataSource.Game
                     year = mappedYear;
                 }
 
-                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, "SmokeMonster HTGDB / SMDB");
+                var smdbCategory = "SmokeMonster HTGDB / SMDB";
+                var normalizedSmdbPath = smdbPath.Replace('\\', '/');
+                if (normalizedSmdbPath.Contains("/Translations/", StringComparison.OrdinalIgnoreCase) ||
+                    normalizedSmdbPath.StartsWith("Translations/", StringComparison.OrdinalIgnoreCase))
+                {
+                    smdbCategory = "ROM Hacks & Translations";
+                }
+                else if (normalizedSmdbPath.Contains("/Hacks/", StringComparison.OrdinalIgnoreCase) ||
+                         normalizedSmdbPath.StartsWith("Hacks/", StringComparison.OrdinalIgnoreCase))
+                {
+                    smdbCategory = "ROM Hacks & Translations";
+                }
+                else if (normalizedSmdbPath.Contains("/Homebrew/", StringComparison.OrdinalIgnoreCase) ||
+                         normalizedSmdbPath.StartsWith("Homebrew/", StringComparison.OrdinalIgnoreCase) ||
+                         normalizedSmdbPath.Contains("/Aftermarket/", StringComparison.OrdinalIgnoreCase) ||
+                         normalizedSmdbPath.StartsWith("Aftermarket/", StringComparison.OrdinalIgnoreCase))
+                {
+                    smdbCategory = "Homebrew & Aftermarket";
+                }
+                else if (normalizedSmdbPath.Contains("/Unlicensed/", StringComparison.OrdinalIgnoreCase) ||
+                         normalizedSmdbPath.StartsWith("Unlicensed/", StringComparison.OrdinalIgnoreCase))
+                {
+                    smdbCategory = "Unlicensed";
+                }
+
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, smdbCategory);
                 if (entry != null)
                 {
                     entry.ExpectedSha256 = sha256;
@@ -1501,6 +1526,15 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (parts.Count > 0)
             {
+                if (regionSeason == RegionRomHacksSeason)
+                {
+                    var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
+                                        noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
+                                        noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                        noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
+                    parts.Add(isTranslation ? "Translation" : "ROM Hack");
+                }
+
                 return string.Join(" • ", parts.Distinct(StringComparer.OrdinalIgnoreCase));
             }
 
@@ -1511,7 +1545,11 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (regionSeason == RegionRomHacksSeason)
             {
-                return "ROM Hack";
+                var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
+                                    noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
+                                    noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                    noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
+                return isTranslation ? "Translation" : "ROM Hack";
             }
 
             if (regionSeason == RegionUnlicensedSeason)
@@ -1525,28 +1563,40 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed, string verificationSource = null)
         {
             if (string.Equals(verificationSource, "ROM Hacks & Translations", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Hack)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Hack", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Hack", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Hack)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Hack]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[h]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[h1]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[h2]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Translation)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Kaizo", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Randomizer", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Redux", StringComparison.OrdinalIgnoreCase))
+                noIntroName.Contains("Redux", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Rebalance", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Romhack", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionRomHacksSeason;
             }
 
             if (string.Equals(verificationSource, "Homebrew & Aftermarket", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Homebrew)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(PD)", StringComparison.OrdinalIgnoreCase))
+                noIntroName.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[PD]", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionHomebrewSeason;
             }
 
-            if (noIntroName.Contains("(Unl)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Pirate)", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(verificationSource, "Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Unl", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Unl", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Pirate", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionUnlicensedSeason;
             }

@@ -68,15 +68,11 @@ const REVISION_PREFERENCE_OPTIONS = [
 const ENCRYPTION_PREFERENCE_OPTIONS = [
   {
     key: 'notEncrypted',
-    value: 'Not Encrypted (Decrypted)',
+    value: 'Decrypted',
   },
   {
     key: 'encrypted',
     value: 'Encrypted',
-  },
-  {
-    key: 'both',
-    value: 'Both (Encrypted & Not Encrypted)',
   },
 ];
 
@@ -148,10 +144,6 @@ function normalizeEncryptionPreference(
   val: unknown,
   preferEncryptedFallback?: boolean
 ): string {
-  if (val === 2 || val === '2' || val === 'both') {
-    return 'both';
-  }
-
   if (
     val === 1 ||
     val === '1' ||
@@ -280,7 +272,15 @@ function AddNewSeriesModalContent({
   );
 
   const handleAddSeriesPress = useCallback(() => {
+    const isMonitorNone = monitor.value === 'none';
+    const effectiveEncryption =
+      normalizedStrategy === 'preservationist' ? 'both' : normalizedEncryption;
+
     const updatedSeasons = (series.seasons ?? []).map((s) => {
+      if (isMonitorNone) {
+        return { ...s, monitored: false };
+      }
+
       if (s.seasonNumber === 0) {
         return { ...s, monitored: Boolean(trackUnlicensed?.value) };
       }
@@ -298,7 +298,7 @@ function AddNewSeriesModalContent({
 
     addSeries({
       ...series,
-      monitored: monitor.value !== 'none',
+      monitored: !isMonitorNone,
       seasons: updatedSeasons,
       rootFolderPath: rootFolderPath.value,
       addOptions: {
@@ -318,17 +318,17 @@ function AddNewSeriesModalContent({
         ? 'auto'
         : 'none',
       encryptionPreference: hasEncryptedAndDecryptedCollections(series)
-        ? normalizedEncryption
+        ? effectiveEncryption
         : 'notEncrypted',
       preferEncryptedRoms:
         hasEncryptedAndDecryptedCollections(series) &&
-        normalizedEncryption === 'encrypted',
+        effectiveEncryption === 'encrypted',
       useSceneNumbering:
         hasEncryptedAndDecryptedCollections(series) &&
-        normalizedEncryption === 'encrypted',
+        effectiveEncryption === 'encrypted',
       seriesType,
       seasonType: hasEncryptedAndDecryptedCollections(series)
-        ? normalizedEncryption
+        ? effectiveEncryption
         : seasonType,
       language,
       seasonFolder: true,
@@ -486,6 +486,22 @@ function AddNewSeriesModalContent({
                     </FormRow>
                   ) : null}
 
+                  {normalizedStrategy !== 'preservationist' &&
+                  hasEncryptedAndDecryptedCollections(series) ? (
+                    <FormRow>
+                      <FormLabel>ROM Encryption Preference</FormLabel>
+                      <FormInputHelpText text="Choose whether to monitor Decrypted or Encrypted ROMs in 1G1R mode (Completionist automatically monitors both)." />
+                      <FormInput
+                        type={inputTypes.SELECT}
+                        name="encryptionPreference"
+                        values={ENCRYPTION_PREFERENCE_OPTIONS}
+                        onChange={handleInputChange}
+                        {...encryptionPreference}
+                        value={normalizedEncryption}
+                      />
+                    </FormRow>
+                  ) : null}
+
                   <FormRow>
                     <FormLabel>Enable Compression</FormLabel>
                     <FormInputHelpText
@@ -535,21 +551,6 @@ function AddNewSeriesModalContent({
                       value={Boolean(trackHomebrew?.value)}
                     />
                   </FormRow>
-
-                  {hasEncryptedAndDecryptedCollections(series) ? (
-                    <FormRow>
-                      <FormLabel>ROM Encryption Preference</FormLabel>
-                      <FormInputHelpText text="Choose whether to monitor Not Encrypted (Decrypted), Encrypted, or Both ROM versions. Encrypted dumps appear as a version under each game." />
-                      <FormInput
-                        type={inputTypes.SELECT}
-                        name="encryptionPreference"
-                        values={ENCRYPTION_PREFERENCE_OPTIONS}
-                        onChange={handleInputChange}
-                        {...encryptionPreference}
-                        value={normalizedEncryption}
-                      />
-                    </FormRow>
-                  ) : null}
                 </>
               )}
 

@@ -771,7 +771,10 @@ namespace NzbDrone.Core.Bios
 
             var catalog = query.ToList();
             PopulatePlatformBiosStatus(catalog, platformSlug);
-            return catalog;
+            return catalog
+                .OrderBy(b => b.PlatformTitle, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(b => b.FileName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         public List<BiosFile> ScanAndVerifyBiosDirectory(string biosDirectory, string platformSlug = null)
@@ -1124,11 +1127,27 @@ namespace NzbDrone.Core.Bios
                 if (!string.IsNullOrWhiteSpace(biosDir))
                 {
                     var candidatePath = Path.Combine(biosDir, entry.FileName);
-                    entry.ResolvedPath = candidatePath;
-                    if (File.Exists(candidatePath))
+                    var foundPath = candidatePath;
+                    var exists = File.Exists(candidatePath);
+
+                    if (!exists)
                     {
-                        var valid = VerifyBios(candidatePath, entry.ExpectedMd5, entry.ExpectedSha1);
-                        entry.IsVerified = valid || new FileInfo(candidatePath).Length > 0;
+                        var lowercaseDir = biosDir.EndsWith("BIOS", StringComparison.Ordinal)
+                            ? string.Concat(biosDir.AsSpan(0, biosDir.Length - 4), "bios")
+                            : biosDir;
+                        var lowercaseCandidate = Path.Combine(lowercaseDir, entry.FileName);
+                        if (File.Exists(lowercaseCandidate))
+                        {
+                            foundPath = lowercaseCandidate;
+                            exists = true;
+                        }
+                    }
+
+                    entry.ResolvedPath = FormatDisplayPath(foundPath);
+                    if (exists)
+                    {
+                        var valid = VerifyBios(foundPath, entry.ExpectedMd5, entry.ExpectedSha1);
+                        entry.IsVerified = valid || new FileInfo(foundPath).Length > 0;
                         entry.Status = entry.IsVerified ? 1 : 2;
                     }
                 }
@@ -1173,7 +1192,7 @@ namespace NzbDrone.Core.Bios
                 if (matchedSeries != null && !string.IsNullOrWhiteSpace(matchedSeries.Path) &&
                     string.Equals(ResolveBiosGroupKey(matchedSeries.TitleSlug ?? string.Empty), gamePlatform, StringComparison.OrdinalIgnoreCase))
                 {
-                    return Path.Combine(matchedSeries.Path, "bios");
+                    return Path.Combine(matchedSeries.Path, "BIOS");
                 }
 
                 if (_rootFolderService != null)
@@ -1185,7 +1204,7 @@ namespace NzbDrone.Core.Bios
                         var folderName = PlatformDisplayNames.TryGetValue(gamePlatform, out var title)
                             ? title.Split('(')[0].Replace("/", "-").Trim()
                             : gamePlatform;
-                        return Path.Combine(firstRoot.Path, folderName, "bios");
+                        return Path.Combine(firstRoot.Path, folderName, "BIOS");
                     }
                 }
 
@@ -1200,6 +1219,38 @@ namespace NzbDrone.Core.Bios
             }
 
             return null;
+        }
+
+        private string FormatDisplayPath(string fullPath)
+        {
+            if (string.IsNullOrWhiteSpace(fullPath))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                if (_rootFolderService != null)
+                {
+                    var rootFolders = _rootFolderService.All();
+                    var matchingRoot = rootFolders?.FirstOrDefault(r =>
+                        !string.IsNullOrWhiteSpace(r.Path) &&
+                        fullPath.StartsWith(r.Path, StringComparison.OrdinalIgnoreCase));
+
+                    if (matchingRoot != null)
+                    {
+                        var rootDirName = Path.GetFileName(matchingRoot.Path.TrimEnd('/', '\\'));
+                        var relPart = fullPath.Substring(matchingRoot.Path.Length).TrimStart('/', '\\');
+                        return Path.Combine(rootDirName, relPart).Replace('\\', '/');
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to fullPath
+            }
+
+            return fullPath.Replace('\\', '/');
         }
 
         private static BiosFile CloneBiosFile(BiosFile source)

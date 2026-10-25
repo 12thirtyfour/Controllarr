@@ -17,6 +17,8 @@ interface AddSeriesPayload
       | 'searchForCutoffUnmetEpisodes'
       | 'collectionStrategy'
       | 'revisionPreference'
+      | 'encryptionPreference'
+      | 'preferEncryptedRoms'
       | 'pinnedVersion'
       | 'enableCompression'
       | 'trackUnlicensed'

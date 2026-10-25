@@ -275,7 +275,7 @@ namespace NzbDrone.Core.Tv
                     _diskProvider.CreateFolder(series.Path);
                 }
 
-                var biosPath = Path.Combine(series.Path, "bios");
+                var biosPath = Path.Combine(series.Path, "BIOS");
                 if (!_diskProvider.FolderExists(biosPath))
                 {
                     _diskProvider.CreateFolder(biosPath);
@@ -435,6 +435,14 @@ namespace NzbDrone.Core.Tv
             if (newSeries.AddOptions != null && newSeries.AddOptions.Monitor == MonitorTypes.None)
             {
                 newSeries.Monitored = false;
+
+                if (newSeries.Seasons != null)
+                {
+                    foreach (var season in newSeries.Seasons)
+                    {
+                        season.Monitored = false;
+                    }
+                }
             }
 
             var validationResult = _addSeriesValidator.Validate(newSeries);

@@ -116,11 +116,6 @@ const columns: Column[] = [
     isVisible: true,
   },
   {
-    name: 'expectedHashes',
-    label: () => translate('ExpectedHashes'),
-    isVisible: true,
-  },
-  {
     name: 'status',
     label: () => translate('VerificationStatus'),
     isVisible: true,
@@ -130,49 +125,54 @@ const columns: Column[] = [
     label: 'Actions',
     isVisible: true,
   },
+  {
+    name: 'expectedHashes',
+    label: () => translate('ExpectedHashes'),
+    isVisible: true,
+  },
 ];
 
 const PLATFORM_OPTIONS: SelectInputOption[] = [
   { key: '', value: () => translate('AllPlatforms') },
-  { key: 'ps1', value: 'Sony PlayStation (PS1)' },
-  { key: 'ps2', value: 'Sony PlayStation 2 (PS2)' },
-  { key: 'psp', value: 'Sony PlayStation Portable (PSP)' },
-  { key: 'segacd', value: 'Sega CD / Mega-CD' },
-  { key: 'saturn', value: 'Sega Saturn' },
-  { key: 'dreamcast', value: 'Sega Dreamcast' },
-  { key: 'naomi', value: 'Sega NAOMI / Atomiswave' },
-  { key: 'sms', value: 'Sega Master System / Mark III' },
-  { key: 'gamegear', value: 'Sega Game Gear' },
-  { key: 'fds', value: 'Nintendo Famicom Disk System' },
-  { key: 'satellaview', value: 'Nintendo Satellaview (BS-X)' },
-  { key: '64dd', value: 'Nintendo 64DD' },
-  { key: 'gb', value: 'Nintendo Game Boy' },
-  { key: 'gbc', value: 'Nintendo Game Boy Color' },
-  { key: 'sgb', value: 'Super Game Boy' },
-  { key: 'gba', value: 'Nintendo Game Boy Advance' },
-  { key: 'nds', value: 'Nintendo DS' },
-  { key: 'dsi', value: 'Nintendo DSi' },
-  { key: 'pokemonmini', value: 'Nintendo Pokémon Mini' },
-  { key: 'gamecube', value: 'Nintendo GameCube' },
-  { key: 'tgcd', value: 'TurboGrafx-CD / PC Engine CD-ROM²' },
-  { key: 'pcfx', value: 'NEC PC-FX' },
-  { key: 'neogeo', value: 'SNK Neo Geo AES / MVS' },
-  { key: 'neogeocd', value: 'SNK Neo Geo CD' },
   { key: '3do', value: '3DO Interactive Multiplayer' },
   { key: 'atari5200', value: 'Atari 5200' },
   { key: 'atari7800', value: 'Atari 7800' },
-  { key: 'lynx', value: 'Atari Lynx' },
   { key: 'jaguarcd', value: 'Atari Jaguar CD' },
+  { key: 'lynx', value: 'Atari Lynx' },
   { key: 'colecovision', value: 'ColecoVision' },
-  { key: 'intellivision', value: 'Mattel Intellivision' },
-  { key: 'odyssey2', value: 'Magnavox Odyssey² / Videopac' },
-  { key: 'vectrex', value: 'GCE Vectrex' },
-  { key: 'channelf', value: 'Fairchild Channel F' },
-  { key: 'msx', value: 'MSX / MSX2 / MSX2+' },
   { key: 'amiga', value: 'Commodore Amiga / CD32 / CDTV' },
-  { key: 'x68000', value: 'Sharp X68000' },
+  { key: 'channelf', value: 'Fairchild Channel F' },
+  { key: 'vectrex', value: 'GCE Vectrex' },
+  { key: 'odyssey2', value: 'Magnavox Odyssey² / Videopac' },
+  { key: 'intellivision', value: 'Mattel Intellivision' },
+  { key: 'msx', value: 'MSX / MSX2 / MSX2+' },
   { key: 'pc98', value: 'NEC PC-98' },
+  { key: 'pcfx', value: 'NEC PC-FX' },
+  { key: '64dd', value: 'Nintendo 64DD' },
+  { key: 'nds', value: 'Nintendo DS' },
+  { key: 'dsi', value: 'Nintendo DSi' },
+  { key: 'fds', value: 'Nintendo Famicom Disk System' },
+  { key: 'gb', value: 'Nintendo Game Boy' },
+  { key: 'gba', value: 'Nintendo Game Boy Advance' },
+  { key: 'gbc', value: 'Nintendo Game Boy Color' },
+  { key: 'gamecube', value: 'Nintendo GameCube' },
+  { key: 'pokemonmini', value: 'Nintendo Pokémon Mini' },
+  { key: 'satellaview', value: 'Nintendo Satellaview (BS-X)' },
   { key: 'cdi', value: 'Philips CD-i' },
+  { key: 'segacd', value: 'Sega CD / Mega-CD' },
+  { key: 'dreamcast', value: 'Sega Dreamcast' },
+  { key: 'gamegear', value: 'Sega Game Gear' },
+  { key: 'sms', value: 'Sega Master System / Mark III' },
+  { key: 'naomi', value: 'Sega NAOMI / Atomiswave' },
+  { key: 'saturn', value: 'Sega Saturn' },
+  { key: 'x68000', value: 'Sharp X68000' },
+  { key: 'neogeo', value: 'SNK Neo Geo AES / MVS' },
+  { key: 'neogeocd', value: 'SNK Neo Geo CD' },
+  { key: 'ps1', value: 'Sony PlayStation (PS1)' },
+  { key: 'ps2', value: 'Sony PlayStation 2 (PS2)' },
+  { key: 'psp', value: 'Sony PlayStation Portable (PSP)' },
+  { key: 'sgb', value: 'Super Game Boy' },
+  { key: 'tgcd', value: 'TurboGrafx-CD / PC Engine CD-ROM²' },
 ];
 
 function BiosSettings() {
@@ -255,8 +255,8 @@ function BiosSettings() {
               />
               <span className={styles.storageNote}>
                 BIOS files are stored automatically inside each platform&apos;s{' '}
-                <code>bios/</code> subfolder (e.g.{' '}
-                <code>{'{PlatformFolder}/bios/'}</code>).
+                <code>BIOS/</code> subfolder (e.g.{' '}
+                <code>{'{PlatformFolder}/BIOS/'}</code>).
               </span>
             </div>
 
@@ -338,6 +338,26 @@ function BiosSettings() {
                       </TableRowCell>
 
                       <TableRowCell>
+                        <Label kind={statusKind}>{statusText}</Label>
+                      </TableRowCell>
+
+                      <TableRowCell>
+                        {status === BiosVerificationStatus.Present ? (
+                          <Label kind={kinds.SUCCESS}>Verified</Label>
+                        ) : (
+                          <BiosDownloadButton
+                            platform={item.gamePlatform}
+                            fileName={item.fileName}
+                            isDownloading={isDownloading}
+                            isSpinning={
+                              isDownloading && downloadingFile === item.fileName
+                            }
+                            onDownload={handleDownloadSingle}
+                          />
+                        )}
+                      </TableRowCell>
+
+                      <TableRowCell>
                         <div className={styles.hashContainer}>
                           {md5 ? (
                             <div className={styles.hash}>
@@ -356,26 +376,6 @@ function BiosSettings() {
                             </div>
                           ) : null}
                         </div>
-                      </TableRowCell>
-
-                      <TableRowCell>
-                        <Label kind={statusKind}>{statusText}</Label>
-                      </TableRowCell>
-
-                      <TableRowCell>
-                        {status === BiosVerificationStatus.Present ? (
-                          <Label kind={kinds.SUCCESS}>Verified</Label>
-                        ) : (
-                          <BiosDownloadButton
-                            platform={item.gamePlatform}
-                            fileName={item.fileName}
-                            isDownloading={isDownloading}
-                            isSpinning={
-                              isDownloading && downloadingFile === item.fileName
-                            }
-                            onDownload={handleDownloadSingle}
-                          />
-                        )}
                       </TableRowCell>
                     </TableRow>
                   );

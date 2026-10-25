@@ -104,6 +104,12 @@ namespace NzbDrone.Core.Tv
             {
                 var seasonNumber = season.SeasonNumber;
 
+                if (monitoringOptions.Monitor == MonitorTypes.None)
+                {
+                    season.Monitored = false;
+                    continue;
+                }
+
                 if (isCatalogPlatform &&
                     (seasonNumber == GameCatalogProxy.RegionUnlicensedSeason ||
                      seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
@@ -162,24 +168,15 @@ namespace NzbDrone.Core.Tv
 
                     foreach (var group in allEpisodes
                         .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
-                        .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title).ToLowerInvariant()}"))
+                        .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant()}"))
                     {
                         var groupList = group.ToList();
 
                         if (series.CollectionStrategy == CollectionStrategy.Preservationist)
                         {
-                            var hasEncryptedInGroup = groupList.Any(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title));
-                            var hasUnencryptedInGroup = groupList.Any(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title));
-
                             foreach (var item in groupList)
                             {
-                                var isEnc = GameCatalogProxy.IsEncryptedVersion(item.FinaleType, item.Title);
-                                item.Monitored = encryptionPref switch
-                                {
-                                    EncryptionPreference.Encrypted => isEnc || !hasEncryptedInGroup,
-                                    EncryptionPreference.Both => true,
-                                    _ => !isEnc || !hasUnencryptedInGroup
-                                };
+                                item.Monitored = true;
                             }
 
                             continue;
@@ -248,11 +245,18 @@ namespace NzbDrone.Core.Tv
             _seriesService.UpdateSeries(series, false);
         }
 
-        private static string ExtractBaseTitle(string title)
+        private static string ExtractBaseTitle(string title, string finaleType = null)
         {
             if (string.IsNullOrWhiteSpace(title))
             {
                 return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(finaleType) &&
+                !string.Equals(finaleType, "Retail (v1.0)", StringComparison.OrdinalIgnoreCase) &&
+                title.EndsWith($"({finaleType})", StringComparison.OrdinalIgnoreCase))
+            {
+                return title.Substring(0, title.Length - finaleType.Length - 2).Trim();
             }
 
             var idx = title.IndexOf(" (", StringComparison.Ordinal);

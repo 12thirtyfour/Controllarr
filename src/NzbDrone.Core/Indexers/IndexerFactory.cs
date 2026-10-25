@@ -42,6 +42,46 @@ namespace NzbDrone.Core.Indexers
             return base.Active().Where(c => c.Enable).ToList();
         }
 
+        protected override void InitializeProviders()
+        {
+            base.InitializeProviders();
+
+            try
+            {
+                var existing = _indexerRepository.All();
+                if (!existing.Any(i => string.Equals(i.Implementation, "InternetArchiveIndexer", StringComparison.OrdinalIgnoreCase) ||
+                                       string.Equals(i.Name, "Internet Archive", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var iaIndexer = _providers.FirstOrDefault(p => p.GetType().Name == "InternetArchiveIndexer");
+                    if (iaIndexer != null)
+                    {
+                        var definition = new IndexerDefinition
+                        {
+                            Name = "Internet Archive",
+                            Implementation = "InternetArchiveIndexer",
+                            ConfigContract = iaIndexer.ConfigContract.Name,
+                            Settings = (IProviderConfig)Activator.CreateInstance(iaIndexer.ConfigContract),
+                            Enable = true,
+                            EnableAutomaticSearch = true,
+                            EnableInteractiveSearch = true,
+                            EnableRss = true,
+                            Protocol = iaIndexer.Protocol,
+                            SupportsRss = iaIndexer.SupportsRss,
+                            SupportsSearch = iaIndexer.SupportsSearch
+                        };
+
+                        SetProviderCharacteristics(iaIndexer, definition);
+                        _indexerRepository.Insert(definition);
+                        _logger.Info("Seeded default Internet Archive indexer");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to seed default Internet Archive indexer");
+            }
+        }
+
         public override IEnumerable<IndexerDefinition> GetDefaultDefinitions()
         {
             return base.GetDefaultDefinitions().Select(SetDefaultFailDownloads);

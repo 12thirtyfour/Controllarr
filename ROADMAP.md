@@ -48,6 +48,7 @@
 * **Physical Hardware & Flash-Cart Target Verification**:
   * End-to-end validation of **Virtual Symlink Libraries** (SMB/NFS network shares and local emulator mounts) on **MiSTer FPGA** and **RetroArch**.
   * End-to-end validation of **SD Card Exporter** folder layouts, media/`gamelist.xml` assets, and FAT32 bucketing on physical **EverDrive / FXPak Pro**, **Analogue Pocket**, **OnionOS / GarlicOS** handhelds, and **Optical Drive Emulators** (`xStation`, `GDEMU`, `Fenrir`, `GC Loader`).
+  * **UI Navigation Integration**: Place the dedicated SD Card Exporter page in the left sidebar under the **Library** menu directly below **BIOS Files**, labeled simply as **"Export"** (`/export`).
 * **Torznab / Newznab Game-Specific Indexer Attributes & Volume Factors**:
   * Extend `Torznab` and `Newznab` indexer definitions with game-specific category attributes (ROM container format hints, region tags, and download/upload ratio volume factors) for specialized private retro trackers.
 * **v1.0.0 Release Candidate (RC) & Stable Distribution**:

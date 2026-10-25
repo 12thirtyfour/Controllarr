@@ -29,6 +29,8 @@ interface NamingProps {
 }
 
 const DEFAULT_UNIFIED_PATH_FORMAT = '{Platform}/{Region}/{Game Title}';
+const DEFAULT_DISC_PATH_FORMAT =
+  '{Platform}/{Region}/{Game Title}/{Game Title}';
 
 function normalizeSegmentToConsoleVariables(
   segment: string,
@@ -145,9 +147,15 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
 
   const [isNamingModalOpen, setNamingModalOpen, setNamingModalClosed] =
     useModalOpenState(false);
+  const [activeModalTarget, setActiveModalTarget] = useState<
+    'unifiedPathFormat' | 'discPathFormat'
+  >('unifiedPathFormat');
 
   const [unifiedPathFormat, setUnifiedPathFormat] = useState<string>(
     DEFAULT_UNIFIED_PATH_FORMAT
+  );
+  const [discPathFormat, setDiscPathFormat] = useState<string>(
+    DEFAULT_DISC_PATH_FORMAT
   );
   const [initializedFromSettings, setInitializedFromSettings] =
     useState<boolean>(false);
@@ -169,6 +177,17 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       settings.standardEpisodeFormat.value,
       '{Game Title}'
     );
+    const rawDaily = settings.dailyEpisodeFormat?.value ?? '';
+    const normalizedDiscEpisode =
+      !rawDaily ||
+      rawDaily === '{Game Title}' ||
+      rawDaily.includes('Air-Date') ||
+      rawDaily.includes('air-date')
+        ? '{Game Title}/{Game Title}'
+        : normalizeSegmentToConsoleVariables(
+            rawDaily,
+            '{Game Title}/{Game Title}'
+          );
 
     if (settings.seriesFolderFormat.value !== normalizedSeries) {
       updateSetting('seriesFolderFormat', normalizedSeries);
@@ -182,8 +201,15 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       updateSetting('standardEpisodeFormat', normalizedEpisode);
     }
 
+    if (settings.dailyEpisodeFormat?.value !== normalizedDiscEpisode) {
+      updateSetting('dailyEpisodeFormat', normalizedDiscEpisode);
+    }
+
     setUnifiedPathFormat(
       `${normalizedSeries}/${normalizedSeason}/${normalizedEpisode}`
+    );
+    setDiscPathFormat(
+      `${normalizedSeries}/${normalizedSeason}/${normalizedDiscEpisode}`
     );
     setInitializedFromSettings(true);
   }, [hasSettings, initializedFromSettings, settings, updateSetting]);
@@ -206,6 +232,17 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         return;
       }
 
+      if (change.name === 'discPathFormat') {
+        const nextDiscPath = String(change.value ?? '');
+        setDiscPathFormat(nextDiscPath);
+
+        const { standardEpisodeFormat: discEpisodeFormat } =
+          splitUnifiedPathIntoBackendFields(nextDiscPath);
+
+        updateSetting('dailyEpisodeFormat', discEpisodeFormat);
+        return;
+      }
+
       const key = change.name as keyof NamingSettingsModel;
 
       updateSetting(key, change.value as NamingSettingsModel[typeof key]);
@@ -214,6 +251,12 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   );
 
   const handleUnifiedNamingModalOpenClick = useCallback(() => {
+    setActiveModalTarget('unifiedPathFormat');
+    setNamingModalOpen();
+  }, [setNamingModalOpen]);
+
+  const handleDiscNamingModalOpenClick = useCallback(() => {
+    setActiveModalTarget('discPathFormat');
     setNamingModalOpen();
   }, [setNamingModalOpen]);
 
@@ -330,8 +373,10 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
           ) : null}
 
           <FormRow size={sizes.LARGE}>
-            <FormLabel>Library Path &amp; ROM Naming Format</FormLabel>
-            <FormInputHelpText text="Unified path format under your Root Folder using forward slashes (/) for folders. Click '?' to browse Platform, Region, and Game variables." />
+            <FormLabel>
+              Library Path &amp; ROM Naming Format (Cartridge &amp; Handheld)
+            </FormLabel>
+            <FormInputHelpText text="Unified path format under your Root Folder for cartridge and handheld games. Click '?' to browse Platform, Region, and Game variables." />
             <FormInputHelpText text="Default Preview: {RootFolder}/Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes" />
             <FormInput
               inputClassName={styles.namingInput}
@@ -349,10 +394,34 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
             />
           </FormRow>
 
+          <FormRow size={sizes.LARGE}>
+            <FormLabel>Disc-Based Games Path &amp; Naming Format</FormLabel>
+            <FormInputHelpText text="Path format for optical disc platforms (.chd, .rvz, .iso, .cue/.bin). Houses single-disc and multi-disc games inside their own game-titled subfolder alongside .m3u playlists." />
+            <FormInputHelpText text="Default Preview: {RootFolder}/PlayStation/USA/Castlevania - Symphony of the Night/Castlevania - Symphony of the Night (USA).chd" />
+            <FormInput
+              inputClassName={styles.namingInput}
+              type={inputTypes.TEXT}
+              name="discPathFormat"
+              value={discPathFormat}
+              errors={settings.dailyEpisodeFormat?.errors ?? []}
+              warnings={settings.dailyEpisodeFormat?.warnings ?? []}
+              buttons={
+                <FormInputButton onPress={handleDiscNamingModalOpenClick}>
+                  ?
+                </FormInputButton>
+              }
+              onChange={handleInputChange}
+            />
+          </FormRow>
+
           <NamingModal
             isOpen={isNamingModalOpen}
-            name="unifiedPathFormat"
-            value={unifiedPathFormat}
+            name={activeModalTarget}
+            value={
+              activeModalTarget === 'discPathFormat'
+                ? discPathFormat
+                : unifiedPathFormat
+            }
             onInputChange={handleInputChange}
             onModalClose={setNamingModalClosed}
           />

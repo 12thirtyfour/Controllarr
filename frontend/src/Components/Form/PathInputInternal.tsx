@@ -46,12 +46,17 @@ export function PathInputInternal({
   ...otherProps
 }: PathInputInternalProps) {
   const [value, setValue] = useState(inputValue);
+  const [isTyping, setIsTyping] = useState(false);
   const [isFileBrowserModalOpen, setIsFileBrowserModalOpen] = useState(false);
   const previousInputValue = usePrevious(inputValue);
 
   const handleInputChange = useCallback(
-    (_event: SyntheticEvent, { newValue }: ChangeEvent) => {
+    (_event: SyntheticEvent, { newValue, method }: ChangeEvent) => {
       setValue(newValue);
+
+      if (method === 'type') {
+        setIsTyping(true);
+      }
     },
     [setValue]
   );
@@ -77,6 +82,8 @@ export function PathInputInternal({
     [name, paths, onFetchPaths, onChange]
   );
   const handleInputBlur = useCallback(() => {
+    setIsTyping(false);
+
     onChange({
       name,
       value,
@@ -87,6 +94,7 @@ export function PathInputInternal({
 
   const handleSuggestionSelected = useCallback(
     (_event: SyntheticEvent, { suggestion }: { suggestion: Path }) => {
+      setIsTyping(false);
       onFetchPaths(suggestion.path);
     },
     [onFetchPaths]
@@ -140,6 +148,7 @@ export function PathInputInternal({
   useEffect(() => {
     if (inputValue !== previousInputValue) {
       setValue(inputValue);
+      setIsTyping(false);
     }
   }, [inputValue, previousInputValue, setValue]);
 
@@ -155,7 +164,7 @@ export function PathInputInternal({
         className={hasFileBrowser ? styles.hasFileBrowser : styles.pathInput}
         name={name}
         value={value}
-        suggestions={paths}
+        suggestions={isTyping ? paths : []}
         getSuggestionValue={getSuggestionValue}
         renderSuggestion={renderSuggestion}
         onInputKeyDown={handleInputKeyDown}

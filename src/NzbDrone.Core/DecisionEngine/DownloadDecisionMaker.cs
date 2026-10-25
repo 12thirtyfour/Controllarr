@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
@@ -12,6 +13,7 @@ using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.DecisionEngine
 {
@@ -92,6 +94,11 @@ namespace NzbDrone.Core.DecisionEngine
                     {
                         // Attempt to parse as a release that includes the season title without a season number
                         parsedEpisodeInfo = Parser.Parser.ParseSeasonTitle(report.Title);
+                    }
+
+                    if (parsedEpisodeInfo == null || parsedEpisodeInfo.SeriesTitle.IsNullOrWhiteSpace())
+                    {
+                        parsedEpisodeInfo = TryParseRomRelease(report.Title, searchCriteria);
                     }
 
                     if (parsedEpisodeInfo != null && !parsedEpisodeInfo.SeriesTitle.IsNullOrWhiteSpace())
@@ -182,6 +189,126 @@ namespace NzbDrone.Core.DecisionEngine
                     yield return decision;
                 }
             }
+        }
+
+        private static ParsedEpisodeInfo TryParseRomRelease(string releaseTitle, SearchCriteriaBase searchCriteria)
+        {
+            if (string.IsNullOrWhiteSpace(releaseTitle))
+            {
+                return null;
+            }
+
+            var romInfo = RomParser.ParseRomName(releaseTitle);
+            var cleanRomGameTitle = CleanRomTitleForComparison(romInfo?.GameTitle ?? releaseTitle);
+
+            if (searchCriteria != null)
+            {
+                var series = searchCriteria.Series;
+                if (series != null)
+                {
+                    // Check if this is a single game search and the release title matches the searched episode
+                    if (searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
+                    {
+                        var matchingEp = searchCriteria.Episodes.FirstOrDefault(ep =>
+                            IsRomTitleMatch(cleanRomGameTitle, ep.Title));
+
+                        if (matchingEp != null)
+                        {
+                            var romQuality = romInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
+                            if (romQuality.Quality == Quality.Unknown)
+                            {
+                                romQuality = new QualityModel(Quality.VerifiedGoodDump);
+                            }
+
+                            return new ParsedEpisodeInfo
+                            {
+                                SeriesTitle = series.Title,
+                                SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
+                                SeasonNumber = matchingEp.SeasonNumber,
+                                SeasonNumbers = new List<int> { matchingEp.SeasonNumber },
+                                EpisodeNumbers = new[] { matchingEp.EpisodeNumber },
+                                AbsoluteEpisodeNumbers = new[] { matchingEp.AbsoluteEpisodeNumber ?? matchingEp.EpisodeNumber },
+                                ReleaseTitle = releaseTitle,
+                                Languages = LanguageParser.ParseLanguages(releaseTitle),
+                                Quality = romQuality
+                            };
+                        }
+                    }
+
+                    // Check if this is a platform full set or season pack matching the platform
+                    var cleanSeriesTitle = CleanRomTitleForComparison(series.Title);
+                    if (IsRomTitleMatch(cleanRomGameTitle, cleanSeriesTitle) ||
+                        releaseTitle.Contains(series.Title, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrWhiteSpace(series.TitleSlug) && releaseTitle.Contains(series.TitleSlug, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var targetSeason = searchCriteria is SeasonSearchCriteria ssc ? ssc.SeasonNumber : 1;
+                        var romQuality = romInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
+                        if (romQuality.Quality == Quality.Unknown)
+                        {
+                            romQuality = new QualityModel(Quality.VerifiedGoodDump);
+                        }
+
+                        return new ParsedEpisodeInfo
+                        {
+                            SeriesTitle = series.Title,
+                            SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
+                            FullSeason = true,
+                            SeasonNumber = targetSeason,
+                            SeasonNumbers = new List<int> { targetSeason },
+                            ReleaseTitle = releaseTitle,
+                            Languages = LanguageParser.ParseLanguages(releaseTitle),
+                            Quality = romQuality
+                        };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string CleanRomTitleForComparison(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var clean = title;
+            var parenIdx = clean.IndexOf('(');
+            if (parenIdx > 0)
+            {
+                clean = clean.Substring(0, parenIdx);
+            }
+
+            var bracketIdx = clean.IndexOf('[');
+            if (bracketIdx > 0)
+            {
+                clean = clean.Substring(0, bracketIdx);
+            }
+
+            var sb = new StringBuilder(clean.Length);
+            foreach (var ch in clean)
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(char.ToLowerInvariant(ch));
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static bool IsRomTitleMatch(string cleanCandidate, string rawTarget)
+        {
+            var cleanTarget = CleanRomTitleForComparison(rawTarget);
+            if (string.IsNullOrWhiteSpace(cleanCandidate) || string.IsNullOrWhiteSpace(cleanTarget))
+            {
+                return false;
+            }
+
+            return cleanCandidate.Equals(cleanTarget, StringComparison.OrdinalIgnoreCase) ||
+                   cleanCandidate.StartsWith(cleanTarget, StringComparison.OrdinalIgnoreCase) ||
+                   cleanTarget.StartsWith(cleanCandidate, StringComparison.OrdinalIgnoreCase);
         }
 
         private DownloadDecision GetDecisionForReport(RemoteEpisode remoteEpisode, ReleaseDecisionInformation information)

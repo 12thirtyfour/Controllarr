@@ -9,8 +9,16 @@ import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import Label from 'Components/Label';
 import Button from 'Components/Link/Button';
+import Modal from 'Components/Modal/Modal';
+import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
+import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
+import SettingsCard from 'Components/SettingsCard/SettingsCard';
+import settingsCardStyles from 'Components/SettingsCard/SettingsCard.module.css';
+import SettingsCardStatus from 'Components/SettingsCard/SettingsCardStatus';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
@@ -119,18 +127,18 @@ const DEFAULT_SCRAPERS: MetadataScraperConfig[] = [
     screenshots: true,
     titleScreens: true,
     clearLogos: true,
-    videoPreviews: true,
-    manualsPdf: true,
+    videoPreviews: false,
+    manualsPdf: false,
   },
   {
     id: 'igdb',
     name: 'IGDB (Twitch Developer API)',
     description:
-      'Rich game synopses, release dates, developer/publisher credits, cover art, and screenshots',
+      'Rich game synopses, developer/publisher history, release dates, genres, cover art, and screenshots',
     requiresCredentials: true,
     enabled: false,
     priority: 2,
-    maxRequestsPerMinute: 120,
+    maxRequestsPerMinute: 60,
     username: '',
     password: '',
     clientId: '',
@@ -140,8 +148,8 @@ const DEFAULT_SCRAPERS: MetadataScraperConfig[] = [
     boxArt2d: true,
     boxArt3d: false,
     screenshots: true,
-    titleScreens: true,
-    clearLogos: false,
+    titleScreens: false,
+    clearLogos: true,
     videoPreviews: false,
     manualsPdf: false,
   },
@@ -149,7 +157,7 @@ const DEFAULT_SCRAPERS: MetadataScraperConfig[] = [
     id: 'thegamesdb',
     name: 'TheGamesDB (TGDB)',
     description:
-      'Community console box art, clear logos, screenshots, and release information',
+      'Community console database with regional box art, fanart, clear logos, and release metadata',
     requiresCredentials: true,
     enabled: false,
     priority: 3,
@@ -172,11 +180,11 @@ const DEFAULT_SCRAPERS: MetadataScraperConfig[] = [
     id: 'libretro_launchbox',
     name: 'Libretro Thumbnails & LaunchBox Community DB',
     description:
-      'Public CDN for 2D box art, in-game snaps, title screens, clear logos, and release years (no account required)',
+      'Keyless public CDN for Named_Boxarts, Named_Snaps, Named_Titles, and LaunchBox community metadata',
     requiresCredentials: false,
     enabled: true,
     priority: 4,
-    maxRequestsPerMinute: 180,
+    maxRequestsPerMinute: 120,
     username: '',
     password: '',
     clientId: '',
@@ -198,32 +206,76 @@ const DEFAULT_SETTINGS: UnifiedMetadataSettings = {
   scrapers: DEFAULT_SCRAPERS,
 };
 
-function loadInitialSettings(): UnifiedMetadataSettings {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<UnifiedMetadataSettings>;
-      if (parsed && Array.isArray(parsed.scrapers) && parsed.scrapers.length > 0) {
-        return {
-          generateGamelistXml:
-            parsed.generateGamelistXml ?? DEFAULT_SETTINGS.generateGamelistXml,
-          scrapers: parsed.scrapers,
-        };
-      }
-    }
-  } catch {
-    // ignore storage errors
+function mergeWithDefaults(
+  raw?: Partial<UnifiedMetadataSettings> | null
+): UnifiedMetadataSettings {
+  if (!raw) {
+    return DEFAULT_SETTINGS;
   }
 
-  return DEFAULT_SETTINGS;
+  const mergedScrapers = DEFAULT_SCRAPERS.map((def) => {
+    const found = Array.isArray(raw.scrapers)
+      ? raw.scrapers.find((s) => s.id === def.id)
+      : undefined;
+    return found ? { ...def, ...found } : def;
+  });
+
+  return {
+    generateGamelistXml:
+      raw.generateGamelistXml ?? DEFAULT_SETTINGS.generateGamelistXml,
+    scrapers: mergedScrapers,
+  };
+}
+
+function loadLocalMetadataSettings(): UnifiedMetadataSettings {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return DEFAULT_SETTINGS;
+    }
+
+    return mergeWithDefaults(JSON.parse(raw) as Partial<UnifiedMetadataSettings>);
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function getEnabledAssetLabels(scraper: MetadataScraperConfig): string[] {
+  const labels: string[] = [];
+  if (scraper.publishingMetadata) {
+    labels.push('Metadata');
+  }
+  if (scraper.boxArt2d) {
+    labels.push('2D Box');
+  }
+  if (scraper.boxArt3d) {
+    labels.push('3D Box');
+  }
+  if (scraper.screenshots) {
+    labels.push('Screenshots');
+  }
+  if (scraper.titleScreens) {
+    labels.push('Title Screens');
+  }
+  if (scraper.clearLogos) {
+    labels.push('Clear Logos');
+  }
+  if (scraper.videoPreviews) {
+    labels.push('Videos');
+  }
+  if (scraper.manualsPdf) {
+    labels.push('Manuals');
+  }
+  return labels;
 }
 
 function MetadataSettings() {
-  const [settings, setSettings] =
-    useState<UnifiedMetadataSettings>(loadInitialSettings);
+  const [settings, setSettings] = useState<UnifiedMetadataSettings>(
+    loadLocalMetadataSettings
+  );
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [editingScraperId, setEditingScraperId] = useState<string | null>(null);
   const [datServerPath, setDatServerPath] = useState('');
   const [datImportStatus, setDatImportStatus] = useState<string | null>(null);
   const [patchServerPath, setPatchServerPath] = useState('');
@@ -231,7 +283,7 @@ function MetadataSettings() {
   const [patchOutputTitle, setPatchOutputTitle] = useState('');
   const [patchStatus, setPatchStatus] = useState<RomPatchResult | null>(null);
 
-  const { data: backendSettings } = useApiQuery<UnifiedMetadataSettings>({
+  const { data: serverSettings } = useApiQuery<UnifiedMetadataSettings>({
     path: '/gamemetadata/settings',
   });
 
@@ -241,21 +293,74 @@ function MetadataSettings() {
     path: '/gamemetadata/dats',
   });
 
-  const { mutate: syncOnlineDats, isPending: isSyncingOnlineDats } =
+  useEffect(() => {
+    if (serverSettings) {
+      const merged = mergeWithDefaults(serverSettings);
+      setSettings(merged);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch {
+        // Ignore storage quota errors
+      }
+    }
+  }, [serverSettings]);
+
+  const { mutate: saveToServer } = useApiMutation<
+    UnifiedMetadataSettings,
+    UnifiedMetadataSettings
+  >({
+    path: '/gamemetadata/settings',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (saved) => {
+        const merged = mergeWithDefaults(saved);
+        setSettings(merged);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        } catch {
+          // Ignore storage quota errors
+        }
+        setHasPendingChanges(false);
+        setSavedNotice(true);
+      },
+    },
+  });
+
+  const { mutate: importDatCatalog, isPending: isImportingDat } =
+    useApiMutation<DatImportResult, DatImportRequest>({
+      path: '/gamemetadata/dats/import',
+      method: 'POST',
+      mutationOptions: {
+        onSuccess: (result) => {
+          setDatImportStatus(
+            `Imported ${result.datFile?.name ?? 'catalog'} (${result.entryCount} verified ROM entries cached and cross-referenced).`
+          );
+          setDatServerPath('');
+          refetchDats();
+        },
+        onError: () => {
+          setDatImportStatus(
+            'Unable to parse or import the specified DAT/SMDB file. Verify the path and format (.dat XML/ClrMamePro or .txt/.smdb).'
+          );
+        },
+      },
+    });
+
+  const { mutate: syncOnlineDatCatalogs, isPending: isSyncingOnlineDats } =
     useApiMutation<DatCatalogSyncResult, Record<string, never>>({
       path: '/gamemetadata/dats/sync',
       method: 'POST',
       mutationOptions: {
         onSuccess: (result) => {
-          const platformsCount = result?.platformsSynced ?? 0;
-          const entriesCount = result?.totalEntriesSynced ?? 0;
           setDatImportStatus(
-            `Synced online No-Intro, Redump, TOSEC, SmokeMonster SMDB, and NSWDB catalogs across ${platformsCount} platform(s) (${entriesCount.toLocaleString()} entries verified).`
+            `Synced online No-Intro / Redump / TOSEC / SmokeMonster SMDB catalogs across ${result.platformsSynced} library platform(s) (${result.totalEntriesSynced} verified ROM entries refreshed).`
           );
           refetchDats();
         },
         onError: () => {
-          setDatImportStatus('Failed to sync online DAT / SMDB catalogs.');
+          setDatImportStatus(
+            'Online DAT catalog sync encountered an error. Check network connectivity.'
+          );
         },
       },
     });
@@ -269,84 +374,29 @@ function MetadataSettings() {
     mutationOptions: {
       onSuccess: (result) => {
         setPatchStatus(result);
+        setPatchServerPath('');
       },
       onError: () => {
         setPatchStatus({
           success: false,
-          message: 'Failed to apply ROM patch.',
+          message:
+            'Failed to apply patch. Ensure the patch file (.ips, .bps, .xdelta) and matching retail base ROM are valid.',
         });
       },
     },
   });
 
-  const { mutate: importDatFile, isPending: isImportingDat } = useApiMutation<
-    DatImportResult,
-    DatImportRequest
-  >({
-    path: '/gamemetadata/dats/import',
-    method: 'POST',
-    mutationOptions: {
-      onSuccess: (result) => {
-        const count = result?.entryCount ?? 0;
-        const name = result?.datFile?.name ?? 'Catalog';
-        setDatImportStatus(
-          `Imported "${name}" (${count.toLocaleString()} hash entries cached and cross-referenced).`
-        );
-        setDatServerPath('');
-        refetchDats();
-      },
-      onError: () => {
-        setDatImportStatus('Failed to import DAT / SMDB file.');
-      },
-    },
-  });
-
-  useEffect(() => {
-    if (backendSettings && !hasPendingChanges) {
-      const merged: UnifiedMetadataSettings = {
-        generateGamelistXml:
-          backendSettings.generateGamelistXml ??
-          DEFAULT_SETTINGS.generateGamelistXml,
-        scrapers:
-          Array.isArray(backendSettings.scrapers) &&
-          backendSettings.scrapers.length > 0
-            ? backendSettings.scrapers
-            : DEFAULT_SCRAPERS,
-      };
-      setSettings(merged);
+  const persistSettings = useCallback(
+    (nextSettings: UnifiedMetadataSettings) => {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
       } catch {
-        // ignore storage errors
+        // Ignore storage quota errors
       }
-    }
-  }, [backendSettings, hasPendingChanges]);
-
-  const { mutate: saveBackendSettings } = useApiMutation<
-    UnifiedMetadataSettings,
-    UnifiedMetadataSettings
-  >({
-    path: '/gamemetadata/settings',
-    method: 'POST',
-    mutationOptions: {
-      onSuccess: (saved) => {
-        if (saved && Array.isArray(saved.scrapers)) {
-          setSettings(saved);
-          try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-          } catch {
-            // ignore
-          }
-        }
-        setHasPendingChanges(false);
-        setSavedNotice(true);
-      },
-      onError: () => {
-        setHasPendingChanges(false);
-        setSavedNotice(true);
-      },
+      saveToServer(nextSettings);
     },
-  });
+    [saveToServer]
+  );
 
   const updateScraperField = useCallback(
     <K extends keyof MetadataScraperConfig>(
@@ -379,30 +429,27 @@ function MetadataSettings() {
   );
 
   const handleSavePress = useCallback(() => {
-    const ordered: UnifiedMetadataSettings = {
-      ...settings,
-      scrapers: [...settings.scrapers].sort((a, b) => a.priority - b.priority),
-    };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ordered));
-    saveBackendSettings(ordered);
-  }, [settings, saveBackendSettings]);
+    persistSettings(settings);
+  }, [persistSettings, settings]);
 
-  const handleDatPathChange = useCallback(
-    ({ value }: InputChanged<string>) => {
-      setDatServerPath(value ?? '');
-    },
-    []
-  );
+  const handleModalSavePress = useCallback(() => {
+    persistSettings(settings);
+    setEditingScraperId(null);
+  }, [persistSettings, settings]);
+
+  const handleDatPathChange = useCallback(({ value }: InputChanged<string>) => {
+    setDatServerPath(value ?? '');
+  }, []);
 
   const handleImportServerPathPress = useCallback(() => {
     if (!datServerPath.trim()) {
       return;
     }
 
-    importDatFile({
+    importDatCatalog({
       filePath: datServerPath.trim(),
     });
-  }, [datServerPath, importDatFile]);
+  }, [datServerPath, importDatCatalog]);
 
   const handleLocalFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -413,23 +460,23 @@ function MetadataSettings() {
 
       const reader = new FileReader();
       reader.onload = () => {
-        const content = typeof reader.result === 'string' ? reader.result : '';
-        if (content) {
-          importDatFile({
+        const text = typeof reader.result === 'string' ? reader.result : '';
+        if (text) {
+          importDatCatalog({
             fileName: file.name,
-            content,
+            content: text,
           });
         }
       };
       reader.readAsText(file);
       event.target.value = '';
     },
-    [importDatFile]
+    [importDatCatalog]
   );
 
   const handleSyncOnlineDatsPress = useCallback(() => {
-    syncOnlineDats({});
-  }, [syncOnlineDats]);
+    syncOnlineDatCatalogs({});
+  }, [syncOnlineDatCatalogs]);
 
   const handlePatchUploadChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -441,10 +488,12 @@ function MetadataSettings() {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = typeof reader.result === 'string' ? reader.result : '';
-        if (dataUrl) {
+        const commaIdx = dataUrl.indexOf(',');
+        const base64 = commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+        if (base64) {
           applyRomPatch({
             patchFileName: file.name,
-            patchBase64Content: dataUrl,
+            patchBase64Content: base64,
             baseRomPath: baseRomServerPath.trim() || undefined,
             outputTitle: patchOutputTitle.trim() || undefined,
           });
@@ -472,6 +521,9 @@ function MetadataSettings() {
     (a, b) => a.priority - b.priority
   );
 
+  const editingScraper =
+    settings.scrapers.find((s) => s.id === editingScraperId) ?? null;
+
   return (
     <SettingsPage
       title={translate('MetadataSettings')}
@@ -493,7 +545,64 @@ function MetadataSettings() {
             </Alert>
           ) : null}
 
+          <FieldSet
+            legend="Metadata & Artwork Scrapers"
+            caption="Click any scraper card below to configure credentials, priority order (1 = highest), API rate-limit fail-safes, and artwork types. Controllarr cascades through enabled scrapers in priority order without overwriting existing files."
+          >
+            <div className={settingsCardStyles.grid}>
+              {sortedScrapers.map((scraper) => {
+                const assetLabels = getEnabledAssetLabels(scraper);
+                return (
+                  <SettingsCard
+                    key={scraper.id}
+                    name={scraper.name}
+                    aria-label={`Edit ${scraper.name}`}
+                    onPress={() => setEditingScraperId(scraper.id)}
+                  >
+                    <SettingsCardStatus
+                      dot={scraper.enabled ? 'active' : 'muted'}
+                      segments={[
+                        translate(scraper.enabled ? 'Enabled' : 'Disabled'),
+                        `Priority: ${scraper.priority}`,
+                        `${scraper.maxRequestsPerMinute} req/min`,
+                      ]}
+                    />
+
+                    <div className={settingsCardStyles.labels}>
+                      {assetLabels.map((lbl) => (
+                        <Label
+                          key={lbl}
+                          kind={
+                            scraper.enabled ? kinds.PRIMARY : kinds.DEFAULT
+                          }
+                          size={sizes.SMALL}
+                        >
+                          {lbl}
+                        </Label>
+                      ))}
+                    </div>
+                  </SettingsCard>
+                );
+              })}
+            </div>
+          </FieldSet>
+
           <Form>
+            <FieldSet
+              legend="Emulation Frontend Manifest & Export Integration"
+              caption="Save downloaded artwork and gamelist.xml inside each platform folder (<Platform>/media/<type>/ and <Platform>/gamelist.xml) for seamless SD card and flash-cart export"
+            >
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Generate EmulationStation gamelist.xml</FormLabel>
+                <FormInputHelpText text="Write and update gamelist.xml inside each platform folder referencing ./media/box2d, ./media/marquee, ./media/videos, and ./media/manuals for ES-DE, Batocera, Knulli, OnionOS, and RetroBat" />
+                <CheckInput
+                  name="generateGamelistXml"
+                  value={settings.generateGamelistXml}
+                  onChange={handleGamelistToggle}
+                />
+              </FormRow>
+            </FieldSet>
+
             <FieldSet
               legend="Cross-Referenced ROM & Verification Databases (Always Active)"
               caption="No-Intro, Redump, TOSEC, and SmokeMonster HTGDB/SMDB databases are maintained separately for easy updates and automatically cross-referenced to populate platform libraries without duplicates and verify ROM hashes (CRC32, MD5, SHA-1, SHA-256) on download and manual import."
@@ -539,7 +648,7 @@ function MetadataSettings() {
                   type={inputTypes.TEXT}
                   name="datServerPath"
                   value={datServerPath}
-                  placeholder="C:\DATs\Nintendo - Super Nintendo Entertainment System.dat"
+                  placeholder="/path/to/Nintendo - Super Nintendo Entertainment System.dat"
                   onChange={handleDatPathChange}
                 />
                 <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
@@ -630,7 +739,9 @@ function MetadataSettings() {
               </FormRow>
 
               <FormRow size={sizes.MEDIUM}>
-                <FormLabel>Upload & Apply Patch File (.ips / .bps / .xdelta / .zip)</FormLabel>
+                <FormLabel>
+                  Upload &amp; Apply Patch File (.ips / .bps / .xdelta / .zip)
+                </FormLabel>
                 <FormInputHelpText text="Select a local .ips, .bps, .xdelta, .vcdiff, or .zip patch file to apply onto the verified retail base ROM" />
                 <input
                   type="file"
@@ -647,7 +758,7 @@ function MetadataSettings() {
                   type={inputTypes.TEXT}
                   name="patchServerPath"
                   value={patchServerPath}
-                  placeholder="C:\Patches\Super Mario Bros. 3Mix.bps"
+                  placeholder="/path/to/Super Mario Bros. 3Mix.bps"
                   onChange={({ value }: InputChanged<string>) =>
                     setPatchServerPath(value ?? '')
                   }
@@ -666,176 +777,188 @@ function MetadataSettings() {
                 </div>
               </FormRow>
             </FieldSet>
+          </Form>
 
-            {sortedScrapers.map((scraper) => (
-              <FieldSet
-                key={scraper.id}
-                legend={`${scraper.name} (Priority ${scraper.priority})`}
-                caption={`${scraper.description}. Controllarr cascades through enabled scrapers in priority order to complete missing assets without overwriting existing files.`}
-              >
-                <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>Enable {scraper.name}</FormLabel>
-                  <FormInputHelpText text="Gather basic metadata on library creation and selected artwork/media assets upon ROM import" />
-                  <CheckInput
-                    name={`${scraper.id}_enabled`}
-                    value={scraper.enabled}
-                    onChange={({ value }) =>
-                      updateScraperField(scraper.id, 'enabled', Boolean(value))
-                    }
-                  />
-                </FormRow>
+          <Modal
+            isOpen={Boolean(editingScraper)}
+            size={sizes.MEDIUM}
+            onModalClose={() => setEditingScraperId(null)}
+          >
+            {editingScraper ? (
+              <ModalContent onModalClose={() => setEditingScraperId(null)}>
+                <ModalHeader>
+                  Edit Metadata Scraper - {editingScraper.name}
+                </ModalHeader>
 
-                <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>Scraper Priority (1 = Highest)</FormLabel>
-                  <FormInputHelpText text="Lower numbers run first; if an asset is missing or rate limits are reached, Controllarr moves to the next priority source to complete the data" />
-                  <FormInput
-                    type={inputTypes.NUMBER}
-                    name={`${scraper.id}_priority`}
-                    value={scraper.priority}
-                    min={1}
-                    max={10}
-                    onChange={({ value }) =>
-                      updateScraperField(
-                        scraper.id,
-                        'priority',
-                        Math.max(1, Number(value) || 1)
-                      )
-                    }
-                  />
-                </FormRow>
+                <ModalBody>
+                  <Form>
+                    <Alert kind={kinds.INFO}>
+                      {editingScraper.description}
+                    </Alert>
 
-                <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>
-                    API Rate-Limit Fail-Safe (Max Requests / Minute)
-                  </FormLabel>
-                  <FormInputHelpText text="Protects external APIs from bombardment and automatically cools down and cascades to the next scraper on HTTP 429/503" />
-                  <FormInput
-                    type={inputTypes.NUMBER}
-                    name={`${scraper.id}_maxRequestsPerMinute`}
-                    value={scraper.maxRequestsPerMinute}
-                    min={5}
-                    max={600}
-                    onChange={({ value }) =>
-                      updateScraperField(
-                        scraper.id,
-                        'maxRequestsPerMinute',
-                        Math.max(5, Number(value) || 30)
-                      )
-                    }
-                  />
-                </FormRow>
-
-                {scraper.enabled && scraper.id === 'screenscraper' ? (
-                  <>
                     <FormRow size={sizes.MEDIUM}>
-                      <FormLabel>ScreenScraper Username</FormLabel>
-                      <FormInputHelpText text="Your registered ScreenScraper.fr member username" />
-                      <FormInput
-                        type={inputTypes.TEXT}
-                        name={`${scraper.id}_username`}
-                        value={scraper.username}
-                        placeholder="ScreenScraper username"
+                      <FormLabel>Enable</FormLabel>
+                      <FormInputHelpText text="Enable this metadata and artwork scraper" />
+                      <CheckInput
+                        name={`${editingScraper.id}_enabled`}
+                        value={editingScraper.enabled}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
-                            'username',
-                            String(value ?? '')
+                            editingScraper.id,
+                            'enabled',
+                            Boolean(value)
                           )
                         }
                       />
                     </FormRow>
 
                     <FormRow size={sizes.MEDIUM}>
-                      <FormLabel>ScreenScraper Password</FormLabel>
-                      <FormInputHelpText text="Your ScreenScraper.fr account password" />
+                      <FormLabel>Priority (1 = Highest)</FormLabel>
+                      <FormInputHelpText text="Lower numbers run first; Controllarr cascades to the next scraper for any missing assets" />
                       <FormInput
-                        type={inputTypes.PASSWORD}
-                        name={`${scraper.id}_password`}
-                        value={scraper.password}
-                        placeholder="ScreenScraper password"
+                        type={inputTypes.NUMBER}
+                        name={`${editingScraper.id}_priority`}
+                        value={editingScraper.priority}
+                        min={1}
+                        max={10}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
-                            'password',
-                            String(value ?? '')
-                          )
-                        }
-                      />
-                    </FormRow>
-                  </>
-                ) : null}
-
-                {scraper.enabled && scraper.id === 'igdb' ? (
-                  <>
-                    <FormRow size={sizes.MEDIUM}>
-                      <FormLabel>Twitch / IGDB Client ID</FormLabel>
-                      <FormInputHelpText text="Client ID from the Twitch Developer Console (dev.twitch.tv)" />
-                      <FormInput
-                        type={inputTypes.TEXT}
-                        name={`${scraper.id}_clientId`}
-                        value={scraper.clientId}
-                        placeholder="Twitch Client ID"
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            scraper.id,
-                            'clientId',
-                            String(value ?? '')
+                            editingScraper.id,
+                            'priority',
+                            Math.max(1, Number(value) || 1)
                           )
                         }
                       />
                     </FormRow>
 
                     <FormRow size={sizes.MEDIUM}>
-                      <FormLabel>Twitch / IGDB Client Secret</FormLabel>
-                      <FormInputHelpText text="Client Secret from the Twitch Developer Console" />
+                      <FormLabel>Max Requests / Minute</FormLabel>
+                      <FormInputHelpText text="API rate-limit fail-safe; automatically cools down and cascades on HTTP 429/503" />
                       <FormInput
-                        type={inputTypes.PASSWORD}
-                        name={`${scraper.id}_clientSecret`}
-                        value={scraper.clientSecret}
-                        placeholder="Twitch Client Secret"
+                        type={inputTypes.NUMBER}
+                        name={`${editingScraper.id}_maxRequestsPerMinute`}
+                        value={editingScraper.maxRequestsPerMinute}
+                        min={5}
+                        max={600}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
-                            'clientSecret',
-                            String(value ?? '')
+                            editingScraper.id,
+                            'maxRequestsPerMinute',
+                            Math.max(5, Number(value) || 30)
                           )
                         }
                       />
                     </FormRow>
-                  </>
-                ) : null}
 
-                {scraper.enabled && scraper.id === 'thegamesdb' ? (
-                  <FormRow size={sizes.MEDIUM}>
-                    <FormLabel>TheGamesDB API Key</FormLabel>
-                    <FormInputHelpText text="Public or private API key from thegamesdb.net" />
-                    <FormInput
-                      type={inputTypes.PASSWORD}
-                      name={`${scraper.id}_apiKey`}
-                      value={scraper.apiKey}
-                      placeholder="TheGamesDB API Key"
-                      onChange={({ value }) =>
-                        updateScraperField(
-                          scraper.id,
-                          'apiKey',
-                          String(value ?? '')
-                        )
-                      }
-                    />
-                  </FormRow>
-                ) : null}
+                    {editingScraper.id === 'screenscraper' ? (
+                      <>
+                        <FormRow size={sizes.MEDIUM}>
+                          <FormLabel>ScreenScraper Username</FormLabel>
+                          <FormInputHelpText text="Your registered ScreenScraper.fr member username" />
+                          <FormInput
+                            type={inputTypes.TEXT}
+                            name={`${editingScraper.id}_username`}
+                            value={editingScraper.username}
+                            placeholder="ScreenScraper username"
+                            onChange={({ value }) =>
+                              updateScraperField(
+                                editingScraper.id,
+                                'username',
+                                String(value ?? '')
+                              )
+                            }
+                          />
+                        </FormRow>
 
-                {scraper.enabled ? (
-                  <>
+                        <FormRow size={sizes.MEDIUM}>
+                          <FormLabel>ScreenScraper Password</FormLabel>
+                          <FormInputHelpText text="Your ScreenScraper.fr account password" />
+                          <FormInput
+                            type={inputTypes.PASSWORD}
+                            name={`${editingScraper.id}_password`}
+                            value={editingScraper.password}
+                            placeholder="ScreenScraper password"
+                            onChange={({ value }) =>
+                              updateScraperField(
+                                editingScraper.id,
+                                'password',
+                                String(value ?? '')
+                              )
+                            }
+                          />
+                        </FormRow>
+                      </>
+                    ) : null}
+
+                    {editingScraper.id === 'igdb' ? (
+                      <>
+                        <FormRow size={sizes.MEDIUM}>
+                          <FormLabel>Twitch / IGDB Client ID</FormLabel>
+                          <FormInputHelpText text="Client ID from the Twitch Developer Console (dev.twitch.tv)" />
+                          <FormInput
+                            type={inputTypes.TEXT}
+                            name={`${editingScraper.id}_clientId`}
+                            value={editingScraper.clientId}
+                            placeholder="Twitch Client ID"
+                            onChange={({ value }) =>
+                              updateScraperField(
+                                editingScraper.id,
+                                'clientId',
+                                String(value ?? '')
+                              )
+                            }
+                          />
+                        </FormRow>
+
+                        <FormRow size={sizes.MEDIUM}>
+                          <FormLabel>Twitch / IGDB Client Secret</FormLabel>
+                          <FormInputHelpText text="Client Secret from the Twitch Developer Console" />
+                          <FormInput
+                            type={inputTypes.PASSWORD}
+                            name={`${editingScraper.id}_clientSecret`}
+                            value={editingScraper.clientSecret}
+                            placeholder="Twitch Client Secret"
+                            onChange={({ value }) =>
+                              updateScraperField(
+                                editingScraper.id,
+                                'clientSecret',
+                                String(value ?? '')
+                              )
+                            }
+                          />
+                        </FormRow>
+                      </>
+                    ) : null}
+
+                    {editingScraper.id === 'thegamesdb' ? (
+                      <FormRow size={sizes.MEDIUM}>
+                        <FormLabel>TheGamesDB API Key</FormLabel>
+                        <FormInputHelpText text="Public or private API key from thegamesdb.net" />
+                        <FormInput
+                          type={inputTypes.PASSWORD}
+                          name={`${editingScraper.id}_apiKey`}
+                          value={editingScraper.apiKey}
+                          placeholder="TheGamesDB API Key"
+                          onChange={({ value }) =>
+                            updateScraperField(
+                              editingScraper.id,
+                              'apiKey',
+                              String(value ?? '')
+                            )
+                          }
+                        />
+                      </FormRow>
+                    ) : null}
+
                     <FormRow size={sizes.MEDIUM}>
                       <FormLabel>Publishing &amp; Release Metadata</FormLabel>
-                      <FormInputHelpText text="Gather synopsis, release date, developer, publisher, and genre metadata from this source" />
+                      <FormInputHelpText text="Synopsis, release date, developer, publisher, and genres" />
                       <CheckInput
-                        name={`${scraper.id}_publishingMetadata`}
-                        value={scraper.publishingMetadata}
+                        name={`${editingScraper.id}_publishingMetadata`}
+                        value={editingScraper.publishingMetadata}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'publishingMetadata',
                             Boolean(value)
                           )
@@ -845,13 +968,13 @@ function MetadataSettings() {
 
                     <FormRow size={sizes.MEDIUM}>
                       <FormLabel>2D Box Art (media/box2d)</FormLabel>
-                      <FormInputHelpText text="Download regional 2D front box art from this source if not already present" />
+                      <FormInputHelpText text="Regional 2D front box art" />
                       <CheckInput
-                        name={`${scraper.id}_boxArt2d`}
-                        value={scraper.boxArt2d}
+                        name={`${editingScraper.id}_boxArt2d`}
+                        value={editingScraper.boxArt2d}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'boxArt2d',
                             Boolean(value)
                           )
@@ -861,13 +984,13 @@ function MetadataSettings() {
 
                     <FormRow size={sizes.MEDIUM}>
                       <FormLabel>3D Box Art Renders (media/box3d)</FormLabel>
-                      <FormInputHelpText text="Download angled 3D box art renders from this source if not already present" />
+                      <FormInputHelpText text="Angled 3D box art renders" />
                       <CheckInput
-                        name={`${scraper.id}_boxArt3d`}
-                        value={scraper.boxArt3d}
+                        name={`${editingScraper.id}_boxArt3d`}
+                        value={editingScraper.boxArt3d}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'boxArt3d',
                             Boolean(value)
                           )
@@ -876,14 +999,16 @@ function MetadataSettings() {
                     </FormRow>
 
                     <FormRow size={sizes.MEDIUM}>
-                      <FormLabel>Gameplay Screenshots (media/screenshots)</FormLabel>
-                      <FormInputHelpText text="Download in-game screenshots from this source if not already present" />
+                      <FormLabel>
+                        Gameplay Screenshots (media/screenshots)
+                      </FormLabel>
+                      <FormInputHelpText text="In-game gameplay screenshots" />
                       <CheckInput
-                        name={`${scraper.id}_screenshots`}
-                        value={scraper.screenshots}
+                        name={`${editingScraper.id}_screenshots`}
+                        value={editingScraper.screenshots}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'screenshots',
                             Boolean(value)
                           )
@@ -893,13 +1018,13 @@ function MetadataSettings() {
 
                     <FormRow size={sizes.MEDIUM}>
                       <FormLabel>Title Screens (media/titlescreens)</FormLabel>
-                      <FormInputHelpText text="Download title screen captures from this source if not already present" />
+                      <FormInputHelpText text="Title screen captures" />
                       <CheckInput
-                        name={`${scraper.id}_titleScreens`}
-                        value={scraper.titleScreens}
+                        name={`${editingScraper.id}_titleScreens`}
+                        value={editingScraper.titleScreens}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'titleScreens',
                             Boolean(value)
                           )
@@ -908,14 +1033,16 @@ function MetadataSettings() {
                     </FormRow>
 
                     <FormRow size={sizes.MEDIUM}>
-                      <FormLabel>Clear Logos / Wheel Art (media/marquee)</FormLabel>
-                      <FormInputHelpText text="Download transparent clear logos / marquee art from this source if not already present" />
+                      <FormLabel>
+                        Clear Logos / Wheel Art (media/marquee)
+                      </FormLabel>
+                      <FormInputHelpText text="Transparent clear logos / marquee art" />
                       <CheckInput
-                        name={`${scraper.id}_clearLogos`}
-                        value={scraper.clearLogos}
+                        name={`${editingScraper.id}_clearLogos`}
+                        value={editingScraper.clearLogos}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'clearLogos',
                             Boolean(value)
                           )
@@ -927,13 +1054,13 @@ function MetadataSettings() {
                       <FormLabel>
                         Gameplay Video Previews (media/videos/*.mp4)
                       </FormLabel>
-                      <FormInputHelpText text="Download short gameplay video snaps (.mp4) on ROM import if not already present" />
+                      <FormInputHelpText text="Short gameplay video snaps (.mp4)" />
                       <CheckInput
-                        name={`${scraper.id}_videoPreviews`}
-                        value={scraper.videoPreviews}
+                        name={`${editingScraper.id}_videoPreviews`}
+                        value={editingScraper.videoPreviews}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'videoPreviews',
                             Boolean(value)
                           )
@@ -945,39 +1072,33 @@ function MetadataSettings() {
                       <FormLabel>
                         Instruction Manuals (media/manuals/*.pdf)
                       </FormLabel>
-                      <FormInputHelpText text="Download scanned instruction manuals (.pdf) on ROM import if not already present" />
+                      <FormInputHelpText text="Scanned instruction manuals (.pdf)" />
                       <CheckInput
-                        name={`${scraper.id}_manualsPdf`}
-                        value={scraper.manualsPdf}
+                        name={`${editingScraper.id}_manualsPdf`}
+                        value={editingScraper.manualsPdf}
                         onChange={({ value }) =>
                           updateScraperField(
-                            scraper.id,
+                            editingScraper.id,
                             'manualsPdf',
                             Boolean(value)
                           )
                         }
                       />
                     </FormRow>
-                  </>
-                ) : null}
-              </FieldSet>
-            ))}
+                  </Form>
+                </ModalBody>
 
-            <FieldSet
-              legend="Emulation Frontend Manifest & Export Integration"
-              caption="Save downloaded artwork and gamelist.xml inside each platform folder (<Platform>/media/<type>/ and <Platform>/gamelist.xml) for seamless SD card and flash-cart export"
-            >
-              <FormRow size={sizes.MEDIUM}>
-                <FormLabel>Generate EmulationStation gamelist.xml</FormLabel>
-                <FormInputHelpText text="Write and update gamelist.xml inside each platform folder referencing ./media/box2d, ./media/marquee, ./media/videos, and ./media/manuals for ES-DE, Batocera, Knulli, OnionOS, and RetroBat" />
-                <CheckInput
-                  name="generateGamelistXml"
-                  value={settings.generateGamelistXml}
-                  onChange={handleGamelistToggle}
-                />
-              </FormRow>
-            </FieldSet>
-          </Form>
+                <ModalFooter>
+                  <Button onPress={() => setEditingScraperId(null)}>
+                    {translate('Cancel')}
+                  </Button>
+                  <Button kind={kinds.PRIMARY} onPress={handleModalSavePress}>
+                    {translate('Save')}
+                  </Button>
+                </ModalFooter>
+              </ModalContent>
+            ) : null}
+          </Modal>
         </div>
       </PageContentBody>
     </SettingsPage>
