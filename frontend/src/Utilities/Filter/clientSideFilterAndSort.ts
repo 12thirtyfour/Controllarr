@@ -7,6 +7,19 @@ import getFilterTypePredicate from 'Helpers/Props/getFilterTypePredicate';
 import findSelectedFilters from 'Utilities/Filter/findSelectedFilters';
 import { SortDirection } from '../../Helpers/Props/sortDirections';
 
+const ARTICLE_REGEX = /^(?:the|a|an)\s+/i;
+
+const normalizeSortValue = (val: unknown, sortKey: string): unknown => {
+  if (typeof val === 'string') {
+    const lowerKey = sortKey.toLowerCase();
+    if (lowerKey === 'title' || lowerKey.endsWith('title') || lowerKey.includes('name')) {
+      return val.replace(ARTICLE_REGEX, '').trim().toLowerCase();
+    }
+    return val.toLowerCase();
+  }
+  return val;
+};
+
 const getSortClause = <T, TSort = null>(
   sortKey: string,
   sortDirection: SortDirection,
@@ -18,12 +31,14 @@ const getSortClause = <T, TSort = null>(
 ) => {
   if (sortPredicates && sortPredicates.hasOwnProperty(sortKey)) {
     return function (item: T) {
-      return sortPredicates[sortKey as keyof TSort](item, sortDirection);
+      const predicateVal = sortPredicates[sortKey as keyof TSort](item, sortDirection);
+      return normalizeSortValue(predicateVal, sortKey);
     };
   }
 
   return function (item: T) {
-    return item[sortKey as keyof T];
+    const val = item[sortKey as keyof T];
+    return normalizeSortValue(val, sortKey);
   };
 };
 

@@ -27,7 +27,7 @@ function EpisodeAiring(props: EpisodeAiringProps) {
   );
 
   // TODO: Update InlineMarkdown to accept tags and pass in networkLabel object, for now blank string passed into translation
-  if (!airDateUtc) {
+  if (!airDateUtc || parseInt(airDateUtc.slice(0, 4), 10) < 1970) {
     return (
       <span>
         {translate('AirsTbaOn', { networkLabel: '' })}

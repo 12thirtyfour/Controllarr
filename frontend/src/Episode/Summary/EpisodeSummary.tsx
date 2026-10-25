@@ -173,8 +173,9 @@ function EpisodeSummary({
           <span className={styles.metaLabel}>{translate('Airs')}</span>
 
           <div className={styles.metaValue}>
-            {airDate ??
-              (airDateUtc ? airDateUtc.slice(0, 10) : translate('Unknown'))}
+            {airDateUtc && parseInt(airDateUtc.slice(0, 4), 10) >= 1970
+              ? (airDate ?? airDateUtc.slice(0, 10))
+              : translate('Unknown')}
           </div>
         </div>
 

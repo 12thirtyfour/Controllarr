@@ -1,13 +1,60 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Indexers.Exceptions;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Indexers.InternetArchive
 {
+    public class InternetArchiveMetadataResponse
+    {
+        [JsonProperty("result")]
+        public List<InternetArchiveFileItem> Result { get; set; }
+    }
+
+    public class InternetArchiveFileItem
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("size")]
+        public string Size { get; set; }
+
+        [JsonProperty("format")]
+        public string Format { get; set; }
+
+        [JsonProperty("mtime")]
+        public long? Mtime { get; set; }
+
+        [JsonProperty("crc32")]
+        public string Crc32 { get; set; }
+
+        [JsonProperty("sha1")]
+        public string Sha1 { get; set; }
+
+        [JsonProperty("md5")]
+        public string Md5 { get; set; }
+
+        [JsonProperty("private")]
+        public object Private { get; set; }
+
+        public bool IsPrivate()
+        {
+            if (Private == null)
+            {
+                return false;
+            }
+
+            var str = Private.ToString();
+            return string.Equals(str, "true", StringComparison.OrdinalIgnoreCase) || str == "1";
+        }
+    }
+
     public class InternetArchiveSearchResponse
     {
         [JsonProperty("response")]
@@ -66,6 +113,12 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
     public class InternetArchiveParser : IParseIndexerResponse
     {
+        private static readonly Regex MetadataIdentifierRegex = new Regex(@"/metadata/(?<id>[^/?#]+)/files", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly HashSet<string> IgnoredArchiveExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".xml", ".sqlite", ".torrent", ".json", ".txt", ".png", ".jpg", ".jpeg"
+        };
+
         private readonly InternetArchiveIndexerSettings _settings;
 
         public InternetArchiveParser(InternetArchiveIndexerSettings settings)
@@ -90,6 +143,86 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 return new List<ReleaseInfo>();
             }
 
+            var requestUrl = indexerResponse.HttpRequest?.Url?.FullUri ?? string.Empty;
+            var baseUrl = _settings?.BaseUrl?.TrimEnd('/') ?? "https://archive.org";
+            var results = new List<ReleaseInfo>();
+
+            if (requestUrl.Contains("/metadata/", StringComparison.OrdinalIgnoreCase))
+            {
+                var match = MetadataIdentifierRegex.Match(requestUrl);
+                var archiveId = match.Success ? match.Groups["id"].Value : "archive";
+
+                string searchTerm = null;
+                var queryIdx = requestUrl.IndexOf("?search=", StringComparison.OrdinalIgnoreCase);
+                if (queryIdx >= 0)
+                {
+                    searchTerm = Uri.UnescapeDataString(requestUrl[(queryIdx + 8)..]);
+                }
+
+                InternetArchiveMetadataResponse metadataResponse;
+                try
+                {
+                    metadataResponse = JsonConvert.DeserializeObject<InternetArchiveMetadataResponse>(indexerResponse.Content);
+                }
+                catch (Exception ex)
+                {
+                    throw new IndexerException(indexerResponse, "Failed to parse metadata JSON response from Internet Archive", ex);
+                }
+
+                if (metadataResponse?.Result == null)
+                {
+                    return results;
+                }
+
+                foreach (var file in metadataResponse.Result)
+                {
+                    if (string.IsNullOrWhiteSpace(file.Name))
+                    {
+                        continue;
+                    }
+
+                    var ext = Path.GetExtension(file.Name);
+                    if (IgnoredArchiveExtensions.Contains(ext))
+                    {
+                        continue;
+                    }
+
+                    var fileNameOnly = Path.GetFileName(file.Name);
+                    if (!string.IsNullOrWhiteSpace(searchTerm))
+                    {
+                        var matchesName = fileNameOnly.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                          file.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                          RomParser.CleanIndexPrefix(fileNameOnly).Contains(searchTerm, StringComparison.OrdinalIgnoreCase);
+                        if (!matchesName)
+                        {
+                            continue;
+                        }
+                    }
+
+                    var size = long.TryParse(file.Size, out var parsedSize) ? parsedSize : 0;
+                    var publishDate = file.Mtime.HasValue
+                        ? DateTimeOffset.FromUnixTimeSeconds(file.Mtime.Value).UtcDateTime
+                        : DateTime.UtcNow;
+                    var requiresCredentials = file.IsPrivate() || (_settings != null && _settings.RequireCredentials);
+
+                    var releaseInfo = new ReleaseInfo
+                    {
+                        Guid = $"IA-{archiveId}-{file.Name}",
+                        Title = fileNameOnly,
+                        Size = size,
+                        DownloadUrl = $"{baseUrl}/download/{archiveId}/{Uri.EscapeDataString(file.Name.TrimStart('/'))}",
+                        InfoUrl = $"{baseUrl}/details/{archiveId}",
+                        DownloadProtocol = DownloadProtocol.Http,
+                        PublishDate = publishDate,
+                        RequiresCredentials = requiresCredentials
+                    };
+
+                    results.Add(releaseInfo);
+                }
+
+                return results;
+            }
+
             InternetArchiveSearchResponse searchResponse;
 
             try
@@ -105,9 +238,6 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             {
                 return new List<ReleaseInfo>();
             }
-
-            var baseUrl = _settings?.BaseUrl?.TrimEnd('/') ?? "https://archive.org";
-            var results = new List<ReleaseInfo>();
 
             foreach (var doc in searchResponse.Response.Docs)
             {

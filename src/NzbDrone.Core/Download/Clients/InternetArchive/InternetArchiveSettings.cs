@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         public InternetArchiveSettings()
         {
             UrlBase = "https://archive.org";
-            PreferredArchives = Array.Empty<string>();
+            PrimaryArchiveUrls = Array.Empty<string>();
         }
 
         [FieldDefinition(0, Label = "UrlBase", Type = FieldType.Textbox)]
@@ -38,8 +38,14 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         [FieldDefinition(3, Label = "Allow Anonymous Fallback", Type = FieldType.Checkbox)]
         public bool AllowAnonymousFallback { get; set; } = true;
 
-        [FieldDefinition(4, Label = "Preferred Archives", Type = FieldType.Tag)]
-        public IEnumerable<string> PreferredArchives { get; set; }
+        [FieldDefinition(4, Label = "Primary Archive URLs", Type = FieldType.Tag, HelpText = "Links or identifiers to Internet Archive collections/items (e.g. https://archive.org/details/htgdb-gamepacks) that act as primary resources before searching archive.org directly.")]
+        public IEnumerable<string> PrimaryArchiveUrls { get; set; }
+
+        public IEnumerable<string> PreferredArchives
+        {
+            get => PrimaryArchiveUrls;
+            set => PrimaryArchiveUrls = value;
+        }
 
         [FieldDefinition(5, Label = "Download Path", Type = FieldType.Path, HelpText = "Optional download directory. Defaults to AppData/downloads.")]
         public string DownloadPath { get; set; }

@@ -14,6 +14,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Parser.Model;
@@ -122,14 +123,20 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         public override async Task<string> Download(RemoteEpisode remoteEpisode, IIndexer indexer)
         {
             var url = ResolveDownloadUrl(remoteEpisode?.Release?.DownloadUrl);
-            var extension = Path.GetExtension(url);
+            var rawTitle = remoteEpisode?.Release?.Title ?? "rom_download";
+            var extension = Path.GetExtension(rawTitle);
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = Path.GetExtension(url);
+            }
+
             if (string.IsNullOrWhiteSpace(extension))
             {
                 extension = url != null && url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ? ".zip" : ".chd";
             }
 
-            var rawTitle = remoteEpisode?.Release?.Title ?? "rom_download";
-            var filename = Parser.Parser.CleanSeriesTitle(rawTitle) + extension;
+            var baseRawTitle = Path.HasExtension(rawTitle) ? Path.GetFileNameWithoutExtension(rawTitle) : rawTitle;
+            var filename = Parser.Parser.CleanSeriesTitle(baseRawTitle) + extension;
             var workingFolder = GetWorkingFolder();
             _diskProvider.EnsureFolder(workingFolder);
 
@@ -378,14 +385,15 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public bool IsPreferredArchiveUrl(string downloadUrl)
         {
-            if (string.IsNullOrWhiteSpace(downloadUrl) || Settings?.PreferredArchives == null)
+            if (string.IsNullOrWhiteSpace(downloadUrl) || Settings?.PrimaryArchiveUrls == null)
             {
                 return false;
             }
 
-            var preferredList = Settings.PreferredArchives
+            var preferredList = Settings.PrimaryArchiveUrls
                 .Where(a => !string.IsNullOrWhiteSpace(a))
-                .Select(a => a.Trim())
+                .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
+                .Where(a => !string.IsNullOrWhiteSpace(a))
                 .ToList();
 
             if (preferredList.Count == 0)
@@ -478,7 +486,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 return downloadUrl;
             }
 
-            var preferredArchive = Settings?.PreferredArchives?.FirstOrDefault(a => !string.IsNullOrWhiteSpace(a))?.Trim();
+            var preferredArchive = Settings?.PrimaryArchiveUrls?.FirstOrDefault(a => !string.IsNullOrWhiteSpace(a))?.Trim();
+            if (!string.IsNullOrWhiteSpace(preferredArchive))
+            {
+                preferredArchive = InternetArchiveIndexerSettings.ExtractIdentifier(preferredArchive);
+            }
+
             var baseUrl = string.IsNullOrWhiteSpace(Settings?.UrlBase) ? "https://archive.org" : Settings.UrlBase.TrimEnd('/');
 
             if (!string.IsNullOrWhiteSpace(preferredArchive))

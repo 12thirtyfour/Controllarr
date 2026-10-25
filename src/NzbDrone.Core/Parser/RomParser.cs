@@ -19,8 +19,19 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex DiscTrackRegex = new Regex(@"\((?:Disc\s*(?<disc>\d+(?:\s*of\s*\d+)?)|Track\s*(?<track>\d+))\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FullSetRegex = new Regex(@"\((Complete Set|Full Set|1G1R|Parent-Clone|[\d\-]+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BracketCleanupRegex = new Regex(@"\[.*?\]|\(.*?\)", RegexOptions.Compiled);
+        private static readonly Regex IndexPrefixRegex = new Regex(@"^(?:0\d{1,3}\s*[-_.)]?\s+|\d{1,4}\s*[-_.)]\s+)", RegexOptions.Compiled);
 
         private static readonly string[] IgnoredPrefixes = { "_Top", "A-F", "G-K", "1 USA", "2 Japan", "Translations" };
+
+        public static string CleanIndexPrefix(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            return IndexPrefixRegex.Replace(title, string.Empty).Trim();
+        }
 
         public static ParsedRomInfo ParseRomName(string title)
         {
@@ -137,7 +148,7 @@ namespace NzbDrone.Core.Parser
             }
 
             // Clean game title
-            normalizedTitle = BracketCleanupRegex.Replace(normalizedTitle, "").Trim();
+            normalizedTitle = CleanIndexPrefix(BracketCleanupRegex.Replace(normalizedTitle, "").Trim());
 
             // Strip ignored prefixes if present
             foreach (var prefix in IgnoredPrefixes)
@@ -148,6 +159,7 @@ namespace NzbDrone.Core.Parser
                 }
             }
 
+            normalizedTitle = CleanIndexPrefix(normalizedTitle);
             result.GameTitle = normalizedTitle;
 
             return result;

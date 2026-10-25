@@ -9,6 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Primary Archive URLs & Direct Single-ROM Acquisition**:
+  - Replaced ambiguous "Preferred Archives" with a dedicated "Primary Archive URLs" configuration in both Internet Archive Indexer and Internet Archive Download Client settings.
+  - Users can specify explicit archive item links or identifiers (e.g. `https://archive.org/details/htgdb-gamepacks`).
+  - Indexer queries primary archives first directly via the Internet Archive metadata API (`/metadata/{id}/files?search=...`) to return individual single ROM files rather than triggering dynamic whole-collection `.zip` generation (`/compress/{id}`) which stalled at 0 bytes in download clients.
+  - Automatically filters out metadata, logs, cuesheets, and non-game assets (`.txt`, `.xml`, `.sqlite`, `.torrent`, etc.) while extracting exact file size and direct file URLs.
+  - Download client intelligently prioritizes primary archive URLs and extracts exact direct file URLs.
+- **Article-Insensitive Game Sorting**:
+  - Game tables, grids, and lists now ignore leading English grammatical articles ("The", "A", "An") when sorting titles alphabetically (e.g., *The Legend of Zelda* sorts under 'L', not 'T').
 - **Console Region Naming Preference (`Settings -> UI`)**:
   - Added a `Console Region Naming` setting in UI Settings providing a dropdown to select between `North America / USA` (e.g., Sega Genesis, NES, TurboGrafx-16), `Europe / PAL` (e.g., Sega Mega Drive, NES, TurboGrafx), and `Japan / NTSC-J` (e.g., Sega Mega Drive, Famicom, PC Engine).
   - Dynamically updates console titles across the entire library level (posters, overview, tables, search suggestions) as well as within platform details and region views without requiring disk renames or database migrations, and without affecting game search priority or 1G1R curation.
@@ -37,6 +45,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Planned upcoming hardware SD card export workflow location in sidebar navigation under `Library -> Export` (`/export`).
 
 ### Fixed
+- **Library Platform Population Quality Improvements (SNES & All Consoles)**:
+  - **Index Number Prefix Stripping**: Fixed games displaying numeric list prefixes like `001 `, `002 `, `01 - `, `0001 - ` in titles when importing SmokeMonster EverDrive playlists or numbered DAT sets, while safely preserving genuine numeric titles (such as *1942*, *2020 Super Baseball*, *3 Ninjas Kick Back*, *7th Saga*).
+  - **Duplicate Playlist Exclusion**: Skipped EverDrive duplicate subfolders (`Game Series Collections`, `Best-Of`, `Top 100`) during SMDB parsing so only canonical platform games are indexed.
+  - **Title Revision Cleanliness**: Separated version/revision tags (`(REV 1)`, `(v1.0)`, etc.) from canonical game titles into `RevisionTag`, preventing cluttered titles in library grids and tables.
+  - **Release Date Scraping & 1898 Epoch Bug**: Fixed release date scraping from Libretro release year DATs matching CRC32 and normalized titles, and guarded against invalid dates prior to 1970 (`AirDate < 1970` or `1898-12-31`), preventing `Dec 31 1898` from appearing in UI headers, tables, and episode summaries.
 - **Complete Concurrent Isolation from Parallel Sonarr Installations**:
   - **Network Ports**: Configured default HTTPS port to `7051` (previously defaulted to `9898`, conflicting with Sonarr's default SSL port), guaranteeing zero port collisions on standard HTTP (`7050` vs `8989`) and HTTPS (`7051` vs `9898`). Updated `.devcontainer/devcontainer.json` port forwarding.
   - **Environment Variable Isolation**: Scoped ASP.NET Core configuration section binding and environment variable lookups to `Controllarr:*` and `CONTROLLARR__*` (`CONTROLLARR__SERVER__PORT`, `CONTROLLARR__POSTGRES__*`, `CONTROLLARR__LOG__*`, `CONTROLLARR_VITE_DEV_SERVER`), preventing Controllarr from inheriting or overriding global `SONARR__*` environment variables configured for a parallel Sonarr instance.

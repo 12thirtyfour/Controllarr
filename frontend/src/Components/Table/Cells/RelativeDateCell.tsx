@@ -26,7 +26,8 @@ function RelativeDateCell(props: RelativeDateCellProps) {
   const { showRelativeDates, shortDateFormat, longDateFormat, timeFormat } =
     useUiSettingsValues();
 
-  if (!date) {
+  const isInvalidYear = Boolean(date && (parseInt(date.slice(0, 4), 10) < 1970 || date.startsWith('189')));
+  if (!date || isInvalidYear) {
     return <Component className={className} {...otherProps} />;
   }
 

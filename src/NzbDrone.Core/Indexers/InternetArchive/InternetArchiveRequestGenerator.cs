@@ -87,6 +87,33 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 terms.AddRange(titles);
             }
 
+            var primaryArchiveIds = Settings?.PrimaryArchiveUrls?
+                .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            var baseUrl = Settings?.BaseUrl?.TrimEnd('/') ?? "https://archive.org";
+
+            // Prioritize searching files directly inside Primary Archive URLs
+            if (primaryArchiveIds.Any())
+            {
+                var primaryRequests = new List<IndexerRequest>();
+                foreach (var term in terms.Distinct())
+                {
+                    foreach (var archiveId in primaryArchiveIds)
+                    {
+                        var url = $"{baseUrl}/metadata/{archiveId}/files?search={Uri.EscapeDataString(term)}";
+                        primaryRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
+                    }
+                }
+
+                if (primaryRequests.Any())
+                {
+                    pageableRequests.Add(primaryRequests);
+                }
+            }
+
             foreach (var term in terms.Distinct())
             {
                 pageableRequests.Add(GetPagedRequests(term));
@@ -132,7 +159,11 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
         private string BuildQuery(string term)
         {
-            var collections = Settings.Collections?.Where(c => !c.IsNullOrWhiteSpace()).ToList() ?? new List<string>();
+            var collections = Settings?.PrimaryArchiveUrls?
+                .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
+                .Where(c => !c.IsNullOrWhiteSpace())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
             string collectionQuery = null;
 
             if (collections.Any())

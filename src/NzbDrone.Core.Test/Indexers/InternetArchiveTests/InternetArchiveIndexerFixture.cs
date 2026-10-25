@@ -155,12 +155,40 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
         }
 
         [Test]
-        public void should_generate_search_request_with_term()
+        public void should_generate_search_request_with_primary_archives_and_fallback()
         {
             var settings = new InternetArchiveIndexerSettings
             {
                 BaseUrl = "https://archive.org",
-                Collections = new[] { "no-intro_romsets" }
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                SceneTitles = new List<string> { "Super Mario World" }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+
+            requests.Should().HaveCount(2);
+
+            // Tier 1: Query primary archive metadata directly for single ROM files
+            requests[0].HttpRequest.Url.FullUri.Should().Contain("/metadata/htgdb-gamepacks/files?search=Super%20Mario%20World");
+
+            // Tier 2: Fallback query across collection
+            requests[1].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            requests[1].HttpRequest.Url.FullUri.Should().Contain("collection%3Ahtgdb-gamepacks");
+            requests[1].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
+        }
+
+        [Test]
+        public void should_generate_search_request_without_primary_archives()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = Array.Empty<string>()
             };
 
             var generator = new InternetArchiveRequestGenerator { Settings = settings };
@@ -172,11 +200,8 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
 
             requests.Should().HaveCount(1);
-            var request = requests.First();
-
-            request.HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
-            request.HttpRequest.Url.FullUri.Should().Contain("collection%3Ano-intro_romsets");
-            request.HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
+            requests[0].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            requests[0].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
         }
 
         [Test]
@@ -200,6 +225,49 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             var validationResult = settings.Validate();
 
             validationResult.IsValid.Should().BeTrue();
+        }
+
+        [TestCase("https://archive.org/details/htgdb-gamepacks", "htgdb-gamepacks")]
+        [TestCase("https://archive.org/details/htgdb-gamepacks/", "htgdb-gamepacks")]
+        [TestCase("https://archive.org/download/htgdb-gamepacks", "htgdb-gamepacks")]
+        [TestCase("htgdb-gamepacks", "htgdb-gamepacks")]
+        [TestCase("https://archive.org/details/no-intro-rom-sets/item", "no-intro-rom-sets")]
+        public void should_extract_identifier_from_archive_urls(string inputUrl, string expectedId)
+        {
+            InternetArchiveIndexerSettings.ExtractIdentifier(inputUrl).Should().Be(expectedId);
+        }
+
+        [Test]
+        public void should_parse_metadata_files_response_for_primary_archive()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""@ = MiSTer Ready.txt"", ""size"": ""181"", ""format"": ""Text"" },
+                    { ""name"": ""Super Mario World (USA).sfc"", ""size"": ""524288"", ""format"": ""ROM"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Chrono Trigger (USA).sfc"", ""size"": ""4194304"", ""format"": ""ROM"", ""mtime"": 1600000000, ""private"": ""true"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/htgdb-gamepacks/files?search=Super%20Mario%20World");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            var release = releases.First();
+            release.Title.Should().Be("Super Mario World (USA).sfc");
+            release.DownloadUrl.Should().Be("https://archive.org/download/htgdb-gamepacks/Super%20Mario%20World%20%28USA%29.sfc");
+            release.InfoUrl.Should().Be("https://archive.org/details/htgdb-gamepacks");
+            release.Size.Should().Be(524288);
+            release.RequiresCredentials.Should().BeFalse();
         }
     }
 }

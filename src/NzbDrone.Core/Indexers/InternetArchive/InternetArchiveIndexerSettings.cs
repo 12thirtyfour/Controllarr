@@ -23,18 +23,61 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         public InternetArchiveIndexerSettings()
         {
             BaseUrl = "https://archive.org";
-            Collections = new[] { "no-intro_romsets", "redump", "softwarelibrary", "retroarch_system", "open_source_software" };
+            PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" };
             S3AccessKey = string.Empty;
             S3SecretKey = string.Empty;
             MultiLanguages = Array.Empty<int>();
             FailDownloads = Array.Empty<int>();
         }
 
+        public static string ExtractIdentifier(string urlOrId)
+        {
+            if (string.IsNullOrWhiteSpace(urlOrId))
+            {
+                return null;
+            }
+
+            var trimmed = urlOrId.Trim().TrimEnd('/');
+            var detailsIdx = trimmed.IndexOf("/details/", StringComparison.OrdinalIgnoreCase);
+            if (detailsIdx >= 0)
+            {
+                var remainder = trimmed.Substring(detailsIdx + 9);
+                var slashIdx = remainder.IndexOf('/');
+                return slashIdx >= 0 ? remainder.Substring(0, slashIdx).Trim() : remainder.Trim();
+            }
+
+            var downloadIdx = trimmed.IndexOf("/download/", StringComparison.OrdinalIgnoreCase);
+            if (downloadIdx >= 0)
+            {
+                var remainder = trimmed.Substring(downloadIdx + 10);
+                var slashIdx = remainder.IndexOf('/');
+                return slashIdx >= 0 ? remainder.Substring(0, slashIdx).Trim() : remainder.Trim();
+            }
+
+            if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                var lastSlash = trimmed.LastIndexOf('/');
+                if (lastSlash >= 0 && lastSlash < trimmed.Length - 1)
+                {
+                    return trimmed.Substring(lastSlash + 1).Trim();
+                }
+            }
+
+            return trimmed;
+        }
+
         [FieldDefinition(0, Label = "Base URL")]
         public string BaseUrl { get; set; }
 
-        [FieldDefinition(1, Label = "Collections", Type = FieldType.Tag, HelpText = "Internet Archive collections to search")]
-        public IEnumerable<string> Collections { get; set; }
+        [FieldDefinition(1, Label = "Primary Archive URLs", Type = FieldType.Tag, HelpText = "Internet Archive collection or item URLs/identifiers (e.g. https://archive.org/details/htgdb-gamepacks) that act as primary resources before searching archive.org directly")]
+        public IEnumerable<string> PrimaryArchiveUrls { get; set; }
+
+        public IEnumerable<string> Collections
+        {
+            get => PrimaryArchiveUrls;
+            set => PrimaryArchiveUrls = value;
+        }
 
         [FieldDefinition(2, Label = "S3 Access Key", HelpText = "Optional Internet Archive S3 Access Key")]
         public string S3AccessKey { get; set; }

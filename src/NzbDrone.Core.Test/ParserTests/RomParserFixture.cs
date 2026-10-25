@@ -23,6 +23,13 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Chrono Trigger (Japan) (v1.1).sfc", "Chrono Trigger", "Japan", "1.1", "sfc")]
         [TestCase("Super Mario 64 (USA) (Rev A).z64", "Super Mario 64", "USA", "A", "z64")]
         [TestCase("NES/A-F/Castlevania (USA) (Rev 1).nes", "Castlevania", "USA", "1", "nes")]
+        [TestCase("001 Legend of Zelda, The (USA).sfc", "Legend of Zelda, The", "USA", null, "sfc")]
+        [TestCase("002 Chrono Trigger (USA).sfc", "Chrono Trigger", "USA", null, "sfc")]
+        [TestCase("01 - Metroid (USA).nes", "Metroid", "USA", null, "nes")]
+        [TestCase("1942 (USA).nes", "1942", "USA", null, "nes")]
+        [TestCase("2020 Super Baseball (USA).sfc", "2020 Super Baseball", "USA", null, "sfc")]
+        [TestCase("3 Ninjas Kick Back (USA).sfc", "3 Ninjas Kick Back", "USA", null, "sfc")]
+        [TestCase("7th Saga, The (USA).sfc", "7th Saga, The", "USA", null, "sfc")]
         public void Should_parse_real_world_roms(string title, string expectedTitle, string expectedRegion, string expectedRevision, string expectedFormat)
         {
             var result = RomParser.ParseRomName(title);
