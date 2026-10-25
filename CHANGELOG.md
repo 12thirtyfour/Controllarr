@@ -45,6 +45,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Fixed `ValidUrlBase()` validator in `InternetArchiveSettingsValidator` to use `ValidRootUrl()`, properly validating `https://archive.org`.
 
 ### Changed
+- **Default ROM Library Naming Scheme (`{Manufacturer}/{Platform}/{Region}/{Game Title}`)**:
+  - Updated default folder and file naming across backend (`NamingConfig.Default`, `NamingConfigService`) and frontend (`Naming.tsx`, `NamingModal.tsx`) to prepend `{Manufacturer}` prior to `{Platform}` (e.g. `Nintendo/Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes` and `Sony/PlayStation/USA/Final Fantasy VII (USA) (Disc 1)/...`).
+  - Added automatic legacy naming config upgrade migrating `{Platform}` or `{Series Title}` to `{Manufacturer}/{Platform}`.
 - **GitHub Branch, CI/CD & Release Housekeeping (`develop` staging / `main` stable)**:
   - `develop` no longer triggers any GitHub Actions builds; it is the staging/testing branch and dev users build from source.
   - Renamed `build_v5.yml` to `build.yml` (`Build & Release`): runs only on pushes/merges to `main`, `v*` version tags, pull requests targeting `main` (build + tests only), and manual dispatch.

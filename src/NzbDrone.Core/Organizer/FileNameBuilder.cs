@@ -294,7 +294,7 @@ namespace NzbDrone.Core.Organizer
             AddSeriesTokens(tokenHandlers, series, title);
             AddIdTokens(tokenHandlers, series);
 
-            var format = namingConfig.SeriesFolderFormat ?? "{Platform}";
+            var format = namingConfig.SeriesFolderFormat ?? "{Manufacturer}/{Platform}";
             var folderName = ReplaceTokens(format, tokenHandlers, namingConfig);
 
             folderName = CleanFolderName(folderName);
@@ -657,9 +657,15 @@ namespace NzbDrone.Core.Organizer
             var platformShort = !string.IsNullOrWhiteSpace(matchedPlatform?.Slug)
                 ? matchedPlatform.Slug.ToUpperInvariant()
                 : title;
+            var rawNetwork = series?.Network ?? string.Empty;
+            if (rawNetwork.EndsWith(" (Platform)", StringComparison.OrdinalIgnoreCase))
+            {
+                rawNetwork = rawNetwork.Substring(0, rawNetwork.Length - " (Platform)".Length).Trim();
+            }
+
             var manufacturer = !string.IsNullOrWhiteSpace(matchedPlatform?.Manufacturer)
                 ? matchedPlatform.Manufacturer
-                : (!string.IsNullOrWhiteSpace(series?.Network) ? series.Network : "Nintendo");
+                : (!string.IsNullOrWhiteSpace(rawNetwork) ? rawNetwork : "Nintendo");
             var seriesYear = series?.Year ?? 0;
 
             tokenHandlers["{Series Title}"] = m => Truncate(title, m.CustomFormat);
@@ -835,8 +841,6 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Season CleanTitle}"] = m => title.IsNullOrWhiteSpace() ? string.Empty : Truncate(CleanTitle(title), m.CustomFormat);
             tokenHandlers["{Region}"] = m => Truncate(regionTitle, m.CustomFormat);
             tokenHandlers["{Region Code}"] = m => Truncate(regionCode, m.CustomFormat);
-            tokenHandlers["{Game Title}"] = m => Truncate(regionTitle, m.CustomFormat);
-            tokenHandlers["{Game CleanTitle}"] = m => Truncate(CleanTitle(regionTitle), m.CustomFormat);
         }
 
         private void AddEpisodeTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, Series series = null)

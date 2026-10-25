@@ -11,12 +11,12 @@ namespace NzbDrone.Core.Organizer
             ColonReplacementFormat = ColonReplacementFormat.Smart,
             CustomColonReplacementFormat = string.Empty,
             MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange,
-            StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}",
-            DailyEpisodeFormat = "{Series Title} - {Air-Date} - {Episode Title} {Quality Full}",
-            AnimeEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}",
-            SeriesFolderFormat = "{Series Title}",
-            SeasonFolderFormat = "Season {season}",
-            SpecialsFolderFormat = "Specials"
+            StandardEpisodeFormat = "{Game Title}",
+            DailyEpisodeFormat = "{Game Title}/{Game Title}",
+            AnimeEpisodeFormat = "{Game Title}",
+            SeriesFolderFormat = "{Manufacturer}/{Platform}",
+            SeasonFolderFormat = "{Region}",
+            SpecialsFolderFormat = "Unlicensed"
         };
 
         public bool RenameEpisodes { get; set; }

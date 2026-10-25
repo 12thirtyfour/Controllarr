@@ -28,9 +28,10 @@ interface NamingProps {
   }) => void;
 }
 
-const DEFAULT_UNIFIED_PATH_FORMAT = '{Platform}/{Region}/{Game Title}';
+const DEFAULT_UNIFIED_PATH_FORMAT =
+  '{Manufacturer}/{Platform}/{Region}/{Game Title}';
 const DEFAULT_DISC_PATH_FORMAT =
-  '{Platform}/{Region}/{Game Title}/{Game Title}';
+  '{Manufacturer}/{Platform}/{Region}/{Game Title}/{Game Title}';
 
 function normalizeSegmentToConsoleVariables(
   segment: string,
@@ -47,7 +48,7 @@ function normalizeSegmentToConsoleVariables(
     trimmed === '{Series CleanTitle}' ||
     trimmed === '{Series.Title}'
   ) {
-    return '{Platform}';
+    return '{Manufacturer}/{Platform}';
   }
 
   if (
@@ -89,7 +90,7 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
 
   if (segments.length === 0) {
     return {
-      seriesFolderFormat: '{Platform}',
+      seriesFolderFormat: '{Manufacturer}/{Platform}',
       seasonFolderFormat: '{Region}',
       standardEpisodeFormat: '{Game Title}',
     };
@@ -97,7 +98,7 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
 
   if (segments.length === 1) {
     return {
-      seriesFolderFormat: '{Platform}',
+      seriesFolderFormat: '{Manufacturer}/{Platform}',
       seasonFolderFormat: '{Region}',
       standardEpisodeFormat: segments[0],
     };
@@ -167,7 +168,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
 
     const normalizedSeries = normalizeSegmentToConsoleVariables(
       settings.seriesFolderFormat.value,
-      '{Platform}'
+      '{Manufacturer}/{Platform}'
     );
     const normalizedSeason = normalizeSegmentToConsoleVariables(
       settings.seasonFolderFormat.value,
@@ -306,7 +307,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   return (
     <FieldSet
       legend={translate('EpisodeNaming')}
-      caption="Configure your unified folder and ROM naming structure using platform, region, and game variables (Default: {Platform}/{Region}/{Game Title})"
+      caption="Configure your unified folder and ROM naming structure using manufacturer, platform, region, and game variables (Default: {Manufacturer}/{Platform}/{Region}/{Game Title})"
     >
       {isFetching ? <LoadingIndicator /> : null}
       {!isFetching && error ? (

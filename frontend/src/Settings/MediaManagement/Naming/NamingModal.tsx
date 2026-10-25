@@ -91,6 +91,11 @@ const caseOptions: CaseInputOption[] = [
 
 const romPathPresets: Token[] = [
   {
+    token: '{Manufacturer}/{Platform}/{Region}/{Game Title}',
+    example:
+      'Nintendo/Nintendo Entertainment System/USA/The Legend of Zelda (USA) (Rev 1)',
+  },
+  {
     token: '{Platform}/{Region}/{Game Title}',
     example:
       'Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1)',
@@ -100,14 +105,15 @@ const romPathPresets: Token[] = [
     example: 'NES/US/Super Mario Bros (1985)',
   },
   {
+    token:
+      '{Manufacturer}/{Platform}/{Region}/{Game Title}/{Game Title}',
+    example:
+      'Sony/PlayStation/USA/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
+  },
+  {
     token: '{Platform}/{Game Title}/{Game Title}',
     example:
       'PlayStation/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
-  },
-  {
-    token: '{Manufacturer}/{Platform}/{Region}/{Game Title}',
-    example:
-      'Nintendo/Nintendo Entertainment System/USA/The Legend of Zelda (USA) (Rev 1)',
   },
 ];
 

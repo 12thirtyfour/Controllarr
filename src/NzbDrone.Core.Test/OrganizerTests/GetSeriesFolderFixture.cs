@@ -43,6 +43,32 @@ namespace NzbDrone.Core.Test.OrganizerTests
         }
 
         [Test]
+        public void should_use_manufacturer_and_platform_as_default_series_folder()
+        {
+            Mocker.GetMock<IPlatformCatalogService>()
+                  .Setup(c => c.GetAll())
+                  .Returns(new PlatformCatalogService().GetAll());
+
+            var namingConfig = NamingConfig.Default;
+            namingConfig.SeriesFolderFormat = "{Manufacturer}/{Platform}";
+
+            var snes = new Series
+            {
+                Title = "Super Nintendo Entertainment System",
+                TitleSlug = "snes"
+            };
+
+            var genesis = new Series
+            {
+                Title = "Sega Genesis",
+                TitleSlug = "genesis"
+            };
+
+            Subject.GetSeriesFolder(snes, namingConfig).Should().Be("Nintendo/Super Nintendo");
+            Subject.GetSeriesFolder(genesis, namingConfig).Should().Be("Sega/Genesis");
+        }
+
+        [Test]
         public void should_build_platform_region_path_with_regional_console_names()
         {
             Mocker.GetMock<IPlatformCatalogService>()
@@ -103,6 +129,7 @@ namespace NzbDrone.Core.Test.OrganizerTests
             _namingConfig.SeriesFolderFormat = "{Platform Short}";
             _namingConfig.SeasonFolderFormat = "{Region Code}";
             _namingConfig.StandardEpisodeFormat = "{Game CleanTitle} ({Release Year}) ({Version}) ({Disc})";
+            _namingConfig.DailyEpisodeFormat = "{Game CleanTitle} ({Release Year}) ({Version}) ({Disc})";
 
             var series = new Series
             {

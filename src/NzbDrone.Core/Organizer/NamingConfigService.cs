@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Organizer
                     if (config == null)
                     {
                         var defaultConfig = NamingConfig.Default;
-                        defaultConfig.SeriesFolderFormat = "{Platform}";
+                        defaultConfig.SeriesFolderFormat = "{Manufacturer}/{Platform}";
                         defaultConfig.SeasonFolderFormat = "{Region}";
                         defaultConfig.SpecialsFolderFormat = "Unlicensed";
                         defaultConfig.StandardEpisodeFormat = "{Game Title}";
@@ -58,22 +58,36 @@ namespace NzbDrone.Core.Organizer
 
         private static bool UpgradeLegacyTvNamingConfig(NamingConfig config)
         {
-            if (!string.IsNullOrWhiteSpace(config.SeasonFolderFormat) &&
-                !config.SeasonFolderFormat.Equals("Season {season}", StringComparison.OrdinalIgnoreCase) &&
-                !config.SeasonFolderFormat.Equals("Season {season:00}", StringComparison.OrdinalIgnoreCase) &&
-                !config.SeasonFolderFormat.Equals("Season {season:0}", StringComparison.OrdinalIgnoreCase))
+            var modified = false;
+
+            if (string.IsNullOrWhiteSpace(config.SeasonFolderFormat) ||
+                config.SeasonFolderFormat.Equals("Season {season}", StringComparison.OrdinalIgnoreCase) ||
+                config.SeasonFolderFormat.Equals("Season {season:00}", StringComparison.OrdinalIgnoreCase) ||
+                config.SeasonFolderFormat.Equals("Season {season:0}", StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                config.SeasonFolderFormat = "{Region}";
+                config.SpecialsFolderFormat = "Unlicensed";
+                modified = true;
             }
 
-            config.SeasonFolderFormat = "{Region}";
-            config.SpecialsFolderFormat = "Unlicensed";
-            config.SeriesFolderFormat = "{Platform}";
-            config.StandardEpisodeFormat = "{Game Title}";
-            config.DailyEpisodeFormat = "{Game Title}";
-            config.AnimeEpisodeFormat = "{Game Title}";
+            if (string.IsNullOrWhiteSpace(config.SeriesFolderFormat) ||
+                config.SeriesFolderFormat.Equals("{Series Title}", StringComparison.OrdinalIgnoreCase) ||
+                config.SeriesFolderFormat.Equals("{Platform}", StringComparison.OrdinalIgnoreCase))
+            {
+                config.SeriesFolderFormat = "{Manufacturer}/{Platform}";
+                modified = true;
+            }
 
-            return true;
+            if (string.IsNullOrWhiteSpace(config.StandardEpisodeFormat) ||
+                config.StandardEpisodeFormat.Contains("{Series Title}"))
+            {
+                config.StandardEpisodeFormat = "{Game Title}";
+                config.DailyEpisodeFormat = "{Game Title}/{Game Title}";
+                config.AnimeEpisodeFormat = "{Game Title}";
+                modified = true;
+            }
+
+            return modified;
         }
     }
 }
