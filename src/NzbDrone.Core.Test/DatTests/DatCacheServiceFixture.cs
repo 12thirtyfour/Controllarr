@@ -145,5 +145,34 @@ namespace NzbDrone.Core.Test.DatTests
             Subject.FindByCrc32("crc1").Should().BeNull();
             Subject.FindByCrc32("b19ed489").Should().NotBeNull();
         }
+
+        [Test]
+        public void Should_not_return_snes_entries_when_querying_nes_platform()
+        {
+            var snesDatFile = new DatFile
+            {
+                Name = "Nintendo - Super Nintendo Entertainment System (SmokeMonster SMDB)",
+                Description = "snes"
+            };
+
+            var snesEntries = new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Super Mario World (USA)",
+                    RomName = "Super Mario World (USA).sfc",
+                    Crc32 = "b19ed489"
+                }
+            };
+
+            Subject.Insert(snesDatFile, snesEntries);
+
+            var nesEntries = Subject.GetEntriesForPlatform("nes", "Nintendo Entertainment System", "Nintendo - Nintendo Entertainment System");
+            nesEntries.Should().BeEmpty();
+
+            var queriedSnesEntries = Subject.GetEntriesForPlatform("snes", "Super Nintendo Entertainment System", "Nintendo - Super Nintendo Entertainment System");
+            queriedSnesEntries.Should().HaveCount(1);
+            queriedSnesEntries[0].GameName.Should().Be("Super Mario World (USA)");
+        }
     }
 }

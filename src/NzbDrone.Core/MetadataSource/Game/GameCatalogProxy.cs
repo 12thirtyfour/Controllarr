@@ -910,25 +910,21 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 var smdbCategory = "SmokeMonster HTGDB / SMDB";
                 var normalizedSmdbPath = smdbPath.Replace('\\', '/');
-                if (normalizedSmdbPath.Contains("/Translations/", StringComparison.OrdinalIgnoreCase) ||
-                    normalizedSmdbPath.StartsWith("Translations/", StringComparison.OrdinalIgnoreCase))
+                var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+                if (pathSegments.Any(s => s.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Hack", StringComparison.OrdinalIgnoreCase)))
                 {
                     smdbCategory = "ROM Hacks & Translations";
                 }
-                else if (normalizedSmdbPath.Contains("/Hacks/", StringComparison.OrdinalIgnoreCase) ||
-                         normalizedSmdbPath.StartsWith("Hacks/", StringComparison.OrdinalIgnoreCase))
-                {
-                    smdbCategory = "ROM Hacks & Translations";
-                }
-                else if (normalizedSmdbPath.Contains("/Homebrew/", StringComparison.OrdinalIgnoreCase) ||
-                         normalizedSmdbPath.StartsWith("Homebrew/", StringComparison.OrdinalIgnoreCase) ||
-                         normalizedSmdbPath.Contains("/Aftermarket/", StringComparison.OrdinalIgnoreCase) ||
-                         normalizedSmdbPath.StartsWith("Aftermarket/", StringComparison.OrdinalIgnoreCase))
+                else if (pathSegments.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
                 {
                     smdbCategory = "Homebrew & Aftermarket";
                 }
-                else if (normalizedSmdbPath.Contains("/Unlicensed/", StringComparison.OrdinalIgnoreCase) ||
-                         normalizedSmdbPath.StartsWith("Unlicensed/", StringComparison.OrdinalIgnoreCase))
+                else if (pathSegments.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
                 {
                     smdbCategory = "Unlicensed";
                 }
@@ -1562,7 +1558,11 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed, string verificationSource = null)
         {
-            if (string.Equals(verificationSource, "ROM Hacks & Translations", StringComparison.OrdinalIgnoreCase) ||
+            var isRomHackOrTranslation =
+                (!string.IsNullOrWhiteSpace(verificationSource) && (
+                    verificationSource.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Hacks", StringComparison.OrdinalIgnoreCase))) ||
                 noIntroName.Contains("(Hack", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[Hack", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Hack)", StringComparison.OrdinalIgnoreCase) ||
@@ -1570,33 +1570,80 @@ namespace NzbDrone.Core.MetadataSource.Game
                 noIntroName.Contains("[h]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[h1]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[h2]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[h3]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[h4]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[h5]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(T+", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(T-", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Retranslation", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Kaizo", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Randomizer", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Redux", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Rebalance", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Romhack", StringComparison.OrdinalIgnoreCase))
+                noIntroName.Contains("Romhack", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Mod)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Mod]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Improvement)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Improvement]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Restoration)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Restoration]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Uncensored)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Uncensored]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Colorized)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(DX)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[DX]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(FastROM)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[FastROM]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(MSU-1)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[MSU-1]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(MSU1)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Bugfix)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Patched)", StringComparison.OrdinalIgnoreCase) ||
+                (parsed?.DumpTags != null && parsed.DumpTags.Any(t =>
+                    t.StartsWith("T+", StringComparison.OrdinalIgnoreCase) ||
+                    t.StartsWith("T-", StringComparison.OrdinalIgnoreCase) ||
+                    t.Equals("h", StringComparison.OrdinalIgnoreCase) ||
+                    t.Equals("t", StringComparison.OrdinalIgnoreCase)));
+
+            if (isRomHackOrTranslation)
             {
                 return RegionRomHacksSeason;
             }
 
-            if (string.Equals(verificationSource, "Homebrew & Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+            var isHomebrewOrAftermarket =
+                (!string.IsNullOrWhiteSpace(verificationSource) && (
+                    verificationSource.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Public Domain", StringComparison.OrdinalIgnoreCase))) ||
                 noIntroName.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[PD]", StringComparison.OrdinalIgnoreCase))
+                noIntroName.Contains("[PD]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(HB)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[HB]", StringComparison.OrdinalIgnoreCase);
+
+            if (isHomebrewOrAftermarket)
             {
                 return RegionHomebrewSeason;
             }
 
-            if (string.Equals(verificationSource, "Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+            var isUnlicensed =
+                (!string.IsNullOrWhiteSpace(verificationSource) && (
+                    verificationSource.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Bootleg", StringComparison.OrdinalIgnoreCase))) ||
                 noIntroName.Contains("(Unl", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[Unl", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Pirate", StringComparison.OrdinalIgnoreCase))
+                noIntroName.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Bootleg", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Demake", StringComparison.OrdinalIgnoreCase);
+
+            if (isUnlicensed)
             {
                 return RegionUnlicensedSeason;
             }

@@ -30,13 +30,16 @@ export interface RetroAchievementBadge {
 export interface RetroAchievementsProgressRequestResource {
   username: string;
   gameTitle: string;
+  consoleName?: string;
   romMd5Hash: string;
   badges: RetroAchievementBadge[];
 }
 
 export interface RetroAchievementsGameProgress {
+  gameId?: number;
   username: string;
   gameTitle: string;
+  consoleName?: string;
   romMd5Hash: string;
   totalAchievements: number;
   unlockedAchievements: number;
@@ -49,6 +52,7 @@ export interface RetroAchievementsGameProgress {
 export interface RetroAchievementsShowcaseModalProps {
   isOpen: boolean;
   gameTitle: string;
+  seriesTitle?: string;
   romMd5Hash?: string;
   badges?: RetroAchievementBadge[];
   onModalClose: () => void;
@@ -59,6 +63,7 @@ const EMPTY_BADGES: RetroAchievementBadge[] = [];
 function RetroAchievementsShowcaseModal({
   isOpen,
   gameTitle,
+  seriesTitle,
   romMd5Hash = 'd41d8cd98f00b204e9800998ecf8427e',
   badges = EMPTY_BADGES,
   onModalClose,
@@ -87,10 +92,11 @@ function RetroAchievementsShowcaseModal({
     fetchProgress({
       username: storedUsername,
       gameTitle,
+      consoleName: seriesTitle,
       romMd5Hash,
       badges,
     });
-  }, [isOpen, gameTitle, romMd5Hash, badges, fetchProgress]);
+  }, [isOpen, gameTitle, seriesTitle, romMd5Hash, badges, fetchProgress]);
 
   return (
     <Modal isOpen={isOpen} size={sizes.LARGE} onModalClose={onModalClose}>

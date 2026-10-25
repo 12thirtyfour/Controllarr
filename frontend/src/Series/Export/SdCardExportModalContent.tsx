@@ -287,6 +287,11 @@ function SdCardExportModalContent({
                       "Flashcarts/ODEs that do not support .chd/.zip (e.g., EverDrive, Analogue Pocket, FXPak Pro, xStation) will automatically extract .zip or convert .chd to .cue/.bin into the target device's folder layout."
                     )}
                   </li>
+                  <li>
+                    {translate(
+                      'All disc-based titles (single-disc and multi-disc) are organized into dedicated game-titled folders.'
+                    )}
+                  </li>
                 </ul>
               </div>
             </FormRow>

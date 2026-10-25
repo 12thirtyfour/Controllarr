@@ -21,14 +21,110 @@ export interface GameAchievementSummary {
   badges: RetroAchievementBadge[];
 }
 
-const libraryByNormalizedTitle = new Map<
-  string,
-  RetroAchievementsGameProgress
->();
+const libraryItems: RetroAchievementsGameProgress[] = [];
 let loadedUserKey = '';
 let inFlightPromise: Promise<void> | null = null;
 let cacheVersion = 0;
 const listeners = new Set<() => void>();
+
+export function resolveConsoleKey(consoleName?: string): string {
+  if (!consoleName) {
+    return '';
+  }
+
+  const c = consoleName.toLowerCase();
+  if (
+    c.includes('super nintendo') ||
+    c.includes('super famicom') ||
+    c === 'sfc' ||
+    c.includes('snes')
+  ) {
+    return 'snes';
+  }
+
+  if (
+    c.includes('nintendo entertainment system') ||
+    c.includes('famicom') ||
+    c === 'fc' ||
+    c.includes('nes')
+  ) {
+    return 'nes';
+  }
+
+  if (c.includes('nintendo 64') || c.includes('n64')) {
+    return 'n64';
+  }
+
+  if (c.includes('game boy advance') || c.includes('gba')) {
+    return 'gba';
+  }
+
+  if (c.includes('game boy color') || c.includes('gbc')) {
+    return 'gbc';
+  }
+
+  if (c.includes('game boy') || c.includes('dmg') || c === 'gb') {
+    return 'gb';
+  }
+
+  if (c.includes('nintendo ds') || c.includes('nds')) {
+    return 'nds';
+  }
+
+  if (c.includes('playstation 2') || c.includes('ps2')) {
+    return 'ps2';
+  }
+
+  if (c.includes('playstation portable') || c.includes('psp')) {
+    return 'psp';
+  }
+
+  if (c.includes('playstation') || c.includes('ps1') || c.includes('psx')) {
+    return 'ps1';
+  }
+
+  if (c.includes('sega cd') || c.includes('mega cd') || c.includes('segacd')) {
+    return 'segacd';
+  }
+
+  if (c.includes('saturn')) {
+    return 'saturn';
+  }
+
+  if (c.includes('dreamcast')) {
+    return 'dreamcast';
+  }
+
+  if (c.includes('master system') || c === 'sms') {
+    return 'sms';
+  }
+
+  if (c.includes('genesis') || c.includes('mega drive') || c === 'md') {
+    return 'genesis';
+  }
+
+  if (c.includes('pc engine') || c.includes('turbografx')) {
+    return 'tg16';
+  }
+
+  if (c.includes('2600')) {
+    return 'atari2600';
+  }
+
+  if (c.includes('7800')) {
+    return 'atari7800';
+  }
+
+  if (c.includes('lynx')) {
+    return 'lynx';
+  }
+
+  if (c.includes('jaguar')) {
+    return 'jaguar';
+  }
+
+  return c.replace(/[^a-z0-9]/g, '');
+}
 
 export function normalizeGameTitle(title: string): string {
   if (!title) {
@@ -49,8 +145,37 @@ function notifyListeners() {
 export function invalidateRetroAchievementsCache(): void {
   loadedUserKey = '';
   inFlightPromise = null;
-  libraryByNormalizedTitle.clear();
+  libraryItems.length = 0;
   notifyListeners();
+}
+
+export function findMatchingGameProgress(
+  gameTitle: string,
+  consoleName?: string
+): RetroAchievementsGameProgress | undefined {
+  const normTitle = normalizeGameTitle(gameTitle);
+  if (!normTitle) {
+    return undefined;
+  }
+
+  const targetConsoleKey = resolveConsoleKey(consoleName);
+
+  if (targetConsoleKey) {
+    const exactMatch = libraryItems.find(
+      (item) =>
+        normalizeGameTitle(item.gameTitle) === normTitle &&
+        resolveConsoleKey(item.consoleName) === targetConsoleKey
+    );
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    return undefined;
+  }
+
+  return libraryItems.find(
+    (item) => normalizeGameTitle(item.gameTitle) === normTitle
+  );
 }
 
 function ensureLibraryLoaded(): void {
@@ -69,7 +194,7 @@ function ensureLibraryLoaded(): void {
   if (!username) {
     if (loadedUserKey !== '') {
       loadedUserKey = '';
-      libraryByNormalizedTitle.clear();
+      libraryItems.length = 0;
       notifyListeners();
     }
 
@@ -100,22 +225,16 @@ function ensureLibraryLoaded(): void {
       }
 
       const items = (await response.json()) as RetroAchievementsGameProgress[];
-      libraryByNormalizedTitle.clear();
+      libraryItems.length = 0;
 
       if (Array.isArray(items)) {
-        items.forEach((item) => {
-          const key = normalizeGameTitle(item.gameTitle);
-
-          if (key) {
-            libraryByNormalizedTitle.set(key, item);
-          }
-        });
+        libraryItems.push(...items);
       }
 
       notifyListeners();
     })
     .catch(() => {
-      // Keep empty map on network error so fake badges are never shown
+      // Keep empty array on network error so fake badges are never shown
     })
     .finally(() => {
       inFlightPromise = null;
@@ -138,9 +257,12 @@ export function useRetroAchievementsLibraryVersion(): number {
   return version;
 }
 
-export function buildBadgesForGame(gameTitle: string): RetroAchievementBadge[] {
+export function buildBadgesForGame(
+  gameTitle: string,
+  consoleName?: string
+): RetroAchievementBadge[] {
   ensureLibraryLoaded();
-  const matched = libraryByNormalizedTitle.get(normalizeGameTitle(gameTitle));
+  const matched = findMatchingGameProgress(gameTitle, consoleName);
 
   return matched?.badges ?? [];
 }
@@ -148,7 +270,8 @@ export function buildBadgesForGame(gameTitle: string): RetroAchievementBadge[] {
 export function getGameAchievementSummary(
   gameTitle: string,
   seasonNumber = 1,
-  _cacheVersion = 0
+  _cacheVersion = 0,
+  consoleName?: string
 ): GameAchievementSummary {
   if (seasonNumber === 0 || seasonNumber === 99) {
     return {
@@ -163,7 +286,7 @@ export function getGameAchievementSummary(
   }
 
   ensureLibraryLoaded();
-  const matched = libraryByNormalizedTitle.get(normalizeGameTitle(gameTitle));
+  const matched = findMatchingGameProgress(gameTitle, consoleName);
 
   if (!matched || matched.totalAchievements <= 0) {
     return {

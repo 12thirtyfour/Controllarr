@@ -1172,6 +1172,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
           <RetroAchievementsShowcaseModal
             isOpen={isRetroAchievementsModalOpen}
             gameTitle={title}
+            seriesTitle={title}
             onModalClose={handleRetroAchievementsModalClose}
           />
         </PageContentBody>

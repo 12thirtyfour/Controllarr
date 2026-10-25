@@ -85,7 +85,9 @@ function EpisodeSummary({
   episodeFileId,
 }: EpisodeSummaryProps) {
   const queryClient = useQueryClient();
-  const { network } = useSingleSeries(seriesId) as Series;
+  const series = useSingleSeries(seriesId) as Series;
+  const seriesTitle = series?.title;
+  const { network } = series;
 
   const {
     title = '',
@@ -125,8 +127,14 @@ function EpisodeSummary({
   const raLibraryVersion = useRetroAchievementsLibraryVersion();
 
   const achievementSummary = useMemo(
-    () => getGameAchievementSummary(title, seasonNumber, raLibraryVersion),
-    [title, seasonNumber, raLibraryVersion]
+    () =>
+      getGameAchievementSummary(
+        title,
+        seasonNumber,
+        raLibraryVersion,
+        seriesTitle
+      ),
+    [title, seasonNumber, raLibraryVersion, seriesTitle]
   );
 
   const hasOverview = !!overview;

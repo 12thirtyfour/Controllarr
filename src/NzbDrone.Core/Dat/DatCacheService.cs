@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
@@ -77,6 +78,18 @@ namespace NzbDrone.Core.Dat
             }
         }
 
+        private static readonly HashSet<string> KnownPlatformSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "nes", "fds", "snes", "satellaview", "n64", "64dd", "gamecube", "wii", "wiiu",
+            "gb", "gbc", "gba", "nds", "3ds", "switch",
+            "genesis", "segacd", "32x", "saturn", "dreamcast", "sms", "gg",
+            "tg16", "tgcd",
+            "ps1", "ps2", "psp", "ps3", "psvita",
+            "xbox", "xbox360",
+            "atari2600", "atari7800", "lynx", "jaguar", "jaguarcd",
+            "neogeo", "ngpc", "wonderswan", "vb"
+        };
+
         public List<DatEntry> GetEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null)
         {
             var slug = (platformSlug ?? string.Empty).Trim().ToLowerInvariant();
@@ -88,26 +101,98 @@ namespace NzbDrone.Core.Dat
                 return new List<DatEntry>();
             }
 
-            var sql = @"
-                SELECT e.*
-                FROM ""DatEntries"" e
-                INNER JOIN ""DatFiles"" f ON f.""Id"" = e.""DatFileId""
-                WHERE LOWER(COALESCE(f.""Description"", '')) = @slug
-                   OR LOWER(COALESCE(f.""Name"", '')) = @slug
-                   OR LOWER(COALESCE(f.""Name"", '')) LIKE @namePattern
-                   OR LOWER(COALESCE(f.""Name"", '')) LIKE @sysPattern
-                   OR LOWER(COALESCE(f.""Description"", '')) LIKE @sysPattern";
-
             using (var connection = _database.OpenConnection())
             {
-                return connection.Query<DatEntry>(
-                    sql,
-                    new
+                var datFiles = connection.Query<DatFile>(@"SELECT ""Id"", ""Name"", ""Description"" FROM ""DatFiles""").ToList();
+                var matchedFileIds = new List<int>();
+
+                foreach (var file in datFiles)
+                {
+                    if (IsDatFilePlatformMatch(file, slug, name, sys))
                     {
-                        slug,
-                        namePattern = $"%{name}%",
-                        sysPattern = $"%{sys}%"
-                    }).ToList();
+                        matchedFileIds.Add(file.Id);
+                    }
+                }
+
+                if (matchedFileIds.Count == 0)
+                {
+                    return new List<DatEntry>();
+                }
+
+                var idList = string.Join(",", matchedFileIds);
+                var sql = $@"
+                    SELECT *
+                    FROM ""DatEntries""
+                    WHERE ""DatFileId"" IN ({idList})";
+
+                return connection.Query<DatEntry>(sql).ToList();
+            }
+        }
+
+        private static bool IsDatFilePlatformMatch(DatFile file, string slug, string name, string sys)
+        {
+            var desc = (file.Description ?? string.Empty).Trim().ToLowerInvariant();
+            var fileName = (file.Name ?? string.Empty).Trim().ToLowerInvariant();
+
+            if (!string.IsNullOrWhiteSpace(desc) && KnownPlatformSlugs.Contains(desc))
+            {
+                return desc == slug;
+            }
+
+            if (HasPlatformSubstringCollision(slug, fileName))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(slug) && (desc == slug || fileName == slug))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(name) && (fileName.Contains(name) || desc.Contains(name)))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sys) && (fileName.Contains(sys) || desc.Contains(sys)))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool HasPlatformSubstringCollision(string targetSlug, string datFileName)
+        {
+            if (string.IsNullOrWhiteSpace(datFileName))
+            {
+                return false;
+            }
+
+            switch (targetSlug)
+            {
+                case "nes":
+                    return datFileName.Contains("super nintendo") || datFileName.Contains("snes") || datFileName.Contains("famicom disk system") || datFileName.Contains("fds");
+                case "gb":
+                    return datFileName.Contains("game boy color") || datFileName.Contains("gbc") || datFileName.Contains("game boy advance") || datFileName.Contains("gba");
+                case "gbc":
+                    return datFileName.Contains("game boy advance") || datFileName.Contains("gba");
+                case "ps1":
+                    return datFileName.Contains("playstation 2") || datFileName.Contains("ps2") ||
+                           datFileName.Contains("playstation 3") || datFileName.Contains("ps3") ||
+                           datFileName.Contains("psp") || datFileName.Contains("vita");
+                case "ps2":
+                    return datFileName.Contains("playstation 3") || datFileName.Contains("ps3");
+                case "xbox":
+                    return datFileName.Contains("360") || datFileName.Contains("one");
+                case "wii":
+                    return datFileName.Contains("wii u") || datFileName.Contains("wiiu");
+                case "sms":
+                    return datFileName.Contains("genesis") || datFileName.Contains("mega drive") || datFileName.Contains("sega cd") || datFileName.Contains("game gear");
+                case "tg16":
+                    return datFileName.Contains("tgcd") || datFileName.Contains("turbografx-cd") || datFileName.Contains("pc engine cd");
+                default:
+                    return false;
             }
         }
 

@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
                 optimizeFormatsForDevice: true);
 
             segaCdPlan.Transformation.Should().Be(SdCardFormatTransformation.CompressDiscToChd);
-            segaCdPlan.RelativeDestinationPath.Should().Be(Path.Combine("games", "MegaCD", "N-S", "Sonic CD.chd"));
+            segaCdPlan.RelativeDestinationPath.Should().Be(Path.Combine("games", "MegaCD", "N-S", "Sonic CD", "Sonic CD.chd"));
         }
 
         [Test]
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
                 optimizeFormatsForDevice: true);
 
             everDriveSegaCdPlan.Transformation.Should().Be(SdCardFormatTransformation.ConvertChdToCueBin);
-            everDriveSegaCdPlan.RelativeDestinationPath.Should().Be(Path.Combine("Sega CD", "N-S", "Sonic CD.cue"));
+            everDriveSegaCdPlan.RelativeDestinationPath.Should().Be(Path.Combine("Sega CD", "N-S", "Sonic CD", "Sonic CD.cue"));
 
             var xStationPlan = _subject.ResolveExportPlan(
                 SdCardDeviceProfile.XStation,
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
                 optimizeFormatsForDevice: true);
 
             xStationPlan.Transformation.Should().Be(SdCardFormatTransformation.ConvertChdToCueBin);
-            xStationPlan.RelativeDestinationPath.Should().Be(Path.Combine("00xstation", "A-F", "Final Fantasy VII.cue"));
+            xStationPlan.RelativeDestinationPath.Should().Be(Path.Combine("00xstation", "A-F", "Final Fantasy VII", "Final Fantasy VII.cue"));
         }
 
         [Test]
@@ -150,7 +150,7 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
         {
             var sourceChd = Path.Combine("C:", "Library", "Sega", "Sega CD", "Sonic CD (USA).chd");
             var mountPath = Path.Combine("E:", "EverDrive");
-            var expectedDestFolder = Path.Combine(mountPath, "Sega CD", "N-S");
+            var expectedDestFolder = Path.Combine(mountPath, "Sega CD", "N-S", "Sonic CD");
             var expectedCueOut = Path.Combine(expectedDestFolder, "Sonic CD (USA).cue");
 
             _diskProvider.Setup(d => d.FileExists(sourceChd)).Returns(true);

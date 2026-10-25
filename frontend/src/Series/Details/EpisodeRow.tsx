@@ -89,11 +89,13 @@ function EpisodeRow({
   columns,
   onMonitorEpisodePress,
 }: EpisodeRowProps) {
+  const series = useSingleSeries(seriesId);
+  const seriesTitle = series?.title;
   const {
     useSceneNumbering,
     seriesType,
     alternateTitles = [],
-  } = useSingleSeries(seriesId)!;
+  } = series!;
   const episodeFile = useEpisodeFile(episodeFileId);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
 
@@ -104,8 +106,14 @@ function EpisodeRow({
   const raLibraryVersion = useRetroAchievementsLibraryVersion();
 
   const achievementSummary = useMemo(
-    () => getGameAchievementSummary(title, seasonNumber, raLibraryVersion),
-    [title, seasonNumber, raLibraryVersion]
+    () =>
+      getGameAchievementSummary(
+        title,
+        seasonNumber,
+        raLibraryVersion,
+        seriesTitle
+      ),
+    [title, seasonNumber, raLibraryVersion, seriesTitle]
   );
 
   const handleToggleGroupExpandPress = useCallback(() => {
@@ -264,6 +272,7 @@ function EpisodeRow({
               <RetroAchievementsShowcaseModal
                 isOpen={isAchievementsModalOpen}
                 gameTitle={title}
+                seriesTitle={seriesTitle}
                 badges={achievementSummary.badges}
                 onModalClose={handleCloseAchievements}
               />

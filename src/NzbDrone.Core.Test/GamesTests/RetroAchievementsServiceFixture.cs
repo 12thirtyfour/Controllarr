@@ -42,5 +42,18 @@ namespace NzbDrone.Core.Test.GamesTests
             progress.IsMastered.Should().BeTrue();
             progress.RomMd5Hash.Should().Be("abcd1234ef567890");
         }
+
+        [TestCase("SNES / Super Famicom", "SNES", true)]
+        [TestCase("SNES / Super Famicom", "Super Nintendo Entertainment System", true)]
+        [TestCase("SNES / Super Famicom", "NES", false)]
+        [TestCase("SNES / Super Famicom", "Nintendo Entertainment System", false)]
+        [TestCase("NES / Famicom", "Nintendo Entertainment System", true)]
+        [TestCase("NES / Famicom", "nes", true)]
+        [TestCase("PlayStation", "PlayStation 2", false)]
+        [TestCase("PlayStation", "PS1", true)]
+        public void should_differentiate_consoles_accurately(string raConsole, string targetConsole, bool expectedMatch)
+        {
+            RetroAchievementsService.MatchesConsole(raConsole, targetConsole).Should().Be(expectedMatch);
+        }
     }
 }

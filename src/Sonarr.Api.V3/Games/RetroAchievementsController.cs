@@ -15,6 +15,7 @@ namespace Sonarr.Api.V3.Games
     {
         public string Username { get; set; }
         public string GameTitle { get; set; }
+        public string ConsoleName { get; set; }
         public string RomMd5Hash { get; set; }
         public List<RetroAchievementBadge> Badges { get; set; } = new List<RetroAchievementBadge>();
     }
@@ -68,7 +69,8 @@ namespace Sonarr.Api.V3.Games
                 request.Username,
                 request.GameTitle,
                 request.RomMd5Hash,
-                request.Badges);
+                request.Badges,
+                request.ConsoleName);
 
             return Ok(progress);
         }

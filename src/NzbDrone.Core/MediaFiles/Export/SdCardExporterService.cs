@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
@@ -510,69 +511,127 @@ namespace NzbDrone.Core.MediaFiles.Export
             return ProfileCatalog;
         }
 
+        private static readonly HashSet<string> OpticalDiscExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".chd", ".iso", ".cue", ".bin", ".gdi", ".cdi", ".m3u", ".cso", ".wbfs", ".rvz", ".wud", ".wux", ".wua", ".xiso", ".pbp"
+        };
+
+        private static readonly HashSet<string> OpticalDiscPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ps1", "ps2", "ps3", "psp", "playstation", "sony playstation", "playstation 2", "sony playstation 2",
+            "playstation 3", "sony playstation 3", "playstation portable", "sony psp", "psx",
+            "segacd", "sega cd", "mega cd", "mega-cd",
+            "saturn", "sega saturn",
+            "dreamcast", "sega dreamcast", "dc",
+            "gamecube", "nintendo gamecube", "gcn", "ngc",
+            "wii", "nintendo wii",
+            "wiiu", "wii u", "nintendo wii u",
+            "tgcd", "turbografx-cd", "pc engine cd", "pcecd",
+            "jaguarcd", "jaguar cd", "atari jaguar cd",
+            "xbox", "original xbox", "xbox 360",
+            "3do", "neogeocd", "neo geo cd", "cdi", "cd-i", "philips cd-i"
+        };
+
+        public static bool IsDiscBasedGame(string platformFolder, string fileName, string gameTitle = null)
+        {
+            var ext = Path.GetExtension(fileName ?? string.Empty);
+            if (OpticalDiscExtensions.Contains(ext))
+            {
+                return true;
+            }
+
+            var cleanPlatform = (platformFolder ?? string.Empty).Trim().ToLowerInvariant();
+            if (OpticalDiscPlatforms.Contains(cleanPlatform))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(gameTitle) &&
+                Regex.IsMatch(gameTitle, @"\b(?:Disc|Disk|Track)\s*\d+", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static string ResolveDiscGameFolder(string gameTitle, string fileName)
+        {
+            var raw = !string.IsNullOrWhiteSpace(gameTitle)
+                ? gameTitle.Trim()
+                : Path.GetFileNameWithoutExtension(fileName);
+
+            var stripped = Regex.Replace(raw, @"\s*\((?:Disc|Disk|Side)\s*[A-Z0-9]+[^\)]*\)", "", RegexOptions.IgnoreCase).Trim();
+            return string.IsNullOrWhiteSpace(stripped) ? raw : stripped;
+        }
+
         public string BuildDeviceRelativePath(SdCardDeviceProfile profile, string platformFolder, string gameTitle, string fileName)
         {
             var safePlatform = platformFolder.IsNotNullOrWhiteSpace() ? platformFolder.Trim() : "Unknown";
             var safeFileName = Path.GetFileName(fileName);
             var bucket = ResolveAlphabeticalBucket(gameTitle.IsNotNullOrWhiteSpace() ? gameTitle : safeFileName);
 
+            var isDisc = IsDiscBasedGame(safePlatform, safeFileName, gameTitle);
+            var gameFolder = isDisc ? ResolveDiscGameFolder(gameTitle, safeFileName) : null;
+            var discLeaf = isDisc ? Path.Combine(gameFolder, safeFileName) : safeFileName;
+
             switch (profile)
             {
                 case SdCardDeviceProfile.OnionOS:
                 case SdCardDeviceProfile.GarlicOS:
                     var onionSystem = OnionOsSystemMap.TryGetValue(safePlatform, out var mappedOnion) ? mappedOnion : safePlatform.ToUpperInvariant();
-                    return Path.Combine("Roms", onionSystem, safeFileName);
+                    return Path.Combine("Roms", onionSystem, discLeaf);
 
                 case SdCardDeviceProfile.AnaloguePocket:
                     var pocketCore = AnaloguePocketCoreMap.TryGetValue(safePlatform, out var mappedCore) ? mappedCore : safePlatform.ToLowerInvariant();
-                    return Path.Combine("Assets", pocketCore, "common", bucket, safeFileName);
+                    return Path.Combine("Assets", pocketCore, "common", bucket, discLeaf);
 
                 case SdCardDeviceProfile.MiSTer:
                     var misterCore = MisterCoreMap.TryGetValue(safePlatform, out var mappedMister) ? mappedMister : safePlatform;
-                    return Path.Combine("games", misterCore, bucket, safeFileName);
+                    return Path.Combine("games", misterCore, bucket, discLeaf);
 
                 case SdCardDeviceProfile.RetroArch:
-                    return Path.Combine("downloads", safePlatform, safeFileName);
+                    return Path.Combine("downloads", safePlatform, discLeaf);
 
                 case SdCardDeviceProfile.Batocera:
                 case SdCardDeviceProfile.ArkOS:
                     var batoceraSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedBatocera) ? mappedBatocera : safePlatform.ToLowerInvariant();
-                    return Path.Combine("roms", batoceraSlug, safeFileName);
+                    return Path.Combine("roms", batoceraSlug, discLeaf);
 
                 case SdCardDeviceProfile.EmulationStation:
                     var esSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedEs) ? mappedEs : safePlatform.ToLowerInvariant();
-                    return Path.Combine("ROMs", esSlug, safeFileName);
+                    return Path.Combine("ROMs", esSlug, discLeaf);
 
                 case SdCardDeviceProfile.EverDrive:
-                    return Path.Combine(safePlatform, bucket, safeFileName);
+                    return Path.Combine(safePlatform, bucket, discLeaf);
 
                 case SdCardDeviceProfile.FXPakPro:
-                    return Path.Combine("sd2snes", bucket, safeFileName);
+                    return Path.Combine("sd2snes", bucket, discLeaf);
 
                 case SdCardDeviceProfile.EZFlash:
-                    return Path.Combine("ROMS", bucket, safeFileName);
+                    return Path.Combine("ROMS", bucket, discLeaf);
 
                 case SdCardDeviceProfile.R4:
-                    return Path.Combine("Games", bucket, safeFileName);
+                    return Path.Combine("Games", bucket, discLeaf);
 
                 case SdCardDeviceProfile.TwilightMenu:
                     var twilightSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedTwilight) ? mappedTwilight : "nds";
-                    return Path.Combine("roms", twilightSlug, bucket, safeFileName);
+                    return Path.Combine("roms", twilightSlug, bucket, discLeaf);
 
                 case SdCardDeviceProfile.SwissGameCube:
-                    return Path.Combine("games", bucket, safeFileName);
+                    return Path.Combine("games", bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
 
                 case SdCardDeviceProfile.XStation:
-                    return Path.Combine("00xstation", bucket, safeFileName);
+                    return Path.Combine("00xstation", bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
 
                 case SdCardDeviceProfile.Fenrir:
-                    return Path.Combine("saturn", bucket, safeFileName);
+                    return Path.Combine("saturn", bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
 
                 case SdCardDeviceProfile.GDEMU:
-                    return Path.Combine("GDEMU", bucket, safeFileName);
+                    return Path.Combine("GDEMU", bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
 
                 default:
-                    return Path.Combine(safePlatform, safeFileName);
+                    return Path.Combine(safePlatform, discLeaf);
             }
         }
 

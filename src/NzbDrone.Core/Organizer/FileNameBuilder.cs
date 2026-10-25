@@ -185,7 +185,7 @@ namespace NzbDrone.Core.Organizer
                 pattern = namingConfig.AnimeEpisodeFormat;
             }
             else if (series.SeriesType == SeriesTypes.Standard &&
-                     IsDiscBasedGame(series, extension) &&
+                     IsDiscBasedGame(series, extension, episodes.FirstOrDefault()?.Title) &&
                      !namingConfig.DailyEpisodeFormat.IsNullOrWhiteSpace() &&
                      !AirDateRegex.IsMatch(namingConfig.DailyEpisodeFormat))
             {
@@ -225,8 +225,9 @@ namespace NzbDrone.Core.Organizer
                 }
 
                 var maxEpisodeTitleLength = maxPathSegmentLength - GetLengthWithoutEpisodeTitle(component, namingConfig);
+                var isFolderComponent = i < splitPatterns.Length - 1;
 
-                AddEpisodeTitleTokens(tokenHandlers, episodes, maxEpisodeTitleLength);
+                AddEpisodeTitleTokens(tokenHandlers, episodes, maxEpisodeTitleLength, isFolderComponent);
                 component = ReplaceTokens(component, tokenHandlers, namingConfig).Trim();
 
                 component = FileNameCleanupRegex.Replace(component, match => match.Captures[0].Value[0].ToString());
@@ -250,8 +251,20 @@ namespace NzbDrone.Core.Organizer
             Ensure.That(extension, () => extension).IsNotNullOrWhiteSpace();
 
             var seasonPath = BuildSeasonPath(series, episodes.First().SeasonNumber);
+            var firstEpisode = episodes.First();
+
             var remainingPathLength = LongPathSupport.MaxFilePathLength - seasonPath.GetByteCount() - 1;
             var fileName = BuildFileName(episodes, series, episodeFile, extension, remainingPathLength, namingConfig, customFormats);
+
+            if (IsDiscBasedGame(series, extension, firstEpisode?.Title))
+            {
+                var hasSubfolder = fileName.Contains(Path.DirectorySeparatorChar) || fileName.Contains('/');
+                if (!hasSubfolder)
+                {
+                    var discFolder = ResolveDiscGameFolder(firstEpisode?.Title, episodeFile?.RelativePath ?? firstEpisode?.Title);
+                    seasonPath = Path.Combine(seasonPath, CleanFolderName(discFolder));
+                }
+            }
 
             return Path.Combine(seasonPath, fileName);
         }
@@ -875,14 +888,20 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Episode CleanTitle}"] = m => null;
             tokenHandlers["{Game Title}"] = m => null;
             tokenHandlers["{Game CleanTitle}"] = m => null;
+            tokenHandlers["{Game Folder}"] = m => null;
         }
 
-        private void AddEpisodeTitleTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, int maxLength)
+        private void AddEpisodeTitleTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, int maxLength, bool isFolderComponent = false)
         {
             tokenHandlers["{Episode Title}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat);
             tokenHandlers["{Episode CleanTitle}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat);
-            tokenHandlers["{Game Title}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat);
-            tokenHandlers["{Game CleanTitle}"] = m => GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat);
+            tokenHandlers["{Game Title}"] = m => isFolderComponent
+                ? ResolveDiscGameFolder(GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat))
+                : GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat);
+            tokenHandlers["{Game CleanTitle}"] = m => isFolderComponent
+                ? ResolveDiscGameFolder(GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat))
+                : GetEpisodeTitle(GetEpisodeTitles(episodes).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat);
+            tokenHandlers["{Game Folder}"] = m => ResolveDiscGameFolder(GetEpisodeTitle(GetEpisodeTitles(episodes), "+", maxLength, m.CustomFormat));
         }
 
         private void AddEpisodeFileTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, EpisodeFile episodeFile, bool useCurrentFilenameAsFallback)
@@ -895,6 +914,15 @@ namespace NzbDrone.Core.Organizer
 
         private void AddQualityTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Series series, EpisodeFile episodeFile)
         {
+            if (episodeFile?.Quality == null || _qualityDefinitionService == null)
+            {
+                tokenHandlers["{Quality Full}"] = m => string.Empty;
+                tokenHandlers["{Quality Title}"] = m => string.Empty;
+                tokenHandlers["{Quality Proper}"] = m => string.Empty;
+                tokenHandlers["{Quality Real}"] = m => string.Empty;
+                return;
+            }
+
             var qualityTitle = _qualityDefinitionService.Get(episodeFile.Quality.Quality).Title;
             var qualityProper = GetQualityProper(series, episodeFile.Quality);
             var qualityReal = GetQualityReal(series, episodeFile.Quality);
@@ -1499,26 +1527,56 @@ namespace NzbDrone.Core.Organizer
             return maxCustomLength;
         }
 
-        private static bool IsDiscBasedGame(Series series, string extension)
+        public static bool IsDiscBasedGame(Series series, string extension, string episodeTitle = null)
         {
             if (!string.IsNullOrWhiteSpace(extension))
             {
                 var ext = extension.Trim().ToLowerInvariant();
                 if (ext == ".chd" || ext == ".rvz" || ext == ".iso" || ext == ".cue" ||
-                    ext == ".gdi" || ext == ".cdi" || ext == ".gcm" || ext == ".ciso" ||
-                    ext == ".wbfs" || ext == ".wua" || ext == ".wux" || ext == ".wud" ||
-                    ext == ".cso" || ext == ".pbp" || ext == ".mdf" || ext == ".mds" ||
-                    ext == ".nrg" || ext == ".ccd" || ext == ".img" || ext == ".xiso")
+                    ext == ".bin" || ext == ".gdi" || ext == ".cdi" || ext == ".gcm" ||
+                    ext == ".ciso" || ext == ".wbfs" || ext == ".wua" || ext == ".wux" ||
+                    ext == ".wud" || ext == ".cso" || ext == ".pbp" || ext == ".mdf" ||
+                    ext == ".mds" || ext == ".nrg" || ext == ".ccd" || ext == ".img" ||
+                    ext == ".xiso" || ext == ".m3u")
                 {
                     return true;
                 }
             }
 
             var slug = (series?.TitleSlug ?? string.Empty).Trim().ToLowerInvariant();
-            return slug == "ps1" || slug == "ps2" || slug == "ps3" || slug == "psp" ||
-                   slug == "saturn" || slug == "dreamcast" || slug == "segacd" ||
-                   slug == "gamecube" || slug == "wii" || slug == "wiiu" ||
-                   slug == "tgcd" || slug == "jaguarcd" || slug == "xbox" || slug == "xbox360";
+            if (slug == "ps1" || slug == "ps2" || slug == "ps3" || slug == "psp" ||
+                slug == "saturn" || slug == "dreamcast" || slug == "segacd" ||
+                slug == "gamecube" || slug == "wii" || slug == "wiiu" ||
+                slug == "tgcd" || slug == "jaguarcd" || slug == "xbox" || slug == "xbox360" ||
+                slug == "3do" || slug == "neogeocd" || slug == "cdi")
+            {
+                return true;
+            }
+
+            var seriesTitle = (series?.Title ?? string.Empty).Trim().ToLowerInvariant();
+            if (seriesTitle.Contains("playstation") || seriesTitle.Contains("saturn") ||
+                seriesTitle.Contains("dreamcast") || seriesTitle.Contains("sega cd") ||
+                seriesTitle.Contains("mega cd") || seriesTitle.Contains("gamecube") ||
+                seriesTitle.Contains("turbografx-cd") || seriesTitle.Contains("pc engine cd") ||
+                seriesTitle.Contains("jaguar cd") || seriesTitle.Contains("xbox"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(episodeTitle) &&
+                Regex.IsMatch(episodeTitle, @"\b(?:Disc|Disk|Track)\s*\d+", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static string ResolveDiscGameFolder(string title, string fallback = null)
+        {
+            var raw = !string.IsNullOrWhiteSpace(title) ? title.Trim() : (fallback?.Trim() ?? string.Empty);
+            var stripped = Regex.Replace(raw, @"\s*\((?:Disc|Disk|Side)\s*[A-Z0-9]+[^\)]*\)", "", RegexOptions.IgnoreCase).Trim();
+            return string.IsNullOrWhiteSpace(stripped) ? raw : stripped;
         }
     }
 

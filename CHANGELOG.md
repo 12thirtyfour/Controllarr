@@ -37,6 +37,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Planned upcoming hardware SD card export workflow location in sidebar navigation under `Library -> Export` (`/export`).
 
 ### Fixed
+- **Cross-Platform DAT Substring Collision Guard (NES vs. SNES, GB vs. GBA, etc.)**:
+  - Fixed an issue in `DatCacheService.cs` where query matching on substring platform names (e.g. `Nintendo - Super Nintendo Entertainment System (SmokeMonster SMDB)` matching `Nintendo Entertainment System`) populated SNES games like *Super Mario World* into the NES platform catalog.
+  - Implemented exact slug matching, platform token boundary verification, and cross-platform substring collision prevention across NES/SNES, GB/GBC/GBA, PS1/PS2/PS3/PSP/PS Vita, Xbox/Xbox 360, Wii/Wii U, and Sega Master System/Genesis.
+- **RetroAchievements Console-Aware Progress & Badge Isolation**:
+  - Fixed an issue where RetroAchievements user progress and mastery badges were cached solely by normalized game title (`supermarioworld`), causing SNES achievements and badges to erroneously render on NES game entries or demakes.
+  - Scoped mastery progress queries, title matching, and showcase modal lookups to both game title and normalized console platform across `RetroAchievementsService.cs`, `RetroAchievementsController.cs`, and `gameAchievementsHelper.ts`.
+- **Universal Folder-Per-Game Organization for Disc-Based Titles**:
+  - Enforced a dedicated game-titled subfolder structure for all optical disc games (`.chd`, `.iso`, `.cue`, `.bin`, `.gdi`, `.cdi`, `.m3u`, `.cso`, `.wbfs`, `.rvz`, `.wud`, `.wux`, `.wua`, `.xiso`, `.pbp`) across both the SD Card Exporter (`SdCardExporterService.cs`) and internal library disk organization (`FileNameBuilder.cs`).
+  - Both single-disc and multi-disc titles are organized into clean game-titled folders (automatically stripping disc numbers from folder names so multi-disc games share a single folder).
+  - Updated UI labels and tooltips in `Settings -> Media Management` and the SD Card Export modal to reflect universal disc subfolder grouping.
+- **Enhanced ROM Hack, Translation & Aftermarket Categorization**:
+  - Expanded `ClassifyRegionAndCategory` in `GameCatalogProxy.cs` to inspect SMDB path components (e.g. `3 Translations/`, `4 Hacks/`) and an expanded token vocabulary (`[T+]`, `[T-]`, `(T+)`, `(T-)`, `(Hack`, `[h1]..[h5]`, `Translation`, `Retranslation`, `Kaizo`, `Randomizer`, `Redux`, `Rebalance`, `Romhack`, `(Mod)`, `(Improvement)`, `(Restoration)`, `(Uncensored)`, `(Colorized)`, `(DX)`, `(FastROM)`, `(MSU-1)`, `(Bugfix)`, `(Patched)`, `(HB)`, `Bootleg`, `Demake`, `Pirate`, `(Unl)`).
+  - Prevents fan translations, ROM hacks, homebrew, and unlicensed titles from leaking into retail region seasons (Regions 1–5).
 - **Replaced Legacy TV Verbiage with Controllarr Terminology**:
   - Replaced legacy TV episode and season search formatting (e.g. `[Sega Master System : S00E126]` or `[Platform : S01]`) with clean game and region representations (`[Platform - Game Title (Region)]` or `[Platform : Region #Number]`).
   - Purged TV terminology across indexer search, decision engine, and refresh logging (e.g., replaced "episodes" with "games", "reports" with "releases", "seasons" with "regions", and "No results found" with "No releases found").

@@ -51,7 +51,8 @@ namespace NzbDrone.Core.Games.RetroAchievements
             string username,
             string gameTitle,
             string romMd5Hash,
-            IReadOnlyCollection<RetroAchievementBadge> badges);
+            IReadOnlyCollection<RetroAchievementBadge> badges,
+            string consoleName = null);
         List<RetroAchievementsGameProgress> GetUserLibraryProgress(string username = null, string webApiKey = null);
     }
 
@@ -126,13 +127,14 @@ namespace NzbDrone.Core.Games.RetroAchievements
             string username,
             string gameTitle,
             string romMd5Hash,
-            IReadOnlyCollection<RetroAchievementBadge> badges)
+            IReadOnlyCollection<RetroAchievementBadge> badges,
+            string consoleName = null)
         {
             var badgeList = badges != null ? new List<RetroAchievementBadge>(badges) : new List<RetroAchievementBadge>();
 
             if (badgeList.Count == 0 && _httpClient != null && gameTitle.IsNotNullOrWhiteSpace())
             {
-                var remoteProgress = TryFetchRemoteGameProgress(username, gameTitle, romMd5Hash);
+                var remoteProgress = TryFetchRemoteGameProgress(username, gameTitle, romMd5Hash, consoleName);
                 if (remoteProgress != null)
                 {
                     return remoteProgress;
@@ -190,7 +192,126 @@ namespace NzbDrone.Core.Games.RetroAchievements
             return NonAlphanumericRegex.Replace(withoutRegions, string.Empty);
         }
 
-        private RetroAchievementsGameProgress TryFetchRemoteGameProgress(string username, string gameTitle, string romMd5Hash)
+        public static string ResolveConsoleKey(string console)
+        {
+            if (string.IsNullOrWhiteSpace(console))
+            {
+                return string.Empty;
+            }
+
+            var c = console.Trim().ToLowerInvariant();
+            if (c.Contains("super nintendo") || c.Contains("super famicom") || c == "sfc" || c.Contains("snes"))
+            {
+                return "snes";
+            }
+
+            if (c.Contains("nintendo entertainment system") || c.Contains("famicom") || c == "fc" || c.Contains("nes"))
+            {
+                return "nes";
+            }
+
+            if (c.Contains("nintendo 64") || c.Contains("n64"))
+            {
+                return "n64";
+            }
+
+            if (c.Contains("game boy advance") || c.Contains("gba"))
+            {
+                return "gba";
+            }
+
+            if (c.Contains("game boy color") || c.Contains("gbc"))
+            {
+                return "gbc";
+            }
+
+            if (c.Contains("game boy") || c == "gb")
+            {
+                return "gb";
+            }
+
+            if (c.Contains("nintendo ds") || c.Contains("nds"))
+            {
+                return "nds";
+            }
+
+            if (c.Contains("playstation 2") || c.Contains("ps2"))
+            {
+                return "ps2";
+            }
+
+            if (c.Contains("playstation portable") || c.Contains("psp"))
+            {
+                return "psp";
+            }
+
+            if (c.Contains("playstation") || c.Contains("ps1") || c.Contains("psx"))
+            {
+                return "ps1";
+            }
+
+            if (c.Contains("sega cd") || c.Contains("mega cd") || c.Contains("segacd"))
+            {
+                return "segacd";
+            }
+
+            if (c.Contains("saturn"))
+            {
+                return "saturn";
+            }
+
+            if (c.Contains("dreamcast"))
+            {
+                return "dreamcast";
+            }
+
+            if (c.Contains("master system") || c == "sms")
+            {
+                return "sms";
+            }
+
+            if (c.Contains("genesis") || c.Contains("mega drive") || c == "md")
+            {
+                return "genesis";
+            }
+
+            if (c.Contains("pc engine") || c.Contains("turbografx"))
+            {
+                return "tg16";
+            }
+
+            if (c.Contains("2600"))
+            {
+                return "atari2600";
+            }
+
+            if (c.Contains("7800"))
+            {
+                return "atari7800";
+            }
+
+            return NonAlphanumericRegex.Replace(c, string.Empty);
+        }
+
+        public static bool MatchesConsole(string raConsole, string targetConsole)
+        {
+            if (string.IsNullOrWhiteSpace(raConsole) || string.IsNullOrWhiteSpace(targetConsole))
+            {
+                return true;
+            }
+
+            var raKey = ResolveConsoleKey(raConsole);
+            var targetKey = ResolveConsoleKey(targetConsole);
+
+            if (string.IsNullOrWhiteSpace(raKey) || string.IsNullOrWhiteSpace(targetKey))
+            {
+                return true;
+            }
+
+            return string.Equals(raKey, targetKey, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private RetroAchievementsGameProgress TryFetchRemoteGameProgress(string username, string gameTitle, string romMd5Hash, string consoleName = null)
         {
             try
             {
@@ -202,7 +323,16 @@ namespace NzbDrone.Core.Games.RetroAchievements
 
                 var library = GetUserLibraryProgress(creds.Username, creds.WebApiKey);
                 var normalizedTarget = NormalizeGameTitle(gameTitle);
-                var matched = library.FirstOrDefault(g => NormalizeGameTitle(g.GameTitle) == normalizedTarget);
+                var candidates = library.Where(g => NormalizeGameTitle(g.GameTitle) == normalizedTarget).ToList();
+
+                if (candidates.Count == 0)
+                {
+                    return null;
+                }
+
+                var matched = !string.IsNullOrWhiteSpace(consoleName)
+                    ? candidates.FirstOrDefault(g => MatchesConsole(g.ConsoleName, consoleName))
+                    : candidates.FirstOrDefault();
 
                 if (matched == null)
                 {

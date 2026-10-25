@@ -83,5 +83,44 @@ namespace NzbDrone.Core.Test.OrganizerTests
 
             Subject.BuildFilePath(fakeEpisodes, fakeSeries, fakeEpisodeFile, ".mkv").Should().Be(expectedPath.AsOsAgnostic());
         }
+
+        [Test]
+        public void should_organize_single_disc_and_multi_disc_games_into_subfolders_titled_after_game()
+        {
+            var fakeSeries = Builder<Series>.CreateNew()
+                .With(s => s.Title = "Sony PlayStation")
+                .With(s => s.TitleSlug = "ps1")
+                .With(s => s.Path = @"C:\Games\PlayStation".AsOsAgnostic())
+                .With(s => s.SeasonFolder = true)
+                .With(s => s.SeriesType = SeriesTypes.Standard)
+                .Build();
+
+            _namingConfig.RenameEpisodes = true;
+            _namingConfig.SeasonFolderFormat = "USA";
+            _namingConfig.StandardEpisodeFormat = "{Game Title}";
+            _namingConfig.DailyEpisodeFormat = "{Game Title}/{Game Title}";
+
+            var singleDiscEpisode = Builder<Episode>.CreateListOfSize(1)
+                .All()
+                .With(s => s.Title = "Castlevania - Symphony of the Night (USA)")
+                .With(s => s.SeasonNumber = 1)
+                .With(s => s.EpisodeNumber = 1)
+                .Build().ToList();
+
+            var singleDiscFile = Builder<EpisodeFile>.CreateNew().Build();
+            var singleDiscExpected = @"C:\Games\PlayStation\USA\Castlevania - Symphony of the Night (USA)\Castlevania - Symphony of the Night (USA).chd";
+            Subject.BuildFilePath(singleDiscEpisode, fakeSeries, singleDiscFile, ".chd").Should().Be(singleDiscExpected.AsOsAgnostic());
+
+            var multiDiscEpisode = Builder<Episode>.CreateListOfSize(1)
+                .All()
+                .With(s => s.Title = "Final Fantasy VII (USA) (Disc 1)")
+                .With(s => s.SeasonNumber = 1)
+                .With(s => s.EpisodeNumber = 1)
+                .Build().ToList();
+
+            var multiDiscFile = Builder<EpisodeFile>.CreateNew().Build();
+            var multiDiscExpected = @"C:\Games\PlayStation\USA\Final Fantasy VII (USA)\Final Fantasy VII (USA) (Disc 1).chd";
+            Subject.BuildFilePath(multiDiscEpisode, fakeSeries, multiDiscFile, ".chd").Should().Be(multiDiscExpected.AsOsAgnostic());
+        }
     }
 }
