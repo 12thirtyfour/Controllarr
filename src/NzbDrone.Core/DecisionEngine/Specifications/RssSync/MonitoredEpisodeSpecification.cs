@@ -27,7 +27,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
             if (!subject.Series.Monitored)
             {
                 _logger.Debug("{0} is present in the DB but not tracked. Rejecting", subject.Series);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.SeriesNotMonitored, "Series is not monitored");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.SeriesNotMonitored, "Platform is not monitored");
             }
 
             var monitoredCount = subject.Episodes.Count(episode => episode.Monitored);
@@ -38,20 +38,20 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 
             if (subject.Episodes.Count == 1)
             {
-                _logger.Debug("Episode is not monitored. Rejecting", monitoredCount, subject.Episodes.Count);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.EpisodeNotMonitored, "Episode is not monitored");
+                _logger.Debug("Game is not monitored. Rejecting", monitoredCount, subject.Episodes.Count);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.EpisodeNotMonitored, "Game is not monitored");
             }
 
             if (monitoredCount == 0)
             {
-                _logger.Debug("No episodes in the release are monitored. Rejecting", monitoredCount, subject.Episodes.Count);
+                _logger.Debug("No games in the release are monitored. Rejecting", monitoredCount, subject.Episodes.Count);
             }
             else
             {
-                _logger.Debug("Only {0}/{1} episodes in the release are monitored. Rejecting", monitoredCount, subject.Episodes.Count);
+                _logger.Debug("Only {0}/{1} games in the release are monitored. Rejecting", monitoredCount, subject.Episodes.Count);
             }
 
-            return DownloadSpecDecision.Reject(DownloadRejectionReason.EpisodeNotMonitored, "One or more episodes is not monitored");
+            return DownloadSpecDecision.Reject(DownloadRejectionReason.EpisodeNotMonitored, "One or more games is not monitored");
         }
     }
 }

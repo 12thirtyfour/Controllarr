@@ -23,10 +23,10 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
             if (score < minScore)
             {
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.CustomFormatMinimumScore, "Custom Formats {0} have score {1} below Series profile minimum {2}", subject.CustomFormats.ConcatToString(), score, minScore);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.CustomFormatMinimumScore, "Custom Formats {0} have score {1} below platform profile minimum {2}", subject.CustomFormats.ConcatToString(), score, minScore);
             }
 
-            _logger.Trace("Custom Format Score of {0} [{1}] above Series profile minimum {2}", score, subject.CustomFormats.ConcatToString(), minScore);
+            _logger.Trace("Custom Format Score of {0} [{1}] above platform profile minimum {2}", score, subject.CustomFormats.ConcatToString(), minScore);
 
             return DownloadSpecDecision.Accept();
         }

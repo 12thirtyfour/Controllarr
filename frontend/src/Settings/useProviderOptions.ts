@@ -80,7 +80,7 @@ export default function useProviderOptions({
           headers: {
             'Content-Type': 'application/json',
             'X-Api-Key': window.Controllarr.apiKey,
-            'X-Sonarr-Client': 'Sonarr',
+            'X-Controllarr-Client': 'Controllarr',
           },
           signal,
         });

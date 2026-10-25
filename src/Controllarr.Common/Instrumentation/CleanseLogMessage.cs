@@ -54,7 +54,7 @@ namespace NzbDrone.Common.Instrumentation
 
             // Webhooks
             // Notifiarr
-            new(@"api/v[0-9]/notification/sonarr/(?<secret>[\w-]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new(@"api/v[0-9]/notification/(sonarr|controllarr)/(?<secret>[\w-]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase),
 
             // Discord
             new(@"discord.com/api/webhooks/((?<secret>[\w-]+)/)?(?<secret>[\w-]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase),

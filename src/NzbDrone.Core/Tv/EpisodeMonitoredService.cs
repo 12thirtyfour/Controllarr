@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Tv
             var firstSeason = series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
             var lastSeason = series.Seasons.Select(s => s.SeasonNumber).MaxOrDefault();
 
-            _logger.Debug("[{0}] Setting episode monitored status to {1}", series.Title, monitoringOptions.Monitor);
+            _logger.Debug("[{0}] Setting game monitored status to {1}", series.Title, monitoringOptions.Monitor);
 
             var monitoredSeasons = _episodeService.SetEpisodeMonitoredBySeries(series.Id, monitoringOptions.Monitor, firstSeason, lastSeason);
 
@@ -265,29 +265,29 @@ namespace NzbDrone.Core.Tv
 
         private void LegacySetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions)
         {
-            _logger.Debug("[{0}] Setting episode monitored status.", series.Title);
+            _logger.Debug("[{0}] Setting game monitored status.", series.Title);
 
             var episodes = _episodeService.GetEpisodeBySeries(series.Id);
 
             if (monitoringOptions.IgnoreEpisodesWithFiles)
             {
-                _logger.Debug("Unmonitoring Episodes with Files");
+                _logger.Debug("Unmonitoring Games with Files");
                 ToggleEpisodesMonitoredState(episodes.Where(e => e.HasFile), false);
             }
             else
             {
-                _logger.Debug("Monitoring Episodes with Files");
+                _logger.Debug("Monitoring Games with Files");
                 ToggleEpisodesMonitoredState(episodes.Where(e => e.HasFile), true);
             }
 
             if (monitoringOptions.IgnoreEpisodesWithoutFiles)
             {
-                _logger.Debug("Unmonitoring Episodes without Files");
+                _logger.Debug("Unmonitoring Games without Files");
                 ToggleEpisodesMonitoredState(episodes.Where(e => !e.HasFile && e.AirDateUtc.HasValue && e.AirDateUtc.Value.Before(DateTime.UtcNow)), false);
             }
             else
             {
-                _logger.Debug("Monitoring Episodes without Files");
+                _logger.Debug("Monitoring Games without Files");
                 ToggleEpisodesMonitoredState(episodes.Where(e => !e.HasFile && e.AirDateUtc.HasValue && e.AirDateUtc.Value.Before(DateTime.UtcNow)), true);
             }
 
@@ -301,7 +301,7 @@ namespace NzbDrone.Core.Tv
 
                 if (!season.Monitored)
                 {
-                    _logger.Debug("Unmonitoring all episodes in season {0}", season.SeasonNumber);
+                    _logger.Debug("Unmonitoring all games in region {0}", season.SeasonNumber);
                     ToggleEpisodesMonitoredState(episodes.Where(e => e.SeasonNumber == season.SeasonNumber), false);
                 }
 
@@ -311,7 +311,7 @@ namespace NzbDrone.Core.Tv
                 {
                     if (episodes.Where(e => e.SeasonNumber == season.SeasonNumber).All(e => !e.Monitored))
                     {
-                        _logger.Debug("Unmonitoring season {0} because all episodes are not monitored", season.SeasonNumber);
+                        _logger.Debug("Unmonitoring region {0} because all games are not monitored", season.SeasonNumber);
                         season.Monitored = false;
                     }
                 }

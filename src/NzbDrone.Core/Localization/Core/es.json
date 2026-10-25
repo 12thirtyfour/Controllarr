@@ -1759,7 +1759,7 @@
     "PartialSeason": "Temporada parcial",
     "Password": "Contraseña",
     "PasswordConfirmation": "Confirmación de contraseña",
-    "PasswordResetTokenConfiguredHealthCheckMessage": "Un token de restablecimiento de contraseña está configurado. Elimina la variable de entorno SONARR__AUTH__RESETTOKEN una vez que ya no la necesites",
+    "PasswordResetTokenConfiguredHealthCheckMessage": "Un token de restablecimiento de contraseña está configurado. Elimina la variable de entorno CONTROLLARR__AUTH__RESETTOKEN una vez que ya no la necesites",
     "PasswordResetTokenTooShortHealthCheckMessage": "El token de restablecimiento de contraseña configurado es menor de {length} caracteres y está siendo ignorado",
     "Path": "Ruta",
     "Paused": "Pausado",

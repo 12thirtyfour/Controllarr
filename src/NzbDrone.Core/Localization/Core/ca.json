@@ -1753,7 +1753,7 @@
     "PartialSeason": "Temporada parcial",
     "Password": "Contrasenya",
     "PasswordConfirmation": "Confirmació de contrasenya",
-    "PasswordResetTokenConfiguredHealthCheckMessage": "Hi ha configurat un testimoni de restabliment de la contrasenya. Elimineu la variable d'entorn SONARR__AUTH__RESETTOKEN quan ja no la necessiteu",
+    "PasswordResetTokenConfiguredHealthCheckMessage": "Hi ha configurat un testimoni de restabliment de la contrasenya. Elimineu la variable d'entorn CONTROLLARR__AUTH__RESETTOKEN quan ja no la necessiteu",
     "PasswordResetTokenTooShortHealthCheckMessage": "El testimoni de restabliment de la contrasenya configurat té menys de {length} caràcters i s'ignora",
     "Path": "Ruta",
     "Paused": "En pausa",

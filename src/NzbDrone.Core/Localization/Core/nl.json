@@ -1757,7 +1757,7 @@
     "PartialSeason": "Gedeeltelijk seizoen",
     "Password": "Wachtwoord",
     "PasswordConfirmation": "Wachtwoordbevestiging",
-    "PasswordResetTokenConfiguredHealthCheckMessage": "Er is een wachtwoord-resettoken geconfigureerd. Verwijder de SONARR__AUTH__RESETTOKEN omgevingsvariabele als je deze niet langer nodig hebt",
+    "PasswordResetTokenConfiguredHealthCheckMessage": "Er is een wachtwoord-resettoken geconfigureerd. Verwijder de CONTROLLARR__AUTH__RESETTOKEN omgevingsvariabele als je deze niet langer nodig hebt",
     "PasswordResetTokenTooShortHealthCheckMessage": "Het geconfigureerde wachtwoord-resettoken is korter dan {length} tekens en wordt genegeerd",
     "Path": "Pad",
     "Paused": "Gepauzeerd",

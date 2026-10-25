@@ -202,20 +202,20 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 // Track it so it can be displayed in the queue even though we can't determine which series it is for
                 if (trackedDownload.RemoteEpisode == null)
                 {
-                    _logger.Trace("No Episode found for download '{0}'", trackedDownload.DownloadItem.Title);
+                    _logger.Trace("No Game found for download '{0}'", trackedDownload.DownloadItem.Title);
                 }
             }
             catch (MultipleSeriesFoundException e)
             {
-                _logger.Debug(e, "Found multiple series for " + downloadItem.Title);
+                _logger.Debug(e, "Found multiple platforms for " + downloadItem.Title);
 
-                trackedDownload.Warn("Unable to import automatically, found multiple series: {0}", string.Join(", ", e.Series));
+                trackedDownload.Warn("Unable to import automatically, found multiple platforms: {0}", string.Join(", ", e.Series));
             }
             catch (Exception e)
             {
-                _logger.Debug(e, "Failed to find episode for " + downloadItem.Title);
+                _logger.Debug(e, "Failed to find game for " + downloadItem.Title);
 
-                trackedDownload.Warn("Unable to parse episodes from title");
+                trackedDownload.Warn("Unable to parse games from title");
             }
 
             LogItemChange(trackedDownload, existingItem?.DownloadItem, trackedDownload.DownloadItem);
@@ -257,7 +257,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 existingItem.CanBeRemoved != downloadItem.CanBeRemoved ||
                 existingItem.CanMoveFiles != downloadItem.CanMoveFiles)
             {
-                _logger.Debug("Tracking '{0}:{1}': ClientState={2}{3} SonarrStage={4} Episode='{5}' OutputPath={6}.",
+                _logger.Debug("Tracking '{0}:{1}': ClientState={2}{3} ControllarrStage={4} Game='{5}' OutputPath={6}.",
                     downloadItem.DownloadClientInfo.Name,
                     downloadItem.Title,
                     downloadItem.Status,

@@ -26,20 +26,20 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
             if (subject.Release.DownloadProtocol == DownloadProtocol.Usenet && !delayProfile.EnableUsenet)
             {
-                _logger.Debug("[{0}] Usenet is not enabled for this series", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Usenet is not enabled for this series");
+                _logger.Debug("[{0}] Usenet is not enabled for this platform", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Usenet is not enabled for this platform");
             }
 
             if (subject.Release.DownloadProtocol == DownloadProtocol.Torrent && !delayProfile.EnableTorrent)
             {
-                _logger.Debug("[{0}] Torrent is not enabled for this series", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Torrent is not enabled for this series");
+                _logger.Debug("[{0}] Torrent is not enabled for this platform", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Torrent is not enabled for this platform");
             }
 
             if (subject.Release.DownloadProtocol == DownloadProtocol.Http && !delayProfile.EnableHttp)
             {
-                _logger.Debug("[{0}] HTTP is not enabled for this series", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "HTTP is not enabled for this series");
+                _logger.Debug("[{0}] HTTP is not enabled for this platform", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "HTTP is not enabled for this platform");
             }
 
             return DownloadSpecDecision.Accept();

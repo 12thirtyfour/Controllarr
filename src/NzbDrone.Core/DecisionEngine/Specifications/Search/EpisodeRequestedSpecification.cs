@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using NLog;
 using NzbDrone.Core.Parser.Model;
 
@@ -28,7 +28,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
             if (!criteriaEpisodes.Intersect(remoteEpisodes).Any())
             {
-                _logger.Debug("Release rejected since the episode wasn't requested: {0}", remoteEpisode.ParsedEpisodeInfo);
+                _logger.Debug("Release rejected since the game wasn't requested: {0}", remoteEpisode.ParsedEpisodeInfo);
 
                 if (remoteEpisodes.Any())
                 {
@@ -36,16 +36,16 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
                     if (episodes.Count > 1)
                     {
-                        return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, $"Episode wasn't requested: {episodes.First().SeasonNumber}x{episodes.First().EpisodeNumber}-{episodes.Last().EpisodeNumber}");
+                        return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, $"Game wasn't requested: {episodes.First().Title}");
                     }
                     else
                     {
-                        return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, $"Episode wasn't requested: {episodes.First().SeasonNumber}x{episodes.First().EpisodeNumber}");
+                        return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, $"Game wasn't requested: {episodes.First().Title}");
                     }
                 }
                 else
                 {
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, "Episode wasn't requested");
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, "Game wasn't requested");
                 }
             }
 

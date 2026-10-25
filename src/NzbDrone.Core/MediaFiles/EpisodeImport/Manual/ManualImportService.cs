@@ -348,7 +348,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                     localEpisode.Size = _diskProvider.GetFileSize(file);
 
                     return MapItem(new ImportDecision(localEpisode,
-                        new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Series")),
+                        new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Platform")),
                         rootFolder,
                         downloadId,
                         null);

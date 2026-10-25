@@ -84,14 +84,14 @@ namespace NzbDrone.Core.MediaFiles
             {
                 if (!_diskProvider.FolderExists(rootFolder))
                 {
-                    _logger.Warn("Series' root folder ({0}) doesn't exist.", rootFolder);
+                    _logger.Warn("Platform's root folder ({0}) doesn't exist.", rootFolder);
                     _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderDoesNotExist));
                     return;
                 }
 
                 if (_diskProvider.FolderEmpty(rootFolder))
                 {
-                    _logger.Warn("Series' root folder ({0}) is empty.", rootFolder);
+                    _logger.Warn("Platform's root folder ({0}) is empty.", rootFolder);
                     _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderIsEmpty));
                     return;
                 }
@@ -105,11 +105,11 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     if (_configService.DeleteEmptyFolders)
                     {
-                        _logger.Debug("Not creating missing series folder: {0} because delete empty series folders is enabled", series.Path);
+                        _logger.Debug("Not creating missing platform folder: {0} because delete empty platform folders is enabled", series.Path);
                     }
                     else
                     {
-                        _logger.Debug("Creating missing series folder: {0}", series.Path);
+                        _logger.Debug("Creating missing platform folder: {0}", series.Path);
 
                         _diskProvider.CreateFolder(series.Path);
                         SetPermissions(series.Path);
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
                 else
                 {
-                    _logger.Debug("Series folder doesn't exist: {0}", series.Path);
+                    _logger.Debug("Platform folder doesn't exist: {0}", series.Path);
                 }
 
                 CleanMediaFiles(series, new List<string>());
@@ -130,7 +130,7 @@ namespace NzbDrone.Core.MediaFiles
             MigrateLegacySeasonFolders(series);
             var mediaFileList = FilterPaths(series.Path, GetVideoFiles(series.Path)).ToList();
             videoFilesStopwatch.Stop();
-            _logger.Trace("Finished getting episode files for: {0} [{1}]", series, videoFilesStopwatch.Elapsed);
+            _logger.Trace("Finished getting ROM files for: {0} [{1}]", series, videoFilesStopwatch.Elapsed);
 
             CleanMediaFiles(series, mediaFileList);
 
@@ -351,7 +351,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug(ex, "Unable to migrate legacy season folder {0} to {1}", legacyPath, targetPath);
+                    _logger.Debug(ex, "Unable to migrate legacy region folder {0} to {1}", legacyPath, targetPath);
                 }
             }
 

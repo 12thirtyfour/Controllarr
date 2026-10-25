@@ -108,13 +108,13 @@ namespace NzbDrone.Core.Parser
 
                 if (!tvdbId.HasValue)
                 {
-                    _logger.Trace("Title {0} not matching any series.", title);
+                    _logger.Trace("Title {0} not matching any platform.", title);
                     continue;
                 }
 
                 if (foundTvdbId.HasValue && tvdbId != foundTvdbId)
                 {
-                    _logger.Trace("Title {0} both matches tvdbid {1} and {2}, no series selected.", parsedEpisodeInfo.SeriesTitle, foundTvdbId, tvdbId);
+                    _logger.Trace("Title {0} both matches tvdbid {1} and {2}, no platform selected.", parsedEpisodeInfo.SeriesTitle, foundTvdbId, tvdbId);
                     return null;
                 }
 
@@ -395,7 +395,7 @@ namespace NzbDrone.Core.Parser
 
             if (series == null)
             {
-                _logger.Debug("No matching series {0}", releaseTitle);
+                _logger.Debug("No matching platform {0}", releaseTitle);
                 return null;
             }
 
@@ -436,7 +436,7 @@ namespace NzbDrone.Core.Parser
                     Special = true
                 };
 
-                _logger.Debug("Found special episode {0} for title '{1}'", info, releaseTitle);
+                _logger.Debug("Found unlicensed game {0} for title '{1}'", info, releaseTitle);
                 return info;
             }
 
@@ -458,7 +458,7 @@ namespace NzbDrone.Core.Parser
 
                 if (series == null)
                 {
-                    _logger.Debug("No matching series {0}", parsedEpisodeInfo.SeriesTitle);
+                    _logger.Debug("No matching platform {0}", parsedEpisodeInfo.SeriesTitle);
                     return null;
                 }
 
@@ -594,7 +594,7 @@ namespace NzbDrone.Core.Parser
 
             if (series == null)
             {
-                _logger.Debug("No matching series {0}", parsedEpisodeInfo.SeriesTitle);
+                _logger.Debug("No matching platform {0}", parsedEpisodeInfo.SeriesTitle);
                 return null;
             }
 

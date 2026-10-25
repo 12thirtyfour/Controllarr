@@ -24,8 +24,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return DownloadSpecDecision.Accept();
             }
 
-            _logger.Debug("Episode file on disk contains more episodes than this release contains");
-            return DownloadSpecDecision.Reject(DownloadRejectionReason.ExistingFileHasMoreEpisodes, "Episode file on disk contains more episodes than this release contains");
+            _logger.Debug("ROM file on disk contains more games than this release contains");
+            return DownloadSpecDecision.Reject(DownloadRejectionReason.ExistingFileHasMoreEpisodes, "ROM file on disk contains more games than this release contains");
         }
     }
 }

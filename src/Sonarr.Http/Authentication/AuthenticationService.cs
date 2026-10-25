@@ -188,7 +188,7 @@ namespace Sonarr.Http.Authentication
             {
                 _configuredResetTokenHash = null;
 
-                _authLogger.Info("Auth-ResetTokenDisabled ip {0} the configured password reset token has been used and is now disabled, remove the SONARR__AUTH__RESETTOKEN environment variable", remoteIP);
+                _authLogger.Info("Auth-ResetTokenDisabled ip {0} the configured password reset token has been used and is now disabled, remove the CONTROLLARR__AUTH__RESETTOKEN environment variable", remoteIP);
             }
 
             _userService.Upsert(username, password);

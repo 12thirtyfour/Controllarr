@@ -1757,7 +1757,7 @@
     "PartialSeason": "Частичный сезон",
     "Password": "Пароль",
     "PasswordConfirmation": "Подтверждение пароля",
-    "PasswordResetTokenConfiguredHealthCheckMessage": "Настроен токен сброса пароля. Удалите переменную окружения SONARR__AUTH__RESETTOKEN, когда она больше не понадобится",
+    "PasswordResetTokenConfiguredHealthCheckMessage": "Настроен токен сброса пароля. Удалите переменную окружения CONTROLLARR__AUTH__RESETTOKEN, когда она больше не понадобится",
     "PasswordResetTokenTooShortHealthCheckMessage": "Настроенный токен сброса пароля короче {length} символов и будет проигнорирован",
     "Path": "Путь",
     "Paused": "Приостановлено",

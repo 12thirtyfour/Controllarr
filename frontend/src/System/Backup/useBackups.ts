@@ -82,7 +82,7 @@ export const useRestoreBackupUpload = () => {
           method: 'POST',
           headers: {
             'X-Api-Key': window.Controllarr.apiKey,
-            'X-Sonarr-Client': 'Sonarr',
+            'X-Controllarr-Client': 'Controllarr',
             // Don't set Content-Type, let browser set it with boundary for multipart/form-data
           },
           body: formData,

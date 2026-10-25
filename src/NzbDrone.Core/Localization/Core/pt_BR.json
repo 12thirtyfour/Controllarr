@@ -1757,7 +1757,7 @@
     "PartialSeason": "Temporada Parcial",
     "Password": "Senha",
     "PasswordConfirmation": "Confirmação Da Senha",
-    "PasswordResetTokenConfiguredHealthCheckMessage": "Um token de redefinição de senha está configurado. Remova a variável de ambiente SONARR__AUTH__RESETTOKEN quando não precisar mais dela",
+    "PasswordResetTokenConfiguredHealthCheckMessage": "Um token de redefinição de senha está configurado. Remova a variável de ambiente CONTROLLARR__AUTH__RESETTOKEN quando não precisar mais dela",
     "PasswordResetTokenTooShortHealthCheckMessage": "O token de redefinição de senha configurado tem menos de {length} caracteres e está sendo ignorado",
     "Path": "Caminho",
     "Paused": "Pausado",

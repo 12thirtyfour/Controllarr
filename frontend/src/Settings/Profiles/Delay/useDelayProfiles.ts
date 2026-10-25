@@ -125,7 +125,7 @@ export const useReorderDelayProfile = () => {
         method: 'PUT',
         headers: {
           'X-Api-Key': window.Controllarr.apiKey,
-          'X-Sonarr-Client': 'Sonarr',
+          'X-Controllarr-Client': 'Controllarr',
         },
       });
     },

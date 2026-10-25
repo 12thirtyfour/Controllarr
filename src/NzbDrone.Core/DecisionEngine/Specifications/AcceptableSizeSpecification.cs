@@ -54,7 +54,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     // If episodes don't have an air date that is okay, otherwise make sure it's within 24 hours of the first episode airing.
                     if (subject.Episodes.All(e => !e.AirDateUtc.HasValue || e.AirDateUtc.Value.Before(gracePeriodEnd)))
                     {
-                        _logger.Debug("Series runtime is 0, but all episodes in release aired within 24 hours of first episode in season, defaulting runtime to 45 minutes");
+                        _logger.Debug("Platform runtime is 0, but all games in release released within 24 hours of first game in region, defaulting runtime to 45 minutes");
                         seriesRuntime = 45;
                     }
                 }
@@ -70,8 +70,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             // Reject if the run time is 0
             if (runtime == 0)
             {
-                _logger.Debug("Runtime of all episodes is 0, unable to validate size until it is available, rejecting");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.UnknownRuntime, "Runtime of all episodes is 0, unable to validate size until it is available");
+                _logger.Debug("Runtime of all games is 0, unable to validate size until it is available, rejecting");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.UnknownRuntime, "Runtime of all games is 0, unable to validate size until it is available");
             }
 
             var qualityProfile = subject.Series.QualityProfile.Value;

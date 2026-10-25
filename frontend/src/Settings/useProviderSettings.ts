@@ -115,7 +115,7 @@ export const useSaveProviderSettings = <T extends ModelBase>(
         method: id ? 'PUT' : 'POST',
         headers: {
           'X-Api-Key': window.Controllarr.apiKey,
-          'X-Sonarr-Client': 'Sonarr',
+          'X-Controllarr-Client': 'Controllarr',
         },
         body: data,
       });
@@ -161,7 +161,7 @@ export const useTestProvider = <T extends ModelBase>(path: string) => {
         method: 'POST',
         headers: {
           'X-Api-Key': window.Controllarr.apiKey,
-          'X-Sonarr-Client': 'Sonarr',
+          'X-Controllarr-Client': 'Controllarr',
         },
         body: data,
       });

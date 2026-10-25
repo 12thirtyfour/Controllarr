@@ -24,12 +24,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
                 return DownloadSpecDecision.Accept();
             }
 
-            _logger.Debug("Checking if series matches searched series");
+            _logger.Debug("Checking if platform matches searched platform");
 
             if (remoteEpisode.Series.Id != searchCriteria.Series.Id)
             {
-                _logger.Debug("Series {0} does not match {1}", remoteEpisode.Series, searchCriteria.Series);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeries, "Wrong series");
+                _logger.Debug("Platform {0} does not match {1}", remoteEpisode.Series, searchCriteria.Series);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeries, "Wrong platform");
             }
 
             return DownloadSpecDecision.Accept();

@@ -170,11 +170,11 @@ namespace NzbDrone.Core.MediaFiles
 
             if (series == null)
             {
-                _logger.Debug("Unknown Series {0}", cleanedUpName);
+                _logger.Debug("Unknown Platform {0}", cleanedUpName);
 
                 return new List<ImportResult>
                        {
-                           UnknownSeriesResult("Unknown Series")
+                           UnknownSeriesResult("Unknown Platform")
                        };
             }
 
@@ -185,10 +185,10 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (_seriesService.SeriesPathExists(directoryInfo.FullName))
             {
-                _logger.Warn("Unable to process folder that is mapped to an existing series");
+                _logger.Warn("Unable to process folder that is mapped to an existing platform");
                 return new List<ImportResult>
                 {
-                    RejectionResult(ImportRejectionReason.SeriesFolder, "Import path is mapped to a series folder")
+                    RejectionResult(ImportRejectionReason.SeriesFolder, "Import path is mapped to a platform folder")
                 };
             }
 
@@ -212,11 +212,11 @@ namespace NzbDrone.Core.MediaFiles
 
             if (downloadClientItemInfo is { IsMultiSeason: true })
             {
-                _logger.Debug("Download client item is marked as multi-season, not processing automatically to avoid importing incorrect files");
+                _logger.Debug("Download client item is marked as multi-region, not processing automatically to avoid importing incorrect files");
 
                 return new List<ImportResult>
                 {
-                    RejectionResult(ImportRejectionReason.MultiSeason, "Multi-season download, unable to import automatically")
+                    RejectionResult(ImportRejectionReason.MultiSeason, "Multi-region download, unable to import automatically")
                 };
             }
 
@@ -283,11 +283,11 @@ namespace NzbDrone.Core.MediaFiles
 
             if (series == null)
             {
-                _logger.Debug("Unknown Series for file: {0}", fileInfo.Name);
+                _logger.Debug("Unknown Platform for file: {0}", fileInfo.Name);
 
                 return new List<ImportResult>
                        {
-                           UnknownSeriesResult(string.Format("Unknown Series for file: {0}", fileInfo.Name), fileInfo.FullName)
+                           UnknownSeriesResult(string.Format("Unknown Platform for file: {0}", fileInfo.Name), fileInfo.FullName)
                        };
             }
 
@@ -406,7 +406,7 @@ namespace NzbDrone.Core.MediaFiles
         {
             var localEpisode = videoFile == null ? null : new LocalEpisode { Path = videoFile };
 
-            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Series")), message);
+            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Platform")), message);
         }
 
         private ImportResult RejectionResult(ImportRejectionReason reason, string message)
@@ -441,13 +441,13 @@ namespace NzbDrone.Core.MediaFiles
 
                 if (mount == null)
                 {
-                    _logger.Error("Import failed, path does not exist or is not accessible by Sonarr: {0}. Unable to find a volume mounted for the path. If you're using a mapped network drive see the FAQ for more info", path);
+                    _logger.Error("Import failed, path does not exist or is not accessible by Controllarr: {0}. Unable to find a volume mounted for the path. If you're using a mapped network drive see the FAQ for more info", path);
                     return;
                 }
 
                 if (mount.DriveType == DriveType.Network)
                 {
-                    _logger.Error("Import failed, path does not exist or is not accessible by Sonarr: {0}. It's recommended to avoid mapped network drives when running as a Windows service. See the FAQ for more info", path);
+                    _logger.Error("Import failed, path does not exist or is not accessible by Controllarr: {0}. It's recommended to avoid mapped network drives when running as a Windows service. See the FAQ for more info", path);
                     return;
                 }
             }
@@ -456,12 +456,12 @@ namespace NzbDrone.Core.MediaFiles
             {
                 if (path.StartsWith(@"\\"))
                 {
-                    _logger.Error("Import failed, path does not exist or is not accessible by Sonarr: {0}. Ensure the user running Sonarr has access to the network share", path);
+                    _logger.Error("Import failed, path does not exist or is not accessible by Controllarr: {0}. Ensure the user running Controllarr has access to the network share", path);
                     return;
                 }
             }
 
-            _logger.Error("Import failed, path does not exist or is not accessible by Sonarr: {0}. Ensure the path exists and the user running Sonarr has the correct permissions to access this file/folder", path);
+            _logger.Error("Import failed, path does not exist or is not accessible by Controllarr: {0}. Ensure the path exists and the user running Controllarr has the correct permissions to access this file/folder", path);
         }
     }
 }

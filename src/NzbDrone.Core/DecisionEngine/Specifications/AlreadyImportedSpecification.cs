@@ -41,7 +41,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             {
                 if (!episode.HasFile)
                 {
-                    _logger.Debug("Skipping already imported check for episode without file");
+                    _logger.Debug("Skipping already imported check for game without file");
                     continue;
                 }
 

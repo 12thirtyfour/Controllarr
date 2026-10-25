@@ -44,7 +44,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 
             if (indexerTags.Any() && indexerTags.Intersect(subject.Series.Tags).Empty())
             {
-                _logger.Debug("Indexer {0} has tags. None of these are present on series {1}. Rejecting", subject.Release.Indexer, subject.Series);
+                _logger.Debug("Indexer {0} has tags. None of these are present on platform {1}. Rejecting", subject.Release.Indexer, subject.Series);
 
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.NoMatchingTag, "Series tags do not match any of the indexer tags");
             }

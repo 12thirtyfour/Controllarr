@@ -105,7 +105,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 if (!episodesInFile.Any())
                 {
-                    _logger.Warn("File ({0}) is not linked to any episodes", episodeFilePath);
+                    _logger.Warn("File ({0}) is not linked to any games", episodeFilePath);
                     continue;
                 }
 
@@ -138,7 +138,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 try
                 {
-                    _logger.Debug("Renaming episode file: {0}", episodeFile);
+                    _logger.Debug("Renaming ROM file: {0}", episodeFile);
                     _episodeFileMover.MoveEpisodeFile(episodeFile, series);
 
                     _mediaFileService.Update(episodeFile);
@@ -150,7 +150,7 @@ namespace NzbDrone.Core.MediaFiles
                                     PreviousPath = previousPath
                                 });
 
-                    _logger.Debug("Renamed episode file: {0}", episodeFile);
+                    _logger.Debug("Renamed ROM file: {0}", episodeFile);
 
                     _eventAggregator.PublishEvent(new EpisodeFileRenamedEvent(series, episodeFile, previousPath));
                 }
@@ -185,22 +185,22 @@ namespace NzbDrone.Core.MediaFiles
 
             _logger.ProgressInfo("Renaming {0} files for {1}", episodeFiles.Count, series.Title);
             var renamedFiles = RenameFiles(episodeFiles, series);
-            _logger.ProgressInfo("{0} selected episode files renamed for {1}", renamedFiles.Count, series.Title);
+            _logger.ProgressInfo("{0} selected ROM files renamed for {1}", renamedFiles.Count, series.Title);
 
             _eventAggregator.PublishEvent(new RenameCompletedEvent());
         }
 
         public void Execute(RenameSeriesCommand message)
         {
-            _logger.Debug("Renaming all files for selected series");
+            _logger.Debug("Renaming all files for selected platforms");
             var seriesToRename = _seriesService.GetSeries(message.SeriesIds);
 
             foreach (var series in seriesToRename)
             {
                 var episodeFiles = _mediaFileService.GetFilesBySeries(series.Id);
-                _logger.ProgressInfo("Renaming all files in series: {0}", series.Title);
+                _logger.ProgressInfo("Renaming all files in platform: {0}", series.Title);
                 var renamedFiles = RenameFiles(episodeFiles, series);
-                _logger.ProgressInfo("{0} episode files renamed for {1}", renamedFiles.Count, series.Title);
+                _logger.ProgressInfo("{0} ROM files renamed for {1}", renamedFiles.Count, series.Title);
             }
 
             _eventAggregator.PublishEvent(new RenameCompletedEvent());

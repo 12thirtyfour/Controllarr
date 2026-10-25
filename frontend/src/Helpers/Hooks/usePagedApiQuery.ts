@@ -66,7 +66,7 @@ const usePagedApiQuery = <T>(options: PagedQueryOptions<T>) => {
         headers: {
           ...options.headers,
           'X-Api-Key': window.Controllarr.apiKey,
-          'X-Sonarr-Client': 'Sonarr',
+          'X-Controllarr-Client': 'Controllarr',
         },
       },
     };

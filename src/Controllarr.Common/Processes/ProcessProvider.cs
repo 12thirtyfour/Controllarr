@@ -35,8 +35,10 @@ namespace NzbDrone.Common.Processes
     {
         private readonly Logger _logger;
 
-        public const string SONARR_PROCESS_NAME = "Controllarr";
-        public const string SONARR_CONSOLE_PROCESS_NAME = "Controllarr.Console";
+        public const string CONTROLLARR_PROCESS_NAME = "Controllarr";
+        public const string SONARR_PROCESS_NAME = CONTROLLARR_PROCESS_NAME;
+        public const string CONTROLLARR_CONSOLE_PROCESS_NAME = "Controllarr.Console";
+        public const string SONARR_CONSOLE_PROCESS_NAME = CONTROLLARR_CONSOLE_PROCESS_NAME;
 
         public ProcessProvider(Logger logger)
         {

@@ -153,10 +153,10 @@ namespace NzbDrone.Core.Tv
             // series are usually the first thing in release title, so we select the leftmost and longest match
             var match = query.First().series;
 
-            _logger.Debug("Multiple series matched {0} from title {1}", match.Title, title);
+            _logger.Debug("Multiple platforms matched {0} from title {1}", match.Title, title);
             foreach (var entry in list)
             {
-                _logger.Debug("Multiple series match candidate: {0} cleantitle: {1}", entry.Title, entry.CleanTitle);
+                _logger.Debug("Multiple platform match candidate: {0} cleantitle: {1}", entry.Title, entry.CleanTitle);
             }
 
             return match;
@@ -435,7 +435,7 @@ namespace NzbDrone.Core.Tv
 
         public List<Series> UpdateSeries(List<Series> series, bool moveFiles)
         {
-            _logger.Debug("Updating {0} series", series.Count);
+            _logger.Debug("Updating {0} platforms", series.Count);
 
             var pendingMoveSeriesIds = GetSeriesIdsWithPendingMove();
             var moveQueue = new List<BulkMoveSeries>();
@@ -449,7 +449,7 @@ namespace NzbDrone.Core.Tv
                 {
                     if (pendingMoveSeriesIds.Contains(s.Id))
                     {
-                        _logger.Warn("Series '{0}' is already being moved from {1} to {2}, skipping path update.", s.Title, s.Path, s.PendingPath);
+                        _logger.Warn("Platform '{0}' is already being moved from {1} to {2}, skipping path update.", s.Title, s.Path, s.PendingPath);
                     }
                     else
                     {
@@ -481,7 +481,7 @@ namespace NzbDrone.Core.Tv
             }
 
             _seriesRepository.UpdateMany(series);
-            _logger.Debug("{0} series updated", series.Count);
+            _logger.Debug("{0} platforms updated", series.Count);
             _eventAggregator.PublishEvent(new SeriesBulkEditedEvent(series));
 
             if (moveQueue.Any())
@@ -504,7 +504,7 @@ namespace NzbDrone.Core.Tv
             {
                 series.Path = sourcePath;
 
-                _logger.Warn("Series '{0}' is already being moved from {1} to {2}, skipping path update.", series.Title, series.Path, series.PendingPath);
+                _logger.Warn("Platform '{0}' is already being moved from {1} to {2}, skipping path update.", series.Title, series.Path, series.PendingPath);
             }
             else if (moveFiles)
             {
@@ -592,7 +592,7 @@ namespace NzbDrone.Core.Tv
 
             foreach (var series in staleSeries)
             {
-                _logger.Warn("Series '{0}' has a stale PendingPath ({1}) left over from an interrupted move, clearing it.", series.Title, series.PendingPath);
+                _logger.Warn("Platform '{0}' has a stale PendingPath ({1}) left over from an interrupted move, clearing it.", series.Title, series.PendingPath);
                 series.PendingPath = null;
             }
 

@@ -16,7 +16,7 @@ namespace NzbDrone.Integration.Test.ApiTests
             var releases = Releases.All();
             var indexers = Indexers.All();
 
-            releases.Should().OnlyContain(c => c.Rejections.Contains("Unknown Series"));
+            releases.Should().OnlyContain(c => c.Rejections.Contains("Unknown Platform"));
             releases.Should().OnlyContain(c => BeValidRelease(c));
         }
 

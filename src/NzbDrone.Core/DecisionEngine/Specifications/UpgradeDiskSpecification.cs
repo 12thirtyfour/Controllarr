@@ -45,7 +45,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 // Count missing episodes as upgradable
                 var missingEpisodesCount = subject.Episodes.Count(c => c.EpisodeFileId == 0);
                 var upgradedCount = missingEpisodesCount;
-                _logger.Debug("{0} episodes are missing from disk and are considered upgradable.", upgradedCount);
+                _logger.Debug("{0} games are missing from disk and are considered upgradable.", upgradedCount);
 
                 // Filter for episodes that already exist on disk to check for quality upgrades
                 var existingEpisodeFiles = subject.Episodes.Where(c => c.EpisodeFileId != 0)
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 // If all episodes in the pack are missing, accept it immediately.
                 if (!existingEpisodeFiles.Any())
                 {
-                    _logger.Debug("All episodes in season pack are missing, accepting.");
+                    _logger.Debug("All games in region pack are missing, accepting.");
                     return DownloadSpecDecision.Accept();
                 }
 
@@ -83,14 +83,14 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
                     if (upgradeableRejectReason == UpgradeableRejectReason.None)
                     {
-                        _logger.Debug("Existing episode is upgradable.");
+                        _logger.Debug("Existing game is upgradable.");
                         upgradedCount++;
                     }
                 }
 
                 var seasonPackUpgrade = _configService.SeasonPackUpgrade;
                 var seasonPackUpgradeThreshold = _configService.SeasonPackUpgradeThreshold;
-                _logger.Debug("Total upgradable episodes: {0} out of {1}. Season import setting: {2}, Threshold: {3}%", upgradedCount, totalEpisodesInPack, seasonPackUpgrade, seasonPackUpgradeThreshold);
+                _logger.Debug("Total upgradable games: {0} out of {1}. Region import setting: {2}, Threshold: {3}%", upgradedCount, totalEpisodesInPack, seasonPackUpgrade, seasonPackUpgradeThreshold);
                 var upgradablePercentage = (double)upgradedCount / totalEpisodesInPack * 100;
                 if (seasonPackUpgrade == SeasonPackUpgradeType.Any)
                 {
@@ -110,7 +110,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     }
                 }
 
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.DiskNotUpgrade, $"Season pack does not meet the upgrade criteria. Upgradable: {upgradedCount}/{totalEpisodesInPack} ({upgradablePercentage:0.##}%), Mode: {seasonPackUpgrade}, Threshold: {seasonPackUpgradeThreshold}%");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.DiskNotUpgrade, $"Region pack does not meet the upgrade criteria. Upgradable: {upgradedCount}/{totalEpisodesInPack} ({upgradablePercentage:0.##}%), Mode: {seasonPackUpgrade}, Threshold: {seasonPackUpgradeThreshold}%");
             }
 
             foreach (var file in subject.Episodes.Where(c => c.EpisodeFileId != 0).Select(c => c.EpisodeFile.Value))

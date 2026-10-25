@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+- **Sonarr / TV Terminology Purge (Logs, Rejections, UI Strings)**:
+  - Replaced TV-centric wording (series / season / episode / aired) with Controllarr wording (platform / region / game / released / ROM file) across download decision rejections, search-match specifications, tracked-download and import messages, disk-scan, rename, move, refresh, monitoring, and parsing logs.
+  - Startup/shutdown logs and startup exceptions now report `Controllarr` instead of `Sonarr`; the "Tracking" debug line reports `ControllarrStage`.
+  - Frontend now sends an `X-Controllarr-Client` header (the backend still accepts the legacy `X-Sonarr-Client` header).
+  - Password reset hints reference `CONTROLLARR__AUTH__RESETTOKEN`; Vite dev-server errors reference `CONTROLLARR_VITE_DEV_SERVER`.
+  - Added `CONTROLLARR_PROCESS_NAME` / `CONTROLLARR_CONSOLE_PROCESS_NAME` constants (legacy `SONARR_*` names kept as aliases).
+  - Removed the unused `piwikCheck.js` analytics stub that pointed at `piwik.sonarr.tv`.
+  - Fixed English UI strings such as "Platforms Type", "Unknown Platforms Items", "Midseason Finale", and region-scoped modal headers.
+
 ### Added
 - **Single-Source Internet Archive Settings**:
   - Eliminated duplicate configuration fields (Base URL, S3 Access Key, S3 Secret Key, Primary Archive URLs) from the Internet Archive Download Client.

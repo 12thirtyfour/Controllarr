@@ -118,7 +118,7 @@ namespace NzbDrone.Core.DecisionEngine
                             }
                             else
                             {
-                                decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Series"));
+                                decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Platform"));
                             }
                         }
                         else if (remoteEpisode.Episodes.Empty())

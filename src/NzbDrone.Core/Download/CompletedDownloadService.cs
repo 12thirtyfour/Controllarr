@@ -236,7 +236,7 @@ namespace NzbDrone.Core.Download
 
             if (allEpisodesImported)
             {
-                _logger.Debug("All episodes were imported for {0}", trackedDownload.DownloadItem.Title);
+                _logger.Debug("All games were imported for {0}", trackedDownload.DownloadItem.Title);
                 trackedDownload.State = TrackedDownloadState.Imported;
 
                 _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload,
@@ -266,12 +266,12 @@ namespace NzbDrone.Core.Download
 
                 if (atLeastOneEpisodeImported)
                 {
-                    _logger.Debug("All episodes were imported in history for {0}", trackedDownload.DownloadItem.Title);
+                    _logger.Debug("All games were imported in history for {0}", trackedDownload.DownloadItem.Title);
                 }
                 else
                 {
                     _logger.ForDebugEvent()
-                           .Message("No Episodes were just imported, but all episodes were previously imported, possible issue with download history.")
+                           .Message("No games were just imported, but all games were previously imported, possible issue with download history.")
                            .Property("SeriesId", trackedDownload.RemoteEpisode.Series.Id)
                            .Property("DownloadId", trackedDownload.DownloadItem.DownloadId)
                            .Property("Title", trackedDownload.DownloadItem.Title)
@@ -289,7 +289,7 @@ namespace NzbDrone.Core.Download
                 return true;
             }
 
-            _logger.Debug("Not all episodes have been imported for the release '{0}'", trackedDownload.DownloadItem.Title);
+            _logger.Debug("Not all games have been imported for the release '{0}'", trackedDownload.DownloadItem.Title);
             return false;
         }
 

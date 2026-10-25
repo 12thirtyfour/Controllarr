@@ -125,7 +125,7 @@ function pingServerAfterTimeout() {
         signal: abortController.signal,
         headers: {
           'X-Api-Key': window.Controllarr.apiKey,
-          'X-Sonarr-Client': 'Sonarr',
+          'X-Controllarr-Client': 'Controllarr',
         },
       });
 

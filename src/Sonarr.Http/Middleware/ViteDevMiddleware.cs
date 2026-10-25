@@ -48,14 +48,14 @@ namespace Sonarr.Http.Middleware
             }
             catch (HttpRequestException ex)
             {
-                _logger.Error(ex, "Unable to reach the Vite dev server for {0}. Is it running and is SONARR_VITE_DEV_SERVER pointing at it?", path);
+                _logger.Error(ex, "Unable to reach the Vite dev server for {0}. Is it running and is CONTROLLARR_VITE_DEV_SERVER pointing at it?", path);
                 context.Response.StatusCode = (int)HttpStatusCode.BadGateway;
 
                 return;
             }
             catch (TaskCanceledException ex)
             {
-                _logger.Error(ex, "Timed out waiting for the Vite dev server for {0}. Is it running and is SONARR_VITE_DEV_SERVER pointing at it?", path);
+                _logger.Error(ex, "Timed out waiting for the Vite dev server for {0}. Is it running and is CONTROLLARR_VITE_DEV_SERVER pointing at it?", path);
                 context.Response.StatusCode = (int)HttpStatusCode.GatewayTimeout;
 
                 return;

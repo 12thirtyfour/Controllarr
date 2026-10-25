@@ -99,6 +99,11 @@ namespace Sonarr.Http.Extensions
 
         public static string GetSource(this HttpRequest request)
         {
+            if (request.Headers.TryGetValue("X-Controllarr-Client", out var controllarrSource))
+            {
+                return controllarrSource;
+            }
+
             if (request.Headers.TryGetValue("X-Sonarr-Client", out var source))
             {
                 return source;

@@ -39,19 +39,19 @@ namespace NzbDrone.Core.Download
 
             if (!_configService.AutoRedownloadFailed)
             {
-                _logger.Debug("Auto redownloading failed episodes is disabled");
+                _logger.Debug("Auto redownloading failed games is disabled");
                 return;
             }
 
             if (message.ReleaseSource == ReleaseSourceType.InteractiveSearch && !_configService.AutoRedownloadFailedFromInteractiveSearch)
             {
-                _logger.Debug("Auto redownloading failed episodes from interactive search is disabled");
+                _logger.Debug("Auto redownloading failed games from interactive search is disabled");
                 return;
             }
 
             if (message.EpisodeIds.Count == 1)
             {
-                _logger.Debug("Failed download only contains one episode, searching again");
+                _logger.Debug("Failed download only contains one game, searching again");
 
                 _commandQueueManager.Push(new EpisodeSearchCommand(message.EpisodeIds));
 
@@ -63,7 +63,7 @@ namespace NzbDrone.Core.Download
 
             if (message.EpisodeIds.Count == episodesInSeason.Count)
             {
-                _logger.Debug("Failed download was entire season, searching again");
+                _logger.Debug("Failed download was entire region, searching again");
 
                 _commandQueueManager.Push(new SeasonSearchCommand
                 {
@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            _logger.Debug("Failed download contains multiple episodes, probably a double episode, searching again");
+            _logger.Debug("Failed download contains multiple games, searching again");
 
             _commandQueueManager.Push(new EpisodeSearchCommand(message.EpisodeIds));
         }

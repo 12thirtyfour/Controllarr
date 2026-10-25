@@ -25,12 +25,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         {
             if (subject.ParsedEpisodeInfo.FullSeason && !AllowedWithoutAllEpisodesAired(subject))
             {
-                _logger.Debug("Checking if all episodes in full season release have aired. {0}", subject.Release.Title);
+                _logger.Debug("Checking if all games in full region release have released. {0}", subject.Release.Title);
 
                 if (subject.Episodes.Any(e => !e.AirDateUtc.HasValue || e.AirDateUtc.Value.After(DateTime.UtcNow.AddHours(24))))
                 {
-                    _logger.Debug("Full season release {0} rejected. All episodes haven't aired yet.", subject.Release.Title);
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeasonNotAired, "Full season release rejected. All episodes haven't aired yet.");
+                    _logger.Debug("Full region release {0} rejected. All games haven't released yet.", subject.Release.Title);
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeasonNotAired, "Full region release rejected. All games haven't released yet.");
                 }
             }
 

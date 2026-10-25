@@ -66,7 +66,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
             }
 
-            _logger.Debug("All episodes within air date limitations, allowing");
+            _logger.Debug("All games within release date limitations, allowing");
             return DownloadSpecDecision.Accept();
         }
     }

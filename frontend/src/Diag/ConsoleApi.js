@@ -6,7 +6,7 @@ let hasWarned = false;
 
 function checkActivationWarning() {
   if (!hasWarned) {
-    console.log('Activated SonarrApi console helpers.');
+    console.log('Activated ControllarrApi console helpers.');
     console.warn('Be warned: There will be no further confirmation checks.');
     hasWarned = true;
   }

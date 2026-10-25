@@ -223,12 +223,12 @@ namespace NzbDrone.Core.DataAugmentation.Xem
                 }
 
                 _cache.ExtendTTL();
-                _logger.Warn("Failed to update Xem series list.");
+                _logger.Warn("Failed to update Xem platform list.");
             }
             catch (Exception ex)
             {
                 _cache.ExtendTTL();
-                _logger.Warn(ex, "Failed to update Xem series list.");
+                _logger.Warn(ex, "Failed to update Xem platform list.");
             }
         }
 

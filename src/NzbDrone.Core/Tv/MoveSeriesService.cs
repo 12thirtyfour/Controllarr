@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Tv
         {
             if (!sourcePath.IsPathValid(PathValidationType.CurrentOs))
             {
-                _logger.Warn("Folder '{0}' for '{1}' is invalid, unable to move series. Try moving files manually", sourcePath, series.Title);
+                _logger.Warn("Folder '{0}' for '{1}' is invalid, unable to move platform. Try moving files manually", sourcePath, series.Title);
                 UpdatePath(series.Id, destinationPath);
                 return;
             }
@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Tv
                 }
                 else
                 {
-                    _logger.Warn("Folder '{0}' for '{1}' does not exist and '{2}' was not found either, updating the series path anyway. Try moving files manually", sourcePath, series.Title, destinationPath);
+                    _logger.Warn("Folder '{0}' for '{1}' does not exist and '{2}' was not found either, updating the platform path anyway. Try moving files manually", sourcePath, series.Title, destinationPath);
                     UpdatePath(series.Id, destinationPath);
                 }
 
@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Tv
             }
             catch (IOException ex)
             {
-                _logger.Error(ex, "Unable to move series from '{0}' to '{1}'. Try moving files manually", sourcePath, destinationPath);
+                _logger.Error(ex, "Unable to move platform from '{0}' to '{1}'. Try moving files manually", sourcePath, destinationPath);
 
                 UpdatePath(series.Id, sourcePath);
             }
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Tv
             var seriesToMove = message.Series;
             var destinationRootFolder = message.DestinationRootFolder;
 
-            _logger.ProgressInfo("Moving {0} series to '{1}'", seriesToMove.Count, destinationRootFolder);
+            _logger.ProgressInfo("Moving {0} platforms to '{1}'", seriesToMove.Count, destinationRootFolder);
 
             for (var index = 0; index < seriesToMove.Count; index++)
             {
@@ -134,7 +134,7 @@ namespace NzbDrone.Core.Tv
                 MoveSingleSeries(series, s.SourcePath, destinationPath, index, seriesToMove.Count);
             }
 
-            _logger.ProgressInfo("Finished moving {0} series to '{1}'", seriesToMove.Count, destinationRootFolder);
+            _logger.ProgressInfo("Finished moving {0} platforms to '{1}'", seriesToMove.Count, destinationRootFolder);
         }
     }
 }

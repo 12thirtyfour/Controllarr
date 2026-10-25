@@ -1757,7 +1757,7 @@
     "PartialSeason": "Częściowy sezon",
     "Password": "Hasło",
     "PasswordConfirmation": "Potwierdzenie hasła",
-    "PasswordResetTokenConfiguredHealthCheckMessage": "Token resetowania hasła został skonfigurowany. Usuń zmienną środowiskową SONARR__AUTH__RESETTOKEN gdy już nie będzie potrzebna",
+    "PasswordResetTokenConfiguredHealthCheckMessage": "Token resetowania hasła został skonfigurowany. Usuń zmienną środowiskową CONTROLLARR__AUTH__RESETTOKEN gdy już nie będzie potrzebna",
     "PasswordResetTokenTooShortHealthCheckMessage": "Skonfigurowany token resetowania hasła jest krótszy niż {length} znaków, więc został zignorowany",
     "Path": "Ścieżka",
     "Paused": "Wstrzymane",

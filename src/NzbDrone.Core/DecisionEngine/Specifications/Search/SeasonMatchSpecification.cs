@@ -38,8 +38,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
             if (!matches)
             {
-                _logger.Debug("Season number does not match searched season number, skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeason, "Wrong season");
+                _logger.Debug("Region does not match searched region, skipping.");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeason, "Wrong region");
             }
 
             return DownloadSpecDecision.Accept();

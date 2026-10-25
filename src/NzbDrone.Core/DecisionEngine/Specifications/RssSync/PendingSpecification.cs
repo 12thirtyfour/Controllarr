@@ -44,8 +44,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 
             if (matchingEpisode.Any())
             {
-                _logger.Debug("Release containing at least one matching episode is already pending. Delaying pushed release");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.MinimumAgeDelayPushed, "Release containing at least one matching episode is already pending, delaying pushed release");
+                _logger.Debug("Release containing at least one matching game is already pending. Delaying pushed release");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.MinimumAgeDelayPushed, "Release containing at least one matching game is already pending, delaying pushed release");
             }
 
             return DownloadSpecDecision.Accept();
