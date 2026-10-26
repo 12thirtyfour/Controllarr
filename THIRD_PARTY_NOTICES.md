@@ -12,7 +12,7 @@ This document provides explicit credit and license disclosures for the upstream 
 - **Project**: [Sonarr](https://github.com/Sonarr/Sonarr) (`NzbDrone`)
 - **Authors**: Sonarr Contributors (Kayone, markus101, Taloth, and the Sonarr Team)
 - **License**: [GNU General Public License v3.0 (GPL-3.0)](https://github.com/Sonarr/Sonarr/blob/develop/LICENSE.md)
-- **Usage in Controllarr**: Controllarr is directly forked from the Sonarr backend (.NET) and frontend (React/TypeScript) architecture. All core scheduling, indexer/download client pipelines, database migration frameworks, and UI components originate from Sonarr's codebase and have been adapted for video game console preservation under the terms of the GPL-3.0 license.
+- **Usage in Controllarr**: Controllarr was originally forked from the Sonarr backend (.NET) and frontend (React/TypeScript) architecture. While Controllarr has since been decoupled from GitHub's upstream fork network to operate as an independent standalone repository dedicated entirely to video game and console preservation, full attribution, enduring credit, and deepest gratitude are extended to the Sonarr team and contributors. All core scheduling, indexer/download client pipelines, database migration frameworks, and UI paradigms originate from Sonarr's codebase and have been adapted and evolved under the terms of the GPL-3.0 license.
 
 ---
 
