@@ -37,13 +37,13 @@ namespace NzbDrone.Host
 
         public static readonly List<string> ASSEMBLIES = new()
         {
-            "Sonarr.Host",
-            "Sonarr.Core",
+            "Controllarr.Host",
+            "Controllarr.Core",
             "Controllarr.Common",
             "Controllarr.SignalR",
-            "Sonarr.Api.V3",
-            "Sonarr.Api.V5",
-            "Sonarr.Http"
+            "Controllarr.Api.V3",
+            "Controllarr.Api.V5",
+            "Controllarr.Http"
         };
 
         public static void Start(string[] args, Action<IHostBuilder> trayCallback = null)

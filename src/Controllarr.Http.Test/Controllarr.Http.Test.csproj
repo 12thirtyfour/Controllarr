@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Controllarr.Http\Controllarr.Http.csproj" />
     <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
-    <ProjectReference Include="..\NzbDrone.Update\Sonarr.Update.csproj" />
   </ItemGroup>
 </Project>

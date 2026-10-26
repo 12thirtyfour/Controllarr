@@ -5,12 +5,12 @@
     <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
     <AssemblyName>Controllarr</AssemblyName>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>..\NzbDrone.Host\Sonarr.ico</ApplicationIcon>
+    <ApplicationIcon>..\NzbDrone.Host\Controllarr.ico</ApplicationIcon>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NzbDrone.Host\Sonarr.Host.csproj" />
-    <ProjectReference Include="..\NzbDrone.Windows\Sonarr.Windows.csproj" />
+    <ProjectReference Include="..\NzbDrone.Host\Controllarr.Host.csproj" />
+    <ProjectReference Include="..\NzbDrone.Windows\Controllarr.Windows.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">

@@ -291,7 +291,7 @@ namespace NzbDrone.Host
                               IRuntimeInfo runtimeInfo,
                               IFirewallAdapter firewallAdapter,
                               IEventAggregator eventAggregator,
-                              SonarrErrorPipeline errorHandler)
+                              ControllarrErrorPipeline errorHandler)
         {
             initializeLogger.Initialize();
             appFolderFactory.Register();

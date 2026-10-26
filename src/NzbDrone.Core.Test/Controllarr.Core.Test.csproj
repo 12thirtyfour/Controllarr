@@ -10,7 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
     <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
-    <ProjectReference Include="..\NzbDrone.Core\Sonarr.Core.csproj" />
+    <ProjectReference Include="..\NzbDrone.Core\Controllarr.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Logo\1024.png">
@@ -23,7 +23,7 @@
     <None Update="Files\Indexers\encoded_title.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <ProjectReference Include="..\NzbDrone.Mono\Sonarr.Mono.csproj" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
-    <ProjectReference Include="..\NzbDrone.Windows\Sonarr.Windows.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="..\NzbDrone.Mono\Controllarr.Mono.csproj" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="..\NzbDrone.Windows\Controllarr.Windows.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 </Project>

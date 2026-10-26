@@ -35,13 +35,13 @@ RUN if [ -n "$VERSION" ] && [ "$VERSION" != "5.0.0.0" ]; then \
     fi
 
 RUN RID=$([ "$TARGETARCH" = "arm64" ] && echo "linux-arm64" || echo "linux-x64") && \
-    dotnet publish src/NzbDrone.Console/Sonarr.Console.csproj \
+    dotnet publish src/NzbDrone.Console/Controllarr.Console.csproj \
       --configuration Release \
       --runtime "$RID" \
       --self-contained false \
       -p:PublishSingleFile=false \
       -o /app/bin && \
-    rm -f /app/bin/ServiceInstall.* /app/bin/ServiceUninstall.* /app/bin/Sonarr.Windows.* && \
+    rm -f /app/bin/ServiceInstall.* /app/bin/ServiceUninstall.* /app/bin/Controllarr.Windows.* && \
     cp LICENSE.md /app/bin/
 
 # ==============================================================================

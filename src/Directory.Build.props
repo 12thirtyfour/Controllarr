@@ -20,6 +20,9 @@
     <SonarrOutputType Condition="'$(MSBuildProjectName)'=='Sonarr'">Exe</SonarrOutputType>
     <SonarrOutputType Condition="'$(MSBuildProjectName)'=='Sonarr.Console'">Exe</SonarrOutputType>
     <SonarrOutputType Condition="'$(MSBuildProjectName)'=='Sonarr.Update'">Update</SonarrOutputType>
+    <SonarrOutputType Condition="'$(MSBuildProjectName)'=='Controllarr'">Exe</SonarrOutputType>
+    <SonarrOutputType Condition="'$(MSBuildProjectName)'=='Controllarr.Console'">Exe</SonarrOutputType>
+    <SonarrOutputType Condition="'$(MSBuildProjectName)'=='Controllarr.Update'">Update</SonarrOutputType>
 
     <!-- Specifies whether it's one of our own libraries -->
     <SonarrProject>false</SonarrProject>

@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         public void Should_resolve_IGameMetadataProxy_from_container()
         {
             var container = new Container(rules => rules.WithNzbDroneRules());
-            container.AutoAddServices(new List<string> { "Sonarr.Core" });
+            container.AutoAddServices(new List<string> { "Controllarr.Core" });
 
             container.RegisterInstance(Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>().Object);
             container.RegisterInstance(Mocker.GetMock<NzbDrone.Core.Configuration.IConfigService>().Object);

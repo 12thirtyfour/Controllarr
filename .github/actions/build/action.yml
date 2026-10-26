@@ -84,7 +84,7 @@ runs:
       run: |
         runtime="${{ inputs.runtime }}"
         platform=Windows
-        slnFile=src/Sonarr.sln
+        slnFile=src/Controllarr.sln
         targetingWindows=false
 
         IFS='-' read -ra SPLIT <<< "$runtime"
@@ -126,11 +126,11 @@ runs:
             rm -f $folder/ServiceUninstall.*
             rm -f $folder/ServiceInstall.*
 
-            echo "Removing Sonarr.Windows"
-            rm $folder/Sonarr.Windows.*
+            echo "Removing Controllarr.Windows"
+            rm $folder/Controllarr.Windows.*
 
-            echo "Adding Sonarr.Mono to UpdatePackage"
-            cp $folder/Sonarr.Mono.* $folder/Controllarr.Update
+            echo "Adding Controllarr.Mono to UpdatePackage"
+            cp $folder/Controllarr.Mono.* $folder/Controllarr.Update
             cp $folder/Openur.Mono.Unix.* $folder/Controllarr.Update
             cp $folder/libMono.Unix.* $folder/Controllarr.Update
             ;;
@@ -145,13 +145,13 @@ runs:
             cp LICENSE.md $folder
             cp -r _output/$framework-windows/$runtime/publish/* $folder
 
-            echo "Removing Sonarr.Mono"
-            rm -f $folder/Sonarr.Mono.*
+            echo "Removing Controllarr.Mono"
+            rm -f $folder/Controllarr.Mono.*
             rm -f $folder/Openur.Mono.Unix.*
             rm -f $folder/libMono.Unix.*
 
-            echo "Adding Sonarr.Windows to UpdatePackage"
-            cp $folder/Sonarr.Windows.* $folder/Controllarr.Update
+            echo "Adding Controllarr.Windows to UpdatePackage"
+            cp $folder/Controllarr.Windows.* $folder/Controllarr.Update
 
             ;;
           osx)
@@ -168,11 +168,11 @@ runs:
             rm -f $folder/ServiceUninstall.*
             rm -f $folder/ServiceInstall.*
 
-            echo "Removing Sonarr.Windows"
-            rm $folder/Sonarr.Windows.*
+            echo "Removing Controllarr.Windows"
+            rm $folder/Controllarr.Windows.*
 
-            echo "Adding Sonarr.Mono to UpdatePackage"
-            cp $folder/Sonarr.Mono.* $folder/Controllarr.Update
+            echo "Adding Controllarr.Mono to UpdatePackage"
+            cp $folder/Controllarr.Mono.* $folder/Controllarr.Update
             cp $folder/Openur.Mono.Unix.* $folder/Controllarr.Update
             cp $folder/libMono.Unix.* $folder/Controllarr.Update
             ;;

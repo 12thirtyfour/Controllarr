@@ -3,7 +3,7 @@
 		<TargetFrameworks>net10.0</TargetFrameworks>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<RootNamespace>Sonarr.Api.V5</RootNamespace>
+		<RootNamespace>Controllarr.Api.V5</RootNamespace>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="FluentValidation" Version="9.5.4" />
@@ -12,7 +12,7 @@
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.3.0" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\NzbDrone.Core\Sonarr.Core.csproj" />
-		<ProjectReference Include="..\Sonarr.Http\Sonarr.Http.csproj" />
+		<ProjectReference Include="..\NzbDrone.Core\Controllarr.Core.csproj" />
+		<ProjectReference Include="..\Controllarr.Http\Controllarr.Http.csproj" />
 	</ItemGroup>
 </Project>

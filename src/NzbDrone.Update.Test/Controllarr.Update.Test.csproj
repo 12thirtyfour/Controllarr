@@ -3,9 +3,7 @@
     <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
-    <ProjectReference Include="..\Controllarr.SignalR\Controllarr.SignalR.csproj" />
-    <ProjectReference Include="..\NzbDrone.Host\Sonarr.Host.csproj" />
     <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
+    <ProjectReference Include="..\NzbDrone.Update\Controllarr.Update.csproj" />
   </ItemGroup>
 </Project>

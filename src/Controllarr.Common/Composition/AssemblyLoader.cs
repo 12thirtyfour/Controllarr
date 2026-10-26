@@ -23,15 +23,15 @@ namespace NzbDrone.Common.Composition
 
             if (OsInfo.IsWindows)
             {
-                toLoad.Add("Sonarr.Windows");
+                toLoad.Add("Controllarr.Windows");
             }
             else
             {
-                toLoad.Add("Sonarr.Mono");
+                toLoad.Add("Controllarr.Mono");
             }
 
             var toRegisterResolver = new List<string> { "System.Data.SQLite" };
-            toRegisterResolver.AddRange(assemblyNames.Intersect(new[] { "Sonarr.Core" }));
+            toRegisterResolver.AddRange(assemblyNames.Intersect(new[] { "Controllarr.Core", "Sonarr.Core" }));
             RegisterNativeResolver(toRegisterResolver);
 
             var startupPath = AppDomain.CurrentDomain.BaseDirectory;

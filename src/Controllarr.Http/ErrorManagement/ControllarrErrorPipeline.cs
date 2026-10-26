@@ -13,11 +13,11 @@ using Sonarr.Http.Exceptions;
 
 namespace Sonarr.Http.ErrorManagement
 {
-    public class SonarrErrorPipeline
+    public class ControllarrErrorPipeline
     {
         private readonly Logger _logger;
 
-        public SonarrErrorPipeline(Logger logger)
+        public ControllarrErrorPipeline(Logger logger)
         {
             _logger = logger;
         }

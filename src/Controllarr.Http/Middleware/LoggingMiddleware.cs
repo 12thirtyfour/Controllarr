@@ -16,11 +16,11 @@ namespace Sonarr.Http.Middleware
         private static readonly Logger _loggerApi = LogManager.GetLogger("Api");
         private static int _requestSequenceID;
 
-        private readonly SonarrErrorPipeline _errorHandler;
+        private readonly ControllarrErrorPipeline _errorHandler;
         private readonly RequestDelegate _next;
 
         public LoggingMiddleware(RequestDelegate next,
-            SonarrErrorPipeline errorHandler)
+            ControllarrErrorPipeline errorHandler)
         {
             _next = next;
             _errorHandler = errorHandler;
