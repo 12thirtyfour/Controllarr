@@ -8,7 +8,9 @@ using NzbDrone.Common;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.RootFolders
@@ -176,7 +178,28 @@ namespace NzbDrone.Core.RootFolders
             }
 
             var setToRemove = SpecialFolders;
-            results.RemoveAll(x => setToRemove.Contains(new DirectoryInfo(x.Path.ToLowerInvariant()).Name));
+            results.RemoveAll(x => setToRemove.Contains(new DirectoryInfo(x.Path.ToLowerInvariant()).Name) ||
+                                   PlatformCompatibilityValidator.IsRegionOrBucketFolder(x.Name));
+
+            if (results.Count == 0 && !seriesPaths.Values.Contains(path, PathEqualityComparer.Instance))
+            {
+                // If subfolders were only regions/buckets or there were no subfolders, check if path itself contains ROMs
+                var romFiles = _diskProvider.GetFiles(path, true)
+                    .Where(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)))
+                    .Take(50)
+                    .ToList();
+
+                if (romFiles.Count > 0)
+                {
+                    var di = new DirectoryInfo(path.Normalize());
+                    results.Add(new UnmappedFolder
+                    {
+                        Name = di.Name,
+                        Path = di.FullName,
+                        RelativePath = string.Empty
+                    });
+                }
+            }
 
             _logger.Debug("{0} unmapped folders detected.", results.Count);
             return results.OrderBy(u => u.Name, StringComparer.InvariantCultureIgnoreCase).ToList();

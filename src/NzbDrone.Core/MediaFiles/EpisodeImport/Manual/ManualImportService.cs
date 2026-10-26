@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -144,6 +145,49 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
 
                 var rootFolder = Path.GetDirectoryName(path);
                 return new List<ManualImportItem> { ProcessFile(rootFolder, rootFolder, path, downloadId) };
+            }
+
+            if (_unmanagedDiskScanner != null)
+            {
+                var scannedItems = _unmanagedDiskScanner.Scan(path);
+                if (scannedItems != null && scannedItems.Count > 0)
+                {
+                    if (seriesId.HasValue)
+                    {
+                        var targetSeries = _seriesService.GetSeries(seriesId.Value);
+                        foreach (var item in scannedItems)
+                        {
+                            if (item.Series == null)
+                            {
+                                item.Series = targetSeries;
+                                _unmanagedDiskScanner.EnrichItem(item);
+                            }
+                        }
+
+                        scannedItems = scannedItems.Where(i => i.Series?.Id == seriesId.Value).ToList();
+                    }
+
+                    if (downloadId.IsNotNullOrWhiteSpace())
+                    {
+                        scannedItems.ForEach(i => i.DownloadId = downloadId);
+                    }
+
+                    if (filterExistingFiles)
+                    {
+                        scannedItems = scannedItems.Where(item =>
+                        {
+                            if (item.Series == null || item.Episodes == null || item.Episodes.Count == 0)
+                            {
+                                return true;
+                            }
+
+                            var existingEpisodes = _mediaFileService.GetFilesBySeries(item.Series.Id);
+                            return !existingEpisodes.Any(f => item.Episodes.Any(e => e.EpisodeFileId == f.Id));
+                        }).ToList();
+                    }
+
+                    return scannedItems;
+                }
             }
 
             return ProcessFolder(path, path, downloadId, seriesId, filterExistingFiles);
@@ -340,6 +384,17 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
 
                 if (series == null)
                 {
+                    var ext = Path.GetExtension(file);
+                    var platformSlug = PlatformCompatibilityValidator.GetPlatformByExtension(ext);
+                    if (!string.IsNullOrWhiteSpace(platformSlug))
+                    {
+                        series = _seriesService.GetAllSeries().FirstOrDefault(s =>
+                            string.Equals(PlatformCompatibilityValidator.NormalizePlatformSlug(s.CleanTitle, s.Title), platformSlug, StringComparison.OrdinalIgnoreCase));
+                    }
+                }
+
+                if (series == null)
+                {
                     var localEpisode = new LocalEpisode();
                     localEpisode.Path = file;
                     localEpisode.ReleaseGroup = Parser.ReleaseGroupParser.ParseReleaseGroup(file);
@@ -518,6 +573,32 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 var fileEpisodeInfo = Parser.Parser.ParsePath(file.Path) ?? new ParsedEpisodeInfo();
                 var existingFile = series.Path.IsParentPath(file.Path);
 
+                var actualPath = file.Path;
+                string tempExtractDir = null;
+
+                if (file.Path.Contains(".zip#"))
+                {
+                    var parts = file.Path.Split(new[] { ".zip#" }, StringSplitOptions.None);
+                    var zipPath = parts[0] + ".zip";
+                    var entryName = parts[1];
+
+                    if (File.Exists(zipPath))
+                    {
+                        tempExtractDir = Path.Combine(Path.GetTempPath(), "ControllarrImport", Guid.NewGuid().ToString("N"));
+                        Directory.CreateDirectory(tempExtractDir);
+                        actualPath = Path.Combine(tempExtractDir, Path.GetFileName(entryName));
+
+                        using var archive = ZipFile.OpenRead(zipPath);
+                        var entry = archive.GetEntry(entryName) ?? archive.Entries.FirstOrDefault(e => e.FullName == entryName || e.Name == Path.GetFileName(entryName));
+                        if (entry != null)
+                        {
+                            entry.ExtractToFile(actualPath, true);
+                        }
+                    }
+
+                    existingFile = false;
+                }
+
                 TrackedDownload trackedDownload = null;
 
                 var localEpisode = new LocalEpisode
@@ -525,7 +606,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                     ExistingFile = existingFile,
                     Episodes = episodes,
                     FileEpisodeInfo = fileEpisodeInfo,
-                    Path = file.Path,
+                    Path = actualPath,
                     ReleaseGroup = file.ReleaseGroup,
                     Quality = file.Quality,
                     Languages = file.Languages,
@@ -588,6 +669,17 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                         TrackedDownload = trackedDownload,
                         ImportResult = importResult
                     });
+                }
+
+                if (tempExtractDir != null && Directory.Exists(tempExtractDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempExtractDir, true);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
 

@@ -241,7 +241,45 @@ namespace NzbDrone.Core.Parser
             return true;
         }
 
-        private static string NormalizePlatformSlug(string slug, string name)
+        public static readonly HashSet<string> IgnoredRegionOrBucketFolders = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "usa", "europe", "japan", "world", "asia", "australia", "germany", "france", "spain", "italy",
+            "korea", "china", "brazil", "netherlands", "sweden", "norway", "denmark", "finland", "poland", "russia",
+            "en", "ja", "fr", "de", "es", "it", "no-intro", "redump", "tosec", "htgdb", "smdb", "1g1r",
+            "packs", "roms", "games", "rom", "game", "a-z", "0-9", "a-m", "n-z", "bios", "translations", "hacks"
+        };
+
+        public static string GetPlatformByExtension(string extension)
+        {
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                return null;
+            }
+
+            var ext = extension.StartsWith(".") ? extension.ToLowerInvariant() : "." + extension.ToLowerInvariant();
+            foreach (var (platform, extensions) in ExclusiveExtensionsByPlatform)
+            {
+                if (extensions.Contains(ext))
+                {
+                    return platform;
+                }
+            }
+
+            return null;
+        }
+
+        public static bool IsRegionOrBucketFolder(string folderName)
+        {
+            if (string.IsNullOrWhiteSpace(folderName))
+            {
+                return false;
+            }
+
+            var name = folderName.Trim().ToLowerInvariant();
+            return IgnoredRegionOrBucketFolders.Contains(name);
+        }
+
+        public static string NormalizePlatformSlug(string slug, string name)
         {
             var raw = (slug ?? string.Empty).ToLowerInvariant().Trim();
             var rawDehyphenated = raw.Replace('-', ' ');

@@ -174,5 +174,102 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             results.First().SeasonNumber.Should().Be(1);
             results.First().IsHighConfidenceMatch.Should().BeTrue();
         }
+
+        [Test]
+        public void Scan_MultiRomCollectionArchive_ShouldReturnIndividualItemsForEachRom()
+        {
+            var zipPath = Path.Combine(_tempPath, "@NES2.0 2023-12-16.zip");
+            using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                var entry1 = archive.CreateEntry("Super Mario Bros (USA).nes");
+                using (var s1 = entry1.Open())
+                {
+                    s1.Write(new byte[] { 10, 20, 30 }, 0, 3);
+                }
+
+                var entry2 = archive.CreateEntry("The Legend of Zelda (USA).nes");
+                using (var s2 = entry2.Open())
+                {
+                    s2.Write(new byte[] { 40, 50, 60 }, 0, 3);
+                }
+
+                var entryJunk = archive.CreateEntry("readme.txt");
+                using (var sJunk = entryJunk.Open())
+                {
+                    sJunk.Write(new byte[] { 1, 1, 1 }, 0, 3);
+                }
+            }
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 10, Title = "Nintendo Entertainment System", CleanTitle = "nes" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(10)).Returns(new List<Episode>
+            {
+                new Episode { Id = 101, Title = "Super Mario Bros", SeriesId = 10 },
+                new Episode { Id = 102, Title = "The Legend of Zelda", SeriesId = 10 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().HaveCount(2);
+            results.Should().Contain(i => i.Name == "Super Mario Bros (USA)" && i.Path.Contains(".zip#Super Mario Bros (USA).nes"));
+            results.Should().Contain(i => i.Name == "The Legend of Zelda (USA)" && i.Path.Contains(".zip#The Legend of Zelda (USA).nes"));
+            results.All(i => i.Series != null && i.Series.Title == "Nintendo Entertainment System").Should().BeTrue();
+            results.All(i => i.Hashes.ContainsKey("CRC32")).Should().BeTrue();
+        }
+
+        [Test]
+        public void Scan_ShouldIgnoreNonGameFilesAndJunkInsideDirectories()
+        {
+            var romPath = Path.Combine(_tempPath, "Mega Man 2 (USA).nes");
+            File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
+
+            var junkVideo = Path.Combine(_tempPath, "trailer.mp4");
+            File.WriteAllBytes(junkVideo, new byte[] { 4, 5, 6 });
+
+            var junkText = Path.Combine(_tempPath, "info.nfo");
+            File.WriteAllBytes(junkText, new byte[] { 7, 8, 9 });
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 10, Title = "Nintendo Entertainment System", CleanTitle = "nes" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(10)).Returns(new List<Episode>
+            {
+                new Episode { Id = 103, Title = "Mega Man 2", SeriesId = 10 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().HaveCount(1);
+            results.First().Name.Should().Be("Mega Man 2");
+            results.First().Path.Should().EndWith("Mega Man 2 (USA).nes");
+        }
+
+        [Test]
+        public void Scan_RegionSubfolders_ShouldAutodetectPlatformFromExclusiveExtension()
+        {
+            var usaDir = Path.Combine(_tempPath, "USA");
+            Directory.CreateDirectory(usaDir);
+            var romPath = Path.Combine(usaDir, "Castlevania (USA).nes");
+            File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 10, Title = "Nintendo Entertainment System", CleanTitle = "nes" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(10)).Returns(new List<Episode>
+            {
+                new Episode { Id = 104, Title = "Castlevania", SeriesId = 10 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().HaveCount(1);
+            results.First().Series.Should().NotBeNull();
+            results.First().Series.Title.Should().Be("Nintendo Entertainment System");
+            results.First().Episodes.First().Title.Should().Be("Castlevania");
+        }
     }
 }

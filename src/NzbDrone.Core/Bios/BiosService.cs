@@ -791,7 +791,8 @@ namespace NzbDrone.Core.Bios
             foreach (var entry in catalog)
             {
                 var matchingFile = existingFiles.FirstOrDefault(f =>
-                    string.Equals(Path.GetFileName(f), entry.FileName, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(Path.GetFileName(f), entry.FileName, StringComparison.OrdinalIgnoreCase) ||
+                    (IsCompressedArchive(f) && string.Equals(Path.GetFileNameWithoutExtension(f), Path.GetFileNameWithoutExtension(entry.FileName), StringComparison.OrdinalIgnoreCase)));
 
                 if (matchingFile != null)
                 {
@@ -799,7 +800,12 @@ namespace NzbDrone.Core.Bios
                     var valid = VerifyBios(matchingFile, entry.ExpectedMd5, entry.ExpectedSha1);
                     if (!valid && IsCompressedArchive(matchingFile))
                     {
-                        valid = TryExtractBiosFromArchive(matchingFile, matchingFile, entry);
+                        var targetRawPath = Path.Combine(Path.GetDirectoryName(matchingFile), entry.FileName);
+                        valid = TryExtractBiosFromArchive(matchingFile, targetRawPath, entry);
+                        if (valid)
+                        {
+                            entry.ResolvedPath = FormatDisplayPath(targetRawPath);
+                        }
                     }
 
                     if (valid)
@@ -1303,6 +1309,43 @@ namespace NzbDrone.Core.Bios
                         return true;
                     }
 
+                    if (IsCompressedArchive(filePath))
+                    {
+                        try
+                        {
+                            using var archive = ZipFile.OpenRead(filePath);
+                            foreach (var entry in archive.Entries)
+                            {
+                                if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
+                                {
+                                    continue;
+                                }
+
+                                using var entryStream = entry.Open();
+                                var entryMd5Bytes = md5.ComputeHash(entryStream);
+                                var entryMd5 = BitConverter.ToString(entryMd5Bytes).Replace("-", "").ToLowerInvariant();
+
+                                using var entryStream2 = entry.Open();
+                                var entrySha1Bytes = sha1.ComputeHash(entryStream2);
+                                var entrySha1 = BitConverter.ToString(entrySha1Bytes).Replace("-", "").ToLowerInvariant();
+
+                                var entryMd5Match = string.IsNullOrWhiteSpace(expectedMd5) ||
+                                                    string.Equals(entryMd5, expectedMd5, StringComparison.InvariantCultureIgnoreCase);
+                                var entrySha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
+                                                     string.Equals(entrySha1, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
+
+                                if (entryMd5Match && entrySha1Match)
+                                {
+                                    _logger.Debug($"BIOS Verified inside archive {filePath}: entry {entry.FullName}");
+                                    return true;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+
                     _logger.Warn($"BIOS Verification failed. MD5: {md5Hash} (Expected: {expectedMd5}), SHA1: {sha1Hash} (Expected: {expectedSha1})");
                     return false;
                 }
@@ -1496,7 +1539,12 @@ namespace NzbDrone.Core.Bios
                         var valid = VerifyBios(foundPath, entry.ExpectedMd5, entry.ExpectedSha1);
                         if (!valid && IsCompressedArchive(foundPath))
                         {
-                            valid = TryExtractBiosFromArchive(foundPath, foundPath, entry);
+                            var targetRawPath = Path.Combine(Path.GetDirectoryName(foundPath) ?? biosDir, entry.FileName);
+                            valid = TryExtractBiosFromArchive(foundPath, targetRawPath, entry);
+                            if (valid)
+                            {
+                                entry.ResolvedPath = FormatDisplayPath(targetRawPath);
+                            }
                         }
 
                         if (valid)

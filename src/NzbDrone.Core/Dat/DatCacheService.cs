@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dapper;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Dat
 {
@@ -254,6 +255,56 @@ namespace NzbDrone.Core.Dat
             {
                 return connection.QueryFirstOrDefault<DatEntry>(sql, new { sha256 = sha256.ToLowerInvariant() });
             }
+        }
+
+        public DatFile GetDatFileById(int id)
+        {
+            var sql = @"SELECT * FROM ""DatFiles"" WHERE ""Id"" = @id LIMIT 1";
+
+            using (var connection = _database.OpenConnection())
+            {
+                return connection.QueryFirstOrDefault<DatFile>(sql, new { id });
+            }
+        }
+
+        public DatEntryWithPlatform FindPlatformByHash(string crc32, string sha1 = null, string md5 = null, string sha256 = null)
+        {
+            DatEntry entry = null;
+
+            if (!string.IsNullOrWhiteSpace(sha256))
+            {
+                entry = FindBySha256(sha256);
+            }
+
+            if (entry == null && !string.IsNullOrWhiteSpace(sha1))
+            {
+                entry = FindBySha1(sha1);
+            }
+
+            if (entry == null && !string.IsNullOrWhiteSpace(md5))
+            {
+                entry = FindByMd5(md5);
+            }
+
+            if (entry == null && !string.IsNullOrWhiteSpace(crc32))
+            {
+                entry = FindByCrc32(crc32);
+            }
+
+            if (entry == null)
+            {
+                return null;
+            }
+
+            var datFile = GetDatFileById(entry.DatFileId);
+            var platformSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(null, datFile?.Name ?? datFile?.Description);
+
+            return new DatEntryWithPlatform
+            {
+                DatEntry = entry,
+                DatFile = datFile,
+                PlatformSlug = platformSlug
+            };
         }
 
         public List<DatEntry> SearchByName(string query, int limit = 50)

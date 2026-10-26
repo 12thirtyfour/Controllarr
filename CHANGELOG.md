@@ -9,6 +9,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Recursive Library Import & Zip Collection Support**:
+  - Expanded `UnmanagedDiskScanner` and `ManualImportService` to recursively traverse directories and zip archives of any depth.
+  - Added support for full multi-ROM collection archives (such as `@NES2.0.zip`, `1G1R.zip`, and platform packs): Controllarr now inspects archive central directories via $O(1)$ entry headers and extracts individual `ManualImportItem` entries for each ROM inside using `${zipPath}#${entryName}` sub-path notation.
+  - Implemented automatic extraction on import: when an item from a collection archive is imported, Controllarr unpacks the target ROM to a clean temporary path and imports the raw ROM into the library folder.
+  - Single-ROM archives (`Game.zip`) and multi-track disc archives (containing `.cue` / `.gdi` or multiple bin tracks) are detected and handled as unified single-game archives.
+- **Hash-Based Platform Autodetection & DAT Cache Lookup**:
+  - Implemented `FindPlatformByHash` on `IDatCacheService` and `DatCacheService` to look up entry hashes (CRC32, SHA1, MD5, SHA256) across loaded No-Intro, Redump, and TOSEC DATs, resolving the canonical platform slug and matching game title.
+  - Added fallback platform resolution in `UnmanagedDiskScanner` and `ManualImportService` using `PlatformCompatibilityValidator.GetPlatformByExtension` for exclusive platform extensions (e.g. `.nes`, `.sfc`, `.z64`, `.gba`, `.3ds`, `.md`), directory path segments, and platform tags.
+- **Root Folder & Import Screen Region Folder Isolation**:
+  - Fixed `RootFolderService.GetUnmappedFolders` to ignore regional and bucket directories (`USA`, `Europe`, `Japan`, `World`, `No-Intro`, `Redump`, `1G1R`, `Packs`, etc.) from being listed as standalone platform candidates on `/add/import`.
+  - Added automatic platform detection for root folders containing loose ROMs or collection archives directly.
+- **Non-Game File Filtering**:
+  - Cleaned up `MediaFileExtensions.cs` to eliminate all video streaming and TV extensions (`.mkv`, `.mp4`, `.avi`, `.wmv`, `.mov`, `.flv`, `.webm`, `.ts`, `.m2ts`, `.rm`, `.strm`, etc.) from being accepted as game files.
+  - Retained and expanded genuine console ROM, optical disc, archive, and patch extensions across `FileExtensions` and `RomExtensions`.
+- **BIOS Archive Extraction & Verification**:
+  - Updated `BiosService.VerifyBios` to inspect compressed archives (`.zip`, `.gz`, `.7z`) and verify the uncompressed raw BIOS payload against expected MD5 and SHA1 checksums.
+  - Fixed `ScanAndVerifyBiosDirectory` and `TryDownloadAndVerifyBios` to extract raw BIOS files from archives and save them with their canonical uncompressed filename rather than overwriting archives with mismatched extensions.
+
+### Added
 - **Internet Archive Platform Compatibility Filtering**:
   - Created `PlatformCompatibilityValidator` with platform-exclusive extension mapping (30+ console platforms), cartridge vs. disc isolation, folder path hierarchy analysis, and archive metadata validation.
   - Integrated platform-aware filtering directly into `InternetArchiveRequestGenerator` and `InternetArchiveParser`, preventing cross-platform file bleed when scraping multi-system archive collections.

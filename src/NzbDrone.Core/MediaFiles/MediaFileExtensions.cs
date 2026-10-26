@@ -8,63 +8,6 @@ namespace NzbDrone.Core.MediaFiles
     {
         private static readonly Dictionary<string, Quality> FileExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            // Unknown
-            { ".webm", Quality.Unknown },
-
-            // SDTV
-            { ".m4v", Quality.SDTV },
-            { ".3gp", Quality.SDTV },
-            { ".nsv", Quality.SDTV },
-            { ".ty", Quality.SDTV },
-            { ".strm", Quality.SDTV },
-            { ".rm", Quality.SDTV },
-            { ".rmvb", Quality.SDTV },
-            { ".m3u", Quality.SDTV },
-            { ".ifo", Quality.SDTV },
-            { ".mov", Quality.SDTV },
-            { ".qt", Quality.SDTV },
-            { ".divx", Quality.SDTV },
-            { ".xvid", Quality.SDTV },
-            { ".bivx", Quality.SDTV },
-            { ".nrg", Quality.SDTV },
-            { ".pva", Quality.SDTV },
-            { ".wmv", Quality.SDTV },
-            { ".asf", Quality.SDTV },
-            { ".asx", Quality.SDTV },
-            { ".ogm", Quality.SDTV },
-            { ".ogv", Quality.SDTV },
-            { ".m2v", Quality.SDTV },
-            { ".avi", Quality.SDTV },
-            { ".bin", Quality.SDTV },
-            { ".dat", Quality.SDTV },
-            { ".dvr-ms", Quality.SDTV },
-            { ".mpg", Quality.SDTV },
-            { ".mpeg", Quality.SDTV },
-            { ".mp4", Quality.SDTV },
-            { ".avc", Quality.SDTV },
-            { ".vp3", Quality.SDTV },
-            { ".svq3", Quality.SDTV },
-            { ".nuv", Quality.SDTV },
-            { ".viv", Quality.SDTV },
-            { ".dv", Quality.SDTV },
-            { ".fli", Quality.SDTV },
-            { ".flv", Quality.SDTV },
-            { ".wpl", Quality.SDTV },
-
-            // DVD
-            { ".img", Quality.DVD },
-            { ".iso", Quality.DVD },
-            { ".vob", Quality.DVD },
-
-            // HD
-            { ".mkv", Quality.HDTV720p },
-            { ".ts", Quality.HDTV720p },
-            { ".wtv", Quality.HDTV720p },
-
-            // Bluray
-            // Bluray
-            { ".m2ts", Quality.Bluray720p },
-
             // Console ROMs, Archives & Optical Disc Images
             { ".zip", Quality.Unknown },
             { ".7z", Quality.Unknown },
@@ -75,23 +18,29 @@ namespace NzbDrone.Core.MediaFiles
             { ".wbfs", Quality.Unknown },
             { ".wux", Quality.Unknown },
             { ".wud", Quality.Unknown },
+            { ".wua", Quality.Unknown },
             { ".rpx", Quality.Unknown },
             { ".xci", Quality.Unknown },
             { ".nsp", Quality.Unknown },
+            { ".nsz", Quality.Unknown },
             { ".nes", Quality.Unknown },
             { ".unf", Quality.Unknown },
             { ".fds", Quality.Unknown },
             { ".sfc", Quality.Unknown },
             { ".smc", Quality.Unknown },
+            { ".bs", Quality.Unknown },
             { ".z64", Quality.Unknown },
             { ".n64", Quality.Unknown },
             { ".v64", Quality.Unknown },
+            { ".ndd", Quality.Unknown },
             { ".gb", Quality.Unknown },
             { ".gbc", Quality.Unknown },
             { ".gba", Quality.Unknown },
             { ".nds", Quality.Unknown },
+            { ".dsi", Quality.Unknown },
             { ".3ds", Quality.Unknown },
             { ".cia", Quality.Unknown },
+            { ".cci", Quality.Unknown },
             { ".vb", Quality.Unknown },
             { ".sg", Quality.Unknown },
             { ".sms", Quality.Unknown },
@@ -109,6 +58,7 @@ namespace NzbDrone.Core.MediaFiles
             { ".xbe", Quality.Unknown },
             { ".xex", Quality.Unknown },
             { ".pce", Quality.Unknown },
+            { ".sgx", Quality.Unknown },
             { ".neo", Quality.Unknown },
             { ".ngp", Quality.Unknown },
             { ".ngc", Quality.Unknown },
@@ -116,12 +66,18 @@ namespace NzbDrone.Core.MediaFiles
             { ".a52", Quality.Unknown },
             { ".a78", Quality.Unknown },
             { ".j64", Quality.Unknown },
+            { ".jag", Quality.Unknown },
             { ".lnx", Quality.Unknown },
             { ".ws", Quality.Unknown },
             { ".wsc", Quality.Unknown },
             { ".col", Quality.Unknown },
             { ".int", Quality.Unknown },
             { ".vec", Quality.Unknown },
+            { ".iso", Quality.Unknown },
+            { ".bin", Quality.Unknown },
+            { ".img", Quality.Unknown },
+            { ".nrg", Quality.Unknown },
+            { ".pkg", Quality.Unknown },
             { ".ips", Quality.Unknown },
             { ".bps", Quality.Unknown },
             { ".xdelta", Quality.Unknown },
@@ -130,17 +86,17 @@ namespace NzbDrone.Core.MediaFiles
 
         public static HashSet<string> Extensions => new(FileExtensions.Keys, StringComparer.OrdinalIgnoreCase);
 
-        public static HashSet<string> DiskExtensions => new([".img", ".iso", ".vob"], StringComparer.OrdinalIgnoreCase);
+        public static HashSet<string> DiskExtensions => new([".img", ".iso", ".bin", ".nrg"], StringComparer.OrdinalIgnoreCase);
 
-        public static HashSet<string> StreamingExtensions => new([".m3u", ".strm"], StringComparer.OrdinalIgnoreCase);
+        public static HashSet<string> StreamingExtensions => new([], StringComparer.OrdinalIgnoreCase);
 
         public static HashSet<string> RomExtensions => new(
         [
-            ".zip", ".7z", ".chd", ".rvz", ".ciso", ".gcm", ".wbfs", ".wux", ".wud", ".rpx", ".xci", ".nsp",
-            ".nes", ".unf", ".fds", ".sfc", ".smc", ".z64", ".n64", ".v64", ".gb", ".gbc", ".gba", ".nds",
-            ".3ds", ".cia", ".vb", ".sg", ".sms", ".md", ".smd", ".gen", ".32x", ".cdi", ".gdi", ".cue",
-            ".gg", ".pbp", ".cso", ".vpk", ".xbe", ".xex", ".pce", ".neo", ".ngp", ".ngc", ".a26", ".a52",
-            ".a78", ".j64", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec", ".iso", ".bin", ".img", ".nrg",
+            ".zip", ".7z", ".chd", ".rvz", ".ciso", ".gcm", ".wbfs", ".wux", ".wud", ".wua", ".rpx", ".xci", ".nsp", ".nsz",
+            ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd", ".gb", ".gbc", ".gba", ".nds", ".dsi",
+            ".3ds", ".cia", ".cci", ".vb", ".sg", ".sms", ".md", ".smd", ".gen", ".32x", ".cdi", ".gdi", ".cue",
+            ".gg", ".pbp", ".cso", ".vpk", ".xbe", ".xex", ".pce", ".sgx", ".neo", ".ngp", ".ngc", ".a26", ".a52",
+            ".a78", ".j64", ".jag", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec", ".iso", ".bin", ".img", ".nrg", ".pkg",
             ".ips", ".bps", ".xdelta", ".vcdiff"
         ],
         StringComparer.OrdinalIgnoreCase);
