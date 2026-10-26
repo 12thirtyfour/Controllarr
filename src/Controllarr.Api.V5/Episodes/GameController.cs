@@ -14,7 +14,7 @@ namespace Sonarr.Api.V5.Episodes;
 [V5ApiController]
 [Route("api/v5/game")]
 [Route("api/v5/episode")]
-public class GameController : EpisodeControllerWithSignalR
+public class GameController : GameControllerWithSignalR
 {
     public GameController(ISeriesService seriesService,
                          IEpisodeService episodeService,

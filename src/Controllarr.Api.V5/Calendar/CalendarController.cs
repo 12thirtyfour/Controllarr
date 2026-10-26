@@ -13,7 +13,7 @@ using Sonarr.Http;
 namespace Sonarr.Api.V5.Calendar
 {
     [V5ApiController]
-    public class CalendarController : EpisodeControllerWithSignalR
+    public class CalendarController : GameControllerWithSignalR
     {
         private readonly ITagService _tagService;
 

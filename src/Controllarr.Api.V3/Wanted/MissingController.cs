@@ -13,7 +13,7 @@ using Sonarr.Http.Extensions;
 namespace Sonarr.Api.V3.Wanted
 {
     [V3ApiController("wanted/missing")]
-    public class MissingController : EpisodeControllerWithSignalR
+    public class MissingController : GameControllerWithSignalR
     {
         public MissingController(IEpisodeService episodeService,
                              ISeriesService seriesService,

@@ -13,7 +13,7 @@ using Sonarr.Http.Extensions;
 namespace Sonarr.Api.V3.Wanted
 {
     [V3ApiController("wanted/cutoff")]
-    public class CutoffController : EpisodeControllerWithSignalR
+    public class CutoffController : GameControllerWithSignalR
     {
         private readonly IEpisodeCutoffService _episodeCutoffService;
 

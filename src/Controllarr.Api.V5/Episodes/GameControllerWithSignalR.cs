@@ -13,7 +13,7 @@ using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V5.Episodes;
 
-public abstract class EpisodeControllerWithSignalR : RestControllerWithSignalR<EpisodeResource, Episode>,
+public abstract class GameControllerWithSignalR : RestControllerWithSignalR<EpisodeResource, Episode>,
                                                      IHandle<EpisodeGrabbedEvent>,
                                                      IHandle<EpisodeImportedEvent>,
                                                      IHandle<EpisodeFileDeletedEvent>
@@ -23,7 +23,7 @@ public abstract class EpisodeControllerWithSignalR : RestControllerWithSignalR<E
     protected readonly IUpgradableSpecification _upgradableSpecification;
     protected readonly ICustomFormatCalculationService _formatCalculator;
 
-    protected EpisodeControllerWithSignalR(IEpisodeService episodeService,
+    protected GameControllerWithSignalR(IEpisodeService episodeService,
                                        ISeriesService seriesService,
                                        IUpgradableSpecification upgradableSpecification,
                                        ICustomFormatCalculationService formatCalculator,
@@ -36,7 +36,7 @@ public abstract class EpisodeControllerWithSignalR : RestControllerWithSignalR<E
         _formatCalculator = formatCalculator;
     }
 
-    protected EpisodeControllerWithSignalR(IEpisodeService episodeService,
+    protected GameControllerWithSignalR(IEpisodeService episodeService,
                                        ISeriesService seriesService,
                                        IUpgradableSpecification upgradableSpecification,
                                        ICustomFormatCalculationService formatCalculator,

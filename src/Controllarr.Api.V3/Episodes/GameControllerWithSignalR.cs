@@ -14,7 +14,7 @@ using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V3.Episodes
 {
-    public abstract class EpisodeControllerWithSignalR : RestControllerWithSignalR<EpisodeResource, Episode>,
+    public abstract class GameControllerWithSignalR : RestControllerWithSignalR<EpisodeResource, Episode>,
                                                          IHandle<EpisodeGrabbedEvent>,
                                                          IHandle<EpisodeImportedEvent>,
                                                          IHandle<EpisodeFileDeletedEvent>
@@ -24,7 +24,7 @@ namespace Sonarr.Api.V3.Episodes
         protected readonly IUpgradableSpecification _upgradableSpecification;
         protected readonly ICustomFormatCalculationService _formatCalculator;
 
-        protected EpisodeControllerWithSignalR(IEpisodeService episodeService,
+        protected GameControllerWithSignalR(IEpisodeService episodeService,
                                            ISeriesService seriesService,
                                            IUpgradableSpecification upgradableSpecification,
                                            ICustomFormatCalculationService formatCalculator,
@@ -37,7 +37,7 @@ namespace Sonarr.Api.V3.Episodes
             _formatCalculator = formatCalculator;
         }
 
-        protected EpisodeControllerWithSignalR(IEpisodeService episodeService,
+        protected GameControllerWithSignalR(IEpisodeService episodeService,
                                            ISeriesService seriesService,
                                            IUpgradableSpecification upgradableSpecification,
                                            ICustomFormatCalculationService formatCalculator,
