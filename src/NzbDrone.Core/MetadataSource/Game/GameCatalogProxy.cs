@@ -36,8 +36,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex DatReleaseYearBlockRegex = new Regex(
-            @"game\s*\(\s*(?:comment|name)\s+""(?<name>[^""]+)""[^)]*?releaseyear\s+""?(?<year>\d{4})""?",
-            RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            @"game\s*\((?<body>[\s\S]*?)\n\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatNameOrCommentRegex = new Regex(
+            @"(?:comment|name)\s+""(?<name>[^""]+)""",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex DatReleaseYearRegex = new Regex(
             @"releaseyear\s+""?(?<year>\d{4})""?",
@@ -45,6 +49,10 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static readonly Regex DatCrcRegex = new Regex(
             @"crc\s+([0-9a-fA-F]{8})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ResidualRevisionRegex = new Regex(
+            @"(?:\s*[\(\[]\s*)?(?:Rev\.?\s*[A-Za-z0-9.]+|v\d+(?:\.\d+)*[A-Za-z]?|Version\s*[\d.]+|Alt\s*\d*|PRG\d+)(?:\s*[\)\]])?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex RevisionTagRegex = new Regex(
@@ -539,6 +547,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (!string.IsNullOrWhiteSpace(rawName))
                         {
                             rawName = StripKnownRomExtension(Path.GetFileName(rawName.Replace('\\', '/')));
+                            rawName = RomParser.CleanIndexPrefix(rawName);
                         }
 
                         if (string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
@@ -569,7 +578,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var episodeCounters = new Dictionary<int, int>();
 
             foreach (var game in platformGames
-                .OrderBy(g => g.BaseTitle ?? g.Title, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => StripArticle(g.BaseTitle ?? g.Title), StringComparer.OrdinalIgnoreCase)
                 .ThenBy(g => IsPreReleaseVersion(g.RevisionTag, g.NoIntroName) ? 2 : (IsEncryptedVersion(g.RevisionTag, g.NoIntroName) ? 1 : 0))
                 .ThenBy(g => GetRevisionSortOrder(g.RevisionTag))
                 .ThenBy(g => g.Title, StringComparer.OrdinalIgnoreCase))
@@ -1105,29 +1114,37 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     foreach (Match match in DatReleaseYearBlockRegex.Matches(response.Content))
                     {
-                        var name = match.Groups["name"].Value.Trim();
-                        if (!string.IsNullOrWhiteSpace(name) &&
-                            int.TryParse(match.Groups["year"].Value, out var year) &&
-                            year >= 1970 &&
-                            year <= 2035)
+                        var body = match.Groups["body"].Value;
+                        var yearMatch = DatReleaseYearRegex.Match(body);
+                        if (!yearMatch.Success ||
+                            !int.TryParse(yearMatch.Groups["year"].Value, out var year) ||
+                            year < 1970 ||
+                            year > 2035)
                         {
-                            lookup[name] = year;
-                            var cleanName = RomParser.CleanIndexPrefix(name);
-                            lookup[cleanName] = year;
-                            var normalized = RomParser.ParseRomName(cleanName)?.GameTitle;
-                            if (!string.IsNullOrWhiteSpace(normalized))
+                            continue;
+                        }
+
+                        var nameMatch = DatNameOrCommentRegex.Match(body);
+                        if (nameMatch.Success)
+                        {
+                            var name = nameMatch.Groups["name"].Value.Trim();
+                            if (!string.IsNullOrWhiteSpace(name))
                             {
-                                lookup[normalized] = year;
+                                lookup[name] = year;
+                                var cleanName = RomParser.CleanIndexPrefix(name);
+                                lookup[cleanName] = year;
+                                var normalized = RomParser.ParseRomName(cleanName)?.GameTitle;
+                                if (!string.IsNullOrWhiteSpace(normalized))
+                                {
+                                    lookup[normalized] = year;
+                                }
                             }
                         }
 
-                        var crcMatch = DatCrcRegex.Match(match.Value);
-                        if (crcMatch.Success &&
-                            int.TryParse(match.Groups["year"].Value, out var crcYear) &&
-                            crcYear >= 1970 &&
-                            crcYear <= 2035)
+                        var crcMatch = DatCrcRegex.Match(body);
+                        if (crcMatch.Success)
                         {
-                            lookup[$"crc:{crcMatch.Groups[1].Value.ToUpperInvariant()}"] = crcYear;
+                            lookup[$"crc:{crcMatch.Groups[1].Value.ToUpperInvariant()}"] = year;
                         }
                     }
                 }
@@ -1209,6 +1226,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                     }
                 }
 
+                rawName = RomParser.CleanIndexPrefix(rawName);
+
                 if (string.IsNullOrWhiteSpace(rawName) ||
                     rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
                     blockName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
@@ -1284,6 +1303,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 : NormalizeTitleArticle(StripParentheses(cleanNoIntroForParse));
 
             baseTitle = RomParser.CleanIndexPrefix(baseTitle);
+            baseTitle = CleanResidualRevisions(baseTitle);
 
             var regionSeason = ClassifyRegionAndCategory(cleanNoIntroForParse, parsed, verificationSource);
             var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionSeason, verificationSource);
@@ -1773,6 +1793,43 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             var idx = name.IndexOf('(');
             return idx > 0 ? name.Substring(0, idx).Trim() : name.Trim();
+        }
+
+        private static string CleanResidualRevisions(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = ResidualRevisionRegex.Replace(title, string.Empty).Trim();
+            return RomParser.CleanIndexPrefix(cleaned);
+        }
+
+        private static string StripArticle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = title.Trim();
+            if (trimmed.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed.Substring(4).Trim();
+            }
+
+            if (trimmed.StartsWith("A ", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed.Substring(2).Trim();
+            }
+
+            if (trimmed.StartsWith("An ", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed.Substring(3).Trim();
+            }
+
+            return trimmed;
         }
 
         private List<GameCatalogEntry> SearchGamesCatalog(string rawQuery, string normalizedQuery, string[] queryTokens)

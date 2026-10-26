@@ -43,7 +43,8 @@
   --infoColor: oklch(56% 0.200 272);
   --purple: oklch(52% 0.200 295);
   --pink: oklch(66% 0.190 350);
-  --sonarrBlue: oklch(56% 0.200 272);
+  --controllarrBlue: oklch(56% 0.200 272);
+  --sonarrBlue: var(--controllarrBlue);
   --helpTextColor: oklch(48% 0.014 272);
   --darkGray: oklch(50% 0.014 272);
   --gray: oklch(70% 0.010 272);
@@ -277,7 +278,8 @@
   --infoColor: oklch(72% 0.175 272);
   --purple: oklch(62% 0.185 295);
   --pink: oklch(72% 0.180 350);
-  --sonarrBlue: oklch(72% 0.175 272);
+  --controllarrBlue: oklch(72% 0.175 272);
+  --sonarrBlue: var(--controllarrBlue);
   --helpTextColor: oklch(66% 0.014 272);
   --darkGray: oklch(53% 0.014 272);
   --gray: oklch(66% 0.014 272);
@@ -485,7 +487,8 @@
   --accentGlow: #ff4d5a;
   --primaryColor: #e60012;
   --selectedColor: #e60012;
-  --sonarrBlue: #e60012;
+  --controllarrBlue: #e60012;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #e60012;
   --themeAlternateBlue: #b8000e;
   --linkColor: #ff4d5a;
@@ -523,7 +526,8 @@
   --accentGlow: #f3d778;
   --primaryColor: #d4af37;
   --selectedColor: #d4af37;
-  --sonarrBlue: #d4af37;
+  --controllarrBlue: #d4af37;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #d4af37;
   --themeAlternateBlue: #8c2230;
   --linkColor: #e5c358;
@@ -557,7 +561,8 @@
   --accentGlow: #c6b6fa;
   --primaryColor: #a992f5;
   --selectedColor: #a992f5;
-  --sonarrBlue: #a992f5;
+  --controllarrBlue: #a992f5;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #a992f5;
   --themeAlternateBlue: #6e52cc;
   --linkColor: #a992f5;
@@ -592,7 +597,8 @@
   --dangerColor: #e60012;
   --warningColor: #f5b800;
   --infoColor: #0057b8;
-  --sonarrBlue: #0057b8;
+  --controllarrBlue: #0057b8;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #0057b8;
   --themeAlternateBlue: #00428c;
   --themeRed: #e60012;
@@ -624,7 +630,8 @@
   --accentGlow: #5c9aff;
   --primaryColor: #2979ff;
   --selectedColor: #2979ff;
-  --sonarrBlue: #2979ff;
+  --controllarrBlue: #2979ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #2979ff;
   --themeAlternateBlue: #1565c0;
   --linkColor: #5c9aff;
@@ -655,7 +662,8 @@
   --accentGlow: #e4648a;
   --primaryColor: #d83b6a;
   --selectedColor: #d83b6a;
-  --sonarrBlue: #d83b6a;
+  --controllarrBlue: #d83b6a;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #d83b6a;
   --themeAlternateBlue: #b01c48;
   --linkColor: #d4af37;
@@ -694,7 +702,8 @@
   --primaryColor: #b3245c;
   --selectedColor: #9bbc0f;
   --successColor: #8bac0f;
-  --sonarrBlue: #9bbc0f;
+  --controllarrBlue: #9bbc0f;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #9bbc0f;
   --themeAlternateBlue: #b3245c;
   --linkColor: #9bbc0f;
@@ -729,7 +738,8 @@
   --accentGlow: #ff8524;
   --primaryColor: #ff6d00;
   --selectedColor: #ff6d00;
-  --sonarrBlue: #ff6d00;
+  --controllarrBlue: #ff6d00;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff6d00;
   --themeAlternateBlue: #d85b00;
   --linkColor: #ff8524;
@@ -760,7 +770,8 @@
   --accentGlow: #ff5252;
   --primaryColor: #e51c23;
   --selectedColor: #0072ce;
-  --sonarrBlue: #0072ce;
+  --controllarrBlue: #0072ce;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #0072ce;
   --themeAlternateBlue: #005499;
   --themeRed: #e51c23;
@@ -792,7 +803,8 @@
   --accentGlow: #ff616f;
   --primaryColor: #ff1744;
   --selectedColor: #ffab00;
-  --sonarrBlue: #ff1744;
+  --controllarrBlue: #ff1744;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff1744;
   --themeAlternateBlue: #c4001d;
   --warningColor: #ffab00;
@@ -830,7 +842,8 @@
   --successColor: #00a99d;
   --dangerColor: #df0024;
   --warningColor: #f3c300;
-  --sonarrBlue: #2e6db4;
+  --controllarrBlue: #2e6db4;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #2e6db4;
   --themeAlternateBlue: #00a99d;
   --themeRed: #df0024;
@@ -862,7 +875,8 @@
   --accentGlow: #26a0ff;
   --primaryColor: #0070d1;
   --selectedColor: #26a0ff;
-  --sonarrBlue: #0070d1;
+  --controllarrBlue: #0070d1;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #0070d1;
   --themeAlternateBlue: #00439c;
   --linkColor: #26a0ff;
@@ -893,7 +907,8 @@
   --accentGlow: #a192f7;
   --primaryColor: #7b68ee;
   --selectedColor: #7b68ee;
-  --sonarrBlue: #7b68ee;
+  --controllarrBlue: #7b68ee;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #7b68ee;
   --themeAlternateBlue: #5a46c4;
   --linkColor: #9888f5;
@@ -928,7 +943,8 @@
   --primaryColor: #64b814;
   --selectedColor: #8ce82c;
   --successColor: #64b814;
-  --sonarrBlue: #64b814;
+  --controllarrBlue: #64b814;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #64b814;
   --themeAlternateBlue: #448509;
   --linkColor: #8ce82c;
@@ -971,7 +987,8 @@
   --dangerColor: #d92b2b;
   --warningColor: #e6a100;
   --infoColor: #0066cc;
-  --sonarrBlue: #107c10;
+  --controllarrBlue: #107c10;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #107c10;
   --themeAlternateBlue: #0066cc;
   --themeRed: #d92b2b;
@@ -1012,7 +1029,8 @@
   --accentGlow: #34c3eb;
   --primaryColor: #009ac7;
   --selectedColor: #009ac7;
-  --sonarrBlue: #009ac7;
+  --controllarrBlue: #009ac7;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #009ac7;
   --themeAlternateBlue: #007699;
   --linkColor: #0084ab;
@@ -1045,7 +1063,8 @@
   --accentGlow: #ffdb4d;
   --primaryColor: #f5c400;
   --selectedColor: #f5c400;
-  --sonarrBlue: #f5c400;
+  --controllarrBlue: #f5c400;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #f5c400;
   --themeAlternateBlue: #c81d25;
   --linkColor: #f5c400;
@@ -1074,7 +1093,8 @@
   --accentGlow: #ffb300;
   --primaryColor: #00bcd4;
   --selectedColor: #ffb300;
-  --sonarrBlue: #00bcd4;
+  --controllarrBlue: #00bcd4;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #00bcd4;
   --themeAlternateBlue: #ffb300;
   --linkColor: #26c6da;
@@ -1107,7 +1127,8 @@
   --dangerColor: #e60012;
   --warningColor: #ffc700;
   --infoColor: #0057b8;
-  --sonarrBlue: #0057b8;
+  --controllarrBlue: #0057b8;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #0057b8;
   --themeAlternateBlue: #00a651;
   --linkColor: #2ecc71;
@@ -1136,7 +1157,8 @@
   --accentGlow: #ff9e40;
   --primaryColor: #ff6d00;
   --selectedColor: #2979ff;
-  --sonarrBlue: #ff6d00;
+  --controllarrBlue: #ff6d00;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff6d00;
   --themeAlternateBlue: #2979ff;
   --linkColor: #ff9100;
@@ -1165,7 +1187,8 @@
   --accentGlow: #38c8f2;
   --primaryColor: #009ac7;
   --selectedColor: #00b4ff;
-  --sonarrBlue: #009ac7;
+  --controllarrBlue: #009ac7;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #009ac7;
   --themeAlternateBlue: #007496;
   --linkColor: #29b6f6;
@@ -1194,7 +1217,8 @@
   --accentGlow: #4dd0f0;
   --primaryColor: #ff3c28;
   --selectedColor: #0ab9e6;
-  --sonarrBlue: #0ab9e6;
+  --controllarrBlue: #0ab9e6;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #0ab9e6;
   --themeAlternateBlue: #ff3c28;
   --themeRed: #ff3c28;
@@ -1226,7 +1250,8 @@
   --selectedColor: #00d8ff;
   --successColor: #77dd22;
   --warningColor: #ffc700;
-  --sonarrBlue: #00d8ff;
+  --controllarrBlue: #00d8ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #00d8ff;
   --themeAlternateBlue: #9b51e0;
   --linkColor: #00d8ff;
@@ -1255,7 +1280,8 @@
   --accentGlow: #9d97ff;
   --primaryColor: #6c63ff;
   --selectedColor: #00d4ff;
-  --sonarrBlue: #6c63ff;
+  --controllarrBlue: #6c63ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #6c63ff;
   --themeAlternateBlue: #4c44cc;
   --linkColor: #8c85ff;
@@ -1284,7 +1310,8 @@
   --accentGlow: #70b8ff;
   --primaryColor: #3898ff;
   --selectedColor: #00d4ff;
-  --sonarrBlue: #3898ff;
+  --controllarrBlue: #3898ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #3898ff;
   --themeAlternateBlue: #1e70cc;
   --linkColor: #52a8ff;
@@ -1313,7 +1340,8 @@
   --accentGlow: #4de2ed;
   --primaryColor: #00b8c4;
   --selectedColor: #4cd964;
-  --sonarrBlue: #00b8c4;
+  --controllarrBlue: #00b8c4;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #00b8c4;
   --themeAlternateBlue: #008c96;
   --linkColor: #26d7e3;
@@ -1345,7 +1373,8 @@
   --accentGlow: #ff525a;
   --primaryColor: #ff1722;
   --selectedColor: #ff1722;
-  --sonarrBlue: #ff1722;
+  --controllarrBlue: #ff1722;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff1722;
   --themeAlternateBlue: #b80009;
   --linkColor: #ff3842;
@@ -1376,7 +1405,8 @@
   --selectedColor: #00e676;
   --successColor: #00e676;
   --dangerColor: #ff2a4b;
-  --sonarrBlue: #2979ff;
+  --controllarrBlue: #2979ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #2979ff;
   --themeAlternateBlue: #00e676;
   --linkColor: #00e676;
@@ -1405,7 +1435,8 @@
   --accentGlow: #ffd54f;
   --primaryColor: #f5b800;
   --selectedColor: #2979ff;
-  --sonarrBlue: #f5b800;
+  --controllarrBlue: #f5b800;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #f5b800;
   --themeAlternateBlue: #2979ff;
   --linkColor: #f5b800;
@@ -1434,7 +1465,8 @@
   --accentGlow: #ffd740;
   --primaryColor: #ffab00;
   --selectedColor: #ff3d00;
-  --sonarrBlue: #ffab00;
+  --controllarrBlue: #ffab00;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ffab00;
   --themeAlternateBlue: #ff3d00;
   --linkColor: #ffab00;
@@ -1463,7 +1495,8 @@
   --accentGlow: #e6b800;
   --primaryColor: #0088ff;
   --selectedColor: #e6b800;
-  --sonarrBlue: #0088ff;
+  --controllarrBlue: #0088ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #0088ff;
   --themeAlternateBlue: #e6b800;
   --linkColor: #38a3ff;
@@ -1500,7 +1533,8 @@
   --accentGlow: #ff884d;
   --primaryColor: #ff5500;
   --selectedColor: #0066cc;
-  --sonarrBlue: #ff5500;
+  --controllarrBlue: #ff5500;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff5500;
   --themeAlternateBlue: #0066cc;
   --linkColor: #e64d00;
@@ -1533,7 +1567,8 @@
   --accentGlow: #ffab00;
   --primaryColor: #00bfa5;
   --selectedColor: #ffab00;
-  --sonarrBlue: #00bfa5;
+  --controllarrBlue: #00bfa5;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #00bfa5;
   --themeAlternateBlue: #ffab00;
   --linkColor: #1de9b6;
@@ -1562,7 +1597,8 @@
   --accentGlow: #b8b6f0;
   --primaryColor: #8e8cd8;
   --selectedColor: #d81b60;
-  --sonarrBlue: #8e8cd8;
+  --controllarrBlue: #8e8cd8;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #8e8cd8;
   --themeAlternateBlue: #d81b60;
   --linkColor: #a3a1e6;
@@ -1591,7 +1627,8 @@
   --accentGlow: #81d4fa;
   --primaryColor: #4fc3f7;
   --selectedColor: #4fc3f7;
-  --sonarrBlue: #4fc3f7;
+  --controllarrBlue: #4fc3f7;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #4fc3f7;
   --themeAlternateBlue: #0288d1;
   --linkColor: #4fc3f7;
@@ -1620,7 +1657,8 @@
   --accentGlow: #00e5ff;
   --primaryColor: #00b0ff;
   --selectedColor: #00e5ff;
-  --sonarrBlue: #00b0ff;
+  --controllarrBlue: #00b0ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #00b0ff;
   --themeAlternateBlue: #0066cc;
   --linkColor: #00e5ff;
@@ -1649,7 +1687,8 @@
   --accentGlow: #ffa040;
   --primaryColor: #ff7700;
   --selectedColor: #ffaa00;
-  --sonarrBlue: #ff7700;
+  --controllarrBlue: #ff7700;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff7700;
   --themeAlternateBlue: #cc5200;
   --linkColor: #ff9020;
@@ -1678,7 +1717,8 @@
   --accentGlow: #1e88e5;
   --primaryColor: #e53935;
   --selectedColor: #fb8c00;
-  --sonarrBlue: #1e88e5;
+  --controllarrBlue: #1e88e5;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #1e88e5;
   --themeAlternateBlue: #e53935;
   --linkColor: #ff7043;
@@ -1707,7 +1747,8 @@
   --accentGlow: #ffdf66;
   --primaryColor: #ffc400;
   --selectedColor: #ff6d00;
-  --sonarrBlue: #ffc400;
+  --controllarrBlue: #ffc400;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ffc400;
   --themeAlternateBlue: #ff6d00;
   --linkColor: #ffc400;
@@ -1736,7 +1777,8 @@
   --accentGlow: #ffd600;
   --primaryColor: #f50057;
   --selectedColor: #ffd600;
-  --sonarrBlue: #f50057;
+  --controllarrBlue: #f50057;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #f50057;
   --themeAlternateBlue: #ffd600;
   --linkColor: #ff4081;
@@ -1765,7 +1807,8 @@
   --accentGlow: #f4e8c1;
   --primaryColor: #d4af37;
   --selectedColor: #e51c23;
-  --sonarrBlue: #d4af37;
+  --controllarrBlue: #d4af37;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #d4af37;
   --themeAlternateBlue: #e51c23;
   --linkColor: #e5c358;
@@ -1794,7 +1837,8 @@
   --accentGlow: #7cd0ff;
   --primaryColor: #ff2a4b;
   --selectedColor: #38b6ff;
-  --sonarrBlue: #38b6ff;
+  --controllarrBlue: #38b6ff;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #38b6ff;
   --themeAlternateBlue: #ff2a4b;
   --linkColor: #38b6ff;
@@ -1823,7 +1867,8 @@
   --accentGlow: #ffa64d;
   --primaryColor: #ff7a00;
   --selectedColor: #00c8ff;
-  --sonarrBlue: #ff7a00;
+  --controllarrBlue: #ff7a00;
+  --sonarrBlue: var(--controllarrBlue);
   --themeBlue: #ff7a00;
   --themeAlternateBlue: #00c8ff;
   --linkColor: #ff9429;

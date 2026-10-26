@@ -12,14 +12,14 @@ namespace NzbDrone.Core.Parser
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private static readonly Regex RegionRegex = new Regex(@"\((USA|Europe|Japan|World|En,Fr,De|Asia|Australia|Brazil|Canada|China|France|Germany|Italy|Korea|Netherlands|Spain|Sweden|Taiwan|UK)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex RevisionRegex = new Regex(@"\((?:Rev\s*(?<rev>[A-Z0-9]+)|v(?<ver>\d+(?:\.\d+)*))\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex RegionRegex = new Regex(@"\((?:USA|Europe|Japan|World|Asia|Australia|Brazil|Canada|China|France|Germany|Italy|Korea|Netherlands|Spain|Sweden|Taiwan|UK|En|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Ja|Ko|Zh|,\s*)+\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex RevisionRegex = new Regex(@"(?:\(|\[)(?:Rev\.?\s*(?<rev>[A-Za-z0-9.]+)|v(?<ver>\d+(?:\.\d+)*[A-Za-z]?)|Version\s*(?<ver>[\d.]+)|Alt\s*(?<alt>\d*)|PRG(?<prg>\d+))(?:\)|\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex HardwareRegex = new Regex(@"\((NES 2\.0|Headered|Unheadered)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DumpRegex = new Regex(@"\((Beta|Proto|Demo|Sample)\)|\[(?<tag>!|b|t|h|f|a|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DiscTrackRegex = new Regex(@"\((?:Disc\s*(?<disc>\d+(?:\s*of\s*\d+)?)|Track\s*(?<track>\d+))\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FullSetRegex = new Regex(@"\((Complete Set|Full Set|1G1R|Parent-Clone|[\d\-]+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BracketCleanupRegex = new Regex(@"\[.*?\]|\(.*?\)", RegexOptions.Compiled);
-        private static readonly Regex IndexPrefixRegex = new Regex(@"^(?:0\d{1,3}\s*[-_.)]?\s+|\d{1,4}\s*[-_.)]\s+)", RegexOptions.Compiled);
+        private static readonly Regex IndexPrefixRegex = new Regex(@"^(?:\[#?\d+\]|\(#?\d+\)|#\d+|0\d{1,4})\s*[-_.)]?\s*", RegexOptions.Compiled);
 
         private static readonly string[] IgnoredPrefixes = { "_Top", "A-F", "G-K", "1 USA", "2 Japan", "Translations" };
 
@@ -30,7 +30,19 @@ namespace NzbDrone.Core.Parser
                 return string.Empty;
             }
 
-            return IndexPrefixRegex.Replace(title, string.Empty).Trim();
+            var cleaned = title.Trim();
+            while (IndexPrefixRegex.IsMatch(cleaned))
+            {
+                var next = IndexPrefixRegex.Replace(cleaned, string.Empty).Trim();
+                if (next == cleaned || string.IsNullOrWhiteSpace(next))
+                {
+                    break;
+                }
+
+                cleaned = next;
+            }
+
+            return cleaned;
         }
 
         public static ParsedRomInfo ParseRomName(string title)
@@ -68,20 +80,29 @@ namespace NzbDrone.Core.Parser
             // Regions
             foreach (Match match in RegionRegex.Matches(normalizedTitle))
             {
-                result.Regions.Add(match.Groups[1].Value);
+                var content = match.Value.Trim('(', ')');
+                var tokens = content.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var token in tokens)
+                {
+                    var trimmed = token.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed))
+                    {
+                        result.Regions.Add(trimmed);
+                    }
+                }
+
                 normalizedTitle = normalizedTitle.Replace(match.Value, "");
             }
 
             // Revision / Version
-            var revMatch = RevisionRegex.Match(normalizedTitle);
-            if (revMatch.Success)
+            foreach (Match revMatch in RevisionRegex.Matches(normalizedTitle))
             {
-                if (revMatch.Groups["rev"].Success)
+                if (revMatch.Groups["rev"].Success && string.IsNullOrWhiteSpace(result.Revision))
                 {
                     result.Revision = revMatch.Groups["rev"].Value;
                 }
 
-                if (revMatch.Groups["ver"].Success)
+                if (revMatch.Groups["ver"].Success && string.IsNullOrWhiteSpace(result.Version))
                 {
                     result.Version = revMatch.Groups["ver"].Value;
                 }

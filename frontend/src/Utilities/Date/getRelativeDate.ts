@@ -26,7 +26,7 @@ function getRelativeDate({
   timeForToday = false,
   includeTime = false,
 }: GetRelativeDateOptions) {
-  if (!date) {
+  if (!date || moment(date).year() < 1970) {
     return '';
   }
 

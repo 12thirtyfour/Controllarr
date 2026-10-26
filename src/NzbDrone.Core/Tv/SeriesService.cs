@@ -228,7 +228,7 @@ namespace NzbDrone.Core.Tv
                         {
                             foreach (var season in series.Seasons)
                             {
-                                if (season.SeasonNumber >= 1 && season.SeasonNumber < GameCatalogProxy.RegionUnlicensedSeason)
+                                if (season.SeasonNumber >= 1 && season.SeasonNumber < GameCatalogProxy.RegionHomebrewSeason)
                                 {
                                     season.Monitored = true;
                                 }

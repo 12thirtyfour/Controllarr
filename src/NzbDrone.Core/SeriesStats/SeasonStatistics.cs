@@ -34,7 +34,7 @@ namespace NzbDrone.Core.SeriesStats
 
                 try
                 {
-                    if (!DateTime.TryParse(NextAiringString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out nextAiring))
+                    if (!DateTime.TryParse(NextAiringString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out nextAiring) || nextAiring.Year < 1970)
                     {
                         return null;
                     }
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.SeriesStats
 
                 try
                 {
-                    if (!DateTime.TryParse(PreviousAiringString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out previousAiring))
+                    if (!DateTime.TryParse(PreviousAiringString, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AssumeUniversal, out previousAiring) || previousAiring.Year < 1970)
                     {
                         return null;
                     }

@@ -101,7 +101,7 @@ const useAppPage = () => {
   ]);
 
   const isLocalStorageSupported = useMemo(() => {
-    const key = 'sonarrTest';
+    const key = 'controllarrTest';
 
     try {
       localStorage.setItem(key, key);

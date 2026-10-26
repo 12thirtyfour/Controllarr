@@ -76,7 +76,7 @@ function parseBaseGameAndVersion(item: Episode) {
   }
 
   const match = rawTitle.match(
-    /^(.*?)\s*\((Rev\s*[A-Z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Encrypted[^)]*|Beta[^)]*|Proto[^)]*|Prototype[^)]*|Demo[^)]*|Sample[^)]*|Virtual Console[^)]*|GameCube[^)]*|Classic NES[^)]*|Animal Crossing|e-Reader|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)\)$/i
+    /^(.*?)\s*[\(\[](Rev\.?\s*[A-Za-z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Alt\s*\d*|PRG\d+|Encrypted[^)\]]*|Beta[^)\]]*|Proto[^)\]]*|Prototype[^)\]]*|Demo[^)\]]*|Sample[^)\]]*|Virtual Console[^)\]]*|Re-Release|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)[\)\]]$/i
   );
 
   if (match) {
@@ -222,7 +222,7 @@ function SeriesDetailsSeason({
   const displayRows = useMemo(() => {
     const groupsMap = new Map<
       string,
-      { item: Episode; versionLabel: string }[]
+      { item: Episode; versionLabel: string; baseTitle: string }[]
     >();
 
     items.forEach((item) => {
@@ -231,9 +231,9 @@ function SeriesDetailsSeason({
       const existing = groupsMap.get(key);
 
       if (existing) {
-        existing.push({ item, versionLabel });
+        existing.push({ item, versionLabel, baseTitle });
       } else {
-        groupsMap.set(key, [{ item, versionLabel }]);
+        groupsMap.set(key, [{ item, versionLabel, baseTitle }]);
       }
     });
 
@@ -246,8 +246,19 @@ function SeriesDetailsSeason({
       groupKey: string;
     }[] = [];
 
+    const ARTICLE_REGEX = /^(?:the|a|an)\s+/i;
+    const sortedGroups = Array.from(groupsMap.entries()).sort(
+      ([keyA, entriesA], [keyB, entriesB]) => {
+        const titleA = entriesA[0]?.baseTitle || keyA;
+        const titleB = entriesB[0]?.baseTitle || keyB;
+        const normA = titleA.replace(ARTICLE_REGEX, '').trim().toLowerCase();
+        const normB = titleB.replace(ARTICLE_REGEX, '').trim().toLowerCase();
+        return normA.localeCompare(normB);
+      }
+    );
+
     let groupIndex = 0;
-    groupsMap.forEach((rawEntries, groupKey) => {
+    sortedGroups.forEach(([groupKey, rawEntries]) => {
       const isAlternateGroup = groupIndex % 2 === 1;
       groupIndex++;
 
@@ -281,7 +292,10 @@ function SeriesDetailsSeason({
       if (isGroupExpanded) {
         entries.forEach((entry, idx) => {
           rows.push({
-            item: entry.item,
+            item: {
+              ...entry.item,
+              title: entry.baseTitle,
+            },
             versionLabel: entry.versionLabel,
             isAlternateGroup,
             alternateVersionCount: idx === 0 ? alternateVersionCount : 0,
@@ -311,7 +325,10 @@ function SeriesDetailsSeason({
         const primaryEntry = monitoredEntry ?? fallbackRetail;
 
         rows.push({
-          item: primaryEntry.item,
+          item: {
+            ...primaryEntry.item,
+            title: primaryEntry.baseTitle,
+          },
           versionLabel: primaryEntry.versionLabel,
           isAlternateGroup,
           alternateVersionCount,

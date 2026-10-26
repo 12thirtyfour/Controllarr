@@ -107,6 +107,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
         {
             _existingSeries.Monitored = false;
             _fakeSeries.Monitored = true;
+            _fakeSeries.Seasons.ForEach(s => s.Monitored = false);
 
             GivenExistingSeries();
 

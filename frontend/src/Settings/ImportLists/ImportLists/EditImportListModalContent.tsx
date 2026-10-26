@@ -301,7 +301,7 @@ function EditImportListModalContent({
           })}
 
           <FormRow>
-            <FormLabel>{translate('SonarrTags')}</FormLabel>
+            <FormLabel>{translate('ControllarrTags')}</FormLabel>
             <FormInputHelpText text={translate('ListTagsHelpText')} />
             <FormInput
               type={inputTypes.TAG}

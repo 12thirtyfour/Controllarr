@@ -29,7 +29,7 @@ function ErrorPage(props: ErrorPageProps) {
     systemStatusError,
   } = props;
 
-  let errorMessage = translate('FailedToLoadSonarr');
+  let errorMessage = translate('FailedToLoadControllarr');
 
   if (!isLocalStorageSupported) {
     errorMessage = translate('LocalStorageIsNotSupported');
@@ -41,7 +41,7 @@ function ErrorPage(props: ErrorPageProps) {
   } else if (seriesError) {
     errorMessage = getErrorMessage(
       seriesError,
-      translate('FailedToLoadSeriesFromApi')
+      translate('FailedToLoadPlatformsFromApi')
     );
   } else if (customFiltersError) {
     errorMessage = getErrorMessage(

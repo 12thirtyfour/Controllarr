@@ -52,8 +52,10 @@ namespace NzbDrone.Core.Dat
 
                     var normalizedRelativePath = smdbPath.Replace('\\', '/');
                     var romName = Path.GetFileName(normalizedRelativePath);
-                    var gameName = Path.GetFileNameWithoutExtension(romName);
-                    var parsedRom = RomParser.ParseRomName(romName);
+                    var cleanRomName = RomParser.CleanIndexPrefix(romName);
+                    var gameName = Path.GetFileNameWithoutExtension(cleanRomName);
+                    var cleanGameName = RomParser.CleanIndexPrefix(gameName);
+                    var parsedRom = RomParser.ParseRomName(cleanRomName);
                     var region = parsedRom?.Regions?.FirstOrDefault();
 
                     var sha1 = columns.Length > 2 ? NormalizeHash(columns[2]) : null;
@@ -63,8 +65,8 @@ namespace NzbDrone.Core.Dat
 
                     datEntries.Add(new DatEntry
                     {
-                        GameName = !string.IsNullOrWhiteSpace(gameName) ? gameName : romName,
-                        RomName = romName,
+                        GameName = !string.IsNullOrWhiteSpace(cleanGameName) ? cleanGameName : cleanRomName,
+                        RomName = !string.IsNullOrWhiteSpace(cleanRomName) ? cleanRomName : romName,
                         SmdbPath = smdbPath,
                         Size = size,
                         Sha256 = sha256,

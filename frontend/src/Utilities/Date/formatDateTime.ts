@@ -36,6 +36,9 @@ function formatDateTime(
   }
 
   const dateTime = moment(date);
+  if (!dateTime.isValid() || dateTime.year() < 1970) {
+    return '';
+  }
 
   const relativeDay = getRelativeDay(dateTime, includeRelativeDay);
   const formattedDate = dateTime.format(dateFormat);
