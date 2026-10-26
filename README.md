@@ -105,31 +105,99 @@ Controllarr is built as a high-performance client-server application:
 
 ### Prerequisites
 * [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-* [Node.js](https://nodejs.org/) (v20+ or v24+) & [Yarn](https://yarnpkg.com/)
+* [Node.js](https://nodejs.org/) (v20+ or v24+) & [Yarn](https://yarnpkg.com/) (`corepack enable`)
+* Optional Tools: `mame-tools` (`chdman` for disc compression), `dolphin-emu` (`dolphin-tool`), `p7zip-full`, `sqlite3`
 * Supported OS: macOS (Apple Silicon / Intel), Linux (x64 / ARM64), or Windows (x64).
 
-### Build & Run
+### Build & Run from Source
+
+#### macOS & Linux:
 ```bash
 # 1. Clone the repository
 git clone https://github.com/12thirtyfour/Controllarr.git
 cd Controllarr
+git checkout develop
 
-# 2. Build the React frontend
-yarn install
-yarn build
+# 2. Build the React frontend SPA
+corepack enable
+yarn --cwd frontend install
+yarn --cwd frontend build
 
-# 3. Build the .NET backend
+# 3. Build the .NET backend solution
 dotnet build src/Sonarr.sln --configuration Release
 
 # 4. Launch Controllarr
-# macOS / Linux:
 ./_output/net10.0/Controllarr --nobrowser
+```
 
-# Windows:
+#### Windows:
+```powershell
+# 1. Clone the repository
+git clone https://github.com/12thirtyfour/Controllarr.git
+cd Controllarr
+git checkout develop
+
+# 2. Build the React frontend SPA
+corepack enable
+yarn --cwd frontend install
+yarn --cwd frontend build
+
+# 3. Build the .NET backend solution
+dotnet build src/Sonarr.sln --configuration Release
+
+# 4. Launch Controllarr
 .\_output\net10.0\Controllarr.Console.exe --nobrowser
 ```
 
 Open your browser and navigate to **[http://localhost:7050](http://localhost:7050)**.
+
+### Running as a Linux Systemd Service (Dedicated User)
+
+For security and persistence on Linux servers, never run Controllarr as `root`. Create a dedicated unprivileged system account and manage execution via `systemd`:
+
+```bash
+# 1. Create dedicated system user and group (nologin shell, home at /var/lib/controllarr)
+sudo useradd -r -s /usr/sbin/nologin -d /var/lib/controllarr -m -U controllarr
+
+# 2. Publish Controllarr binaries and frontend to /opt/Controllarr
+sudo mkdir -p /opt/Controllarr
+sudo dotnet publish src/NzbDrone.Console/Controllarr.Console.csproj \
+  --configuration Release \
+  --output /opt/Controllarr \
+  --no-self-contained
+sudo cp -r _output/UI /opt/Controllarr/UI
+
+# 3. Set directory ownership and permissions
+sudo chown -R root:root /opt/Controllarr && sudo chmod -R 755 /opt/Controllarr
+sudo chown -R controllarr:controllarr /var/lib/controllarr && sudo chmod 750 /var/lib/controllarr
+sudo chown -R controllarr:controllarr /data/roms /data/downloads && sudo chmod -R 775 /data/roms /data/downloads
+
+# 4. Install and enable the systemd service unit
+sudo tee /etc/systemd/system/controllarr.service > /dev/null << 'EOF'
+[Unit]
+Description=Controllarr ROM Library Manager
+After=network.target
+
+[Service]
+Type=simple
+User=controllarr
+Group=controllarr
+UMask=0002
+WorkingDirectory=/opt/Controllarr
+ExecStart=/opt/Controllarr/Controllarr -nobrowser -data=/var/lib/controllarr/
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now controllarr
+```
+*(For complete setup walkthroughs, reverse proxy configurations, and database options, see the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide)).*
 
 ### Branches & Releases
 * **`main`** (stable): Every merge to `main` runs the full build and test suite and publishes an official [GitHub Release](https://github.com/12thirtyfour/Controllarr/releases) with binaries for all 10 OS/architecture targets plus the multi-arch Docker image (`ghcr.io/12thirtyfour/controllarr`).

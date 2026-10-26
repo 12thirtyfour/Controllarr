@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Linux Source Build & Systemd Service User Documentation**:
+  - Added complete instructions in [`README.md`](README.md) and the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide) for building Controllarr from source on Linux (Ubuntu/Debian, Fedora, Arch Linux).
+  - Added step-by-step guidance for creating dedicated, unprivileged system service accounts (`controllarr:controllarr`), setting directory ownership and permissions (`/opt/Controllarr`, `/var/lib/controllarr`, `/data/roms`, `/data/downloads`), and configuring a hardened `systemd` daemon unit with `UMask=0002`.
 - **ROM Patcher Dedicated Navigation**:
   - Moved the Cryptographic Hash-Gated Romhack & Translation Patcher (.ips / .bps / .xdelta / .vcdiff) out of Metadata Settings into its own dedicated menu item under `Library` titled `"ROM Patcher"` (`/rom-patcher`).
   - Added full client-side patch file upload and server path inputs with cryptographic hash preview and feedback indicators.
