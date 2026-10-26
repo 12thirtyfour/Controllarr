@@ -24,6 +24,7 @@ namespace NzbDrone.Core.Test.RootFolderTests
         public void Setup()
         {
             _namingConfig = NamingConfig.Default;
+            _namingConfig.SeriesFolderFormat = "{Platform}";
 
             Mocker.GetMock<IDiskProvider>()
                   .Setup(m => m.FolderExists(It.IsAny<string>()))

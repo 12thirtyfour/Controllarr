@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                 DownloadedBytes = 0,
                 Progress = 0.0,
                 SavePath = "somepath",
-                Label = "sonarr-tv"
+                Label = "roms"
             };
 
             _downloading = new HadoukenTorrent
@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                 DownloadedBytes = 100,
                 Progress = 10.0,
                 SavePath = "somepath",
-                Label = "sonarr-tv"
+                Label = "roms"
             };
 
             _failed = new HadoukenTorrent
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                 DownloadedBytes = 100,
                 Progress = 10.0,
                 SavePath = "somepath",
-                Label = "sonarr-tv"
+                Label = "roms"
             };
 
             _completed = new HadoukenTorrent
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                 DownloadedBytes = 1000,
                 Progress = 100.0,
                 SavePath = "somepath",
-                Label = "sonarr-tv"
+                Label = "roms"
             };
 
             Mocker.GetMock<ITorrentFileInfoReader>()
@@ -240,7 +240,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                 DownloadedBytes = 1000,
                 Progress = 100.0,
                 SavePath = "somepath",
-                Label = "sonarr-tv"
+                Label = "roms"
             };
 
             var torrents = new HadoukenTorrent[] { torrent };
@@ -267,7 +267,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.HadoukenTests
                 DownloadedBytes = 1000,
                 Progress = 100.0,
                 SavePath = "somepath",
-                Label = "sonarr-tv-other"
+                Label = "roms-other"
             };
 
             var torrents = new HadoukenTorrent[] { torrent };
