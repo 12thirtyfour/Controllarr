@@ -124,7 +124,7 @@ yarn --cwd frontend install
 yarn --cwd frontend build
 
 # 3. Build the .NET backend solution
-dotnet build src/Sonarr.sln --configuration Release
+dotnet build src/Controllarr.sln --configuration Release
 
 # 4. Launch Controllarr
 ./_output/net10.0/Controllarr --nobrowser
@@ -143,7 +143,7 @@ yarn --cwd frontend install
 yarn --cwd frontend build
 
 # 3. Build the .NET backend solution
-dotnet build src/Sonarr.sln --configuration Release
+dotnet build src/Controllarr.sln --configuration Release
 
 # 4. Launch Controllarr
 .\_output\net10.0\Controllarr.Console.exe --nobrowser

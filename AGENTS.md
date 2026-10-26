@@ -28,7 +28,7 @@
 Match local build/test verification to the scope of the changes made:
 1. **Documentation-only changes** (`README.md`, `ROADMAP.md`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md`, `AGENTS.md`, Wiki): Do **not** run `dotnet build`, `dotnet test`, or `yarn build`.
 2. **Frontend UI / CSS / cosmetic-only changes**: Run `corepack yarn --cwd frontend build` (and `typecheck` when TypeScript interfaces change); do **not** run backend `dotnet build` or `dotnet test`.
-3. **Backend C# logic changes**: Run `dotnet build src/Sonarr.sln --configuration Release` (must yield 0 errors, 0 warnings) and run **targeted** unit tests (`dotnet test --no-build --configuration Release --filter "FullyQualifiedName~<RelevantFixture>"`) covering the modified service/domain.
+3. **Backend C# logic changes**: Run `dotnet build src/Controllarr.sln --configuration Release` (must yield 0 errors, 0 warnings) and run **targeted** unit tests (`dotnet test --no-build --configuration Release --filter "FullyQualifiedName~<RelevantFixture>"`) covering the modified service/domain.
 4. **Full Release / Merge-to-Main Gate**: Run full `dotnet build --configuration Release`, `corepack yarn --cwd frontend build`, and `dotnet test --filter "FullyQualifiedName!~Integration"` before merging `develop` into `main` for an official release.
 5. **Continuous Push to Develop**: Push verified changes to `origin/develop` immediately upon completing and locally validating each task or fix to facilitate seamless syncing across multiple test machines. Prior to every push, strictly enforce local testing to guarantee 0 errors and 0 warnings (0e0w). Do not worry about GitHub Actions or remote CI workflows on push to develop.
 

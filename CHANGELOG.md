@@ -9,6 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Complete Solution & Project Renaming to Controllarr (`Controllarr.*`)**:
+  - Renamed all 24 backend `.csproj` projects from `Sonarr.*` to `Controllarr.*` (including `Controllarr.Core`, `Controllarr.Host`, `Controllarr.Api.V3`, `Controllarr.Api.V5`, `Controllarr.Http`, `Controllarr.Windows`, `Controllarr.Mono`, `Controllarr.Update`, etc.).
+  - Created official `src/Controllarr.sln` solution file.
+  - Updated assembly resolvers, dynamic loaders (`AssemblyLoader.cs`, `ReflectionExtensions.cs`, `AutoMoqer.cs`), `Directory.Build.props`, and build task definitions.
+- **Complete Elimination of TV/Sonarr Terminology in Frontend Filenames & Modules**:
+  - Migrated and replaced all frontend components and folders from TV terminology to video game preservation domain terminology:
+    - `frontend/src/Series/` -> `frontend/src/Platform/` (`PlatformDetails.tsx`, `PlatformIndex.tsx`, `PlatformBanner.tsx`, `PlatformTitleLink.tsx`, `usePlatform.ts`, `PlatformProgressBar.tsx`, etc.)
+    - `frontend/src/Episode/` -> `frontend/src/Game/` (`GameDetailsModal.tsx`, `GameRow.tsx`, `GameStatus.tsx`, `GameNumber.tsx`, `useGame.ts`, `useGames.ts`, etc.)
+    - `frontend/src/EpisodeFile/` -> `frontend/src/RomFile/` (`RomFile.ts`, `useRomFiles.ts`, `RomFileLanguages.tsx`, `RomFileQuality.tsx`, etc.)
+    - `frontend/src/Season/` -> `frontend/src/Region/` (`formatRegion.ts`, `RegionSelectInput.tsx`)
+    - `frontend/src/AddSeries/` -> `frontend/src/AddPlatform/` (`AddNewPlatform.tsx`, `ImportPlatform.tsx`, etc.)
+    - `frontend/src/InteractiveImport/` -> `InteractiveImport/Platform/`, `InteractiveImport/Game/`, `InteractiveImport/Region/`
+    - `frontend/src/Utilities/Series/` -> `frontend/src/Utilities/Platform/` (`getNewPlatform.ts`, `platformTypes.ts`, `filterAlternateTitles.ts`, `monitorOptions.ts`, `monitorNewItemsOptions.ts`, `getProgressBarKind.ts`)
+  - Updated all imports and CSS module composes classes across `frontend/src`, completely eliminating all TV-named files.
 - **Dedicated "Search for Collection" Platform Search**:
   - Added a "Search for Collection" button in the Platform Details view to query indexers specifically for full ROM sets and collections using the new `PlatformCollectionSearchCommand`.
 - **Automatic Indexer Preset Naming**:
