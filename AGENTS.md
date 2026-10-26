@@ -35,6 +35,12 @@ Match local build/test verification to the scope of the changes made:
 ## Terminal Execution (Windows)
 - Always execute `git add`, `git commit`, `git push`, `gh`, `dotnet build`, and `dotnet test` directly without attempting a failing sandboxed run first (the Windows sandbox restricts `.git/index.lock` writes and `vstest.console` loopback sockets).
 
+## Jules Delegation & 5-Minute Check-In Protocol
+- **Proactive Task Splitting & Session Conservation**: For multi-part requests, evaluate whether independent, non-conflicting side tasks can be delegated to **Jules** via GitHub Issues (`gh issue create --label "jules"`). To conserve the 100/day session limit, bundle related side tasks into a single comprehensive issue rather than spawning multiple small issues, and **always reuse existing sessions** for follow-up changes or fixes by commenting on the existing Issue or PR thread instead of creating a new issue.
+- **Exact File & Symbol Verification**: Before creating a GitHub issue for Jules, verify that all file paths and class/method names referenced in the issue body exist in `origin/develop` and do not overlap with files being actively edited locally.
+- **Automatic 5-Minute Check-In Schedule**: Whenever one or more tasks are delegated to Jules, immediately set a recurring 5-minute schedule (`CronExpression: "*/5 * * * *"`) using the `schedule` tool to check `gh pr list --state open` and `gh issue view <id> --comments`.
+- **Review, Merge & Cleanup**: When Jules opens a PR, review the diff, verify it builds/tests cleanly, merge it into `develop` (`gh pr merge <PR> --merge --delete-branch`), pull `origin/develop`, and cancel the recurring schedule task via `manage_task` (`Action: "kill"`) once all delegated Jules tasks are complete.
+
 ## Documentation Synchronization Policy
 - **Mandatory Continuous Documentation Updates**: All documentation (`CHANGELOG.md`, `ROADMAP.md`, `README.md`, `THIRD_PARTY_NOTICES.md`, and the official GitHub Wiki at `https://github.com/12thirtyfour/Controllarr.wiki.git`) must be kept 100% up to date at all times.
 - **Changelog & Roadmap Lifecycle**:
