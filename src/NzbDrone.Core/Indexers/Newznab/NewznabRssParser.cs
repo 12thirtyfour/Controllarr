@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using NzbDrone.Common.Extensions;
@@ -13,6 +14,13 @@ namespace NzbDrone.Core.Indexers.Newznab
     public class NewznabRssParser : RssParser
     {
         public const string ns = "{http://www.newznab.com/DTD/2010/feeds/attributes/}";
+
+        private static readonly HashSet<int> NonGameCategories = new HashSet<int> { 2, 3, 5, 6, 7 };
+        private static readonly HashSet<int> GameCategories = new HashSet<int> { 1, 4, 8 };
+        private static readonly string[] NonGameCategoryTerms = { "tv", "television", "movie", "movies", "music", "audio", "ebook", "ebooks", "book", "books", "xxx", "adult", "erotica" };
+        private static readonly string[] GameCategoryTerms = { "game", "games", "rom", "roms", "console", "nintendo", "sega", "sony", "playstation", "xbox", "atari", "emulator", "emulation" };
+
+        public bool FilterNonGameCategories { get; set; } = true;
 
         public NewznabRssParser()
         {
@@ -86,12 +94,80 @@ namespace NzbDrone.Core.Indexers.Newznab
 
         protected override ReleaseInfo ProcessItem(XElement item, ReleaseInfo releaseInfo)
         {
+            if (FilterNonGameCategories)
+            {
+                var catAttrs = TryGetMultipleNewznabAttributes(item, "category");
+                var categoryElements = item.Elements("category").Select(e => e.Value).ToList();
+
+                var parsedCatIds = new List<int>();
+                foreach (var attr in catAttrs)
+                {
+                    if (int.TryParse(attr, out var catId))
+                    {
+                        parsedCatIds.Add(catId);
+                    }
+                }
+
+                foreach (var catText in categoryElements)
+                {
+                    if (int.TryParse(catText, out var catId))
+                    {
+                        parsedCatIds.Add(catId);
+                    }
+                }
+
+                if (parsedCatIds.Any())
+                {
+                    var hasGameCat = parsedCatIds.Any(c => GameCategories.Contains(c / 1000));
+                    var hasNonGameCat = parsedCatIds.Any(c => NonGameCategories.Contains(c / 1000));
+
+                    if (hasNonGameCat && !hasGameCat)
+                    {
+                        _logger.Debug("Filtering out non-game Newznab item '{0}' in category {1}", item.Title(), string.Join(",", parsedCatIds));
+                        return null;
+                    }
+                }
+                else if (categoryElements.Any())
+                {
+                    var combinedCatText = string.Join(" ", categoryElements).ToLowerInvariant();
+                    var matchesNonGame = NonGameCategoryTerms.Any(t => combinedCatText.Contains(t));
+                    var matchesGame = GameCategoryTerms.Any(t => combinedCatText.Contains(t));
+
+                    if (matchesNonGame && !matchesGame)
+                    {
+                        _logger.Debug("Filtering out non-game Newznab item '{0}' in category '{1}'", item.Title(), combinedCatText);
+                        return null;
+                    }
+                }
+            }
+
             releaseInfo = base.ProcessItem(item, releaseInfo);
+            if (releaseInfo == null)
+            {
+                return null;
+            }
 
             releaseInfo.TvdbId = GetTvdbId(item);
             releaseInfo.TvRageId = GetTvRageId(item);
             releaseInfo.ImdbId = GetImdbId(item);
             releaseInfo.IndexerFlags = GetFlags(item);
+
+            var ext = Path.GetExtension(releaseInfo.Title);
+            if (string.IsNullOrWhiteSpace(ext))
+            {
+                ext = Path.GetExtension(releaseInfo.DownloadUrl);
+            }
+
+            if (!string.IsNullOrWhiteSpace(ext) && ext.Length <= 6)
+            {
+                releaseInfo.Container = ext.TrimStart('.').ToUpperInvariant();
+            }
+
+            releaseInfo.ParsedRomInfo = RomParser.ParseRomName(releaseInfo.Title);
+            if (releaseInfo.ParsedRomInfo != null && !string.IsNullOrWhiteSpace(releaseInfo.Container))
+            {
+                releaseInfo.ParsedRomInfo.Format = releaseInfo.Container.ToLowerInvariant();
+            }
 
             return releaseInfo;
         }

@@ -44,6 +44,7 @@ export interface Release extends ModelBase {
   decision: Decision;
   history?: ReleaseHistory;
   qualityWeight: number;
+  format?: string;
   languages: Language[];
   mappedSeriesId?: number;
   mappedSeasonNumber?: number;
@@ -82,6 +83,7 @@ export interface ReleaseInfo {
   indexerId: number;
   indexer: string;
   title: string;
+  format?: string;
   tvdbId: number;
   tvRageId: number;
   publishDate: string;
@@ -180,10 +182,9 @@ export const FILTER_BUILDER: FilterBuilderProp<Release>[] = [
     type: filterBuilderTypes.NUMBER,
   },
   {
-    name: 'quality',
-    label: () => translate('Quality'),
-    type: filterBuilderTypes.EXACT,
-    valueType: filterBuilderValueTypes.QUALITY,
+    name: 'format',
+    label: () => translate('Format'),
+    type: filterBuilderTypes.STRING,
   },
   {
     name: 'languages',
@@ -276,9 +277,9 @@ const FILTER_PREDICATES = {
     return applyFilterPredicate(item.release.protocol, value, type);
   },
 
-  quality: (item: Release, value: number, type: FilterType) => {
+  format: (item: Release, value: string, type: FilterType) => {
     return applyFilterPredicate(
-      item.parsedInfo.quality.quality.id,
+      item.format || item.release.format || '',
       value,
       type
     );
@@ -345,6 +346,10 @@ const SORT_PREDICATES = {
 
   protocol: (item: Release, _direction: SortDirection) => {
     return item.release.protocol;
+  },
+
+  format: (item: Release, _direction: SortDirection) => {
+    return item.format || item.release.format || '';
   },
 
   qualityWeight: (item: Release, _direction: SortDirection) => {

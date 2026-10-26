@@ -344,6 +344,8 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             var clean = RomParser.CleanIndexPrefix(title.Trim());
+            clean = clean.Replace('.', ' ').Replace('_', ' ');
+
             var parenIdx = clean.IndexOf('(');
             if (parenIdx > 0)
             {
@@ -354,6 +356,13 @@ namespace NzbDrone.Core.DecisionEngine
             if (bracketIdx > 0)
             {
                 clean = clean.Substring(0, bracketIdx);
+            }
+
+            // Strip scene release group tag at end: e.g. "-SUXXORS" or "-VENOM"
+            var lastDashIdx = clean.LastIndexOf('-');
+            if (lastDashIdx > 0 && lastDashIdx > clean.Length - 15)
+            {
+                clean = clean.Substring(0, lastDashIdx);
             }
 
             clean = clean.Trim();

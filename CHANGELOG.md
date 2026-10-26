@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **Internet Archive Platform Compatibility Filtering**:
+  - Created `PlatformCompatibilityValidator` with platform-exclusive extension mapping (30+ console platforms), cartridge vs. disc isolation, folder path hierarchy analysis, and archive metadata validation.
+  - Integrated platform-aware filtering directly into `InternetArchiveRequestGenerator` and `InternetArchiveParser`, preventing cross-platform file bleed when scraping multi-system archive collections.
+  - Cartridge platforms are strictly guarded against optical disc images (`.iso`, `.chd`, `.rvz`, `.wbfs`, `.wua`, etc.), ensuring only valid game formats are accepted.
+- **Interactive Search Format Badging**:
+  - Replaced the legacy Sonarr "Quality" column in the Interactive Search table with a dedicated "Format" column displaying uppercase file extension badges (`.ZIP`, `.7Z`, `.CHD`, `.ISO`, `.SFC`, `.NES`, `.3DS`, `.CIA`, etc.) to quickly identify release packaging.
+  - Exposed `Format` across API release resources in `Controllarr.Api.V5` and `Controllarr.Api.V3`.
+  - Added filter and sorting support for `Format` in frontend release table stores.
+
+### Fixed
+- **Newznab Indexer Game Matching & TV/Anime Bleed Elimination**:
+  - Fixed `NewznabRequestGenerator` to sanitize category queries, stripping non-game categories (5000-5999 TV, 2000-2999 Movies, 3000-3999 Music, 7000-7999 Books) and defaulting to console and PC game categories (`1000-1999`, `8000-8999`).
+  - Added `FilterNonGameCategories` setting on Newznab indexers to drop unwanted TV and anime releases from indexer feeds and multi-category responses.
+  - Cleaned search query terms with `CleanGameTitleForSearch` to strip parenthetical region and language catalog tags from game titles, routing queries cleanly through `t=search`.
+  - Enhanced title comparison in `DownloadDecisionMaker` to replace dot/underscore separators with spaces and strip scene group suffixes (`-GROUP`), enabling scene releases (e.g., `Pokemon Ultra Sun USA 3DS-SUXXORS`) to match monitored library games.
+  - Integrated `PlatformCompatibilityValidator.IsCompatible` into `SeriesSpecification` to reject incompatible file formats during interactive and automated searches.
+
 ### Fixed
 - **Media Management & Naming Settings Crash Resolution**:
   - Resolved runtime `TypeError: Cannot read properties of undefined (reading 'value')` on the Media Management page by aligning backend DTOs (`NamingSettingsResource`, `NamingConfigResource`, `MediaManagementSettingsResource`, `MediaManagementConfigResource`) with video game naming conventions (`standardGameFormat`, `dailyGameFormat`, `renameGames`, `multiGameStyle`, `gameTitleRequired`, `autoUnmonitorPreviouslyDownloadedGames`) while retaining full backwards compatibility.

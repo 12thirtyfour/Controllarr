@@ -18,7 +18,6 @@ import Popover from 'Components/Tooltip/Popover';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
-import GameQuality from 'Game/GameQuality';
 import IndexerFlags from 'Game/IndexerFlags';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import type Series from 'Platform/Platform';
@@ -135,7 +134,6 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     indexerFlags = 0,
     requiresCredentials,
     missingCredentials,
-
   } = release;
 
   const { longDateFormat, timeFormat } = useUiSettingsValues();
@@ -205,7 +203,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     indexerId,
     searchPayload,
     downloadAllowed,
-
+    missingCredentials,
     grabRelease,
     setIsConfirmGrabModalOpen,
   ]);
@@ -361,8 +359,14 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         <GameLanguages languages={languages} />
       </VirtualTableRowCell>
 
-      <VirtualTableRowCell className={styles.quality}>
-        <GameQuality quality={quality} showRevision={true} />
+      <VirtualTableRowCell className={styles.format}>
+        {release.format || (props as any).format ? (
+          <span className={styles.formatBadge}>
+            {release.format || (props as any).format}
+          </span>
+        ) : (
+          <span className={styles.formatBadge}>-</span>
+        )}
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.customFormatScore}>

@@ -53,6 +53,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             Categories = new[] { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 8000, 8010 };
             MultiLanguages = Array.Empty<int>();
             FailDownloads = Array.Empty<int>();
+            FilterNonGameCategories = true;
         }
 
         [FieldDefinition(0, Label = "URL")]
@@ -76,6 +77,9 @@ namespace NzbDrone.Core.Indexers.Newznab
 
         [FieldDefinition(6, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText")]
         public IEnumerable<int> FailDownloads { get; set; }
+
+        [FieldDefinition(11, Type = FieldType.Checkbox, Label = "Filter Non-Game Categories", HelpText = "Filter out TV, anime, movie, music, and book results from indexer feeds", Advanced = true)]
+        public bool FilterNonGameCategories { get; set; } = true;
 
         // Field 8 is used by TorznabSettings MinimumSeeders
         // If you need to add another field here, update TorznabSettings as well and this comment

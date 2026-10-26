@@ -15,6 +15,7 @@ public class ReleaseResource : RestResource
     public ReleaseDecisionResource? Decision { get; set; }
     public ReleaseHistoryResource? History { get; set; }
     public int QualityWeight { get; set; }
+    public string? Format { get; set; }
     public List<Language> Languages { get; set; } = [];
     public int? MappedSeasonNumber { get; set; }
     public int[] MappedEpisodeNumbers { get; set; } = [];
@@ -37,8 +38,13 @@ public static class ReleaseResourceMapper
         var parsedEpisodeInfo = model.RemoteEpisode.ParsedEpisodeInfo;
         var remoteEpisode = model.RemoteEpisode;
 
+        var format = releaseInfo.ParsedRomInfo?.Format ??
+                     releaseInfo.Container ??
+                     (!string.IsNullOrWhiteSpace(releaseInfo.Title) ? Path.GetExtension(releaseInfo.Title)?.TrimStart('.').ToUpperInvariant() : null);
+
         return new ReleaseResource
         {
+            Format = format?.ToUpperInvariant(),
             ParsedInfo = parsedEpisodeInfo.ToResource(),
             Release = releaseInfo.ToResource(),
             Decision = new ReleaseDecisionResource(model),

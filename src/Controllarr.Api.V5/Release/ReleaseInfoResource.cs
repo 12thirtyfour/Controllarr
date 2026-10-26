@@ -13,6 +13,7 @@ public class ReleaseInfoResource
     public int IndexerId { get; set; }
     public string? Indexer { get; set; }
     public string? Title { get; set; }
+    public string? Format { get; set; }
     public int TvdbId { get; set; }
     public int TvRageId { get; set; }
     public string? ImdbId { get; set; }
@@ -37,6 +38,10 @@ public static class ReleaseInfoResourceMapper
         var torrentInfo = releaseInfo as TorrentInfo ?? new TorrentInfo();
         var indexerFlags = torrentInfo.IndexerFlags;
 
+        var format = releaseInfo.ParsedRomInfo?.Format ??
+                     releaseInfo.Container ??
+                     (!string.IsNullOrWhiteSpace(releaseInfo.Title) ? Path.GetExtension(releaseInfo.Title)?.TrimStart('.').ToUpperInvariant() : null);
+
         return new ReleaseInfoResource
         {
             Guid = releaseInfo.Guid,
@@ -47,6 +52,7 @@ public static class ReleaseInfoResourceMapper
             IndexerId = releaseInfo.IndexerId,
             Indexer = releaseInfo.Indexer,
             Title = releaseInfo.Title,
+            Format = format?.ToUpperInvariant(),
             TvdbId = releaseInfo.TvdbId,
             TvRageId = releaseInfo.TvRageId,
             ImdbId = releaseInfo.ImdbId,

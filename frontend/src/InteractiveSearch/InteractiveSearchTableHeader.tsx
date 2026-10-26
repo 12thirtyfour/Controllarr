@@ -14,7 +14,7 @@ const COLUMN_CLASS_NAMES: Record<string, string> = {
   size: 'size',
   peers: 'peers',
   languages: 'languages',
-  qualityWeight: 'quality',
+  format: 'format',
   customFormatScore: 'customFormatScore',
   indexerFlags: 'indexerFlags',
   rejections: 'rejected',

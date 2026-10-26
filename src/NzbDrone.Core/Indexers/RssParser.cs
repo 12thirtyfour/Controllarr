@@ -147,6 +147,11 @@ namespace NzbDrone.Core.Indexers
 
             releaseInfo = ProcessItem(item, releaseInfo);
 
+            if (releaseInfo == null)
+            {
+                return null;
+            }
+
             _logger.Trace("Parsed: {0}", releaseInfo.Title);
 
             return PostProcessItem(item, releaseInfo);

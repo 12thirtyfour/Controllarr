@@ -147,6 +147,29 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             var baseUrl = _settings?.BaseUrl?.TrimEnd('/') ?? "https://archive.org";
             var results = new List<ReleaseInfo>();
 
+            string platformSlug = null;
+            string platformName = null;
+
+            var platformIdx = requestUrl.IndexOf("_platform=", StringComparison.OrdinalIgnoreCase);
+            if (platformIdx >= 0)
+            {
+                var endIdx = requestUrl.IndexOf('&', platformIdx);
+                var rawSlug = endIdx >= 0
+                    ? requestUrl.Substring(platformIdx + 10, endIdx - (platformIdx + 10))
+                    : requestUrl.Substring(platformIdx + 10);
+                platformSlug = Uri.UnescapeDataString(rawSlug);
+            }
+
+            var platformNameIdx = requestUrl.IndexOf("_platformName=", StringComparison.OrdinalIgnoreCase);
+            if (platformNameIdx >= 0)
+            {
+                var endIdx = requestUrl.IndexOf('&', platformNameIdx);
+                var rawName = endIdx >= 0
+                    ? requestUrl.Substring(platformNameIdx + 14, endIdx - (platformNameIdx + 14))
+                    : requestUrl.Substring(platformNameIdx + 14);
+                platformName = Uri.UnescapeDataString(rawName);
+            }
+
             if (requestUrl.Contains("/metadata/", StringComparison.OrdinalIgnoreCase))
             {
                 var match = MetadataIdentifierRegex.Match(requestUrl);
@@ -156,7 +179,9 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 var queryIdx = requestUrl.IndexOf("?search=", StringComparison.OrdinalIgnoreCase);
                 if (queryIdx >= 0)
                 {
-                    searchTerm = Uri.UnescapeDataString(requestUrl[(queryIdx + 8)..]);
+                    var searchSub = requestUrl[(queryIdx + 8)..];
+                    var nextParamIdx = searchSub.IndexOf('&');
+                    searchTerm = Uri.UnescapeDataString(nextParamIdx >= 0 ? searchSub[..nextParamIdx] : searchSub);
                 }
 
                 InternetArchiveMetadataResponse metadataResponse;
@@ -187,6 +212,12 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                         continue;
                     }
 
+                    if (!string.IsNullOrWhiteSpace(platformSlug) &&
+                        !PlatformCompatibilityValidator.IsCompatible(file.Name, platformSlug, platformName, file.Format, archiveId))
+                    {
+                        continue;
+                    }
+
                     var fileNameOnly = Path.GetFileName(file.Name);
                     if (!string.IsNullOrWhiteSpace(searchTerm))
                     {
@@ -204,6 +235,12 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                         ? DateTimeOffset.FromUnixTimeSeconds(file.Mtime.Value).UtcDateTime
                         : DateTime.UtcNow;
                     var requiresCredentials = file.IsPrivate() || (_settings != null && _settings.RequireCredentials);
+                    var container = !string.IsNullOrWhiteSpace(ext) ? ext.TrimStart('.').ToUpperInvariant() : null;
+                    var parsedRomInfo = RomParser.ParseRomName(file.Name);
+                    if (parsedRomInfo != null && !string.IsNullOrWhiteSpace(container))
+                    {
+                        parsedRomInfo.Format = container.ToLowerInvariant();
+                    }
 
                     var releaseInfo = new ReleaseInfo
                     {
@@ -214,7 +251,10 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                         InfoUrl = $"{baseUrl}/details/{archiveId}",
                         DownloadProtocol = DownloadProtocol.Http,
                         PublishDate = publishDate,
-                        RequiresCredentials = requiresCredentials
+                        RequiresCredentials = requiresCredentials,
+                        Origin = file.Name,
+                        Container = container,
+                        ParsedRomInfo = parsedRomInfo
                     };
 
                     results.Add(releaseInfo);
@@ -247,8 +287,21 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 }
 
                 var title = doc.Title.IsNotNullOrWhiteSpace() ? doc.Title : doc.Identifier;
+                if (!string.IsNullOrWhiteSpace(platformSlug) &&
+                    !PlatformCompatibilityValidator.IsCompatible(title, platformSlug, platformName, doc.Mediatype, doc.Identifier))
+                {
+                    continue;
+                }
+
                 var publishDate = doc.PublicDate ?? doc.Date ?? DateTime.UtcNow;
                 var requiresCredentials = doc.IsAccessRestricted() || (_settings != null && _settings.RequireCredentials);
+                var docExt = Path.GetExtension(title);
+                var docContainer = !string.IsNullOrWhiteSpace(docExt) && docExt.Length <= 6 ? docExt.TrimStart('.').ToUpperInvariant() : null;
+                var docRomInfo = RomParser.ParseRomName(title);
+                if (docRomInfo != null && !string.IsNullOrWhiteSpace(docContainer))
+                {
+                    docRomInfo.Format = docContainer.ToLowerInvariant();
+                }
 
                 var releaseInfo = new ReleaseInfo
                 {
@@ -259,7 +312,9 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     InfoUrl = $"{baseUrl}/details/{doc.Identifier}",
                     DownloadProtocol = DownloadProtocol.Http,
                     PublishDate = publishDate.ToUniversalTime(),
-                    RequiresCredentials = requiresCredentials
+                    RequiresCredentials = requiresCredentials,
+                    Container = docContainer,
+                    ParsedRomInfo = docRomInfo
                 };
 
                 results.Add(releaseInfo);

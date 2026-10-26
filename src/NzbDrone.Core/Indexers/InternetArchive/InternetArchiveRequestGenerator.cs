@@ -119,6 +119,18 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 }
             }
 
+            var platformSlug = searchCriteria.Series?.TitleSlug;
+            var platformName = searchCriteria.Series?.Title;
+            var platformParam = string.Empty;
+            if (!string.IsNullOrWhiteSpace(platformSlug))
+            {
+                platformParam = $"&_platform={Uri.EscapeDataString(platformSlug)}";
+                if (!string.IsNullOrWhiteSpace(platformName))
+                {
+                    platformParam += $"&_platformName={Uri.EscapeDataString(platformName)}";
+                }
+            }
+
             var primaryArchiveIds = Settings?.PrimaryArchiveUrls?
                 .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -135,7 +147,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 {
                     foreach (var archiveId in primaryArchiveIds)
                     {
-                        var url = $"{baseUrl}/metadata/{archiveId}/files?search={Uri.EscapeDataString(term)}";
+                        var url = $"{baseUrl}/metadata/{archiveId}/files?search={Uri.EscapeDataString(term)}{platformParam}";
                         primaryRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
                     }
                 }
@@ -148,7 +160,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
             foreach (var term in terms.Distinct())
             {
-                pageableRequests.Add(GetPagedRequests(term));
+                pageableRequests.Add(GetPagedRequests(term, platformParam));
             }
 
             return pageableRequests;
@@ -177,14 +189,14 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             return clean.Trim();
         }
 
-        private IEnumerable<IndexerRequest> GetPagedRequests(string term)
+        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "")
         {
             var query = BuildQuery(term);
             var baseUrl = Settings.BaseUrl.TrimEnd('/');
 
             for (var page = 1; page <= MaxPages; page++)
             {
-                var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&fl[]=access-restricted-item&sort[]=publicdate+desc&rows={PageSize}&page={page}&output=json";
+                var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&fl[]=access-restricted-item&sort[]=publicdate+desc&rows={PageSize}&page={page}&output=json{platformParam}";
                 yield return new IndexerRequest(new HttpRequest(url, HttpAccept.Json));
             }
         }

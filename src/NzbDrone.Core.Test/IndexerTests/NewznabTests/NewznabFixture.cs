@@ -33,7 +33,8 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
                     Settings = new NewznabSettings()
                         {
                             BaseUrl = "http://indexer.local/",
-                            Categories = new int[] { 1 }
+                            Categories = new int[] { 1 },
+                            FilterNonGameCategories = false
                         }
                 };
 
@@ -190,6 +191,36 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             var release = releases.Should().ContainSingle(r => r.Guid == releaseGuid).Subject;
 
             indexerFlags.ForEach(f => release.IndexerFlags.Should().HaveFlag(f));
+        }
+
+        [Test]
+        public async Task should_filter_out_tv_and_anime_categories_when_filter_is_enabled()
+        {
+            ((NewznabSettings)Subject.Definition.Settings).FilterNonGameCategories = true;
+            var recentFeed = ReadAllText(@"Files/Indexers/Newznab/newznab_nzb_su.xml");
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), recentFeed));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().BeEmpty();
+        }
+
+        [Test]
+        public async Task should_filter_out_anime_categories_when_filter_is_enabled()
+        {
+            ((NewznabSettings)Subject.Definition.Settings).FilterNonGameCategories = true;
+            var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_animetosho.xml");
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), recentFeed));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().BeEmpty();
         }
     }
 }

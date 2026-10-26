@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
 using NzbDrone.Core.DecisionEngine;
@@ -19,6 +20,7 @@ namespace Sonarr.Api.V3.Indexers
         public string Guid { get; set; }
         public QualityModel Quality { get; set; }
         public int QualityWeight { get; set; }
+        public string Format { get; set; }
         public int Age { get; set; }
         public double AgeHours { get; set; }
         public double AgeMinutes { get; set; }
@@ -105,10 +107,15 @@ namespace Sonarr.Api.V3.Indexers
             var torrentInfo = (model.RemoteEpisode.Release as TorrentInfo) ?? new TorrentInfo();
             var indexerFlags = torrentInfo.IndexerFlags;
 
+            var format = releaseInfo.ParsedRomInfo?.Format ??
+                         releaseInfo.Container ??
+                         (!string.IsNullOrWhiteSpace(releaseInfo.Title) ? Path.GetExtension(releaseInfo.Title)?.TrimStart('.').ToUpperInvariant() : null);
+
             return new ReleaseResource
             {
                 Guid = releaseInfo.Guid,
                 Quality = parsedEpisodeInfo.Quality,
+                Format = format?.ToUpperInvariant(),
 
                 // QualityWeight
                 Age = releaseInfo.Age,

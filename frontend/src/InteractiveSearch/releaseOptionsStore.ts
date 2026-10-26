@@ -76,8 +76,8 @@ const { useOptions, useOption, getOptions, getOption, setOptions, setOption } =
           isVisible: true,
         },
         {
-          name: 'qualityWeight',
-          label: () => translate('Quality'),
+          name: 'format',
+          label: () => translate('Format'),
           isSortable: true,
           isVisible: true,
         },

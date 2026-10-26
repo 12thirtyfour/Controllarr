@@ -238,13 +238,28 @@ namespace NzbDrone.Core.Indexers.Newznab
                 {
                     if (!string.IsNullOrWhiteSpace(ep.Title))
                     {
+                        var cleanBase = CleanGameTitleForSearch(ep.Title);
+                        if (!string.IsNullOrWhiteSpace(cleanBase))
+                        {
+                            queryTitles.Add(cleanBase);
+                        }
+
                         queryTitles.Add(ep.Title);
                     }
                 }
 
                 if (searchCriteria.SceneTitles != null)
                 {
-                    queryTitles.AddRange(searchCriteria.SceneTitles.Where(t => !string.IsNullOrWhiteSpace(t)));
+                    foreach (var sceneTitle in searchCriteria.SceneTitles.Where(t => !string.IsNullOrWhiteSpace(t)))
+                    {
+                        var cleanBase = CleanGameTitleForSearch(sceneTitle);
+                        if (!string.IsNullOrWhiteSpace(cleanBase))
+                        {
+                            queryTitles.Add(cleanBase);
+                        }
+
+                        queryTitles.Add(sceneTitle);
+                    }
                 }
 
                 var distinctTerms = new List<string>();
@@ -263,12 +278,10 @@ namespace NzbDrone.Core.Indexers.Newznab
                     }
                 }
 
-                var searchType = SupportsSearch || !SupportsTvTextSearches ? "search" : "tvsearch";
-
                 foreach (var term in distinctTerms)
                 {
                     var query = NewsnabifyTitle(term);
-                    pageableRequests.Add(GetPagedRequests(MaxPages, categories, searchType, $"&q={query}"));
+                    pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", $"&q={query}"));
                 }
 
                 return pageableRequests;
@@ -324,9 +337,10 @@ namespace NzbDrone.Core.Indexers.Newznab
                 return pageableRequests;
             }
 
+            var categories = GetSearchCategories(searchCriteria);
+
             if (isCollectionSearch)
             {
-                var searchType = SupportsSearch || !SupportsTvTextSearches ? "search" : "tvsearch";
                 var terms = searchCriteria.SceneTitles?.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
 
                 if (terms.Empty() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
@@ -337,7 +351,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                 foreach (var term in terms)
                 {
                     var query = NewsnabifyTitle(term);
-                    pageableRequests.Add(GetPagedRequests(MaxPages, Settings.Categories, searchType, $"&q={query}"));
+                    pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", $"&q={query}"));
                 }
 
                 return pageableRequests;
@@ -348,7 +362,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTvIdPageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     parameters);
             }
@@ -356,7 +370,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     parameters);
             }
@@ -366,7 +380,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     parameters);
             }
@@ -392,10 +406,12 @@ namespace NzbDrone.Core.Indexers.Newznab
                 return pageableRequests;
             }
 
+            var categories = GetSearchCategories(searchCriteria);
+
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTvIdPageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={searchCriteria.AirDate:yyyy}&ep={searchCriteria.AirDate:MM}/{searchCriteria.AirDate:dd}");
             }
@@ -403,7 +419,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={searchCriteria.AirDate:yyyy}&ep={searchCriteria.AirDate:MM}/{searchCriteria.AirDate:dd}");
             }
@@ -413,7 +429,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={searchCriteria.AirDate:yyyy}&ep={searchCriteria.AirDate:MM}/{searchCriteria.AirDate:dd}");
             }
@@ -439,10 +455,12 @@ namespace NzbDrone.Core.Indexers.Newznab
                 return pageableRequests;
             }
 
+            var categories = GetSearchCategories(searchCriteria);
+
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTvIdPageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={searchCriteria.Year}");
             }
@@ -450,7 +468,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={searchCriteria.Year}");
             }
@@ -460,7 +478,7 @@ namespace NzbDrone.Core.Indexers.Newznab
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
                 AddTitlePageableRequests(pageableRequests,
-                    Settings.Categories,
+                    categories,
                     searchCriteria,
                     $"&season={searchCriteria.Year}");
             }
@@ -647,9 +665,43 @@ namespace NzbDrone.Core.Indexers.Newznab
             return seasonNumber == 0 ? "00" : seasonNumber.ToString();
         }
 
+        private static readonly HashSet<int> NonGameCategoryHundreds = new HashSet<int> { 2, 3, 5, 6, 7 };
+
         private IList<int> GetSearchCategories(SearchCriteriaBase searchCriteria)
         {
-            return Settings.Categories.ToList();
+            var categories = Settings?.Categories?
+                .Where(cat => !NonGameCategoryHundreds.Contains(cat / 1000))
+                .ToList() ?? new List<int>();
+
+            if (categories.Empty())
+            {
+                categories = new List<int> { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 8000, 8010 };
+            }
+
+            return categories;
+        }
+
+        private static string CleanGameTitleForSearch(string rawTitle)
+        {
+            if (string.IsNullOrWhiteSpace(rawTitle))
+            {
+                return string.Empty;
+            }
+
+            var clean = rawTitle;
+            var parenIdx = clean.IndexOf('(');
+            if (parenIdx > 0)
+            {
+                clean = clean.Substring(0, parenIdx);
+            }
+
+            var bracketIdx = clean.IndexOf('[');
+            if (bracketIdx > 0)
+            {
+                clean = clean.Substring(0, bracketIdx);
+            }
+
+            return clean.Trim();
         }
     }
 }

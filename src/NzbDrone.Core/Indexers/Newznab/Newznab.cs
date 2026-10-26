@@ -42,7 +42,10 @@ namespace NzbDrone.Core.Indexers.Newznab
 
         public override IParseIndexerResponse GetParser()
         {
-            return new NewznabRssParser();
+            return new NewznabRssParser
+            {
+                FilterNonGameCategories = Settings?.FilterNonGameCategories ?? true
+            };
         }
 
         public override IEnumerable<ProviderDefinition> DefaultDefinitions
