@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
                 Port = 2222,
                 Username = "admin",
                 Password = "pass",
-                TvCategory = "tv"
+                TvCategory = "roms"
             };
 
             Mocker.GetMock<ITorrentFileInfoReader>()
@@ -616,7 +616,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             Mocker.GetMock<IQBittorrentProxy>()
                 .Setup(s => s.GetLabels(It.IsAny<QBittorrentSettings>()))
                 .Returns(new Dictionary<string, QBittorrentLabel>
-                    { { "tv", new QBittorrentLabel { Name = "tv", SavePath = "//server/store/downloads" } } });
+                    { { "roms", new QBittorrentLabel { Name = "roms", SavePath = "//server/store/downloads" } } });
 
             var result = Subject.GetStatus();
 

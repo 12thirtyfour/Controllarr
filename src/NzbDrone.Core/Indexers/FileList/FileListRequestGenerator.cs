@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Indexers.FileList
         {
             var pageableRequests = new IndexerPageableRequestChain();
 
-            pageableRequests.Add(GetRequest("latest-torrents", Settings.Categories.Concat(Settings.AnimeCategories), ""));
+            pageableRequests.Add(GetRequest("latest-torrents", Settings.Categories, ""));
 
             return pageableRequests;
         }
@@ -81,37 +81,12 @@ namespace NzbDrone.Core.Indexers.FileList
 
         public IndexerPageableRequestChain GetSearchRequests(AnimeEpisodeSearchCriteria searchCriteria)
         {
-            var pageableRequests = new IndexerPageableRequestChain();
-
-            // FileList has absolute releases in E01 format but also release sin S01E01 format, likely by imdb numbering but we only have tvdb numbering... so we try those as fallback to abs.
-            AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.AnimeCategories, $"&season=0&episode={searchCriteria.AbsoluteEpisodeNumber}");
-            pageableRequests.AddTier();
-            foreach (var eps in searchCriteria.Episodes)
-            {
-                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.AnimeCategories, $"&season={eps.SeasonNumber}&episode={eps.EpisodeNumber}");
-            }
-
-            pageableRequests.AddTier();
-
-            AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.AnimeCategories, $"&season=0&episode={searchCriteria.AbsoluteEpisodeNumber}");
-            pageableRequests.AddTier();
-            foreach (var eps in searchCriteria.Episodes)
-            {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.AnimeCategories, $"&season={eps.SeasonNumber}&episode={eps.EpisodeNumber}");
-            }
-
-            return pageableRequests;
+            return new IndexerPageableRequestChain();
         }
 
         public IndexerPageableRequestChain GetSearchRequests(AnimeSeasonSearchCriteria searchCriteria)
         {
-            var pageableRequests = new IndexerPageableRequestChain();
-
-            AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.AnimeCategories, $"&season={searchCriteria.SeasonNumber}");
-            pageableRequests.AddTier();
-            AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.AnimeCategories, $"&season={searchCriteria.SeasonNumber}");
-
-            return pageableRequests;
+            return new IndexerPageableRequestChain();
         }
 
         public IndexerPageableRequestChain GetSearchRequests(SpecialEpisodeSearchCriteria searchCriteria)

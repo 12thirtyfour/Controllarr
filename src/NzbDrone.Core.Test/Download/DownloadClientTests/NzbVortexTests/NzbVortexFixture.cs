@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
                                               Host = "127.0.0.1",
                                               Port = 2222,
                                               ApiKey = "1234-ABCD",
-                                              TvCategory = "tv",
+                                              TvCategory = "roms",
                                               RecentTvPriority = (int)NzbgetPriority.High
                                           };
 
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
                     Id = RandomNumber,
                     DownloadedSize = 1000,
                     TotalDownloadSize = 10,
-                    GroupName = "tv",
+                    GroupName = "roms",
                     UiTitle = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE"
                 };
 
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
                 {
                     DownloadedSize = 1000,
                     TotalDownloadSize = 1000,
-                    GroupName = "tv",
+                    GroupName = "roms",
                     UiTitle = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
                     DestinationPath = "somedirectory",
                     State =  NzbVortexStateType.UncompressFailed,
@@ -60,9 +60,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
                 {
                     DownloadedSize = 1000,
                     TotalDownloadSize = 1000,
-                    GroupName = "tv",
+                    GroupName = "roms",
                     UiTitle = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
-                    DestinationPath = "/remote/mount/tv/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
+                    DestinationPath = "/remote/mount/roms/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
                     State = NzbVortexStateType.Done
                 };
         }

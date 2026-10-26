@@ -28,7 +28,7 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
         {
             Host = "localhost";
             Port = 6789;
-            TvCategory = "tv";
+            TvCategory = "roms";
             RecentTvPriority = (int)NzbgetPriority.Normal;
             OlderTvPriority = (int)NzbgetPriority.Normal;
         }

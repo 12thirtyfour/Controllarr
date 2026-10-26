@@ -44,17 +44,8 @@ namespace NzbDrone.Core.Test.IndexerTests.FanzubTests
         }
 
         [Test]
-        public void should_not_search_season()
-        {
-            var results = Subject.GetSearchRequests(_seasonSearchCriteria);
-
-            results.GetAllTiers().Should().HaveCount(0);
-        }
-
-        [Test]
         public void should_search_season()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_seasonSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
@@ -65,21 +56,8 @@ namespace NzbDrone.Core.Test.IndexerTests.FanzubTests
         }
 
         [Test]
-        public void should_use_only_absolute_numbering_for_anime_search()
-        {
-            var results = Subject.GetSearchRequests(_animeSearchCriteria);
-
-            results.GetAllTiers().Should().HaveCount(1);
-
-            var page = results.GetAllTiers().First().First();
-
-            page.Url.FullUri.Should().Contain("q=\"Naruto+Shippuuden%2009\"|\"Naruto+Shippuuden%20-%2009\"");
-        }
-
-        [Test]
         public void should_also_use_standard_numbering_for_anime_search()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
@@ -92,7 +70,6 @@ namespace NzbDrone.Core.Test.IndexerTests.FanzubTests
         [Test]
         public void should_search_by_standard_season_number()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);

@@ -44,17 +44,8 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
         }
 
         [Test]
-        public void should_not_search_season()
-        {
-            var results = Subject.GetSearchRequests(_seasonSearchCriteria);
-
-            results.GetAllTiers().Should().HaveCount(0);
-        }
-
-        [Test]
         public void should_search_season()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_seasonSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
@@ -65,21 +56,8 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
         }
 
         [Test]
-        public void should_use_only_absolute_numbering_for_anime_search()
-        {
-            var results = Subject.GetSearchRequests(_animeSearchCriteria);
-
-            results.GetTier(0).Should().HaveCount(2);
-            var pages = results.GetTier(0).Take(2).Select(t => t.First()).ToList();
-
-            pages[0].Url.FullUri.Should().Contain("term=Naruto+Shippuuden+9");
-            pages[1].Url.FullUri.Should().Contain("term=Naruto+Shippuuden+09");
-        }
-
-        [Test]
         public void should_also_use_standard_numbering_for_anime_search()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_animeSearchCriteria);
 
             results.GetTier(0).Should().HaveCount(3);
@@ -93,7 +71,6 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
         [Test]
         public void should_search_by_standard_season_number()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
@@ -106,20 +83,6 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
         [Test]
         public void should_search_season_title_alias_without_the_season_number()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
-            _animeSeasonSearchCriteria.SeasonSceneTitles = new List<string> { "Naruto Shippuuden" };
-
-            var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
-
-            results.GetTier(0).Should().HaveCount(1);
-            results.GetTier(0).First().First().Url.FullUri.Should().Contain("term=Naruto+Shippuuden");
-            results.GetTier(0).First().First().Url.FullUri.Should().NotContain("s03");
-        }
-
-        [Test]
-        public void should_search_season_title_alias_when_standard_format_search_is_disabled()
-        {
-            Subject.Settings.AnimeStandardFormatSearch = false;
             _animeSeasonSearchCriteria.SeasonSceneTitles = new List<string> { "Naruto Shippuuden" };
 
             var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
@@ -132,7 +95,6 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
         [Test]
         public void should_only_search_the_season_title_without_the_season_number()
         {
-            Subject.Settings.AnimeStandardFormatSearch = true;
             _animeSeasonSearchCriteria.SceneTitles = new List<string> { "Naruto", "Naruto Shippuuden" };
             _animeSeasonSearchCriteria.SeasonSceneTitles = new List<string> { "Naruto Shippuuden" };
 

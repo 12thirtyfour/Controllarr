@@ -37,6 +37,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         public string RegionName { get; set; }
         public int EpisodeNumber { get; set; }
         public int ReleaseYear { get; set; }
+        public string ReleaseDateString { get; set; }
         public DateTime FirstAired { get; set; }
         public string Overview { get; set; }
         public string PosterUrl { get; set; }

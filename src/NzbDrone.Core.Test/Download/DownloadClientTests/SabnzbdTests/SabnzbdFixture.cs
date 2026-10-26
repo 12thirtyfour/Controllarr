@@ -38,7 +38,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                                               ApiKey = "5c770e3197e4fe763423ee7c392c25d1",
                                               Username = "admin",
                                               Password = "pass",
-                                              TvCategory = "tv",
+                                              TvCategory = "roms",
                                               RecentTvPriority = (int)SabnzbdPriority.High
                                           };
             _queued = new SabnzbdQueue
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                             Size = 1000,
                             Sizeleft = 10,
                             Timeleft = TimeSpan.FromSeconds(10),
-                            Category = "tv",
+                            Category = "roms",
                             Id = "sabnzbd_nzb12345",
                             Title = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE"
                         }
@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                         {
                             Status = SabnzbdDownloadStatus.Failed,
                             Size = 1000,
-                            Category = "tv",
+                            Category = "roms",
                             Id = "sabnzbd_nzb12345",
                             Title = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE"
                         }
@@ -83,7 +83,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                         {
                             Status = SabnzbdDownloadStatus.Completed,
                             Size = 1000,
-                            Category = "tv",
+                            Category = "roms",
                             Id = "sabnzbd_nzb12345",
                             Title = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
                             Storage = "/remote/mount/vv/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE"
@@ -99,7 +99,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                         },
                     Categories = new List<SabnzbdCategory>
                         {
-                            new SabnzbdCategory  { Name = "tv", Dir = "vv" }
+                            new SabnzbdCategory  { Name = "roms", Dir = "vv" }
                         }
                 };
 
@@ -613,7 +613,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
             _config.Sorters = Builder<SabnzbdSorter>.CreateListOfSize(1)
                 .All()
                 .With(s => s.is_active = true)
-                .With(s => s.sort_cats = new List<string> { "tv" })
+                .With(s => s.sort_cats = new List<string> { "roms" })
                 .Build()
                 .ToList();
 
@@ -670,7 +670,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         public void should_test_failed_if_tv_sorting_contains_category()
         {
             _config.Misc.enable_tv_sorting = true;
-            _config.Misc.tv_categories = new[] { "tv" };
+            _config.Misc.tv_categories = new[] { "roms" };
 
             var result = new NzbDroneValidationResult(Subject.Test());
 

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Equ;
 using FluentValidation;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Validation;
@@ -17,13 +16,7 @@ namespace NzbDrone.Core.Indexers.FileList
             RuleFor(c => c.Username).NotEmpty();
             RuleFor(c => c.Passkey).NotEmpty();
 
-            RuleFor(c => c).Custom((c, context) =>
-            {
-                if (c.Categories.Empty() && c.AnimeCategories.Empty())
-                {
-                    context.AddFailure("Either 'Categories' or 'Anime Categories' must be provided");
-                }
-            });
+            RuleFor(c => c.Categories).NotEmpty().WithMessage("'Categories' must be provided");
 
             RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator());
         }
@@ -45,7 +38,6 @@ namespace NzbDrone.Core.Indexers.FileList
                 (int)FileListCategories.TV_4K
             };
 
-            AnimeCategories = Array.Empty<int>();
             MultiLanguages = Array.Empty<int>();
             FailDownloads = Array.Empty<int>();
         }
@@ -64,9 +56,6 @@ namespace NzbDrone.Core.Indexers.FileList
 
         [FieldDefinition(4, Label = "IndexerSettingsCategories", Type = FieldType.Select, SelectOptions = typeof(FileListCategories), HelpText = "IndexerSettingsCategoriesHelpText")]
         public IEnumerable<int> Categories { get; set; }
-
-        [FieldDefinition(5, Label = "IndexerSettingsAnimeCategories", Type = FieldType.Select, SelectOptions = typeof(FileListCategories), HelpText = "IndexerSettingsAnimeCategoriesHelpText")]
-        public IEnumerable<int> AnimeCategories { get; set; }
 
         [FieldDefinition(6, Type = FieldType.Number, Label = "IndexerSettingsMinimumSeeders", HelpText = "IndexerSettingsMinimumSeedersHelpText", Advanced = true)]
         public int MinimumSeeders { get; set; }

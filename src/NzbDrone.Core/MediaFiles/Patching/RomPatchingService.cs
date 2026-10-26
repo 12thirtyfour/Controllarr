@@ -8,6 +8,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Dat;
+using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
@@ -32,6 +33,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
         private readonly IEpisodeService _episodeService;
         private readonly IMediaFileService _mediaFileService;
         private readonly IDatCacheService _datCacheService;
+        private readonly Lazy<IDownloadedEpisodesImportService> _downloadedEpisodesImportService;
         private readonly Logger _logger;
 
         public RomPatchingService(
@@ -40,6 +42,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
             IEpisodeService episodeService = null,
             IMediaFileService mediaFileService = null,
             IDatCacheService datCacheService = null,
+            Lazy<IDownloadedEpisodesImportService> downloadedEpisodesImportService = null,
             Logger logger = null)
         {
             _diskProvider = diskProvider;
@@ -47,6 +50,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
             _episodeService = episodeService;
             _mediaFileService = mediaFileService;
             _datCacheService = datCacheService;
+            _downloadedEpisodesImportService = downloadedEpisodesImportService;
             _logger = logger;
         }
 
@@ -266,13 +270,37 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     outputRomPath = Path.Combine(romHacksFolder, safeFileName);
                     File.WriteAllBytes(outputRomPath, patchedBytes);
 
-                    var (epId, fileId) = RegisterPatchedRomInLibrary(
-                        series,
-                        cleanPatchTitle,
-                        outputRomPath,
-                        patchedBytes.LongLength);
-                    createdEpisodeId = epId;
-                    createdFileId = fileId;
+                    var importedThroughFlow = false;
+                    if (_downloadedEpisodesImportService?.Value != null)
+                    {
+                        try
+                        {
+                            var importResults = _downloadedEpisodesImportService.Value.ProcessPath(outputRomPath, ImportMode.Auto, series);
+                            var successfulImport = importResults?.FirstOrDefault(r => r.Result == ImportResultType.Imported);
+                            if (successfulImport?.EpisodeFile != null)
+                            {
+                                createdFileId = successfulImport.EpisodeFile.Id;
+                                createdEpisodeId = successfulImport.EpisodeFile.Episodes.Value?.FirstOrDefault()?.Id;
+                                outputRomPath = Path.Combine(series.Path, successfulImport.EpisodeFile.RelativePath);
+                                importedThroughFlow = true;
+                            }
+                        }
+                        catch (Exception importEx)
+                        {
+                            _logger?.Debug(importEx, "Standard import flow skipped or encountered an error for {0}, falling back to direct registration.", outputRomPath);
+                        }
+                    }
+
+                    if (!importedThroughFlow)
+                    {
+                        var (epId, fileId) = RegisterPatchedRomInLibrary(
+                            series,
+                            cleanPatchTitle,
+                            outputRomPath,
+                            patchedBytes.LongLength);
+                        createdEpisodeId = epId;
+                        createdFileId = fileId;
+                    }
                 }
                 else if (!string.IsNullOrWhiteSpace(baseRomPath))
                 {

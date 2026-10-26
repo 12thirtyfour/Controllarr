@@ -77,18 +77,13 @@ namespace NzbDrone.Core.Indexers.Newznab
             };
         }
 
-        private NewznabSettings GetSettings(string url, string apiPath = null, int[] categories = null, int[] animeCategories = null)
+        private NewznabSettings GetSettings(string url, string apiPath = null, int[] categories = null)
         {
             var settings = new NewznabSettings { BaseUrl = url };
 
             if (categories != null)
             {
                 settings.Categories = categories;
-            }
-
-            if (animeCategories != null)
-            {
-                settings.AnimeCategories = animeCategories;
             }
 
             if (apiPath.IsNotNullOrWhiteSpace())

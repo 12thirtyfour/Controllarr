@@ -33,13 +33,7 @@ namespace NzbDrone.Core.Indexers.Newznab
 
         public NewznabSettingsValidator()
         {
-            RuleFor(c => c).Custom((c, context) =>
-            {
-                if (c.Categories.Empty() && c.AnimeCategories.Empty())
-                {
-                    context.AddFailure("Either 'Categories' or 'Anime Categories' must be provided");
-                }
-            });
+            RuleFor(c => c.Categories).NotEmpty().WithMessage("'Categories' must be provided");
 
             RuleFor(c => c.BaseUrl).ValidRootUrl();
             RuleFor(c => c.ApiPath).ValidUrlBase("/api");
@@ -57,7 +51,6 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             ApiPath = "/api";
             Categories = new[] { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 8000, 8010 };
-            AnimeCategories = Enumerable.Empty<int>();
             MultiLanguages = Array.Empty<int>();
             FailDownloads = Array.Empty<int>();
         }
@@ -75,19 +68,13 @@ namespace NzbDrone.Core.Indexers.Newznab
         [FieldDefinition(3, Label = "IndexerSettingsCategories", Type = FieldType.Select, SelectOptionsProviderAction = "newznabCategories", HelpText = "IndexerSettingsCategoriesHelpText")]
         public IEnumerable<int> Categories { get; set; }
 
-        [FieldDefinition(4, Label = "IndexerSettingsAnimeCategories", Type = FieldType.Select, SelectOptionsProviderAction = "newznabCategories", HelpText = "IndexerSettingsAnimeCategoriesHelpText")]
-        public IEnumerable<int> AnimeCategories { get; set; }
-
-        [FieldDefinition(5, Label = "IndexerSettingsAnimeStandardFormatSearch", Type = FieldType.Checkbox, HelpText = "IndexerSettingsAnimeStandardFormatSearchHelpText")]
-        public bool AnimeStandardFormatSearch { get; set; }
-
-        [FieldDefinition(6, Label = "IndexerSettingsAdditionalParameters", HelpText = "IndexerSettingsAdditionalNewznabParametersHelpText", Advanced = true)]
+        [FieldDefinition(4, Label = "IndexerSettingsAdditionalParameters", HelpText = "IndexerSettingsAdditionalNewznabParametersHelpText", Advanced = true)]
         public string AdditionalParameters { get; set; }
 
-        [FieldDefinition(7, Type = FieldType.Select, SelectOptions = typeof(RealLanguageFieldConverter), Label = "IndexerSettingsMultiLanguageRelease", HelpText = "IndexerSettingsMultiLanguageReleaseHelpText", Advanced = true)]
+        [FieldDefinition(5, Type = FieldType.Select, SelectOptions = typeof(RealLanguageFieldConverter), Label = "IndexerSettingsMultiLanguageRelease", HelpText = "IndexerSettingsMultiLanguageReleaseHelpText", Advanced = true)]
         public IEnumerable<int> MultiLanguages { get; set; }
 
-        [FieldDefinition(8, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText")]
+        [FieldDefinition(6, Type = FieldType.Select, SelectOptions = typeof(FailDownloads), Label = "IndexerSettingsFailDownloads", HelpText = "IndexerSettingsFailDownloadsHelpText")]
         public IEnumerable<int> FailDownloads { get; set; }
 
         // Field 8 is used by TorznabSettings MinimumSeeders

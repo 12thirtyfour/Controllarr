@@ -42,6 +42,7 @@ interface EpisodeRowProps {
   sceneSeasonNumber?: number;
   sceneEpisodeNumber?: number;
   sceneAbsoluteEpisodeNumber?: number;
+  airDate?: string;
   airDateUtc?: string;
   runtime?: number;
   finaleType?: string;
@@ -74,6 +75,7 @@ function EpisodeRow({
   sceneSeasonNumber,
   sceneEpisodeNumber,
   sceneAbsoluteEpisodeNumber,
+  airDate,
   airDateUtc,
   runtime,
   finaleType,
@@ -291,7 +293,7 @@ function EpisodeRow({
         }
 
         if (name === 'airDateUtc') {
-          return <RelativeDateCell key={name} date={airDateUtc} />;
+          return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
         }
 
         if (name === 'runtime') {

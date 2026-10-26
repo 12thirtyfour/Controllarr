@@ -9,6 +9,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Dedicated "Search for Collection" Platform Search**:
+  - Added a "Search for Collection" button in the Platform Details view to query indexers specifically for full ROM sets and collections using the new `PlatformCollectionSearchCommand`.
+- **Automatic Indexer Preset Naming**:
+  - Selecting an indexer schema preset (e.g. NZBgeek) now automatically populates the indexer name input with the selected preset name.
+- **ROM Patcher Direct Library Import Flow**:
+  - Successfully patched ROM files are now passed through the standard downloaded media import pipeline (`IDownloadedEpisodesImportService`), matching existing platform games, setting IDs, and recording file paths directly before falling back to direct registration.
+
+### Changed
+- **Non-Game Catalog Filtering**:
+  - Filtered out non-game placeholder directories and assets (e.g., `@Place SPC Pack Here`, `_BIOS`, etc.) from catalog generation and SmokeMonster SMDB parsing.
+- **Granular Release Date Formatting**:
+  - When metadata does not provide day or month precision, dates format strictly to the known resolution (Year or Month Year) instead of defaulting to December 31. Anchored release dates at noon UTC (`12:00:00 UTC`) to prevent timezone rollbacks.
+- **Anime Section & Backend Removal from Indexers**:
+  - Fully removed the anime categories and `AnimeStandardFormatSearch` settings and request generators across Newznab, Torznab, FileList, Nyaa, and Fanzub indexers.
+- **Download Client Default Category**:
+  - Updated the default downloader category across all download clients (Deluge, Hadouken, NzbVortex, Nzbget, QBittorrent, Sabnzbd, Transmission, rTorrent, uTorrent) from `"tv"` to `"roms"`.
+- **Platform Addition Cleanup**:
+  - Removed the obsolete "Search for cutoff unmet" checkbox when adding a new platform.
+  - Ensured platform directories on disk are unconditionally created immediately upon adding a platform.
+
 - **Linux Source Build & Systemd Service User Documentation**:
   - Added complete instructions in [`README.md`](README.md) and the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide) for building Controllarr from source on Linux (Ubuntu/Debian, Fedora, Arch Linux).
   - Added step-by-step guidance for creating dedicated, unprivileged system service accounts (`controllarr:controllarr`), setting directory ownership and permissions (`/opt/Controllarr`, `/var/lib/controllarr`, `/data/roms`, `/data/downloads`), and configuring a hardened `systemd` daemon unit with `UMask=0002`.

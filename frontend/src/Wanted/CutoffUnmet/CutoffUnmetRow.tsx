@@ -28,6 +28,7 @@ interface CutoffUnmetRowProps {
   sceneEpisodeNumber?: number;
   sceneAbsoluteEpisodeNumber?: number;
   unverifiedSceneNumbering: boolean;
+  airDate?: string;
   airDateUtc?: string;
   lastSearchTime?: string;
   title: string;
@@ -45,6 +46,7 @@ function CutoffUnmetRow({
   sceneEpisodeNumber,
   sceneAbsoluteEpisodeNumber,
   unverifiedSceneNumbering,
+  airDate,
   airDateUtc,
   lastSearchTime,
   title,
@@ -128,7 +130,7 @@ function CutoffUnmetRow({
         }
 
         if (name === 'episodes.airDateUtc') {
-          return <RelativeDateCell key={name} date={airDateUtc} />;
+          return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
         }
 
         if (name === 'episodes.lastSearchTime') {

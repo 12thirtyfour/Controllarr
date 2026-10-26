@@ -23,13 +23,7 @@ namespace NzbDrone.Core.Indexers.Torznab
 
         public TorznabSettingsValidator()
         {
-            RuleFor(c => c).Custom((c, context) =>
-            {
-                if (c.Categories.Empty() && c.AnimeCategories.Empty())
-                {
-                    context.AddFailure("Either 'Categories' or 'Anime Categories' must be provided");
-                }
-            });
+            RuleFor(c => c.Categories).NotEmpty().WithMessage("'Categories' must be provided");
 
             RuleFor(c => c.BaseUrl).ValidRootUrl();
             RuleFor(c => c.ApiPath).ValidUrlBase("/api");
@@ -53,16 +47,16 @@ namespace NzbDrone.Core.Indexers.Torznab
             MinimumSeeders = IndexerDefaults.MINIMUM_SEEDERS;
         }
 
-        [FieldDefinition(9, Type = FieldType.Number, Label = "IndexerSettingsMinimumSeeders", HelpText = "IndexerSettingsMinimumSeedersHelpText", Advanced = true)]
+        [FieldDefinition(7, Type = FieldType.Number, Label = "IndexerSettingsMinimumSeeders", HelpText = "IndexerSettingsMinimumSeedersHelpText", Advanced = true)]
         public int MinimumSeeders { get; set; }
 
-        [FieldDefinition(10)]
+        [FieldDefinition(8)]
         public SeedCriteriaSettings SeedCriteria { get; set; } = new();
 
-        [FieldDefinition(11, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectBlocklistedTorrentHashes", HelpText = "IndexerSettingsRejectBlocklistedTorrentHashesHelpText", Advanced = true)]
+        [FieldDefinition(9, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectBlocklistedTorrentHashes", HelpText = "IndexerSettingsRejectBlocklistedTorrentHashesHelpText", Advanced = true)]
         public bool RejectBlocklistedTorrentHashesWhileGrabbing { get; set; }
 
-        [FieldDefinition(12, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectTorrentFilesWithBlockedExtensions", HelpText = "IndexerSettingsRejectTorrentFilesWithBlockedExtensionsHelpText")]
+        [FieldDefinition(10, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectTorrentFilesWithBlockedExtensions", HelpText = "IndexerSettingsRejectTorrentFilesWithBlockedExtensionsHelpText")]
         public bool RejectTorrentFilesWithBlockedExtensionsWhileGrabbing { get; set; }
 
         public override NzbDroneValidationResult Validate()

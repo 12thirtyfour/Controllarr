@@ -26,6 +26,7 @@ interface MissingRowProps {
   sceneEpisodeNumber?: number;
   sceneAbsoluteEpisodeNumber?: number;
   unverifiedSceneNumbering: boolean;
+  airDate?: string;
   airDateUtc?: string;
   lastSearchTime?: string;
   title: string;
@@ -43,6 +44,7 @@ function MissingRow({
   sceneEpisodeNumber,
   sceneAbsoluteEpisodeNumber,
   unverifiedSceneNumbering,
+  airDate,
   airDateUtc,
   lastSearchTime,
   title,
@@ -126,7 +128,7 @@ function MissingRow({
         }
 
         if (name === 'episodes.airDateUtc') {
-          return <RelativeDateCell key={name} date={airDateUtc} />;
+          return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
         }
 
         if (name === 'episodes.lastSearchTime') {

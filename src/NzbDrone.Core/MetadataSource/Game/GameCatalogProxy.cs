@@ -47,6 +47,14 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"releaseyear\s+""?(?<year>\d{4})""?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex DatReleaseMonthRegex = new Regex(
+            @"releasemonth\s+""?(?<month>\d{1,2})""?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatReleaseDayRegex = new Regex(
+            @"releaseday\s+""?(?<day>\d{1,2})""?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex DatCrcRegex = new Regex(
             @"crc\s+([0-9a-fA-F]{8})",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -247,6 +255,9 @@ namespace NzbDrone.Core.MetadataSource.Game
         public Episode CreateEpisodeForGame(GameCatalogEntry game, int seriesId, bool monitored)
         {
             var hasValidYear = game.ReleaseYear >= 1970 && game.ReleaseYear <= 2035 && game.FirstAired.Year >= 1970;
+            var airDateString = !string.IsNullOrWhiteSpace(game.ReleaseDateString)
+                ? game.ReleaseDateString
+                : (hasValidYear ? game.ReleaseYear.ToString() : null);
 
             return new Episode
             {
@@ -258,7 +269,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 Title = game.Title,
                 FinaleType = !string.IsNullOrWhiteSpace(game.RevisionTag) ? game.RevisionTag : "Retail (v1.0)",
                 Overview = game.Overview,
-                AirDate = hasValidYear ? game.FirstAired.ToString("yyyy-MM-dd") : null,
+                AirDate = airDateString,
                 AirDateUtc = hasValidYear ? game.FirstAired : null,
                 Runtime = 0,
                 Monitored = monitored,
@@ -550,13 +561,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                             rawName = RomParser.CleanIndexPrefix(rawName);
                         }
 
-                        if (string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                        if (string.IsNullOrWhiteSpace(rawName) ||
+                            rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                            !IsValidGameTitle(rawName) ||
+                            !IsValidGameTitle(datEntry.GameName) ||
+                            !IsValidGameTitle(datEntry.RomName))
                         {
                             continue;
                         }
 
                         var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, "Cross-Referenced DAT / SMDB Catalog");
-                        if (TryRegisterCrossReferencedGame(converted))
+                        if (converted != null && TryRegisterCrossReferencedGame(converted))
                         {
                             DynamicGames[converted.TvdbId] = converted;
                             platformGames.Add(converted);
@@ -869,10 +884,16 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
         }
 
+        private class ReleaseDateInfo
+        {
+            public int Year { get; set; }
+            public string ReleaseDate { get; set; }
+        }
+
         private List<GameCatalogEntry> ParseSmokeMonsterSmdbContent(
             PlatformCatalogEntry platform,
             string smdbContent,
-            Dictionary<string, int> releaseYearLookup,
+            Dictionary<string, ReleaseDateInfo> releaseYearLookup,
             HashSet<string> seenNames,
             bool forceRefresh = false)
         {
@@ -909,7 +930,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var rawName = StripKnownRomExtension(fileName);
                 rawName = RomParser.CleanIndexPrefix(rawName);
 
-                if (string.IsNullOrWhiteSpace(rawName) || rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(rawName) ||
+                    rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    !IsValidGameTitle(fileName) ||
+                    !IsValidGameTitle(rawName) ||
+                    !IsValidGameTitle(smdbPath))
                 {
                     continue;
                 }
@@ -931,17 +956,20 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 var year = platform.ReleaseYear;
+                string releaseDate = null;
                 if (!string.IsNullOrWhiteSpace(crc32) &&
                     releaseYearLookup != null &&
-                    releaseYearLookup.TryGetValue($"crc:{crc32.ToUpperInvariant()}", out var crcYear))
+                    releaseYearLookup.TryGetValue($"crc:{crc32.ToUpperInvariant()}", out var crcDateInfo))
                 {
-                    year = crcYear;
+                    year = crcDateInfo.Year;
+                    releaseDate = crcDateInfo.ReleaseDate;
                 }
                 else if (releaseYearLookup != null &&
-                         (releaseYearLookup.TryGetValue(rawName, out var mappedYear) ||
-                          releaseYearLookup.TryGetValue(RomParser.CleanIndexPrefix(rawName), out mappedYear)))
+                         (releaseYearLookup.TryGetValue(rawName, out var mappedDateInfo) ||
+                          releaseYearLookup.TryGetValue(RomParser.CleanIndexPrefix(rawName), out mappedDateInfo)))
                 {
-                    year = mappedYear;
+                    year = mappedDateInfo.Year;
+                    releaseDate = mappedDateInfo.ReleaseDate;
                 }
 
                 var smdbCategory = "SmokeMonster HTGDB / SMDB";
@@ -963,7 +991,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     smdbCategory = "Unlicensed";
                 }
 
-                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, smdbCategory);
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, smdbCategory, customReleaseDate: releaseDate);
                 if (entry != null)
                 {
                     entry.ExpectedSha256 = sha256;
@@ -1097,9 +1125,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             return results;
         }
 
-        private Dictionary<string, int> FetchReleaseYearLookup(string escapedSystem)
+        private Dictionary<string, ReleaseDateInfo> FetchReleaseYearLookup(string escapedSystem)
         {
-            var lookup = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var lookup = new Dictionary<string, ReleaseDateInfo>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 var url = $"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/releaseyear/{escapedSystem}.dat";
@@ -1124,19 +1152,40 @@ namespace NzbDrone.Core.MetadataSource.Game
                             continue;
                         }
 
+                        var releaseDate = $"{year:D4}";
+                        var monthMatch = DatReleaseMonthRegex.Match(body);
+                        if (monthMatch.Success &&
+                            int.TryParse(monthMatch.Groups["month"].Value, out var month) &&
+                            month >= 1 && month <= 12)
+                        {
+                            var dayMatch = DatReleaseDayRegex.Match(body);
+                            if (dayMatch.Success &&
+                                int.TryParse(dayMatch.Groups["day"].Value, out var day) &&
+                                day >= 1 && day <= 31)
+                            {
+                                releaseDate = $"{year:D4}-{month:D2}-{day:D2}";
+                            }
+                            else
+                            {
+                                releaseDate = $"{year:D4}-{month:D2}";
+                            }
+                        }
+
+                        var dateInfo = new ReleaseDateInfo { Year = year, ReleaseDate = releaseDate };
+
                         var nameMatch = DatNameOrCommentRegex.Match(body);
                         if (nameMatch.Success)
                         {
                             var name = nameMatch.Groups["name"].Value.Trim();
                             if (!string.IsNullOrWhiteSpace(name))
                             {
-                                lookup[name] = year;
+                                lookup[name] = dateInfo;
                                 var cleanName = RomParser.CleanIndexPrefix(name);
-                                lookup[cleanName] = year;
+                                lookup[cleanName] = dateInfo;
                                 var normalized = RomParser.ParseRomName(cleanName)?.GameTitle;
                                 if (!string.IsNullOrWhiteSpace(normalized))
                                 {
-                                    lookup[normalized] = year;
+                                    lookup[normalized] = dateInfo;
                                 }
                             }
                         }
@@ -1144,7 +1193,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                         var crcMatch = DatCrcRegex.Match(body);
                         if (crcMatch.Success)
                         {
-                            lookup[$"crc:{crcMatch.Groups[1].Value.ToUpperInvariant()}"] = year;
+                            lookup[$"crc:{crcMatch.Groups[1].Value.ToUpperInvariant()}"] = dateInfo;
                         }
                     }
                 }
@@ -1195,7 +1244,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             PlatformCatalogEntry platform,
             string datContent,
             string sourceLabel,
-            Dictionary<string, int> releaseYearLookup,
+            Dictionary<string, ReleaseDateInfo> releaseYearLookup,
             HashSet<string> seenNames)
         {
             var results = new List<GameCatalogEntry>();
@@ -1230,7 +1279,9 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 if (string.IsNullOrWhiteSpace(rawName) ||
                     rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
-                    blockName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                    blockName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    !IsValidGameTitle(rawName) ||
+                    !IsValidGameTitle(blockName))
                 {
                     continue;
                 }
@@ -1248,11 +1299,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 var year = platform.ReleaseYear;
+                string releaseDate = null;
                 if (releaseYearLookup != null &&
-                    (releaseYearLookup.TryGetValue(rawName, out var mappedYear) ||
-                     releaseYearLookup.TryGetValue(blockName, out mappedYear)))
+                    (releaseYearLookup.TryGetValue(rawName, out var mappedDateInfo) ||
+                     releaseYearLookup.TryGetValue(blockName, out mappedDateInfo)))
                 {
-                    year = mappedYear;
+                    year = mappedDateInfo.Year;
+                    releaseDate = mappedDateInfo.ReleaseDate;
                 }
                 else
                 {
@@ -1260,10 +1313,24 @@ namespace NzbDrone.Core.MetadataSource.Game
                     if (yearMatch.Success && int.TryParse(yearMatch.Groups["year"].Value, out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2030)
                     {
                         year = parsedYear;
+                        releaseDate = $"{parsedYear:D4}";
+                        var monthMatch = DatReleaseMonthRegex.Match(body);
+                        if (monthMatch.Success && int.TryParse(monthMatch.Groups["month"].Value, out var month) && month >= 1 && month <= 12)
+                        {
+                            var dayMatch = DatReleaseDayRegex.Match(body);
+                            if (dayMatch.Success && int.TryParse(dayMatch.Groups["day"].Value, out var day) && day >= 1 && day <= 31)
+                            {
+                                releaseDate = $"{parsedYear:D4}-{month:D2}-{day:D2}";
+                            }
+                            else
+                            {
+                                releaseDate = $"{parsedYear:D4}-{month:D2}";
+                            }
+                        }
                     }
                 }
 
-                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, sourceLabel);
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, sourceLabel, customReleaseDate: releaseDate);
                 if (entry != null)
                 {
                     results.Add(entry);
@@ -1289,14 +1356,49 @@ namespace NzbDrone.Core.MetadataSource.Game
             return fileName.Trim();
         }
 
+        public static bool IsValidGameTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return false;
+            }
+
+            var trimmed = title.Trim();
+            if (trimmed.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("_", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (trimmed.IndexOf("Pack Here", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (trimmed.IndexOf("Place ", StringComparison.OrdinalIgnoreCase) >= 0 && trimmed.IndexOf(" Here", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         private static GameCatalogEntry CreateCatalogEntryFromNoIntroName(
             PlatformCatalogEntry platform,
             string noIntroName,
             int year,
             string verificationSource,
-            string customSummary = null)
+            string customSummary = null,
+            string customReleaseDate = null)
         {
+            if (!IsValidGameTitle(noIntroName))
+            {
+                return null;
+            }
+
             var cleanNoIntroForParse = RomParser.CleanIndexPrefix(noIntroName.Replace(" (Encrypted)", string.Empty, StringComparison.OrdinalIgnoreCase).Trim());
+            if (!IsValidGameTitle(cleanNoIntroForParse))
+            {
+                return null;
+            }
+
             var parsed = RomParser.ParseRomName(cleanNoIntroForParse);
             var baseTitle = !string.IsNullOrWhiteSpace(parsed?.GameTitle)
                 ? NormalizeTitleArticle(parsed.GameTitle)
@@ -1304,6 +1406,11 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             baseTitle = RomParser.CleanIndexPrefix(baseTitle);
             baseTitle = CleanResidualRevisions(baseTitle);
+
+            if (!IsValidGameTitle(baseTitle))
+            {
+                return null;
+            }
 
             var regionSeason = ClassifyRegionAndCategory(cleanNoIntroForParse, parsed, verificationSource);
             var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionSeason, verificationSource);
@@ -1314,9 +1421,27 @@ namespace NzbDrone.Core.MetadataSource.Game
             var isEncrypted = IsEncryptedVersion(revisionTag, noIntroName);
             var isValidYear = year >= 1970 && year <= 2035;
             var effectiveYear = isValidYear ? year : platform.ReleaseYear;
-            var firstAired = isValidYear
-                ? new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-                : (platform.ReleaseYear >= 1970 ? new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc) : DateTime.MinValue);
+            var releaseDateString = !string.IsNullOrWhiteSpace(customReleaseDate)
+                ? customReleaseDate
+                : (isValidYear ? year.ToString() : (platform.ReleaseYear >= 1970 ? platform.ReleaseYear.ToString() : null));
+
+            DateTime firstAired;
+            if (!string.IsNullOrWhiteSpace(releaseDateString) && DateTime.TryParse(releaseDateString, out var parsedDate))
+            {
+                firstAired = new DateTime(parsedDate.Year, parsedDate.Month, parsedDate.Day, 12, 0, 0, DateTimeKind.Utc);
+            }
+            else if (isValidYear)
+            {
+                firstAired = new DateTime(year, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            }
+            else if (platform.ReleaseYear >= 1970)
+            {
+                firstAired = new DateTime(platform.ReleaseYear, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            }
+            else
+            {
+                firstAired = DateTime.MinValue;
+            }
 
             return new GameCatalogEntry
             {
@@ -1336,6 +1461,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 RegionName = regionName,
                 EpisodeNumber = 1,
                 ReleaseYear = effectiveYear,
+                ReleaseDateString = releaseDateString,
                 FirstAired = firstAired,
                 Overview = !string.IsNullOrWhiteSpace(customSummary)
                     ? $"{customSummary} ({verificationSource}: {noIntroName})"
@@ -2251,8 +2377,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var isDualEncryptionPlatform = slug == "nds" || slug == "3ds";
                 var effectiveSource = isDualEncryptionPlatform && source == "No-Intro" ? "No-Intro (Decrypted)" : source;
                 var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, year, effectiveSource, summary);
-                entry.TvdbId = id++;
-                games.Add(entry);
+                if (entry != null)
+                {
+                    entry.TvdbId = id++;
+                    games.Add(entry);
+                }
 
                 if (isDualEncryptionPlatform && !noIntroName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase))
                 {
@@ -2262,8 +2391,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                         year,
                         "No-Intro (Encrypted)",
                         $"{summary} (Encrypted ROM dump)");
-                    encryptedEntry.TvdbId = id++;
-                    games.Add(encryptedEntry);
+
+                    if (encryptedEntry != null)
+                    {
+                        encryptedEntry.TvdbId = id++;
+                        games.Add(encryptedEntry);
+                    }
                 }
             }
 

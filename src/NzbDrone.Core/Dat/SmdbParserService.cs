@@ -55,6 +55,12 @@ namespace NzbDrone.Core.Dat
                     var cleanRomName = RomParser.CleanIndexPrefix(romName);
                     var gameName = Path.GetFileNameWithoutExtension(cleanRomName);
                     var cleanGameName = RomParser.CleanIndexPrefix(gameName);
+
+                    if (!IsValidGameName(cleanGameName) || !IsValidGameName(cleanRomName) || !IsValidGameName(romName))
+                    {
+                        continue;
+                    }
+
                     var parsedRom = RomParser.ParseRomName(cleanRomName);
                     var region = parsedRom?.Regions?.FirstOrDefault();
 
@@ -80,6 +86,30 @@ namespace NzbDrone.Core.Dat
             }
 
             return (datFile, datEntries);
+        }
+
+        private static bool IsValidGameName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            var trimmed = name.Trim();
+            if (trimmed.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("_", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (trimmed.IndexOf("Pack Here", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (trimmed.IndexOf("Place ", StringComparison.OrdinalIgnoreCase) >= 0 && trimmed.IndexOf(" Here", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static string NormalizeHash(string value)

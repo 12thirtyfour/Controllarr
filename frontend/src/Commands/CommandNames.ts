@@ -21,6 +21,7 @@ enum CommandNames {
   RssSync = 'RssSync',
   SeasonSearch = 'SeasonSearch',
   SeriesSearch = 'SeriesSearch',
+  PlatformCollectionSearch = 'PlatformCollectionSearch',
   UpdateDatCatalogs = 'UpdateDatCatalogs',
 }
 

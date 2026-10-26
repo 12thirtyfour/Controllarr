@@ -2104,6 +2104,8 @@
     "SearchForSeries": "Search for platforms…",
     "SearchIsNotSupportedWithThisIndexer": "Search is not supported with this indexer",
     "SearchMonitored": "Search Monitored",
+    "SearchForCollection": "Search for Collection",
+    "SearchForCollectionHelpText": "Search specifically for entire ROM collections and complete sets for this platform",
     "SearchSelected": "Search Selected",
     "Season": "Region",
     "SeasonCount": "Region Count",

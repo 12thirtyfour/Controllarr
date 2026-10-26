@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
                                               Port = 2222,
                                               Username = "admin",
                                               Password = "pass",
-                                              TvCategory = "tv"
+                                              TvCategory = "roms"
                                           };
 
             _queued = new UTorrentTorrent
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
                         Size = 1000,
                         Remaining = 1000,
                         Progress = 0,
-                        Label = "tv",
+                        Label = "roms",
                         DownloadUrl = _downloadUrl,
                         RootDownloadPath = "somepath"
                     };
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
                         Size = 1000,
                         Remaining = 100,
                         Progress = 0.9,
-                        Label = "tv",
+                        Label = "roms",
                         DownloadUrl = _downloadUrl,
                         RootDownloadPath = "somepath"
                     };
@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
                         Size = 1000,
                         Remaining = 100,
                         Progress = 0.9,
-                        Label = "tv",
+                        Label = "roms",
                         DownloadUrl = _downloadUrl,
                         RootDownloadPath = "somepath"
                     };
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
                         Size = 1000,
                         Remaining = 0,
                         Progress = 1.0,
-                        Label = "tv",
+                        Label = "roms",
                         DownloadUrl = _downloadUrl,
                         RootDownloadPath = "somepath"
                     };
@@ -333,7 +333,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
 
             result.IsLocalhost.Should().BeTrue();
             result.OutputRootFolders.Should().NotBeNull();
-            result.OutputRootFolders.First().Should().Be(@"C:\Downloads\Finished\utorrent\tv".AsOsAgnostic());
+            result.OutputRootFolders.First().Should().Be(@"C:\Downloads\Finished\utorrent\roms".AsOsAgnostic());
         }
 
         [Test]

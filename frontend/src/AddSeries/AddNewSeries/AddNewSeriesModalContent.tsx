@@ -227,7 +227,6 @@ function AddNewSeriesModalContent({
     monitor,
     qualityProfileId,
     rootFolderPath,
-    searchForCutoffUnmetEpisodes,
     searchForMissingEpisodes,
     collectionStrategy,
     revisionPreference,
@@ -304,7 +303,7 @@ function AddNewSeriesModalContent({
       addOptions: {
         monitor: monitor.value,
         searchForMissingEpisodes: searchForMissingEpisodes.value,
-        searchForCutoffUnmetEpisodes: searchForCutoffUnmetEpisodes.value,
+        searchForCutoffUnmetEpisodes: false,
       },
       qualityProfileId: qualityProfileId.value || 1,
       collectionStrategy: normalizedStrategy,
@@ -351,7 +350,6 @@ function AddNewSeriesModalContent({
     trackHomebrew,
     trackRomHacks,
     searchForMissingEpisodes,
-    searchForCutoffUnmetEpisodes,
     tags,
     addSeries,
   ]);
@@ -579,14 +577,6 @@ function AddNewSeriesModalContent({
             helpText={translate('Missing')}
             onChange={handleInputChange}
             {...searchForMissingEpisodes}
-          />
-
-          <CheckInput
-            containerClassName={styles.searchOption}
-            name="searchForCutoffUnmetEpisodes"
-            helpText={translate('CutoffUnmet')}
-            onChange={handleInputChange}
-            {...searchForCutoffUnmetEpisodes}
           />
         </div>
 

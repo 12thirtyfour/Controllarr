@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
                                               Port = 2222,
                                               Username = "admin",
                                               Password = "pass",
-                                              TvCategory = "tv",
+                                              TvCategory = "roms",
                                               RecentTvPriority = (int)NzbgetPriority.High
                                           };
 
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
                 {
                     FileSizeLo = 1000,
                     RemainingSizeLo = 10,
-                    Category = "tv",
+                    Category = "roms",
                     NzbName = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
                     Parameters = new List<NzbgetParameter> { new NzbgetParameter { Name = "drone", Value = "id" } }
                 };
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
             _failed = new NzbgetHistoryItem
                 {
                     FileSizeLo = 1000,
-                    Category = "tv",
+                    Category = "roms",
                     Name = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
                     DestDir = "somedirectory",
                     Parameters = new List<NzbgetParameter> { new NzbgetParameter { Name = "drone", Value = "id" } },
@@ -66,9 +66,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
             _completed = new NzbgetHistoryItem
                 {
                     FileSizeLo = 1000,
-                    Category = "tv",
+                    Category = "roms",
                     Name = "Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
-                    DestDir = "/remote/mount/tv/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
+                    DestDir = "/remote/mount/roms/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE",
                     Parameters = new List<NzbgetParameter> { new NzbgetParameter { Name = "drone", Value = "id" } },
                     ParStatus = "SUCCESS",
                     UnpackStatus = "NONE",
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
             _downloadClientItem = Builder<DownloadClientItem>
                                   .CreateNew()
                                   .With(d => d.DownloadId = "_Droned.S01E01.Pilot.1080p.WEB-DL-DRONE_0")
-                                  .With(d => d.OutputPath = new OsPath("/remote/mount/tv/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE".AsOsAgnostic()))
+                                  .With(d => d.OutputPath = new OsPath("/remote/mount/roms/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE".AsOsAgnostic()))
                                   .Build();
 
             Mocker.GetMock<INzbgetProxy>()
@@ -96,8 +96,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
                 .Returns("14.0");
 
             _configItems = new Dictionary<string, string>();
-            _configItems.Add("Category1.Name", "tv");
-            _configItems.Add("Category1.DestDir", @"/remote/mount/tv");
+            _configItems.Add("Category1.Name", "roms");
+            _configItems.Add("Category1.DestDir", @"/remote/mount/roms");
 
             Mocker.GetMock<INzbgetProxy>()
                 .Setup(v => v.GetConfig(It.IsAny<NzbgetSettings>()))
@@ -403,7 +403,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
 
             result.IsLocalhost.Should().BeTrue();
             result.OutputRootFolders.Should().NotBeNull();
-            result.OutputRootFolders.First().Should().Be(@"/remote/mount/tv");
+            result.OutputRootFolders.First().Should().Be(@"/remote/mount/roms");
         }
 
         [Test]
@@ -483,7 +483,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
         [Test]
         public void should_use_final_dir_when_set_instead_of_dest_dir()
         {
-            _completed.FinalDir = "/remote/mount/tv2/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE";
+            _completed.FinalDir = "/remote/mount/roms2/Droned.S01E01.Pilot.1080p.WEB-DL-DRONE";
 
             GivenQueue(null);
             GivenHistory(_completed);

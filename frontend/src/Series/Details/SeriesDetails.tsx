@@ -184,7 +184,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
 
   const { data: commands } = useCommands();
 
-  const { isRefreshing, isRenaming, isSearching } = useMemo(() => {
+  const { isRefreshing, isRenaming, isSearching, isSearchingCollection } = useMemo(() => {
     const seriesRefreshingCommand = findCommand(commands, {
       name: CommandNames.RefreshSeries,
     });
@@ -212,6 +212,13 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
       })
     );
 
+    const isSearchingCollectionExecuting = isCommandExecuting(
+      findCommand(commands, {
+        name: CommandNames.PlatformCollectionSearch,
+        seriesId,
+      })
+    );
+
     const isRenamingFiles = isCommandExecuting(
       findCommand(commands, {
         name: CommandNames.RenameFiles,
@@ -233,6 +240,7 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
       isRefreshing: isSeriesRefreshing || allSeriesRefreshing,
       isRenaming: isRenamingFiles || isRenamingSeries,
       isSearching: isSearchingExecuting,
+      isSearchingCollection: isSearchingCollectionExecuting,
     };
   }, [seriesId, commands]);
 
@@ -449,6 +457,13 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
     });
   }, [seriesId, executeCommand]);
 
+  const handleSearchCollectionPress = useCallback(() => {
+    executeCommand({
+      name: CommandNames.PlatformCollectionSearch,
+      seriesId,
+    });
+  }, [seriesId, executeCommand]);
+
   const populate = useCallback(() => {
     refetchEpisodes();
     refetchEpisodeFiles();
@@ -615,6 +630,18 @@ function SeriesDetails({ seriesId }: SeriesDetailsProps) {
                 : translate('NoMonitoredEpisodes')
             }
             onPress={handleSearchPress}
+          />
+
+          <ToolbarItem
+            id="search-collection"
+            priority={1}
+            groupId="left-a"
+            label={translate('SearchForCollection')}
+            iconName={icons.SEARCH}
+            isDisabled={!monitored || !hasEpisodes}
+            isSpinning={isSearchingCollection}
+            title={translate('SearchForCollectionHelpText')}
+            onPress={handleSearchCollectionPress}
           />
 
           <OverflowDivider groupId="left-a">

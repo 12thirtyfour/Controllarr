@@ -264,12 +264,6 @@ namespace NzbDrone.Core.Tv
 
             try
             {
-                var rootParent = Path.GetDirectoryName(series.Path);
-                if (string.IsNullOrWhiteSpace(rootParent) || !_diskProvider.FolderExists(rootParent))
-                {
-                    return;
-                }
-
                 if (!_diskProvider.FolderExists(series.Path))
                 {
                     _diskProvider.CreateFolder(series.Path);
