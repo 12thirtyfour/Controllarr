@@ -9,7 +9,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.SeriesStats
 {
-    public class SeasonStatistics : ResultSet
+    public class RegionStatistics : ResultSet
     {
         public int SeriesId { get; set; }
         public int SeasonNumber { get; set; }
@@ -151,5 +151,9 @@ namespace NzbDrone.Core.SeriesStats
                     .ToList();
             }
         }
+    }
+
+    public class SeasonStatistics : RegionStatistics
+    {
     }
 }

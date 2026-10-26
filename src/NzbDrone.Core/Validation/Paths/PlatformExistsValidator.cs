@@ -4,11 +4,11 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Validation.Paths
 {
-    public class SeriesExistsValidator : PropertyValidator
+    public class PlatformExistsValidator : PropertyValidator
     {
         private readonly ISeriesService _seriesService;
 
-        public SeriesExistsValidator(ISeriesService seriesService)
+        public PlatformExistsValidator(ISeriesService seriesService)
         {
             _seriesService = seriesService;
         }
@@ -25,6 +25,14 @@ namespace NzbDrone.Core.Validation.Paths
             var tvdbId = Convert.ToInt32(context.PropertyValue.ToString());
 
             return !_seriesService.AllSeriesTvdbIds().ContainsValue(tvdbId);
+        }
+    }
+
+    public class SeriesExistsValidator : PlatformExistsValidator
+    {
+        public SeriesExistsValidator(ISeriesService seriesService)
+            : base(seriesService)
+        {
         }
     }
 }

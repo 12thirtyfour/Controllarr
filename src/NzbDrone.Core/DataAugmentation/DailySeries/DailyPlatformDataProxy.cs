@@ -7,18 +7,22 @@ using NzbDrone.Common.Http;
 
 namespace NzbDrone.Core.DataAugmentation.DailySeries
 {
-    public interface IDailySeriesDataProxy
+    public interface IDailyPlatformDataProxy
     {
         IEnumerable<int> GetDailySeriesIds();
     }
 
-    public class DailySeriesDataProxy : IDailySeriesDataProxy
+    public interface IDailySeriesDataProxy : IDailyPlatformDataProxy
+    {
+    }
+
+    public class DailyPlatformDataProxy : IDailySeriesDataProxy
     {
         private readonly IHttpClient _httpClient;
         private readonly IHttpRequestBuilderFactory _requestBuilder;
         private readonly Logger _logger;
 
-        public DailySeriesDataProxy(IHttpClient httpClient, ISonarrCloudRequestBuilder requestBuilder, Logger logger)
+        public DailyPlatformDataProxy(IHttpClient httpClient, ISonarrCloudRequestBuilder requestBuilder, Logger logger)
         {
             _httpClient = httpClient;
             _requestBuilder = requestBuilder.Services;
@@ -41,6 +45,14 @@ namespace NzbDrone.Core.DataAugmentation.DailySeries
                 _logger.Warn(ex, "Failed to get Daily Series");
                 return Array.Empty<int>();
             }
+        }
+    }
+
+    public class DailySeriesDataProxy : DailyPlatformDataProxy
+    {
+        public DailySeriesDataProxy(IHttpClient httpClient, ISonarrCloudRequestBuilder requestBuilder, Logger logger)
+            : base(httpClient, requestBuilder, logger)
+        {
         }
     }
 }

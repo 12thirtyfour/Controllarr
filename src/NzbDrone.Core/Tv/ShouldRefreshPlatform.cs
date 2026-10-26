@@ -1,21 +1,25 @@
-﻿using System;
+using System;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface ICheckIfSeriesShouldBeRefreshed
+    public interface ICheckIfPlatformShouldBeRefreshed
     {
         bool ShouldRefresh(Series series);
     }
 
-    public class ShouldRefreshSeries : ICheckIfSeriesShouldBeRefreshed
+    public interface ICheckIfSeriesShouldBeRefreshed : ICheckIfPlatformShouldBeRefreshed
+    {
+    }
+
+    public class ShouldRefreshPlatform : ICheckIfSeriesShouldBeRefreshed
     {
         private readonly IEpisodeService _episodeService;
         private readonly Logger _logger;
 
-        public ShouldRefreshSeries(IEpisodeService episodeService, Logger logger)
+        public ShouldRefreshPlatform(IEpisodeService episodeService, Logger logger)
         {
             _episodeService = episodeService;
             _logger = logger;
@@ -74,6 +78,14 @@ namespace NzbDrone.Core.Tv
                 _logger.Error(e, "Unable to determine if series should refresh, will try to refresh.");
                 return true;
             }
+        }
+    }
+
+    public class ShouldRefreshSeries : ShouldRefreshPlatform
+    {
+        public ShouldRefreshSeries(IEpisodeService episodeService, Logger logger)
+            : base(episodeService, logger)
+        {
         }
     }
 }

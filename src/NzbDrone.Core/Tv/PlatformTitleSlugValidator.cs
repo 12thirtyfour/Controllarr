@@ -1,20 +1,20 @@
-﻿using System.Linq;
+using System.Linq;
 using FluentValidation.Validators;
 using NzbDrone.Common.Extensions;
 
 namespace NzbDrone.Core.Tv
 {
-    public class SeriesTitleSlugValidator : PropertyValidator
+    public class PlatformTitleSlugValidator : PropertyValidator
     {
         private readonly ISeriesService _seriesService;
 
-        public SeriesTitleSlugValidator(ISeriesService seriesService)
+        public PlatformTitleSlugValidator(ISeriesService seriesService)
         {
             _seriesService = seriesService;
         }
 
         protected override string GetDefaultMessageTemplate() =>
-            "Title slug '{slug}' is in use by series '{seriesTitle}'. Check the FAQ for more information";
+            "Title slug '{slug}' is in use by platform '{seriesTitle}'. Check the FAQ for more information";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
@@ -29,8 +29,8 @@ namespace NzbDrone.Core.Tv
 
             var conflictingSeries = _seriesService.GetAllSeries()
                                                   .FirstOrDefault(s => s.TitleSlug.IsNotNullOrWhiteSpace() &&
-                                                              s.TitleSlug.Equals(context.PropertyValue.ToString()) &&
-                                                              s.Id != instanceId);
+                                                               s.TitleSlug.Equals(context.PropertyValue.ToString()) &&
+                                                               s.Id != instanceId);
 
             if (conflictingSeries == null)
             {
@@ -41,6 +41,14 @@ namespace NzbDrone.Core.Tv
             context.MessageFormatter.AppendArgument("seriesTitle", conflictingSeries.Title);
 
             return false;
+        }
+    }
+
+    public class SeriesTitleSlugValidator : PlatformTitleSlugValidator
+    {
+        public SeriesTitleSlugValidator(ISeriesService seriesService)
+            : base(seriesService)
+        {
         }
     }
 }

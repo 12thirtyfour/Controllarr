@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace NzbDrone.Core.Tv
 {
-    public static class SeriesTitleNormalizer
+    public static class PlatformTitleNormalizer
     {
         private static readonly Dictionary<int, string> PreComputedTitles = new()
         {
@@ -18,5 +18,10 @@ namespace NzbDrone.Core.Tv
 
             return Parser.Parser.NormalizeTitle(title).ToLower();
         }
+    }
+
+    public static class SeriesTitleNormalizer
+    {
+        public static string Normalize(string title, int tvdbId) => PlatformTitleNormalizer.Normalize(title, tvdbId);
     }
 }

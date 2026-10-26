@@ -6,19 +6,23 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.SeriesStats
 {
-    public interface ISeriesStatisticsService
+    public interface IPlatformStatisticsService
     {
         List<SeriesStatistics> SeriesStatistics();
         SeriesStatistics SeriesStatistics(int seriesId, int qualityProfileId);
     }
 
-    public class SeriesStatisticsService : ISeriesStatisticsService
+    public interface ISeriesStatisticsService : IPlatformStatisticsService
+    {
+    }
+
+    public class PlatformStatisticsService : ISeriesStatisticsService
     {
         private readonly ISeriesStatisticsRepository _seriesStatisticsRepository;
         private readonly ISeriesService _seriesService;
         private readonly IQualityProfileService _qualityProfileService;
 
-        public SeriesStatisticsService(ISeriesStatisticsRepository seriesStatisticsRepository,
+        public PlatformStatisticsService(ISeriesStatisticsRepository seriesStatisticsRepository,
                                        ISeriesService seriesService,
                                        IQualityProfileService qualityProfileService)
         {
@@ -93,6 +97,16 @@ namespace NzbDrone.Core.SeriesStats
             }
 
             return qualities.OrderBy(q => profile.GetIndex(q.Id).Index).ToList();
+        }
+    }
+
+    public class SeriesStatisticsService : PlatformStatisticsService
+    {
+        public SeriesStatisticsService(ISeriesStatisticsRepository seriesStatisticsRepository,
+                                       ISeriesService seriesService,
+                                       IQualityProfileService qualityProfileService)
+            : base(seriesStatisticsRepository, seriesService, qualityProfileService)
+        {
         }
     }
 }

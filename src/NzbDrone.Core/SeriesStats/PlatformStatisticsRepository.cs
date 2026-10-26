@@ -8,20 +8,24 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.SeriesStats
 {
-    public interface ISeriesStatisticsRepository
+    public interface IPlatformStatisticsRepository
     {
         List<SeasonStatistics> SeriesStatistics();
         List<SeasonStatistics> SeriesStatistics(int seriesId);
     }
 
-    public class SeriesStatisticsRepository : ISeriesStatisticsRepository
+    public interface ISeriesStatisticsRepository : IPlatformStatisticsRepository
+    {
+    }
+
+    public class PlatformStatisticsRepository : ISeriesStatisticsRepository
     {
         private const string _selectEpisodesTemplate = "SELECT /**select**/ FROM \"Games\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
         private const string _selectEpisodeFilesTemplate = "SELECT /**select**/ FROM \"RomFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
 
         private readonly IMainDatabase _database;
 
-        public SeriesStatisticsRepository(IMainDatabase database)
+        public PlatformStatisticsRepository(IMainDatabase database)
         {
             _database = database;
         }
@@ -114,6 +118,14 @@ namespace NzbDrone.Core.SeriesStats
                             string_agg(DISTINCT ""Quality""::json->>'quality', '|') AS EpisodeFileQualitiesString")
                 .GroupBy<EpisodeFile>(x => x.SeriesId)
                 .GroupBy<EpisodeFile>(x => x.SeasonNumber);
+        }
+    }
+
+    public class SeriesStatisticsRepository : PlatformStatisticsRepository
+    {
+        public SeriesStatisticsRepository(IMainDatabase database)
+            : base(database)
+        {
         }
     }
 }

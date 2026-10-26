@@ -6,7 +6,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.SeriesStats
 {
-    public class SeriesStatistics : ResultSet
+    public class PlatformStatistics : ResultSet
     {
         public int SeriesId { get; set; }
         public DateTime? NextAiring { get; set; }
@@ -21,5 +21,9 @@ namespace NzbDrone.Core.SeriesStats
         public List<ReleaseType> ReleaseTypes { get; set; }
         public List<Quality> EpisodeFileQualities { get; set; }
         public List<SeasonStatistics> SeasonStatistics { get; set; }
+    }
+
+    public class SeriesStatistics : PlatformStatistics
+    {
     }
 }

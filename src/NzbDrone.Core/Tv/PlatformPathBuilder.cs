@@ -7,18 +7,22 @@ using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IBuildSeriesPaths
+    public interface IBuildPlatformPaths
     {
         string BuildPath(Series series, bool useExistingRelativeFolder);
     }
 
-    public class SeriesPathBuilder : IBuildSeriesPaths
+    public interface IBuildSeriesPaths : IBuildPlatformPaths
+    {
+    }
+
+    public class PlatformPathBuilder : IBuildSeriesPaths
     {
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IRootFolderService _rootFolderService;
         private readonly Logger _logger;
 
-        public SeriesPathBuilder(IBuildFileNames fileNameBuilder, IRootFolderService rootFolderService, Logger logger)
+        public PlatformPathBuilder(IBuildFileNames fileNameBuilder, IRootFolderService rootFolderService, Logger logger)
         {
             _fileNameBuilder = fileNameBuilder;
             _rootFolderService = rootFolderService;
@@ -55,6 +59,14 @@ namespace NzbDrone.Core.Tv
             _logger.Warn("Unable to get relative path for series path {0}, using series folder name {1}", series.Path, directoryName);
 
             return directoryName;
+        }
+    }
+
+    public class SeriesPathBuilder : PlatformPathBuilder
+    {
+        public SeriesPathBuilder(IBuildFileNames fileNameBuilder, IRootFolderService rootFolderService, Logger logger)
+            : base(fileNameBuilder, rootFolderService, logger)
+        {
         }
     }
 }

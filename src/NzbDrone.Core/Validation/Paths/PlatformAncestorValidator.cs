@@ -5,11 +5,11 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Validation.Paths
 {
-    public class SeriesAncestorValidator : PropertyValidator
+    public class PlatformAncestorValidator : PropertyValidator
     {
         private readonly ISeriesService _seriesService;
 
-        public SeriesAncestorValidator(ISeriesService seriesService)
+        public PlatformAncestorValidator(ISeriesService seriesService)
         {
             _seriesService = seriesService;
         }
@@ -26,6 +26,14 @@ namespace NzbDrone.Core.Validation.Paths
             context.MessageFormatter.AppendArgument("path", context.PropertyValue.ToString());
 
             return !_seriesService.GetAllSeriesPaths().Any(s => context.PropertyValue.ToString().IsParentPath(s.Value));
+        }
+    }
+
+    public class SeriesAncestorValidator : PlatformAncestorValidator
+    {
+        public SeriesAncestorValidator(ISeriesService seriesService)
+            : base(seriesService)
+        {
         }
     }
 }

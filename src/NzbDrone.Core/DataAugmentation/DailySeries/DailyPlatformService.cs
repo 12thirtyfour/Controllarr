@@ -5,17 +5,21 @@ using NzbDrone.Common.Cache;
 
 namespace NzbDrone.Core.DataAugmentation.DailySeries
 {
-    public interface IDailySeriesService
+    public interface IDailyPlatformService
     {
         bool IsDailySeries(int tvdbid);
     }
 
-    public class DailySeriesService : IDailySeriesService
+    public interface IDailySeriesService : IDailyPlatformService
+    {
+    }
+
+    public class DailyPlatformService : IDailySeriesService
     {
         private readonly IDailySeriesDataProxy _proxy;
         private readonly ICached<List<int>> _cache;
 
-        public DailySeriesService(IDailySeriesDataProxy proxy, ICacheManager cacheManager)
+        public DailyPlatformService(IDailySeriesDataProxy proxy, ICacheManager cacheManager)
         {
             _proxy = proxy;
             _cache = cacheManager.GetCache<List<int>>(GetType());
@@ -25,6 +29,14 @@ namespace NzbDrone.Core.DataAugmentation.DailySeries
         {
             var dailySeries = _cache.Get("all", () => _proxy.GetDailySeriesIds().ToList(), TimeSpan.FromHours(1));
             return dailySeries.Any(i => i == tvdbid);
+        }
+    }
+
+    public class DailySeriesService : DailyPlatformService
+    {
+        public DailySeriesService(IDailySeriesDataProxy proxy, ICacheManager cacheManager)
+            : base(proxy, cacheManager)
+        {
         }
     }
 }

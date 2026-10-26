@@ -6,11 +6,11 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Validation.Paths
 {
-    public class SeriesPathValidator : PropertyValidator
+    public class PlatformPathValidator : PropertyValidator
     {
         private readonly ISeriesService _seriesService;
 
-        public SeriesPathValidator(ISeriesService seriesService)
+        public PlatformPathValidator(ISeriesService seriesService)
         {
             _seriesService = seriesService;
         }
@@ -29,10 +29,18 @@ namespace NzbDrone.Core.Validation.Paths
             dynamic instance = context.ParentContext.InstanceToValidate;
             var instanceId = (int)instance.Id;
 
-            // Skip the path for this series and any invalid paths
+            // Skip the path for this platform and any invalid paths
             return !_seriesService.GetAllSeriesPaths().Any(s => s.Key != instanceId &&
                                                                 s.Value.IsPathValid(PathValidationType.CurrentOs) &&
                                                                 s.Value.PathEquals(context.PropertyValue.ToString()));
+        }
+    }
+
+    public class SeriesPathValidator : PlatformPathValidator
+    {
+        public SeriesPathValidator(ISeriesService seriesService)
+            : base(seriesService)
+        {
         }
     }
 }
