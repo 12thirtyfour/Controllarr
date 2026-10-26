@@ -9,6 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Complete Elimination of TV & Sonarr Terminology in Backend API Controllers & Models**:
+  - Renamed all controllers in `Controllarr.Api.V3` and `Controllarr.Api.V5`: `PlatformController`, `GameController`, `RomFileController`, `PlatformPassController`, `GameControllerWithSignalR`, `RenameGameController`, `PlatformLookupController`, `PlatformFolderController`, `PlatformImportController`, and `PlatformEditorController`.
+  - Renamed all API resource classes, mappers, and validators to video game domain terminology: `PlatformResource`, `GameResource`, `RomFileResource`, `RomFileListResource`, `GamesMonitoredResource`, `RenameGameResource`, `ParsedGameInfoResource`, `PlatformPassResource`, `PlatformPassPlatformResource`, `RegionResource`, `RegionStatisticsResource`, `RegionTypeResource`, `PlatformEditorResource`, `PlatformEditorDeleteResource`, `PlatformEditorValidator`, `PlatformFolderResource`, `PlatformFolderAsRootFolderValidator`, `PlatformStatisticsResource`, `PlatformTranslationResource`, `PlatformRegionTypeValidator`, `GameSubresource`, and `PlatformSubresource`.
+- **Eradication of TV Terminology Across Test Suites (`Controllarr.Core.Test` & `Controllarr.Integration.Test`)**:
+  - Renamed over 93 test fixtures and test client helpers across `OrganizerTests`, `ParserTests`, `MediaFiles`, `DecisionEngineTests`, `HealthCheck`, `Housekeeping`, `IndexerSearchTests`, `IndexerTests`, and `Integration.Test` to use `Platform`, `Game`, `Region`, and `RomFile` domain names.
+- **Core Models, Validators & Statistics Renaming**:
+  - Renamed core domain classes in `src/NzbDrone.Core`: `PlatformPathValidator`, `PlatformExistsValidator`, `PlatformAncestorValidator`, `PlatformNotFoundException`, `MultiplePlatformsFoundException`, `PlatformTitleSlugValidator`, `PlatformTitleNormalizer`, `ShouldRefreshPlatform`, `PlatformPathBuilder`, `PlatformStatusType`, `DailyPlatform`, `DailyPlatformDataProxy`, `DailyPlatformService`, `PlatformStatistics`, `RegionStatistics`, `PlatformStatisticsRepository`, and `PlatformStatisticsService`.
+- **Decoupling from GitHub Fork Network & Upstream Attribution Affirmation**:
+  - Decoupled the repository from GitHub's upstream fork network to establish Controllarr as an independent standalone project for console and retro game preservation.
+  - Reaffirmed permanent credits and attribution to the Sonarr project and its contributors in [`README.md`](README.md) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 - **Complete Solution & Project Renaming to Controllarr (`Controllarr.*`)**:
   - Renamed all 24 backend `.csproj` projects from `Sonarr.*` to `Controllarr.*` (including `Controllarr.Core`, `Controllarr.Host`, `Controllarr.Api.V3`, `Controllarr.Api.V5`, `Controllarr.Http`, `Controllarr.Windows`, `Controllarr.Mono`, `Controllarr.Update`, etc.).
   - Created official `src/Controllarr.sln` solution file.
