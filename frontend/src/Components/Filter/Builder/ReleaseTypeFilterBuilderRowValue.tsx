@@ -12,15 +12,15 @@ const releaseTypeList = [
     },
   },
   {
-    id: 'singleEpisode',
+    id: 'singleGame',
     get name() {
-      return translate('SingleEpisode');
+      return translate('SingleGame');
     },
   },
   {
-    id: 'multiEpisode',
+    id: 'multiGame',
     get name() {
-      return translate('MultiEpisode');
+      return translate('MultiGame');
     },
   },
   {

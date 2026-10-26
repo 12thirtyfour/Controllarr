@@ -21,16 +21,16 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import Column from 'Components/Table/Column';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
-import { EpisodeFile } from 'EpisodeFile/EpisodeFile';
+import { RomFile } from 'RomFile/RomFile';
 import {
-  useDeleteEpisodeFiles,
-  useUpdateEpisodeFiles,
-} from 'EpisodeFile/useEpisodeFiles';
+  useDeleteRomFiles,
+  useUpdateRomFiles,
+} from 'RomFile/useRomFiles';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { align, icons, kinds, scrollDirections } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
-import SelectEpisodeModal from 'InteractiveImport/Episode/SelectEpisodeModal';
-import { SelectedEpisode } from 'InteractiveImport/Episode/SelectEpisodeModalContent';
+import SelectGameModal from 'InteractiveImport/Game/SelectGameModal';
+import { SelectedGame } from 'InteractiveImport/Game/SelectGameModalContent';
 import ImportMode from 'InteractiveImport/ImportMode';
 import SelectIndexerFlagsModal from 'InteractiveImport/IndexerFlags/SelectIndexerFlagsModal';
 import InteractiveImport, {
@@ -46,8 +46,8 @@ import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
 import SelectReleaseGroupModal from 'InteractiveImport/ReleaseGroup/SelectReleaseGroupModal';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
-import SelectSeasonModal from 'InteractiveImport/Season/SelectSeasonModal';
-import SelectSeriesModal from 'InteractiveImport/Series/SelectSeriesModal';
+import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
+import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import useInteractiveImport, {
   useReprocessInteractiveImportItems,
   useUpdateInteractiveImportItem,
@@ -55,7 +55,7 @@ import useInteractiveImport, {
 } from 'InteractiveImport/useInteractiveImport';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import Series from 'Series/Series';
+import Series from 'Platform/Platform';
 import { SortCallback } from 'typings/callbacks';
 import { CheckInputChanged } from 'typings/inputs';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
@@ -68,7 +68,7 @@ type SelectType =
   | 'select'
   | 'series'
   | 'season'
-  | 'episode'
+  | 'game'
   | 'releaseGroup'
   | 'quality'
   | 'language'
@@ -99,8 +99,8 @@ const COLUMNS = [
     isVisible: true,
   },
   {
-    name: 'episodes',
-    label: () => translate('Episodes'),
+    name: 'games',
+    label: () => translate('Games'),
     isVisible: true,
   },
   {
@@ -178,11 +178,11 @@ const importModeOptions: SelectInputOption[] = [
   },
 ];
 
-function isSameEpisodeFile(
+function isSameRomFile(
   file: InteractiveImport,
   originalFile?: InteractiveImport
 ) {
-  const { series, seasonNumber, episodes } = file;
+  const { series, seasonNumber, games } = file;
 
   if (!originalFile) {
     return false;
@@ -196,7 +196,7 @@ function isSameEpisodeFile(
     return false;
   }
 
-  return !hasDifferentItems(originalFile.episodes, episodes);
+  return !hasDifferentItems(originalFile.games, games);
 }
 
 const filterExistingFilesStore = create<boolean>(() => false);
@@ -271,15 +271,15 @@ function InteractiveImportModalContentInner(
 
   const items = data;
 
-  const { isDeleting, deleteEpisodeFiles, deleteError } =
-    useDeleteEpisodeFiles();
+  const { isDeleting, deleteRomFiles, deleteError } =
+    useDeleteRomFiles();
 
-  const { updateEpisodeFiles } = useUpdateEpisodeFiles();
+  const { updateRomFiles } = useUpdateRomFiles();
 
   const [invalidRowsSelected, setInvalidRowsSelected] = useState<number[]>([]);
   const [
-    withoutEpisodeFileIdRowsSelected,
-    setWithoutEpisodeFileIdRowsSelected,
+    withoutRomFileIdRowsSelected,
+    setWithoutRomFileIdRowsSelected,
   ] = useState<number[]>([]);
   const [selectModalOpen, setSelectModalOpen] = useState<SelectType | null>(
     null
@@ -327,7 +327,7 @@ function InteractiveImportModalContentInner(
   const selectedIds = useSelectedIds();
 
   const bulkSelectOptions = useMemo(() => {
-    const { seasonSelectDisabled, episodeSelectDisabled } = items.reduce(
+    const { seasonSelectDisabled, gameSelectDisabled } = items.reduce(
       (acc, item) => {
         if (!selectedIds.includes(item.id)) {
           return acc;
@@ -336,7 +336,7 @@ function InteractiveImportModalContentInner(
         const lastSelectedSeason = acc.lastSelectedSeason;
 
         acc.seasonSelectDisabled ||= !item.series;
-        acc.episodeSelectDisabled ||=
+        acc.gameSelectDisabled ||=
           item.seasonNumber === undefined ||
           (lastSelectedSeason >= 0 && item.seasonNumber !== lastSelectedSeason);
         acc.lastSelectedSeason = item.seasonNumber ?? -1;
@@ -345,7 +345,7 @@ function InteractiveImportModalContentInner(
       },
       {
         seasonSelectDisabled: false,
-        episodeSelectDisabled: false,
+        gameSelectDisabled: false,
         lastSelectedSeason: -1,
       }
     );
@@ -362,9 +362,9 @@ function InteractiveImportModalContentInner(
         disabled: seasonSelectDisabled,
       },
       {
-        key: 'episode',
-        value: translate('SelectEpisodes'),
-        disabled: episodeSelectDisabled,
+        key: 'game',
+        value: translate('SelectGames'),
+        disabled: gameSelectDisabled,
       },
       {
         key: 'quality',
@@ -432,22 +432,22 @@ function InteractiveImportModalContentInner(
   );
 
   const handleSelectedChange = useCallback<OnSelectedChangeCallback>(
-    ({ id, value, hasEpisodeFileId, shiftKey = false }) => {
+    ({ id, value, hasRomFileId, shiftKey = false }) => {
       toggleSelected({
         id,
         isSelected: value,
         shiftKey,
       });
 
-      setWithoutEpisodeFileIdRowsSelected(
-        hasEpisodeFileId || !value
-          ? without(withoutEpisodeFileIdRowsSelected, id as number)
-          : [...withoutEpisodeFileIdRowsSelected, id as number]
+      setWithoutRomFileIdRowsSelected(
+        hasRomFileId || !value
+          ? without(withoutRomFileIdRowsSelected, id as number)
+          : [...withoutRomFileIdRowsSelected, id as number]
       );
     },
     [
-      withoutEpisodeFileIdRowsSelected,
-      setWithoutEpisodeFileIdRowsSelected,
+      withoutRomFileIdRowsSelected,
+      setWithoutRomFileIdRowsSelected,
       toggleSelected,
     ]
   );
@@ -470,16 +470,16 @@ function InteractiveImportModalContentInner(
   const handleConfirmDelete = useCallback(() => {
     setIsConfirmDeleteModalOpen(false);
 
-    const episodeFileIds = items.reduce((acc: number[], item) => {
-      if (selectedIds.indexOf(item.id) > -1 && item.episodeFileId) {
-        acc.push(item.episodeFileId);
+    const romFileIds = items.reduce((acc: number[], item) => {
+      if (selectedIds.indexOf(item.id) > -1 && item.romFileId) {
+        acc.push(item.romFileId);
       }
 
       return acc;
     }, []);
 
-    deleteEpisodeFiles({ episodeFileIds });
-  }, [items, selectedIds, setIsConfirmDeleteModalOpen, deleteEpisodeFiles]);
+    deleteRomFiles({ romFileIds });
+  }, [items, selectedIds, setIsConfirmDeleteModalOpen, deleteRomFiles]);
 
   const handleConfirmDeleteModalClose = useCallback(() => {
     setIsConfirmDeleteModalOpen(false);
@@ -489,7 +489,7 @@ function InteractiveImportModalContentInner(
     const finalImportMode =
       downloadIds || !showImportMode ? 'auto' : importMode;
 
-    const existingFiles: Partial<EpisodeFile>[] = [];
+    const existingFiles: Partial<RomFile>[] = [];
     const files: InteractiveImportCommandOptions[] = [];
 
     if (finalImportMode === 'chooseImportMode') {
@@ -500,8 +500,8 @@ function InteractiveImportModalContentInner(
       return;
     }
 
-    const seenEpisodeIds = new Set<number>();
-    let hasDuplicateEpisodes = false;
+    const seenGameIds = new Set<number>();
+    let hasDuplicateGames = false;
 
     items.forEach((item) => {
       const isSelected = selectedIds.indexOf(item.id) > -1;
@@ -511,12 +511,12 @@ function InteractiveImportModalContentInner(
           downloadId,
           series,
           seasonNumber,
-          episodes,
+          games,
           releaseGroup,
           quality,
           languages,
           indexerFlags,
-          episodeFileId,
+          romFileId,
           releaseType,
         } = item;
 
@@ -534,9 +534,9 @@ function InteractiveImportModalContentInner(
           return;
         }
 
-        if (!episodes || !episodes.length) {
+        if (!games || !games.length) {
           setInteractiveImportErrorMessage(
-            translate('InteractiveImportNoEpisode')
+            translate('InteractiveImportNoGame')
           );
           return;
         }
@@ -555,14 +555,14 @@ function InteractiveImportModalContentInner(
           return;
         }
 
-        if (!hasDuplicateEpisodes) {
-          for (const episode of episodes) {
-            const hasAlreadySeen = seenEpisodeIds.has(episode.id);
+        if (!hasDuplicateGames) {
+          for (const game of games) {
+            const hasAlreadySeen = seenGameIds.has(game.id);
 
-            seenEpisodeIds.add(episode.id);
+            seenGameIds.add(game.id);
 
             if (hasAlreadySeen) {
-              hasDuplicateEpisodes = true;
+              hasDuplicateGames = true;
               return;
             }
           }
@@ -570,12 +570,12 @@ function InteractiveImportModalContentInner(
 
         setInteractiveImportErrorMessage(null);
 
-        if (episodeFileId) {
+        if (romFileId) {
           const originalItem = originalItems.find((i) => i.id === item.id);
 
-          if (isSameEpisodeFile(item, originalItem)) {
+          if (isSameRomFile(item, originalItem)) {
             existingFiles.push({
-              id: episodeFileId,
+              id: romFileId,
               releaseGroup,
               quality,
               languages,
@@ -591,21 +591,21 @@ function InteractiveImportModalContentInner(
           path: item.path,
           folderName: item.folderName,
           seriesId: series.id,
-          episodeIds: episodes.map((e) => e.id),
+          gameIds: games.map((e) => e.id),
           releaseGroup,
           quality,
           languages,
           indexerFlags,
           releaseType,
           downloadId,
-          episodeFileId,
+          romFileId,
         });
       }
     });
 
-    if (hasDuplicateEpisodes) {
+    if (hasDuplicateGames) {
       setInteractiveImportErrorMessage(
-        translate('InteractiveImportDuplicateEpisodes')
+        translate('InteractiveImportDuplicateGames')
       );
 
       return;
@@ -614,7 +614,7 @@ function InteractiveImportModalContentInner(
     let shouldClose = false;
 
     if (existingFiles.length) {
-      updateEpisodeFiles(existingFiles);
+      updateRomFiles(existingFiles);
 
       shouldClose = true;
     }
@@ -642,7 +642,7 @@ function InteractiveImportModalContentInner(
     selectedIds,
     onModalClose,
     executeCommand,
-    updateEpisodeFiles,
+    updateRomFiles,
   ]);
 
   const handleSetInteractiveImportMode = useCallback(
@@ -709,7 +709,7 @@ function InteractiveImportModalContentInner(
       const updates = {
         series,
         seasonNumber: undefined,
-        episodes: [],
+        games: [],
       };
 
       updateInteractiveImportItems(selectedIds, updates);
@@ -729,7 +729,7 @@ function InteractiveImportModalContentInner(
     (seasonNumber: number) => {
       const updates = {
         seasonNumber,
-        episodes: [],
+        games: [],
       };
 
       updateInteractiveImportItems(selectedIds, updates);
@@ -745,13 +745,13 @@ function InteractiveImportModalContentInner(
     ]
   );
 
-  const handleEpisodesSelect = useCallback(
-    (selectedEpisodes: SelectedEpisode[]) => {
-      selectedEpisodes.forEach(({ id, episodes }) => {
-        updateInteractiveImportItem(id, { episodes });
+  const handleGamesSelect = useCallback(
+    (selectedGames: SelectedGame[]) => {
+      selectedGames.forEach(({ id, games }) => {
+        updateInteractiveImportItem(id, { games });
       });
 
-      const selectedIds = selectedEpisodes.map(({ id }) => id);
+      const selectedIds = selectedGames.map(({ id }) => id);
       handleReprocessItems(selectedIds);
       setSelectModalOpen(null);
     },
@@ -948,7 +948,7 @@ function InteractiveImportModalContentInner(
               kind={kinds.DANGER}
               isSpinning={isDeleting}
               isDisabled={
-                !selectedIds.length || !!withoutEpisodeFileIdRowsSelected.length
+                !selectedIds.length || !!withoutRomFileIdRowsSelected.length
               }
               onPress={handleDeleteSelectedPress}
             >
@@ -995,14 +995,14 @@ function InteractiveImportModalContentInner(
         </div>
       </ModalFooter>
 
-      <SelectSeriesModal
+      <SelectPlatformModal
         isOpen={selectModalOpen === 'series'}
         modalTitle={modalTitle}
         onSeriesSelect={handleSeriesSelect}
         onModalClose={handleSelectModalClose}
       />
 
-      <SelectSeasonModal
+      <SelectRegionModal
         isOpen={selectModalOpen === 'season'}
         seriesId={selectedItem?.series?.id}
         modalTitle={modalTitle}
@@ -1010,14 +1010,14 @@ function InteractiveImportModalContentInner(
         onModalClose={handleSelectModalClose}
       />
 
-      <SelectEpisodeModal
-        isOpen={selectModalOpen === 'episode'}
+      <SelectGameModal
+        isOpen={selectModalOpen === 'game'}
         selectedIds={orderedSelectedIds}
         seriesId={selectedItem?.series?.id}
         seasonNumber={selectedItem?.seasonNumber}
         isAnime={selectedItem?.series?.seriesType === 'anime'}
         modalTitle={modalTitle}
-        onEpisodesSelect={handleEpisodesSelect}
+        onGamesSelect={handleGamesSelect}
         onModalClose={handleSelectModalClose}
       />
 
@@ -1066,8 +1066,8 @@ function InteractiveImportModalContentInner(
       <ConfirmModal
         isOpen={isConfirmDeleteModalOpen}
         kind={kinds.DANGER}
-        title={translate('DeleteSelectedEpisodeFiles')}
-        message={translate('DeleteSelectedEpisodeFilesHelpText')}
+        title={translate('DeleteSelectedRomFiles')}
+        message={translate('DeleteSelectedRomFilesHelpText')}
         confirmLabel={translate('Delete')}
         onConfirm={handleConfirmDelete}
         onCancel={handleConfirmDeleteModalClose}

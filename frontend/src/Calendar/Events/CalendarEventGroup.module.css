@@ -36,7 +36,8 @@
   gap: 6px;
 }
 
-.seriesTitle {
+.seriesTitle,
+.platformTitle {
   @add-mixin truncate;
   flex: 1 0 1px;
   color: var(--ink);
@@ -55,12 +56,14 @@
   font-family: var(--monoSpaceFontFamily);
 }
 
-.episodeInfo {
+.episodeInfo,
+.gameInfo {
   color: var(--inkMuted);
   font-size: 11px;
 }
 
-.absoluteEpisodeNumber {
+.absoluteEpisodeNumber,
+.absoluteGameNumber {
   margin-left: 3px;
 }
 

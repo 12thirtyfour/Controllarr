@@ -11,16 +11,16 @@ import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
-import EpisodeFormats from 'Episode/EpisodeFormats';
-import EpisodeLanguages from 'Episode/EpisodeLanguages';
-import EpisodeQuality from 'Episode/EpisodeQuality';
-import { useEpisodesWithIds } from 'Episode/useEpisode';
+import GameFormats from 'Game/GameFormats';
+import GameLanguages from 'Game/GameLanguages';
+import GameQuality from 'Game/GameQuality';
+import { useGamesWithIds } from 'Game/useGame';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import SeriesTitleLink from 'Series/SeriesTitleLink';
-import { useSingleSeries } from 'Series/useSeries';
+import PlatformTitleLink from 'Platform/PlatformTitleLink';
+import { useSingleSeries } from 'Platform/usePlatform';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { SelectStateInputProps } from 'typings/props';
@@ -34,8 +34,8 @@ import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import translate from 'Utilities/String/translate';
-import EpisodeCellContent from './EpisodeCellContent';
-import EpisodeTitleCellContent from './EpisodeTitleCellContent';
+import GameCellContent from './GameCellContent';
+import GameTitleCellContent from './GameTitleCellContent';
 import QueueStatusCell from './QueueStatusCell';
 import RemoveQueueItemModal from './RemoveQueueItemModal';
 import TimeLeftCell from './TimeLeftCell';
@@ -45,7 +45,7 @@ import styles from './QueueRow.module.css';
 interface QueueRowProps {
   id: number;
   seriesId?: number;
-  episodeIds: number[];
+  gameIds: number[];
   downloadId: string;
   title: string;
   status: string;
@@ -78,7 +78,7 @@ function QueueRow(props: QueueRowProps) {
   const {
     id,
     seriesId,
-    episodeIds,
+    gameIds,
     downloadId,
     title,
     status,
@@ -107,7 +107,7 @@ function QueueRow(props: QueueRowProps) {
   } = props;
 
   const series = useSingleSeries(seriesId);
-  const episodes = useEpisodesWithIds(episodeIds);
+  const games = useGamesWithIds(gameIds);
   const { showRelativeDates, shortDateFormat, longDateFormat, timeFormat } =
     useUiSettingsValues();
   const { removeQueueItem, isRemoving } = useRemoveQueueItem(id);
@@ -205,7 +205,7 @@ function QueueRow(props: QueueRowProps) {
           return (
             <TableRowCell key={name}>
               {series ? (
-                <SeriesTitleLink
+                <PlatformTitleLink
                   titleSlug={series.titleSlug}
                   title={series.title}
                 />
@@ -216,11 +216,11 @@ function QueueRow(props: QueueRowProps) {
           );
         }
 
-        if (name === 'episode') {
+        if (name === 'game') {
           return (
             <TableRowCell key={name}>
-              <EpisodeCellContent
-                episodes={episodes}
+              <GameCellContent
+                games={games}
                 isFullSeason={isFullSeason}
                 seasonNumber={seasonNumbers[0]}
                 series={series}
@@ -229,11 +229,11 @@ function QueueRow(props: QueueRowProps) {
           );
         }
 
-        if (name === 'episodes.title') {
+        if (name === 'games.title') {
           return (
             <TableRowCell key={name}>
-              <EpisodeTitleCellContent
-                episodes={episodes}
+              <GameTitleCellContent
+                games={games}
                 series={series}
                 fallbackTitle={title}
               />
@@ -241,14 +241,14 @@ function QueueRow(props: QueueRowProps) {
           );
         }
 
-        if (name === 'episodes.airDateUtc') {
-          if (episodes.length === 0) {
+        if (name === 'games.airDateUtc') {
+          if (games.length === 0) {
             return <TableRowCell key={name}>-</TableRowCell>;
           }
 
-          if (episodes.length === 1) {
+          if (games.length === 1) {
             return (
-              <RelativeDateCell key={name} date={episodes[0].airDateUtc} />
+              <RelativeDateCell key={name} date={games[0].airDateUtc} />
             );
           }
 
@@ -256,14 +256,14 @@ function QueueRow(props: QueueRowProps) {
             <TableRowCell key={name}>
               <span
                 title={`${formatDateTime(
-                  episodes[0].airDateUtc,
+                  games[0].airDateUtc,
                   longDateFormat,
                   timeFormat,
                   {
                     includeRelativeDay: !showRelativeDates,
                   }
                 )} - ${formatDateTime(
-                  episodes[episodes.length - 1].airDateUtc,
+                  games[games.length - 1].airDateUtc,
                   longDateFormat,
                   timeFormat,
                   {
@@ -272,7 +272,7 @@ function QueueRow(props: QueueRowProps) {
                 )}`}
               >
                 {getRelativeDate({
-                  date: episodes[0].airDateUtc,
+                  date: games[0].airDateUtc,
                   shortDateFormat,
                   showRelativeDates,
                   timeFormat,
@@ -280,7 +280,7 @@ function QueueRow(props: QueueRowProps) {
                 })}
                 {' - '}
                 {getRelativeDate({
-                  date: episodes[episodes.length - 1].airDateUtc,
+                  date: games[games.length - 1].airDateUtc,
                   shortDateFormat,
                   showRelativeDates,
                   timeFormat,
@@ -294,7 +294,7 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'languages') {
           return (
             <TableRowCell key={name}>
-              <EpisodeLanguages languages={languages} />
+              <GameLanguages languages={languages} />
             </TableRowCell>
           );
         }
@@ -302,7 +302,7 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'quality') {
           return (
             <TableRowCell key={name}>
-              {quality ? <EpisodeQuality quality={quality} /> : null}
+              {quality ? <GameQuality quality={quality} /> : null}
             </TableRowCell>
           );
         }
@@ -310,7 +310,7 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'customFormats') {
           return (
             <TableRowCell key={name}>
-              <EpisodeFormats formats={customFormats} />
+              <GameFormats formats={customFormats} />
             </TableRowCell>
           );
         }
@@ -323,7 +323,7 @@ function QueueRow(props: QueueRowProps) {
                   customFormatScore,
                   customFormats.length
                 )}
-                tooltip={<EpisodeFormats formats={customFormats} />}
+                tooltip={<GameFormats formats={customFormats} />}
                 position={tooltipPositions.BOTTOM}
               />
             </TableRowCell>

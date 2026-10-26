@@ -2,12 +2,12 @@ import { CalendarStatus } from 'typings/Calendar';
 import translate from 'Utilities/String/translate';
 
 const statusTranslationKeys: Record<CalendarStatus, string> = {
-  downloaded: 'CalendarLegendEpisodeDownloadedTooltip',
-  downloading: 'CalendarLegendEpisodeDownloadingTooltip',
-  unmonitored: 'CalendarLegendEpisodeUnmonitoredTooltip',
-  onAir: 'CalendarLegendEpisodeOnAirTooltip',
-  missing: 'CalendarLegendEpisodeMissingTooltip',
-  unaired: 'CalendarLegendEpisodeUnairedTooltip',
+  downloaded: 'CalendarLegendGameDownloadedTooltip',
+  downloading: 'CalendarLegendGameDownloadingTooltip',
+  unmonitored: 'CalendarLegendGameUnmonitoredTooltip',
+  onAir: 'CalendarLegendGameOnAirTooltip',
+  missing: 'CalendarLegendGameMissingTooltip',
+  unaired: 'CalendarLegendGameUnairedTooltip',
 };
 
 function getCalendarStatusLabel(status: CalendarStatus) {

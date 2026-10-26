@@ -216,9 +216,9 @@ export interface NamingModalOptions {
   name:
     | keyof Pick<
         NamingSettingsModel,
-        | 'standardEpisodeFormat'
-        | 'dailyEpisodeFormat'
-        | 'animeEpisodeFormat'
+        | 'standardGameFormat'
+        | 'dailyGameFormat'
+        | 'animeGameFormat'
         | 'seriesFolderFormat'
         | 'seasonFolderFormat'
         | 'specialsFolderFormat'
@@ -227,7 +227,7 @@ export interface NamingModalOptions {
     | 'discPathFormat';
   season?: boolean;
   seasonTitle?: boolean;
-  episode?: boolean;
+  game?: boolean;
   daily?: boolean;
   anime?: boolean;
   additional?: boolean;

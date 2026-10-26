@@ -2,7 +2,7 @@ import { keepPreviousData } from '@tanstack/react-query';
 import moment, { Moment, MomentInput } from 'moment-timezone';
 import { useEffect, useMemo } from 'react';
 import { create } from 'zustand';
-import { setEpisodeQueryKey } from 'Episode/useEpisode';
+import { setGameQueryKey } from 'Game/useGame';
 import { Filter, FilterBuilderProp } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
@@ -140,7 +140,7 @@ const useCalendar = () => {
   });
 
   useEffect(() => {
-    setEpisodeQueryKey('calendar', queryKey);
+    setGameQueryKey('calendar', queryKey);
   }, [queryKey]);
 
   return {

@@ -74,7 +74,8 @@
     opacity: 0.5;
   }
 
-  &.unmonitored .seriesTitle {
+  &.unmonitored .seriesTitle,
+.platformTitle {
     color: var(--inkSoft);
   }
 
@@ -104,36 +105,43 @@
 }
 
 .seriesTitle,
-.episodeTitle {
+.platformTitle,
+.episodeTitle,
+.gameTitle {
   @add-mixin truncate;
 
   flex: 0 1 300px;
   margin-right: 16px;
 }
 
-.seriesTitle {
+.seriesTitle,
+.platformTitle {
   color: var(--ink);
   letter-spacing: -0.005em;
   font-weight: 500;
 }
 
-.episodeTitle {
+.episodeTitle,
+.gameTitle {
   flex: 1 1 1px;
   color: var(--inkSoft);
 }
 
-.seasonEpisodeNumber {
+.seasonEpisodeNumber,
+.seasonGameNumber {
   flex: 0 0 90px;
   color: var(--inkMuted);
   font-size: 12px;
   font-family: var(--monoSpaceFontFamily);
 }
 
-.episodeSeparator {
+.episodeSeparator,
+.gameSeparator {
   display: none;
 }
 
-.absoluteEpisodeNumber {
+.absoluteEpisodeNumber,
+.absoluteGameNumber {
   margin-left: 3px;
 }
 
@@ -184,17 +192,21 @@
 
   .time,
   .seriesTitle,
+.platformTitle,
   .seasonEpisodeNumber,
-  .episodeTitle {
+  .episodeTitle,
+.gameTitle {
     flex: 0 0 auto;
     margin: 0;
   }
 
-  .seriesTitle {
+  .seriesTitle,
+.platformTitle {
     white-space: normal;
   }
 
-  .episodeSeparator {
+  .episodeSeparator,
+.gameSeparator {
     display: inline-block;
     margin: 0 5px;
   }

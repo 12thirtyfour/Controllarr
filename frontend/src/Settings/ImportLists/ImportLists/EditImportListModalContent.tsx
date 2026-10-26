@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
-import SeriesMonitoringOptionsPopoverContent from 'AddSeries/SeriesMonitoringOptionsPopoverContent';
-import SeriesMonitorNewItemsOptionsPopoverContent from 'AddSeries/SeriesMonitorNewItemsOptionsPopoverContent';
-import SeriesTypePopoverContent from 'AddSeries/SeriesTypePopoverContent';
+import PlatformMonitoringOptionsPopoverContent from 'AddPlatform/PlatformMonitoringOptionsPopoverContent';
+import PlatformMonitorNewItemsOptionsPopoverContent from 'AddPlatform/PlatformMonitorNewItemsOptionsPopoverContent';
+import PlatformTypePopoverContent from 'AddPlatform/PlatformTypePopoverContent';
 import Alert from 'Components/Alert';
 import Form from 'Components/Form/Form';
 import FormInput from 'Components/Form/FormInput';
@@ -66,7 +66,7 @@ function EditImportListModalContent({
     implementationName = '',
     name,
     enableAutomaticAdd,
-    searchForMissingEpisodes,
+    searchForMissingGames,
     minRefreshInterval,
     shouldMonitor,
     rootFolderPath,
@@ -145,7 +145,7 @@ function EditImportListModalContent({
           <FormRow>
             <FormLabel>{translate('EnableAutomaticAdd')}</FormLabel>
             <FormInputHelpText
-              text={translate('EnableAutomaticAddSeriesHelpText')}
+              text={translate('EnableAutomaticAddPlatformHelpText')}
             />
             <FormInput
               type={inputTypes.CHECK}
@@ -157,15 +157,15 @@ function EditImportListModalContent({
 
           <FormRow>
             <FormLabel>
-              {translate('ImportListSearchForMissingEpisodes')}
+              {translate('ImportListSearchForMissingGames')}
             </FormLabel>
             <FormInputHelpText
-              text={translate('ImportListSearchForMissingEpisodesHelpText')}
+              text={translate('ImportListSearchForMissingGamesHelpText')}
             />
             <FormInput
               type={inputTypes.CHECK}
-              name="searchForMissingEpisodes"
-              {...searchForMissingEpisodes}
+              name="searchForMissingGames"
+              {...searchForMissingGames}
               onChange={handleInputChange}
             />
           </FormRow>
@@ -180,7 +180,7 @@ function EditImportListModalContent({
                     <Icon className={styles.labelIcon} name={icons.INFO} />
                   }
                   title={translate('MonitoringOptions')}
-                  body={<SeriesMonitoringOptionsPopoverContent />}
+                  body={<PlatformMonitoringOptionsPopoverContent />}
                   position={tooltipPositions.RIGHT}
                 />
               </FormLabel>
@@ -201,7 +201,7 @@ function EditImportListModalContent({
                     <Icon className={styles.labelIcon} name={icons.INFO} />
                   }
                   title={translate('MonitorNewSeasons')}
-                  body={<SeriesMonitorNewItemsOptionsPopoverContent />}
+                  body={<PlatformMonitorNewItemsOptionsPopoverContent />}
                   position={tooltipPositions.RIGHT}
                 />
               </FormLabel>
@@ -262,7 +262,7 @@ function EditImportListModalContent({
                     <Icon className={styles.labelIcon} name={icons.INFO} />
                   }
                   title={translate('SeriesTypes')}
-                  body={<SeriesTypePopoverContent />}
+                  body={<PlatformTypePopoverContent />}
                   position={tooltipPositions.RIGHT}
                 />
               </FormLabel>

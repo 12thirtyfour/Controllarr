@@ -12,7 +12,7 @@ const messages = [
   'Hum something loud while others stare',
   'Loading humorous message... Please Wait',
   "I could've been faster in Python",
-  "Don't forget to rewind your episodes",
+  "Don't forget to rewind your games",
   'Congratulations! You are the 1000th visitor.',
   'Re-calibrating the internet...',
   "I'll be here all week",

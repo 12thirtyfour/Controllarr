@@ -5,7 +5,7 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
+import SeasonGameNumber from 'Game/RegionGameNumber';
 import Game from 'Game/Game';
 import GameSearchCell from 'Game/GameSearchCell';
 import GameStatus from 'Game/GameStatus';
@@ -20,13 +20,13 @@ import styles from './CutoffUnmetRow.module.css';
 interface CutoffUnmetRowProps {
   id: number;
   seriesId: number;
-  episodeFileId?: number;
+  romFileId?: number;
   seasonNumber: number;
-  episodeNumber: number;
-  absoluteEpisodeNumber?: number;
+  gameNumber: number;
+  absoluteGameNumber?: number;
   sceneSeasonNumber?: number;
-  sceneEpisodeNumber?: number;
-  sceneAbsoluteEpisodeNumber?: number;
+  sceneGameNumber?: number;
+  sceneAbsoluteGameNumber?: number;
   unverifiedSceneNumbering: boolean;
   airDate?: string;
   airDateUtc?: string;
@@ -38,13 +38,13 @@ interface CutoffUnmetRowProps {
 function CutoffUnmetRow({
   id,
   seriesId,
-  episodeFileId,
+  romFileId,
   seasonNumber,
-  episodeNumber,
-  absoluteEpisodeNumber,
+  gameNumber,
+  absoluteGameNumber,
   sceneSeasonNumber,
-  sceneEpisodeNumber,
-  sceneAbsoluteEpisodeNumber,
+  sceneGameNumber,
+  sceneAbsoluteGameNumber,
   unverifiedSceneNumbering,
   airDate,
   airDateUtc,
@@ -67,7 +67,7 @@ function CutoffUnmetRow({
     [toggleSelected]
   );
 
-  if (!platform || !episodeFileId) {
+  if (!platform || !romFileId) {
     return null;
   }
 
@@ -97,43 +97,43 @@ function CutoffUnmetRow({
           );
         }
 
-        if (name === 'episode') {
+        if (name === 'game') {
           return (
-            <TableRowCell key={name} className={styles.episode}>
-              <SeasonEpisodeNumber
+            <TableRowCell key={name} className={styles.game}>
+              <SeasonGameNumber
                 seasonNumber={seasonNumber}
-                episodeNumber={episodeNumber}
-                absoluteEpisodeNumber={absoluteEpisodeNumber}
+                gameNumber={gameNumber}
+                absoluteGameNumber={absoluteGameNumber}
                 seriesType={platform.seriesType}
                 alternateTitles={platform.alternateTitles}
                 sceneSeasonNumber={sceneSeasonNumber}
-                sceneEpisodeNumber={sceneEpisodeNumber}
-                sceneAbsoluteEpisodeNumber={sceneAbsoluteEpisodeNumber}
+                sceneGameNumber={sceneGameNumber}
+                sceneAbsoluteGameNumber={sceneAbsoluteGameNumber}
                 unverifiedSceneNumbering={unverifiedSceneNumbering}
               />
             </TableRowCell>
           );
         }
 
-        if (name === 'episodes.title') {
+        if (name === 'games.title') {
           return (
             <TableRowCell key={name}>
               <GameTitleLink
-                episodeId={id}
+                gameId={id}
                 seriesId={platform.id}
-                episodeEntity="wanted.cutoffUnmet"
-                episodeTitle={title}
+                gameEntity="wanted.cutoffUnmet"
+                gameTitle={title}
                 showOpenSeriesButton={true}
               />
             </TableRowCell>
           );
         }
 
-        if (name === 'episodes.airDateUtc') {
+        if (name === 'games.airDateUtc') {
           return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
         }
 
-        if (name === 'episodes.lastSearchTime') {
+        if (name === 'games.lastSearchTime') {
           return (
             <RelativeDateCell
               key={name}
@@ -146,7 +146,7 @@ function CutoffUnmetRow({
         if (name === 'languages') {
           return (
             <TableRowCell key={name} className={styles.languages}>
-              <RomFileLanguages episodeFileId={episodeFileId} />
+              <RomFileLanguages romFileId={romFileId} />
             </TableRowCell>
           );
         }
@@ -154,7 +154,7 @@ function CutoffUnmetRow({
         if (name === 'quality') {
           return (
             <TableRowCell key={name}>
-              <RomFileQuality episodeFileId={episodeFileId} />
+              <RomFileQuality romFileId={romFileId} />
             </TableRowCell>
           );
         }
@@ -163,9 +163,9 @@ function CutoffUnmetRow({
           return (
             <TableRowCell key={name} className={styles.status}>
               <GameStatus
-                episodeId={id}
-                episodeFileId={episodeFileId}
-                episodeEntity="wanted.cutoffUnmet"
+                gameId={id}
+                romFileId={romFileId}
+                gameEntity="wanted.cutoffUnmet"
               />
             </TableRowCell>
           );
@@ -175,10 +175,10 @@ function CutoffUnmetRow({
           return (
             <GameSearchCell
               key={name}
-              episodeId={id}
+              gameId={id}
               seriesId={platform.id}
-              episodeTitle={title}
-              episodeEntity="wanted.cutoffUnmet"
+              gameTitle={title}
+              gameEntity="wanted.cutoffUnmet"
               showOpenSeriesButton={true}
             />
           );

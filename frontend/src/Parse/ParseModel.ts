@@ -1,26 +1,26 @@
 import ModelBase from 'App/ModelBase';
-import Episode from 'Episode/Episode';
+import Game from 'Game/Game';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import Series from 'Series/Series';
+import Series from 'Platform/Platform';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 
-export interface SeriesTitleInfo {
+export interface PlatformTitleInfo {
   title: string;
   titleWithoutYear: string;
   year: number;
   allTitles: string[];
 }
 
-export interface ParsedEpisodeInfo {
+export interface ParsedGameInfo {
   releaseTitle: string;
-  seriesTitle: string;
-  seriesTitleInfo: SeriesTitleInfo;
+  platformTitle: string;
+  platformTitleInfo: PlatformTitleInfo;
   quality: QualityModel;
   seasonNumber: number | null;
-  episodeNumbers: number[];
-  absoluteEpisodeNumbers: number[];
-  specialAbsoluteEpisodeNumbers: number[];
+  gameNumbers: number[];
+  absoluteGameNumbers: number[];
+  specialAbsoluteGameNumbers: number[];
   languages: Language[];
   fullSeason: boolean;
   isPartialSeason: boolean;
@@ -34,15 +34,15 @@ export interface ParsedEpisodeInfo {
   airDate?: string;
   isDaily: boolean;
   isAbsoluteNumbering: boolean;
-  isPossibleSpecialEpisode: boolean;
+  isPossibleSpecialGame: boolean;
   isPossibleSceneSeasonSpecial: boolean;
 }
 
 export interface ParseModel extends ModelBase {
   title: string;
-  parsedEpisodeInfo: ParsedEpisodeInfo;
+  parsedGameInfo: ParsedGameInfo;
   series?: Series;
-  episodes: Episode[];
+  games: Game[];
   languages?: Language[];
   customFormats?: CustomFormat[];
   customFormatScore?: number;

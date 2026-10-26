@@ -3,7 +3,7 @@ export const CAPTCHA = 'captcha';
 export const CHECK = 'check';
 export const DEVICE = 'device';
 export const KEY_VALUE_LIST = 'keyValueList';
-export const MONITOR_EPISODES_SELECT = 'monitorEpisodesSelect';
+export const MONITOR_EPISODES_SELECT = 'monitorGamesSelect';
 export const MONITOR_NEW_ITEMS_SELECT = 'monitorNewItemsSelect';
 export const FLOAT = 'float';
 export const NUMBER = 'number';
@@ -65,7 +65,7 @@ export type InputType =
   | 'date'
   | 'device'
   | 'keyValueList'
-  | 'monitorEpisodesSelect'
+  | 'monitorGamesSelect'
   | 'monitorNewItemsSelect'
   | 'file'
   | 'float'

@@ -63,8 +63,8 @@ function Calendar() {
     };
 
     registerPagePopulator(repopulate, [
-      'episodeFileUpdated',
-      'episodeFileDeleted',
+      'romFileUpdated',
+      'romFileDeleted',
     ]);
 
     return () => {

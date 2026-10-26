@@ -62,8 +62,8 @@ function normalizeSegmentToConsoleVariables(
 
   if (
     trimmed.includes('S{season') ||
-    trimmed === '{Episode Title}' ||
-    trimmed === '{Episode CleanTitle}'
+    trimmed === '{Game Title}' ||
+    trimmed === '{Game CleanTitle}'
   ) {
     return '{Game Title}';
   }
@@ -74,14 +74,14 @@ function normalizeSegmentToConsoleVariables(
     .replace(/\{Series Year\}/gi, '{Platform Year}')
     .replace(/\{Season Title\}/gi, '{Region}')
     .replace(/\{Season CleanTitle\}/gi, '{Region}')
-    .replace(/\{Episode Title\}/gi, '{Game Title}')
-    .replace(/\{Episode CleanTitle\}/gi, '{Game CleanTitle}');
+    .replace(/\{Game Title\}/gi, '{Game Title}')
+    .replace(/\{Game CleanTitle\}/gi, '{Game CleanTitle}');
 }
 
 function splitUnifiedPathIntoBackendFields(rawPath: string): {
   seriesFolderFormat: string;
   seasonFolderFormat: string;
-  standardEpisodeFormat: string;
+  standardGameFormat: string;
 } {
   const segments = rawPath
     .split('/')
@@ -92,7 +92,7 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
     return {
       seriesFolderFormat: '{Manufacturer}/{Platform}',
       seasonFolderFormat: '{Region}',
-      standardEpisodeFormat: '{Game Title}',
+      standardGameFormat: '{Game Title}',
     };
   }
 
@@ -100,7 +100,7 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
     return {
       seriesFolderFormat: '{Manufacturer}/{Platform}',
       seasonFolderFormat: '{Region}',
-      standardEpisodeFormat: segments[0],
+      standardGameFormat: segments[0],
     };
   }
 
@@ -108,7 +108,7 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
     return {
       seriesFolderFormat: segments[0],
       seasonFolderFormat: '{Region}',
-      standardEpisodeFormat: segments[1],
+      standardGameFormat: segments[1],
     };
   }
 
@@ -123,14 +123,14 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
     return {
       seriesFolderFormat: segments.slice(0, regionIdx).join('/'),
       seasonFolderFormat: segments[regionIdx],
-      standardEpisodeFormat: segments.slice(regionIdx + 1).join('/'),
+      standardGameFormat: segments.slice(regionIdx + 1).join('/'),
     };
   }
 
   return {
     seriesFolderFormat: segments[0],
     seasonFolderFormat: segments[1],
-    standardEpisodeFormat: segments.slice(2).join('/'),
+    standardGameFormat: segments.slice(2).join('/'),
   };
 }
 
@@ -174,12 +174,12 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       settings.seasonFolderFormat.value,
       '{Region}'
     );
-    const normalizedEpisode = normalizeSegmentToConsoleVariables(
-      settings.standardEpisodeFormat.value,
+    const normalizedGame = normalizeSegmentToConsoleVariables(
+      settings.standardGameFormat.value,
       '{Game Title}'
     );
-    const rawDaily = settings.dailyEpisodeFormat?.value ?? '';
-    const normalizedDiscEpisode =
+    const rawDaily = settings.dailyGameFormat?.value ?? '';
+    const normalizedDiscGame =
       !rawDaily ||
       rawDaily === '{Game Title}' ||
       rawDaily.includes('Air-Date') ||
@@ -198,19 +198,19 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       updateSetting('seasonFolderFormat', normalizedSeason);
     }
 
-    if (settings.standardEpisodeFormat.value !== normalizedEpisode) {
-      updateSetting('standardEpisodeFormat', normalizedEpisode);
+    if (settings.standardGameFormat.value !== normalizedGame) {
+      updateSetting('standardGameFormat', normalizedGame);
     }
 
-    if (settings.dailyEpisodeFormat?.value !== normalizedDiscEpisode) {
-      updateSetting('dailyEpisodeFormat', normalizedDiscEpisode);
+    if (settings.dailyGameFormat?.value !== normalizedDiscGame) {
+      updateSetting('dailyGameFormat', normalizedDiscGame);
     }
 
     setUnifiedPathFormat(
-      `${normalizedSeries}/${normalizedSeason}/${normalizedEpisode}`
+      `${normalizedSeries}/${normalizedSeason}/${normalizedGame}`
     );
     setDiscPathFormat(
-      `${normalizedSeries}/${normalizedSeason}/${normalizedDiscEpisode}`
+      `${normalizedSeries}/${normalizedSeason}/${normalizedDiscGame}`
     );
     setInitializedFromSettings(true);
   }, [hasSettings, initializedFromSettings, settings, updateSetting]);
@@ -224,12 +224,12 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         const {
           seriesFolderFormat,
           seasonFolderFormat,
-          standardEpisodeFormat,
+          standardGameFormat,
         } = splitUnifiedPathIntoBackendFields(nextPath);
 
         updateSetting('seriesFolderFormat', seriesFolderFormat);
         updateSetting('seasonFolderFormat', seasonFolderFormat);
-        updateSetting('standardEpisodeFormat', standardEpisodeFormat);
+        updateSetting('standardGameFormat', standardGameFormat);
         return;
       }
 
@@ -237,10 +237,10 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         const nextDiscPath = String(change.value ?? '');
         setDiscPathFormat(nextDiscPath);
 
-        const { standardEpisodeFormat: discEpisodeFormat } =
+        const { standardGameFormat: discGameFormat } =
           splitUnifiedPathIntoBackendFields(nextDiscPath);
 
-        updateSetting('dailyEpisodeFormat', discEpisodeFormat);
+        updateSetting('dailyGameFormat', discGameFormat);
         return;
       }
 
@@ -295,18 +295,18 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   const formatErrors = [
     ...(settings.seriesFolderFormat?.errors ?? []),
     ...(settings.seasonFolderFormat?.errors ?? []),
-    ...(settings.standardEpisodeFormat?.errors ?? []),
+    ...(settings.standardGameFormat?.errors ?? []),
   ];
 
   const formatWarnings = [
     ...(settings.seriesFolderFormat?.warnings ?? []),
     ...(settings.seasonFolderFormat?.warnings ?? []),
-    ...(settings.standardEpisodeFormat?.warnings ?? []),
+    ...(settings.standardGameFormat?.warnings ?? []),
   ];
 
   return (
     <FieldSet
-      legend={translate('EpisodeNaming')}
+      legend={translate('GameNaming')}
       caption="Configure your unified folder and ROM naming structure using manufacturer, platform, region, and game variables (Default: {Manufacturer}/{Platform}/{Region}/{Game Title})"
     >
       {isFetching ? <LoadingIndicator /> : null}
@@ -318,13 +318,13 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       {hasSettings && !isFetching && !error ? (
         <Form>
           <FormRow size={sizes.MEDIUM}>
-            <FormLabel>{translate('RenameEpisodes')}</FormLabel>
+            <FormLabel>{translate('RenameGames')}</FormLabel>
             <FormInputHelpText text="Automatically rename imported ROMs and organize folders using your Library Path & ROM Naming Format" />
             <FormInput
               type={inputTypes.CHECK}
-              name="renameEpisodes"
+              name="renameGames"
               onChange={handleInputChange}
-              {...settings.renameEpisodes}
+              {...settings.renameGames}
             />
           </FormRow>
 
@@ -404,8 +404,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.TEXT}
               name="discPathFormat"
               value={discPathFormat}
-              errors={settings.dailyEpisodeFormat?.errors ?? []}
-              warnings={settings.dailyEpisodeFormat?.warnings ?? []}
+              errors={settings.dailyGameFormat?.errors ?? []}
+              warnings={settings.dailyGameFormat?.warnings ?? []}
               buttons={
                 <FormInputButton onPress={handleDiscNamingModalOpenClick}>
                   ?

@@ -15,7 +15,7 @@ import getFilterTypePredicate from 'Helpers/Props/getFilterTypePredicate';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import { AlternateTitle } from 'Series/Series';
+import { AlternateTitle } from 'Platform/Platform';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import Rejection from 'typings/Rejection';
 import sortByProp from 'Utilities/Array/sortByProp';
@@ -29,12 +29,12 @@ import {
   useReleaseOptions,
 } from './releaseOptionsStore';
 
-export interface ReleaseEpisode {
+export interface ReleaseGame {
   id: number;
-  episodeFileId: number;
+  romFileId: number;
   seasonNumber: number;
-  episodeNumber: number;
-  absoluteEpisodeNumber?: number;
+  gameNumber: number;
+  absoluteGameNumber?: number;
   title: string;
 }
 
@@ -47,10 +47,10 @@ export interface Release extends ModelBase {
   languages: Language[];
   mappedSeriesId?: number;
   mappedSeasonNumber?: number;
-  mappedEpisodeNumbers?: number[];
-  mappedAbsoluteEpisodeNumbers?: number[];
-  mappedEpisodeInfo: ReleaseEpisode[];
-  episodeRequested: boolean;
+  mappedGameNumbers?: number[];
+  mappedAbsoluteGameNumbers?: number[];
+  mappedGameInfo: ReleaseGame[];
+  gameRequested: boolean;
   downloadAllowed: boolean;
   releaseWeight: number;
   customFormats: CustomFormat[];
@@ -64,12 +64,12 @@ export interface ParsedInfo {
   releaseHash: string;
   fullSeason: boolean;
   seasonNumber: number | null;
-  seriesTitle: string;
-  episodeNumbers: number[];
-  absoluteEpisodeNumbers?: number[];
+  platformTitle: string;
+  gameNumbers: number[];
+  absoluteGameNumbers?: number[];
   isDaily: boolean;
   isAbsoluteNumbering: boolean;
-  isPossibleSpecialEpisode: boolean;
+  isPossibleSpecialGame: boolean;
   special: boolean;
 }
 
@@ -234,8 +234,8 @@ export const FILTER_BUILDER: FilterBuilderProp<Release>[] = [
     valueType: filterBuilderValueTypes.BOOL,
   },
   {
-    name: 'episodeRequested',
-    label: () => translate('EpisodeRequested'),
+    name: 'gameRequested',
+    label: () => translate('GameRequested'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.BOOL,
   },
@@ -246,8 +246,8 @@ const FILTER_PREDICATES = {
     return applyFilterPredicate(item.release.age, value, type);
   },
 
-  episodeRequested: (item: Release, value: boolean, type: FilterType) => {
-    return applyFilterPredicate(item.episodeRequested, value, type);
+  gameRequested: (item: Release, value: boolean, type: FilterType) => {
+    return applyFilterPredicate(item.gameRequested, value, type);
   },
 
   fullSeason: (item: Release, value: boolean, type: FilterType) => {
@@ -394,13 +394,13 @@ const useReleases = (
   { filter = '', enabled = true }: UseReleasesOptions = {}
 ) => {
   const customFilters = useCustomFiltersList('releases');
-  const { episodeSelectedFilterKey, seasonSelectedFilterKey } =
+  const { gameSelectedFilterKey, seasonSelectedFilterKey } =
     useReleaseOptions();
 
   const { sortKey, sortDirection } = releaseStore();
 
   const selectedFilterKey =
-    'seriesId' in payload ? seasonSelectedFilterKey : episodeSelectedFilterKey;
+    'seriesId' in payload ? seasonSelectedFilterKey : gameSelectedFilterKey;
 
   const { data, queryKey, ...result } = useApiQuery<Release[]>({
     path: '/release',
@@ -503,7 +503,7 @@ export const useClearReleasesOnUnmount = (
 
 interface OverrideRelease {
   seriesId: number;
-  episodeIds: number[];
+  gameIds: number[];
   downloadClientId: number | null;
   quality: QualityModel;
   languages: Language[];

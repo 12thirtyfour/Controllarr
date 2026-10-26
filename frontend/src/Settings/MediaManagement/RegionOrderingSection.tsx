@@ -8,9 +8,9 @@ import {
   normalizeRegionOrder,
   PLATFORM_REGION_ITEMS,
   PlatformRegionItem,
-  setAddSeriesOption,
-  useAddSeriesOption,
-} from 'AddSeries/addSeriesOptionsStore';
+  setAddPlatformOption,
+  useAddPlatformOption,
+} from 'AddPlatform/addPlatformOptionsStore';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import { icons } from 'Helpers/Props';
@@ -52,7 +52,7 @@ interface RegionOrderingSectionProps {
 }
 
 function RegionOrderingSection({ onOrderChange }: RegionOrderingSectionProps) {
-  const storedOrder = useAddSeriesOption('regionOrder');
+  const storedOrder = useAddPlatformOption('regionOrder');
   const normalizedOrder = useMemo(
     () => normalizeRegionOrder(storedOrder),
     [storedOrder]
@@ -85,7 +85,7 @@ function RegionOrderingSection({ onOrderChange }: RegionOrderingSectionProps) {
       setLocalIds((current) => {
         if (current && !event.canceled) {
           const nextIds = move(current, event);
-          setAddSeriesOption(
+          setAddPlatformOption(
             'regionOrder',
             nextIds.map((id) => Number(id))
           );
@@ -100,7 +100,7 @@ function RegionOrderingSection({ onOrderChange }: RegionOrderingSectionProps) {
 
   const handleResetDefault = useCallback(() => {
     setLocalIds(null);
-    setAddSeriesOption('regionOrder', [...DEFAULT_REGION_ORDER]);
+    setAddPlatformOption('regionOrder', [...DEFAULT_REGION_ORDER]);
     onOrderChange?.();
   }, [onOrderChange]);
 

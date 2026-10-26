@@ -13,7 +13,7 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
 import TablePager from 'Components/Table/TablePager';
-import useEpisodes from 'Episode/useEpisodes';
+import useGames from 'Game/useGames';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import { align, icons, kinds } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
@@ -52,23 +52,23 @@ function History() {
   const { columns, pageSize, sortKey, sortDirection, selectedFilterKey } =
     useHistoryOptions();
 
-  const episodeIds = useMemo(() => {
-    return selectUniqueIds<HistoryItem, number>(records, 'episodeId');
+  const gameIds = useMemo(() => {
+    return selectUniqueIds<HistoryItem, number>(records, 'gameId');
   }, [records]);
 
   const {
-    isFetching: isEpisodesFetching,
-    isFetched: isEpisodesFetched,
-    error: episodesError,
-  } = useEpisodes({ episodeIds });
+    isFetching: isGamesFetching,
+    isFetched: isGamesFetched,
+    error: gamesError,
+  } = useGames({ gameIds });
 
   const filters = useFilters();
 
   const customFilters = useCustomFiltersList('history');
 
-  const isFetchingAny = isLoading || isEpisodesFetching;
-  const isAllPopulated = isFetched && (isEpisodesFetched || !records.length);
-  const hasError = error || episodesError;
+  const isFetchingAny = isLoading || isGamesFetching;
+  const isAllPopulated = isFetched && (isGamesFetched || !records.length);
+  const hasError = error || gamesError;
 
   const handleFilterSelect = useCallback(
     (selectedFilterKey: string | number) => {
@@ -175,7 +175,7 @@ function History() {
 
         {
           // If history isPopulated and it's empty show no history found and don't
-          // wait for the episodes to populate because they are never coming.
+          // wait for the games to populate because they are never coming.
 
           isFetched && !hasError && !records.length ? (
             <PageMessage>{translate('NoHistoryFound')}</PageMessage>

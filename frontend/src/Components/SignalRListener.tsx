@@ -9,10 +9,10 @@ import { setAppValue, setVersion } from 'App/appStore';
 import ModelBase from 'App/ModelBase';
 import Command from 'Commands/Command';
 import { useUpdateCommand } from 'Commands/useCommands';
-import Episode from 'Episode/Episode';
-import { EpisodeFile } from 'EpisodeFile/EpisodeFile';
+import Game from 'Game/Game';
+import { RomFile } from 'RomFile/RomFile';
 import { PagedQueryResponse } from 'Helpers/Hooks/usePagedApiQuery';
-import Series from 'Series/Series';
+import Series from 'Platform/Platform';
 import { DownloadClientModel } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { ImportListModel } from 'Settings/ImportLists/ImportLists/useImportLists';
 import { IndexerModel } from 'Settings/Indexers/useIndexers';
@@ -101,7 +101,7 @@ function SignalRListener() {
 
     if (name === 'calendar') {
       if (body.action === 'updated') {
-        const updatedItem = body.resource as Episode;
+        const updatedItem = body.resource as Game;
         updateQueryClientItem(queryClient, ['/calendar'], updatedItem, true);
 
         return;
@@ -142,9 +142,9 @@ function SignalRListener() {
       return;
     }
 
-    if (name === 'episode') {
+    if (name === 'game') {
       if (body.action === 'updated') {
-        const updatedItem = body.resource as Episode;
+        const updatedItem = body.resource as Game;
 
         updateQueryClientItem(queryClient, ['/episode'], updatedItem, false);
       }
@@ -152,19 +152,19 @@ function SignalRListener() {
       return;
     }
 
-    if (name === 'episodefile') {
+    if (name === 'gamefile') {
       if (body.action === 'updated') {
-        const updatedItem = body.resource as EpisodeFile;
+        const updatedItem = body.resource as RomFile;
 
         updateQueryClientItem(queryClient, ['/episodeFile'], updatedItem, true);
 
         // Repopulate the page to handle recently imported file
-        repopulatePage('episodeFileUpdated');
+        repopulatePage('romFileUpdated');
       } else if (body.action === 'deleted') {
         const id = body.resource.id;
 
         removeQueryClientItem(queryClient, ['/episodeFile'], id);
-        repopulatePage('episodeFileDeleted');
+        repopulatePage('romFileDeleted');
       }
 
       return;
@@ -299,10 +299,10 @@ function SignalRListener() {
         return;
       }
 
-      updatePagedItem<Episode>(
+      updatePagedItem<Game>(
         queryClient,
         ['/wanted/cutoff'],
-        body.resource as Episode
+        body.resource as Game
       );
 
       return;
@@ -313,10 +313,10 @@ function SignalRListener() {
         return;
       }
 
-      updatePagedItem<Episode>(
+      updatePagedItem<Game>(
         queryClient,
         ['/wanted/missing'],
-        body.resource as Episode
+        body.resource as Game
       );
 
       return;

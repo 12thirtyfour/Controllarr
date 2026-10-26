@@ -26,9 +26,9 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
 import TablePager from 'Components/Table/TablePager';
-import Episode from 'Episode/Episode';
-import { useToggleEpisodesMonitored } from 'Episode/useEpisode';
-import EpisodeFileProvider from 'EpisodeFile/EpisodeFileProvider';
+import Game from 'Game/Game';
+import { useToggleGamesMonitored } from 'Game/useGame';
+import RomFileProvider from 'RomFile/RomFileProvider';
 import { Filter } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import { align, icons, kinds } from 'Helpers/Props';
@@ -81,11 +81,11 @@ function CutoffUnmetContent() {
   const { columns, pageSize, sortKey, sortDirection, selectedFilterKey } =
     useCutoffUnmetOptions();
 
-  const isSearchingForAllEpisodes = useCommandExecuting(
-    CommandNames.CutoffUnmetEpisodeSearch
+  const isSearchingForAllGames = useCommandExecuting(
+    CommandNames.CutoffUnmetGameSearch
   );
-  const isSearchingForSelectedEpisodes = useCommandExecuting(
-    CommandNames.EpisodeSearch
+  const isSearchingForSelectedGames = useCommandExecuting(
+    CommandNames.GameSearch
   );
 
   const {
@@ -95,25 +95,25 @@ function CutoffUnmetContent() {
     getSelectedIds,
     selectAll,
     unselectAll,
-  } = useSelect<Episode>();
+  } = useSelect<Game>();
 
   const [isConfirmSearchAllModalOpen, setIsConfirmSearchAllModalOpen] =
     useState(false);
 
-  const { toggleEpisodesMonitored, isToggling } = useToggleEpisodesMonitored([
+  const { toggleGamesMonitored, isToggling } = useToggleGamesMonitored([
     '/wanted/cutoff',
   ]);
 
   const isShowingMonitored = getMonitoredValue(FILTERS, selectedFilterKey);
-  const isSearchingForEpisodes =
-    isSearchingForAllEpisodes || isSearchingForSelectedEpisodes;
+  const isSearchingForGames =
+    isSearchingForAllGames || isSearchingForSelectedGames;
 
-  const episodeIds = useMemo(() => {
-    return selectUniqueIds<Episode, number>(records, 'id');
+  const gameIds = useMemo(() => {
+    return selectUniqueIds<Game, number>(records, 'id');
   }, [records]);
 
-  const episodeFileIds = useMemo(() => {
-    return selectUniqueIds<Episode, number>(records, 'episodeFileId');
+  const romFileIds = useMemo(() => {
+    return selectUniqueIds<Game, number>(records, 'romFileId');
   }, [records]);
 
   const handleSelectAllChange = useCallback(
@@ -130,8 +130,8 @@ function CutoffUnmetContent() {
   const handleSearchSelectedPress = useCallback(() => {
     executeCommand(
       {
-        name: CommandNames.EpisodeSearch,
-        episodeIds: getSelectedIds(),
+        name: CommandNames.GameSearch,
+        gameIds: getSelectedIds(),
       },
       () => {
         refetch();
@@ -150,7 +150,7 @@ function CutoffUnmetContent() {
   const handleSearchAllCutoffUnmetConfirmed = useCallback(() => {
     executeCommand(
       toWantedSearchCommandBody(
-        CommandNames.CutoffUnmetEpisodeSearch,
+        CommandNames.CutoffUnmetGameSearch,
         activeFilters
       ),
       () => {
@@ -162,11 +162,11 @@ function CutoffUnmetContent() {
   }, [activeFilters, executeCommand, refetch]);
 
   const handleToggleSelectedPress = useCallback(() => {
-    toggleEpisodesMonitored({
-      episodeIds: getSelectedIds(),
+    toggleGamesMonitored({
+      gameIds: getSelectedIds(),
       monitored: !isShowingMonitored,
     });
-  }, [isShowingMonitored, getSelectedIds, toggleEpisodesMonitored]);
+  }, [isShowingMonitored, getSelectedIds, toggleGamesMonitored]);
 
   const handleFilterSelect = useCallback((filterKey: number | string) => {
     setCutoffUnmetOption('selectedFilterKey', filterKey);
@@ -210,8 +210,8 @@ function CutoffUnmetContent() {
 
     registerPagePopulator(repopulate, [
       'seriesUpdated',
-      'episodeFileUpdated',
-      'episodeFileDeleted',
+      'romFileUpdated',
+      'romFileDeleted',
     ]);
 
     return () => {
@@ -221,8 +221,8 @@ function CutoffUnmetContent() {
 
   return (
     <CutoffUnmetProvider
-      episodeIds={episodeIds}
-      episodeFileIds={episodeFileIds}
+      gameIds={gameIds}
+      romFileIds={romFileIds}
     >
       <PageContent title={translate('CutoffUnmet')}>
         <PageToolbar>
@@ -234,8 +234,8 @@ function CutoffUnmetContent() {
               anySelected ? translate('SearchSelected') : translate('SearchAll')
             }
             iconName={icons.SEARCH}
-            isDisabled={isSearchingForEpisodes}
-            isSpinning={isSearchingForEpisodes}
+            isDisabled={isSearchingForGames}
+            isSpinning={isSearchingForGames}
             onPress={
               anySelected ? handleSearchSelectedPress : handleSearchAllPress
             }
@@ -339,12 +339,12 @@ function CutoffUnmetContent() {
               <ConfirmModal
                 isOpen={isConfirmSearchAllModalOpen}
                 kind={kinds.DANGER}
-                title={translate('SearchForCutoffUnmetEpisodes')}
+                title={translate('SearchForCutoffUnmetGames')}
                 message={
                   <div>
                     <div>
                       {translate(
-                        'SearchForCutoffUnmetEpisodesConfirmationCount',
+                        'SearchForCutoffUnmetGamesConfirmationCount',
                         { totalRecords }
                       )}
                     </div>
@@ -375,22 +375,22 @@ export default function CutoffUnmet() {
   const { records } = useCutoffUnmet();
 
   return (
-    <SelectProvider<Episode> items={records}>
+    <SelectProvider<Game> items={records}>
       <CutoffUnmetContent />
     </SelectProvider>
   );
 }
 
 function CutoffUnmetProvider({
-  episodeIds,
-  episodeFileIds,
+  gameIds,
+  romFileIds,
   children,
-}: PropsWithChildren<{ episodeIds: number[]; episodeFileIds: number[] }>) {
+}: PropsWithChildren<{ gameIds: number[]; romFileIds: number[] }>) {
   return (
-    <QueueDetailsProvider episodeIds={episodeIds}>
-      <EpisodeFileProvider episodeFileIds={episodeFileIds}>
+    <QueueDetailsProvider gameIds={gameIds}>
+      <RomFileProvider romFileIds={romFileIds}>
         {children}
-      </EpisodeFileProvider>
+      </RomFileProvider>
     </QueueDetailsProvider>
   );
 }

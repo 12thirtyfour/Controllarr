@@ -119,7 +119,7 @@ interface ReprocessInteractiveImportItem extends ModelBase {
   relativePath: string;
   seriesId: number | undefined;
   seasonNumber: number | undefined;
-  episodeIds: number[] | undefined;
+  gameIds: number[] | undefined;
   quality: QualityModel | undefined;
   languages: Language[];
   releaseGroup: string | undefined;
@@ -183,7 +183,7 @@ export const useReprocessInteractiveImportItems = () => {
             relativePath: item.relativePath,
             seriesId: item.series ? item.series.id : undefined,
             seasonNumber: item.seasonNumber,
-            episodeIds: (item.episodes || []).map((e) => e.id),
+            gameIds: (item.games || []).map((e) => e.id),
             quality: item.quality,
             languages: item.languages,
             releaseGroup: item.releaseGroup,

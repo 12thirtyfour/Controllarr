@@ -1,17 +1,17 @@
 import classNames from 'classnames';
 import moment from 'moment-timezone';
 import React, { useCallback, useState } from 'react';
-import { useQueueItemForEpisode } from 'Activity/Queue/Details/QueueDetailsProvider';
+import { useQueueItemForGame } from 'Activity/Queue/Details/QueueDetailsProvider';
 import { useCalendarOptions } from 'Calendar/calendarOptionsStore';
 import getStatusStyle from 'Calendar/getStatusStyle';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
-import EpisodeDetailsModal from 'Episode/EpisodeDetailsModal';
-import episodeEntities from 'Episode/episodeEntities';
-import getFinaleTypeName from 'Episode/getFinaleTypeName';
-import { useEpisodeFile } from 'EpisodeFile/EpisodeFileProvider';
+import GameDetailsModal from 'Game/GameDetailsModal';
+import gameEntities from 'Game/gameEntities';
+import getFinaleTypeName from 'Game/getFinaleTypeName';
+import { useRomFile } from 'RomFile/RomFileProvider';
 import { icons, kinds } from 'Helpers/Props';
-import { useSingleSeries } from 'Series/useSeries';
+import { useSingleSeries } from 'Platform/usePlatform';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatTime from 'Utilities/Date/formatTime';
@@ -23,13 +23,13 @@ import styles from './CalendarEvent.module.css';
 
 interface CalendarEventProps {
   id: number;
-  episodeId: number;
+  gameId: number;
   seriesId: number;
-  episodeFileId?: number;
+  romFileId?: number;
   title: string;
   seasonNumber: number;
-  episodeNumber: number;
-  absoluteEpisodeNumber?: number;
+  gameNumber: number;
+  absoluteGameNumber?: number;
   airDateUtc: string;
   monitored: boolean;
   unverifiedSceneNumbering?: boolean;
@@ -43,11 +43,11 @@ function CalendarEvent(props: CalendarEventProps) {
   const {
     id,
     seriesId,
-    episodeFileId,
+    romFileId,
     title,
     seasonNumber,
-    episodeNumber,
-    absoluteEpisodeNumber,
+    gameNumber,
+    absoluteGameNumber,
     airDateUtc,
     monitored,
     unverifiedSceneNumbering,
@@ -58,13 +58,13 @@ function CalendarEvent(props: CalendarEventProps) {
   } = props;
 
   const series = useSingleSeries(seriesId);
-  const episodeFile = useEpisodeFile(episodeFileId);
-  const queueItem = useQueueItemForEpisode(id);
+  const romFile = useRomFile(romFileId);
+  const queueItem = useQueueItemForGame(id);
 
   const { longDateFormat, timeFormat } = useUiSettingsValues();
 
   const {
-    showEpisodeInformation,
+    showGameInformation,
     showFinaleIcon,
     showSpecialIcon,
     showCutoffUnmetIcon,
@@ -99,10 +99,10 @@ function CalendarEvent(props: CalendarEventProps) {
     isMonitored
   );
   const missingAbsoluteNumber =
-    series.seriesType === 'anime' && seasonNumber > 0 && !absoluteEpisodeNumber;
-  const eventLabel = translate('CalendarOpenEpisodeDetails', {
+    series.seriesType === 'anime' && seasonNumber > 0 && !absoluteGameNumber;
+  const eventLabel = translate('CalendarOpenGameDetails', {
     series: series.title,
-    episode: `${seasonNumber}x${padNumber(episodeNumber, 2)}`,
+    game: `${seasonNumber}x${padNumber(gameNumber, 2)}`,
     title,
     airDate: formatDateTime(airDateUtc, longDateFormat, timeFormat),
     status: getCalendarStatusLabel(statusStyle),
@@ -124,7 +124,7 @@ function CalendarEvent(props: CalendarEventProps) {
 
       <div className={styles.overlay}>
         <div className={styles.info}>
-          <div className={styles.seriesTitle}>{series.title}</div>
+          <div className={styles.platformTitle}>{series.title}</div>
 
           <div
             className={classNames(
@@ -137,7 +137,7 @@ function CalendarEvent(props: CalendarEventProps) {
                 className={styles.statusIcon}
                 name={icons.WARNING}
                 kind={kinds.WARNING}
-                title={translate('EpisodeMissingAbsoluteNumber')}
+                title={translate('GameMissingAbsoluteNumber')}
               />
             ) : null}
 
@@ -160,13 +160,13 @@ function CalendarEvent(props: CalendarEventProps) {
               <Icon
                 className={styles.statusIcon}
                 name={icons.DOWNLOADING}
-                title={translate('EpisodeIsDownloading')}
+                title={translate('GameIsDownloading')}
               />
             ) : null}
 
             {showCutoffUnmetIcon &&
-            !!episodeFile &&
-            episodeFile.qualityCutoffNotMet ? (
+            !!romFile &&
+            romFile.qualityCutoffNotMet ? (
               <Icon
                 className={styles.statusIcon}
                 name={icons.CUTOFF_NOT_MET}
@@ -175,7 +175,7 @@ function CalendarEvent(props: CalendarEventProps) {
               />
             ) : null}
 
-            {episodeNumber === 1 && seasonNumber > 0 ? (
+            {gameNumber === 1 && seasonNumber > 0 ? (
               <Icon
                 className={styles.statusIcon}
                 name={icons.PREMIERE}
@@ -201,7 +201,7 @@ function CalendarEvent(props: CalendarEventProps) {
               />
             ) : null}
 
-            {showSpecialIcon && (episodeNumber === 0 || seasonNumber === 0) ? (
+            {showSpecialIcon && (gameNumber === 0 || seasonNumber === 0) ? (
               <Icon
                 className={styles.statusIcon}
                 name={icons.SPECIAL}
@@ -212,15 +212,15 @@ function CalendarEvent(props: CalendarEventProps) {
           </div>
         </div>
 
-        {showEpisodeInformation ? (
-          <div className={styles.episodeInfo}>
-            <div className={styles.episodeTitle}>{title}</div>
+        {showGameInformation ? (
+          <div className={styles.gameInfo}>
+            <div className={styles.gameTitle}>{title}</div>
 
             <div>
-              {seasonNumber}x{padNumber(episodeNumber, 2)}
-              {series.seriesType === 'anime' && absoluteEpisodeNumber ? (
-                <span className={styles.absoluteEpisodeNumber}>
-                  ({absoluteEpisodeNumber})
+              {seasonNumber}x{padNumber(gameNumber, 2)}
+              {series.seriesType === 'anime' && absoluteGameNumber ? (
+                <span className={styles.absoluteGameNumber}>
+                  ({absoluteGameNumber})
                 </span>
               ) : null}
             </div>
@@ -235,12 +235,12 @@ function CalendarEvent(props: CalendarEventProps) {
         </div>
       </div>
 
-      <EpisodeDetailsModal
+      <GameDetailsModal
         isOpen={isDetailsModalOpen}
-        episodeId={id}
-        episodeEntity={episodeEntities.CALENDAR}
+        gameId={id}
+        gameEntity={gameEntities.CALENDAR}
         seriesId={series.id}
-        episodeTitle={title}
+        gameTitle={title}
         showOpenSeriesButton={true}
         onModalClose={handleDetailsModalClose}
       />

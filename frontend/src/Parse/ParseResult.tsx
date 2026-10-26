@@ -1,7 +1,7 @@
 import React from 'react';
 import FieldSet from 'Components/FieldSet';
-import EpisodeFormats from 'Episode/EpisodeFormats';
-import SeriesTitleLink from 'Series/SeriesTitleLink';
+import GameFormats from 'Game/GameFormats';
+import PlatformTitleLink from 'Platform/PlatformTitleLink';
 import translate from 'Utilities/String/translate';
 import { ParseModel } from './ParseModel';
 import ParseResultItem from './ParseResultItem';
@@ -16,21 +16,21 @@ function ParseResult(props: ParseResultProps) {
   const {
     customFormats,
     customFormatScore,
-    episodes,
+    games,
     languages,
-    parsedEpisodeInfo,
+    parsedGameInfo,
     series,
   } = item;
 
   const {
     releaseTitle,
-    seriesTitle,
-    seriesTitleInfo,
+    platformTitle,
+    platformTitleInfo,
     releaseGroup,
     releaseHash,
     seasonNumber,
-    episodeNumbers,
-    absoluteEpisodeNumbers,
+    gameNumbers,
+    absoluteGameNumbers,
     special,
     fullSeason,
     isMultiSeason,
@@ -38,9 +38,9 @@ function ParseResult(props: ParseResultProps) {
     isDaily,
     airDate,
     quality,
-  } = parsedEpisodeInfo;
+  } = parsedGameInfo;
 
-  const finalLanguages = languages ?? parsedEpisodeInfo.languages;
+  const finalLanguages = languages ?? parsedGameInfo.languages;
 
   return (
     <div>
@@ -50,18 +50,18 @@ function ParseResult(props: ParseResultProps) {
           data={releaseTitle}
         />
 
-        <ParseResultItem title={translate('SeriesTitle')} data={seriesTitle} />
+        <ParseResultItem title={translate('PlatformTitle')} data={platformTitle} />
 
         <ParseResultItem
           title={translate('Year')}
-          data={seriesTitleInfo.year > 0 ? seriesTitleInfo.year : '-'}
+          data={platformTitleInfo.year > 0 ? platformTitleInfo.year : '-'}
         />
 
         <ParseResultItem
           title={translate('AllTitles')}
           data={
-            seriesTitleInfo.allTitles?.length > 0
-              ? seriesTitleInfo.allTitles.join(', ')
+            platformTitleInfo.allTitles?.length > 0
+              ? platformTitleInfo.allTitles.join(', ')
               : '-'
           }
         />
@@ -77,29 +77,29 @@ function ParseResult(props: ParseResultProps) {
         />
       </FieldSet>
 
-      <FieldSet legend={translate('EpisodeInfo')}>
+      <FieldSet legend={translate('GameInfo')}>
         <div className={styles.container}>
           <div className={styles.column}>
             <ParseResultItem
               title={translate('SeasonNumber')}
               data={
                 seasonNumber == null ||
-                (seasonNumber === 0 && absoluteEpisodeNumbers.length)
+                (seasonNumber === 0 && absoluteGameNumbers.length)
                   ? '-'
                   : seasonNumber
               }
             />
 
             <ParseResultItem
-              title={translate('EpisodeNumbers')}
-              data={episodeNumbers.join(', ') || '-'}
+              title={translate('GameNumbers')}
+              data={gameNumbers.join(', ') || '-'}
             />
 
             <ParseResultItem
-              title={translate('AbsoluteEpisodeNumbers')}
+              title={translate('AbsoluteGameNumbers')}
               data={
-                absoluteEpisodeNumbers.length
-                  ? absoluteEpisodeNumbers.join(', ')
+                absoluteGameNumbers.length
+                  ? absoluteGameNumbers.join(', ')
                   : '-'
               }
             />
@@ -189,7 +189,7 @@ function ParseResult(props: ParseResultProps) {
           title={translate('MatchedToSeries')}
           data={
             series ? (
-              <SeriesTitleLink
+              <PlatformTitleLink
                 titleSlug={series.titleSlug}
                 title={series.title}
               />
@@ -201,20 +201,20 @@ function ParseResult(props: ParseResultProps) {
 
         <ParseResultItem
           title={translate('MatchedToSeason')}
-          data={episodes.length ? episodes[0].seasonNumber : '-'}
+          data={games.length ? games[0].seasonNumber : '-'}
         />
 
         <ParseResultItem
-          title={translate('MatchedToEpisodes')}
+          title={translate('MatchedToGames')}
           data={
-            episodes.length ? (
+            games.length ? (
               <div>
-                {episodes.map((e) => {
+                {games.map((e) => {
                   return (
                     <div key={e.id}>
-                      {e.episodeNumber}
-                      {series?.seriesType === 'anime' && e.absoluteEpisodeNumber
-                        ? ` (${e.absoluteEpisodeNumber})`
+                      {e.gameNumber}
+                      {series?.seriesType === 'anime' && e.absoluteGameNumber
+                        ? ` (${e.absoluteGameNumber})`
                         : ''}{' '}
                       {` - ${e.title}`}
                     </div>
@@ -231,7 +231,7 @@ function ParseResult(props: ParseResultProps) {
           title={translate('CustomFormats')}
           data={
             customFormats?.length ? (
-              <EpisodeFormats formats={customFormats} />
+              <GameFormats formats={customFormats} />
             ) : (
               '-'
             )

@@ -8,14 +8,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useIsDownloadingEpisodes } from 'Activity/Queue/Details/QueueDetailsProvider';
+import { useIsDownloadingGames } from 'Activity/Queue/Details/QueueDetailsProvider';
 import { useCalendarOptions } from 'Calendar/calendarOptionsStore';
 import getStatusStyle from 'Calendar/getStatusStyle';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
-import getFinaleTypeName from 'Episode/getFinaleTypeName';
+import getFinaleTypeName from 'Game/getFinaleTypeName';
 import { icons, kinds } from 'Helpers/Props';
-import { useSingleSeries } from 'Series/useSeries';
+import { useSingleSeries } from 'Platform/usePlatform';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { CalendarItem } from 'typings/Calendar';
 import formatTime from 'Utilities/Date/formatTime';
@@ -26,24 +26,24 @@ import getCalendarStatusLabel from './getCalendarStatusLabel';
 import styles from './CalendarEventGroup.module.css';
 
 interface CalendarEventGroupProps {
-  episodeIds: number[];
+  gameIds: number[];
   seriesId: number;
   events: CalendarItem[];
   onEventModalOpenToggle: (isOpen: boolean) => void;
 }
 
 function CalendarEventGroup({
-  episodeIds,
+  gameIds,
   seriesId,
   events,
   onEventModalOpenToggle,
 }: CalendarEventGroupProps) {
-  const isDownloading = useIsDownloadingEpisodes(episodeIds);
+  const isDownloading = useIsDownloadingGames(gameIds);
   const series = useSingleSeries(seriesId)!;
 
   const { timeFormat } = useUiSettingsValues();
 
-  const { showEpisodeInformation, showFinaleIcon, fullColorEvents } =
+  const { showGameInformation, showFinaleIcon, fullColorEvents } =
     useCalendarOptions();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -51,22 +51,22 @@ function CalendarEventGroup({
   const toggleButtonId = useId();
   const restoreToggleFocus = useRef(false);
 
-  const firstEpisode = events[0];
-  const lastEpisode = events[events.length - 1];
-  const airDateUtc = firstEpisode.airDateUtc;
+  const firstGame = events[0];
+  const lastGame = events[events.length - 1];
+  const airDateUtc = firstGame.airDateUtc;
   const startTime = moment(airDateUtc);
-  const endTime = moment(lastEpisode.airDateUtc).add(series.runtime, 'minutes');
-  const seasonNumber = firstEpisode.seasonNumber;
+  const endTime = moment(lastGame.airDateUtc).add(series.runtime, 'minutes');
+  const seasonNumber = firstGame.seasonNumber;
 
-  const { allDownloaded, anyGrabbed, anyMonitored, allAbsoluteEpisodeNumbers } =
+  const { allDownloaded, anyGrabbed, anyMonitored, allAbsoluteGameNumbers } =
     useMemo(() => {
       let files = 0;
       let grabbed = 0;
       let monitored = 0;
-      let absoluteEpisodeNumbers = 0;
+      let absoluteGameNumbers = 0;
 
       events.forEach((event) => {
-        if (event.episodeFileId) {
+        if (event.romFileId) {
           files++;
         }
 
@@ -78,8 +78,8 @@ function CalendarEventGroup({
           monitored++;
         }
 
-        if (event.absoluteEpisodeNumber) {
-          absoluteEpisodeNumbers++;
+        if (event.absoluteGameNumber) {
+          absoluteGameNumbers++;
         }
       });
 
@@ -87,7 +87,7 @@ function CalendarEventGroup({
         allDownloaded: files === events.length,
         anyGrabbed: grabbed > 0,
         anyMonitored: monitored > 0,
-        allAbsoluteEpisodeNumbers: absoluteEpisodeNumbers === events.length,
+        allAbsoluteGameNumbers: absoluteGameNumbers === events.length,
       };
     }, [series, events]);
 
@@ -103,14 +103,14 @@ function CalendarEventGroup({
   const isMissingAbsoluteNumber =
     series.seriesType === 'anime' &&
     seasonNumber > 0 &&
-    !allAbsoluteEpisodeNumbers;
-  const expandLabel = translate('CalendarExpandEpisodeGroup', {
+    !allAbsoluteGameNumbers;
+  const expandLabel = translate('CalendarExpandGameGroup', {
     count: events.length,
     series: series.title,
     season: seasonNumber,
     status: getCalendarStatusLabel(statusStyle),
   });
-  const collapseLabel = translate('CalendarCollapseEpisodeGroup', {
+  const collapseLabel = translate('CalendarCollapseGameGroup', {
     series: series.title,
     season: seasonNumber,
   });
@@ -136,7 +136,7 @@ function CalendarEventGroup({
               return (
                 <li key={event.id}>
                   <CalendarEvent
-                    episodeId={event.id}
+                    gameId={event.id}
                     {...event}
                     onEventModalOpenToggle={onEventModalOpenToggle}
                   />
@@ -171,7 +171,7 @@ function CalendarEventGroup({
       <div id={expandedContentId} hidden={true} />
 
       <div className={styles.info}>
-        <div className={styles.seriesTitle}>{series.title}</div>
+        <div className={styles.platformTitle}>{series.title}</div>
 
         <div
           className={classNames(
@@ -184,7 +184,7 @@ function CalendarEventGroup({
               titleWrapperClassName={styles.statusIcon}
               name={icons.WARNING}
               kind={kinds.WARNING}
-              title={translate('EpisodeMissingAbsoluteNumber')}
+              title={translate('GameMissingAbsoluteNumber')}
             />
           ) : null}
 
@@ -192,11 +192,11 @@ function CalendarEventGroup({
             <Icon
               titleWrapperClassName={styles.statusIcon}
               name={icons.DOWNLOADING}
-              title={translate('AnEpisodeIsDownloading')}
+              title={translate('AnGameIsDownloading')}
             />
           ) : null}
 
-          {firstEpisode.episodeNumber === 1 && seasonNumber > 0 ? (
+          {firstGame.gameNumber === 1 && seasonNumber > 0 ? (
             <Icon
               titleWrapperClassName={styles.statusIcon}
               name={icons.PREMIERE}
@@ -209,20 +209,20 @@ function CalendarEventGroup({
             />
           ) : null}
 
-          {showFinaleIcon && lastEpisode.finaleType ? (
+          {showFinaleIcon && lastGame.finaleType ? (
             <Icon
               titleWrapperClassName={styles.statusIcon}
               name={
-                lastEpisode.finaleType === 'series'
+                lastGame.finaleType === 'series'
                   ? icons.FINALE_SERIES
                   : icons.FINALE_SEASON
               }
               kind={
-                lastEpisode.finaleType === 'series'
+                lastGame.finaleType === 'series'
                   ? kinds.DANGER
                   : kinds.WARNING
               }
-              title={getFinaleTypeName(lastEpisode.finaleType)}
+              title={getFinaleTypeName(lastGame.finaleType)}
             />
           ) : null}
         </div>
@@ -236,16 +236,16 @@ function CalendarEventGroup({
           })}
         </div>
 
-        {showEpisodeInformation ? (
-          <div className={styles.episodeInfo}>
-            {seasonNumber}x{padNumber(firstEpisode.episodeNumber, 2)}-
-            {padNumber(lastEpisode.episodeNumber, 2)}
+        {showGameInformation ? (
+          <div className={styles.gameInfo}>
+            {seasonNumber}x{padNumber(firstGame.gameNumber, 2)}-
+            {padNumber(lastGame.gameNumber, 2)}
             {series.seriesType === 'anime' &&
-            firstEpisode.absoluteEpisodeNumber &&
-            lastEpisode.absoluteEpisodeNumber ? (
-              <span className={styles.absoluteEpisodeNumber}>
-                ({firstEpisode.absoluteEpisodeNumber}-
-                {lastEpisode.absoluteEpisodeNumber})
+            firstGame.absoluteGameNumber &&
+            lastGame.absoluteGameNumber ? (
+              <span className={styles.absoluteGameNumber}>
+                ({firstGame.absoluteGameNumber}-
+                {lastGame.absoluteGameNumber})
               </span>
             ) : null}
           </div>
@@ -263,7 +263,7 @@ function CalendarEventGroup({
         )}
       </div>
 
-      {showEpisodeInformation ? (
+      {showGameInformation ? (
         <Link
           id={toggleButtonId}
           className={styles.expandContainer}

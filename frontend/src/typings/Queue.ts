@@ -1,6 +1,6 @@
 import ModelBase from 'App/ModelBase';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
-import Episode from 'Episode/Episode';
+import Game from 'Game/Game';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
@@ -42,13 +42,13 @@ interface Queue extends ModelBase {
   protocol: DownloadProtocol;
   downloadClient: string;
   outputPath: string;
-  episodesWithFilesCount: number;
+  gamesWithFilesCount: number;
   seriesId?: number;
-  episodeIds: number[];
+  gameIds: number[];
   seasonNumbers: number[];
   downloadClientHasPostImportCategory: boolean;
   isFullSeason: boolean;
-  episodes?: Episode[];
+  games?: Game[];
 }
 
 export default Queue;

@@ -11,27 +11,27 @@ import styles from './ReleaseSceneIndicator.module.css';
 
 function formatReleaseNumber(
   seasonNumber: number | null | undefined,
-  episodeNumbers: number[] | undefined,
-  absoluteEpisodeNumbers: number[] | undefined
+  gameNumbers: number[] | undefined,
+  absoluteGameNumbers: number[] | undefined
 ) {
-  if (episodeNumbers && episodeNumbers.length) {
-    if (episodeNumbers.length > 1) {
-      return `${seasonNumber}x${episodeNumbers[0]}-${
-        episodeNumbers[episodeNumbers.length - 1]
+  if (gameNumbers && gameNumbers.length) {
+    if (gameNumbers.length > 1) {
+      return `${seasonNumber}x${gameNumbers[0]}-${
+        gameNumbers[gameNumbers.length - 1]
       }`;
     }
 
-    return `${seasonNumber}x${episodeNumbers[0]}`;
+    return `${seasonNumber}x${gameNumbers[0]}`;
   }
 
-  if (absoluteEpisodeNumbers && absoluteEpisodeNumbers.length) {
-    if (absoluteEpisodeNumbers.length > 1) {
-      return `${absoluteEpisodeNumbers[0]}-${
-        absoluteEpisodeNumbers[absoluteEpisodeNumbers.length - 1]
+  if (absoluteGameNumbers && absoluteGameNumbers.length) {
+    if (absoluteGameNumbers.length > 1) {
+      return `${absoluteGameNumbers[0]}-${
+        absoluteGameNumbers[absoluteGameNumbers.length - 1]
       }`;
     }
 
-    return absoluteEpisodeNumbers[0];
+    return absoluteGameNumbers[0];
   }
 
   if (seasonNumber != null) {
@@ -44,17 +44,17 @@ function formatReleaseNumber(
 interface ReleaseSceneIndicatorProps {
   className: string;
   seasonNumber?: number;
-  episodeNumbers?: number[];
-  absoluteEpisodeNumbers?: number[];
+  gameNumbers?: number[];
+  absoluteGameNumbers?: number[];
   sceneSeasonNumber?: number | null;
-  sceneEpisodeNumbers?: number[];
-  sceneAbsoluteEpisodeNumbers?: number[];
+  sceneGameNumbers?: number[];
+  sceneAbsoluteGameNumbers?: number[];
   sceneMapping?: {
     sceneOrigin?: string;
     title?: string;
     comment?: string;
   };
-  episodeRequested: boolean;
+  gameRequested: boolean;
   isDaily: boolean;
 }
 
@@ -62,13 +62,13 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
   const {
     className,
     seasonNumber,
-    episodeNumbers,
-    absoluteEpisodeNumbers,
+    gameNumbers,
+    absoluteGameNumbers,
     sceneSeasonNumber,
-    sceneEpisodeNumbers,
-    sceneAbsoluteEpisodeNumbers,
+    sceneGameNumbers,
+    sceneAbsoluteGameNumbers,
     sceneMapping = {},
-    episodeRequested,
+    gameRequested,
     isDaily,
   } = props;
 
@@ -81,13 +81,13 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
   let mappingDifferent =
     sceneSeasonNumber !== undefined && seasonNumber !== sceneSeasonNumber;
 
-  if (sceneEpisodeNumbers !== undefined) {
+  if (sceneGameNumbers !== undefined) {
     mappingDifferent =
-      mappingDifferent || !_.isEqual(sceneEpisodeNumbers, episodeNumbers);
-  } else if (sceneAbsoluteEpisodeNumbers !== undefined) {
+      mappingDifferent || !_.isEqual(sceneGameNumbers, gameNumbers);
+  } else if (sceneAbsoluteGameNumbers !== undefined) {
     mappingDifferent =
       mappingDifferent ||
-      !_.isEqual(sceneAbsoluteEpisodeNumbers, absoluteEpisodeNumbers);
+      !_.isEqual(sceneAbsoluteGameNumbers, absoluteGameNumbers);
   }
 
   if (!sceneMapping && !mappingDifferent) {
@@ -96,13 +96,13 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
 
   const releaseNumber = formatReleaseNumber(
     sceneSeasonNumber,
-    sceneEpisodeNumbers,
-    sceneAbsoluteEpisodeNumbers
+    sceneGameNumbers,
+    sceneAbsoluteGameNumbers
   );
   const mappedNumber = formatReleaseNumber(
     seasonNumber,
-    episodeNumbers,
-    absoluteEpisodeNumbers
+    gameNumbers,
+    absoluteGameNumbers
   );
   const messages = [];
 
@@ -145,7 +145,7 @@ function ReleaseSceneIndicator(props: ReleaseSceneIndicatorProps) {
     level = styles.levelNormal;
   }
 
-  if (!episodeRequested) {
+  if (!gameRequested) {
     if (!isMixed && !isUnknown) {
       level = styles.levelNotRequested;
     }

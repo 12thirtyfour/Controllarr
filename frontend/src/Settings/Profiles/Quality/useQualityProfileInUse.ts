@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import useSeries from 'Series/useSeries';
+import usePlatform from 'Platform/usePlatform';
 import { useImportListsData } from 'Settings/ImportLists/ImportLists/useImportLists';
 
 function useQualityProfileInUse(id: number | undefined) {
-  const { data: series = [] } = useSeries();
+  const { data: series = [] } = usePlatform();
   const importLists = useImportListsData();
 
   return useMemo(() => {

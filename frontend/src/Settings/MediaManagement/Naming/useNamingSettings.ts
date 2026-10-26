@@ -9,25 +9,25 @@ const PATH = '/settings/naming';
 const EXAMPLES_PATH = '/settings/naming/examples';
 
 export interface NamingSettingsModel {
-  renameEpisodes: boolean;
+  renameGames: boolean;
   replaceIllegalCharacters: boolean;
   colonReplacementFormat: number;
   customColonReplacementFormat: string;
-  multiEpisodeStyle: number;
-  standardEpisodeFormat: string;
-  dailyEpisodeFormat: string;
-  animeEpisodeFormat: string;
+  multiGameStyle: number;
+  standardGameFormat: string;
+  dailyGameFormat: string;
+  animeGameFormat: string;
   seriesFolderFormat: string;
   seasonFolderFormat: string;
   specialsFolderFormat: string;
 }
 
 export interface NamingExamples {
-  singleEpisodeExample: string;
-  multiEpisodeExample: string;
-  dailyEpisodeExample: string;
-  animeEpisodeExample: string;
-  animeMultiEpisodeExample: string;
+  singleGameExample: string;
+  multiGameExample: string;
+  dailyGameExample: string;
+  animeGameExample: string;
+  animeMultiGameExample: string;
   seriesFolderExample: string;
   seasonFolderExample: string;
   specialsFolderExample: string;

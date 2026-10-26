@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import {
-  setAddSeriesOption,
-  useAddSeriesOptions,
-} from 'AddSeries/addSeriesOptionsStore';
+  setAddPlatformOption,
+  useAddPlatformOptions,
+} from 'AddPlatform/addPlatformOptionsStore';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
 import FormInput from 'Components/Form/FormInput';
@@ -45,7 +45,7 @@ const defaultRevisionPreferenceOptions: SelectInputOption[] = [
 ];
 
 function CollectionSettings() {
-  const addOptions = useAddSeriesOptions();
+  const addOptions = useAddPlatformOptions();
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [onePerRegion1g1r, setOnePerRegion1g1r] = useState<boolean>(
     () =>
@@ -68,9 +68,9 @@ function CollectionSettings() {
   const handleDefaultLibraryStyleChange = useCallback(
     ({ value }: InputChanged<string>) => {
       if (value === 'completionist') {
-        setAddSeriesOption('collectionStrategy', 'preservationist');
+        setAddPlatformOption('collectionStrategy', 'preservationist');
       } else {
-        setAddSeriesOption(
+        setAddPlatformOption(
           'collectionStrategy',
           onePerRegion1g1r ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
         );
@@ -89,7 +89,7 @@ function CollectionSettings() {
         String(addOptions.collectionStrategy) !== 'preservationist' &&
         String(addOptions.collectionStrategy) !== '1'
       ) {
-        setAddSeriesOption(
+        setAddPlatformOption(
           'collectionStrategy',
           useMulti ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
         );
@@ -101,7 +101,7 @@ function CollectionSettings() {
 
   const handleDefaultRevisionChange = useCallback(
     ({ value }: InputChanged<string>) => {
-      setAddSeriesOption('revisionPreference', String(value));
+      setAddPlatformOption('revisionPreference', String(value));
       setHasPendingChanges(true);
     },
     []
@@ -109,7 +109,7 @@ function CollectionSettings() {
 
   const handlePinnedVersionChange = useCallback(
     ({ value }: InputChanged<string>) => {
-      setAddSeriesOption('pinnedVersion', value);
+      setAddPlatformOption('pinnedVersion', value);
       setHasPendingChanges(true);
     },
     []
@@ -123,7 +123,7 @@ function CollectionSettings() {
         name === 'trackRomHacks' ||
         name === 'trackHomebrew'
       ) {
-        setAddSeriesOption(name, Boolean(value));
+        setAddPlatformOption(name, Boolean(value));
         setHasPendingChanges(true);
       }
     },

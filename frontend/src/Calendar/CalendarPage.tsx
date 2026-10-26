@@ -16,18 +16,18 @@ import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import PageToolbarSpacer from 'Components/Page/Toolbar/PageToolbarSpacer';
 import ToolbarItem from 'Components/Page/Toolbar/ToolbarItem';
-import Episode from 'Episode/Episode';
-import EpisodeFileProvider from 'EpisodeFile/EpisodeFileProvider';
+import Game from 'Game/Game';
+import RomFileProvider from 'RomFile/RomFileProvider';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import useMeasure from 'Helpers/Hooks/useMeasure';
 import { align, icons } from 'Helpers/Props';
-import NoSeries from 'Series/NoSeries';
-import { useHasSeries } from 'Series/useSeries';
+import NoPlatform from 'Platform/NoPlatform';
+import { useHasSeries } from 'Platform/usePlatform';
 import selectUniqueIds from 'Utilities/Object/selectUniqueIds';
 import translate from 'Utilities/String/translate';
 import Calendar from './Calendar';
 import CalendarFilterModal from './CalendarFilterModal';
-import CalendarMissingEpisodeSearchButton from './CalendarMissingEpisodeSearchButton';
+import CalendarMissingGameSearchButton from './CalendarMissingGameSearchButton';
 import { setCalendarOption, useCalendarOption } from './calendarOptionsStore';
 import CalendarLinkModal from './iCal/CalendarLinkModal';
 import Legend from './Legend/Legend';
@@ -58,7 +58,7 @@ function CalendarPage() {
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
 
   const isMeasured = width > 0;
-  const PageComponent = hasSeries ? Calendar : NoSeries;
+  const PageComponent = hasSeries ? Calendar : NoPlatform;
 
   const handleGetCalendarLinkPress = useCallback(() => {
     setIsCalendarLinkModalOpen(true);
@@ -86,12 +86,12 @@ function CalendarPage() {
     setCalendarOption('selectedFilterKey', key);
   }, []);
 
-  const episodeIds = useMemo(() => {
-    return selectUniqueIds<Episode, number>(data, 'id');
+  const gameIds = useMemo(() => {
+    return selectUniqueIds<Game, number>(data, 'id');
   }, [data]);
 
-  const episodeFileIds = useMemo(() => {
-    return selectUniqueIds<Episode, number>(data, 'episodeFileId');
+  const romFileIds = useMemo(() => {
+    return selectUniqueIds<Game, number>(data, 'romFileId');
   }, [data]);
 
   useEffect(() => {
@@ -109,8 +109,8 @@ function CalendarPage() {
 
   return (
     <CalendarPageProvider
-      episodeIds={episodeIds}
-      episodeFileIds={episodeFileIds}
+      gameIds={gameIds}
+      romFileIds={romFileIds}
     >
       <PageContent title={translate('Calendar')}>
         <PageToolbar>
@@ -138,7 +138,7 @@ function CalendarPage() {
           />
 
           <ToolbarItem id="search-missing" priority={1} groupId="left-b">
-            <CalendarMissingEpisodeSearchButton />
+            <CalendarMissingGameSearchButton />
           </ToolbarItem>
 
           <PageToolbarSpacer />
@@ -191,15 +191,15 @@ function CalendarPage() {
 export default CalendarPage;
 
 function CalendarPageProvider({
-  episodeIds,
-  episodeFileIds,
+  gameIds,
+  romFileIds,
   children,
-}: PropsWithChildren<{ episodeIds: number[]; episodeFileIds: number[] }>) {
+}: PropsWithChildren<{ gameIds: number[]; romFileIds: number[] }>) {
   return (
-    <QueueDetailsProvider episodeIds={episodeIds}>
-      <EpisodeFileProvider episodeFileIds={episodeFileIds}>
+    <QueueDetailsProvider gameIds={gameIds}>
+      <RomFileProvider romFileIds={romFileIds}>
         {children}
-      </EpisodeFileProvider>
+      </RomFileProvider>
     </QueueDetailsProvider>
   );
 }

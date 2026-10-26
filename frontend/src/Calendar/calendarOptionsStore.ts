@@ -4,9 +4,9 @@ import dimensions from 'Styles/Variables/dimensions';
 import { CalendarView } from './calendarViews';
 
 export interface CalendarOptions {
-  collapseMultipleEpisodes: boolean;
+  collapseMultipleGames: boolean;
   showCoverArt: boolean;
-  showEpisodeInformation: boolean;
+  showGameInformation: boolean;
   showFinaleIcon: boolean;
   showSpecialIcon: boolean;
   showCutoffUnmetIcon: boolean;
@@ -18,9 +18,9 @@ export interface CalendarOptions {
 const { useOptions, useOption, getOptions, getOption, setOptions, setOption } =
   createOptionsStore<CalendarOptions>('calendar_options', () => {
     return {
-      collapseMultipleEpisodes: false,
+      collapseMultipleGames: false,
       showCoverArt: true,
-      showEpisodeInformation: true,
+      showGameInformation: true,
       showFinaleIcon: false,
       showSpecialIcon: false,
       showCutoffUnmetIcon: false,

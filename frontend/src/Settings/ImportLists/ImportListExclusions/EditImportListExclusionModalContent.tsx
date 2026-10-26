@@ -83,7 +83,7 @@ function EditImportListExclusionModalContent({
             <FormLabel>{translate('Title')}</FormLabel>
 
             <FormInputHelpText
-              text={translate('SeriesTitleToExcludeHelpText')}
+              text={translate('PlatformTitleToExcludeHelpText')}
             />
 
             <FormInput

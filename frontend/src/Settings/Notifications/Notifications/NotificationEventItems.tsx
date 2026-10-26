@@ -26,8 +26,8 @@ function NotificationEventItems({
     onRename,
     onSeriesAdd,
     onSeriesDelete,
-    onEpisodeFileDelete,
-    onEpisodeFileDeleteForUpgrade,
+    onRomFileDelete,
+    onRomFileDeleteForUpgrade,
     onHealthIssue,
     onHealthRestored,
     onApplicationUpdate,
@@ -39,8 +39,8 @@ function NotificationEventItems({
     supportsOnRename,
     supportsOnSeriesAdd,
     supportsOnSeriesDelete,
-    supportsOnEpisodeFileDelete,
-    supportsOnEpisodeFileDeleteForUpgrade,
+    supportsOnRomFileDelete,
+    supportsOnRomFileDeleteForUpgrade,
     supportsOnApplicationUpdate,
     supportsOnManualInteractionRequired,
     supportsOnHealthIssue,
@@ -131,21 +131,21 @@ function NotificationEventItems({
 
           <div>
             <CheckInput
-              name="onEpisodeFileDelete"
-              helpText={translate('OnEpisodeFileDelete')}
-              isDisabled={!supportsOnEpisodeFileDelete.value}
-              {...onEpisodeFileDelete}
+              name="onRomFileDelete"
+              helpText={translate('OnRomFileDelete')}
+              isDisabled={!supportsOnRomFileDelete.value}
+              {...onRomFileDelete}
               onChange={onInputChange}
             />
           </div>
 
-          {onEpisodeFileDelete.value && (
+          {onRomFileDelete.value && (
             <div>
               <CheckInput
-                name="onEpisodeFileDeleteForUpgrade"
-                helpText={translate('OnEpisodeFileDeleteForUpgrade')}
-                isDisabled={!supportsOnEpisodeFileDeleteForUpgrade.value}
-                {...onEpisodeFileDeleteForUpgrade}
+                name="onRomFileDeleteForUpgrade"
+                helpText={translate('OnRomFileDeleteForUpgrade')}
+                isDisabled={!supportsOnRomFileDeleteForUpgrade.value}
+                {...onRomFileDeleteForUpgrade}
                 onChange={onInputChange}
               />
             </div>

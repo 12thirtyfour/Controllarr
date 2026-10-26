@@ -7,8 +7,8 @@ export type HistoryEventType =
   | 'seriesFolderImported'
   | 'downloadFolderImported'
   | 'downloadFailed'
-  | 'episodeFileDeleted'
-  | 'episodeFileRenamed'
+  | 'romFileDeleted'
+  | 'romFileRenamed'
   | 'downloadIgnored';
 
 export interface GrabbedHistoryData {
@@ -49,13 +49,13 @@ export interface DownloadFolderImportedHistory {
   size: string;
 }
 
-export interface EpisodeFileDeletedHistory {
+export interface RomFileDeletedHistory {
   customFormatScore?: string;
   reason: 'Manual' | 'MissingFromDisk' | 'Upgrade';
   size: string;
 }
 
-export interface EpisodeFileRenamedHistory {
+export interface RomFileRenamedHistory {
   sourcePath: string;
   sourceRelativePath: string;
   path: string;
@@ -70,12 +70,12 @@ export type HistoryData =
   | GrabbedHistoryData
   | DownloadFailedHistory
   | DownloadFolderImportedHistory
-  | EpisodeFileDeletedHistory
-  | EpisodeFileRenamedHistory
+  | RomFileDeletedHistory
+  | RomFileRenamedHistory
   | DownloadIgnoredHistory;
 
 export default interface History {
-  episodeId: number;
+  gameId: number;
   seriesId: number;
   sourceTitle: string;
   languages: Language[];

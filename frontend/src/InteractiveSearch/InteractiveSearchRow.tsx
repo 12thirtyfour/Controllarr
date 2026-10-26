@@ -16,13 +16,13 @@ import ConfirmModal from 'Components/Modal/ConfirmModal';
 import VirtualTableRowCell from 'Components/Table/Cells/VirtualTableRowCell';
 import Popover from 'Components/Tooltip/Popover';
 import Tooltip from 'Components/Tooltip/Tooltip';
-import EpisodeFormats from 'Episode/EpisodeFormats';
-import EpisodeLanguages from 'Episode/EpisodeLanguages';
-import EpisodeQuality from 'Episode/EpisodeQuality';
-import IndexerFlags from 'Episode/IndexerFlags';
+import GameFormats from 'Game/GameFormats';
+import GameLanguages from 'Game/GameLanguages';
+import GameQuality from 'Game/GameQuality';
+import IndexerFlags from 'Game/IndexerFlags';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
-import type Series from 'Series/Series';
-import { useSaveSeries } from 'Series/useSeries';
+import type Series from 'Platform/Platform';
+import { useSaveSeries } from 'Platform/usePlatform';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatAge from 'Utilities/Number/formatAge';
@@ -100,10 +100,10 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     sceneMapping,
     mappedSeriesId,
     mappedSeasonNumber,
-    mappedEpisodeNumbers,
-    mappedAbsoluteEpisodeNumbers,
-    mappedEpisodeInfo,
-    episodeRequested,
+    mappedGameNumbers,
+    mappedAbsoluteGameNumbers,
+    mappedGameInfo,
+    gameRequested,
     searchPayload,
     downloadAllowed,
   } = props;
@@ -111,8 +111,8 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
   const { rejections = [] } = decision;
 
   const {
-    absoluteEpisodeNumbers,
-    episodeNumbers,
+    absoluteGameNumbers,
+    gameNumbers,
     isDaily,
     seasonNumber,
     quality,
@@ -281,13 +281,13 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
           <ReleaseSceneIndicator
             className={styles.sceneMapping}
             seasonNumber={mappedSeasonNumber}
-            episodeNumbers={mappedEpisodeNumbers}
-            absoluteEpisodeNumbers={mappedAbsoluteEpisodeNumbers}
+            gameNumbers={mappedGameNumbers}
+            absoluteGameNumbers={mappedAbsoluteGameNumbers}
             sceneSeasonNumber={seasonNumber}
-            sceneEpisodeNumbers={episodeNumbers}
-            sceneAbsoluteEpisodeNumbers={absoluteEpisodeNumbers}
+            sceneGameNumbers={gameNumbers}
+            sceneAbsoluteGameNumbers={absoluteGameNumbers}
             sceneMapping={sceneMapping}
-            episodeRequested={episodeRequested}
+            gameRequested={gameRequested}
             isDaily={isDaily}
           />
         </div>
@@ -358,11 +358,11 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.languages}>
-        <EpisodeLanguages languages={languages} />
+        <GameLanguages languages={languages} />
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.quality}>
-        <EpisodeQuality quality={quality} showRevision={true} />
+        <GameQuality quality={quality} showRevision={true} />
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.customFormatScore}>
@@ -371,7 +371,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
             customFormatScore,
             customFormats.length
           )}
-          tooltip={<EpisodeFormats formats={customFormats} />}
+          tooltip={<GameFormats formats={customFormats} />}
           position={tooltipPositions.LEFT}
         />
       </VirtualTableRowCell>
@@ -461,7 +461,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         isOpen={isConfirmGrabModalOpen}
         kind={kinds.WARNING}
         title={translate('GrabRelease')}
-        message={translate('GrabReleaseUnknownSeriesOrEpisodeMessageText', {
+        message={translate('GrabReleaseUnknownSeriesOrGameMessageText', {
           title,
         })}
         confirmLabel={translate('Grab')}
@@ -476,7 +476,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         guid={guid}
         seriesId={mappedSeriesId}
         seasonNumber={mappedSeasonNumber}
-        episodes={mappedEpisodeInfo}
+        games={mappedGameInfo}
         languages={languages}
         quality={quality}
         protocol={protocol}

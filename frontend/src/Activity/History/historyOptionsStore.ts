@@ -31,13 +31,13 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: true,
         },
         {
-          name: 'episode',
-          label: () => translate('Episode'),
+          name: 'game',
+          label: () => translate('Game'),
           isVisible: true,
         },
         {
-          name: 'episodes.title',
-          label: () => translate('EpisodeTitle'),
+          name: 'games.title',
+          label: () => translate('GameTitle'),
           isVisible: true,
         },
         {

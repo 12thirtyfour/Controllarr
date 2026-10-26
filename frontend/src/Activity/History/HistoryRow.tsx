@@ -5,8 +5,8 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
-import episodeEntities from 'Episode/episodeEntities';
-import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
+import gameEntities from 'Game/gameEntities';
+import SeasonGameNumber from 'Game/RegionGameNumber';
 import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
 import GameQuality from 'Game/GameQuality';
@@ -27,7 +27,7 @@ import styles from './HistoryRow.module.css';
 
 interface HistoryRowProps {
   id: number;
-  episodeId: number;
+  gameId: number;
   seriesId: number;
   languages: Language[];
   quality: QualityModel;
@@ -47,7 +47,7 @@ interface HistoryRowProps {
 function HistoryRow(props: HistoryRowProps) {
   const {
     id,
-    episodeId,
+    gameId,
     seriesId,
     languages,
     quality,
@@ -63,7 +63,7 @@ function HistoryRow(props: HistoryRowProps) {
   } = props;
 
   const platform = useSinglePlatform(seriesId);
-  const game = useGame(episodeId, 'episodes');
+  const game = useGame(gameId, 'games');
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -109,31 +109,31 @@ function HistoryRow(props: HistoryRowProps) {
           );
         }
 
-        if (name === 'episode') {
+        if (name === 'game') {
           return (
             <TableRowCell key={name}>
-              <SeasonEpisodeNumber
+              <SeasonGameNumber
                 seasonNumber={game.seasonNumber}
-                episodeNumber={game.episodeNumber}
-                absoluteEpisodeNumber={game.absoluteEpisodeNumber}
+                gameNumber={game.gameNumber}
+                absoluteGameNumber={game.absoluteGameNumber}
                 seriesType={platform.seriesType}
                 alternateTitles={platform.alternateTitles}
                 sceneSeasonNumber={game.sceneSeasonNumber}
-                sceneEpisodeNumber={game.sceneEpisodeNumber}
-                sceneAbsoluteEpisodeNumber={game.sceneAbsoluteEpisodeNumber}
+                sceneGameNumber={game.sceneGameNumber}
+                sceneAbsoluteGameNumber={game.sceneAbsoluteGameNumber}
               />
             </TableRowCell>
           );
         }
 
-        if (name === 'episodes.title') {
+        if (name === 'games.title') {
           return (
             <TableRowCell key={name}>
               <GameTitleLink
-                episodeId={episodeId}
-                episodeEntity={episodeEntities.EPISODES}
+                gameId={gameId}
+                gameEntity={gameEntities.EPISODES}
                 seriesId={platform.id}
-                episodeTitle={game.title}
+                gameTitle={game.title}
                 showOpenSeriesButton={true}
               />
             </TableRowCell>

@@ -9,33 +9,33 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
     return {
       pageSize: 20,
       selectedFilterKey: 'monitored',
-      sortKey: 'episodes.airDateUtc',
+      sortKey: 'games.airDateUtc',
       sortDirection: 'descending',
       columns: [
         {
           name: 'series.sortTitle',
-          label: () => translate('SeriesTitle'),
+          label: () => translate('PlatformTitle'),
           isSortable: true,
           isVisible: true,
         },
         {
-          name: 'episode',
-          label: () => translate('Episode'),
+          name: 'game',
+          label: () => translate('Game'),
           isVisible: true,
         },
         {
-          name: 'episodes.title',
-          label: () => translate('EpisodeTitle'),
+          name: 'games.title',
+          label: () => translate('GameTitle'),
           isVisible: true,
         },
         {
-          name: 'episodes.airDateUtc',
+          name: 'games.airDateUtc',
           label: () => translate('AirDate'),
           isSortable: true,
           isVisible: true,
         },
         {
-          name: 'episodes.lastSearchTime',
+          name: 'games.lastSearchTime',
           label: () => translate('LastSearched'),
           isSortable: true,
           isVisible: false,

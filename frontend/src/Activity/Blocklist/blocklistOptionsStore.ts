@@ -16,7 +16,7 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
       columns: [
         {
           name: 'series.sortTitle',
-          label: () => translate('SeriesTitle'),
+          label: () => translate('PlatformTitle'),
           isSortable: true,
           isVisible: true,
         },

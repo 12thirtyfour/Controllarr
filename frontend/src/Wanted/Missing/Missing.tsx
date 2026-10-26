@@ -20,8 +20,8 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
 import TablePager from 'Components/Table/TablePager';
-import Episode from 'Episode/Episode';
-import { useToggleEpisodesMonitored } from 'Episode/useEpisode';
+import Game from 'Game/Game';
+import { useToggleGamesMonitored } from 'Game/useGame';
 import { Filter } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import { align, icons, kinds } from 'Helpers/Props';
@@ -76,11 +76,11 @@ function MissingContent() {
   const filters = useFilters();
   const customFilters = useCustomFiltersList('wanted.missing');
 
-  const isSearchingForAllEpisodes = useCommandExecuting(
-    CommandNames.MissingEpisodeSearch
+  const isSearchingForAllGames = useCommandExecuting(
+    CommandNames.MissingGameSearch
   );
-  const isSearchingForSelectedEpisodes = useCommandExecuting(
-    CommandNames.EpisodeSearch
+  const isSearchingForSelectedGames = useCommandExecuting(
+    CommandNames.GameSearch
   );
 
   const {
@@ -90,7 +90,7 @@ function MissingContent() {
     getSelectedIds,
     selectAll,
     unselectAll,
-  } = useSelect<Episode>();
+  } = useSelect<Game>();
 
   const [isConfirmSearchAllModalOpen, setIsConfirmSearchAllModalOpen] =
     useState(false);
@@ -98,16 +98,16 @@ function MissingContent() {
   const [isInteractiveImportModalOpen, setIsInteractiveImportModalOpen] =
     useState(false);
 
-  const { toggleEpisodesMonitored, isToggling } = useToggleEpisodesMonitored([
+  const { toggleGamesMonitored, isToggling } = useToggleGamesMonitored([
     '/wanted/missing',
   ]);
 
   const isShowingMonitored = getMonitoredValue(FILTERS, selectedFilterKey);
-  const isSearchingForEpisodes =
-    isSearchingForAllEpisodes || isSearchingForSelectedEpisodes;
+  const isSearchingForGames =
+    isSearchingForAllGames || isSearchingForSelectedGames;
 
-  const episodeIds = useMemo(() => {
-    return selectUniqueIds<Episode, number>(records, 'id');
+  const gameIds = useMemo(() => {
+    return selectUniqueIds<Game, number>(records, 'id');
   }, [records]);
 
   const handleSelectAllChange = useCallback(
@@ -124,8 +124,8 @@ function MissingContent() {
   const handleSearchSelectedPress = useCallback(() => {
     executeCommand(
       {
-        name: CommandNames.EpisodeSearch,
-        episodeIds: getSelectedIds(),
+        name: CommandNames.GameSearch,
+        gameIds: getSelectedIds(),
       },
       () => {
         refetch();
@@ -144,7 +144,7 @@ function MissingContent() {
   const handleSearchAllMissingConfirmed = useCallback(() => {
     executeCommand(
       toWantedSearchCommandBody(
-        CommandNames.MissingEpisodeSearch,
+        CommandNames.MissingGameSearch,
         activeFilters
       ),
       () => {
@@ -156,11 +156,11 @@ function MissingContent() {
   }, [activeFilters, executeCommand, refetch]);
 
   const handleToggleSelectedPress = useCallback(() => {
-    toggleEpisodesMonitored({
-      episodeIds: getSelectedIds(),
+    toggleGamesMonitored({
+      gameIds: getSelectedIds(),
       monitored: !isShowingMonitored,
     });
-  }, [isShowingMonitored, getSelectedIds, toggleEpisodesMonitored]);
+  }, [isShowingMonitored, getSelectedIds, toggleGamesMonitored]);
 
   const handleInteractiveImportPress = useCallback(() => {
     setIsInteractiveImportModalOpen(true);
@@ -212,8 +212,8 @@ function MissingContent() {
 
     registerPagePopulator(repopulate, [
       'seriesUpdated',
-      'episodeFileUpdated',
-      'episodeFileDeleted',
+      'romFileUpdated',
+      'romFileDeleted',
     ]);
 
     return () => {
@@ -222,7 +222,7 @@ function MissingContent() {
   }, [refetch]);
 
   return (
-    <QueueDetailsProvider episodeIds={episodeIds}>
+    <QueueDetailsProvider gameIds={gameIds}>
       <PageContent title={translate('Missing')}>
         <PageToolbar>
           <ToolbarItem
@@ -233,8 +233,8 @@ function MissingContent() {
               anySelected ? translate('SearchSelected') : translate('SearchAll')
             }
             iconName={icons.SEARCH}
-            isDisabled={isSearchingForEpisodes}
-            isSpinning={isSearchingForEpisodes}
+            isDisabled={isSearchingForGames}
+            isSpinning={isSearchingForGames}
             onPress={
               anySelected ? handleSearchSelectedPress : handleSearchAllPress
             }
@@ -345,12 +345,12 @@ function MissingContent() {
               <ConfirmModal
                 isOpen={isConfirmSearchAllModalOpen}
                 kind={kinds.DANGER}
-                title={translate('SearchForAllMissingEpisodes')}
+                title={translate('SearchForAllMissingGames')}
                 message={
                   <div>
                     <div>
                       {translate(
-                        'SearchForAllMissingEpisodesConfirmationCount',
+                        'SearchForAllMissingGamesConfirmationCount',
                         {
                           totalRecords,
                         }
@@ -388,7 +388,7 @@ function Missing() {
   const { records } = useMissing();
 
   return (
-    <SelectProvider<Episode> items={records}>
+    <SelectProvider<Game> items={records}>
       <MissingContent />
     </SelectProvider>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { CommandBody } from 'Commands/Command';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import { useMultipleSeries } from 'Series/useSeries';
+import { useMultipleSeries } from 'Platform/usePlatform';
 import sortByProp from 'Utilities/Array/sortByProp';
 import translate from 'Utilities/String/translate';
 import styles from './QueuedTaskRowNameCell.module.css';

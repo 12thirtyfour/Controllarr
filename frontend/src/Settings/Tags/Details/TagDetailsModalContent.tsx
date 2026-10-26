@@ -10,7 +10,7 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalSection from 'Components/ModalSection';
 import settingsCardStyles from 'Components/SettingsCard/SettingsCard.module.css';
 import { kinds } from 'Helpers/Props';
-import useSeries from 'Series/useSeries';
+import usePlatform from 'Platform/usePlatform';
 import { useDownloadClientsWithIds } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { useImportListsWithIds } from 'Settings/ImportLists/ImportLists/useImportLists';
 import { useIndexersWithIds } from 'Settings/Indexers/useIndexers';
@@ -32,7 +32,7 @@ function findMatchingItems<T extends ModelBase>(
 }
 
 function useMatchingPlatforms(platformIds: number[]) {
-  const { data: allPlatforms = [] } = useSeries();
+  const { data: allPlatforms = [] } = usePlatform();
 
   return useMemo(() => {
     const matchingPlatforms = findMatchingItems(platformIds, allPlatforms);

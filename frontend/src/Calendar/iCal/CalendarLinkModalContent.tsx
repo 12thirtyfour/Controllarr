@@ -84,7 +84,7 @@ function CalendarLinkModalContent({
           <FormRow>
             <FormLabel>{translate('IncludeUnmonitored')}</FormLabel>
             <FormInputHelpText
-              text={translate('ICalIncludeUnmonitoredEpisodesHelpText')}
+              text={translate('ICalIncludeUnmonitoredGamesHelpText')}
             />
             <FormInput
               type={inputTypes.CHECK}

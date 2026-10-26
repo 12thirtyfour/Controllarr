@@ -31,8 +31,8 @@ function sort(items: (CalendarEventModel | CalendarEventGroupModel)[]) {
 
 const useCalendarEvents = (date: string) => {
   const { data } = useCalendar();
-  const collapseMultipleEpisodes = useCalendarOption(
-    'collapseMultipleEpisodes'
+  const collapseMultipleGames = useCalendarOption(
+    'collapseMultipleGames'
   );
 
   const momentDate = moment(date);
@@ -41,7 +41,7 @@ const useCalendarEvents = (date: string) => {
     return momentDate.isSame(moment(item.airDateUtc), 'day');
   });
 
-  if (!collapseMultipleEpisodes) {
+  if (!collapseMultipleGames) {
     return sort(
       filtered.map((item) => ({
         isGroup: false,
@@ -72,7 +72,7 @@ const useCalendarEvents = (date: string) => {
         isGroup: true,
         seriesId: events[0].seriesId,
         seasonNumber: events[0].seasonNumber,
-        episodeIds: events.map((event) => event.id),
+        gameIds: events.map((event) => event.id),
         events: events.sort(
           (a, b) => moment(a.airDateUtc).unix() - moment(b.airDateUtc).unix()
         ),
@@ -140,7 +140,7 @@ function CalendarDay({
         </div>
       )}
       {!events.length && view === calendarViews.DAY ? (
-        <div className={styles.noEvents}>{translate('NoEpisodesAiring')}</div>
+        <div className={styles.noEvents}>{translate('NoGamesAiring')}</div>
       ) : null}
       <div>
         {events.map((event) => {
@@ -158,7 +158,7 @@ function CalendarDay({
             <CalendarEvent
               key={event.id}
               {...event}
-              episodeId={event.id}
+              gameId={event.id}
               seriesId={event.seriesId}
               airDateUtc={event.airDateUtc as string}
               onEventModalOpenToggle={onEventModalOpenToggle}

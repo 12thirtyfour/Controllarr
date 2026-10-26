@@ -1,11 +1,11 @@
 import React, { useCallback } from 'react';
 import { SetFilter } from 'Components/Filter/Filter';
 import FilterModal, { FilterModalProps } from 'Components/Filter/FilterModal';
-import Episode from 'Episode/Episode';
+import Game from 'Game/Game';
 import { setMissingOption } from './missingOptionsStore';
 import useMissing, { FILTER_BUILDER } from './useMissing';
 
-type MissingFilterModalProps = FilterModalProps<Episode>;
+type MissingFilterModalProps = FilterModalProps<Game>;
 
 export default function MissingFilterModal(props: MissingFilterModalProps) {
   const { records } = useMissing();

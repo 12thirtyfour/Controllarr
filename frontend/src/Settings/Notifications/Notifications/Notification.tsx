@@ -21,8 +21,8 @@ function Notification({
   onRename,
   onSeriesAdd,
   onSeriesDelete,
-  onEpisodeFileDelete,
-  onEpisodeFileDeleteForUpgrade,
+  onRomFileDelete,
+  onRomFileDeleteForUpgrade,
   onHealthIssue,
   onHealthRestored,
   onApplicationUpdate,
@@ -34,8 +34,8 @@ function Notification({
   supportsOnRename,
   supportsOnSeriesAdd,
   supportsOnSeriesDelete,
-  supportsOnEpisodeFileDelete,
-  supportsOnEpisodeFileDeleteForUpgrade,
+  supportsOnRomFileDelete,
+  supportsOnRomFileDeleteForUpgrade,
   supportsOnHealthIssue,
   supportsOnHealthRestored,
   supportsOnApplicationUpdate,
@@ -81,7 +81,7 @@ function Notification({
     onApplicationUpdate ||
     onSeriesAdd ||
     onSeriesDelete ||
-    onEpisodeFileDelete ||
+    onRomFileDelete ||
     onManualInteractionRequired;
 
   return (
@@ -156,17 +156,17 @@ function Notification({
           </Label>
         ) : null}
 
-        {supportsOnEpisodeFileDelete && onEpisodeFileDelete ? (
+        {supportsOnRomFileDelete && onRomFileDelete ? (
           <Label dot={false} kind={kinds.DEFAULT} size={sizes.MEDIUM}>
-            {translate('OnEpisodeFileDelete')}
+            {translate('OnRomFileDelete')}
           </Label>
         ) : null}
 
-        {supportsOnEpisodeFileDeleteForUpgrade &&
-        onEpisodeFileDelete &&
-        onEpisodeFileDeleteForUpgrade ? (
+        {supportsOnRomFileDeleteForUpgrade &&
+        onRomFileDelete &&
+        onRomFileDeleteForUpgrade ? (
           <Label dot={false} kind={kinds.DEFAULT} size={sizes.MEDIUM}>
-            {translate('OnEpisodeFileDeleteForUpgrade')}
+            {translate('OnRomFileDeleteForUpgrade')}
           </Label>
         ) : null}
 

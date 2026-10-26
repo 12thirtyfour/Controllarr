@@ -73,13 +73,13 @@ function ParseModalContent(props: ParseModalContentProps) {
           </div>
         ) : null}
 
-        {!isLoading && title && !error && !data.parsedEpisodeInfo ? (
+        {!isLoading && title && !error && !data.parsedGameInfo ? (
           <div className={styles.message}>
             {translate('ParseModalUnableToParse')}
           </div>
         ) : null}
 
-        {!isLoading && !error && data.parsedEpisodeInfo ? (
+        {!isLoading && !error && data.parsedGameInfo ? (
           <ParseResult item={data} />
         ) : null}
 

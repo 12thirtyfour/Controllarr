@@ -25,7 +25,7 @@ function Message({ id, hideAfter, name, message, type }: MessageProps) {
         return icons.BACKUP;
       case 'CheckHealth':
         return icons.HEALTH;
-      case 'EpisodeSearch':
+      case 'GameSearch':
         return icons.SEARCH;
       case 'Housekeeping':
         return icons.HOUSEKEEPING;

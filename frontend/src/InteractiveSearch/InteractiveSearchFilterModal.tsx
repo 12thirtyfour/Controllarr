@@ -20,9 +20,9 @@ export default function InteractiveSearchFilterModal({
 
   const handleFilterSelect = useCallback(
     (selectedFilter: SetFilter) => {
-      if (type === 'episode') {
+      if (type === 'game') {
         setReleaseOption(
-          'episodeSelectedFilterKey',
+          'gameSelectedFilterKey',
           selectedFilter.selectedFilterKey
         );
       } else {

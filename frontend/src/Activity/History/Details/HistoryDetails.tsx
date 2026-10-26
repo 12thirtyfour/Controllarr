@@ -9,8 +9,8 @@ import {
   DownloadFailedHistory,
   DownloadFolderImportedHistory,
   DownloadIgnoredHistory,
-  EpisodeFileDeletedHistory,
-  EpisodeFileRenamedHistory,
+  RomFileDeletedHistory,
+  RomFileRenamedHistory,
   GrabbedHistoryData,
   HistoryData,
   HistoryEventType,
@@ -245,9 +245,9 @@ function HistoryDetails(props: HistoryDetailsProps) {
     );
   }
 
-  if (eventType === 'episodeFileDeleted') {
+  if (eventType === 'romFileDeleted') {
     const { reason, customFormatScore, size } =
-      data as EpisodeFileDeletedHistory;
+      data as RomFileDeletedHistory;
 
     let reasonMessage = '';
 
@@ -256,7 +256,7 @@ function HistoryDetails(props: HistoryDetailsProps) {
         reasonMessage = translate('DeletedReasonManual');
         break;
       case 'MissingFromDisk':
-        reasonMessage = translate('DeletedReasonEpisodeMissingFromDisk');
+        reasonMessage = translate('DeletedReasonGameMissingFromDisk');
         break;
       case 'Upgrade':
         reasonMessage = translate('DeletedReasonUpgrade');
@@ -288,9 +288,9 @@ function HistoryDetails(props: HistoryDetailsProps) {
     );
   }
 
-  if (eventType === 'episodeFileRenamed') {
+  if (eventType === 'romFileRenamed') {
     const { sourcePath, sourceRelativePath, path, relativePath } =
-      data as EpisodeFileRenamedHistory;
+      data as RomFileRenamedHistory;
 
     return (
       <DescriptionList>

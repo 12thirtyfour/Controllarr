@@ -15,13 +15,13 @@ export interface QualityProfileStatistics {
   qualityProfileId: number;
   name: string;
   seriesCount: number;
-  episodeFileCount: number;
+  romFileCount: number;
   sizeOnDisk: number;
 }
 
 export interface QualityStatistics {
   quality: Quality;
-  episodeFileCount: number;
+  romFileCount: number;
   sizeOnDisk: number;
 }
 
@@ -29,7 +29,7 @@ export interface TagStatistics {
   tagId: number;
   label: string;
   seriesCount: number;
-  episodeFileCount: number;
+  romFileCount: number;
   sizeOnDisk: number;
 }
 
@@ -46,12 +46,12 @@ export interface Statistics {
   animeSeriesCount: number;
   seasonCount: number;
   completedSeasonCount: number;
-  totalEpisodeCount: number;
-  monitoredEpisodeCount: number;
-  downloadedEpisodeCount: number;
-  missingEpisodeCount: number;
-  unairedEpisodeCount: number;
-  episodeFileCount: number;
+  totalGameCount: number;
+  monitoredGameCount: number;
+  downloadedGameCount: number;
+  missingGameCount: number;
+  unairedGameCount: number;
+  romFileCount: number;
   sizeOnDisk: number;
   qualityProfileStatistics: QualityProfileStatistics[];
   qualityStatistics: QualityStatistics[];
@@ -106,8 +106,8 @@ interface StatisticsQueryParams {
   qualityProfileIds?: number[];
   qualityProfileIdsNot?: boolean;
   monitored?: boolean;
-  seriesTypes?: string[];
-  seriesTypesNot?: boolean;
+  platformTypes?: string[];
+  platformTypesNot?: boolean;
 }
 
 const mapFiltersToQueryParams = (
@@ -147,8 +147,8 @@ const mapFiltersToQueryParams = (
         params.monitored = isNegated ? !values[0] : Boolean(values[0]);
         break;
       case 'seriesType':
-        params.seriesTypes = values.map(String);
-        params.seriesTypesNot = isNegated || undefined;
+        params.platformTypes = values.map(String);
+        params.platformTypesNot = isNegated || undefined;
         break;
       default:
         break;

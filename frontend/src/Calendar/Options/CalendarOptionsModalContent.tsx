@@ -38,9 +38,9 @@ function CalendarOptionsModalContent({
   onModalClose,
 }: CalendarOptionsModalContentProps) {
   const {
-    collapseMultipleEpisodes,
+    collapseMultipleGames,
     showCoverArt,
-    showEpisodeInformation,
+    showGameInformation,
     showFinaleIcon,
     showSpecialIcon,
     showCutoffUnmetIcon,
@@ -97,15 +97,15 @@ function CalendarOptionsModalContent({
         <FieldSet legend={translate('Local')}>
           <Form>
             <FormRow>
-              <FormLabel>{translate('CollapseMultipleEpisodes')}</FormLabel>
+              <FormLabel>{translate('CollapseMultipleGames')}</FormLabel>
 
               <FormInputHelpText
-                text={translate('CollapseMultipleEpisodesHelpText')}
+                text={translate('CollapseMultipleGamesHelpText')}
               />
               <FormInput
                 type={inputTypes.CHECK}
-                name="collapseMultipleEpisodes"
-                value={collapseMultipleEpisodes}
+                name="collapseMultipleGames"
+                value={collapseMultipleGames}
                 // @ts-expect-error - The typing for inputs needs more work
                 onChange={handleOptionInputChange}
               />
@@ -125,15 +125,15 @@ function CalendarOptionsModalContent({
             </FormRow>
 
             <FormRow>
-              <FormLabel>{translate('ShowEpisodeInformation')}</FormLabel>
+              <FormLabel>{translate('ShowGameInformation')}</FormLabel>
 
               <FormInputHelpText
-                text={translate('ShowEpisodeInformationHelpText')}
+                text={translate('ShowGameInformationHelpText')}
               />
               <FormInput
                 type={inputTypes.CHECK}
-                name="showEpisodeInformation"
-                value={showEpisodeInformation}
+                name="showGameInformation"
+                value={showGameInformation}
                 // @ts-expect-error - The typing for inputs needs more work
                 onChange={handleOptionInputChange}
               />

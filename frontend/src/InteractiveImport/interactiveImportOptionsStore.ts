@@ -28,8 +28,8 @@ export const COLUMNS = [
     isVisible: true,
   },
   {
-    name: 'episodes',
-    label: 'Episodes',
+    name: 'games',
+    label: 'Games',
     isVisible: true,
   },
   {

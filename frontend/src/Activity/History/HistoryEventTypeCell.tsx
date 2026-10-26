@@ -3,7 +3,7 @@ import Icon from 'Components/Icon';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import { icons, kinds } from 'Helpers/Props';
 import {
-  EpisodeFileDeletedHistory,
+  RomFileDeletedHistory,
   GrabbedHistoryData,
   HistoryData,
   HistoryEventType,
@@ -21,11 +21,11 @@ function getIconName(eventType: HistoryEventType, data: HistoryData) {
       return icons.DOWNLOADED;
     case 'downloadFailed':
       return icons.DOWNLOADING;
-    case 'episodeFileDeleted':
-      return (data as EpisodeFileDeletedHistory).reason === 'MissingFromDisk'
+    case 'romFileDeleted':
+      return (data as RomFileDeletedHistory).reason === 'MissingFromDisk'
         ? icons.FILE_MISSING
         : icons.DELETE;
-    case 'episodeFileRenamed':
+    case 'romFileRenamed':
       return icons.ORGANIZE;
     case 'downloadIgnored':
       return icons.IGNORE;
@@ -46,24 +46,24 @@ function getIconKind(eventType: HistoryEventType) {
 function getTooltip(eventType: HistoryEventType, data: HistoryData) {
   switch (eventType) {
     case 'grabbed':
-      return translate('EpisodeGrabbedTooltip', {
+      return translate('GameGrabbedTooltip', {
         indexer: (data as GrabbedHistoryData).indexer,
         downloadClient: (data as GrabbedHistoryData).downloadClient,
       });
     case 'seriesFolderImported':
       return translate('SeriesFolderImportedTooltip');
     case 'downloadFolderImported':
-      return translate('EpisodeImportedTooltip');
+      return translate('GameImportedTooltip');
     case 'downloadFailed':
-      return translate('DownloadFailedEpisodeTooltip');
-    case 'episodeFileDeleted':
-      return (data as EpisodeFileDeletedHistory).reason === 'MissingFromDisk'
-        ? translate('EpisodeFileMissingTooltip')
-        : translate('EpisodeFileDeletedTooltip');
-    case 'episodeFileRenamed':
-      return translate('EpisodeFileRenamedTooltip');
+      return translate('DownloadFailedGameTooltip');
+    case 'romFileDeleted':
+      return (data as RomFileDeletedHistory).reason === 'MissingFromDisk'
+        ? translate('RomFileMissingTooltip')
+        : translate('RomFileDeletedTooltip');
+    case 'romFileRenamed':
+      return translate('RomFileRenamedTooltip');
     case 'downloadIgnored':
-      return translate('DownloadIgnoredEpisodeTooltip');
+      return translate('DownloadIgnoredGameTooltip');
     default:
       return translate('UnknownEventTooltip');
   }

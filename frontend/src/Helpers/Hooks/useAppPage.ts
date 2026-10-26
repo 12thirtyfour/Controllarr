@@ -4,7 +4,7 @@ import useCommands from 'Commands/useCommands';
 import useCustomFilters from 'Filters/useCustomFilters';
 import { useInitializeLanguage } from 'Language/useLanguageName';
 import { useLanguages } from 'Language/useLanguages';
-import useSeries from 'Series/useSeries';
+import usePlatform from 'Platform/usePlatform';
 import useIndexerFlags from 'Settings/Indexers/useIndexerFlags';
 import { useMetadataSourceSettings } from 'Settings/MetadataSource/useMetadataSourceSettings';
 import { useQualityProfiles } from 'Settings/Profiles/Quality/useQualityProfiles';
@@ -20,7 +20,7 @@ const useAppPage = () => {
   const { isFetched: isCustomFiltersFetched, error: customFiltersError } =
     useCustomFilters();
 
-  const { isFetched: isSeriesFetched, error: seriesError } = useSeries();
+  const { isFetched: isSeriesFetched, error: seriesError } = usePlatform();
 
   const { isFetched: isSystemStatusFetched, error: systemStatusError } =
     useSystemStatus();

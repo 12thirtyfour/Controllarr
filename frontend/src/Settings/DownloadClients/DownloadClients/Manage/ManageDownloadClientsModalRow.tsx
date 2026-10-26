@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
 import { useSelect } from 'App/Select/SelectContext';
 import Label from 'Components/Label';
-import SeriesTagList from 'Components/SeriesTagList';
+import PlatformTagList from 'Components/PlatformTagList';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
@@ -91,7 +91,7 @@ function ManageDownloadClientsModalRow(
       </TableRowCell>
 
       <TableRowCell className={styles.tags}>
-        <SeriesTagList tags={tags} />
+        <PlatformTagList tags={tags} />
       </TableRowCell>
     </TableRow>
   );

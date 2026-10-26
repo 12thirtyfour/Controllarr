@@ -91,7 +91,7 @@ function InteractiveImportSelectFolderModalContent(
     addRecentFolder(folder);
 
     executeCommand({
-      name: CommandNames.DownloadedEpisodesScan,
+      name: CommandNames.DownloadedGamesScan,
       path: folder,
     });
 

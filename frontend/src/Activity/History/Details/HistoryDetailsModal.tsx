@@ -20,11 +20,11 @@ function getHeaderTitle(eventType: HistoryEventType) {
     case 'downloadFailed':
       return translate('DownloadFailed');
     case 'downloadFolderImported':
-      return translate('EpisodeImported');
-    case 'episodeFileDeleted':
-      return translate('EpisodeFileDeleted');
-    case 'episodeFileRenamed':
-      return translate('EpisodeFileRenamed');
+      return translate('GameImported');
+    case 'romFileDeleted':
+      return translate('RomFileDeleted');
+    case 'romFileRenamed':
+      return translate('RomFileRenamed');
     case 'downloadIgnored':
       return translate('DownloadIgnored');
     default:

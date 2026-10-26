@@ -25,7 +25,7 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
 import TablePager from 'Components/Table/TablePager';
-import useEpisodes from 'Episode/useEpisodes';
+import useGames from 'Game/useGames';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import { align, icons, kinds } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
@@ -80,15 +80,15 @@ function QueueContent() {
 
   const { count } = useQueueStatus();
 
-  const episodeIds = useMemo(() => {
-    return selectUniqueIds<QueueModel, number>(records, 'episodeIds');
+  const gameIds = useMemo(() => {
+    return selectUniqueIds<QueueModel, number>(records, 'gameIds');
   }, [records]);
 
   const {
-    isFetching: isEpisodesFetching,
-    isFetched: isEpisodesFetched,
-    error: episodesError,
-  } = useEpisodes({ episodeIds });
+    isFetching: isGamesFetching,
+    isFetched: isGamesFetched,
+    error: gamesError,
+  } = useGames({ gameIds });
 
   const customFilters = useCustomFiltersList('queue');
 
@@ -130,15 +130,15 @@ function QueueContent() {
     useState<string[]>(() => []);
 
   const isRefreshing =
-    isLoading || isEpisodesFetching || isRefreshMonitoredDownloadsExecuting;
+    isLoading || isGamesFetching || isRefreshMonitoredDownloadsExecuting;
 
   // Use isLoading over isFetched to avoid losing the table UI when switching pages
   const isAllPopulated =
     !isLoading &&
-    (isEpisodesFetched ||
+    (isGamesFetched ||
       !records.length ||
-      records.every((e) => !e.episodeIds?.length));
-  const hasError = error || episodesError;
+      records.every((e) => !e.gameIds?.length));
+  const hasError = error || gamesError;
   const selectedCount = selectedIds.length;
   const disableSelectedActions = selectedCount === 0;
   const disableImportSelected =
@@ -401,7 +401,7 @@ function QueueContent() {
           selectedIds.every((id: number) => {
             const item = records.find((i) => i.id === id);
 
-            return !!(item && item.seriesId && item.episodeIds.length);
+            return !!(item && item.seriesId && item.gameIds.length);
           })
         }
         isPending={

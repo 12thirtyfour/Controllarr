@@ -21,7 +21,7 @@ function TheTvdb() {
           description={
             <InlineMarkdown
               data={translate(
-                'SeriesAndEpisodeInformationIsProvidedByTheTVDB',
+                'SeriesAndGameInformationIsProvidedByTheTVDB',
                 {
                   url: 'https://www.thetvdb.com/subscribe',
                 }

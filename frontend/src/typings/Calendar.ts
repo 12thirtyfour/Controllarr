@@ -1,6 +1,6 @@
-import Episode from 'Episode/Episode';
+import Game from 'Game/Game';
 
-export interface CalendarItem extends Omit<Episode, 'airDateUtc'> {
+export interface CalendarItem extends Omit<Game, 'airDateUtc'> {
   airDateUtc: string;
 }
 
@@ -12,7 +12,7 @@ export interface CalendarEventGroup {
   isGroup: true;
   seriesId: number;
   seasonNumber: number;
-  episodeIds: number[];
+  gameIds: number[];
   events: CalendarItem[];
 }
 

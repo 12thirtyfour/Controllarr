@@ -25,6 +25,6 @@ export default {
   jumpBarItemHeight: 25,
 
   // Series
-  seriesIndexColumnPadding: 12,
-  seriesIndexColumnPaddingSmallScreen: 6,
+  platformIndexColumnPadding: 12,
+  platformIndexColumnPaddingSmallScreen: 6,
 };

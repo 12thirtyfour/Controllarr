@@ -27,7 +27,7 @@ import {
   useManageMediaManagementSettings,
 } from './useMediaManagementSettings';
 
-const episodeTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
+const gameTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'always',
     get value() {
@@ -272,16 +272,16 @@ function MediaManagement() {
                     isAdvanced={true}
                     size={sizes.SMALL}
                   >
-                    <FormLabel>{translate('EpisodeTitleRequired')}</FormLabel>
+                    <FormLabel>{translate('GameTitleRequired')}</FormLabel>
                     <FormInputHelpText
-                      text={translate('EpisodeTitleRequiredHelpText')}
+                      text={translate('GameTitleRequiredHelpText')}
                     />
                     <FormInput
                       type={inputTypes.SELECT}
-                      name="episodeTitleRequired"
-                      values={episodeTitleRequiredOptions}
+                      name="gameTitleRequired"
+                      values={gameTitleRequiredOptions}
                       onChange={handleInputChange}
-                      {...settings.episodeTitleRequired}
+                      {...settings.gameTitleRequired}
                     />
                   </FormRow>
 
@@ -405,7 +405,7 @@ function MediaManagement() {
                   <FormRow size={sizes.MEDIUM}>
                     <FormLabel>{translate('ImportExtraFiles')}</FormLabel>
                     <FormInputHelpText
-                      text={translate('ImportExtraFilesEpisodeHelpText')}
+                      text={translate('ImportExtraFilesGameHelpText')}
                     />
                     <FormInput
                       type={inputTypes.CHECK}
@@ -521,15 +521,15 @@ function MediaManagement() {
                 caption={translate('FileManagementCaption')}
               >
                 <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>{translate('UnmonitorDeletedEpisodes')}</FormLabel>
+                  <FormLabel>{translate('UnmonitorDeletedGames')}</FormLabel>
                   <FormInputHelpText
-                    text={translate('UnmonitorDeletedEpisodesHelpText')}
+                    text={translate('UnmonitorDeletedGamesHelpText')}
                   />
                   <FormInput
                     type={inputTypes.CHECK}
-                    name="autoUnmonitorPreviouslyDownloadedEpisodes"
+                    name="autoUnmonitorPreviouslyDownloadedGames"
                     onChange={handleInputChange}
-                    {...settings.autoUnmonitorPreviouslyDownloadedEpisodes}
+                    {...settings.autoUnmonitorPreviouslyDownloadedGames}
                   />
                 </FormRow>
 

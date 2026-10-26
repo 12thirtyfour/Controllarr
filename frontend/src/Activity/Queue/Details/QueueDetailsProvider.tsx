@@ -7,11 +7,11 @@ import React, {
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import Queue from 'typings/Queue';
 
-interface EpisodeDetails {
-  episodeIds: number[];
+interface GameDetails {
+  gameIds: number[];
 }
 
-interface SeriesDetails {
+interface PlatformDetails {
   seriesId: number;
 }
 
@@ -19,7 +19,7 @@ interface AllDetails {
   all: boolean;
 }
 
-type QueueDetailsFilter = AllDetails | EpisodeDetails | SeriesDetails;
+type QueueDetailsFilter = AllDetails | GameDetails | PlatformDetails;
 
 const QueueDetailsContext = createContext<ReadonlyArray<Queue> | undefined>(
   undefined
@@ -44,15 +44,15 @@ export default function QueueDetailsProvider({
   );
 }
 
-export function useQueueItemForEpisode(episodeId: number) {
+export function useQueueItemForGame(gameId: number) {
   const queue = useContext(QueueDetailsContext);
 
   return useMemo(() => {
-    return queue?.find((item) => item.episodeIds?.includes(episodeId));
-  }, [episodeId, queue]);
+    return queue?.find((item) => item.gameIds?.includes(gameId));
+  }, [gameId, queue]);
 }
 
-export function useIsDownloadingEpisodes(episodeIds: number[]) {
+export function useIsDownloadingGames(gameIds: number[]) {
   const queue = useContext(QueueDetailsContext);
 
   return useMemo(() => {
@@ -61,14 +61,14 @@ export function useIsDownloadingEpisodes(episodeIds: number[]) {
     }
 
     return queue.some((item) =>
-      item.episodeIds?.some((e) => episodeIds.includes(e))
+      item.gameIds?.some((e) => gameIds.includes(e))
     );
-  }, [episodeIds, queue]);
+  }, [gameIds, queue]);
 }
 
 export interface SeriesQueueDetails {
   count: number;
-  episodesWithFiles: number;
+  gamesWithFiles: number;
 }
 
 export function useQueueDetailsForSeries(
@@ -79,7 +79,7 @@ export function useQueueDetailsForSeries(
 
   return useMemo<SeriesQueueDetails>(() => {
     if (!queue) {
-      return { count: 0, episodesWithFiles: 0 };
+      return { count: 0, gamesWithFiles: 0 };
     }
 
     return queue.reduce<SeriesQueueDetails>(
@@ -98,14 +98,14 @@ export function useQueueDetailsForSeries(
           return acc;
         }
 
-        acc.count += item.episodeIds.length;
-        acc.episodesWithFiles += item.episodesWithFilesCount;
+        acc.count += item.gameIds.length;
+        acc.gamesWithFiles += item.gamesWithFilesCount;
 
         return acc;
       },
       {
         count: 0,
-        episodesWithFiles: 0,
+        gamesWithFiles: 0,
       }
     );
   }, [seriesId, seasonNumber, queue]);

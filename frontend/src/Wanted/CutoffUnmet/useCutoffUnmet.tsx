@@ -1,7 +1,7 @@
 import { keepPreviousData } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import Episode from 'Episode/Episode';
-import { setEpisodeQueryKey } from 'Episode/useEpisode';
+import Game from 'Game/Game';
+import { setGameQueryKey } from 'Game/useGame';
 import { Filter, FilterBuilderProp } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import usePage from 'Helpers/Hooks/usePage';
@@ -36,7 +36,7 @@ export const FILTERS: Filter[] = [
   },
 ];
 
-export const FILTER_BUILDER: FilterBuilderProp<Episode>[] = [
+export const FILTER_BUILDER: FilterBuilderProp<Game>[] = [
   {
     name: 'monitored',
     label: () => translate('Monitored'),
@@ -85,7 +85,7 @@ const useCutoffUnmet = () => {
     return findSelectedFilters(selectedFilterKey, FILTERS, customFilters);
   }, [selectedFilterKey, customFilters]);
 
-  const { isPlaceholderData, queryKey, ...query } = usePagedApiQuery<Episode>({
+  const { isPlaceholderData, queryKey, ...query } = usePagedApiQuery<Game>({
     path: '/wanted/cutoff',
     page,
     pageSize,
@@ -99,7 +99,7 @@ const useCutoffUnmet = () => {
 
   useEffect(() => {
     if (!isPlaceholderData) {
-      setEpisodeQueryKey('wanted.cutoffUnmet', queryKey);
+      setGameQueryKey('wanted.cutoffUnmet', queryKey);
     }
   }, [isPlaceholderData, queryKey]);
 

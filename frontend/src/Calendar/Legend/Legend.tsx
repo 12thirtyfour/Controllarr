@@ -44,7 +44,7 @@ function Legend() {
         icon={icons.SPECIAL}
         kind={kinds.PINK}
         fullColorEvents={fullColorEvents}
-        tooltip={translate('SpecialEpisode')}
+        tooltip={translate('SpecialGame')}
       />
     );
   }
@@ -66,13 +66,13 @@ function Legend() {
       <div>
         <LegendItem
           status="unaired"
-          tooltip={translate('CalendarLegendEpisodeUnairedTooltip')}
+          tooltip={translate('CalendarLegendGameUnairedTooltip')}
           fullColorEvents={fullColorEvents}
         />
 
         <LegendItem
           status="unmonitored"
-          tooltip={translate('CalendarLegendEpisodeUnmonitoredTooltip')}
+          tooltip={translate('CalendarLegendGameUnmonitoredTooltip')}
           fullColorEvents={fullColorEvents}
         />
       </div>
@@ -81,13 +81,13 @@ function Legend() {
         <LegendItem
           status="onAir"
           name="On Air"
-          tooltip={translate('CalendarLegendEpisodeOnAirTooltip')}
+          tooltip={translate('CalendarLegendGameOnAirTooltip')}
           fullColorEvents={fullColorEvents}
         />
 
         <LegendItem
           status="missing"
-          tooltip={translate('CalendarLegendEpisodeMissingTooltip')}
+          tooltip={translate('CalendarLegendGameMissingTooltip')}
           fullColorEvents={fullColorEvents}
         />
       </div>
@@ -95,13 +95,13 @@ function Legend() {
       <div>
         <LegendItem
           status="downloading"
-          tooltip={translate('CalendarLegendEpisodeDownloadingTooltip')}
+          tooltip={translate('CalendarLegendGameDownloadingTooltip')}
           fullColorEvents={fullColorEvents}
         />
 
         <LegendItem
           status="downloaded"
-          tooltip={translate('CalendarLegendEpisodeDownloadedTooltip')}
+          tooltip={translate('CalendarLegendGameDownloadedTooltip')}
           fullColorEvents={fullColorEvents}
         />
       </div>

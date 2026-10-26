@@ -30,9 +30,9 @@ import IndexerSelectInput, {
 import LanguageSelectInput, {
   LanguageSelectInputProps,
 } from './Select/LanguageSelectInput';
-import MonitorEpisodesSelectInput, {
-  MonitorEpisodesSelectInputProps,
-} from './Select/MonitorEpisodesSelectInput';
+import MonitorGamesSelectInput, {
+  MonitorGamesSelectInputProps,
+} from './Select/MonitorGamesSelectInput';
 import MonitorNewItemsSelectInput, {
   MonitorNewItemsSelectInputProps,
 } from './Select/MonitorNewItemsSelectInput';
@@ -45,15 +45,15 @@ import QualityProfileSelectInput, {
 import RootFolderSelectInput, {
   RootFolderSelectInputProps,
 } from './Select/RootFolderSelectInput';
-import SeasonTypeSelectInput, {
-  SeasonTypeSelectInputProps,
-} from './Select/SeasonTypeSelectInput';
-import SeriesTypeSelectInput, {
-  SeriesTypeSelectInputProps,
-} from './Select/SeriesTypeSelectInput';
+import RegionTypeSelectInput, {
+  RegionTypeSelectInputProps,
+} from './Select/RegionTypeSelectInput';
+import PlatformTypeSelectInput, {
+  PlatformTypeSelectInputProps,
+} from './Select/PlatformTypeSelectInput';
 import UMaskInput, { UMaskInputProps } from './Select/UMaskInput';
 import DeviceInput, { DeviceInputProps } from './Tag/DeviceInput';
-import SeriesTagInput, { SeriesTagInputProps } from './Tag/SeriesTagInput';
+import PlatformTagInput, { PlatformTagInputProps } from './Tag/PlatformTagInput';
 import TagSelectInput, { TagSelectInputProps } from './Tag/TagSelectInput';
 import TextTagInput, { TextTagInputProps } from './Tag/TextTagInput';
 import TextArea, { TextAreaProps } from './TextArea';
@@ -74,7 +74,7 @@ const componentMap: Record<InputType, ElementType> = {
   indexerSelect: IndexerSelectInput,
   keyValueList: KeyValueListInput,
   languageSelect: LanguageSelectInput,
-  monitorEpisodesSelect: MonitorEpisodesSelectInput,
+  monitorGamesSelect: MonitorGamesSelectInput,
   monitorNewItemsSelect: MonitorNewItemsSelectInput,
   number: NumberInput,
   oauth: OAuthInput,
@@ -82,11 +82,11 @@ const componentMap: Record<InputType, ElementType> = {
   path: PathInput,
   qualityProfileSelect: QualityProfileSelectInput,
   rootFolderSelect: RootFolderSelectInput,
-  seasonTypeSelect: SeasonTypeSelectInput,
+  seasonTypeSelect: RegionTypeSelectInput,
   select: EnhancedSelectInput,
-  seriesTag: SeriesTagInput,
-  seriesTypeSelect: SeriesTypeSelectInput,
-  tag: SeriesTagInput,
+  seriesTag: PlatformTagInput,
+  seriesTypeSelect: PlatformTypeSelectInput,
+  tag: PlatformTagInput,
   tagSelect: TagSelectInput,
   text: TextInput,
   textArea: TextArea,
@@ -120,8 +120,8 @@ type PickProps<V, C extends InputType> = C extends 'autoComplete'
   ? KeyValueListInputProps
   : C extends 'languageSelect'
   ? LanguageSelectInputProps
-  : C extends 'monitorEpisodesSelect'
-  ? MonitorEpisodesSelectInputProps
+  : C extends 'monitorGamesSelect'
+  ? MonitorGamesSelectInputProps
   : C extends 'monitorNewItemsSelect'
   ? MonitorNewItemsSelectInputProps
   : C extends 'number'
@@ -137,16 +137,16 @@ type PickProps<V, C extends InputType> = C extends 'autoComplete'
   : C extends 'rootFolderSelect'
   ? RootFolderSelectInputProps
   : C extends 'seasonTypeSelect'
-  ? SeasonTypeSelectInputProps
+  ? RegionTypeSelectInputProps
   : C extends 'select'
   ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
     EnhancedSelectInputProps<any, V>
   : C extends 'seriesTag'
-  ? SeriesTagInputProps<V>
+  ? PlatformTagInputProps<V>
   : C extends 'seriesTypeSelect'
-  ? SeriesTypeSelectInputProps
+  ? PlatformTypeSelectInputProps
   : C extends 'tag'
-  ? SeriesTagInputProps<V>
+  ? PlatformTagInputProps<V>
   : C extends 'tagSelect'
   ? TagSelectInputProps
   : C extends 'text'

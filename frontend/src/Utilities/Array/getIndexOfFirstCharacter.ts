@@ -1,4 +1,4 @@
-import Series from 'Series/Series';
+import Series from 'Platform/Platform';
 
 const STARTS_WITH_NUMBER_REGEX = /^\d/;
 

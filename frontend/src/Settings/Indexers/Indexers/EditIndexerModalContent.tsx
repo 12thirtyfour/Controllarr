@@ -65,7 +65,7 @@ function EditIndexerModalContent({
     tags,
     fields,
     priority,
-    seasonSearchMaximumSingleEpisodeAge,
+    seasonSearchMaximumSingleGameAge,
     protocol,
     downloadClientId,
   } = item;
@@ -226,18 +226,18 @@ function EditIndexerModalContent({
           </FormRow>
 
           <FormRow advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('MaximumSingleEpisodeAge')}</FormLabel>
+            <FormLabel>{translate('MaximumSingleGameAge')}</FormLabel>
 
             <FormInputHelpText
-              text={translate('MaximumSingleEpisodeAgeHelpText')}
+              text={translate('MaximumSingleGameAgeHelpText')}
             />
 
             <FormInput
               type={inputTypes.NUMBER}
-              name="seasonSearchMaximumSingleEpisodeAge"
+              name="seasonSearchMaximumSingleGameAge"
               min={0}
               unit="days"
-              {...seasonSearchMaximumSingleEpisodeAge}
+              {...seasonSearchMaximumSingleGameAge}
               onChange={handleInputChange}
             />
           </FormRow>

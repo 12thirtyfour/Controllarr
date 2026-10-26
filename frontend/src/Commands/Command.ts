@@ -42,13 +42,13 @@ export interface SeasonCommandBody extends BaseCommandBody {
   seasonNumber: number;
 }
 
-export interface EpisodeCommandBody extends BaseCommandBody {
-  episodeIds: number[];
+export interface GameCommandBody extends BaseCommandBody {
+  gameIds: number[];
 }
 
-export interface SeriesEpisodeCommandBody extends BaseCommandBody {
+export interface SeriesGameCommandBody extends BaseCommandBody {
   seriesId: number;
-  episodeIds: number[];
+  gameIds: number[];
 }
 
 export interface RenameFilesCommandBody extends BaseCommandBody {
@@ -56,7 +56,7 @@ export interface RenameFilesCommandBody extends BaseCommandBody {
   files: number[];
 }
 
-export interface MoveSeriesCommandBody extends BaseCommandBody {
+export interface MovePlatformCommandBody extends BaseCommandBody {
   seriesId: number;
   destinationPath: string;
 }
@@ -65,7 +65,7 @@ export interface ManualImportCommandBody extends BaseCommandBody {
   files: Array<{
     path: string;
     seriesId: number;
-    episodeIds: number[];
+    gameIds: number[];
     quality: Record<string, unknown>;
     language: Record<string, unknown>;
     releaseGroup?: string;
@@ -76,10 +76,10 @@ export type CommandBody =
   | SeriesCommandBody
   | MultipleSeriesCommandBody
   | SeasonCommandBody
-  | EpisodeCommandBody
-  | SeriesEpisodeCommandBody
+  | GameCommandBody
+  | SeriesGameCommandBody
   | RenameFilesCommandBody
-  | MoveSeriesCommandBody
+  | MovePlatformCommandBody
   | ManualImportCommandBody
   | BaseCommandBody;
 
@@ -90,7 +90,7 @@ export interface NewCommandBody {
   seriesId?: number;
   seriesIds?: number[];
   seasonNumber?: number;
-  episodeIds?: number[];
+  gameIds?: number[];
   files?: number[] | InteractiveImportCommandOptions[];
   destinationPath?: string;
   [key: string]: string | number | boolean | number[] | object | undefined;
@@ -101,14 +101,14 @@ export interface CommandBodyMap {
   SeriesSearch: SeriesCommandBody;
   PlatformCollectionSearch: SeriesCommandBody;
   SeasonSearch: SeasonCommandBody;
-  EpisodeSearch: EpisodeCommandBody | SeriesEpisodeCommandBody;
-  MissingEpisodeSearch: BaseCommandBody;
-  CutoffUnmetEpisodeSearch: BaseCommandBody;
+  GameSearch: GameCommandBody | SeriesGameCommandBody;
+  MissingGameSearch: BaseCommandBody;
+  CutoffUnmetGameSearch: BaseCommandBody;
   RenameFiles: RenameFilesCommandBody;
   RenameSeries: MultipleSeriesCommandBody;
-  MoveSeries: MoveSeriesCommandBody;
+  MovePlatform: MovePlatformCommandBody;
   ManualImport: ManualImportCommandBody;
-  DownloadedEpisodesScan: SeriesCommandBody | BaseCommandBody;
+  DownloadedGamesScan: SeriesCommandBody | BaseCommandBody;
   RssSync: BaseCommandBody;
   ApplicationUpdate: BaseCommandBody;
   Backup: BaseCommandBody;

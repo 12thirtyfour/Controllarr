@@ -1,9 +1,9 @@
 import ModelBase from 'App/ModelBase';
-import Episode from 'Episode/Episode';
+import Game from 'Game/Game';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import Series from 'Series/Series';
+import Series from 'Platform/Platform';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import Rejection from 'typings/Rejection';
 
@@ -11,14 +11,14 @@ export interface InteractiveImportCommandOptions {
   path: string;
   folderName: string;
   seriesId: number;
-  episodeIds: number[];
+  gameIds: number[];
   releaseGroup?: string;
   quality: QualityModel;
   languages: Language[];
   indexerFlags: number;
   releaseType: ReleaseType;
   downloadId?: string;
-  episodeFileId?: number;
+  romFileId?: number;
 }
 
 interface InteractiveImport extends ModelBase {
@@ -32,13 +32,13 @@ interface InteractiveImport extends ModelBase {
   languages: Language[];
   series?: Series;
   seasonNumber: number;
-  episodes: Episode[];
+  games: Game[];
   qualityWeight: number;
   customFormats: CustomFormat[];
   indexerFlags: number;
   releaseType: ReleaseType;
   rejections: Rejection[];
-  episodeFileId?: number;
+  romFileId?: number;
   downloadId?: string;
 }
 

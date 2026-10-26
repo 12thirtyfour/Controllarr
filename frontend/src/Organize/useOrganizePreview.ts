@@ -4,8 +4,8 @@ import useApiQuery from 'Helpers/Hooks/useApiQuery';
 export interface OrganizePreviewModel extends ModelBase {
   seriesId: number;
   seasonNumber: number;
-  episodeNumbers: number[];
-  episodeFileId: number;
+  gameNumbers: number[];
+  romFileId: number;
   existingPath: string;
   newPath: string;
 }

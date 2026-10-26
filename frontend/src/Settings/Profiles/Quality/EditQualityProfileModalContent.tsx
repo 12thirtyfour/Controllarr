@@ -396,7 +396,7 @@ function EditQualityProfileModalContent({
                     <FormLabel>{translate('UpgradeUntil')}</FormLabel>
 
                     <FormInputHelpText
-                      text={translate('UpgradeUntilEpisodeHelpText')}
+                      text={translate('UpgradeUntilGameHelpText')}
                     />
 
                     <FormInput
@@ -436,7 +436,7 @@ function EditQualityProfileModalContent({
 
                     <FormInputHelpText
                       text={translate(
-                        'UpgradeUntilCustomFormatScoreEpisodeHelpText'
+                        'UpgradeUntilCustomFormatScoreGameHelpText'
                       )}
                     />
 

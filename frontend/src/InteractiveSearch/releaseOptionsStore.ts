@@ -14,7 +14,7 @@ export interface ReleaseOptions
     PageableOptions,
     'pageSize' | 'selectedFilterKey' | 'sortKey' | 'sortDirection'
   > {
-  episodeSelectedFilterKey: SelectedFilterKey;
+  gameSelectedFilterKey: SelectedFilterKey;
   seasonSelectedFilterKey: SelectedFilterKey;
   rejectionFilterTags: FilterBuilderTag<string, string>[];
 }
@@ -22,7 +22,7 @@ export interface ReleaseOptions
 const { useOptions, useOption, getOptions, getOption, setOptions, setOption } =
   createOptionsStore<ReleaseOptions>('release_options', () => {
     return {
-      episodeSelectedFilterKey: 'all',
+      gameSelectedFilterKey: 'all',
       seasonSelectedFilterKey: 'season-pack',
       rejectionFilterTags: [],
       columns: [

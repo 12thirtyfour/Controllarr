@@ -112,10 +112,10 @@ export const FILTER_BUILDER: FilterBuilderProp<History>[] = [
   },
 ];
 
-type HistoryType = 'episode' | 'series';
+type HistoryType = 'game' | 'series';
 
 const MARK_AS_FAILED_QUERY_KEYS: Record<HistoryType, string> = {
-  episode: '/history/episode',
+  game: '/history/game',
   series: '/history/series',
 } as const;
 

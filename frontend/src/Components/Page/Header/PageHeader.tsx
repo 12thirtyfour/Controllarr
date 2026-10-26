@@ -8,7 +8,7 @@ import translate from 'Utilities/String/translate';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import PageHeaderActionsMenu from './PageHeaderActionsMenu';
 import PageHeaderToolsMenu from './PageHeaderToolsMenu';
-import SeriesSearchInput from './SeriesSearchInput';
+import PlatformSearchInput from './PlatformSearchInput';
 import styles from './PageHeader.module.css';
 
 function PageHeader() {
@@ -66,7 +66,7 @@ function PageHeader() {
         />
       </div>
 
-      <SeriesSearchInput />
+      <PlatformSearchInput />
 
       <div className={styles.right}>
         <IconButton

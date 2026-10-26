@@ -11,7 +11,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
-import { invalidateRetroAchievementsCache } from 'Series/Details/gameAchievementsHelper';
+import { invalidateRetroAchievementsCache } from 'Platform/Details/gameAchievementsHelper';
 import settingsStyles from 'Settings/Settings.module.css';
 import SettingsPage from 'Settings/SettingsPage';
 import { InputChanged } from 'typings/inputs';

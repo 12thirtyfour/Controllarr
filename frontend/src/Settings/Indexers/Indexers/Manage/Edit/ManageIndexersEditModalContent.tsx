@@ -20,7 +20,7 @@ interface SavePayload {
   enableAutomaticSearch?: boolean;
   enableInteractiveSearch?: boolean;
   priority?: number;
-  seasonSearchMaximumSingleEpisodeAge?: number;
+  seasonSearchMaximumSingleGameAge?: number;
 }
 
 interface ManageIndexersEditModalContentProps {
@@ -64,8 +64,8 @@ function ManageIndexersEditModalContent(
     useState(NO_CHANGE);
   const [priority, setPriority] = useState<null | number>(null);
   const [
-    seasonSearchMaximumSingleEpisodeAge,
-    setSeasonSearchMaximumSingleEpisodeAge,
+    seasonSearchMaximumSingleGameAge,
+    setSeasonSearchMaximumSingleGameAge,
   ] = useState<null | number>(null);
 
   const save = useCallback(() => {
@@ -92,10 +92,10 @@ function ManageIndexersEditModalContent(
       payload.priority = priority as number;
     }
 
-    if (seasonSearchMaximumSingleEpisodeAge !== null) {
+    if (seasonSearchMaximumSingleGameAge !== null) {
       hasChanges = true;
-      payload.seasonSearchMaximumSingleEpisodeAge =
-        seasonSearchMaximumSingleEpisodeAge as number;
+      payload.seasonSearchMaximumSingleGameAge =
+        seasonSearchMaximumSingleGameAge as number;
     }
 
     if (hasChanges) {
@@ -108,7 +108,7 @@ function ManageIndexersEditModalContent(
     enableAutomaticSearch,
     enableInteractiveSearch,
     priority,
-    seasonSearchMaximumSingleEpisodeAge,
+    seasonSearchMaximumSingleGameAge,
     onSavePress,
     onModalClose,
   ]);
@@ -127,8 +127,8 @@ function ManageIndexersEditModalContent(
       case 'priority':
         setPriority(value as number);
         break;
-      case 'seasonSearchMaximumSingleEpisodeAge':
-        setSeasonSearchMaximumSingleEpisodeAge(value as number);
+      case 'seasonSearchMaximumSingleGameAge':
+        setSeasonSearchMaximumSingleGameAge(value as number);
         break;
       default:
         console.warn(`EditIndexersModalContent Unknown Input: '${name}'`);
@@ -195,14 +195,14 @@ function ManageIndexersEditModalContent(
         </FormRow>
 
         <FormRow>
-          <FormLabel>{translate('MaximumSingleEpisodeAge')}</FormLabel>
+          <FormLabel>{translate('MaximumSingleGameAge')}</FormLabel>
           <FormInputHelpText
-            text={translate('MaximumSingleEpisodeAgeHelpText')}
+            text={translate('MaximumSingleGameAgeHelpText')}
           />
           <FormInput
             type={inputTypes.NUMBER}
-            name="seasonSearchMaximumSingleEpisodeAge"
-            value={seasonSearchMaximumSingleEpisodeAge}
+            name="seasonSearchMaximumSingleGameAge"
+            value={seasonSearchMaximumSingleGameAge}
             min={0}
             unit="days"
             onChange={onInputChange}

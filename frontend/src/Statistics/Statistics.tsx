@@ -41,20 +41,20 @@ function Statistics() {
       return [];
     }
 
-    const downloadedPercent = data.totalEpisodeCount
+    const downloadedPercent = data.totalGameCount
       ? roundNumber(
-          (data.downloadedEpisodeCount / data.totalEpisodeCount) * 100
+          (data.downloadedGameCount / data.totalGameCount) * 100
         )
       : 0;
 
-    const wantedEpisodeCount =
-      data.downloadedEpisodeCount + data.missingEpisodeCount;
-    const completedPercent = wantedEpisodeCount
-      ? roundNumber((data.downloadedEpisodeCount / wantedEpisodeCount) * 100)
+    const wantedGameCount =
+      data.downloadedGameCount + data.missingGameCount;
+    const completedPercent = wantedGameCount
+      ? roundNumber((data.downloadedGameCount / wantedGameCount) * 100)
       : 0;
 
-    const averageSizePerEpisode = data.totalEpisodeCount
-      ? data.sizeOnDisk / data.totalEpisodeCount
+    const averageSizePerGame = data.totalGameCount
+      ? data.sizeOnDisk / data.totalGameCount
       : 0;
 
     return [
@@ -75,27 +75,27 @@ function Statistics() {
         )}`,
       },
       {
-        label: translate('TotalEpisodes'),
-        value: data.totalEpisodeCount.toLocaleString(),
-        secondary: `${data.monitoredEpisodeCount.toLocaleString()} ${translate(
+        label: translate('TotalGames'),
+        value: data.totalGameCount.toLocaleString(),
+        secondary: `${data.monitoredGameCount.toLocaleString()} ${translate(
           'Monitored'
         )}`,
       },
       {
-        label: translate('EpisodeFiles'),
-        value: data.episodeFileCount.toLocaleString(),
+        label: translate('RomFiles'),
+        value: data.romFileCount.toLocaleString(),
         secondary: `${downloadedPercent}% ${translate('Downloaded')}`,
       },
       {
-        label: translate('MissingEpisodes'),
-        value: data.missingEpisodeCount.toLocaleString(),
+        label: translate('MissingGames'),
+        value: data.missingGameCount.toLocaleString(),
         secondary: `${completedPercent}% ${translate('Completed')}`,
       },
       {
         label: translate('SizeOnDisk'),
         value: formatBytes(data.sizeOnDisk),
-        secondary: `${formatBytes(averageSizePerEpisode)} ${translate(
-          'AverageSizePerEpisode'
+        secondary: `${formatBytes(averageSizePerGame)} ${translate(
+          'AverageSizePerGame'
         )}`,
       },
     ];
@@ -154,33 +154,33 @@ function Statistics() {
     ];
   }, [colors, data]);
 
-  const episodeItems = useMemo<DoughnutChartItem[]>(() => {
+  const gameItems = useMemo<DoughnutChartItem[]>(() => {
     if (!data) {
       return [];
     }
 
     const otherCount = Math.max(
       0,
-      data.totalEpisodeCount -
-        data.downloadedEpisodeCount -
-        data.missingEpisodeCount -
-        data.unairedEpisodeCount
+      data.totalGameCount -
+        data.downloadedGameCount -
+        data.missingGameCount -
+        data.unairedGameCount
     );
 
     return [
       {
         label: translate('Downloaded'),
-        value: data.downloadedEpisodeCount,
+        value: data.downloadedGameCount,
         color: colors.successColor,
       },
       {
         label: translate('Missing'),
-        value: data.missingEpisodeCount,
+        value: data.missingGameCount,
         color: colors.dangerColor,
       },
       {
         label: translate('Unaired'),
-        value: data.unairedEpisodeCount,
+        value: data.unairedGameCount,
         color: colors.palette[6],
       },
       {
@@ -202,8 +202,8 @@ function Statistics() {
         value: profile.seriesCount,
         tooltipLines: [
           `${translate(
-            'EpisodeFiles'
-          )}: ${profile.episodeFileCount.toLocaleString()}`,
+            'RomFiles'
+          )}: ${profile.romFileCount.toLocaleString()}`,
           `${translate('SizeOnDisk')}: ${formatBytes(profile.sizeOnDisk)}`,
         ],
       };
@@ -218,7 +218,7 @@ function Statistics() {
     return data.qualityStatistics.map((quality) => {
       return {
         label: quality.quality.name,
-        value: quality.episodeFileCount,
+        value: quality.romFileCount,
         tooltipLines: [
           `${translate('SizeOnDisk')}: ${formatBytes(quality.sizeOnDisk)}`,
         ],
@@ -237,8 +237,8 @@ function Statistics() {
         value: tag.seriesCount,
         tooltipLines: [
           `${translate(
-            'EpisodeFiles'
-          )}: ${tag.episodeFileCount.toLocaleString()}`,
+            'RomFiles'
+          )}: ${tag.romFileCount.toLocaleString()}`,
           `${translate('SizeOnDisk')}: ${formatBytes(tag.sizeOnDisk)}`,
         ],
       };
@@ -290,8 +290,8 @@ function Statistics() {
               />
 
               <DoughnutChart
-                title={translate('Episodes')}
-                items={episodeItems}
+                title={translate('Games')}
+                items={gameItems}
               />
             </div>
 
@@ -302,7 +302,7 @@ function Statistics() {
               />
 
               <BarChart
-                title={translate('EpisodeQualities')}
+                title={translate('GameQualities')}
                 items={qualityItems}
               />
 

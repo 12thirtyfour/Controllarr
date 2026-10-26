@@ -12,7 +12,7 @@ export const QUEUE_STATUS = 'queueStatus';
 export const MONITORED_STATUS = 'monitoredStatus';
 export const RELEASE_TYPES = 'releaseTypes';
 export const SERIES = 'series';
-export const SERIES_STATUS = 'seriesStatus';
+export const SERIES_STATUS = 'platformStatus';
 export const SERIES_TYPES = 'seriesType';
 export const TAG = 'tag';
 
@@ -31,6 +31,6 @@ export type FilterBuildValueType =
   | 'monitoredStatus'
   | 'releaseTypes'
   | 'series'
-  | 'seriesStatus'
+  | 'platformStatus'
   | 'seriesType'
   | 'tag';

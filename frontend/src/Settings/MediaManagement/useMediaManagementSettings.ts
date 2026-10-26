@@ -8,7 +8,7 @@ import {
 export interface MediaManagementSettingsModel {
   createEmptySeriesFolders: boolean;
   deleteEmptyFolders: boolean;
-  episodeTitleRequired: string;
+  gameTitleRequired: string;
   skipFreeSpaceCheckWhenGrabbing: boolean;
   skipFreeSpaceCheckWhenImporting: boolean;
   minimumFreeSpaceWhenImporting: number;
@@ -18,7 +18,7 @@ export interface MediaManagementSettingsModel {
   importExtraFiles: boolean;
   extraFileExtensions: string;
   userRejectedExtensions: string;
-  autoUnmonitorPreviouslyDownloadedEpisodes: boolean;
+  autoUnmonitorPreviouslyDownloadedGames: boolean;
   downloadPropersAndRepacks: string;
   enableMediaInfo: boolean;
   rescanAfterRefresh: string;

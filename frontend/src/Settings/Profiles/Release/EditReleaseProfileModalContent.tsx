@@ -48,7 +48,7 @@ function EditReleaseProfileModalContent({
     ignored,
     airDateRestriction,
     airDateGracePeriod,
-    allowSeasonPackWithoutAllEpisodesAired,
+    allowSeasonPackWithoutAllGamesAired,
     indexerIds,
     tags,
     excludedTags,
@@ -171,23 +171,23 @@ function EditReleaseProfileModalContent({
 
             <FormRow>
               <FormLabel>
-                {translate('AllowSeasonPackWithoutAllEpisodesAired')}
+                {translate('AllowSeasonPackWithoutAllGamesAired')}
               </FormLabel>
               <FormInputHelpText
                 text={translate(
-                  'AllowSeasonPackWithoutAllEpisodesAiredHelpText'
+                  'AllowSeasonPackWithoutAllGamesAiredHelpText'
                 )}
               />
               <FormInputHelpText
                 text={translate(
-                  'AllowSeasonPackWithoutAllEpisodesAiredHelpTextWarning'
+                  'AllowSeasonPackWithoutAllGamesAiredHelpTextWarning'
                 )}
                 isWarning={true}
               />
               <FormInput
-                {...allowSeasonPackWithoutAllEpisodesAired}
+                {...allowSeasonPackWithoutAllGamesAired}
                 type={inputTypes.CHECK}
-                name="allowSeasonPackWithoutAllEpisodesAired"
+                name="allowSeasonPackWithoutAllGamesAired"
                 onChange={handleInputChange}
               />
             </FormRow>

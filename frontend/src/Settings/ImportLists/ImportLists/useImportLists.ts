@@ -4,7 +4,7 @@ import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import Language, { DEFAULT_LANGUAGE } from 'Language/Language';
 import { useLanguageById } from 'Language/useLanguages';
-import { MonitorNewItems, SeriesMonitor, SeriesType } from 'Series/Series';
+import { MonitorNewItems, SeriesMonitor, SeriesType } from 'Platform/Platform';
 import { useMetadataSourceSettingsValues } from 'Settings/MetadataSource/useMetadataSourceSettings';
 import {
   SelectedSchema,
@@ -25,7 +25,7 @@ export type TagExisting = 'none' | 'add' | 'sync';
 
 export interface ImportListModel extends Provider {
   enableAutomaticAdd: boolean;
-  searchForMissingEpisodes: boolean;
+  searchForMissingGames: boolean;
   shouldMonitor: SeriesMonitor;
   monitorNewItems: MonitorNewItems;
   rootFolderPath: string;

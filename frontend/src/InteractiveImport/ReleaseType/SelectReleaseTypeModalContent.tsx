@@ -20,15 +20,15 @@ const options = [
     },
   },
   {
-    key: 'singleEpisode',
+    key: 'singleGame',
     get value() {
-      return translate('SingleEpisode');
+      return translate('SingleGame');
     },
   },
   {
-    key: 'multiEpisode',
+    key: 'multiGame',
     get value() {
-      return translate('MultiEpisode');
+      return translate('MultiGame');
     },
   },
   {

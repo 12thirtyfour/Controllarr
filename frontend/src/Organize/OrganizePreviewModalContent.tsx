@@ -12,8 +12,8 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
-import formatSeason from 'Season/formatSeason';
-import { useSingleSeries } from 'Series/useSeries';
+import formatSeason from 'Region/formatRegion';
+import { useSingleSeries } from 'Platform/usePlatform';
 import { useNamingSettings } from 'Settings/MediaManagement/Naming/useNamingSettings';
 import { CheckInputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
@@ -65,8 +65,8 @@ function OrganizePreviewModalContentInner({
   const isFetching = isPreviewFetching || isNamingFetching;
   const isPopulated = isPreviewFetched && isNamingFetched;
   const error = previewError || namingError;
-  const { renameEpisodes } = naming;
-  const episodeFormat = naming[`${series.seriesType}EpisodeFormat`];
+  const { renameGames } = naming;
+  const gameFormat = naming[`${series.seriesType}GameFormat`];
 
   const selectAllValue = getValue(allSelected, allUnselected);
 
@@ -112,7 +112,7 @@ function OrganizePreviewModalContentInner({
 
         {!isFetching && isPopulated && !items.length ? (
           <div>
-            {renameEpisodes ? (
+            {renameGames ? (
               <div>{translate('OrganizeNothingToRename')}</div>
             ) : (
               <div>{translate('OrganizeRenamingDisabled')}</div>
@@ -134,8 +134,8 @@ function OrganizePreviewModalContentInner({
 
               <div>
                 <InlineMarkdown
-                  data={translate('OrganizeNamingPattern', { episodeFormat })}
-                  blockClassName={styles.episodeFormat}
+                  data={translate('OrganizeNamingPattern', { gameFormat })}
+                  blockClassName={styles.gameFormat}
                 />
               </div>
             </Alert>
@@ -144,8 +144,8 @@ function OrganizePreviewModalContentInner({
               {items.map((item) => {
                 return (
                   <OrganizePreviewRow
-                    key={item.episodeFileId}
-                    id={item.episodeFileId}
+                    key={item.romFileId}
+                    id={item.romFileId}
                     existingPath={item.existingPath}
                     newPath={item.newPath}
                   />

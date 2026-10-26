@@ -8,15 +8,15 @@ import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Popover from 'Components/Tooltip/Popover';
-import Episode from 'Episode/Episode';
-import EpisodeFormats from 'Episode/EpisodeFormats';
-import EpisodeLanguages from 'Episode/EpisodeLanguages';
-import EpisodeQuality from 'Episode/EpisodeQuality';
-import getReleaseTypeName from 'Episode/getReleaseTypeName';
-import IndexerFlags from 'Episode/IndexerFlags';
+import Game from 'Game/Game';
+import GameFormats from 'Game/GameFormats';
+import GameLanguages from 'Game/GameLanguages';
+import GameQuality from 'Game/GameQuality';
+import getReleaseTypeName from 'Game/getReleaseTypeName';
+import IndexerFlags from 'Game/IndexerFlags';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
-import SelectEpisodeModal from 'InteractiveImport/Episode/SelectEpisodeModal';
-import { SelectedEpisode } from 'InteractiveImport/Episode/SelectEpisodeModalContent';
+import SelectGameModal from 'InteractiveImport/Game/SelectGameModal';
+import { SelectedGame } from 'InteractiveImport/Game/SelectGameModalContent';
 import SelectIndexerFlagsModal from 'InteractiveImport/IndexerFlags/SelectIndexerFlagsModal';
 import InteractiveImport from 'InteractiveImport/InteractiveImport';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
@@ -24,12 +24,12 @@ import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
 import SelectReleaseGroupModal from 'InteractiveImport/ReleaseGroup/SelectReleaseGroupModal';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
-import SelectSeasonModal from 'InteractiveImport/Season/SelectSeasonModal';
-import SelectSeriesModal from 'InteractiveImport/Series/SelectSeriesModal';
+import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
+import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import { useUpdateInteractiveImportItem } from 'InteractiveImport/useInteractiveImport';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import Series from 'Series/Series';
+import Series from 'Platform/Platform';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { SelectStateInputProps } from 'typings/props';
 import Rejection from 'typings/Rejection';
@@ -42,7 +42,7 @@ import styles from './InteractiveImportRow.module.css';
 type SelectType =
   | 'series'
   | 'season'
-  | 'episode'
+  | 'game'
   | 'releaseGroup'
   | 'quality'
   | 'language'
@@ -50,7 +50,7 @@ type SelectType =
   | 'releaseType';
 
 type SelectedChangeProps = SelectStateInputProps & {
-  hasEpisodeFileId: boolean;
+  hasRomFileId: boolean;
 };
 
 interface InteractiveImportRowProps {
@@ -59,7 +59,7 @@ interface InteractiveImportRowProps {
   relativePath: string;
   series?: Series;
   seasonNumber?: number;
-  episodes?: Episode[];
+  games?: Game[];
   releaseGroup?: string;
   quality?: QualityModel;
   languages?: Language[];
@@ -70,7 +70,7 @@ interface InteractiveImportRowProps {
   indexerFlags: number;
   rejections: Rejection[];
   columns: Column[];
-  episodeFileId?: number;
+  romFileId?: number;
   isReprocessing?: boolean;
   modalTitle: string;
   onReprocessItems: (ids: number[]) => void;
@@ -85,7 +85,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     relativePath,
     series,
     seasonNumber,
-    episodes = [],
+    games = [],
     quality,
     languages,
     releaseGroup,
@@ -97,7 +97,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     rejections,
     isReprocessing,
     modalTitle,
-    episodeFileId,
+    romFileId,
     columns,
     onReprocessItems,
     onSelectedChange,
@@ -127,14 +127,14 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         allowSeriesChange &&
         series &&
         seasonNumber != null &&
-        episodes.length &&
+        games.length &&
         quality &&
         languages &&
         size > 0
       ) {
         onSelectedChange({
           id,
-          hasEpisodeFileId: !!episodeFileId,
+          hasRomFileId: !!romFileId,
           value: true,
           shiftKey: false,
         });
@@ -148,7 +148,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     const isValid = !!(
       series &&
       seasonNumber != null &&
-      episodes.length &&
+      games.length &&
       quality &&
       languages
     );
@@ -162,7 +162,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     id,
     series,
     seasonNumber,
-    episodes,
+    games,
     quality,
     languages,
     isSelected,
@@ -173,22 +173,22 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     (result: SelectStateInputProps) => {
       onSelectedChange({
         ...result,
-        hasEpisodeFileId: !!episodeFileId,
+        hasRomFileId: !!romFileId,
       });
     },
-    [episodeFileId, onSelectedChange]
+    [romFileId, onSelectedChange]
   );
 
   const selectRowAfterChange = useCallback(() => {
     if (!isSelected) {
       onSelectedChange({
         id,
-        hasEpisodeFileId: !!episodeFileId,
+        hasRomFileId: !!romFileId,
         value: true,
         shiftKey: false,
       });
     }
-  }, [id, episodeFileId, isSelected, onSelectedChange]);
+  }, [id, romFileId, isSelected, onSelectedChange]);
 
   const onSelectModalClose = useCallback(() => {
     setSelectModalOpen(null);
@@ -203,7 +203,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
       updateInteractiveImportItem(id, {
         series,
         seasonNumber: undefined,
-        episodes: [],
+        games: [],
       });
 
       onReprocessItems([id]);
@@ -227,7 +227,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     (seasonNumber: number) => {
       updateInteractiveImportItem(id, {
         seasonNumber,
-        episodes: [],
+        games: [],
       });
 
       onReprocessItems([id]);
@@ -243,14 +243,14 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     ]
   );
 
-  const onSelectEpisodePress = useCallback(() => {
-    setSelectModalOpen('episode');
+  const onSelectGamePress = useCallback(() => {
+    setSelectModalOpen('game');
   }, [setSelectModalOpen]);
 
-  const onEpisodesSelect = useCallback(
-    (selectedEpisodes: SelectedEpisode[]) => {
-      const episodes = selectedEpisodes[0].episodes;
-      updateInteractiveImportItem(id, { episodes });
+  const onGamesSelect = useCallback(
+    (selectedGames: SelectedGame[]) => {
+      const games = selectedGames[0].games;
+      updateInteractiveImportItem(id, { games });
       onReprocessItems([id]);
 
       setSelectModalOpen(null);
@@ -370,19 +370,19 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     ]
   );
 
-  const seriesTitle = series ? series.title : '';
+  const platformTitle = series ? series.title : '';
   const isAnime = series?.seriesType === 'anime';
 
-  const episodeInfo = episodes.map((episode) => {
+  const gameInfo = games.map((game) => {
     return (
-      <div key={episode.id}>
-        {episode.episodeNumber}
+      <div key={game.id}>
+        {game.gameNumber}
 
-        {isAnime && episode.absoluteEpisodeNumber != null
-          ? ` (${episode.absoluteEpisodeNumber})`
+        {isAnime && game.absoluteGameNumber != null
+          ? ` (${game.absoluteGameNumber})`
           : ''}
 
-        {` - ${episode.title}`}
+        {` - ${game.title}`}
       </div>
     );
   });
@@ -391,8 +391,8 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
   const showSeriesPlaceholder = isSelected && !series;
   const showSeasonNumberPlaceholder =
     isSelected && !!series && requiresSeasonNumber && !isReprocessing;
-  const showEpisodeNumbersPlaceholder =
-    isSelected && Number.isInteger(seasonNumber) && !episodes.length;
+  const showGameNumbersPlaceholder =
+    isSelected && Number.isInteger(seasonNumber) && !games.length;
   const showReleaseGroupPlaceholder = isSelected && !releaseGroup;
   const showQualityPlaceholder = isSelected && !quality;
   const showLanguagePlaceholder = isSelected && !languages;
@@ -421,7 +421,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
           {showSeriesPlaceholder ? (
             <InteractiveImportRowCellPlaceholder />
           ) : (
-            seriesTitle
+            platformTitle
           )}
         </TableRowCellButton>
       ) : null}
@@ -446,15 +446,15 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         isDisabled={!series || requiresSeasonNumber}
         title={
           series && !requiresSeasonNumber
-            ? translate('ClickToChangeEpisode')
+            ? translate('ClickToChangeGame')
             : undefined
         }
-        onPress={onSelectEpisodePress}
+        onPress={onSelectGamePress}
       >
-        {showEpisodeNumbersPlaceholder ? (
+        {showGameNumbersPlaceholder ? (
           <InteractiveImportRowCellPlaceholder />
         ) : (
-          episodeInfo
+          gameInfo
         )}
       </TableRowCellButton>
 
@@ -477,7 +477,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         {showQualityPlaceholder && <InteractiveImportRowCellPlaceholder />}
 
         {!showQualityPlaceholder && !!quality && (
-          <EpisodeQuality className={styles.label} quality={quality} />
+          <GameQuality className={styles.label} quality={quality} />
         )}
       </TableRowCellButton>
 
@@ -489,7 +489,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         {showLanguagePlaceholder && <InteractiveImportRowCellPlaceholder />}
 
         {!showLanguagePlaceholder && !!languages && (
-          <EpisodeLanguages className={styles.label} languages={languages} />
+          <GameLanguages className={styles.label} languages={languages} />
         )}
       </TableRowCellButton>
 
@@ -512,7 +512,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
             title={translate('CustomFormats')}
             body={
               <div className={styles.customFormatTooltip}>
-                <EpisodeFormats formats={customFormats} />
+                <GameFormats formats={customFormats} />
               </div>
             }
             position={tooltipPositions.LEFT}
@@ -561,14 +561,14 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         ) : null}
       </TableRowCell>
 
-      <SelectSeriesModal
+      <SelectPlatformModal
         isOpen={selectModalOpen === 'series'}
         modalTitle={modalTitle}
         onSeriesSelect={onSeriesSelect}
         onModalClose={onSelectModalClose}
       />
 
-      <SelectSeasonModal
+      <SelectRegionModal
         isOpen={selectModalOpen === 'season'}
         seriesId={series?.id}
         modalTitle={modalTitle}
@@ -576,15 +576,15 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         onModalClose={onSelectModalClose}
       />
 
-      <SelectEpisodeModal
-        isOpen={selectModalOpen === 'episode'}
+      <SelectGameModal
+        isOpen={selectModalOpen === 'game'}
         selectedIds={[id]}
         seriesId={series?.id}
         isAnime={isAnime}
         seasonNumber={seasonNumber}
         selectedDetails={relativePath}
         modalTitle={modalTitle}
-        onEpisodesSelect={onEpisodesSelect}
+        onGamesSelect={onGamesSelect}
         onModalClose={onSelectModalClose}
       />
 

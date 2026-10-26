@@ -3,14 +3,14 @@ import Link from 'Components/Link/Link';
 import translate from 'Utilities/String/translate';
 import styles from './SelectDownloadClientRow.module.css';
 
-interface SelectSeasonRowProps {
+interface SelectRegionRowProps {
   id: number;
   name: string;
   priority: number;
   onDownloadClientSelect(downloadClientId: number): unknown;
 }
 
-function SelectDownloadClientRow(props: SelectSeasonRowProps) {
+function SelectDownloadClientRow(props: SelectRegionRowProps) {
   const { id, name, priority, onDownloadClientSelect } = props;
 
   const onSeasonSelectWrapper = useCallback(() => {

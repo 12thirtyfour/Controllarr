@@ -39,7 +39,8 @@
   }
 }
 
-.episodeInfo {
+.episodeInfo,
+.gameInfo {
   display: flex;
   align-items: center;
   margin-top: 3px;
@@ -50,12 +51,15 @@
 }
 
 .seriesTitle,
-.episodeTitle {
+.platformTitle,
+.episodeTitle,
+.gameTitle {
   @add-mixin truncate;
   flex: 1 0 1px;
 }
 
-.seriesTitle {
+.seriesTitle,
+.platformTitle {
   color: var(--ink);
   letter-spacing: -0.005em;
   font-weight: 550;
@@ -63,13 +67,15 @@
   line-height: 1.3;
 }
 
-.episodeTitle {
+.episodeTitle,
+.gameTitle {
   color: var(--inkSoft);
   font-size: 12px;
   line-height: 1.4;
 }
 
-.absoluteEpisodeNumber {
+.absoluteEpisodeNumber,
+.absoluteGameNumber {
   margin-left: 3px;
 }
 
@@ -139,7 +145,8 @@
     opacity: 0.5;
   }
 
-  & .seriesTitle {
+  & .seriesTitle,
+.platformTitle {
     color: var(--inkSoft);
   }
 

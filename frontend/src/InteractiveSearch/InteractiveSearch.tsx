@@ -166,8 +166,8 @@ function InteractiveSearch({
 
   const handleFilterSelect = useCallback(
     (selectedFilterKey: string | number) => {
-      if (type === 'episode') {
-        setReleaseOption('episodeSelectedFilterKey', selectedFilterKey);
+      if (type === 'game') {
+        setReleaseOption('gameSelectedFilterKey', selectedFilterKey);
       } else {
         setReleaseOption('seasonSelectedFilterKey', selectedFilterKey);
       }
@@ -220,7 +220,7 @@ function InteractiveSearch({
               })}
             </>
           ) : (
-            translate('EpisodeSearchResultsLoadError')
+            translate('GameSearchResultsLoadError')
           )}
         </div>
       ) : null}

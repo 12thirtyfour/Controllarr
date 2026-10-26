@@ -1,5 +1,5 @@
 import React from 'react';
-import monitorNewItemsOptions from 'Utilities/Series/monitorNewItemsOptions';
+import monitorNewItemsOptions from 'Utilities/Platform/monitorNewItemsOptions';
 import EnhancedSelectInput, {
   EnhancedSelectInputProps,
   EnhancedSelectInputValue,

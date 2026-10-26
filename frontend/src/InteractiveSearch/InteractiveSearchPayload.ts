@@ -1,5 +1,5 @@
-interface EpisodeSearchPayload {
-  episodeId: number;
+interface GameSearchPayload {
+  gameId: number;
 }
 
 interface SeasonSearchPayload {
@@ -7,6 +7,6 @@ interface SeasonSearchPayload {
   seasonNumber: number;
 }
 
-type InteractiveSearchPayload = EpisodeSearchPayload | SeasonSearchPayload;
+type InteractiveSearchPayload = GameSearchPayload | SeasonSearchPayload;
 
 export default InteractiveSearchPayload;

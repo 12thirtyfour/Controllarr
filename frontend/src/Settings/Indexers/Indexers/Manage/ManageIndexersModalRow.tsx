@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
 import { useSelect } from 'App/Select/SelectContext';
 import Label from 'Components/Label';
-import SeriesTagList from 'Components/SeriesTagList';
+import PlatformTagList from 'Components/PlatformTagList';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
@@ -22,7 +22,7 @@ interface ManageIndexersModalRowProps {
   enableAutomaticSearch: boolean;
   enableInteractiveSearch: boolean;
   priority: number;
-  seasonSearchMaximumSingleEpisodeAge: number;
+  seasonSearchMaximumSingleGameAge: number;
   implementation: string;
   tags: number[];
   columns: Column[];
@@ -37,7 +37,7 @@ function ManageIndexersModalRow(props: ManageIndexersModalRowProps) {
     enableAutomaticSearch,
     enableInteractiveSearch,
     priority,
-    seasonSearchMaximumSingleEpisodeAge,
+    seasonSearchMaximumSingleGameAge,
     implementation,
     tags,
   } = props;
@@ -103,12 +103,12 @@ function ManageIndexersModalRow(props: ManageIndexersModalRowProps) {
 
       <TableRowCell className={styles.priority}>{priority}</TableRowCell>
 
-      <TableRowCell className={styles.seasonSearchMaximumSingleEpisodeAge}>
-        {seasonSearchMaximumSingleEpisodeAge}
+      <TableRowCell className={styles.seasonSearchMaximumSingleGameAge}>
+        {seasonSearchMaximumSingleGameAge}
       </TableRowCell>
 
       <TableRowCell className={styles.tags}>
-        <SeriesTagList tags={tags} />
+        <PlatformTagList tags={tags} />
       </TableRowCell>
     </TableRow>
   );

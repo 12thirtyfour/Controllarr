@@ -23,9 +23,9 @@ import QualityFilterBuilderRowValue from './QualityFilterBuilderRowValue';
 import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRowValue';
 import QueueStatusFilterBuilderRowValue from './QueueStatusFilterBuilderRowValue';
 import ReleaseTypeFilterBuilderRowValue from './ReleaseTypeFilterBuilderRowValue';
-import SeriesFilterBuilderRowValue from './SeriesFilterBuilderRowValue';
-import SeriesStatusFilterBuilderRowValue from './SeriesStatusFilterBuilderRowValue';
-import SeriesTypeFilterBuilderRowValue from './SeriesTypeFilterBuilderRowValue';
+import PlatformFilterBuilderRowValue from './PlatformFilterBuilderRowValue';
+import PlatformStatusFilterBuilderRowValue from './PlatformStatusFilterBuilderRowValue';
+import PlatformTypeFilterBuilderRowValue from './PlatformTypeFilterBuilderRowValue';
 import TagFilterBuilderRowValue from './TagFilterBuilderRowValue';
 import styles from './FilterBuilderRow.module.css';
 
@@ -118,13 +118,13 @@ function getRowValueConnector<T>(
       return ReleaseTypeFilterBuilderRowValue;
 
     case filterBuilderValueTypes.SERIES:
-      return SeriesFilterBuilderRowValue;
+      return PlatformFilterBuilderRowValue;
 
     case filterBuilderValueTypes.SERIES_STATUS:
-      return SeriesStatusFilterBuilderRowValue;
+      return PlatformStatusFilterBuilderRowValue;
 
     case filterBuilderValueTypes.SERIES_TYPES:
-      return SeriesTypeFilterBuilderRowValue;
+      return PlatformTypeFilterBuilderRowValue;
 
     case filterBuilderValueTypes.TAG:
       return TagFilterBuilderRowValue;
