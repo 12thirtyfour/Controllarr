@@ -27,6 +27,7 @@
     <!-- Specifies whether it's one of our own libraries -->
     <SonarrProject>false</SonarrProject>
     <SonarrProject Condition="$(MSBuildProjectName.StartsWith('Sonarr'))">true</SonarrProject>
+    <SonarrProject Condition="$(MSBuildProjectName.StartsWith('Controllarr'))">true</SonarrProject>
     <SonarrProject Condition="$(MSBuildProjectName.StartsWith('ServiceInstall'))">true</SonarrProject>
     <SonarrProject Condition="$(MSBuildProjectName.StartsWith('ServiceUninstall'))">true</SonarrProject>
 

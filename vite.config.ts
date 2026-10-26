@@ -6,9 +6,10 @@ import { defineConfig, type Plugin } from 'vite';
 import { patchCssModules } from 'vite-css-modules';
 
 const src = path.resolve(import.meta.dirname, 'frontend/src');
+const publicDir = path.resolve(import.meta.dirname, 'frontend/public');
 const outDir = path.resolve(import.meta.dirname, '_output/UI');
 
-const contentDir = path.join(src, 'Content');
+const contentDir = path.join(publicDir, 'Content');
 const themeCss = path.join(src, 'Styles/Themes/themes.css');
 
 function htmlFiles() {
@@ -151,6 +152,8 @@ export default defineConfig({
     cssModuleTypes(),
   ],
 
+  publicDir,
+
   base: '/',
 
   server: {
@@ -170,6 +173,7 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'esnext',
     sourcemap: true,
+    chunkSizeWarningLimit: 3500,
   },
 
   experimental: {

@@ -154,11 +154,12 @@ namespace NzbDrone.Test.Common
             {
                 envVars.Add("Controllarr__Auth__Method", "None");
                 envVars.Add("Sonarr__Auth__Method", "None");
+            }
+
             if (!string.IsNullOrEmpty(XemMockUrl))
             {
                 envVars.Add("CONTROLLARR_XEM_URL", XemMockUrl);
                 TestContext.Progress.WriteLine("Setting CONTROLLARR_XEM_URL to {0}", XemMockUrl);
-            }
             }
 
             if (PostgresOptions?.Host != null)

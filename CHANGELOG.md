@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Centralized Build Output & Canonical Solution Cleanup**:
+  - Registered `Controllarr` project prefix in `src/Directory.Build.props` so all core, host, and console executable and library binaries output directly to `_output/net10.0` (and `_tests/net10.0` for test fixtures), resolving execution errors caused by missing binaries where only `Controllarr.Update` was being placed into `_output`.
+  - Removed obsolete leftover `src/Sonarr.sln` file from the repository, ensuring all builds and tooling target `src/Controllarr.sln`.
+- **Frontend Build Optimization & Static Asset Relocation**:
+  - Relocated static web assets (`Fonts/`, `Images/`, `manifest.json`, `browserconfig.xml`) from `frontend/src/Content` to `frontend/public/Content`, eliminating Vite's build-time warning for `/Content/Fonts/fonts.css`.
+  - Configured `chunkSizeWarningLimit: 3500` in `vite.config.ts` to suppress chunk-size warnings on production bundles.
 - **Complete Elimination of TV & Sonarr Terminology in Backend API Controllers & Models**:
   - Renamed all controllers in `Controllarr.Api.V3` and `Controllarr.Api.V5`: `PlatformController`, `GameController`, `RomFileController`, `PlatformPassController`, `GameControllerWithSignalR`, `RenameGameController`, `PlatformLookupController`, `PlatformFolderController`, `PlatformImportController`, and `PlatformEditorController`.
   - Renamed all API resource classes, mappers, and validators to video game domain terminology: `PlatformResource`, `GameResource`, `RomFileResource`, `RomFileListResource`, `GamesMonitoredResource`, `RenameGameResource`, `ParsedGameInfoResource`, `PlatformPassResource`, `PlatformPassPlatformResource`, `RegionResource`, `RegionStatisticsResource`, `RegionTypeResource`, `PlatformEditorResource`, `PlatformEditorDeleteResource`, `PlatformEditorValidator`, `PlatformFolderResource`, `PlatformFolderAsRootFolderValidator`, `PlatformStatisticsResource`, `PlatformTranslationResource`, `PlatformRegionTypeValidator`, `GameSubresource`, and `PlatformSubresource`.
