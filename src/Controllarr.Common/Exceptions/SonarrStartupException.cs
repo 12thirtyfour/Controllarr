@@ -2,35 +2,35 @@ using System;
 
 namespace NzbDrone.Common.Exceptions
 {
-    public class SonarrStartupException : NzbDroneException
+    public class SonarrStartupException : ControllarrStartupException
     {
         public SonarrStartupException(string message, params object[] args)
-            : base("Controllarr failed to start: " + string.Format(message, args))
+            : base(message, args)
         {
         }
 
         public SonarrStartupException(string message)
-            : base("Controllarr failed to start: " + message)
+            : base(message)
         {
         }
 
         public SonarrStartupException()
-            : base("Controllarr failed to start")
+            : base()
         {
         }
 
         public SonarrStartupException(Exception innerException, string message, params object[] args)
-            : base("Controllarr failed to start: " + string.Format(message, args), innerException)
+            : base(innerException, message, args)
         {
         }
 
         public SonarrStartupException(Exception innerException, string message)
-            : base("Controllarr failed to start: " + message, innerException)
+            : base(innerException, message)
         {
         }
 
         public SonarrStartupException(Exception innerException)
-            : base("Controllarr failed to start: " + innerException.Message)
+            : base(innerException)
         {
         }
     }

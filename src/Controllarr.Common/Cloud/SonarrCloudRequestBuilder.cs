@@ -1,32 +1,10 @@
-using NzbDrone.Common.Http;
-
 namespace NzbDrone.Common.Cloud
 {
-    public interface ISonarrCloudRequestBuilder
+    public interface ISonarrCloudRequestBuilder : IControllarrCloudRequestBuilder
     {
-        IHttpRequestBuilderFactory Services { get; }
-        IHttpRequestBuilderFactory SkyHookTvdb { get; }
-        IHttpRequestBuilderFactory Releases { get; }
     }
 
-    public class SonarrCloudRequestBuilder : ISonarrCloudRequestBuilder
+    public class SonarrCloudRequestBuilder : ControllarrCloudRequestBuilder, ISonarrCloudRequestBuilder
     {
-        public SonarrCloudRequestBuilder()
-        {
-            Services = new HttpRequestBuilder("https://services.sonarr.tv/v1/")
-                .CreateFactory();
-
-            SkyHookTvdb = new HttpRequestBuilder("https://skyhook.sonarr.tv/v2/tvdb/{route}/")
-                .CreateFactory();
-
-            Releases = new HttpRequestBuilder("https://api.github.com/repos/12thirtyfour/Controllarr/")
-                .CreateFactory();
-        }
-
-        public IHttpRequestBuilderFactory Services { get; }
-
-        public IHttpRequestBuilderFactory SkyHookTvdb { get; }
-
-        public IHttpRequestBuilderFactory Releases { get; }
     }
 }
