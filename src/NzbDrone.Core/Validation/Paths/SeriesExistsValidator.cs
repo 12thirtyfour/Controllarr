@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Validation.Paths
             _seriesService = seriesService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "This series has already been added";
+        protected override string GetDefaultMessageTemplate() => "This platform has already been added";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

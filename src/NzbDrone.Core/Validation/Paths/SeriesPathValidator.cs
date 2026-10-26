@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Validation.Paths
             _seriesService = seriesService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "Path '{path}' is already configured for another series";
+        protected override string GetDefaultMessageTemplate() => "Path '{path}' is already configured for another platform";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

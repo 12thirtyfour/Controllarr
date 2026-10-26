@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Validation.Paths
             _seriesService = seriesService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "Path '{path}' is an ancestor of an existing series";
+        protected override string GetDefaultMessageTemplate() => "Path '{path}' is an ancestor of an existing platform";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
