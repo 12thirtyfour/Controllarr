@@ -259,7 +259,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeMonitoredServiceTests
         }
 
         [Test]
-        public void should_preserve_unmonitored_status_for_catalog_special_seasons_when_monitoring_all()
+        public void should_mark_catalog_special_seasons_monitored_when_monitoring_all()
         {
             var catalogSeries = Builder<Series>.CreateNew()
                 .With(s => s.TvdbId = 90001)
@@ -288,13 +288,9 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeMonitoredServiceTests
 
             Subject.SetEpisodeMonitoredStatus(catalogSeries, new MonitoringOptions { Monitor = MonitorTypes.All });
 
-            catalogSeries.Seasons.Single(s => s.SeasonNumber == 0).Monitored.Should().BeFalse();
-            catalogSeries.Seasons.Single(s => s.SeasonNumber == 5).Monitored.Should().BeFalse();
-            catalogSeries.Seasons.Single(s => s.SeasonNumber == 6).Monitored.Should().BeFalse();
-
-            epPrototypes.Monitored.Should().BeFalse();
-            epHomebrew.Monitored.Should().BeFalse();
-            epRomHacks.Monitored.Should().BeFalse();
+            catalogSeries.Seasons.Single(s => s.SeasonNumber == 0).Monitored.Should().BeTrue();
+            catalogSeries.Seasons.Single(s => s.SeasonNumber == 5).Monitored.Should().BeTrue();
+            catalogSeries.Seasons.Single(s => s.SeasonNumber == 6).Monitored.Should().BeTrue();
         }
 
         private void VerifySeasonMonitored(int seasonNumber)

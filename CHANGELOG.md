@@ -35,6 +35,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Updated all imports and CSS module composes classes across `frontend/src`, completely eliminating all TV-named files.
 - **Dedicated "Search for Collection" Platform Search**:
   - Added a "Search for Collection" button in the Platform Details view to query indexers specifically for full ROM sets and collections using the new `PlatformCollectionSearchCommand`.
+  - Dispatches platform-wide collection criteria targeting recognized full romset naming conventions (`@{shortName}`, `[{libretroSystemName}`, `{platform} complete`, `{platform} romset`, `{platform} full set`, `no-intro`, `redump`, `1g1r`) rather than searching per-region seasons.
+- **Newznab & Usenet Game Title Search**:
+  - Fixed interactive and automated game search on Newznab indexers (such as NZBgeek): queries are now routed through general search (`t=search`) with game titles and scene aliases across configured console categories (1000+) without injecting TV-specific parameters (`season`, `ep`, `tvdbid`), resolving 0-result search responses for console releases.
+- **BIOS Archive Extraction Prior to Cryptographic Hash Verification**:
+  - Implemented automatic extraction of downloaded compressed BIOS archives (`.zip`, `.gz`, `.7z`) into a staging folder before hashing, verifying the uncompressed raw binary against target MD5 and SHA-1 checksums and eliminating rejection errors caused by hashing outer archive containers.
 - **Automatic Indexer Preset Naming**:
   - Selecting an indexer schema preset (e.g. NZBgeek) now automatically populates the indexer name input with the selected preset name.
 - **ROM Patcher Direct Library Import Flow**:

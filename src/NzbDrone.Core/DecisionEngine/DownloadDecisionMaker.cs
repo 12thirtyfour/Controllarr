@@ -280,10 +280,18 @@ namespace NzbDrone.Core.DecisionEngine
 
             var isArchive = releaseTitle.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.EndsWith(".rar", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("HTGDB", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
-                            releaseTitle.Contains("1G1R", StringComparison.OrdinalIgnoreCase);
+                            releaseTitle.Contains("1G1R", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Redump", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("TOSEC", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Romset", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Complete", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.StartsWith("[", StringComparison.OrdinalIgnoreCase);
 
             if (!isArchive)
             {
@@ -292,6 +300,11 @@ namespace NzbDrone.Core.DecisionEngine
 
             var slug = series.TitleSlug?.ToLowerInvariant() ?? string.Empty;
             var releaseLower = releaseTitle.ToLowerInvariant();
+
+            if (!string.IsNullOrWhiteSpace(slug) && slug.Length >= 2 && releaseLower.Contains(slug))
+            {
+                return true;
+            }
 
             var aliases = slug switch
             {
@@ -302,10 +315,19 @@ namespace NzbDrone.Core.DecisionEngine
                 "gb" => new[] { "game boy", "gameboy", "everdrive gb" },
                 "gbc" => new[] { "game boy color", "gameboy color", "everdrive gb", "gbc" },
                 "gba" => new[] { "game boy advance", "gameboy advance", "everdrive gba", "ez-flash", "gba" },
+                "3ds" => new[] { "3ds", "nintendo 3ds" },
+                "nds" or "ds" => new[] { "nds", "nintendo ds" },
                 "ps1" or "psx" => new[] { "ps1", "psx", "playstation" },
+                "ps2" => new[] { "ps2", "playstation 2" },
+                "psp" => new[] { "psp", "playstation portable" },
+                "saturn" => new[] { "saturn", "sega saturn" },
+                "dreamcast" or "dc" => new[] { "dreamcast", "sega dreamcast" },
+                "segacd" => new[] { "segacd", "sega cd", "mega-cd", "megacd" },
+                "32x" => new[] { "32x", "sega 32x" },
                 "sms" => new[] { "master everdrive", "sega master system", "sms" },
                 "gg" => new[] { "game gear", "gamegear", "everdrive gg" },
                 "tg16" => new[] { "turbo everdrive", "pc engine", "turbografx", "pce" },
+                "tgcd" => new[] { "tgcd", "turbografx-cd", "pc engine cd" },
                 "atari2600" => new[] { "harmony", "atari 2600" },
                 "neogeo" => new[] { "neosd", "neo geo", "neogeo" },
                 _ => Array.Empty<string>()

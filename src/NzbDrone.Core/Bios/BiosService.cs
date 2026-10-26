@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using NLog;
@@ -796,6 +797,11 @@ namespace NzbDrone.Core.Bios
                 {
                     entry.ResolvedPath = FormatDisplayPath(matchingFile);
                     var valid = VerifyBios(matchingFile, entry.ExpectedMd5, entry.ExpectedSha1);
+                    if (!valid && IsCompressedArchive(matchingFile))
+                    {
+                        valid = TryExtractBiosFromArchive(matchingFile, matchingFile, entry);
+                    }
+
                     if (valid)
                     {
                         entry.IsVerified = true;
@@ -824,6 +830,26 @@ namespace NzbDrone.Core.Bios
                         {
                             entry.IsVerified = false;
                             entry.Status = 2;
+                        }
+                    }
+                }
+                else
+                {
+                    var baseName = Path.GetFileNameWithoutExtension(entry.FileName);
+                    var candidateArchive = existingFiles.FirstOrDefault(f =>
+                        string.Equals(Path.GetFileName(f), $"{entry.FileName}.zip", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(Path.GetFileName(f), $"{baseName}.zip", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(Path.GetFileName(f), $"{entry.FileName}.7z", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(Path.GetFileName(f), $"{baseName}.7z", StringComparison.OrdinalIgnoreCase));
+
+                    if (candidateArchive != null)
+                    {
+                        var targetExtractPath = Path.Combine(Path.GetDirectoryName(candidateArchive), entry.FileName);
+                        if (TryExtractBiosFromArchive(candidateArchive, targetExtractPath, entry))
+                        {
+                            entry.ResolvedPath = FormatDisplayPath(targetExtractPath);
+                            entry.IsVerified = true;
+                            entry.Status = 1;
                         }
                     }
                 }
@@ -925,23 +951,54 @@ namespace NzbDrone.Core.Bios
                         var response = _httpClient.Get(request);
                         if (response != null && !response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
                         {
-                            File.WriteAllBytes(destinationPath, response.ResponseData);
-
-                            if (VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1))
-                            {
-                                downloaded = true;
-                                usedUrl = url;
-                                break;
-                            }
-
-                            _logger.Warn("Downloaded BIOS file {0} from {1} does not match expected hashes. Discarding invalid payload.", entry.FileName, url);
+                            var tempFile = Path.Combine(Path.GetTempPath(), $"bios_dl_{Guid.NewGuid():N}.tmp");
                             try
                             {
-                                File.Delete(destinationPath);
+                                File.WriteAllBytes(tempFile, response.ResponseData);
+
+                                var valid = false;
+                                if (IsCompressedArchive(tempFile) || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    valid = TryExtractBiosFromArchive(tempFile, destinationPath, entry);
+                                }
+                                else
+                                {
+                                    File.Copy(tempFile, destinationPath, true);
+                                    valid = VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1);
+                                }
+
+                                if (valid)
+                                {
+                                    downloaded = true;
+                                    usedUrl = url;
+                                    break;
+                                }
+
+                                _logger.Warn("Downloaded BIOS file {0} from {1} does not match expected hashes. Discarding invalid payload.", entry.FileName, url);
+                                if (File.Exists(destinationPath))
+                                {
+                                    try
+                                    {
+                                        File.Delete(destinationPath);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.Error(ex, "Failed to delete invalid downloaded BIOS file at {0}", destinationPath);
+                                    }
+                                }
                             }
-                            catch (Exception ex)
+                            finally
                             {
-                                _logger.Error(ex, "Failed to delete invalid downloaded BIOS file at {0}", destinationPath);
+                                if (File.Exists(tempFile))
+                                {
+                                    try
+                                    {
+                                        File.Delete(tempFile);
+                                    }
+                                    catch
+                                    {
+                                    }
+                                }
                             }
                         }
                     }
@@ -1019,6 +1076,200 @@ namespace NzbDrone.Core.Bios
             }
         }
 
+        private static bool IsCompressedArchive(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(filePath)?.ToLowerInvariant() ?? string.Empty;
+            if (ext is ".zip" or ".gz" or ".tgz" or ".tar" or ".7z" or ".rar")
+            {
+                return true;
+            }
+
+            try
+            {
+                using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                if (fs.Length < 4)
+                {
+                    return false;
+                }
+
+                var header = new byte[6];
+                var read = fs.Read(header, 0, header.Length);
+                if (read >= 4)
+                {
+                    if (header[0] == 0x50 && header[1] == 0x4B &&
+                        ((header[2] == 0x03 && header[3] == 0x04) || (header[2] == 0x05 && header[3] == 0x06)))
+                    {
+                        return true;
+                    }
+
+                    if (header[0] == 0x1F && header[1] == 0x8B)
+                    {
+                        return true;
+                    }
+
+                    if (read >= 6 && header[0] == 0x37 && header[1] == 0x7A && header[2] == 0xBC && header[3] == 0xAF && header[4] == 0x27 && header[5] == 0x1C)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        private bool TryExtractBiosFromArchive(string archivePath, string destinationPath, BiosFile entry)
+        {
+            var tempExtractDir = Path.Combine(Path.GetTempPath(), $"bios_extract_{Guid.NewGuid():N}");
+            try
+            {
+                Directory.CreateDirectory(tempExtractDir);
+                var extracted = ExtractArchive(archivePath, tempExtractDir);
+                if (!extracted)
+                {
+                    return false;
+                }
+
+                var files = Directory.GetFiles(tempExtractDir, "*.*", SearchOption.AllDirectories);
+                if (files.Length == 0)
+                {
+                    return false;
+                }
+
+                foreach (var file in files)
+                {
+                    if (VerifyBios(file, entry.ExpectedMd5, entry.ExpectedSha1))
+                    {
+                        var destDir = Path.GetDirectoryName(destinationPath);
+                        if (!string.IsNullOrWhiteSpace(destDir))
+                        {
+                            Directory.CreateDirectory(destDir);
+                        }
+
+                        File.Copy(file, destinationPath, true);
+                        return true;
+                    }
+                }
+
+                var nameMatch = files.FirstOrDefault(f =>
+                    string.Equals(Path.GetFileName(f), entry.FileName, StringComparison.OrdinalIgnoreCase));
+
+                if (nameMatch != null && VerifyBios(nameMatch, entry.ExpectedMd5, entry.ExpectedSha1))
+                {
+                    var destDir = Path.GetDirectoryName(destinationPath);
+                    if (!string.IsNullOrWhiteSpace(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    File.Copy(nameMatch, destinationPath, true);
+                    return true;
+                }
+
+                if (files.Length == 1 && VerifyBios(files[0], entry.ExpectedMd5, entry.ExpectedSha1))
+                {
+                    var destDir = Path.GetDirectoryName(destinationPath);
+                    if (!string.IsNullOrWhiteSpace(destDir))
+                    {
+                        Directory.CreateDirectory(destDir);
+                    }
+
+                    File.Copy(files[0], destinationPath, true);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Failed to extract BIOS archive from {0}", archivePath);
+                return false;
+            }
+            finally
+            {
+                if (Directory.Exists(tempExtractDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempExtractDir, true);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+        }
+
+        private static bool ExtractArchive(string archivePath, string destinationDirectory)
+        {
+            try
+            {
+                ZipFile.ExtractToDirectory(archivePath, destinationDirectory, true);
+                return true;
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                using var fs = File.OpenRead(archivePath);
+                var header = new byte[2];
+                if (fs.Read(header, 0, 2) == 2 && header[0] == 0x1F && header[1] == 0x8B)
+                {
+                    fs.Position = 0;
+                    using var gz = new GZipStream(fs, CompressionMode.Decompress);
+                    var rawName = Path.GetFileNameWithoutExtension(archivePath);
+                    if (rawName.EndsWith(".tar", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rawName = Path.GetFileNameWithoutExtension(rawName);
+                    }
+
+                    var outPath = Path.Combine(destinationDirectory, rawName);
+                    using var outFs = File.Create(outPath);
+                    gz.CopyTo(outFs);
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                var tarProcess = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "tar",
+                        Arguments = $"-xf \"{archivePath}\" -C \"{destinationDirectory}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    }
+                };
+
+                tarProcess.Start();
+                if (tarProcess.WaitForExit(10000) && tarProcess.ExitCode == 0)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
         public bool VerifyBios(string filePath, string expectedMd5, string expectedSha1)
         {
             if (!File.Exists(filePath))
@@ -1088,6 +1339,9 @@ namespace NzbDrone.Core.Bios
         private static List<string> BuildCandidateDownloadUrls(BiosFile entry)
         {
             var escapedFile = Uri.EscapeDataString(entry.FileName);
+            var baseName = Path.GetFileNameWithoutExtension(entry.FileName);
+            var escapedBase = Uri.EscapeDataString(baseName);
+
             var urls = new List<string>
             {
                 $"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/{escapedFile}"
@@ -1097,13 +1351,19 @@ namespace NzbDrone.Core.Bios
             {
                 var escapedFolder = Uri.EscapeDataString(abdessFolder);
                 urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/libretro/{escapedFolder}/{escapedFile}");
+                urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/libretro/{escapedFolder}/{escapedFile}.zip");
             }
 
             urls.Add($"https://archive.org/download/RetroarchSystemFiles/Retroarch-System/{escapedFile}");
+            urls.Add($"https://archive.org/download/RetroarchSystemFiles/Retroarch-System/{escapedFile}.zip");
+            urls.Add($"https://archive.org/download/RetroarchSystemFiles/Retroarch-System/{escapedBase}.zip");
             urls.Add($"https://archive.org/download/retroarch_bios/{escapedFile}");
+            urls.Add($"https://archive.org/download/retroarch_bios/{escapedFile}.zip");
+            urls.Add($"https://archive.org/download/retroarch_bios/{escapedBase}.zip");
             urls.Add($"https://archive.org/download/retroarch_bios/system/{escapedFile}");
+            urls.Add($"https://archive.org/download/retroarch_bios/system/{escapedFile}.zip");
 
-            return urls;
+            return urls.Distinct().ToList();
         }
 
         private void RecordBiosDownloadHistory(
@@ -1234,6 +1494,11 @@ namespace NzbDrone.Core.Bios
                     if (exists)
                     {
                         var valid = VerifyBios(foundPath, entry.ExpectedMd5, entry.ExpectedSha1);
+                        if (!valid && IsCompressedArchive(foundPath))
+                        {
+                            valid = TryExtractBiosFromArchive(foundPath, foundPath, entry);
+                        }
+
                         if (valid)
                         {
                             entry.IsVerified = true;

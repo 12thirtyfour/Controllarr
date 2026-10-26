@@ -820,5 +820,34 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             allCriteria.Last().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
             allCriteria.Last().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
         }
+
+        [Test]
+        public async Task Should_dispatch_platform_wide_collection_search_criteria()
+        {
+            var series = new Tv.Series
+            {
+                Id = 10,
+                TvdbId = 1005,
+                Title = "Nintendo 64",
+                TitleSlug = "n64"
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                .Setup(v => v.GetSeries(10))
+                .Returns(series);
+
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(v => v.GetEpisodeBySeries(10))
+                .Returns(new List<Episode>());
+
+            var allCriteria = WatchForSearchCriteria();
+
+            await Subject.PlatformCollectionSearch(10, true, false);
+
+            allCriteria.Should().HaveCount(1);
+            var criteria = allCriteria.First().Should().BeOfType<SeasonSearchCriteria>().Subject;
+            criteria.IsPlatformCollectionSearch.Should().BeTrue();
+            criteria.SceneTitles.Should().Contain(new[] { "Nintendo 64 complete", "Nintendo 64 romset", "@N64" });
+        }
     }
 }

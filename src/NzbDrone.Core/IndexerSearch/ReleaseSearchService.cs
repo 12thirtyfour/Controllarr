@@ -11,6 +11,7 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
@@ -23,6 +24,7 @@ namespace NzbDrone.Core.IndexerSearch
         Task<List<DownloadDecision>> EpisodeSearch(Episode episode, bool userInvokedSearch, bool interactiveSearch);
         Task<List<DownloadDecision>> SeasonSearch(int seriesId, int seasonNumber, bool missingOnly, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch);
         Task<List<DownloadDecision>> SeasonSearch(int seriesId, int seasonNumber, List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch);
+        Task<List<DownloadDecision>> PlatformCollectionSearch(int seriesId, bool userInvokedSearch, bool interactiveSearch);
     }
 
     public class ReleaseSearchService : ISearchForReleases
@@ -32,6 +34,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
         private readonly IMakeDownloadDecision _makeDownloadDecision;
+        private readonly IGameCatalogService _gameCatalogService;
         private readonly Logger _logger;
 
         public ReleaseSearchService(IIndexerFactory indexerFactory,
@@ -39,13 +42,15 @@ namespace NzbDrone.Core.IndexerSearch
                                 ISeriesService seriesService,
                                 IEpisodeService episodeService,
                                 IMakeDownloadDecision makeDownloadDecision,
-                                Logger logger)
+                                Logger logger,
+                                IGameCatalogService gameCatalogService = null)
         {
             _indexerFactory = indexerFactory;
             _sceneMapping = sceneMapping;
             _seriesService = seriesService;
             _episodeService = episodeService;
             _makeDownloadDecision = makeDownloadDecision;
+            _gameCatalogService = gameCatalogService;
             _logger = logger;
         }
 
@@ -158,6 +163,90 @@ namespace NzbDrone.Core.IndexerSearch
             }
 
             return DeDupeDecisions(downloadDecisions);
+        }
+
+        public async Task<List<DownloadDecision>> PlatformCollectionSearch(int seriesId, bool userInvokedSearch, bool interactiveSearch)
+        {
+            var series = _seriesService.GetSeries(seriesId);
+            var episodes = _episodeService.GetEpisodeBySeries(seriesId) ?? new List<Episode>();
+
+            var terms = new List<string>();
+            var platformName = series.Title;
+            var shortName = string.Empty;
+            var libretroName = string.Empty;
+            var aliases = new List<string>();
+
+            if (_gameCatalogService != null &&
+                (_gameCatalogService.TryGetPlatformEntry(series.TvdbId, out var entry) ||
+                 _gameCatalogService.TryGetPlatformEntryBySlug(series.TitleSlug, out entry)))
+            {
+                shortName = entry.ShortName ?? string.Empty;
+                libretroName = entry.LibretroSystemName ?? string.Empty;
+                if (entry.Aliases != null)
+                {
+                    aliases.AddRange(entry.Aliases);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(shortName) && !string.IsNullOrWhiteSpace(series.TitleSlug))
+            {
+                shortName = series.TitleSlug.ToUpperInvariant();
+            }
+
+            if (!string.IsNullOrWhiteSpace(libretroName))
+            {
+                terms.Add($"[{libretroName}");
+                terms.Add(libretroName);
+            }
+
+            if (string.Equals(series.TitleSlug, "nes", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(shortName, "NES", StringComparison.OrdinalIgnoreCase))
+            {
+                terms.Add("@NES2.0");
+                terms.Add("@NES");
+            }
+            else if (!string.IsNullOrWhiteSpace(shortName))
+            {
+                terms.Add($"@{shortName}");
+            }
+
+            terms.Add($"{platformName} complete");
+            terms.Add($"{platformName} romset");
+            terms.Add($"{platformName} full set");
+            terms.Add($"{platformName} no-intro");
+            terms.Add($"{platformName} redump");
+            terms.Add($"{platformName} 1g1r");
+
+            if (!string.IsNullOrWhiteSpace(shortName))
+            {
+                terms.Add($"{shortName} romset");
+                terms.Add($"{shortName} complete");
+                terms.Add($"{shortName} full set");
+                terms.Add($"{shortName} no-intro");
+            }
+
+            foreach (var alias in aliases.Take(3))
+            {
+                if (!string.IsNullOrWhiteSpace(alias) && alias.Length > 2)
+                {
+                    terms.Add($"{alias} romset");
+                }
+            }
+
+            var searchSpec = new SeasonSearchCriteria
+            {
+                Series = series,
+                SeasonNumber = 1,
+                IsPlatformCollectionSearch = true,
+                SceneTitles = terms.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                Episodes = episodes,
+                MonitoredEpisodesOnly = false,
+                UserInvokedSearch = userInvokedSearch,
+                InteractiveSearch = interactiveSearch
+            };
+
+            var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+            return DeDupeDecisions(decisions);
         }
 
         private List<SceneSeasonMapping> GetSceneSeasonMappings(Series series, List<Episode> episodes)
@@ -289,13 +378,19 @@ namespace NzbDrone.Core.IndexerSearch
 
                 var seasonSceneTitles = isSeasonTitle ? new List<string> { sceneMapping.SearchTerm } : new List<string>();
 
+                var mappingTitles = new List<string> { sceneMapping.SearchTerm };
+                if (!string.IsNullOrWhiteSpace(episode?.Title) && !mappingTitles.Contains(episode.Title, StringComparer.OrdinalIgnoreCase))
+                {
+                    mappingTitles.Add(episode.Title);
+                }
+
                 if (ignoreSceneNumbering)
                 {
                     yield return new SceneEpisodeMapping
                     {
                         Episode = episode,
                         SearchMode = searchMode,
-                        SceneTitles = new List<string> { sceneMapping.SearchTerm },
+                        SceneTitles = mappingTitles,
                         SeasonSceneTitles = seasonSceneTitles,
                         SeasonNumber = releaseSeasonNumber,
                         EpisodeNumber = episode.EpisodeNumber,
@@ -308,7 +403,7 @@ namespace NzbDrone.Core.IndexerSearch
                     {
                         Episode = episode,
                         SearchMode = searchMode,
-                        SceneTitles = new List<string> { sceneMapping.SearchTerm },
+                        SceneTitles = mappingTitles,
                         SeasonSceneTitles = seasonSceneTitles,
                         SeasonNumber = releaseSeasonNumber,
                         EpisodeNumber = episode.SceneEpisodeNumber ?? episode.EpisodeNumber,
@@ -319,11 +414,21 @@ namespace NzbDrone.Core.IndexerSearch
 
             if (includeGlobal)
             {
+                var globalTitles = new List<string>();
+                if (!string.IsNullOrWhiteSpace(episode?.Title))
+                {
+                    globalTitles.Add(episode.Title);
+                }
+                else if (!string.IsNullOrWhiteSpace(series?.Title))
+                {
+                    globalTitles.Add(series.Title);
+                }
+
                 yield return new SceneEpisodeMapping
                 {
                     Episode = episode,
                     SearchMode = SearchMode.Default,
-                    SceneTitles = new List<string> { series.Title },
+                    SceneTitles = globalTitles,
                     SeasonSceneTitles = new List<string>(),
                     SeasonNumber = episode.SceneSeasonNumber ?? episode.SeasonNumber,
                     EpisodeNumber = episode.SceneEpisodeNumber ?? episode.EpisodeNumber,

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Download;
@@ -32,42 +30,15 @@ namespace NzbDrone.Core.IndexerSearch
             var series = _seriesService.GetSeries(message.SeriesId);
             _logger.ProgressInfo("Starting collection search for {0}...", series.Title);
 
-            var downloadedCount = 0;
             var userInvokedSearch = message.Trigger == CommandTrigger.Manual;
 
-            var seasons = series.Seasons != null && series.Seasons.Any()
-                ? series.Seasons.Where(s => s.SeasonNumber > 0 && s.Monitored).OrderBy(s => s.SeasonNumber).ToList()
-                : new List<Season>();
+            var decisions = _releaseSearchService.PlatformCollectionSearch(
+                series.Id,
+                userInvokedSearch,
+                false).GetAwaiter().GetResult();
 
-            if (seasons.Any())
-            {
-                foreach (var season in seasons)
-                {
-                    var decisions = _releaseSearchService.SeasonSearch(
-                        series.Id,
-                        season.SeasonNumber,
-                        false,
-                        false,
-                        userInvokedSearch,
-                        false).GetAwaiter().GetResult();
-
-                    var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
-                    downloadedCount += processed.Grabbed.Count;
-                }
-            }
-            else
-            {
-                var decisions = _releaseSearchService.SeasonSearch(
-                    series.Id,
-                    1,
-                    false,
-                    false,
-                    userInvokedSearch,
-                    false).GetAwaiter().GetResult();
-
-                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
-                downloadedCount += processed.Grabbed.Count;
-            }
+            var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+            var downloadedCount = processed.Grabbed.Count;
 
             _logger.ProgressInfo("Collection search for {0} completed. {1} reports downloaded.", series.Title, downloadedCount);
         }

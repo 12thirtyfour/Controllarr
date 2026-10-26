@@ -144,5 +144,44 @@ namespace NzbDrone.Core.Test.BiosTests
             entry.IsVerified.Should().BeFalse();
             entry.Status.Should().Be(2);
         }
+
+        [Test]
+        public void Should_extract_and_discard_downloaded_zip_payload_if_extracted_file_fails_hash()
+        {
+            Mocker.GetMock<IAppFolderInfo>()
+                  .SetupGet(a => a.AppDataFolder)
+                  .Returns(_tempDir);
+
+            byte[] zipBytes;
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+                {
+                    var entry = archive.CreateEntry("disksys.rom");
+                    using (var entryStream = entry.Open())
+                    {
+                        var data = Encoding.UTF8.GetBytes("invalid_inner_bios_data");
+                        entryStream.Write(data, 0, data.Length);
+                    }
+                }
+
+                zipBytes = memoryStream.ToArray();
+            }
+
+            var mockResponse = new HttpResponse(new HttpRequest("https://test.example/disksys.rom.zip"), new HttpHeader(), zipBytes);
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(c => c.Get(It.IsAny<HttpRequest>()))
+                  .Returns(mockResponse);
+
+            var results = Subject.DownloadMissingBios("fds", "disksys.rom");
+
+            var expectedDestination = Path.Combine(_tempDir, "bios", "fds", "disksys.rom");
+            File.Exists(expectedDestination).Should().BeFalse("unverified extracted payload must be discarded from disk");
+
+            var fdsBios = results.FirstOrDefault(b => b.FileName == "disksys.rom");
+            fdsBios.Should().NotBeNull();
+            fdsBios.IsVerified.Should().BeFalse();
+        }
     }
 }

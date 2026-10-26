@@ -370,5 +370,55 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             var results = Subject.GetSearchRequests(_seasonSearchCriteria);
             results.GetTier(0).Should().HaveCount(0);
         }
+
+        [Test]
+        public void should_search_games_using_general_search_with_q_and_no_season_or_episode_params()
+        {
+            Subject.MaxPages = 1;
+            var gameCriteria = new SingleEpisodeSearchCriteria
+            {
+                Series = new Tv.Series { Title = "Nintendo 3DS", TitleSlug = "3ds", TvdbId = 1045 },
+                Episodes = new List<Tv.Episode>
+                {
+                    new Tv.Episode { Title = "Pokemon Ultra Sun", SeasonNumber = 1, EpisodeNumber = 4 }
+                },
+                SeasonNumber = 1,
+                EpisodeNumber = 4
+            };
+
+            var results = Subject.GetSearchRequests(gameCriteria);
+
+            results.GetAllTiers().Should().HaveCount(1);
+            var page = results.GetAllTiers().First().First();
+
+            page.Url.Query.Should().Contain("t=search");
+            page.Url.Query.Should().Contain("q=Pokemon%20Ultra%20Sun");
+            page.Url.Query.Should().NotContain("season=");
+            page.Url.Query.Should().NotContain("ep=");
+            page.Url.Query.Should().NotContain("tvdbid=");
+        }
+
+        [Test]
+        public void should_search_platform_collections_using_collection_terms_and_no_season_param()
+        {
+            Subject.MaxPages = 1;
+            var collectionCriteria = new SeasonSearchCriteria
+            {
+                Series = new Tv.Series { Title = "Nintendo 64", TitleSlug = "n64", TvdbId = 1005 },
+                IsPlatformCollectionSearch = true,
+                SceneTitles = new List<string> { "@N64", "[Nintendo - Nintendo 64", "Nintendo 64 complete" },
+                SeasonNumber = 1
+            };
+
+            var results = Subject.GetSearchRequests(collectionCriteria);
+
+            results.GetAllTiers().Should().HaveCount(3);
+            var pages = results.GetAllTiers().Select(t => t.First()).ToList();
+            pages.Should().HaveCount(3);
+
+            pages.Any(p => p.Url.Query.Contains("q=%40N64")).Should().BeTrue();
+            pages.All(p => !p.Url.Query.Contains("season=")).Should().BeTrue();
+            pages.All(p => p.Url.Query.Contains("t=search")).Should().BeTrue();
+        }
     }
 }
