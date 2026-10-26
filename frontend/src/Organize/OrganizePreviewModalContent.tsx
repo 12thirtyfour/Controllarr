@@ -66,7 +66,8 @@ function OrganizePreviewModalContentInner({
   const isPopulated = isPreviewFetched && isNamingFetched;
   const error = previewError || namingError;
   const { renameGames } = naming;
-  const gameFormat = naming[`${series.seriesType}GameFormat`];
+  const gameFormat =
+    naming[`${series.seriesType}GameFormat`] ?? naming.standardGameFormat ?? '';
 
   const selectAllValue = getValue(allSelected, allUnselected);
 

@@ -166,19 +166,29 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       return;
     }
 
+    const seriesValue = settings.seriesFolderFormat?.value ?? '';
+    const seasonValue = settings.seasonFolderFormat?.value ?? '';
+    const gameValue =
+      settings.standardGameFormat?.value ??
+      settings.standardEpisodeFormat?.value ??
+      '';
+    const rawDaily =
+      settings.dailyGameFormat?.value ??
+      settings.dailyEpisodeFormat?.value ??
+      '';
+
     const normalizedSeries = normalizeSegmentToConsoleVariables(
-      settings.seriesFolderFormat.value,
+      seriesValue,
       '{Manufacturer}/{Platform}'
     );
     const normalizedSeason = normalizeSegmentToConsoleVariables(
-      settings.seasonFolderFormat.value,
+      seasonValue,
       '{Region}'
     );
     const normalizedGame = normalizeSegmentToConsoleVariables(
-      settings.standardGameFormat.value,
+      gameValue,
       '{Game Title}'
     );
-    const rawDaily = settings.dailyGameFormat?.value ?? '';
     const normalizedDiscGame =
       !rawDaily ||
       rawDaily === '{Game Title}' ||
@@ -190,20 +200,28 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
             '{Game Title}/{Game Title}'
           );
 
-    if (settings.seriesFolderFormat.value !== normalizedSeries) {
+    if (settings.seriesFolderFormat && settings.seriesFolderFormat.value !== normalizedSeries) {
       updateSetting('seriesFolderFormat', normalizedSeries);
     }
 
-    if (settings.seasonFolderFormat.value !== normalizedSeason) {
+    if (settings.seasonFolderFormat && settings.seasonFolderFormat.value !== normalizedSeason) {
       updateSetting('seasonFolderFormat', normalizedSeason);
     }
 
-    if (settings.standardGameFormat.value !== normalizedGame) {
+    if (
+      (settings.standardGameFormat && settings.standardGameFormat.value !== normalizedGame) ||
+      (settings.standardEpisodeFormat && settings.standardEpisodeFormat.value !== normalizedGame)
+    ) {
       updateSetting('standardGameFormat', normalizedGame);
+      updateSetting('standardEpisodeFormat', normalizedGame);
     }
 
-    if (settings.dailyGameFormat?.value !== normalizedDiscGame) {
+    if (
+      (settings.dailyGameFormat && settings.dailyGameFormat.value !== normalizedDiscGame) ||
+      (settings.dailyEpisodeFormat && settings.dailyEpisodeFormat.value !== normalizedDiscGame)
+    ) {
       updateSetting('dailyGameFormat', normalizedDiscGame);
+      updateSetting('dailyEpisodeFormat', normalizedDiscGame);
     }
 
     setUnifiedPathFormat(
@@ -230,6 +248,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         updateSetting('seriesFolderFormat', seriesFolderFormat);
         updateSetting('seasonFolderFormat', seasonFolderFormat);
         updateSetting('standardGameFormat', standardGameFormat);
+        updateSetting('standardEpisodeFormat', standardGameFormat);
         return;
       }
 
@@ -241,6 +260,14 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
           splitUnifiedPathIntoBackendFields(nextDiscPath);
 
         updateSetting('dailyGameFormat', discGameFormat);
+        updateSetting('dailyEpisodeFormat', discGameFormat);
+        return;
+      }
+
+      if (change.name === 'renameGames') {
+        const val = change.value as boolean;
+        updateSetting('renameGames', val);
+        updateSetting('renameEpisodes', val);
         return;
       }
 
@@ -261,8 +288,9 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     setNamingModalOpen();
   }, [setNamingModalOpen]);
 
-  const replaceIllegalCharacters =
-    hasSettings && settings.replaceIllegalCharacters.value;
+  const replaceIllegalCharacters = Boolean(
+    hasSettings && settings.replaceIllegalCharacters?.value
+  );
 
   const colonReplacementOptions: EnhancedSelectInputValue<number>[] = [
     { key: 0, value: translate('Delete') },
@@ -295,13 +323,13 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   const formatErrors = [
     ...(settings.seriesFolderFormat?.errors ?? []),
     ...(settings.seasonFolderFormat?.errors ?? []),
-    ...(settings.standardGameFormat?.errors ?? []),
+    ...(settings.standardGameFormat?.errors ?? settings.standardEpisodeFormat?.errors ?? []),
   ];
 
   const formatWarnings = [
     ...(settings.seriesFolderFormat?.warnings ?? []),
     ...(settings.seasonFolderFormat?.warnings ?? []),
-    ...(settings.standardGameFormat?.warnings ?? []),
+    ...(settings.standardGameFormat?.warnings ?? settings.standardEpisodeFormat?.warnings ?? []),
   ];
 
   return (
@@ -324,7 +352,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.CHECK}
               name="renameGames"
               onChange={handleInputChange}
-              {...settings.renameGames}
+              {...(settings.renameGames ?? settings.renameEpisodes)}
             />
           </FormRow>
 
@@ -358,7 +386,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
           ) : null}
 
           {replaceIllegalCharacters &&
-          settings.colonReplacementFormat.value === 5 ? (
+          settings.colonReplacementFormat?.value === 5 ? (
             <FormRow size={sizes.MEDIUM}>
               <FormLabel>{translate('CustomColonReplacement')}</FormLabel>
               <FormInputHelpText
@@ -404,8 +432,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.TEXT}
               name="discPathFormat"
               value={discPathFormat}
-              errors={settings.dailyGameFormat?.errors ?? []}
-              warnings={settings.dailyGameFormat?.warnings ?? []}
+              errors={settings.dailyGameFormat?.errors ?? settings.dailyEpisodeFormat?.errors ?? []}
+              warnings={settings.dailyGameFormat?.warnings ?? settings.dailyEpisodeFormat?.warnings ?? []}
               buttons={
                 <FormInputButton onPress={handleDiscNamingModalOpenClick}>
                   ?

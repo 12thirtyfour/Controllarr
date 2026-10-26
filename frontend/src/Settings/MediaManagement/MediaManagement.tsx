@@ -172,6 +172,18 @@ function MediaManagement() {
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
+      if (change.name === 'gameTitleRequired') {
+        const val = change.value as string;
+        updateSetting('gameTitleRequired', val);
+        updateSetting('episodeTitleRequired', val);
+        return;
+      }
+      if (change.name === 'autoUnmonitorPreviouslyDownloadedGames') {
+        const val = change.value as boolean;
+        updateSetting('autoUnmonitorPreviouslyDownloadedGames', val);
+        updateSetting('autoUnmonitorPreviouslyDownloadedEpisodes', val);
+        return;
+      }
       updateSetting(
         change.name as keyof MediaManagementSettingsModel,
         change.value as MediaManagementSettingsModel[keyof MediaManagementSettingsModel]
@@ -281,7 +293,7 @@ function MediaManagement() {
                       name="gameTitleRequired"
                       values={gameTitleRequiredOptions}
                       onChange={handleInputChange}
-                      {...settings.gameTitleRequired}
+                      {...(settings.gameTitleRequired ?? settings.episodeTitleRequired)}
                     />
                   </FormRow>
 
@@ -383,7 +395,7 @@ function MediaManagement() {
                     />
                   </FormRow>
 
-                  {settings.useScriptImport.value ? (
+                  {settings.useScriptImport?.value ? (
                     <FormRow
                       advancedSettings={showAdvancedSettings}
                       isAdvanced={true}
@@ -415,7 +427,7 @@ function MediaManagement() {
                     />
                   </FormRow>
 
-                  {settings.importExtraFiles.value ? (
+                  {settings.importExtraFiles?.value ? (
                     <FormRow
                       advancedSettings={showAdvancedSettings}
                       isAdvanced={true}
@@ -470,7 +482,7 @@ function MediaManagement() {
                         />
                         <FormInputHelpText
                           text={
-                            settings.seasonPackUpgrade.value === 'any'
+                            settings.seasonPackUpgrade?.value === 'any'
                               ? translate('SeasonPackUpgradeAllowAnyWarning')
                               : undefined
                           }
@@ -485,7 +497,7 @@ function MediaManagement() {
                         />
                       </FormRow>
 
-                      {settings.seasonPackUpgrade.value === 'threshold' ? (
+                      {settings.seasonPackUpgrade?.value === 'threshold' ? (
                         <FormRow
                           advancedSettings={showAdvancedSettings}
                           isAdvanced={true}
@@ -529,7 +541,7 @@ function MediaManagement() {
                     type={inputTypes.CHECK}
                     name="autoUnmonitorPreviouslyDownloadedGames"
                     onChange={handleInputChange}
-                    {...settings.autoUnmonitorPreviouslyDownloadedGames}
+                    {...(settings.autoUnmonitorPreviouslyDownloadedGames ?? settings.autoUnmonitorPreviouslyDownloadedEpisodes)}
                   />
                 </FormRow>
 

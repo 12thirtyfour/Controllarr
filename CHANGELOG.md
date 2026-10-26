@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- **Media Management & Naming Settings Crash Resolution**:
+  - Resolved runtime `TypeError: Cannot read properties of undefined (reading 'value')` on the Media Management page by aligning backend DTOs (`NamingSettingsResource`, `NamingConfigResource`, `MediaManagementSettingsResource`, `MediaManagementConfigResource`) with video game naming conventions (`standardGameFormat`, `dailyGameFormat`, `renameGames`, `multiGameStyle`, `gameTitleRequired`, `autoUnmonitorPreviouslyDownloadedGames`) while retaining full backwards compatibility.
+  - Implemented null-safe chaining and fallback property resolution in `frontend/src/Settings/MediaManagement/Naming/Naming.tsx`, `frontend/src/Settings/MediaManagement/MediaManagement.tsx`, `useNamingSettings.ts`, and `useMediaManagementSettings.ts`.
+  - Fixed TypeScript token parameter typing in `OrganizePreviewModalContent.tsx`.
+- **Yarn Engine Check & Warning Clean-up**:
+  - Added `ignore-engines true` in `.yarnrc` to eliminate package engine warnings (`chart.js: The engine "pnpm" appears to be invalid`) during `yarn install`.
+  - Updated root `package.json` metadata with Controllarr project name, repository, and author.
+
 ### Added
 - **Centralized Build Output & Canonical Solution Cleanup**:
   - Registered `Controllarr` project prefix in `src/Directory.Build.props` so all core, host, and console executable and library binaries output directly to `_output/net10.0` (and `_tests/net10.0` for test fixtures), resolving execution errors caused by missing binaries where only `Controllarr.Update` was being placed into `_output`.
