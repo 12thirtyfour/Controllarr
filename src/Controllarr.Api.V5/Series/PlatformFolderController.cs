@@ -11,13 +11,14 @@ namespace Sonarr.Api.V5.Series;
 
 [V5ApiController("series")]
 [Route("api/v5/platform")]
-public class SeriesFolderController : Controller
+[Route("api/v5/series")]
+public class PlatformFolderController : Controller
 {
     private readonly ISeriesService _seriesService;
     private readonly ISeriesTranslationService _seriesTranslationService;
     private readonly IBuildFileNames _fileNameBuilder;
 
-    public SeriesFolderController(ISeriesService seriesService, ISeriesTranslationService seriesTranslationService, IBuildFileNames fileNameBuilder)
+    public PlatformFolderController(ISeriesService seriesService, ISeriesTranslationService seriesTranslationService, IBuildFileNames fileNameBuilder)
     {
         _seriesService = seriesService;
         _seriesTranslationService = seriesTranslationService;

@@ -15,14 +15,15 @@ namespace Sonarr.Api.V3.Series
 {
     [V3ApiController("series/lookup")]
     [Route("api/v3/platform/lookup")]
-    public class SeriesLookupController : Controller
+    [Route("api/v3/series/lookup")]
+    public class PlatformLookupController : Controller
     {
         private readonly ISearchForNewSeries _searchProxy;
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IMapCoversToLocal _coverMapper;
 
-        public SeriesLookupController(
+        public PlatformLookupController(
             ISearchForNewSeries searchProxy,
             IGameCatalogService gameCatalogService,
             IBuildFileNames fileNameBuilder,

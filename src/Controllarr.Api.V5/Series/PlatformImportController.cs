@@ -8,11 +8,12 @@ namespace Sonarr.Api.V5.Series
 {
     [V5ApiController("series/import")]
     [Route("api/v5/platform/import")]
-    public class SeriesImportController : Controller
+    [Route("api/v5/series/import")]
+    public class PlatformImportController : Controller
     {
         private readonly IAddSeriesService _addSeriesService;
 
-        public SeriesImportController(IAddSeriesService addSeriesService)
+        public PlatformImportController(IAddSeriesService addSeriesService)
         {
             _addSeriesService = addSeriesService;
         }

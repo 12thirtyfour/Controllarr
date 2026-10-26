@@ -8,11 +8,11 @@ using Sonarr.Http.REST;
 namespace Sonarr.Api.V3.Episodes
 {
     [V3ApiController("rename")]
-    public class RenameEpisodeController : Controller
+    public class RenameGameController : Controller
     {
         private readonly IRenameEpisodeFileService _renameEpisodeFileService;
 
-        public RenameEpisodeController(IRenameEpisodeFileService renameEpisodeFileService)
+        public RenameGameController(IRenameEpisodeFileService renameEpisodeFileService)
         {
             _renameEpisodeFileService = renameEpisodeFileService;
         }

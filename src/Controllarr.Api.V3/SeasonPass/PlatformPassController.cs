@@ -7,12 +7,13 @@ namespace Sonarr.Api.V3.SeasonPass
 {
     [V3ApiController]
     [Route("api/v3/platformpass")]
-    public class SeasonPassController : Controller
+    [Route("api/v3/seasonpass")]
+    public class PlatformPassController : Controller
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeMonitoredService _episodeMonitoredService;
 
-        public SeasonPassController(ISeriesService seriesService, IEpisodeMonitoredService episodeMonitoredService)
+        public PlatformPassController(ISeriesService seriesService, IEpisodeMonitoredService episodeMonitoredService)
         {
             _seriesService = seriesService;
             _episodeMonitoredService = episodeMonitoredService;

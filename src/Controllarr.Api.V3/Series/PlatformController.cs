@@ -27,7 +27,8 @@ namespace Sonarr.Api.V3.Series
 {
     [V3ApiController]
     [Route("api/v3/platform")]
-    public class SeriesController : RestControllerWithSignalR<SeriesResource, NzbDrone.Core.Tv.Series>,
+    [Route("api/v3/series")]
+    public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbDrone.Core.Tv.Series>,
                                 IHandle<EpisodeImportedEvent>,
                                 IHandle<EpisodeFileDeletedEvent>,
                                 IHandle<SeriesUpdatedEvent>,
@@ -45,7 +46,7 @@ namespace Sonarr.Api.V3.Series
         private readonly IMapCoversToLocal _coverMapper;
         private readonly IRootFolderService _rootFolderService;
 
-        public SeriesController(IBroadcastSignalRMessage signalRBroadcaster,
+        public PlatformController(IBroadcastSignalRMessage signalRBroadcaster,
                             ISeriesService seriesService,
                             ISeriesTranslationService seriesTranslationService,
                             IAddSeriesService addSeriesService,

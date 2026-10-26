@@ -9,12 +9,13 @@ namespace Sonarr.Api.V3.Series
 {
     [V3ApiController("series/editor")]
     [Route("api/v3/platform/editor")]
-    public class SeriesEditorController : Controller
+    [Route("api/v3/series/editor")]
+    public class PlatformEditorController : Controller
     {
         private readonly ISeriesService _seriesService;
         private readonly SeriesEditorValidator _seriesEditorValidator;
 
-        public SeriesEditorController(ISeriesService seriesService, SeriesEditorValidator seriesEditorValidator)
+        public PlatformEditorController(ISeriesService seriesService, SeriesEditorValidator seriesEditorValidator)
         {
             _seriesService = seriesService;
             _seriesEditorValidator = seriesEditorValidator;

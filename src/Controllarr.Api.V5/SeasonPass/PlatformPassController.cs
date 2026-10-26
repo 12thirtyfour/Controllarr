@@ -8,12 +8,13 @@ namespace Sonarr.Api.V5.SeasonPass;
 
 [V5ApiController]
 [Route("api/v5/platformpass")]
-public class SeasonPassController : Controller
+[Route("api/v5/seasonpass")]
+public class PlatformPassController : Controller
 {
     private readonly ISeriesService _seriesService;
     private readonly IEpisodeMonitoredService _episodeMonitoredService;
 
-    public SeasonPassController(ISeriesService seriesService, IEpisodeMonitoredService episodeMonitoredService)
+    public PlatformPassController(ISeriesService seriesService, IEpisodeMonitoredService episodeMonitoredService)
     {
         _seriesService = seriesService;
         _episodeMonitoredService = episodeMonitoredService;

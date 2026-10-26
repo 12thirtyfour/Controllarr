@@ -92,7 +92,7 @@ namespace NzbDrone.Host
 
             // Register all controllers from the API and HTTP projects
             .AddApplicationPart(typeof(SystemController).Assembly)
-            .AddApplicationPart(typeof(SeriesLookupController).Assembly)
+            .AddApplicationPart(typeof(PlatformLookupController).Assembly)
             .AddApplicationPart(typeof(StaticResourceController).Assembly)
             .AddJsonOptions(options =>
             {

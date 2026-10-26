@@ -27,7 +27,8 @@ namespace Sonarr.Api.V5.Series;
 
 [V5ApiController]
 [Route("api/v5/platform")]
-public class SeriesController : RestControllerWithSignalR<SeriesResource, NzbDrone.Core.Tv.Series>,
+[Route("api/v5/series")]
+public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbDrone.Core.Tv.Series>,
                             IHandle<EpisodeImportedEvent>,
                             IHandle<EpisodeFileDeletedEvent>,
                             IHandle<SeriesUpdatedEvent>,
@@ -47,7 +48,7 @@ public class SeriesController : RestControllerWithSignalR<SeriesResource, NzbDro
 
     private readonly LockByIdPool _seriesLockPool = new();
 
-    public SeriesController(IBroadcastSignalRMessage signalRBroadcaster,
+    public PlatformController(IBroadcastSignalRMessage signalRBroadcaster,
                         ISeriesService seriesService,
                         IAddSeriesService addSeriesService,
                         ISeriesStatisticsService seriesStatisticsService,

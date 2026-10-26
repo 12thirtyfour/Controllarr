@@ -7,12 +7,13 @@ namespace Sonarr.Api.V3.Series;
 
 [V3ApiController("series")]
 [Route("api/v3/platform")]
-public class SeriesFolderController : Controller
+[Route("api/v3/series")]
+public class PlatformFolderController : Controller
 {
     private readonly ISeriesService _seriesService;
     private readonly IBuildFileNames _fileNameBuilder;
 
-    public SeriesFolderController(ISeriesService seriesService, IBuildFileNames fileNameBuilder)
+    public PlatformFolderController(ISeriesService seriesService, IBuildFileNames fileNameBuilder)
     {
         _seriesService = seriesService;
         _fileNameBuilder = fileNameBuilder;

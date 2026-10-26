@@ -23,7 +23,8 @@ namespace Sonarr.Api.V5.EpisodeFiles;
 
 [V5ApiController]
 [Route("api/v5/romfile")]
-public class EpisodeFileController : RestControllerWithSignalR<EpisodeFileResource, EpisodeFile>,
+[Route("api/v5/episodefile")]
+public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, EpisodeFile>,
                              IHandle<EpisodeFileAddedEvent>,
                              IHandle<EpisodeFileDeletedEvent>
 {
@@ -33,7 +34,7 @@ public class EpisodeFileController : RestControllerWithSignalR<EpisodeFileResour
     private readonly ICustomFormatCalculationService _formatCalculator;
     private readonly IUpgradableSpecification _upgradableSpecification;
 
-    public EpisodeFileController(IBroadcastSignalRMessage signalRBroadcaster,
+    public RomFileController(IBroadcastSignalRMessage signalRBroadcaster,
                          IMediaFileService mediaFileService,
                          IDeleteMediaFiles mediaFileDeletionService,
                          ISeriesService seriesService,

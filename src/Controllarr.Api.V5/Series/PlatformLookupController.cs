@@ -17,7 +17,8 @@ namespace Sonarr.Api.V5.Series;
 
 [V5ApiController("series/lookup")]
 [Route("api/v5/platform/lookup")]
-public class SeriesLookupController : Controller
+[Route("api/v5/series/lookup")]
+public class PlatformLookupController : Controller
 {
     private readonly ISearchForNewSeries _searchProxy;
     private readonly IGameCatalogService _gameCatalogService;
@@ -26,7 +27,7 @@ public class SeriesLookupController : Controller
     private readonly IImportListExclusionService _importListExclusionService;
     private readonly IConfigService _configService;
 
-    public SeriesLookupController(
+    public PlatformLookupController(
         ISearchForNewSeries searchProxy,
         IGameCatalogService gameCatalogService,
         IBuildFileNames fileNameBuilder,
