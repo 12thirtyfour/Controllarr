@@ -81,6 +81,10 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('Bios'),
             to: '/bios',
           },
+          {
+            title: () => 'ROM Patcher',
+            to: '/rom-patcher',
+          },
         ],
       },
       {

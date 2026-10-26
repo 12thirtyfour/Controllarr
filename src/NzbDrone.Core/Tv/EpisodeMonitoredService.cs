@@ -110,6 +110,12 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
+                if (monitoringOptions.Monitor == MonitorTypes.All)
+                {
+                    season.Monitored = true;
+                    continue;
+                }
+
                 if (isCatalogPlatform &&
                     (seasonNumber == GameCatalogProxy.RegionUnlicensedSeason ||
                      seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||

@@ -75,10 +75,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
-        public void should_return_false_if_an_episode_does_not_have_an_air_date()
+        public void should_return_true_if_an_episode_does_not_have_an_air_date()
         {
             _remoteEpisode.Episodes.Last().AirDateUtc = null;
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]

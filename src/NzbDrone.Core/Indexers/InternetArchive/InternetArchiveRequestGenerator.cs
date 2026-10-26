@@ -16,6 +16,29 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         public virtual IndexerPageableRequestChain GetRecentRequests()
         {
             var pageableRequests = new IndexerPageableRequestChain();
+            var primaryArchiveIds = Settings?.PrimaryArchiveUrls?
+                .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<string>();
+
+            var baseUrl = Settings?.BaseUrl?.TrimEnd('/') ?? "https://archive.org";
+
+            if (primaryArchiveIds.Any())
+            {
+                var primaryRequests = new List<IndexerRequest>();
+                foreach (var archiveId in primaryArchiveIds)
+                {
+                    var url = $"{baseUrl}/metadata/{archiveId}/files";
+                    primaryRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
+                }
+
+                if (primaryRequests.Any())
+                {
+                    pageableRequests.Add(primaryRequests);
+                }
+            }
+
             pageableRequests.Add(GetPagedRequests(null));
             return pageableRequests;
         }
@@ -85,6 +108,15 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 }
 
                 terms.AddRange(titles);
+            }
+
+            if (searchCriteria.Series != null && !searchCriteria.Series.Title.IsNullOrWhiteSpace())
+            {
+                var cleanSeriesTitle = CleanGameTitleForSearch(searchCriteria.Series.Title);
+                if (!terms.Contains(cleanSeriesTitle))
+                {
+                    terms.Add(cleanSeriesTitle);
+                }
             }
 
             var primaryArchiveIds = Settings?.PrimaryArchiveUrls?
@@ -170,17 +202,17 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             {
                 if (collections.Count == 1)
                 {
-                    collectionQuery = $"collection:{collections[0]}";
+                    collectionQuery = $"(collection:{collections[0]} OR identifier:{collections[0]})";
                 }
                 else
                 {
-                    collectionQuery = $"({string.Join(" OR ", collections.Select(c => $"collection:{c}"))})";
+                    collectionQuery = $"({string.Join(" OR ", collections.Select(c => $"(collection:{c} OR identifier:{c})"))})";
                 }
             }
 
             if (term.IsNullOrWhiteSpace())
             {
-                return collectionQuery ?? "*:*";
+                return collectionQuery ?? "mediatype:software";
             }
 
             var escapedTerm = term.Replace("\"", "\\\"");

@@ -105,6 +105,10 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
         [Test]
         public void should_monitor_all_retail_seasons_and_episodes_when_series_monitored_becomes_true()
         {
+            _fakeSeries.Seasons.Add(new Season { SeasonNumber = 0, Monitored = false });
+            _fakeSeries.Seasons.Add(new Season { SeasonNumber = 5, Monitored = false });
+            _fakeSeries.Seasons.Add(new Season { SeasonNumber = 6, Monitored = false });
+
             _existingSeries.Monitored = false;
             _fakeSeries.Monitored = true;
             _fakeSeries.Seasons.ForEach(s => s.Monitored = false);
@@ -115,9 +119,15 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
 
             _fakeSeries.Seasons.All(s => s.Monitored).Should().BeTrue();
             Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 0, true), Times.Once());
+            Mocker.GetMock<IEpisodeService>()
                   .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 1, true), Times.Once());
             Mocker.GetMock<IEpisodeService>()
                   .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 2, true), Times.Once());
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 5, true), Times.Once());
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.SetEpisodeMonitoredBySeason(_fakeSeries.Id, 6, true), Times.Once());
         }
 
         [Test]

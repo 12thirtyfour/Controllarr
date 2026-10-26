@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **ROM Patcher Dedicated Navigation**:
+  - Moved the Cryptographic Hash-Gated Romhack & Translation Patcher (.ips / .bps / .xdelta / .vcdiff) out of Metadata Settings into its own dedicated menu item under `Library` titled `"ROM Patcher"` (`/rom-patcher`).
+  - Added full client-side patch file upload and server path inputs with cryptographic hash preview and feedback indicators.
+- **Internet Archive Full Game Packages Support**:
+  - Added an `Allow Full Game Packages` toggle under `Settings > Download Clients > Internet Archive` allowing downloading of full platform sets and archives (`.zip` / `.7z`) when large portions of a library or collection are missing.
+  - Enhanced the Decision Engine with comprehensive platform flashcart alias detection (`SD2SNES`, `EverDrive-N8`, `Mega-EverDrive`, `EverDrive-64`, `EverDrive-GB`, `EverDrive-GBA`, `Turbo-EverDrive`, `EZ-Flash`, `SMDB`, `HTGDB`, `1G1R`) and article-insensitive title normalization.
+
+### Changed
+- **Internet Archive Indexer Testing & Validation**:
+  - Replaced inherited Usenet/Newznab category validation in `TestConnection()` with a direct probe to Internet Archive metadata and API search endpoints, resolving the false-positive `"Query successful, but no results in the configured categories were returned from your indexer"` test error.
+  - Defaulted all 3 fail-download security settings (`Executables`, `Potentially Dangerous`, and `User Defined Extensions`) to enabled by default.
+  - Enhanced search request generation to query both collections and item identifiers `(collection:{c} OR identifier:{c})` and immediately ingest files from configured primary archives.
+- **Full Console Wanted Cascade**:
+  - Toggling whole-console monitoring now cascades `Monitored = true` across all 7 regions and content classes, including Unlicensed (Season 0), Homebrew & Aftermarket (Season 5), and ROM Hacks & Translations (Season 6), rather than only commercial retail regions.
+- **Cached Verification Databases UI Overflow**:
+  - Fixed UI overflowing container bounds in `Settings > Metadata` after manually refreshing DAT databases by adding responsive width capping, ellipsis truncation, and vertical scrolling.
+- **Full Region / Platform Package Release Date Handling**:
+  - Updated `FullSeasonSpecification` so retro catalog games without day-precision release dates (`AirDateUtc == null`) no longer cause full platform packs or region sets to be rejected.
+
 ### Changed
 - **Sonarr / TV Terminology Purge (Logs, Rejections, UI Strings)**:
   - Replaced TV-centric wording (series / season / episode / aired) with Controllarr wording (platform / region / game / released / ROM file) across download decision rejections, search-match specifications, tracked-download and import messages, disk-scan, rename, move, refresh, monitoring, and parsing logs.

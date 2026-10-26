@@ -236,10 +236,7 @@ namespace NzbDrone.Core.DecisionEngine
                     }
 
                     // Check if this is a platform full set or season pack matching the platform
-                    var cleanSeriesTitle = CleanRomTitleForComparison(series.Title);
-                    if (IsRomTitleMatch(cleanRomGameTitle, cleanSeriesTitle) ||
-                        releaseTitle.Contains(series.Title, StringComparison.OrdinalIgnoreCase) ||
-                        (!string.IsNullOrWhiteSpace(series.TitleSlug) && releaseTitle.Contains(series.TitleSlug, StringComparison.OrdinalIgnoreCase)))
+                    if (IsPlatformPackMatch(releaseTitle, cleanRomGameTitle, series))
                     {
                         var targetSeason = searchCriteria is SeasonSearchCriteria ssc ? ssc.SeasonNumber : 1;
                         var romQuality = romInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
@@ -266,6 +263,57 @@ namespace NzbDrone.Core.DecisionEngine
             return null;
         }
 
+        private static bool IsPlatformPackMatch(string releaseTitle, string cleanRomGameTitle, NzbDrone.Core.Tv.Series series)
+        {
+            if (series == null || string.IsNullOrWhiteSpace(releaseTitle))
+            {
+                return false;
+            }
+
+            var cleanSeriesTitle = CleanRomTitleForComparison(series.Title);
+            if (IsRomTitleMatch(cleanRomGameTitle, cleanSeriesTitle) ||
+                releaseTitle.Contains(series.Title, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(series.TitleSlug) && releaseTitle.Contains(series.TitleSlug, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var isArchive = releaseTitle.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("HTGDB", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("1G1R", StringComparison.OrdinalIgnoreCase);
+
+            if (!isArchive)
+            {
+                return false;
+            }
+
+            var slug = series.TitleSlug?.ToLowerInvariant() ?? string.Empty;
+            var releaseLower = releaseTitle.ToLowerInvariant();
+
+            var aliases = slug switch
+            {
+                "snes" => new[] { "snes", "sd2snes", "super nintendo", "super famicom", "sfc", "super everdrive" },
+                "nes" => new[] { "nes", "everdrive n8", "famicom", "nintendo entertainment system" },
+                "genesis" or "megadrive" => new[] { "genesis", "mega everdrive", "mega drive", "megadrive", "sega genesis", "smd" },
+                "n64" => new[] { "n64", "everdrive 64", "nintendo 64" },
+                "gb" => new[] { "game boy", "gameboy", "everdrive gb" },
+                "gbc" => new[] { "game boy color", "gameboy color", "everdrive gb", "gbc" },
+                "gba" => new[] { "game boy advance", "gameboy advance", "everdrive gba", "ez-flash", "gba" },
+                "ps1" or "psx" => new[] { "ps1", "psx", "playstation" },
+                "sms" => new[] { "master everdrive", "sega master system", "sms" },
+                "gg" => new[] { "game gear", "gamegear", "everdrive gg" },
+                "tg16" => new[] { "turbo everdrive", "pc engine", "turbografx", "pce" },
+                "atari2600" => new[] { "harmony", "atari 2600" },
+                "neogeo" => new[] { "neosd", "neo geo", "neogeo" },
+                _ => Array.Empty<string>()
+            };
+
+            return aliases.Any(a => releaseLower.Contains(a));
+        }
+
         private static string CleanRomTitleForComparison(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -273,7 +321,7 @@ namespace NzbDrone.Core.DecisionEngine
                 return string.Empty;
             }
 
-            var clean = title;
+            var clean = RomParser.CleanIndexPrefix(title.Trim());
             var parenIdx = clean.IndexOf('(');
             if (parenIdx > 0)
             {
@@ -284,6 +332,26 @@ namespace NzbDrone.Core.DecisionEngine
             if (bracketIdx > 0)
             {
                 clean = clean.Substring(0, bracketIdx);
+            }
+
+            clean = clean.Trim();
+            if (clean.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
+            {
+                clean = clean.Substring(4).Trim();
+            }
+            else if (clean.StartsWith("A ", StringComparison.OrdinalIgnoreCase))
+            {
+                clean = clean.Substring(2).Trim();
+            }
+            else if (clean.StartsWith("An ", StringComparison.OrdinalIgnoreCase))
+            {
+                clean = clean.Substring(3).Trim();
+            }
+
+            var commaTheIdx = clean.LastIndexOf(", The", StringComparison.OrdinalIgnoreCase);
+            if (commaTheIdx >= 0)
+            {
+                clean = clean.Substring(0, commaTheIdx).Trim();
             }
 
             var sb = new StringBuilder(clean.Length);

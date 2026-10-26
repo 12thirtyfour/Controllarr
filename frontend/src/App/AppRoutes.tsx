@@ -10,6 +10,7 @@ import CalendarPage from 'Calendar/CalendarPage';
 import NotFound from 'Components/NotFound';
 import PlatformDetailsPage from 'Platform/Details/PlatformDetailsPage';
 import PlatformIndex from 'Platform/Index/PlatformIndex';
+import RomPatcherPage from 'RomPatcher/RomPatcherPage';
 import BiosSettings from 'Settings/Bios/BiosSettings';
 import CollectionSettings from 'Settings/Collection/CollectionSettings';
 import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
@@ -66,6 +67,8 @@ export function appRouteElements() {
       <Route path="/add/import/:rootFolderId" element={<ImportPlatform />} />
 
       <Route path="/bios" element={<BiosSettings />} />
+
+      <Route path="/rom-patcher" element={<RomPatcherPage />} />
 
       <Route path="/webplayer" element={<WebPlayerPage />} />
 

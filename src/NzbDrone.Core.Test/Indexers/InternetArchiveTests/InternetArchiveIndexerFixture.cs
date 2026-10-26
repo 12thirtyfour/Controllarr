@@ -145,9 +145,11 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             var generator = new InternetArchiveRequestGenerator { Settings = settings };
             var requests = generator.GetRecentRequests().GetAllTiers().SelectMany(x => x).ToList();
 
-            requests.Should().HaveCount(1);
-            var request = requests.First();
+            requests.Should().HaveCount(3);
+            requests[0].HttpRequest.Url.FullUri.Should().Be("https://archive.org/metadata/no-intro_romsets/files");
+            requests[1].HttpRequest.Url.FullUri.Should().Be("https://archive.org/metadata/redump/files");
 
+            var request = requests[2];
             request.HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
             request.HttpRequest.Url.FullUri.Should().Contain("collection%3Ano-intro_romsets");
             request.HttpRequest.Url.FullUri.Should().Contain("collection%3Aredump");
@@ -268,6 +270,33 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             release.InfoUrl.Should().Be("https://archive.org/details/htgdb-gamepacks");
             release.Size.Should().Be(524288);
             release.RequiresCredentials.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_pass_test_connection_when_probe_is_successful()
+        {
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.IsAny<HttpRequest>()))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), "{}"));
+
+            var failures = Subject.Test();
+
+            failures.IsValid.Should().BeTrue();
+            failures.Errors.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_fail_test_connection_when_auth_error_returned()
+        {
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.IsAny<HttpRequest>()))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), new byte[0], System.Net.HttpStatusCode.Unauthorized));
+
+            var failures = Subject.Test();
+
+            failures.IsValid.Should().BeFalse();
+            failures.Errors.Should().HaveCount(1);
+            failures.Errors.First().ErrorMessage.Should().Contain("authentication failed");
         }
     }
 }

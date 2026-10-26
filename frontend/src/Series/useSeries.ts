@@ -886,7 +886,7 @@ export const useToggleSeriesMonitored = (seriesId: number) => {
 
   const { mutate, isPending, error } = useApiMutation<
     Series,
-    ToggleSeriesMonitoredPayload
+    Partial<Series>
   >({
     path: '/series',
     method: 'PUT',
@@ -904,14 +904,30 @@ export const useToggleSeriesMonitored = (seriesId: number) => {
 
         queryClient.invalidateQueries({ queryKey: ['/episode'] });
         queryClient.invalidateQueries({ queryKey: ['/series'] });
+        queryClient.invalidateQueries({ queryKey: ['/wanted'] });
       },
     },
   });
   const toggleSeriesMonitored = useCallback(
     (payload: ToggleSeriesMonitoredPayload) => {
-      return mutate({ ...series, ...payload });
+      const targetSeries =
+        series ??
+        queryClient
+          .getQueryData<Series[]>(['/series'])
+          ?.find((s) => s.id === seriesId);
+
+      const updatedSeasons = targetSeries?.seasons?.map((s) => ({
+        ...s,
+        monitored: payload.monitored,
+      }));
+
+      return mutate({
+        ...targetSeries,
+        ...payload,
+        ...(updatedSeasons ? { seasons: updatedSeasons } : {}),
+      });
     },
-    [series, mutate]
+    [series, queryClient, seriesId, mutate]
   );
 
   return {
@@ -964,6 +980,7 @@ export const useToggleSeasonMonitored = (seriesId: number) => {
 
         queryClient.invalidateQueries({ queryKey: ['/episode'] });
         queryClient.invalidateQueries({ queryKey: ['/series'] });
+        queryClient.invalidateQueries({ queryKey: ['/wanted'] });
       },
     },
   });

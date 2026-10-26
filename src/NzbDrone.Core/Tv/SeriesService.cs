@@ -228,26 +228,9 @@ namespace NzbDrone.Core.Tv
                         {
                             foreach (var season in series.Seasons)
                             {
-                                if (season.SeasonNumber >= 1 && season.SeasonNumber < GameCatalogProxy.RegionHomebrewSeason)
-                                {
-                                    season.Monitored = true;
-                                }
-
-                                if (season.Monitored)
-                                {
-                                    _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, true);
-                                    episodeMonitoredChanged = true;
-                                }
-                            }
-
-                            if (!series.Seasons.Any(s => s.Monitored))
-                            {
-                                foreach (var season in series.Seasons.Where(s => s.SeasonNumber > 0))
-                                {
-                                    season.Monitored = true;
-                                    _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, true);
-                                    episodeMonitoredChanged = true;
-                                }
+                                season.Monitored = true;
+                                _episodeService.SetEpisodeMonitoredBySeason(series.Id, season.SeasonNumber, true);
+                                episodeMonitoredChanged = true;
                             }
                         }
 

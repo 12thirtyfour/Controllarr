@@ -27,7 +27,12 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             S3AccessKey = string.Empty;
             S3SecretKey = string.Empty;
             MultiLanguages = Array.Empty<int>();
-            FailDownloads = Array.Empty<int>();
+            FailDownloads = new[]
+            {
+                (int)Indexers.FailDownloads.Executables,
+                (int)Indexers.FailDownloads.PotentiallyDangerous,
+                (int)Indexers.FailDownloads.UserDefinedExtensions
+            };
         }
 
         public static string ExtractIdentifier(string urlOrId)
