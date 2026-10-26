@@ -41,7 +41,7 @@ namespace NzbDrone.Integration.Test
         public CommandClient Commands;
         public ClientBase<TaskResource> Tasks;
         public DownloadClientClient DownloadClients;
-        public EpisodeClient Episodes;
+        public GameClient Episodes;
         public ClientBase<HistoryResource> History;
         public ClientBase<HostConfigResource> HostConfig;
         public IndexerClient Indexers;
@@ -53,7 +53,7 @@ namespace NzbDrone.Integration.Test
         public ReleaseClient Releases;
         public ReleasePushClient ReleasePush;
         public ClientBase<RootFolderResource> RootFolders;
-        public SeriesClient Series;
+        public PlatformClient Series;
         public ClientBase<TagResource> Tags;
         public ClientBase<EpisodeResource> WantedMissing;
         public ClientBase<EpisodeResource> WantedCutoffUnmet;
@@ -107,7 +107,7 @@ namespace NzbDrone.Integration.Test
             Commands = new CommandClient(RestClient, ApiKey);
             Tasks = new ClientBase<TaskResource>(RestClient, ApiKey, "system/task");
             DownloadClients = new DownloadClientClient(RestClient, ApiKey);
-            Episodes = new EpisodeClient(RestClient, ApiKey);
+            Episodes = new GameClient(RestClient, ApiKey);
             History = new ClientBase<HistoryResource>(RestClient, ApiKey);
             HostConfig = new ClientBase<HostConfigResource>(RestClient, ApiKey, "config/host");
             Indexers = new IndexerClient(RestClient, ApiKey);
@@ -118,7 +118,7 @@ namespace NzbDrone.Integration.Test
             Releases = new ReleaseClient(RestClient, ApiKey);
             ReleasePush = new ReleasePushClient(RestClient, ApiKey);
             RootFolders = new ClientBase<RootFolderResource>(RestClient, ApiKey);
-            Series = new SeriesClient(RestClient, ApiKey);
+            Series = new PlatformClient(RestClient, ApiKey);
             Tags = new ClientBase<TagResource>(RestClient, ApiKey);
             WantedMissing = new ClientBase<EpisodeResource>(RestClient, ApiKey, "wanted/missing");
             WantedCutoffUnmet = new ClientBase<EpisodeResource>(RestClient, ApiKey, "wanted/cutoff");
