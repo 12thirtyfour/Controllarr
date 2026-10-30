@@ -17,7 +17,7 @@ export interface QueueOptions extends PageableOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<QueueOptions>('queue_options', () => {
+  createOptionsStore<QueueOptions>('queue_options_v2', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
@@ -63,8 +63,8 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
-          name: 'quality',
-          label: () => translate('Quality'),
+          name: 'format',
+          label: () => translate('Format'),
           isSortable: true,
           isVisible: true,
         },

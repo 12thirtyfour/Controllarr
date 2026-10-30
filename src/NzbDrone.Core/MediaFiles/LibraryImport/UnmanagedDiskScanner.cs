@@ -119,7 +119,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             item.Hashes ??= new Dictionary<string, string>();
                             item.Hashes["CRC32"] = crc32;
 
-                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, zipPath);
+                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, zipPath, preferredSeries: item.Series);
                             item.Series ??= series;
                             if (episode != null)
                             {
@@ -142,7 +142,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     return;
                 }
 
-                var processed = ProcessSingleFile(item.Path, Path.GetDirectoryName(item.Path), validExtensions);
+                var processed = ProcessSingleFile(item.Path, Path.GetDirectoryName(item.Path), validExtensions, item.Series);
                 if (processed != null)
                 {
                     item.Hashes = processed.Hashes ?? new Dictionary<string, string>();
@@ -188,11 +188,20 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             var crc32 = entry.Crc32.ToString("x8").ToLowerInvariant();
                             localEpisode.RomHashes = new Dictionary<string, string> { ["CRC32"] = crc32 };
 
-                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, zipPath);
+                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, zipPath, preferredSeries: localEpisode.Series);
                             localEpisode.Series ??= series;
                             if (episode != null && (localEpisode.Episodes == null || localEpisode.Episodes.Count == 0))
                             {
                                 localEpisode.Episodes = new List<Episode> { episode };
+                            }
+
+                            if (localEpisode.FileEpisodeInfo != null && episode != null)
+                            {
+                                localEpisode.FileEpisodeInfo.SeasonNumber ??= episode.SeasonNumber;
+                                if (localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
+                                {
+                                    localEpisode.FileEpisodeInfo.EpisodeNumbers = new[] { episode.EpisodeNumber };
+                                }
                             }
 
                             localEpisode.RomHashVerified = highConfidence;
@@ -207,7 +216,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     return;
                 }
 
-                var processed = ProcessSingleFile(localEpisode.Path, Path.GetDirectoryName(localEpisode.Path), validExtensions);
+                var processed = ProcessSingleFile(localEpisode.Path, Path.GetDirectoryName(localEpisode.Path), validExtensions, localEpisode.Series);
                 if (processed != null)
                 {
                     localEpisode.RomHashes = processed.Hashes ?? new Dictionary<string, string>();
@@ -216,6 +225,16 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0) && processed.Episodes != null && processed.Episodes.Count > 0)
                     {
                         localEpisode.Episodes = processed.Episodes;
+                    }
+
+                    if (localEpisode.FileEpisodeInfo != null && processed.Episodes != null && processed.Episodes.Count > 0)
+                    {
+                        var firstEp = processed.Episodes[0];
+                        localEpisode.FileEpisodeInfo.SeasonNumber ??= firstEp.SeasonNumber;
+                        if (localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
+                        {
+                            localEpisode.FileEpisodeInfo.EpisodeNumbers = new[] { firstEp.EpisodeNumber };
+                        }
                     }
                 }
             }
@@ -340,7 +359,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
         }
 
-        private ManualImportItem ProcessSingleFile(string filePath, string rootFolder, List<string> validExtensions)
+        private ManualImportItem ProcessSingleFile(string filePath, string rootFolder, List<string> validExtensions, Series preferredSeries = null)
         {
             var fileName = Path.GetFileName(filePath);
             var parsedInfo = RomParser.ParseRomName(fileName);
@@ -348,7 +367,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             var hashes = ComputeHashes(filePath, validExtensions);
 
             var crc32 = hashes.TryGetValue("CRC32", out var c) ? c : null;
-            var (matchedSeries, matchedEpisode, isHighConfidence) = ResolvePlatformAndGame(crc32, fileName, filePath, hashes);
+            var (matchedSeries, matchedEpisode, isHighConfidence) = ResolvePlatformAndGame(crc32, fileName, filePath, hashes, preferredSeries);
 
             return new ManualImportItem
             {
@@ -368,7 +387,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             string crc32,
             string romName,
             string filePath,
-            Dictionary<string, string> hashes = null)
+            Dictionary<string, string> hashes = null,
+            Series preferredSeries = null)
         {
             DatEntry matchedDatEntry = null;
             string platformSlug = null;
@@ -419,7 +439,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 platformSlug = DetectPlatformFromPathClues(filePath);
             }
 
-            var matchedSeries = FindPlatformBySlugOrTitle(platformSlug, filePath);
+            var matchedSeries = preferredSeries ?? FindPlatformBySlugOrTitle(platformSlug, filePath);
             var matchedEpisode = FindMatchingEpisode(matchedSeries, romName, matchedDatEntry);
 
             if (matchedSeries == null && matchedEpisode != null)
@@ -446,7 +466,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                 var clean = Path.GetFileNameWithoutExtension(segment);
                 var slug = PlatformCompatibilityValidator.NormalizePlatformSlug(null, clean);
-                if (!string.Equals(slug, clean, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(slug))
+                if (!string.IsNullOrWhiteSpace(slug) && PlatformCompatibilityValidator.CanonicalPlatformNames.ContainsKey(slug))
                 {
                     return slug;
                 }
@@ -461,6 +481,18 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             if (allPlatforms.Count == 0)
             {
                 return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(contextualPath))
+            {
+                var matchedByPath = allPlatforms.FirstOrDefault(p =>
+                    !string.IsNullOrWhiteSpace(p.Path) &&
+                    (contextualPath.StartsWith(p.Path, StringComparison.OrdinalIgnoreCase) || p.Path.IsParentPath(contextualPath)));
+
+                if (matchedByPath != null)
+                {
+                    return matchedByPath;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(platformSlug))
@@ -502,6 +534,12 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         {
             var candidateTitles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
+            var fileNameNoExt = Path.GetFileNameWithoutExtension(romName);
+            if (!string.IsNullOrWhiteSpace(fileNameNoExt))
+            {
+                candidateTitles.Add(fileNameNoExt);
+            }
+
             var parsedRom = RomParser.ParseRomName(Path.GetFileName(romName));
             if (!string.IsNullOrWhiteSpace(parsedRom?.GameTitle))
             {
@@ -520,6 +558,12 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             if (!string.IsNullOrWhiteSpace(matchedDatEntry?.RomName))
             {
+                var datRomNoExt = Path.GetFileNameWithoutExtension(matchedDatEntry.RomName);
+                if (!string.IsNullOrWhiteSpace(datRomNoExt))
+                {
+                    candidateTitles.Add(datRomNoExt);
+                }
+
                 var parsedDatRom = RomParser.ParseRomName(matchedDatEntry.RomName)?.GameTitle;
                 if (!string.IsNullOrWhiteSpace(parsedDatRom))
                 {
@@ -527,13 +571,60 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 }
             }
 
+            var cleanCandidates = candidateTitles
+                .Select(c => c.CleanSeriesTitle())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
             if (series != null)
             {
                 var games = _episodeService?.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
-                var matched = games.FirstOrDefault(g => g.Title != null && candidateTitles.Contains(g.Title));
+                var matched = games.FirstOrDefault(g => g.Title != null && (
+                    candidateTitles.Contains(g.Title) ||
+                    cleanCandidates.Contains(g.Title.CleanSeriesTitle())));
+
                 if (matched != null)
                 {
                     return matched;
+                }
+
+                if (_episodeService != null)
+                {
+                    foreach (var cand in candidateTitles)
+                    {
+                        var ep = _episodeService.FindEpisodeByTitle(series.Id, 1, cand);
+                        if (ep != null)
+                        {
+                            return ep;
+                        }
+                    }
+
+                    var bestTitle = !string.IsNullOrWhiteSpace(parsedRom?.GameTitle)
+                        ? parsedRom.GameTitle
+                        : (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName)
+                            ? matchedDatEntry.GameName
+                            : fileNameNoExt);
+
+                    var seasonNum = parsedRom?.RegionSeasonNumber ?? 1;
+                    var nextEpNum = games
+                        .Where(e => e.SeasonNumber == seasonNum)
+                        .Select(e => e.EpisodeNumber)
+                        .DefaultIfEmpty(0)
+                        .Max() + 1;
+
+                    var newEpisode = new Episode
+                    {
+                        SeriesId = series.Id,
+                        SeasonNumber = seasonNum,
+                        EpisodeNumber = nextEpNum,
+                        AbsoluteEpisodeNumber = nextEpNum,
+                        Title = bestTitle,
+                        Monitored = true,
+                        AirDateUtc = DateTime.UtcNow
+                    };
+
+                    _episodeService.InsertMany(new List<Episode> { newEpisode });
+                    return newEpisode;
                 }
             }
             else
@@ -542,7 +633,10 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 foreach (var platform in allPlatforms)
                 {
                     var games = _episodeService?.GetEpisodeBySeries(platform.Id) ?? new List<Episode>();
-                    var matched = games.FirstOrDefault(g => g.Title != null && candidateTitles.Contains(g.Title));
+                    var matched = games.FirstOrDefault(g => g.Title != null && (
+                        candidateTitles.Contains(g.Title) ||
+                        cleanCandidates.Contains(g.Title.CleanSeriesTitle())));
+
                     if (matched != null)
                     {
                         return matched;
@@ -563,7 +657,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 try
                 {
                     using var archive = ZipFile.OpenRead(filePath);
-                    var romEntry = archive.Entries.FirstOrDefault(e => validExtensions.Contains(Path.GetExtension(e.Name).ToLowerInvariant()));
+                    var romEntry = archive.Entries.FirstOrDefault(e =>
+                        !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                        (validExtensions.Contains(Path.GetExtension(e.Name).ToLowerInvariant()) ||
+                         MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name).ToLowerInvariant()))) ??
+                        archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\"));
                     if (romEntry != null)
                     {
                         using (var entryStream = romEntry.Open())

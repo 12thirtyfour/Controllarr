@@ -360,13 +360,27 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.format}>
-        {release.format || (props as any).format ? (
-          <span className={styles.formatBadge}>
-            {release.format || (props as any).format}
-          </span>
-        ) : (
-          <span className={styles.formatBadge}>-</span>
-        )}
+        {(() => {
+          const displayFormat =
+            release.format ||
+            (props as any).format ||
+            (() => {
+              const ext = title.match(/\.([A-Za-z0-9]{1,7})(?:\s*\[|\s*\(|\s*$)/)?.[1];
+              if (ext) {
+                return ext.toUpperCase();
+              }
+              const token = title.match(
+                /\b(3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|ISO|CISO|CHD|RVZ|GCM|WBFS|WUX|WUD|WUA|NSP|NSZ|XCI|PBP|CSO|VPK|PKG|BIN|CUE|GDI|CDI|ZIP|7Z)\b/i
+              )?.[1];
+              return token ? token.toUpperCase() : null;
+            })();
+
+          return displayFormat ? (
+            <span className={styles.formatBadge}>{displayFormat}</span>
+          ) : (
+            <span className={styles.formatBadge}>-</span>
+          );
+        })()}
       </VirtualTableRowCell>
 
       <VirtualTableRowCell className={styles.customFormatScore}>

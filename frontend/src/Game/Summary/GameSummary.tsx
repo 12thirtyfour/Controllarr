@@ -43,8 +43,8 @@ const COLUMNS: Column[] = [
     isVisible: true,
   },
   {
-    name: 'quality',
-    label: () => translate('Quality'),
+    name: 'format',
+    label: () => translate('Format'),
     isSortable: false,
     isVisible: true,
   },

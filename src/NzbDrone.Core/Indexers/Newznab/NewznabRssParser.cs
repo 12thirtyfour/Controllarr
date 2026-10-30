@@ -96,6 +96,12 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             if (FilterNonGameCategories)
             {
+                if (PlatformCompatibilityValidator.IsTvOrVideoRelease(item.Title()))
+                {
+                    _logger.Debug("Filtering out non-game TV/video release from Newznab: '{0}'", item.Title());
+                    return null;
+                }
+
                 var catAttrs = TryGetMultipleNewznabAttributes(item, "category");
                 var categoryElements = item.Elements("category").Select(e => e.Value).ToList();
 

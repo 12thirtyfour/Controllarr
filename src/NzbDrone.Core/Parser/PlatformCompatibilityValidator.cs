@@ -328,5 +328,136 @@ namespace NzbDrone.Core.Parser
 
             return raw;
         }
+
+        public static readonly Dictionary<string, string> CanonicalPlatformNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nes"] = "Nintendo Entertainment System",
+            ["fds"] = "Famicom Disk System",
+            ["snes"] = "Super Nintendo Entertainment System",
+            ["satellaview"] = "BS Satellaview",
+            ["n64"] = "Nintendo 64",
+            ["64dd"] = "Nintendo 64DD",
+            ["gamecube"] = "Nintendo GameCube",
+            ["wii"] = "Nintendo Wii",
+            ["wiiu"] = "Nintendo Wii U",
+            ["gb"] = "Nintendo Game Boy",
+            ["gbc"] = "Nintendo Game Boy Color",
+            ["gba"] = "Nintendo Game Boy Advance",
+            ["nds"] = "Nintendo DS",
+            ["3ds"] = "Nintendo 3DS",
+            ["switch"] = "Nintendo Switch",
+            ["genesis"] = "Sega Genesis",
+            ["segacd"] = "Sega CD",
+            ["32x"] = "Sega 32X",
+            ["saturn"] = "Sega Saturn",
+            ["dreamcast"] = "Sega Dreamcast",
+            ["sms"] = "Sega Master System",
+            ["gg"] = "Sega Game Gear",
+            ["tg16"] = "NEC TurboGrafx-16",
+            ["tgcd"] = "NEC TurboGrafx-CD",
+            ["ps1"] = "Sony PlayStation",
+            ["ps2"] = "Sony PlayStation 2",
+            ["ps3"] = "Sony PlayStation 3",
+            ["psp"] = "Sony PlayStation Portable",
+            ["psvita"] = "Sony PlayStation Vita",
+            ["xbox"] = "Microsoft Xbox",
+            ["xbox360"] = "Microsoft Xbox 360",
+            ["atari2600"] = "Atari 2600",
+            ["atari7800"] = "Atari 7800",
+            ["lynx"] = "Atari Lynx",
+            ["jaguar"] = "Atari Jaguar",
+            ["jaguarcd"] = "Atari Jaguar CD",
+            ["neogeo"] = "SNK Neo Geo",
+            ["ngpc"] = "SNK Neo Geo Pocket Color",
+            ["wonderswan"] = "Bandai WonderSwan",
+            ["vb"] = "Nintendo Virtual Boy"
+        };
+
+        public static string ResolvePlatformName(string nameOrSlugOrFilename, string extension = null)
+        {
+            if (string.IsNullOrWhiteSpace(nameOrSlugOrFilename) && string.IsNullOrWhiteSpace(extension))
+            {
+                return null;
+            }
+
+            var clean = !string.IsNullOrWhiteSpace(nameOrSlugOrFilename)
+                ? Path.GetFileNameWithoutExtension(nameOrSlugOrFilename).Trim()
+                : string.Empty;
+
+            var slug = NormalizePlatformSlug(null, clean);
+            if (!string.IsNullOrWhiteSpace(slug) && CanonicalPlatformNames.TryGetValue(slug, out var canonName))
+            {
+                return canonName;
+            }
+
+            var ext = !string.IsNullOrWhiteSpace(extension)
+                ? extension
+                : Path.GetExtension(nameOrSlugOrFilename);
+
+            if (!string.IsNullOrWhiteSpace(ext))
+            {
+                var extSlug = GetPlatformByExtension(ext);
+                if (!string.IsNullOrWhiteSpace(extSlug) && CanonicalPlatformNames.TryGetValue(extSlug, out var extCanonName))
+                {
+                    return extCanonName;
+                }
+            }
+
+            return null;
+        }
+
+        private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".mkv", ".avi", ".mp4", ".m4v", ".wmv", ".mov", ".flv", ".ts", ".m2ts", ".vob", ".mpg", ".mpeg", ".webm", ".divx"
+        };
+
+        private static readonly Regex TvEpisodePattern = new(
+            @"\b(s\d{1,2}[._ -]?e\d{1,3}|\d{1,2}x\d{1,3})\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex VideoCodecOrSourcePattern = new(
+            @"\b(hdtv|pdtv|dsr|bluray|bdrip|brrip|dvdrip|webrip|web-dl|x264|x265|xvid|divx|hevc|avc|remux)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex AnimeSubgroupPattern = new(
+            @"^\[(?<subgroup>[^\]]+)\]\s*[^\[\(\]]+\s*-\s*\d{2,4}\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        public static bool IsTvOrVideoRelease(string title, string extension = null)
+        {
+            if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(extension))
+            {
+                return false;
+            }
+
+            var ext = !string.IsNullOrWhiteSpace(extension)
+                ? extension
+                : Path.GetExtension(title);
+
+            if (!string.IsNullOrWhiteSpace(ext) && VideoExtensions.Contains(ext))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                if (TvEpisodePattern.IsMatch(title))
+                {
+                    return true;
+                }
+
+                if (VideoCodecOrSourcePattern.IsMatch(title))
+                {
+                    return true;
+                }
+
+                if (AnimeSubgroupPattern.IsMatch(title))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

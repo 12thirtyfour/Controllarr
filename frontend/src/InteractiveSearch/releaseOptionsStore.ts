@@ -20,7 +20,7 @@ export interface ReleaseOptions
 }
 
 const { useOptions, useOption, getOptions, getOption, setOptions, setOption } =
-  createOptionsStore<ReleaseOptions>('release_options', () => {
+  createOptionsStore<ReleaseOptions>('release_options_v2', () => {
     return {
       gameSelectedFilterKey: 'all',
       seasonSelectedFilterKey: 'season-pack',

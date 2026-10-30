@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using NLog;
@@ -169,9 +170,37 @@ namespace NzbDrone.Core.RootFolders
             foreach (var unmappedFolder in unmappedFolders)
             {
                 var di = new DirectoryInfo(unmappedFolder.Normalize());
+                var resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(di.Name);
+
+                if (string.IsNullOrWhiteSpace(resolvedPlatformName))
+                {
+                    var sampleFile = _diskProvider.GetFiles(unmappedFolder, true)
+                        .FirstOrDefault(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)));
+
+                    if (sampleFile != null)
+                    {
+                        resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(Path.GetFileName(sampleFile), Path.GetExtension(sampleFile));
+                        if (string.IsNullOrWhiteSpace(resolvedPlatformName) && Path.GetExtension(sampleFile).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                        {
+                            try
+                            {
+                                using var archive = ZipFile.OpenRead(sampleFile);
+                                var innerEntry = archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)));
+                                if (innerEntry != null)
+                                {
+                                    resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        }
+                    }
+                }
+
                 results.Add(new UnmappedFolder
                 {
-                    Name = di.Name,
+                    Name = !string.IsNullOrWhiteSpace(resolvedPlatformName) ? resolvedPlatformName : di.Name,
                     Path = di.FullName,
                     RelativePath = path.GetRelativePath(di.FullName)
                 });
@@ -183,7 +212,7 @@ namespace NzbDrone.Core.RootFolders
 
             if (results.Count == 0 && !seriesPaths.Values.Contains(path, PathEqualityComparer.Instance))
             {
-                // If subfolders were only regions/buckets or there were no subfolders, check if path itself contains ROMs
+                // Check if path itself or archives in path contain ROMs
                 var romFiles = _diskProvider.GetFiles(path, true)
                     .Where(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)))
                     .Take(50)
@@ -192,9 +221,40 @@ namespace NzbDrone.Core.RootFolders
                 if (romFiles.Count > 0)
                 {
                     var di = new DirectoryInfo(path.Normalize());
+
+                    // Try to detect platform from path name or from the ROM files
+                    var resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(di.Name);
+                    if (string.IsNullOrWhiteSpace(resolvedPlatformName))
+                    {
+                        foreach (var romFile in romFiles)
+                        {
+                            resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(Path.GetFileName(romFile), Path.GetExtension(romFile));
+                            if (string.IsNullOrWhiteSpace(resolvedPlatformName) && Path.GetExtension(romFile).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                try
+                                {
+                                    using var archive = ZipFile.OpenRead(romFile);
+                                    var innerEntry = archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)));
+                                    if (innerEntry != null)
+                                    {
+                                        resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
+                                    }
+                                }
+                                catch
+                                {
+                                }
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(resolvedPlatformName))
+                            {
+                                break;
+                            }
+                        }
+                    }
+
                     results.Add(new UnmappedFolder
                     {
-                        Name = di.Name,
+                        Name = !string.IsNullOrWhiteSpace(resolvedPlatformName) ? resolvedPlatformName : di.Name,
                         Path = di.FullName,
                         RelativePath = string.Empty
                     });

@@ -1321,23 +1321,42 @@ namespace NzbDrone.Core.Bios
                                     continue;
                                 }
 
-                                using var entryStream = entry.Open();
-                                var entryMd5Bytes = md5.ComputeHash(entryStream);
-                                var entryMd5 = BitConverter.ToString(entryMd5Bytes).Replace("-", "").ToLowerInvariant();
-
-                                using var entryStream2 = entry.Open();
-                                var entrySha1Bytes = sha1.ComputeHash(entryStream2);
-                                var entrySha1 = BitConverter.ToString(entrySha1Bytes).Replace("-", "").ToLowerInvariant();
-
-                                var entryMd5Match = string.IsNullOrWhiteSpace(expectedMd5) ||
-                                                    string.Equals(entryMd5, expectedMd5, StringComparison.InvariantCultureIgnoreCase);
-                                var entrySha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
-                                                     string.Equals(entrySha1, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
-
-                                if (entryMd5Match && entrySha1Match)
+                                using (var entryStream = entry.Open())
+                                using (var memStream = new MemoryStream())
                                 {
-                                    _logger.Debug($"BIOS Verified inside archive {filePath}: entry {entry.FullName}");
-                                    return true;
+                                    entryStream.CopyTo(memStream);
+                                    memStream.Position = 0;
+
+                                    var entryMd5Bytes = md5.ComputeHash(memStream);
+                                    var entryMd5 = BitConverter.ToString(entryMd5Bytes).Replace("-", "").ToLowerInvariant();
+
+                                    memStream.Position = 0;
+                                    var entrySha1Bytes = sha1.ComputeHash(memStream);
+                                    var entrySha1 = BitConverter.ToString(entrySha1Bytes).Replace("-", "").ToLowerInvariant();
+
+                                    var entryMd5Match = string.IsNullOrWhiteSpace(expectedMd5) ||
+                                                        string.Equals(entryMd5, expectedMd5, StringComparison.InvariantCultureIgnoreCase);
+                                    var entrySha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
+                                                         string.Equals(entrySha1, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
+
+                                    if (entryMd5Match && entrySha1Match)
+                                    {
+                                        _logger.Debug($"BIOS Verified inside archive {filePath}: entry {entry.FullName}");
+                                        try
+                                        {
+                                            var destDir = Path.GetDirectoryName(filePath);
+                                            if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                var rawDest = Path.Combine(destDir ?? string.Empty, entry.Name);
+                                                entry.ExtractToFile(rawDest, true);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                        }
+
+                                        return true;
+                                    }
                                 }
                             }
                         }

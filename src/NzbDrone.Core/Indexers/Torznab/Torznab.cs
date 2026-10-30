@@ -42,7 +42,10 @@ namespace NzbDrone.Core.Indexers.Torznab
 
         public override IParseIndexerResponse GetParser()
         {
-            return new TorznabRssParser();
+            return new TorznabRssParser
+            {
+                FilterNonGameCategories = Settings?.FilterNonGameCategories ?? true
+            };
         }
 
         private IndexerDefinition GetDefinition(string name, TorznabSettings settings)

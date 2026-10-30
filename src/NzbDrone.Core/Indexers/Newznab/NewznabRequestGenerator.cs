@@ -195,17 +195,10 @@ namespace NzbDrone.Core.Indexers.Newznab
         public virtual IndexerPageableRequestChain GetRecentRequests()
         {
             var pageableRequests = new IndexerPageableRequestChain();
-
             var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
+            var categories = GetSearchCategories(null);
 
-            if (capabilities.SupportedSearchParameters != null)
-            {
-                pageableRequests.Add(GetPagedRequests(MaxPages, Settings.Categories, "search", ""));
-            }
-            else if (capabilities.SupportedTvSearchParameters != null)
-            {
-                pageableRequests.Add(GetPagedRequests(MaxPages, Settings.Categories, "tvsearch", ""));
-            }
+            pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", ""));
 
             return pageableRequests;
         }
@@ -213,27 +206,12 @@ namespace NzbDrone.Core.Indexers.Newznab
         public virtual IndexerPageableRequestChain GetSearchRequests(SingleEpisodeSearchCriteria searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
-            var isGameSearch = searchCriteria.Episodes != null && searchCriteria.Episodes.Any();
-
-            if (!isGameSearch && !SupportsEpisodeSearch)
-            {
-                _logger.Debug("Indexer capabilities lacking season & ep query parameters, no Standard platform search possible: {0}", Definition.Name);
-
-                return pageableRequests;
-            }
-
-            if (!SupportsTvTextSearches && !SupportsTvIdSearches && !SupportsSearch)
-            {
-                _logger.Debug("Indexer capabilities lacking search parameters, no Standard platform search possible: {0}", Definition.Name);
-
-                return pageableRequests;
-            }
-
+            var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
             var categories = GetSearchCategories(searchCriteria);
+            var queryTitles = new List<string>();
 
-            if (isGameSearch)
+            if (searchCriteria.Episodes != null)
             {
-                var queryTitles = new List<string>();
                 foreach (var ep in searchCriteria.Episodes)
                 {
                     if (!string.IsNullOrWhiteSpace(ep.Title))
@@ -244,75 +222,56 @@ namespace NzbDrone.Core.Indexers.Newznab
                             queryTitles.Add(cleanBase);
                         }
 
+                        var unaccented = ep.Title.RemoveDiacritics();
+                        if (!string.IsNullOrWhiteSpace(unaccented))
+                        {
+                            queryTitles.Add(unaccented);
+                        }
+
                         queryTitles.Add(ep.Title);
                     }
                 }
-
-                if (searchCriteria.SceneTitles != null)
-                {
-                    foreach (var sceneTitle in searchCriteria.SceneTitles.Where(t => !string.IsNullOrWhiteSpace(t)))
-                    {
-                        var cleanBase = CleanGameTitleForSearch(sceneTitle);
-                        if (!string.IsNullOrWhiteSpace(cleanBase))
-                        {
-                            queryTitles.Add(cleanBase);
-                        }
-
-                        queryTitles.Add(sceneTitle);
-                    }
-                }
-
-                var distinctTerms = new List<string>();
-                foreach (var title in queryTitles)
-                {
-                    var clean = title.Trim();
-                    if (!string.IsNullOrWhiteSpace(clean) && !distinctTerms.Contains(clean, StringComparer.OrdinalIgnoreCase))
-                    {
-                        distinctTerms.Add(clean);
-                    }
-
-                    var sceneClean = SearchCriteriaBase.GetCleanSceneTitle(clean).Replace("+", " ").Trim();
-                    if (!string.IsNullOrWhiteSpace(sceneClean) && !distinctTerms.Contains(sceneClean, StringComparer.OrdinalIgnoreCase))
-                    {
-                        distinctTerms.Add(sceneClean);
-                    }
-                }
-
-                foreach (var term in distinctTerms)
-                {
-                    var query = NewsnabifyTitle(term);
-                    pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", $"&q={query}"));
-                }
-
-                return pageableRequests;
             }
 
-            var parameters = $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}&ep={searchCriteria.EpisodeNumber}";
-
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
+            if (searchCriteria.SceneTitles != null)
             {
-                AddTvIdPageableRequests(pageableRequests,
-                    categories,
-                    searchCriteria,
-                    parameters);
+                foreach (var sceneTitle in searchCriteria.SceneTitles.Where(t => !string.IsNullOrWhiteSpace(t)))
+                {
+                    var cleanBase = CleanGameTitleForSearch(sceneTitle);
+                    if (!string.IsNullOrWhiteSpace(cleanBase))
+                    {
+                        queryTitles.Add(cleanBase);
+                    }
+
+                    queryTitles.Add(sceneTitle);
+                }
             }
 
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
+            if (queryTitles.Empty() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
             {
-                AddTitlePageableRequests(pageableRequests,
-                    categories,
-                    searchCriteria,
-                    parameters);
+                queryTitles.Add(searchCriteria.Series.Title);
             }
 
-            pageableRequests.AddTier();
-
-            if (searchCriteria.SearchMode == SearchMode.Default)
+            var distinctTerms = new List<string>();
+            foreach (var title in queryTitles)
             {
-                AddTitlePageableRequests(pageableRequests,
-                    categories,
-                    searchCriteria,
-                    parameters);
+                var clean = title.Trim();
+                if (!string.IsNullOrWhiteSpace(clean) && !distinctTerms.Contains(clean, StringComparer.OrdinalIgnoreCase))
+                {
+                    distinctTerms.Add(clean);
+                }
+
+                var sceneClean = SearchCriteriaBase.GetCleanSceneTitle(clean).Replace("+", " ").Trim();
+                if (!string.IsNullOrWhiteSpace(sceneClean) && !distinctTerms.Contains(sceneClean, StringComparer.OrdinalIgnoreCase))
+                {
+                    distinctTerms.Add(sceneClean);
+                }
+            }
+
+            foreach (var term in distinctTerms)
+            {
+                var query = NewsnabifyTitle(term);
+                pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", $"&q={query}"));
             }
 
             return pageableRequests;
@@ -321,68 +280,19 @@ namespace NzbDrone.Core.Indexers.Newznab
         public virtual IndexerPageableRequestChain GetSearchRequests(SeasonSearchCriteria searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
-            var isCollectionSearch = searchCriteria.IsPlatformCollectionSearch || (searchCriteria.Episodes != null && searchCriteria.Episodes.Any());
-
-            if (!isCollectionSearch && !SupportsSeasonSearch)
-            {
-                _logger.Debug("Indexer capabilities lacking season query parameter, no Standard platform search possible: {0}", Definition.Name);
-
-                return pageableRequests;
-            }
-
-            if (!SupportsTvTextSearches && !SupportsTvIdSearches && !SupportsSearch)
-            {
-                _logger.Debug("Indexer capabilities lacking search parameters, no Standard platform search possible: {0}", Definition.Name);
-
-                return pageableRequests;
-            }
-
+            var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
             var categories = GetSearchCategories(searchCriteria);
+            var terms = searchCriteria.SceneTitles?.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
 
-            if (isCollectionSearch)
+            if (terms.Empty() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
             {
-                var terms = searchCriteria.SceneTitles?.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
-
-                if (terms.Empty() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
-                {
-                    terms.Add(searchCriteria.Series.Title);
-                }
-
-                foreach (var term in terms)
-                {
-                    var query = NewsnabifyTitle(term);
-                    pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", $"&q={query}"));
-                }
-
-                return pageableRequests;
+                terms.Add(searchCriteria.Series.Title);
             }
 
-            var parameters = $"&season={NewznabifySeasonNumber(searchCriteria.SeasonNumber)}";
-
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
+            foreach (var term in terms)
             {
-                AddTvIdPageableRequests(pageableRequests,
-                    categories,
-                    searchCriteria,
-                    parameters);
-            }
-
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
-            {
-                AddTitlePageableRequests(pageableRequests,
-                    categories,
-                    searchCriteria,
-                    parameters);
-            }
-
-            pageableRequests.AddTier();
-
-            if (searchCriteria.SearchMode == SearchMode.Default)
-            {
-                AddTitlePageableRequests(pageableRequests,
-                    categories,
-                    searchCriteria,
-                    parameters);
+                var query = NewsnabifyTitle(term);
+                pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", $"&q={query}"));
             }
 
             return pageableRequests;
@@ -675,7 +585,7 @@ namespace NzbDrone.Core.Indexers.Newznab
 
             if (categories.Empty())
             {
-                categories = new List<int> { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 8000, 8010 };
+                categories = new List<int> { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 4000, 4010, 4020, 4030, 4040, 4050, 4060, 4070, 8000, 8010 };
             }
 
             return categories;
@@ -688,7 +598,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                 return string.Empty;
             }
 
-            var clean = rawTitle;
+            var clean = rawTitle.RemoveDiacritics();
             var parenIdx = clean.IndexOf('(');
             if (parenIdx > 0)
             {

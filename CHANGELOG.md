@@ -24,8 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Cleaned up `MediaFileExtensions.cs` to eliminate all video streaming and TV extensions (`.mkv`, `.mp4`, `.avi`, `.wmv`, `.mov`, `.flv`, `.webm`, `.ts`, `.m2ts`, `.rm`, `.strm`, etc.) from being accepted as game files.
   - Retained and expanded genuine console ROM, optical disc, archive, and patch extensions across `FileExtensions` and `RomExtensions`.
 - **BIOS Archive Extraction & Verification**:
-  - Updated `BiosService.VerifyBios` to inspect compressed archives (`.zip`, `.gz`, `.7z`) and verify the uncompressed raw BIOS payload against expected MD5 and SHA1 checksums.
+  - Updated `BiosService.VerifyBios` to inspect compressed archives (`.zip`, `.gz`, `.7z`) and verify the uncompressed raw BIOS payload against expected MD5 and SHA1 checksums using an in-memory stream buffer to ensure accurate multi-hash evaluation across both algorithms.
   - Fixed `ScanAndVerifyBiosDirectory` and `TryDownloadAndVerifyBios` to extract raw BIOS files from archives and save them with their canonical uncompressed filename rather than overwriting archives with mismatched extensions.
+- **TV & Video Release Filtering across Indexers & Decision Engine**:
+  - Added `PlatformCompatibilityValidator.IsTvOrVideoRelease` regex checks to filter out video formats (`.mkv`, `.mp4`, `.avi`, `.wmv`), TV season/episode tags (`S01E01`, `1x01`), video codecs, and anime release groups from Newznab and Torznab RSS parser feeds, automated downloads, and interactive searches.
+  - Updated `DownloadDecisionMaker` to parse title-only game releases and multi-game collections correctly when standard TV season/episode regexes return title-level results.
+- **Archive Extraction on Disk Scan**:
+  - Updated `DiskScanService.ExtractCollectionArchives` with safe file disposal handling before deleting extracted collection zip archives, enabling "Refresh & Scan ROMs" to unpack and scan multi-ROM packs and loose ROMs into library platform folders.
 
 ### Added
 - **Internet Archive Platform Compatibility Filtering**:

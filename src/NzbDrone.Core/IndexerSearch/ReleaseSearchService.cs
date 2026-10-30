@@ -157,6 +157,18 @@ namespace NzbDrone.Core.IndexerSearch
                     var searchSpec = Get<SeasonSearchCriteria>(series, mapping, monitoredOnly, userInvokedSearch, interactiveSearch);
                     searchSpec.SeasonNumber = mapping.SeasonNumber;
 
+                    if (interactiveSearch || seasonNumber == 1)
+                    {
+                        var collectionTerms = BuildPlatformCollectionSearchTerms(series);
+                        foreach (var term in collectionTerms)
+                        {
+                            if (!searchSpec.SceneTitles.Contains(term, StringComparer.OrdinalIgnoreCase))
+                            {
+                                searchSpec.SceneTitles.Add(term);
+                            }
+                        }
+                    }
+
                     var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
                     downloadDecisions.AddRange(decisions);
                 }
@@ -165,12 +177,14 @@ namespace NzbDrone.Core.IndexerSearch
             return DeDupeDecisions(downloadDecisions);
         }
 
-        public async Task<List<DownloadDecision>> PlatformCollectionSearch(int seriesId, bool userInvokedSearch, bool interactiveSearch)
+        public List<string> BuildPlatformCollectionSearchTerms(Series series)
         {
-            var series = _seriesService.GetSeries(seriesId);
-            var episodes = _episodeService.GetEpisodeBySeries(seriesId) ?? new List<Episode>();
-
             var terms = new List<string>();
+            if (series == null)
+            {
+                return terms;
+            }
+
             var platformName = series.Title;
             var shortName = string.Empty;
             var libretroName = string.Empty;
@@ -232,6 +246,15 @@ namespace NzbDrone.Core.IndexerSearch
                     terms.Add($"{alias} romset");
                 }
             }
+
+            return terms.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        public async Task<List<DownloadDecision>> PlatformCollectionSearch(int seriesId, bool userInvokedSearch, bool interactiveSearch)
+        {
+            var series = _seriesService.GetSeries(seriesId);
+            var episodes = _episodeService.GetEpisodeBySeries(seriesId) ?? new List<Episode>();
+            var terms = BuildPlatformCollectionSearchTerms(series);
 
             var searchSpec = new SeasonSearchCriteria
             {

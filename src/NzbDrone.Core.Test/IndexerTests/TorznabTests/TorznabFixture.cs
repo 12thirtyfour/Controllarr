@@ -31,7 +31,8 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
                     Settings = new TorznabSettings()
                         {
                             BaseUrl = "http://indexer.local/",
-                            Categories = new int[] { 1 }
+                            Categories = new int[] { 1 },
+                            FilterNonGameCategories = false
                         }
                 };
 

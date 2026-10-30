@@ -5,7 +5,7 @@ import {
 import translate from 'Utilities/String/translate';
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<PageableOptions>('cutoffUnmet_options', () => {
+  createOptionsStore<PageableOptions>('cutoffUnmet_options_v2', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'monitored',
@@ -46,8 +46,8 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
-          name: 'quality',
-          label: () => translate('Quality'),
+          name: 'format',
+          label: () => translate('Format'),
           isSortable: true,
           isVisible: true,
         },

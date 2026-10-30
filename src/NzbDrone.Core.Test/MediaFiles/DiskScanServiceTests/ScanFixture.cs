@@ -180,16 +180,16 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Behind the Scenes", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Deleted Scenes", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Featurettes", "file3.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Interviews", "file4.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Samples", "file5.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Scenes", "file6.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Shorts", "file7.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Trailers", "file8.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Other", "file9.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Series Title S01E01 (1080p BluRay x265 10bit Tigole).mkv").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Behind the Scenes", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Deleted Scenes", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Featurettes", "file3.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Interviews", "file4.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Samples", "file5.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Scenes", "file6.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Shorts", "file7.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Trailers", "file8.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Other", "file9.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Series Title S01E01 (1080p BluRay x265 10bit Tigole).nes").AsOsAgnostic(),
                        });
 
             Subject.Scan(_series);
@@ -205,11 +205,11 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Featurettes", "An Epic Reborn.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Featurettes", "Deleted & Alternate Scenes.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Featurettes", "En Garde - Multi-Angle Dailies.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Featurettes", "Layer-By-Layer - Sound Design - Multiple Audio.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Series Title S01E01 (1080p BluRay x265 10bit Tigole).mkv").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Featurettes", "An Epic Reborn.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Featurettes", "Deleted & Alternate Scenes.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Featurettes", "En Garde - Multi-Angle Dailies.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Featurettes", "Layer-By-Layer - Sound Design - Multiple Audio.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Series Title S01E01 (1080p BluRay x265 10bit Tigole).nes").AsOsAgnostic(),
                        });
 
             Subject.Scan(_series);
@@ -243,8 +243,8 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -260,17 +260,17 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "EXTRAS", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Extras", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "EXTRAs", "file3.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "ExTrAs", "file4.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "EXTRAS", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Extras", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "EXTRAs", "file3.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "ExTrAs", "file4.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
 
             Mocker.GetMock<IDiskProvider>()
-                  .Verify(v => v.GetFiles(It.IsAny<string>(), It.IsAny<bool>()), Times.Exactly(2));
+                  .Verify(v => v.GetFiles(It.IsAny<string>(), It.IsAny<bool>()), Times.Exactly(3));
 
             Mocker.GetMock<IMakeImportDecision>()
                   .Verify(v => v.GetImportDecisions(It.Is<List<string>>(l => l.Count == 1), _series, false), Times.Once());
@@ -283,9 +283,9 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, ".AppleDouble", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, ".appledouble", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, ".AppleDouble", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, ".appledouble", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -303,12 +303,12 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Extras", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, ".AppleDouble", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e02.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 2", "s02e01.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 2", "s02e02.mkv").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Extras", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, ".AppleDouble", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e02.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 2", "s02e01.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 2", "s02e02.nes").AsOsAgnostic(),
                        });
 
             Subject.Scan(_series);
@@ -324,10 +324,10 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, ".@__thumb", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, ".@__THUMB", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, ".hidden", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, ".@__thumb", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, ".@__THUMB", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, ".hidden", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -343,7 +343,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Season 1", ".s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "Season 1", ".s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -359,11 +359,11 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Season 1", ".@__thumb", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", ".@__THUMB", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", ".hidden", "file2.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", ".AppleDouble", "s01e01.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "Season 1", ".@__thumb", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", ".@__THUMB", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", ".hidden", "file2.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", ".AppleDouble", "s01e01.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -379,8 +379,8 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "@eaDir", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "@eaDir", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -396,8 +396,8 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, ".@__thumb", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, ".@__thumb", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -415,8 +415,8 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Season 1", "file1.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Season 1", "s01e01.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "Season 1", "file1.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Season 1", "s01e01.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -432,9 +432,9 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "Series Title S01E01.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "Deleted Scenes-deleted.mkv").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "The World of Pandora-other.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "Series Title S01E01.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "Deleted Scenes-deleted.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "The World of Pandora-other.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -450,8 +450,8 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             GivenFiles(new List<string>
                        {
-                           Path.Combine(_series.Path, "._24 The Status Quo Combustion.mp4").AsOsAgnostic(),
-                           Path.Combine(_series.Path, "24 The Status Quo Combustion.mkv").AsOsAgnostic()
+                           Path.Combine(_series.Path, "._24 The Status Quo Combustion.nes").AsOsAgnostic(),
+                           Path.Combine(_series.Path, "24 The Status Quo Combustion.nes").AsOsAgnostic()
                        });
 
             Subject.Scan(_series);
@@ -470,7 +470,7 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
                 Path.Combine(_series.Path, ".DS_Store").AsOsAgnostic(),
                 Path.Combine(_series.Path, ".unmanic").AsOsAgnostic(),
                 Path.Combine(_series.Path, ".unmanic.part").AsOsAgnostic(),
-                Path.Combine(_series.Path, "24 The Status Quo Combustion.mkv").AsOsAgnostic()
+                Path.Combine(_series.Path, "24 The Status Quo Combustion.nes").AsOsAgnostic()
             });
 
             Subject.Scan(_series);

@@ -14,6 +14,8 @@ namespace NzbDrone.Core.Indexers.Torznab
     {
         public const string ns = "{http://torznab.com/schemas/2015/feed}";
 
+        public bool FilterNonGameCategories { get; set; } = true;
+
         public TorznabRssParser()
         {
             UseEnclosureUrl = true;
@@ -77,6 +79,47 @@ namespace NzbDrone.Core.Indexers.Torznab
 
         protected override ReleaseInfo ProcessItem(XElement item, ReleaseInfo releaseInfo)
         {
+            if (FilterNonGameCategories)
+            {
+                if (PlatformCompatibilityValidator.IsTvOrVideoRelease(item.Title()))
+                {
+                    _logger.Debug("Filtering out non-game TV/video release from Torznab: '{0}'", item.Title());
+                    return null;
+                }
+
+                var catAttrs = TryGetMultipleTorznabAttributes(item, "category");
+                var categoryElements = item.Elements("category").Select(e => e.Value).ToList();
+                var parsedCatIds = new List<int>();
+
+                foreach (var attr in catAttrs)
+                {
+                    if (int.TryParse(attr, out var catId))
+                    {
+                        parsedCatIds.Add(catId);
+                    }
+                }
+
+                foreach (var catText in categoryElements)
+                {
+                    if (int.TryParse(catText, out var catId))
+                    {
+                        parsedCatIds.Add(catId);
+                    }
+                }
+
+                if (parsedCatIds.Any())
+                {
+                    var hasGameCat = parsedCatIds.Any(c => c / 1000 == 1 || c / 1000 == 4 || c / 1000 == 8);
+                    var hasNonGameCat = parsedCatIds.Any(c => c / 1000 == 2 || c / 1000 == 3 || c / 1000 == 5 || c / 1000 == 6 || c / 1000 == 7);
+
+                    if (hasNonGameCat && !hasGameCat)
+                    {
+                        _logger.Debug("Filtering out non-game Torznab item '{0}' in category {1}", item.Title(), string.Join(",", parsedCatIds));
+                        return null;
+                    }
+                }
+            }
+
             var torrentInfo = base.ProcessItem(item, releaseInfo) as TorrentInfo;
 
             if (torrentInfo != null)

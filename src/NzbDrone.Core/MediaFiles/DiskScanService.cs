@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NLog;
@@ -128,6 +129,7 @@ namespace NzbDrone.Core.MediaFiles
 
             var videoFilesStopwatch = Stopwatch.StartNew();
             MigrateLegacySeasonFolders(series);
+            ExtractCollectionArchives(series);
             var mediaFileList = FilterPaths(series.Path, GetVideoFiles(series.Path)).ToList();
             videoFilesStopwatch.Stop();
             _logger.Trace("Finished getting ROM files for: {0} [{1}]", series, videoFilesStopwatch.Elapsed);
@@ -244,6 +246,99 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             return filteredPaths;
+        }
+
+        private void ExtractCollectionArchives(Series series)
+        {
+            if (!_diskProvider.FolderExists(series.Path))
+            {
+                return;
+            }
+
+            var archiveFiles = _diskProvider.GetFiles(series.Path, true)
+                .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var archiveFile in archiveFiles)
+            {
+                var shouldDeleteArchive = false;
+
+                try
+                {
+                    using (var archive = ZipFile.OpenRead(archiveFile))
+                    {
+                        var validExtensions = MediaFileExtensions.RomExtensions;
+                        var gameEntries = archive.Entries.Where(e =>
+                        {
+                            if (e.FullName.EndsWith("/") || e.FullName.EndsWith("\\"))
+                            {
+                                return false;
+                            }
+
+                            if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") || e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return false;
+                            }
+
+                            var ext = Path.GetExtension(e.Name);
+                            return validExtensions.Contains(ext);
+                        }).ToList();
+
+                        var isMultiTrackDisc = gameEntries.Any(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                                                                    Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase));
+
+                        if (gameEntries.Count > 1 && !isMultiTrackDisc)
+                        {
+                            _logger.ProgressInfo("Extracting {0} ROMs from collection archive: {1}", gameEntries.Count, Path.GetFileName(archiveFile));
+
+                            var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(archiveFile));
+                            if (!targetDirectory.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                            {
+                                targetDirectory += Path.DirectorySeparatorChar;
+                            }
+
+                            foreach (var entry in gameEntries)
+                            {
+                                var relativeTarget = entry.FullName.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                                var destinationPath = Path.GetFullPath(Path.Combine(targetDirectory, relativeTarget));
+
+                                if (!destinationPath.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    _logger.Warn("Zip entry '{0}' attempts path traversal outside target directory. Skipping.", entry.FullName);
+                                    continue;
+                                }
+
+                                var destDir = Path.GetDirectoryName(destinationPath);
+
+                                if (!_diskProvider.FolderExists(destDir))
+                                {
+                                    _diskProvider.CreateFolder(destDir);
+                                }
+
+                                if (!_diskProvider.FileExists(destinationPath))
+                                {
+                                    using (var entryStream = entry.Open())
+                                    {
+                                        _diskProvider.SaveStream(entryStream, destinationPath);
+                                    }
+                                }
+                            }
+
+                            shouldDeleteArchive = true;
+                        }
+                    }
+
+                    if (shouldDeleteArchive)
+                    {
+                        _diskProvider.DeleteFile(archiveFile);
+                        _logger.Info("Extracted collection archive '{0}' and removed compressed source archive", Path.GetFileName(archiveFile));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Failed to extract collection archive '{0}' during disk scan for {1}", archiveFile, series.Title);
+                }
+            }
         }
 
         public static List<string> FilteredSubFolderMatches(string subfolder)

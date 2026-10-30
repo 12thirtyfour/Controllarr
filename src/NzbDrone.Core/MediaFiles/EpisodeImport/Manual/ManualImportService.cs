@@ -63,7 +63,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                                    ICustomFormatCalculationService formatCalculator,
                                    IEventAggregator eventAggregator,
                                    Logger logger,
-                                   IUnmanagedDiskScanner unmanagedDiskScanner = null)
+                                   IUnmanagedDiskScanner unmanagedDiskScanner)
         {
             _diskProvider = diskProvider;
             _parsingService = parsingService;

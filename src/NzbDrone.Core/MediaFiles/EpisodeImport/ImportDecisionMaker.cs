@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -8,6 +9,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
 using NzbDrone.Core.MediaFiles.LibraryImport;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
 
@@ -42,7 +44,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                                    ITrackedDownloadService trackedDownloadService,
                                    ILocalEpisodeCustomFormatCalculationService formatCalculator,
                                    Logger logger,
-                                   IUnmanagedDiskScanner unmanagedDiskScanner = null)
+                                   IUnmanagedDiskScanner unmanagedDiskScanner)
         {
             _specifications = specifications;
             _mediaFileService = mediaFileService;
@@ -131,6 +133,19 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         EpisodeNumbers = trackedDownload.RemoteEpisode.Episodes.Select(e => e.EpisodeNumber).ToArray(),
                         Quality = trackedDownload.RemoteEpisode.ParsedEpisodeInfo?.Quality ?? new Qualities.QualityModel(Qualities.Quality.Unknown),
                         Languages = trackedDownload.RemoteEpisode.Languages
+                    };
+                }
+
+                if (fileEpisodeInfo == null && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(localEpisode.Path)))
+                {
+                    var parsedRom = RomParser.ParseRomName(Path.GetFileName(localEpisode.Path));
+                    fileEpisodeInfo = new ParsedEpisodeInfo
+                    {
+                        ReleaseTitle = parsedRom?.GameTitle ?? Path.GetFileNameWithoutExtension(localEpisode.Path),
+                        SeriesTitle = localEpisode.Series?.Title,
+                        Quality = parsedRom?.Quality ?? new Qualities.QualityModel(Qualities.Quality.Unknown),
+                        Languages = LanguageParser.ParseLanguages(Path.GetFileName(localEpisode.Path)),
+                        EpisodeNumbers = Array.Empty<int>()
                     };
                 }
 

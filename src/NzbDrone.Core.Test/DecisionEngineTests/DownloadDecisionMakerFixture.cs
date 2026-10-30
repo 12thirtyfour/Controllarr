@@ -56,7 +56,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _failDelayed1.Setup(c => c.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>())).Returns(DownloadSpecDecision.Reject(DownloadRejectionReason.MinimumAgeDelay, "failDelayed1"));
             _failDelayed1.SetupGet(c => c.Priority).Returns(SpecificationPriority.Disk);
 
-            _reports = new List<ReleaseInfo> { new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" } };
+            _reports = new List<ReleaseInfo> { new ReleaseInfo { Title = "Super.Mario.64.USA.N64-DUMP" } };
             _remoteEpisode = new RemoteEpisode
             {
                 Series = new Series(),
@@ -226,14 +226,16 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             GivenSpecifications(_pass1);
 
+            Mocker.GetMock<IParsingService>().Reset();
+
             Mocker.GetMock<IParsingService>().Setup(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
                      .Throws<TestException>();
 
             _reports = new List<ReleaseInfo>
                 {
-                    new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" },
-                    new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" },
-                    new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" }
+                    new ReleaseInfo { Title = "Super.Mario.64.USA.N64-DUMP" },
+                    new ReleaseInfo { Title = "Super.Mario.64.USA.N64-DUMP" },
+                    new ReleaseInfo { Title = "Super.Mario.64.USA.N64-DUMP" }
                 };
 
             Subject.GetRssDecision(_reports);
@@ -260,21 +262,19 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             var series = Builder<Series>.CreateNew().Build();
 
-            var episodes = Builder<Episode>.CreateListOfSize(2)
-                .All()
-                .With(v => v.SeriesId, series.Id)
-                .With(v => v.Series, series)
-                .With(v => v.SeasonNumber, 1)
-                .With(v => v.SceneSeasonNumber, 2)
-                .BuildList();
+            var episodes = new List<Episode>
+            {
+                new Episode { Id = 1, SeriesId = series.Id, Series = series, Title = "Super Mario Bros", SeasonNumber = 1, SceneSeasonNumber = 1, EpisodeNumber = 1, SceneEpisodeNumber = 1 },
+                new Episode { Id = 2, SeriesId = series.Id, Series = series, Title = "The Legend of Zelda", SeasonNumber = 1, SceneSeasonNumber = 1, EpisodeNumber = 2, SceneEpisodeNumber = 2 }
+            };
 
-            var criteria = new SeasonSearchCriteria { Episodes = episodes.Take(1).ToList(), SeasonNumber = 1 };
+            var criteria = new SeasonSearchCriteria { Series = series, Episodes = episodes.Take(1).ToList(), SeasonNumber = 1 };
 
-            var reports = episodes.Select(v =>
-                new ReleaseInfo()
-                {
-                    Title = string.Format("{0}.S{1:00}E{2:00}.720p.WEB-DL-DRONE", series.Title, v.SceneSeasonNumber, v.SceneEpisodeNumber)
-                }).ToList();
+            var reports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo { Title = "Super.Mario.Bros.NES-DUMP" },
+                new ReleaseInfo { Title = "The.Legend.of.Zelda.NES-DUMP" }
+            };
 
             Mocker.GetMock<IParsingService>()
                 .Setup(v => v.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
@@ -284,7 +284,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                         DownloadAllowed = true,
                         ParsedEpisodeInfo = p,
                         Series = series,
-                        Episodes = episodes.Where(v => v.SceneEpisodeNumber == p.EpisodeNumbers.First()).ToList()
+                        Episodes = p.EpisodeNumbers?.Any() == true ? episodes.Where(v => v.SceneEpisodeNumber == p.EpisodeNumbers.First()).ToList() : new List<Episode>()
                     });
 
             Mocker.SetConstant<IEnumerable<IDownloadDecisionEngineSpecification>>(new List<IDownloadDecisionEngineSpecification>
@@ -332,12 +332,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             GivenSpecifications(_pass1);
 
+            Mocker.GetMock<IParsingService>().Reset();
+
             Mocker.GetMock<IParsingService>().Setup(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
                      .Throws<TestException>();
 
             _reports = new List<ReleaseInfo>
                 {
-                    new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" },
+                    new ReleaseInfo { Title = "Super.Mario.64.USA.N64-DUMP" },
                 };
 
             Subject.GetRssDecision(_reports).Should().HaveCount(1);
@@ -360,6 +362,21 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             result.Should().HaveCount(1);
             result.First().Rejections.First().Message.Should().Contain("12345");
+        }
+
+        [Test]
+        public void should_skip_tv_and_video_releases()
+        {
+            var tvReports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" },
+                new ReleaseInfo { Title = "Breaking.Bad.S05E16.720p.HDTV.x264-ASAP.mkv" },
+                new ReleaseInfo { Title = "[HorribleSubs] One Piece - 950 [1080p].mkv" }
+            };
+
+            var decisions = Subject.GetRssDecision(tvReports).ToList();
+
+            decisions.Should().BeEmpty();
         }
     }
 }

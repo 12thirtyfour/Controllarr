@@ -68,8 +68,8 @@ export const FILTER_BUILDER: FilterBuilderProp<Game>[] = [
     valueType: filterBuilderValueTypes.TAG,
   },
   {
-    name: 'quality',
-    label: () => translate('Quality'),
+    name: 'format',
+    label: () => translate('Format'),
     type: 'equal',
     valueType: filterBuilderValueTypes.QUALITY,
   },

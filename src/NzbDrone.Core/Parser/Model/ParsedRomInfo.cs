@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Parser.Model
@@ -32,6 +33,22 @@ namespace NzbDrone.Core.Parser.Model
         /// Gets or sets the list of regions.
         /// </summary>
         public List<string> Regions { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Gets the region season number.
+        /// </summary>
+        public int RegionSeasonNumber
+        {
+            get
+            {
+                if (Regions != null && Regions.Count > 0)
+                {
+                    return RegionHelper.GetSeasonNumber(Regions[0]);
+                }
+
+                return 1;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the revision.

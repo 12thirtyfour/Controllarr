@@ -22,7 +22,10 @@ namespace NzbDrone.Common.Instrumentation
 
         static NzbDroneLogger()
         {
-            LogManager.Configuration = new LoggingConfiguration();
+            if (LogManager.Configuration == null)
+            {
+                LogManager.Configuration = new LoggingConfiguration();
+            }
         }
 
         public static void Register(IStartupContext startupContext, bool updateApp, bool inConsole)
@@ -226,6 +229,11 @@ namespace NzbDrone.Common.Instrumentation
         public static Logger GetLogger(Type obj)
         {
             return LogManager.GetLogger(obj.Name.Replace("NzbDrone.", ""));
+        }
+
+        public static Logger GetLogger(string name)
+        {
+            return LogManager.GetLogger(name);
         }
 
         public static Logger GetLogger(object obj)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
@@ -78,6 +79,13 @@ namespace NzbDrone.Core.DecisionEngine
 
                 try
                 {
+                    if (PlatformCompatibilityValidator.IsTvOrVideoRelease(report.Title))
+                    {
+                        _logger.Debug("Skipping release '{0}' because it is a TV or video release", report.Title);
+                        reportNumber++;
+                        continue;
+                    }
+
                     var parsedEpisodeInfo = Parser.Parser.ParseTitle(report.Title);
 
                     if (parsedEpisodeInfo == null || parsedEpisodeInfo.IsPossibleSpecialEpisode)
@@ -96,9 +104,13 @@ namespace NzbDrone.Core.DecisionEngine
                         parsedEpisodeInfo = Parser.Parser.ParseSeasonTitle(report.Title);
                     }
 
-                    if (parsedEpisodeInfo == null || parsedEpisodeInfo.SeriesTitle.IsNullOrWhiteSpace())
+                    if (parsedEpisodeInfo == null || parsedEpisodeInfo.SeriesTitle.IsNullOrWhiteSpace() || parsedEpisodeInfo.IsSeasonTitle || parsedEpisodeInfo.EpisodeNumbers.Empty())
                     {
-                        parsedEpisodeInfo = TryParseRomRelease(report.Title, searchCriteria);
+                        var romParsed = TryParseRomRelease(report.Title, searchCriteria);
+                        if (romParsed != null)
+                        {
+                            parsedEpisodeInfo = romParsed;
+                        }
                     }
 
                     if (parsedEpisodeInfo != null && !parsedEpisodeInfo.SeriesTitle.IsNullOrWhiteSpace())
@@ -259,6 +271,35 @@ namespace NzbDrone.Core.DecisionEngine
                     }
                 }
             }
+            else if (romInfo != null && !string.IsNullOrWhiteSpace(romInfo.GameTitle))
+            {
+                var ext = !string.IsNullOrWhiteSpace(romInfo.Format) ? "." + romInfo.Format.TrimStart('.') : null;
+                var platformName = PlatformCompatibilityValidator.ResolvePlatformName(releaseTitle, ext);
+
+                if (string.IsNullOrWhiteSpace(platformName))
+                {
+                    return null;
+                }
+
+                var seriesTitle = platformName;
+                var seasonNum = romInfo.RegionSeasonNumber;
+                var romQuality = romInfo.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
+                if (romQuality.Quality == Quality.Unknown)
+                {
+                    romQuality = new QualityModel(Quality.VerifiedGoodDump);
+                }
+
+                return new ParsedEpisodeInfo
+                {
+                    SeriesTitle = seriesTitle,
+                    SeriesTitleInfo = new SeriesTitleInfo { Title = seriesTitle },
+                    ReleaseTitle = releaseTitle,
+                    SeasonNumber = seasonNum,
+                    SeasonNumbers = new List<int> { seasonNum },
+                    Languages = LanguageParser.ParseLanguages(releaseTitle),
+                    Quality = romQuality
+                };
+            }
 
             return null;
         }
@@ -336,6 +377,10 @@ namespace NzbDrone.Core.DecisionEngine
             return aliases.Any(a => releaseLower.Contains(a));
         }
 
+        private static readonly Regex SceneTagsRegex = new(
+            @"\b(USA|EUR|JPN|ASIA|WORLD|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|PS1|PSX|PS2|PS3|PS4|PS5|PSP|PSVITA|WII|WIIU|XBOX|XBOX360|ISO|ROM|CHD|RVZ|CUE|BIN)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private static string CleanRomTitleForComparison(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -343,7 +388,7 @@ namespace NzbDrone.Core.DecisionEngine
                 return string.Empty;
             }
 
-            var clean = RomParser.CleanIndexPrefix(title.Trim());
+            var clean = RomParser.CleanIndexPrefix(title.Trim()).RemoveDiacritics();
             clean = clean.Replace('.', ' ').Replace('_', ' ');
 
             var parenIdx = clean.IndexOf('(');
@@ -364,6 +409,8 @@ namespace NzbDrone.Core.DecisionEngine
             {
                 clean = clean.Substring(0, lastDashIdx);
             }
+
+            clean = SceneTagsRegex.Replace(clean, " ");
 
             clean = clean.Trim();
             if (clean.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
@@ -399,15 +446,16 @@ namespace NzbDrone.Core.DecisionEngine
 
         private static bool IsRomTitleMatch(string cleanCandidate, string rawTarget)
         {
-            var cleanTarget = CleanRomTitleForComparison(rawTarget);
-            if (string.IsNullOrWhiteSpace(cleanCandidate) || string.IsNullOrWhiteSpace(cleanTarget))
+            var candidateClean = CleanRomTitleForComparison(cleanCandidate);
+            var targetClean = CleanRomTitleForComparison(rawTarget);
+            if (string.IsNullOrWhiteSpace(candidateClean) || string.IsNullOrWhiteSpace(targetClean))
             {
                 return false;
             }
 
-            return cleanCandidate.Equals(cleanTarget, StringComparison.OrdinalIgnoreCase) ||
-                   cleanCandidate.StartsWith(cleanTarget, StringComparison.OrdinalIgnoreCase) ||
-                   cleanTarget.StartsWith(cleanCandidate, StringComparison.OrdinalIgnoreCase);
+            return candidateClean.Equals(targetClean, StringComparison.OrdinalIgnoreCase) ||
+                   candidateClean.StartsWith(targetClean, StringComparison.OrdinalIgnoreCase) ||
+                   targetClean.StartsWith(candidateClean, StringComparison.OrdinalIgnoreCase);
         }
 
         private DownloadDecision GetDecisionForReport(RemoteEpisode remoteEpisode, ReleaseDecisionInformation information)
