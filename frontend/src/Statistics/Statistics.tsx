@@ -60,35 +60,35 @@ function Statistics() {
     return [
       {
         label: translate('Series'),
-        value: data.seriesCount.toLocaleString(),
-        secondary: `${data.monitoredSeriesCount.toLocaleString()} ${translate(
+        value: (data.seriesCount ?? 0).toLocaleString(),
+        secondary: `${(data.monitoredSeriesCount ?? 0).toLocaleString()} ${translate(
           'Monitored'
-        )} · ${data.completedSeriesCount.toLocaleString()} ${translate(
+        )} · ${(data.completedSeriesCount ?? 0).toLocaleString()} ${translate(
           'Completed'
         )}`,
       },
       {
         label: translate('Seasons'),
-        value: data.seasonCount.toLocaleString(),
-        secondary: `${data.completedSeasonCount.toLocaleString()} ${translate(
+        value: (data.seasonCount ?? 0).toLocaleString(),
+        secondary: `${(data.completedSeasonCount ?? 0).toLocaleString()} ${translate(
           'Completed'
         )}`,
       },
       {
         label: translate('TotalGames'),
-        value: data.totalGameCount.toLocaleString(),
-        secondary: `${data.monitoredGameCount.toLocaleString()} ${translate(
+        value: (data.totalGameCount ?? 0).toLocaleString(),
+        secondary: `${(data.monitoredGameCount ?? 0).toLocaleString()} ${translate(
           'Monitored'
         )}`,
       },
       {
         label: translate('RomFiles'),
-        value: data.romFileCount.toLocaleString(),
+        value: (data.romFileCount ?? 0).toLocaleString(),
         secondary: `${downloadedPercent}% ${translate('Downloaded')}`,
       },
       {
         label: translate('MissingGames'),
-        value: data.missingGameCount.toLocaleString(),
+        value: (data.missingGameCount ?? 0).toLocaleString(),
         secondary: `${completedPercent}% ${translate('Completed')}`,
       },
       {
@@ -199,12 +199,12 @@ function Statistics() {
     return data.qualityProfileStatistics.map((profile) => {
       return {
         label: profile.name,
-        value: profile.seriesCount,
+        value: profile.seriesCount ?? 0,
         tooltipLines: [
           `${translate(
             'RomFiles'
-          )}: ${profile.romFileCount.toLocaleString()}`,
-          `${translate('SizeOnDisk')}: ${formatBytes(profile.sizeOnDisk)}`,
+          )}: ${(profile.romFileCount ?? 0).toLocaleString()}`,
+          `${translate('SizeOnDisk')}: ${formatBytes(profile.sizeOnDisk ?? 0)}`,
         ],
       };
     });
@@ -218,9 +218,9 @@ function Statistics() {
     return data.qualityStatistics.map((quality) => {
       return {
         label: quality.quality.name,
-        value: quality.romFileCount,
+        value: quality.romFileCount ?? 0,
         tooltipLines: [
-          `${translate('SizeOnDisk')}: ${formatBytes(quality.sizeOnDisk)}`,
+          `${translate('SizeOnDisk')}: ${formatBytes(quality.sizeOnDisk ?? 0)}`,
         ],
       };
     });
@@ -234,12 +234,12 @@ function Statistics() {
     return data.tagStatistics.map((tag) => {
       return {
         label: tag.label,
-        value: tag.seriesCount,
+        value: tag.seriesCount ?? 0,
         tooltipLines: [
           `${translate(
             'RomFiles'
-          )}: ${tag.romFileCount.toLocaleString()}`,
-          `${translate('SizeOnDisk')}: ${formatBytes(tag.sizeOnDisk)}`,
+          )}: ${(tag.romFileCount ?? 0).toLocaleString()}`,
+          `${translate('SizeOnDisk')}: ${formatBytes(tag.sizeOnDisk ?? 0)}`,
         ],
       };
     });
