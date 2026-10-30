@@ -69,6 +69,29 @@ namespace NzbDrone.Core.Tv
                 return AddGameOrParentPlatform(newSeries, gameEntry);
             }
 
+            var existingPlatform = _seriesService.FindByTvdbId(newSeries.TvdbId);
+            if (existingPlatform == null && !string.IsNullOrWhiteSpace(newSeries.Title))
+            {
+                existingPlatform = _seriesService.FindByTitle(newSeries.Title);
+            }
+
+            if (existingPlatform == null && !string.IsNullOrWhiteSpace(newSeries.Path))
+            {
+                existingPlatform = _seriesService.FindByPath(newSeries.Path);
+            }
+
+            if (existingPlatform == null && !string.IsNullOrWhiteSpace(newSeries.TitleSlug))
+            {
+                existingPlatform = _seriesService.GetAllSeries()
+                    .FirstOrDefault(s => string.Equals(s.TitleSlug, newSeries.TitleSlug, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (existingPlatform != null)
+            {
+                _logger.Info("Platform {0} already exists in library (ID {1}); returning existing platform", existingPlatform.Title, existingPlatform.Id);
+                return existingPlatform;
+            }
+
             newSeries = AddSkyhookData(newSeries);
             newSeries = SetPropertiesAndValidate(newSeries);
 
@@ -112,22 +135,35 @@ namespace NzbDrone.Core.Tv
                     var series = AddSkyhookData(s);
                     series = SetPropertiesAndValidate(series);
                     series.Added = added;
-                    if (existingSeriesTvdbIds.ContainsValue(series.TvdbId))
+                    var existing = _seriesService.FindByTvdbId(series.TvdbId);
+                    if (existing == null && !string.IsNullOrWhiteSpace(series.Title))
                     {
-                        _logger.Debug("Platform ID {0} was not added due to validation failure: Platform {1} already exists in database", s.TvdbId, s);
+                        existing = _seriesService.FindByTitle(series.Title);
+                    }
+
+                    if (existing == null && !string.IsNullOrWhiteSpace(series.Path))
+                    {
+                        existing = _seriesService.FindByPath(series.Path);
+                    }
+
+                    if (existing == null && !string.IsNullOrWhiteSpace(series.TitleSlug))
+                    {
+                        existing = _seriesService.GetAllSeries()
+                            .FirstOrDefault(p => string.Equals(p.TitleSlug, series.TitleSlug, StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    if (existing != null)
+                    {
+                        _logger.Debug("Platform ID {0} was not added: Platform {1} already exists in database as {2} (ID {3})", s.TvdbId, s.Title, existing.Title, existing.Id);
                         continue;
                     }
 
-                    if (seriesToAdd.Any(f => f.TvdbId == series.TvdbId))
+                    if (seriesToAdd.Any(f => f.TvdbId == series.TvdbId ||
+                                             string.Equals(f.Title, series.Title, StringComparison.OrdinalIgnoreCase) ||
+                                             (!string.IsNullOrWhiteSpace(f.TitleSlug) && string.Equals(f.TitleSlug, series.TitleSlug, StringComparison.OrdinalIgnoreCase)) ||
+                                             (!string.IsNullOrWhiteSpace(f.Path) && string.Equals(f.Path, series.Path, StringComparison.OrdinalIgnoreCase))))
                     {
-                        _logger.Trace("Platform ID {0} was already added from another import list, not adding platform {1} again", s.TvdbId, s);
-                        continue;
-                    }
-
-                    var duplicateSlug = seriesToAdd.FirstOrDefault(f => f.TitleSlug == series.TitleSlug);
-                    if (duplicateSlug != null)
-                    {
-                        _logger.Debug("Platform ID {0} was not added due to validation failure: Duplicate Slug {1} used by platform {2}", s.TvdbId, s.TitleSlug, duplicateSlug.TvdbId);
+                        _logger.Trace("Platform ID {0} ({1}) was already queued for addition, not adding platform again", s.TvdbId, s.Title);
                         continue;
                     }
 

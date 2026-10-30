@@ -156,5 +156,49 @@ namespace NzbDrone.Core.Test.TvTests
             Mocker.GetMock<IProvideSeriesInfo>()
                   .Verify(s => s.GetSeriesInfo(newSeries.TvdbId, Language.Spanish, It.IsAny<string>()), Times.Once());
         }
+
+        [Test]
+        public void should_return_existing_platform_if_already_added_by_tvdbid()
+        {
+            var existing = new Series { Id = 42, Title = "Nintendo 3DS", TvdbId = 1045, TitleSlug = "3ds" };
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.FindByTvdbId(1045))
+                  .Returns(existing);
+
+            var newSeries = new Series
+            {
+                TvdbId = 1045,
+                Title = "Nintendo 3DS",
+                TitleSlug = "3ds"
+            };
+
+            var result = Subject.AddSeries(newSeries);
+
+            result.Should().BeSameAs(existing);
+            Mocker.GetMock<ISeriesService>()
+                  .Verify(s => s.AddSeries(It.IsAny<Series>()), Times.Never());
+        }
+
+        [Test]
+        public void should_return_existing_platform_if_already_added_by_title()
+        {
+            var existing = new Series { Id = 99, Title = "Nintendo Entertainment System", TvdbId = 1001, TitleSlug = "nes" };
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.FindByTitle("Nintendo Entertainment System"))
+                  .Returns(existing);
+
+            var newSeries = new Series
+            {
+                TvdbId = 9999,
+                Title = "Nintendo Entertainment System",
+                TitleSlug = "nes"
+            };
+
+            var result = Subject.AddSeries(newSeries);
+
+            result.Should().BeSameAs(existing);
+            Mocker.GetMock<ISeriesService>()
+                  .Verify(s => s.AddSeries(It.IsAny<Series>()), Times.Never());
+        }
     }
 }
