@@ -279,6 +279,22 @@ namespace NzbDrone.Core.Parser
             return IgnoredRegionOrBucketFolders.Contains(name);
         }
 
+        public static string[] GetAliasesForPlatform(string platformSlugOrName)
+        {
+            if (string.IsNullOrWhiteSpace(platformSlugOrName))
+            {
+                return Array.Empty<string>();
+            }
+
+            var slug = NormalizePlatformSlug(platformSlugOrName, platformSlugOrName);
+            if (!string.IsNullOrWhiteSpace(slug) && PlatformAliases.TryGetValue(slug, out var aliases))
+            {
+                return aliases;
+            }
+
+            return Array.Empty<string>();
+        }
+
         public static string NormalizePlatformSlug(string slug, string name)
         {
             var raw = (slug ?? string.Empty).ToLowerInvariant().Trim();

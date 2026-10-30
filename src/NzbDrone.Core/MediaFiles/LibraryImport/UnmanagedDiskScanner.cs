@@ -116,11 +116,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         var entry = archive.GetEntry(entryName) ?? archive.Entries.FirstOrDefault(e => e.FullName == entryName || e.Name == Path.GetFileName(entryName));
                         if (entry != null)
                         {
-                            var crc32 = entry.Crc32.ToString("x8").ToLowerInvariant();
+                            var (resolvedName, crc32) = GetInnerRomDetails(entry);
                             item.Hashes ??= new Dictionary<string, string>();
                             item.Hashes["CRC32"] = crc32;
 
-                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, zipPath, preferredSeries: item.Series);
+                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, resolvedName, zipPath, preferredSeries: item.Series);
                             item.Series ??= series;
                             if (episode != null)
                             {
@@ -186,10 +186,10 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         var entry = archive.GetEntry(entryName) ?? archive.Entries.FirstOrDefault(e => e.FullName == entryName || e.Name == Path.GetFileName(entryName));
                         if (entry != null)
                         {
-                            var crc32 = entry.Crc32.ToString("x8").ToLowerInvariant();
+                            var (resolvedName, crc32) = GetInnerRomDetails(entry);
                             localEpisode.RomHashes = new Dictionary<string, string> { ["CRC32"] = crc32 };
 
-                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, zipPath, preferredSeries: localEpisode.Series);
+                            var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, resolvedName, zipPath, preferredSeries: localEpisode.Series);
                             localEpisode.Series ??= series;
                             if (episode != null && (localEpisode.Episodes == null || localEpisode.Episodes.Count == 0))
                             {
@@ -243,6 +243,36 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             {
                 _logger.Debug(ex, "Unable to verify ROM hash for local episode {0}", localEpisode.Path);
             }
+        }
+
+        private static (string Name, string Crc32) GetInnerRomDetails(ZipArchiveEntry entry)
+        {
+            var crc32 = entry.Crc32.ToString("x8").ToLowerInvariant();
+            var name = entry.Name;
+
+            if (Path.GetExtension(entry.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using var entryStream = entry.Open();
+                    using var innerZip = new ZipArchive(entryStream, ZipArchiveMode.Read);
+                    var innerRom = innerZip.Entries.FirstOrDefault(e =>
+                        !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                        MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)) &&
+                        !Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                        !Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                    if (innerRom != null)
+                    {
+                        return (innerRom.Name, innerRom.Crc32.ToString("x8").ToLowerInvariant());
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            return (name, crc32);
         }
 
         private List<string> GetValidRomExtensions()
@@ -303,7 +333,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     var primaryEntry = gameEntries.FirstOrDefault(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
                                                                        Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase)) ?? gameEntries[0];
 
-                    var crc32 = primaryEntry.Crc32.ToString("x8").ToLowerInvariant();
+                    var (primaryName, crc32) = GetInnerRomDetails(primaryEntry);
                     var hashes = new Dictionary<string, string> { ["CRC32"] = crc32 };
 
                     try
@@ -315,7 +345,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     {
                     }
 
-                    var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, primaryEntry.Name, filePath, hashes);
+                    var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, primaryName, filePath, hashes);
 
                     results.Add(new ManualImportItem
                     {
@@ -334,16 +364,16 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 {
                     foreach (var entry in gameEntries)
                     {
-                        var crc32 = entry.Crc32.ToString("x8").ToLowerInvariant();
+                        var (entryName, crc32) = GetInnerRomDetails(entry);
                         var hashes = new Dictionary<string, string> { ["CRC32"] = crc32 };
 
-                        var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entry.Name, filePath, hashes);
+                        var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, entryName, filePath, hashes);
 
                         results.Add(new ManualImportItem
                         {
                             Path = $"{filePath}#{entry.FullName}",
                             RelativePath = $"{rootFolder.GetRelativePath(filePath)}#{entry.FullName}",
-                            Name = Path.GetFileNameWithoutExtension(entry.Name),
+                            Name = Path.GetFileNameWithoutExtension(entryName),
                             Size = entry.Length,
                             Series = series,
                             SeasonNumber = episode?.SeasonNumber,
@@ -432,7 +462,36 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             if (string.IsNullOrWhiteSpace(platformSlug))
             {
-                platformSlug = PlatformCompatibilityValidator.GetPlatformByExtension(Path.GetExtension(romName));
+                var ext = Path.GetExtension(romName);
+                if ((ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) || ext.Equals(".7z", StringComparison.OrdinalIgnoreCase)) &&
+                    !string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
+                {
+                    try
+                    {
+                        if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                        {
+                            using var archive = ZipFile.OpenRead(filePath);
+                            var innerRom = archive.Entries.FirstOrDefault(e =>
+                                !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                                MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)) &&
+                                !Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                                !Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                            if (innerRom != null)
+                            {
+                                platformSlug = PlatformCompatibilityValidator.GetPlatformByExtension(Path.GetExtension(innerRom.Name));
+                            }
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(platformSlug))
+                {
+                    platformSlug = PlatformCompatibilityValidator.GetPlatformByExtension(ext);
+                }
             }
 
             if (string.IsNullOrWhiteSpace(platformSlug))
@@ -623,9 +682,16 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         .DefaultIfEmpty(0)
                         .Max() + 1;
 
+                    var deterministicTvdbId = Math.Abs((series.TvdbId.ToString() + ":" + seasonNum + ":" + bestTitle).GetHashCode());
+                    if (deterministicTvdbId == 0)
+                    {
+                        deterministicTvdbId = 1;
+                    }
+
                     var newEpisode = new Episode
                     {
                         SeriesId = series.Id,
+                        TvdbId = deterministicTvdbId,
                         SeasonNumber = seasonNum,
                         EpisodeNumber = nextEpNum,
                         AbsoluteEpisodeNumber = nextEpNum,
@@ -635,6 +701,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     };
 
                     _episodeService.InsertMany(new List<Episode> { newEpisode });
+                    games.Add(newEpisode);
                     return newEpisode;
                 }
             }

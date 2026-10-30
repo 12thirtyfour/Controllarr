@@ -52,6 +52,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added filter and sorting support for `Format` in frontend release table stores.
 
 ### Fixed
+- **Nested Collection ZIP & Unmanaged Disk Scanner Platform Identification**:
+  - Implemented nested `.zip` archive inspection in `UnmanagedDiskScanner` and `RootFolderService`, recursively unpacking inner ROM entries in memory to extract real console extensions, CRC32 checksums, and game titles from wrapped archives (such as `1G1R.zip` containing `Game.zip` containing `Game.nes`).
+  - Added deterministic non-zero `TvdbId` generation and in-memory games caching in `UnmanagedDiskScanner.FindMatchingEpisode`, preventing database episode collisions during batch ROM imports.
+  - Enhanced `DiskScanService` with `.7z` support and platform alias resolution for candidate collection archives across parent and root directories.
+- **Interactive Search TV & Video Result Bleed Elimination**:
+  - Added defensive `PlatformCompatibilityValidator.IsTvOrVideoRelease` checks across V3 (`ReleaseControllerBase.MapDecisions`) and V5 (`ReleaseController.MapDecisions`) interactive release mapping endpoints, blocking TV episode packs, DVD/web rips, and video releases (e.g. `The.Office.S03E115.DVDRip.XviD-OSiTV`) from surfacing in manual search tables.
 - **Platform File Deletion on Disk (closes #75)**:
   - Added `[FromQuery]` attribute to `DeleteSeries` in both `Controllarr.Api.V5/Series/PlatformController.cs` and `Controllarr.Api.V3/Series/PlatformController.cs` so ASP.NET Core properly binds `deleteFiles` and `addImportListExclusion` query parameters, ensuring files on disk are deleted when requested by the user.
 - **Collection Archive Preservation & Multi-Game Pack Import**:

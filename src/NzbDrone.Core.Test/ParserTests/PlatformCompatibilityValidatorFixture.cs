@@ -34,5 +34,19 @@ namespace NzbDrone.Core.Test.ParserTests
             var result = PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName, format);
             result.Should().Be(expected);
         }
+
+        [TestCase("The.Office.S03E115.DVDRip.XviD-OSiTV", true)]
+        [TestCase("Breaking.Bad.S05E16.720p.HDTV.x264", true)]
+        [TestCase("Game.Of.Thrones.Season.1.Complete.1080p", true)]
+        [TestCase("Movie.Title.2023.1080p.BluRay.x264.mkv", true)]
+        [TestCase("Super Mario Bros (USA).nes", false)]
+        [TestCase("Chrono Trigger (USA).sfc", false)]
+        [TestCase("Pokemon - Emerald Version (USA, Europe).gba", false)]
+        [TestCase("Metal Gear Solid (USA) (Disc 1).chd", false)]
+        public void should_identify_tv_or_video_releases(string releaseTitle, bool expected)
+        {
+            var result = PlatformCompatibilityValidator.IsTvOrVideoRelease(releaseTitle);
+            result.Should().Be(expected);
+        }
     }
 }

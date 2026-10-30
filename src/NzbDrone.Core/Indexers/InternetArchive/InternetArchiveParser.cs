@@ -207,7 +207,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     }
 
                     var ext = Path.GetExtension(file.Name);
-                    if (IgnoredArchiveExtensions.Contains(ext))
+                    if (IgnoredArchiveExtensions.Contains(ext) || PlatformCompatibilityValidator.IsTvOrVideoRelease(file.Name, ext))
                     {
                         continue;
                     }
@@ -287,6 +287,11 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 }
 
                 var title = doc.Title.IsNotNullOrWhiteSpace() ? doc.Title : doc.Identifier;
+                if (PlatformCompatibilityValidator.IsTvOrVideoRelease(title))
+                {
+                    continue;
+                }
+
                 if (!string.IsNullOrWhiteSpace(platformSlug) &&
                     !PlatformCompatibilityValidator.IsCompatible(title, platformSlug, platformName, doc.Mediatype, doc.Identifier))
                 {

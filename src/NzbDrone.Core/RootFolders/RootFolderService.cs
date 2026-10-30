@@ -171,44 +171,19 @@ namespace NzbDrone.Core.RootFolders
 
             var unmappedFolders = possibleSeriesFolders.Except(seriesPaths.Select(s => s.Value), PathEqualityComparer.Instance).ToList();
 
-            // Detect collection ZIP files in the root folder as unmapped platforms
-            var zipFiles = _diskProvider.GetFiles(path, false)
-                .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            // Detect collection archives (.zip, .7z) in the root folder as unmapped platforms
+            var archiveFiles = _diskProvider.GetFiles(path, false)
+                .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            Path.GetExtension(f).Equals(".7z", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            foreach (var zipFile in zipFiles)
+            foreach (var archiveFile in archiveFiles)
             {
-                var zipFileName = Path.GetFileName(zipFile);
-                var resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(zipFileName);
-
-                if (string.IsNullOrWhiteSpace(resolvedPlatform))
-                {
-                    try
-                    {
-                        using var archive = ZipFile.OpenRead(zipFile);
-                        var innerEntry = archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)));
-                        if (innerEntry != null)
-                        {
-                            resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
-                            if (string.IsNullOrWhiteSpace(resolvedPlatform) && _datCacheService != null)
-                            {
-                                var crc = innerEntry.Crc32.ToString("x8").ToLowerInvariant();
-                                var match = _datCacheService.FindPlatformByHash(crc);
-                                if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
-                                {
-                                    resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                    }
-                }
+                var resolvedPlatform = ResolvePlatformFromArchive(archiveFile);
 
                 if (!string.IsNullOrWhiteSpace(resolvedPlatform))
                 {
-                    var folderName = Path.GetFileNameWithoutExtension(zipFile);
+                    var folderName = Path.GetFileNameWithoutExtension(archiveFile);
                     var targetPlatformPath = Path.Combine(path, folderName);
 
                     var currentDir = new DirectoryInfo(path.Normalize());
@@ -245,35 +220,16 @@ namespace NzbDrone.Core.RootFolders
 
                 if (string.IsNullOrWhiteSpace(resolvedPlatformName))
                 {
-                    var sampleFile = _diskProvider.GetFiles(unmappedFolder, true)
-                        .FirstOrDefault(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)));
+                    var sampleFiles = _diskProvider.GetFiles(unmappedFolder, true)
+                        .Where(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)))
+                        .Take(20);
 
-                    if (sampleFile != null)
+                    foreach (var sampleFile in sampleFiles)
                     {
-                        resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(Path.GetFileName(sampleFile), Path.GetExtension(sampleFile));
-                        if (string.IsNullOrWhiteSpace(resolvedPlatformName) && Path.GetExtension(sampleFile).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                        resolvedPlatformName = ResolvePlatformFromArchive(sampleFile);
+                        if (!string.IsNullOrWhiteSpace(resolvedPlatformName))
                         {
-                            try
-                            {
-                                using var archive = ZipFile.OpenRead(sampleFile);
-                                var innerEntry = archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)));
-                                if (innerEntry != null)
-                                {
-                                    resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
-                                    if (string.IsNullOrWhiteSpace(resolvedPlatformName) && _datCacheService != null)
-                                    {
-                                        var crc = innerEntry.Crc32.ToString("x8").ToLowerInvariant();
-                                        var match = _datCacheService.FindPlatformByHash(crc);
-                                        if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
-                                        {
-                                            resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
-                                        }
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                            }
+                            break;
                         }
                     }
                 }
@@ -308,32 +264,7 @@ namespace NzbDrone.Core.RootFolders
                     {
                         foreach (var romFile in romFiles)
                         {
-                            resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(Path.GetFileName(romFile), Path.GetExtension(romFile));
-                            if (string.IsNullOrWhiteSpace(resolvedPlatformName) && Path.GetExtension(romFile).Equals(".zip", StringComparison.OrdinalIgnoreCase))
-                            {
-                                try
-                                {
-                                    using var archive = ZipFile.OpenRead(romFile);
-                                    var innerEntry = archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)));
-                                    if (innerEntry != null)
-                                    {
-                                        resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
-                                        if (string.IsNullOrWhiteSpace(resolvedPlatformName) && _datCacheService != null)
-                                        {
-                                            var crc = innerEntry.Crc32.ToString("x8").ToLowerInvariant();
-                                            var match = _datCacheService.FindPlatformByHash(crc);
-                                            if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
-                                            {
-                                                resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
-                                            }
-                                        }
-                                    }
-                                }
-                                catch
-                                {
-                                }
-                            }
-
+                            resolvedPlatformName = ResolvePlatformFromArchive(romFile);
                             if (!string.IsNullOrWhiteSpace(resolvedPlatformName))
                             {
                                 break;
@@ -352,6 +283,111 @@ namespace NzbDrone.Core.RootFolders
 
             _logger.Debug("{0} unmapped folders detected.", results.Count);
             return results.OrderBy(u => u.Name, StringComparer.InvariantCultureIgnoreCase).ToList();
+        }
+
+        private string ResolvePlatformFromArchive(string filePath)
+        {
+            var fileName = Path.GetFileName(filePath);
+            var ext = Path.GetExtension(filePath);
+
+            if (!ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                !ext.Equals(".7z", StringComparison.OrdinalIgnoreCase))
+            {
+                var directPlatform = PlatformCompatibilityValidator.ResolvePlatformName(fileName, ext);
+                if (!string.IsNullOrWhiteSpace(directPlatform))
+                {
+                    return directPlatform;
+                }
+            }
+
+            var resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(fileName);
+            if (!string.IsNullOrWhiteSpace(resolvedPlatform))
+            {
+                return resolvedPlatform;
+            }
+
+            if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using var archive = ZipFile.OpenRead(filePath);
+
+                    var nativeEntry = archive.Entries.FirstOrDefault(e =>
+                        !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                        MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)) &&
+                        !Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                        !Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                    if (nativeEntry != null)
+                    {
+                        var entryExt = Path.GetExtension(nativeEntry.Name);
+                        resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(nativeEntry.Name, entryExt);
+
+                        if (string.IsNullOrWhiteSpace(resolvedPlatform) && _datCacheService != null)
+                        {
+                            var crc = nativeEntry.Crc32.ToString("x8").ToLowerInvariant();
+                            var match = _datCacheService.FindPlatformByHash(crc);
+                            if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
+                            {
+                                resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(resolvedPlatform))
+                        {
+                            return resolvedPlatform;
+                        }
+                    }
+
+                    var nestedZipEntry = archive.Entries.FirstOrDefault(e =>
+                        !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                        Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase));
+
+                    if (nestedZipEntry != null)
+                    {
+                        var nestedNamePlatform = PlatformCompatibilityValidator.ResolvePlatformName(nestedZipEntry.Name);
+                        if (!string.IsNullOrWhiteSpace(nestedNamePlatform))
+                        {
+                            return nestedNamePlatform;
+                        }
+
+                        using var nestedStream = nestedZipEntry.Open();
+                        using var innerArchive = new ZipArchive(nestedStream, ZipArchiveMode.Read);
+                        var innerRomEntry = innerArchive.Entries.FirstOrDefault(e =>
+                            !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                            MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)) &&
+                            !Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                            !Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                        if (innerRomEntry != null)
+                        {
+                            var innerExt = Path.GetExtension(innerRomEntry.Name);
+                            resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(innerRomEntry.Name, innerExt);
+
+                            if (string.IsNullOrWhiteSpace(resolvedPlatform) && _datCacheService != null)
+                            {
+                                var innerCrc = innerRomEntry.Crc32.ToString("x8").ToLowerInvariant();
+                                var match = _datCacheService.FindPlatformByHash(innerCrc);
+                                if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
+                                {
+                                    resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
+                                }
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(resolvedPlatform))
+                            {
+                                return resolvedPlatform;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Trace(ex, "Could not inspect archive {0} for platform detection", filePath);
+                }
+            }
+
+            return null;
         }
 
         public RootFolder Get(int id, bool timeout)

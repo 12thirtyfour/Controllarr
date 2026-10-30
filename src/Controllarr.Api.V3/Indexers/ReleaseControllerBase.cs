@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Profiles.Qualities;
 using Sonarr.Http.REST;
 
@@ -34,6 +35,11 @@ namespace Sonarr.Api.V3.Indexers
 
             foreach (var downloadDecision in decisions)
             {
+                if (PlatformCompatibilityValidator.IsTvOrVideoRelease(downloadDecision.RemoteEpisode?.Release?.Title))
+                {
+                    continue;
+                }
+
                 var release = MapDecision(downloadDecision, result.Count);
 
                 result.Add(release);

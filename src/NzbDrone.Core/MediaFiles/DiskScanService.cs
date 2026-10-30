@@ -17,6 +17,7 @@ using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv;
 
@@ -85,16 +86,29 @@ namespace NzbDrone.Core.MediaFiles
             if (!seriesFolderExists)
             {
                 var trimmedPath = series.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                var parentZip = trimmedPath + ".zip";
+                var candidateZips = new List<string>
+                {
+                    trimmedPath + ".zip",
+                    trimmedPath + ".7z"
+                };
 
-                var candidateZips = new List<string> { parentZip };
                 if (!string.IsNullOrWhiteSpace(rootFolder) && _diskProvider.FolderExists(rootFolder))
                 {
                     candidateZips.Add(Path.Combine(rootFolder, series.CleanTitle + ".zip"));
+                    candidateZips.Add(Path.Combine(rootFolder, series.CleanTitle + ".7z"));
                     candidateZips.Add(Path.Combine(rootFolder, series.Title + ".zip"));
+                    candidateZips.Add(Path.Combine(rootFolder, series.Title + ".7z"));
                     if (!string.IsNullOrWhiteSpace(series.TitleSlug))
                     {
                         candidateZips.Add(Path.Combine(rootFolder, series.TitleSlug + ".zip"));
+                        candidateZips.Add(Path.Combine(rootFolder, series.TitleSlug + ".7z"));
+                    }
+
+                    var platformAliases = PlatformCompatibilityValidator.GetAliasesForPlatform(series.TitleSlug ?? series.CleanTitle);
+                    foreach (var alias in platformAliases)
+                    {
+                        candidateZips.Add(Path.Combine(rootFolder, alias + ".zip"));
+                        candidateZips.Add(Path.Combine(rootFolder, alias + ".7z"));
                     }
                 }
 
@@ -241,7 +255,8 @@ namespace NzbDrone.Core.MediaFiles
                     return false;
                 }
 
-                if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                    ext.Equals(".7z", StringComparison.OrdinalIgnoreCase))
                 {
                     return !IsMultiGameCollectionArchive(file);
                 }
@@ -336,18 +351,54 @@ namespace NzbDrone.Core.MediaFiles
             if (_diskProvider.FolderExists(series.Path))
             {
                 archiveFiles.AddRange(_diskProvider.GetFiles(series.Path, true)
-                    .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase)));
+                    .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                                Path.GetExtension(f).Equals(".7z", StringComparison.OrdinalIgnoreCase)));
             }
 
             var trimmedPath = series.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            var parentZip = trimmedPath + ".zip";
-            if (_diskProvider.FileExists(parentZip) && !archiveFiles.Contains(parentZip, PathEqualityComparer.Instance))
+            var candidateArchives = new List<string>
             {
-                archiveFiles.Add(parentZip);
+                trimmedPath + ".zip",
+                trimmedPath + ".7z"
+            };
+
+            var rootFolder = _rootFolderService.GetBestRootFolderPath(series.Path);
+            if (!string.IsNullOrWhiteSpace(rootFolder) && _diskProvider.FolderExists(rootFolder))
+            {
+                candidateArchives.Add(Path.Combine(rootFolder, series.CleanTitle + ".zip"));
+                candidateArchives.Add(Path.Combine(rootFolder, series.CleanTitle + ".7z"));
+                candidateArchives.Add(Path.Combine(rootFolder, series.Title + ".zip"));
+                candidateArchives.Add(Path.Combine(rootFolder, series.Title + ".7z"));
+
+                if (!string.IsNullOrWhiteSpace(series.TitleSlug))
+                {
+                    candidateArchives.Add(Path.Combine(rootFolder, series.TitleSlug + ".zip"));
+                    candidateArchives.Add(Path.Combine(rootFolder, series.TitleSlug + ".7z"));
+                }
+
+                var platformAliases = PlatformCompatibilityValidator.GetAliasesForPlatform(series.TitleSlug ?? series.CleanTitle);
+                foreach (var alias in platformAliases)
+                {
+                    candidateArchives.Add(Path.Combine(rootFolder, alias + ".zip"));
+                    candidateArchives.Add(Path.Combine(rootFolder, alias + ".7z"));
+                }
+            }
+
+            foreach (var cand in candidateArchives)
+            {
+                if (_diskProvider.FileExists(cand) && !archiveFiles.Contains(cand, PathEqualityComparer.Instance))
+                {
+                    archiveFiles.Add(cand);
+                }
             }
 
             foreach (var archiveFile in archiveFiles)
             {
+                if (!Path.GetExtension(archiveFile).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 try
                 {
                     using (var archive = ZipFile.OpenRead(archiveFile))

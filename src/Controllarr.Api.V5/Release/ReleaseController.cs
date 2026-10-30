@@ -281,6 +281,16 @@ public class ReleaseController : RestController<ReleaseResource>
 
         foreach (var downloadDecision in decisions)
         {
+            if (downloadDecision.RemoteEpisode?.Release == null)
+            {
+                continue;
+            }
+
+            if (PlatformCompatibilityValidator.IsTvOrVideoRelease(downloadDecision.RemoteEpisode.Release.Title))
+            {
+                continue;
+            }
+
             var release = downloadDecision.MapDecision(result.Count, _qualityProfile);
 
             release.History = AddHistory(downloadDecision.RemoteEpisode.Release, history);

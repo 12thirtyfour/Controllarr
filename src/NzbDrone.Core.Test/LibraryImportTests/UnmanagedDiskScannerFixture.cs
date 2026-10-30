@@ -271,5 +271,48 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             results.First().Series.Title.Should().Be("Nintendo Entertainment System");
             results.First().Episodes.First().Title.Should().Be("Castlevania");
         }
+
+        [Test]
+        public void Scan_NestedZipCollectionArchive_ShouldExtractInnerRomDetailsAndIdentifyPlatform()
+        {
+            var innerZipMemory = new MemoryStream();
+            using (var innerArchive = new ZipArchive(innerZipMemory, ZipArchiveMode.Create, true))
+            {
+                var romEntry = innerArchive.CreateEntry("Metroid (USA).nes");
+                using (var romStream = romEntry.Open())
+                {
+                    romStream.Write(new byte[] { 11, 22, 33, 44 }, 0, 4);
+                }
+            }
+
+            innerZipMemory.Position = 0;
+            var collectionZipPath = Path.Combine(_tempPath, "NES 1G1R Collection.zip");
+            using (var outerArchive = ZipFile.Open(collectionZipPath, ZipArchiveMode.Create))
+            {
+                var nestedZipEntry = outerArchive.CreateEntry("Metroid (USA).zip");
+                using (var outerStream = nestedZipEntry.Open())
+                {
+                    innerZipMemory.CopyTo(outerStream);
+                }
+            }
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 10, Title = "Nintendo Entertainment System", CleanTitle = "nes" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(10)).Returns(new List<Episode>
+            {
+                new Episode { Id = 105, Title = "Metroid", SeriesId = 10 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().HaveCount(1);
+            results.First().Name.Should().Be("Metroid (USA)");
+            results.First().Series.Should().NotBeNull();
+            results.First().Series.Title.Should().Be("Nintendo Entertainment System");
+            results.First().Episodes.First().Title.Should().Be("Metroid");
+            results.First().Hashes.Should().ContainKey("CRC32");
+        }
     }
 }
