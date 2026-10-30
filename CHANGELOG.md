@@ -43,6 +43,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added filter and sorting support for `Format` in frontend release table stores.
 
 ### Fixed
+- **Library Platform Duplication Resolution (closes #74)**:
+  - Fixed `AddSeriesService.AddSeries` (both single platform add and batch import) to query existing platforms by `TvdbId`, `Title`, `TitleSlug`, and `Path` before adding entries.
+  - When importing a platform from `/add/import` or adding a console that already exists in the library, Controllarr now returns the existing platform instead of creating duplicate database records.
+- **Accurate BIOS Cryptographic Verification & Hash Audit (closes #84)**:
+  - Corrected expected SHA-1 hashes in `BiosService.KnownBiosFiles` for Mattel Intellivision (`exec.bin`, `grom.bin`), Fairchild Channel F (`sl31253.bin`, `sl31254.bin`), Sega Master System (`bios_J.sms`), and Sony PSP (`ppge_atlas.zim`), resolving false-positive verification rejections on authentic BIOS dumps.
+  - Fixed in-memory stream buffering in `VerifyBios` so multiple hash algorithms (MD5 and SHA-1) are computed from fresh stream positions, preventing empty-stream SHA-1 mismatches during compressed archive inspection.
 - **Newznab Indexer Game Matching & TV/Anime Bleed Elimination**:
   - Fixed `NewznabRequestGenerator` to sanitize category queries, stripping non-game categories (5000-5999 TV, 2000-2999 Movies, 3000-3999 Music, 7000-7999 Books) and defaulting to console and PC game categories (`1000-1999`, `8000-8999`).
   - Added `FilterNonGameCategories` setting on Newznab indexers to drop unwanted TV and anime releases from indexer feeds and multi-category responses.
