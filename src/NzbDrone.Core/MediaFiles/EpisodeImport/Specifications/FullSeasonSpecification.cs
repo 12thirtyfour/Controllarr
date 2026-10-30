@@ -1,3 +1,4 @@
+using System.IO;
 using NLog;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Parser.Model;
@@ -16,6 +17,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
         public ImportSpecDecision IsSatisfiedBy(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
         {
             if (localEpisode.FileEpisodeInfo == null)
+            {
+                return ImportSpecDecision.Accept();
+            }
+
+            var extension = Path.GetExtension(localEpisode.Path);
+            if (!string.IsNullOrWhiteSpace(extension) && MediaFileExtensions.RomExtensions.Contains(extension))
             {
                 return ImportSpecDecision.Accept();
             }

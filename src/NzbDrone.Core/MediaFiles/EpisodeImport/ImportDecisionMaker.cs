@@ -118,7 +118,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
 
             try
             {
-                var fileEpisodeInfo = Parser.Parser.ParsePath(localEpisode.Path);
+                var isRom = MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(localEpisode.Path));
+                var fileEpisodeInfo = isRom ? null : Parser.Parser.ParsePath(localEpisode.Path);
                 var trackedDownload = downloadClientItem?.DownloadId.IsNotNullOrWhiteSpace() == true
                     ? _trackedDownloadService.Find(downloadClientItem.DownloadId)
                     : null;
@@ -136,7 +137,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                     };
                 }
 
-                if (fileEpisodeInfo == null && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(localEpisode.Path)))
+                if (fileEpisodeInfo == null && isRom)
                 {
                     var parsedRom = RomParser.ParseRomName(Path.GetFileName(localEpisode.Path));
                     fileEpisodeInfo = new ParsedEpisodeInfo
@@ -145,6 +146,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         SeriesTitle = localEpisode.Series?.Title,
                         Quality = parsedRom?.Quality ?? new Qualities.QualityModel(Qualities.Quality.Unknown),
                         Languages = LanguageParser.ParseLanguages(Path.GetFileName(localEpisode.Path)),
+                        FullSeason = false,
                         EpisodeNumbers = Array.Empty<int>()
                     };
                 }

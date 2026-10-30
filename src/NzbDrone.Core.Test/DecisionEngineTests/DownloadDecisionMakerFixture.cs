@@ -371,7 +371,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             {
                 new ReleaseInfo { Title = "The.Office.S03E115.DVDRip.XviD-OSiTV" },
                 new ReleaseInfo { Title = "Breaking.Bad.S05E16.720p.HDTV.x264-ASAP.mkv" },
-                new ReleaseInfo { Title = "[HorribleSubs] One Piece - 950 [1080p].mkv" }
+                new ReleaseInfo { Title = "[HorribleSubs] One Piece - 950 [1080p].mkv" },
+                new ReleaseInfo { Title = "The.Office.Season.3.Complete.1080p" },
+                new ReleaseInfo { Title = "Show.Title.S02.Complete.720p.HDTV" }
             };
 
             var decisions = Subject.GetRssDecision(tvReports).ToList();

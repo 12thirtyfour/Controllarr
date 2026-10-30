@@ -28,7 +28,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private static readonly HashSet<string> ExcludedNonGameExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".txt", ".nfo", ".url", ".xml", ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".db", ".ini",
-            ".mkv", ".mp4", ".avi", ".wmv", ".mov", ".flv", ".webm", ".ts", ".m2ts", ".srt", ".sub", ".idx"
+            ".mkv", ".mp4", ".avi", ".wmv", ".mov", ".flv", ".webm", ".ts", ".m2ts", ".srt", ".sub", ".idx",
+            ".exe", ".bat", ".cmd", ".sh", ".html", ".htm", ".pdf", ".doc", ".docx", ".torrent", ".md", ".rtf", ".log"
         };
 
         private static readonly uint[] Crc32Table = InitializeCrc32Table();
@@ -590,13 +591,24 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                 if (_episodeService != null)
                 {
+                    var seasonNum = parsedRom?.RegionSeasonNumber ?? 1;
+
                     foreach (var cand in candidateTitles)
                     {
-                        var ep = _episodeService.FindEpisodeByTitle(series.Id, 1, cand);
+                        var ep = _episodeService.FindEpisodeByTitle(series.Id, seasonNum, cand) ??
+                                 _episodeService.FindEpisodeByTitle(series.Id, 1, cand);
                         if (ep != null)
                         {
                             return ep;
                         }
+                    }
+
+                    var fuzzyMatched = games.FirstOrDefault(g => g.Title != null &&
+                        cleanCandidates.Any(c => !string.IsNullOrWhiteSpace(c) && c.Length >= 4 &&
+                            (g.Title.CleanSeriesTitle().StartsWith(c) || c.StartsWith(g.Title.CleanSeriesTitle()))));
+                    if (fuzzyMatched != null)
+                    {
+                        return fuzzyMatched;
                     }
 
                     var bestTitle = !string.IsNullOrWhiteSpace(parsedRom?.GameTitle)
@@ -605,7 +617,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             ? matchedDatEntry.GameName
                             : fileNameNoExt);
 
-                    var seasonNum = parsedRom?.RegionSeasonNumber ?? 1;
                     var nextEpNum = games
                         .Where(e => e.SeasonNumber == seasonNum)
                         .Select(e => e.EpisodeNumber)

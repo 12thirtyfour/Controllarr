@@ -43,6 +43,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added filter and sorting support for `Format` in frontend release table stores.
 
 ### Fixed
+- **Platform File Deletion on Disk (closes #75)**:
+  - Added `[FromQuery]` attribute to `DeleteSeries` in both `Controllarr.Api.V5/Series/PlatformController.cs` and `Controllarr.Api.V3/Series/PlatformController.cs` so ASP.NET Core properly binds `deleteFiles` and `addImportListExclusion` query parameters, ensuring files on disk are deleted when requested by the user.
+- **Collection Archive Preservation & Multi-Game Pack Import**:
+  - Removed destructive archive deletion in `DiskScanService.ExtractCollectionArchives`, ensuring user collection zip archives are preserved untouched.
+  - Added parent directory collection zip detection (`<folderName>.zip`), unpacking archives into platform folders on initial scan.
+  - Filtered multi-game collection archives from single-game media lists in `DiskScanService.GetVideoFiles`, ensuring individual unpacked ROMs are imported while single-game archives remain compressed.
+- **Console ROM Full Season Rejection Bypass**:
+  - Updated `ImportDecisionMaker` and `FullSeasonSpecification` to recognize console ROMs and archives (`.nes`, `.sfc`, `.zip`, `.z64`, etc.), bypassing TV season pack rejections and allowing single and collection ROMs to import cleanly.
+  - Enriched ROM file information directly with `RomParser.ParseRomName` and hash matching before evaluation.
+- **Root Folder Collection ZIP Autodetection & Regional Grouping**:
+  - Enhanced `RootFolderService.GetUnmappedFolders` to inspect collection `.zip` files in root folders, look up inner entry hashes in `DatCacheService`, and assign matching canonical platform names.
+  - Grouped regional subfolders (`USA/`, `Europe/`, etc.) into parent platforms, and populated `RelativePath` to prevent blank card rendering.
+- **Total TV and Video Bleed Elimination**:
+  - Enhanced `PlatformCompatibilityValidator.IsTvOrVideoRelease` with season pack (`season\s*\d+`, `s\d+ complete`) and video resolution (`480p`, `720p`, `1080p`, `2160p`, `4k`, `uhd`) detection.
+  - Filtered TV and video releases across `IndexerBase.CleanupReleases` and `RssParser`.
 - **Library Platform Duplication Resolution (closes #74)**:
   - Fixed `AddSeriesService.AddSeries` (both single platform add and batch import) to query existing platforms by `TvdbId`, `Title`, `TitleSlug`, and `Path` before adding entries.
   - When importing a platform from `/add/import` or adding a console that already exists in the library, Controllarr now returns the existing platform instead of creating duplicate database records.

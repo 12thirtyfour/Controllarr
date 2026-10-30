@@ -192,5 +192,74 @@ namespace NzbDrone.Core.Test.RootFolderTests
 
             unmappedFolders.Count.Should().Be(3);
         }
+
+        [Test]
+        public void should_detect_collection_zip_file_as_unmapped_platform()
+        {
+            var rootFolderPath = @"C:\Test\Roms".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(new[] { Path.Combine(rootFolderPath, "NES.zip") });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Name.Should().Be("Nintendo Entertainment System");
+            unmappedFolders.First().RelativePath.Should().Be("NES");
+        }
+
+        [Test]
+        public void should_group_region_subfolders_into_parent_platform()
+        {
+            var rootFolderPath = @"C:\Test\NES".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var usaFolder = Path.Combine(rootFolderPath, "USA");
+            var europeFolder = Path.Combine(rootFolderPath, "Europe");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { usaFolder, europeFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, true))
+                .Returns(new[] { Path.Combine(usaFolder, "Super Mario Bros. (USA).nes") });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Name.Should().Be("Nintendo Entertainment System");
+            unmappedFolders.First().RelativePath.Should().Be("NES");
+        }
     }
 }

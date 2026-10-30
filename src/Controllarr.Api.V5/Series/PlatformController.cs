@@ -243,7 +243,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     }
 
     [RestDeleteById]
-    public NoContent DeleteSeries(int id, bool deleteFiles = false, bool addImportListExclusion = false)
+    public NoContent DeleteSeries(int id, [FromQuery] bool deleteFiles = false, [FromQuery] bool addImportListExclusion = false)
     {
         _seriesService.DeleteSeries(new List<int> { id }, deleteFiles, addImportListExclusion);
 

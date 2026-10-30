@@ -9,6 +9,7 @@ using NzbDrone.Common;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
@@ -32,6 +33,7 @@ namespace NzbDrone.Core.RootFolders
         private readonly IDiskProvider _diskProvider;
         private readonly ISeriesRepository _seriesRepository;
         private readonly INamingConfigService _namingConfigService;
+        private readonly IDatCacheService _datCacheService;
         private readonly Logger _logger;
 
         private readonly ICached<string> _cache;
@@ -54,12 +56,14 @@ namespace NzbDrone.Core.RootFolders
                                  ISeriesRepository seriesRepository,
                                  INamingConfigService namingConfigService,
                                  ICacheManager cacheManager,
-                                 Logger logger)
+                                 Logger logger,
+                                 IDatCacheService datCacheService = null)
         {
             _rootFolderRepository = rootFolderRepository;
             _diskProvider = diskProvider;
             _seriesRepository = seriesRepository;
             _namingConfigService = namingConfigService;
+            _datCacheService = datCacheService;
             _logger = logger;
 
             _cache = cacheManager.GetCache<string>(GetType());
@@ -167,9 +171,76 @@ namespace NzbDrone.Core.RootFolders
 
             var unmappedFolders = possibleSeriesFolders.Except(seriesPaths.Select(s => s.Value), PathEqualityComparer.Instance).ToList();
 
+            // Detect collection ZIP files in the root folder as unmapped platforms
+            var zipFiles = _diskProvider.GetFiles(path, false)
+                .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var zipFile in zipFiles)
+            {
+                var zipFileName = Path.GetFileName(zipFile);
+                var resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(zipFileName);
+
+                if (string.IsNullOrWhiteSpace(resolvedPlatform))
+                {
+                    try
+                    {
+                        using var archive = ZipFile.OpenRead(zipFile);
+                        var innerEntry = archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") && MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)));
+                        if (innerEntry != null)
+                        {
+                            resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
+                            if (string.IsNullOrWhiteSpace(resolvedPlatform) && _datCacheService != null)
+                            {
+                                var crc = innerEntry.Crc32.ToString("x8").ToLowerInvariant();
+                                var match = _datCacheService.FindPlatformByHash(crc);
+                                if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
+                                {
+                                    resolvedPlatform = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(resolvedPlatform))
+                {
+                    var folderName = Path.GetFileNameWithoutExtension(zipFile);
+                    var targetPlatformPath = Path.Combine(path, folderName);
+
+                    var currentDir = new DirectoryInfo(path.Normalize());
+                    var pathPlatform = PlatformCompatibilityValidator.ResolvePlatformName(currentDir.Name);
+                    if (string.Equals(pathPlatform, resolvedPlatform, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(currentDir.Name, folderName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetPlatformPath = currentDir.FullName;
+                        folderName = currentDir.Name;
+                    }
+
+                    if (!seriesPaths.Values.Contains(targetPlatformPath, PathEqualityComparer.Instance) &&
+                        !results.Any(r => r.Path.PathEquals(targetPlatformPath)))
+                    {
+                        results.Add(new UnmappedFolder
+                        {
+                            Name = resolvedPlatform,
+                            Path = targetPlatformPath,
+                            RelativePath = folderName
+                        });
+                    }
+                }
+            }
+
             foreach (var unmappedFolder in unmappedFolders)
             {
                 var di = new DirectoryInfo(unmappedFolder.Normalize());
+                if (PlatformCompatibilityValidator.IsRegionOrBucketFolder(di.Name))
+                {
+                    continue;
+                }
+
                 var resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(di.Name);
 
                 if (string.IsNullOrWhiteSpace(resolvedPlatformName))
@@ -189,6 +260,15 @@ namespace NzbDrone.Core.RootFolders
                                 if (innerEntry != null)
                                 {
                                     resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
+                                    if (string.IsNullOrWhiteSpace(resolvedPlatformName) && _datCacheService != null)
+                                    {
+                                        var crc = innerEntry.Crc32.ToString("x8").ToLowerInvariant();
+                                        var match = _datCacheService.FindPlatformByHash(crc);
+                                        if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
+                                        {
+                                            resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
+                                        }
+                                    }
                                 }
                             }
                             catch
@@ -238,6 +318,15 @@ namespace NzbDrone.Core.RootFolders
                                     if (innerEntry != null)
                                     {
                                         resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(innerEntry.Name, Path.GetExtension(innerEntry.Name));
+                                        if (string.IsNullOrWhiteSpace(resolvedPlatformName) && _datCacheService != null)
+                                        {
+                                            var crc = innerEntry.Crc32.ToString("x8").ToLowerInvariant();
+                                            var match = _datCacheService.FindPlatformByHash(crc);
+                                            if (match != null && !string.IsNullOrWhiteSpace(match.PlatformSlug))
+                                            {
+                                                resolvedPlatformName = PlatformCompatibilityValidator.ResolvePlatformName(match.PlatformSlug);
+                                            }
+                                        }
                                     }
                                 }
                                 catch
@@ -256,7 +345,7 @@ namespace NzbDrone.Core.RootFolders
                     {
                         Name = !string.IsNullOrWhiteSpace(resolvedPlatformName) ? resolvedPlatformName : di.Name,
                         Path = di.FullName,
-                        RelativePath = string.Empty
+                        RelativePath = di.Name
                     });
                 }
             }

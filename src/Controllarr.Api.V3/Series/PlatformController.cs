@@ -216,7 +216,7 @@ namespace Sonarr.Api.V3.Series
         }
 
         [RestDeleteById]
-        public void DeleteSeries(int id, bool deleteFiles = false, bool addImportListExclusion = false)
+        public void DeleteSeries(int id, [FromQuery] bool deleteFiles = false, [FromQuery] bool addImportListExclusion = false)
         {
             _seriesService.DeleteSeries(new List<int> { id }, deleteFiles, addImportListExclusion);
         }

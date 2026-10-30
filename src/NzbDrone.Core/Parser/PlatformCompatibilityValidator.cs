@@ -415,8 +415,16 @@ namespace NzbDrone.Core.Parser
             @"\b(s\d{1,2}[._ -]?e\d{1,3}|\d{1,2}x\d{1,3})\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex TvSeasonPattern = new(
+            @"\b(season\s*\d{1,2}|s\d{1,2}\s*(complete|pack)?|complete\s*season)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex VideoCodecOrSourcePattern = new(
-            @"\b(hdtv|pdtv|dsr|bluray|bdrip|brrip|dvdrip|webrip|web-dl|x264|x265|xvid|divx|hevc|avc|remux)\b",
+            @"\b(hdtv|pdtv|dsr|bluray|bdrip|brrip|dvdrip|webrip|web-dl|webdl|x264|x265|h264|h265|xvid|divx|hevc|avc|remux|telecine|telesync|camrip)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex VideoResolutionPattern = new(
+            @"\b(480p|576p|720p|1080p|1080i|2160p|4k|uhd)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex AnimeSubgroupPattern = new(
@@ -446,7 +454,17 @@ namespace NzbDrone.Core.Parser
                     return true;
                 }
 
+                if (TvSeasonPattern.IsMatch(title))
+                {
+                    return true;
+                }
+
                 if (VideoCodecOrSourcePattern.IsMatch(title))
+                {
+                    return true;
+                }
+
+                if (VideoResolutionPattern.IsMatch(title))
                 {
                     return true;
                 }
