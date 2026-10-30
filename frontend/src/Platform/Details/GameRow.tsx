@@ -1,6 +1,8 @@
 import classNames from 'classnames';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from 'Components/Icon';
+import IconButton from 'Components/Link/IconButton';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
 import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
@@ -11,14 +13,14 @@ import Tooltip from 'Components/Tooltip/Tooltip';
 import GameFormats from 'Game/GameFormats';
 import GameNumber from 'Game/GameNumber';
 import GameSearchCell from 'Game/GameSearchCell';
-import GameStatus from 'Game/GameStatus';
 import GameTitleLink from 'Game/GameTitleLink';
 import IndexerFlags from 'Game/IndexerFlags';
 import RomFileLanguages from 'RomFile/RomFileLanguages';
 import { useRomFile } from 'RomFile/RomFileProvider';
 import MediaInfo from 'RomFile/MediaInfo';
-import { icons } from 'Helpers/Props';
+import { icons, kinds } from 'Helpers/Props';
 import { useSingleSeries } from 'Platform/usePlatform';
+import { loadLocalLibretroConfig } from 'Settings/Libretro/LibretroSettings';
 import MediaInfoModel from 'typings/MediaInfo';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
@@ -129,6 +131,8 @@ function GameRow({
     [id, onMonitorGamePress]
   );
 
+  const navigate = useNavigate();
+
   const handleOpenAchievements = useCallback(() => {
     setIsAchievementsModalOpen(true);
   }, []);
@@ -136,6 +140,17 @@ function GameRow({
   const handleCloseAchievements = useCallback(() => {
     setIsAchievementsModalOpen(false);
   }, []);
+
+  const handlePlayPress = useCallback(() => {
+    const config = loadLocalLibretroConfig();
+
+    if (config.preferredLaunchMode === 'protocol') {
+      window.location.href = `controllarr://play/${id}`;
+      return;
+    }
+
+    navigate(`/webplayer?gameId=${id}`);
+  }, [id, navigate]);
 
   return (
     <TableRow
@@ -414,7 +429,16 @@ function GameRow({
         if (name === 'status') {
           return (
             <TableRowCell key={name} className={styles.status}>
-              <GameStatus gameId={id} romFileId={romFileId} />
+              {romFileId ? (
+                <IconButton
+                  name={icons.SERIES_CONTINUING}
+                  kind={kinds.SUCCESS}
+                  size={16}
+                  title="Play Now"
+                  aria-label="Play Now"
+                  onPress={handlePlayPress}
+                />
+              ) : null}
             </TableRowCell>
           );
         }
