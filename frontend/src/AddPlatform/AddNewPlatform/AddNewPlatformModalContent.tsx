@@ -589,7 +589,7 @@ function AddNewPlatformModalContent({
             isSpinning={isAdding}
             onPress={handleAddPlatformPress}
           >
-            {translate('AddPlatformWithTitle', { title })}
+            {translate('AddPlatform')}
           </SpinnerButton>
         </div>
       </ModalFooter>

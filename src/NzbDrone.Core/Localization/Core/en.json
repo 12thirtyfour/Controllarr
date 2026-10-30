@@ -37,6 +37,8 @@
     "AddListExclusionError": "Unable to add a new list exclusion, please try again.",
     "AddListExclusionSeriesHelpText": "Prevent platforms from being added to {appName} by lists",
     "AddListExclusionSingleSeriesHelpText": "Prevent this platform from being added to {appName} by lists",
+    "AddPlatform": "Add Platform",
+    "AddPlatformWithTitle": "Add {title}",
     "AddNew": "Add New",
     "AddNewRestriction": "Add new restriction",
     "AddNewSeries": "Add New Platform or Game",
