@@ -9,6 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **GameTDB Database Integration (Switch, Wii, Wii U, 3DS)**:
+  - Added automated download, decompression, and XML parsing of official GameTDB databases for Nintendo Switch (`switchtdb.zip`), Nintendo Wii (`wiitdb.zip`), Nintendo Wii U (`wiiutdb.zip`), and Nintendo 3DS (`3dstdb.zip`).
+  - Automatically populates rich game catalogs with release overviews, release years, developer/publisher data, and complete cryptographic checksums (`CRC32`, `MD5`, `SHA1`).
+  - Resolves missing Switch library population where only 18 games populated previously. (Closes #79, #80).
+- **Weekly DAT Catalog Synchronization Schedule**:
+  - Adjusted scheduled task interval for `UpdateDatCatalogsCommand` in `TaskManager.cs` from daily (24 hours) to weekly (7 days / 10,080 minutes) to respect bandwidth and catalog stability on end-of-life systems.
+- **Parent & Root Collection Archive Preservation & Scan Detection**:
+  - Enhanced `DiskScanService` to detect candidate collection zip archives in parent and root folders prior to missing directory short-circuits.
+  - Automatically initializes target platform folders and unpacks multi-game collections directly into regional season structures while preserving source collection archives on disk without destructive deletion.
 - **Recursive Library Import & Zip Collection Support**:
   - Expanded `UnmanagedDiskScanner` and `ManualImportService` to recursively traverse directories and zip archives of any depth.
   - Added support for full multi-ROM collection archives (such as `@NES2.0.zip`, `1G1R.zip`, and platform packs): Controllarr now inspects archive central directories via $O(1)$ entry headers and extracts individual `ManualImportItem` entries for each ROM inside using `${zipPath}#${entryName}` sub-path notation.

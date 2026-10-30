@@ -84,6 +84,30 @@ namespace NzbDrone.Core.MediaFiles
 
             if (!seriesFolderExists)
             {
+                var trimmedPath = series.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                var parentZip = trimmedPath + ".zip";
+
+                var candidateZips = new List<string> { parentZip };
+                if (!string.IsNullOrWhiteSpace(rootFolder) && _diskProvider.FolderExists(rootFolder))
+                {
+                    candidateZips.Add(Path.Combine(rootFolder, series.CleanTitle + ".zip"));
+                    candidateZips.Add(Path.Combine(rootFolder, series.Title + ".zip"));
+                    if (!string.IsNullOrWhiteSpace(series.TitleSlug))
+                    {
+                        candidateZips.Add(Path.Combine(rootFolder, series.TitleSlug + ".zip"));
+                    }
+                }
+
+                if (candidateZips.Any(z => _diskProvider.FileExists(z)))
+                {
+                    _diskProvider.CreateFolder(series.Path);
+                    SetPermissions(series.Path);
+                    seriesFolderExists = true;
+                }
+            }
+
+            if (!seriesFolderExists)
+            {
                 if (!_diskProvider.FolderExists(rootFolder))
                 {
                     _logger.Warn("Platform's root folder ({0}) doesn't exist.", rootFolder);
@@ -366,6 +390,18 @@ namespace NzbDrone.Core.MediaFiles
                             foreach (var entry in gameEntries)
                             {
                                 var relativeTarget = entry.FullName.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+
+                                var segments = relativeTarget.Split(Path.DirectorySeparatorChar);
+                                var archiveBaseName = Path.GetFileNameWithoutExtension(archiveFile);
+                                if (segments.Length > 1 &&
+                                    (string.Equals(segments[0], archiveBaseName, StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(segments[0], series.Title, StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(segments[0], series.CleanTitle, StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(segments[0], series.TitleSlug, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    relativeTarget = string.Join(Path.DirectorySeparatorChar, segments.Skip(1));
+                                }
+
                                 var destinationPath = Path.GetFullPath(Path.Combine(targetDirectory, relativeTarget));
 
                                 if (!destinationPath.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase))

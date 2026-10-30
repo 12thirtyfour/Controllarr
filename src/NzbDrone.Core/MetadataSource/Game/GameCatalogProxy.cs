@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -722,6 +723,26 @@ namespace NzbDrone.Core.MetadataSource.Game
                         }
                     }
                 }
+
+                var gameTdbUrl = GetGameTdbUrl(platform.Slug);
+                if (!string.IsNullOrWhiteSpace(gameTdbUrl))
+                {
+                    var tdbRequest = new HttpRequest(gameTdbUrl)
+                    {
+                        SuppressHttpError = true,
+                        RequestTimeout = TimeSpan.FromSeconds(30)
+                    };
+
+                    var tdbResponse = _httpClient.Execute(tdbRequest);
+                    if (tdbResponse != null && !tdbResponse.HasHttpError && tdbResponse.ResponseData != null && tdbResponse.ResponseData.Length > 0)
+                    {
+                        var tdbEntries = ParseGameTdbZipContent(platform, tdbResponse.ResponseData, seenNames, forceRefresh);
+                        if (tdbEntries.Count > 0)
+                        {
+                            syncedList.AddRange(tdbEntries);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -1120,6 +1141,203 @@ namespace NzbDrone.Core.MetadataSource.Game
             catch (Exception ex)
             {
                 _logger?.Trace(ex, "Unable to parse NSWDB XML catalog for Nintendo Switch");
+            }
+
+            return results;
+        }
+
+        public static string GetGameTdbUrl(string slug)
+        {
+            return slug?.ToLowerInvariant() switch
+            {
+                "switch" => "https://www.gametdb.com/switchtdb.zip",
+                "wii" => "https://www.gametdb.com/wiitdb.zip",
+                "wiiu" => "https://www.gametdb.com/wiiutdb.zip",
+                "3ds" => "https://www.gametdb.com/3dstdb.zip",
+                _ => null
+            };
+        }
+
+        public List<GameCatalogEntry> ParseGameTdbZipContent(
+            PlatformCatalogEntry platform,
+            byte[] zipBytes,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            try
+            {
+                using var memStream = new MemoryStream(zipBytes);
+                using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
+                var xmlEntry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase));
+                if (xmlEntry == null)
+                {
+                    return new List<GameCatalogEntry>();
+                }
+
+                using var entryStream = xmlEntry.Open();
+                using var reader = new StreamReader(entryStream, Encoding.UTF8);
+                var xmlContent = reader.ReadToEnd();
+                return ParseGameTdbXmlContent(platform, xmlContent, seenNames, forceRefresh);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Failed to unpack GameTDB archive for {0}", platform.Name);
+                return new List<GameCatalogEntry>();
+            }
+        }
+
+        public List<GameCatalogEntry> ParseGameTdbXmlContent(
+            PlatformCatalogEntry platform,
+            string xmlContent,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            var results = new List<GameCatalogEntry>();
+            var datEntries = new List<DatEntry>();
+
+            try
+            {
+                var doc = XDocument.Parse(xmlContent);
+                foreach (var gameEl in doc.Descendants("game"))
+                {
+                    var rawName = gameEl.Attribute("name")?.Value?.Trim();
+                    var localeEn = gameEl.Elements("locale").FirstOrDefault(l => string.Equals((string)l.Attribute("lang"), "EN", StringComparison.OrdinalIgnoreCase)) ??
+                                   gameEl.Elements("locale").FirstOrDefault();
+                    var localeTitle = localeEn?.Element("title")?.Value?.Trim();
+                    var synopsis = localeEn?.Element("synopsis")?.Value?.Trim();
+
+                    var id = gameEl.Element("id")?.Value?.Trim();
+                    var region = gameEl.Element("region")?.Value?.Trim() ?? "World";
+
+                    var title = !string.IsNullOrWhiteSpace(localeTitle) ? localeTitle : rawName;
+                    if (string.IsNullOrWhiteSpace(title))
+                    {
+                        continue;
+                    }
+
+                    var regionLabel = "World";
+                    if (region.Contains("USA", StringComparison.OrdinalIgnoreCase) || region.Contains("US", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regionLabel = "USA";
+                    }
+                    else if (region.Contains("EUR", StringComparison.OrdinalIgnoreCase) || region.Contains("Europe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regionLabel = "Europe";
+                    }
+                    else if (region.Contains("JPN", StringComparison.OrdinalIgnoreCase) || region.Contains("Japan", StringComparison.OrdinalIgnoreCase))
+                    {
+                        regionLabel = "Japan";
+                    }
+
+                    var formattedName = rawName;
+                    if (string.IsNullOrWhiteSpace(formattedName) || !formattedName.Contains('('))
+                    {
+                        formattedName = $"{title} ({regionLabel})";
+                    }
+
+                    var releaseYear = platform.ReleaseYear;
+                    var dateEl = gameEl.Element("date");
+                    if (dateEl != null && int.TryParse((string)dateEl.Attribute("year"), out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2035)
+                    {
+                        releaseYear = parsedYear;
+                    }
+
+                    var romElements = gameEl.Elements("rom").ToList();
+                    string primaryCrc = null;
+                    string primarySha1 = null;
+                    string primaryMd5 = null;
+
+                    if (romElements.Count > 0)
+                    {
+                        foreach (var romEl in romElements)
+                        {
+                            var romName = (string)romEl.Attribute("name");
+                            var crc = (string)romEl.Attribute("crc");
+                            var md5 = (string)romEl.Attribute("md5");
+                            var sha1 = (string)romEl.Attribute("sha1");
+                            var sizeStr = (string)romEl.Attribute("size");
+                            long.TryParse(sizeStr, out var size);
+
+                            if (string.IsNullOrWhiteSpace(romName))
+                            {
+                                var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
+                                romName = $"{formattedName}{defaultExt}";
+                            }
+
+                            if (primaryCrc == null && !string.IsNullOrWhiteSpace(crc))
+                            {
+                                primaryCrc = crc;
+                                primarySha1 = sha1;
+                                primaryMd5 = md5;
+                                                            }
+
+                            if (!string.IsNullOrWhiteSpace(crc) || !string.IsNullOrWhiteSpace(sha1) || !string.IsNullOrWhiteSpace(md5))
+                            {
+                                datEntries.Add(new DatEntry
+                                {
+                                    GameName = formattedName,
+                                    RomName = romName,
+                                    Crc32 = crc?.ToLowerInvariant(),
+                                    Md5 = md5?.ToLowerInvariant(),
+                                    Sha1 = sha1?.ToLowerInvariant(),
+                                    Size = size > 0 ? size : 0,
+                                    Region = regionLabel
+                                });
+                            }
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(id))
+                    {
+                        var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
+                        datEntries.Add(new DatEntry
+                        {
+                            GameName = formattedName,
+                            RomName = $"{formattedName}{defaultExt}",
+                            Region = regionLabel
+                        });
+                    }
+
+                    if (!seenNames.Add(formattedName))
+                    {
+                        continue;
+                    }
+
+                    var entry = CreateCatalogEntryFromNoIntroName(platform, formattedName, releaseYear, $"GameTDB {platform.Name}");
+                    if (entry != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(synopsis))
+                        {
+                            entry.Overview = synopsis;
+                        }
+
+                        entry.ExpectedCrc32 = primaryCrc;
+                        entry.ExpectedSha1 = primarySha1;
+                        entry.ExpectedMd5 = primaryMd5;
+                        results.Add(entry);
+                    }
+                }
+
+                if (datEntries.Count > 0 && _datCacheService != null)
+                {
+                    var catalogName = $"{platform.LibretroSystemName} (GameTDB)";
+                    var existing = _datCacheService.GetAllDatFiles();
+                    if (forceRefresh || existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _datCacheService.Insert(
+                            new DatFile
+                            {
+                                Name = catalogName,
+                                Description = platform.Slug,
+                                Category = "GameTDB",
+                                CreatedAt = DateTime.UtcNow
+                            },
+                            datEntries);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Unable to parse GameTDB XML catalog for {0}", platform.Name);
             }
 
             return results;

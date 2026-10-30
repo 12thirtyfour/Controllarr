@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -224,6 +225,44 @@ game (
 
             // 4. Standalone Arcade platform (1041) is not present
             Subject.TryGetPlatformEntry(1041, out _).Should().BeFalse();
+        }
+
+        [Test]
+        public void should_parse_gametdb_xml_and_populate_games_and_dat_entries()
+        {
+            Subject.TryGetPlatformEntry(1014, out var switchPlatform).Should().BeTrue();
+
+            var sampleXml = @"<xml>
+  <game name=""Super Mario Odyssey (USA)"">
+    <id>AAACA</id>
+    <type>Switch</type>
+    <region>USA</region>
+    <locale lang=""EN"">
+      <title>Super Mario Odyssey</title>
+      <synopsis>Explore incredible places far from the Mushroom Kingdom.</synopsis>
+    </locale>
+    <date year=""2017"" month=""10"" day=""27""/>
+    <rom version=""1.0.0"" crc=""340DE7BC"" md5=""0123456789abcdef0123456789abcdef"" sha1=""0123456789abcdef0123456789abcdef01234567"" size=""5668962304"" name=""Super Mario Odyssey (USA).xci"" />
+  </game>
+</xml>";
+
+            var results = Subject.ParseGameTdbXmlContent(switchPlatform, sampleXml, new HashSet<string>());
+
+            results.Should().NotBeEmpty();
+            var game = results.First();
+            game.Title.Should().Be("Super Mario Odyssey");
+            game.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            game.ReleaseYear.Should().Be(2017);
+            game.Overview.Should().Contain("Mushroom Kingdom");
+            game.ExpectedCrc32.Should().Be("340DE7BC");
+            game.ExpectedMd5.Should().Be("0123456789abcdef0123456789abcdef");
+            game.ExpectedSha1.Should().Be("0123456789abcdef0123456789abcdef01234567");
+
+            GameCatalogProxy.GetGameTdbUrl("switch").Should().Be("https://www.gametdb.com/switchtdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("wii").Should().Be("https://www.gametdb.com/wiitdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("wiiu").Should().Be("https://www.gametdb.com/wiiutdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("3ds").Should().Be("https://www.gametdb.com/3dstdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("nes").Should().BeNull();
         }
     }
 }
