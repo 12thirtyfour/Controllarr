@@ -1018,7 +1018,10 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                 <div className={styles.heroFooter}>
                   <PlatformDetailsPath path={path} pendingPath={pendingPath} />
 
-                  <MetadataAttribution />
+                  <MetadataAttribution
+                    verifiedText="Verified via No-Intro / Redump / SMDB"
+                    supportedFormatsText="Supported ROM & disc formats"
+                  />
                 </div>
               </div>
             </div>
