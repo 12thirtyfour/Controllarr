@@ -443,7 +443,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 Slug = Parser.Parser.CleanSeriesTitle(resolvedName),
                 Manufacturer = "Console",
                 ReleaseYear = 1995,
-                Overview = "Verified console & handheld ROM platform managed by Controllarr.",
+                Overview = "Console & handheld hardware platform (1995).",
                 Extensions = new List<string> { ".zip", ".7z", ".chd", ".iso" }
             };
         }
@@ -2349,7 +2349,6 @@ namespace NzbDrone.Core.MetadataSource.Game
             string[] aliases,
             string[] extensions)
         {
-            var extList = string.Join(", ", extensions);
             return new PlatformCatalogEntry
             {
                 TvdbId = tvdbId,
@@ -2360,7 +2359,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 ReleaseYear = year,
                 LibretroSystemName = libretroSystem,
                 RepresentativeBoxartName = representativeBoxart,
-                Overview = $"{manufacturer} {name} ({year}) — Verified No-Intro / Redump / HTGDB (SmokeMonster) hardware platform. Supported ROM & disc formats: {extList}. Organized by BIOS, USA, Japan, Europe, World, Unlicensed, ROM Hacks & Translations, and Homebrew & Aftermarket.",
+                Overview = $"{manufacturer} hardware platform ({year}).",
                 Aliases = aliases.ToList(),
                 Extensions = extensions.ToList()
             };
