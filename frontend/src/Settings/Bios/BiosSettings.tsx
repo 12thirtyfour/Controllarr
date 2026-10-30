@@ -17,6 +17,7 @@ import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import { kinds, sizes } from 'Helpers/Props';
 import { Kind } from 'Helpers/Props/kinds';
+import usePlatform from 'Platform/usePlatform';
 import settingsStyles from 'Settings/Settings.module.css';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
@@ -180,6 +181,23 @@ function BiosSettings() {
   const [platformSlug, setPlatformSlug] = useState('');
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
+  const { data: libraryPlatforms } = usePlatform();
+
+  const libraryPlatformSlugs = useMemo(() => {
+    return new Set(
+      (libraryPlatforms ?? []).map((p) => p.titleSlug?.toLowerCase().trim())
+    );
+  }, [libraryPlatforms]);
+
+  const filteredPlatformOptions = useMemo(() => {
+    return PLATFORM_OPTIONS.filter((option) => {
+      if (!option.key) {
+        return true;
+      }
+      return libraryPlatformSlugs.has(String(option.key).toLowerCase());
+    });
+  }, [libraryPlatformSlugs]);
+
   const queryParams = useMemo(() => {
     return {
       platformSlug: platformSlug || undefined,
@@ -190,6 +208,16 @@ function BiosSettings() {
     path: '/bios',
     queryParams,
   });
+
+  const displayedData = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+    return data.filter((item) => {
+      const slug = (item.platformSlug || item.gamePlatform || item.platformTitle || '').toLowerCase().trim();
+      return libraryPlatformSlugs.has(slug);
+    });
+  }, [data, libraryPlatformSlugs]);
 
   const { mutate: downloadBios, isPending: isDownloading } = useApiMutation<
     BiosFile[],
@@ -231,10 +259,10 @@ function BiosSettings() {
   );
 
   const missingCount = useMemo(() => {
-    return (data ?? []).filter(
+    return displayedData.filter(
       (item) => getVerificationStatus(item) !== BiosVerificationStatus.Present
     ).length;
-  }, [data]);
+  }, [displayedData]);
 
   return (
     <PageContent title={translate('Bios')}>
@@ -250,7 +278,7 @@ function BiosSettings() {
               <SelectInput<string>
                 name="platformSlug"
                 value={platformSlug}
-                values={PLATFORM_OPTIONS}
+                values={filteredPlatformOptions}
                 onChange={handlePlatformChange}
               />
               <span className={styles.storageNote}>
@@ -280,10 +308,16 @@ function BiosSettings() {
             </Alert>
           ) : null}
 
-          {!isFetching && !error && data ? (
+          {!isFetching && !error && displayedData.length === 0 ? (
+            <Alert kind={kinds.INFO}>
+              No platforms in your library currently require BIOS files.
+            </Alert>
+          ) : null}
+
+          {!isFetching && !error && displayedData.length > 0 ? (
             <Table columns={columns}>
               <TableBody>
-                {data.map((item, index) => {
+                {displayedData.map((item, index) => {
                   const platform = getPlatformSlug(item);
                   const md5 = getMd5Hash(item);
                   const sha1 = getSha1Hash(item);
