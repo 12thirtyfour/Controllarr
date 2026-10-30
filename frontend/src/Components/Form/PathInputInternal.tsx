@@ -148,7 +148,6 @@ export function PathInputInternal({
   useEffect(() => {
     if (inputValue !== previousInputValue) {
       setValue(inputValue);
-      setIsTyping(false);
     }
   }, [inputValue, previousInputValue, setValue]);
 
