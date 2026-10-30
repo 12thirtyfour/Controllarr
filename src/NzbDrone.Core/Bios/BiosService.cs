@@ -178,8 +178,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "psp",
                 FileName = "ppge_atlas.zim",
-                ExpectedMd5 = "a9f8b3c4d5e6f7a8b9c0d1e2f3a4b5c6",
-                ExpectedSha1 = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+                ExpectedMd5 = "a93fc411c1ce7d001a2a812643c70085",
+                ExpectedSha1 = "02dcd1d5928c13f0305f3af356f935fee11debde",
                 Description = "PPSSPP Font & UI Atlas Firmware",
                 IsRequired = false
             },
@@ -306,7 +306,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "sms",
                 FileName = "bios_J.sms",
                 ExpectedMd5 = "24a519c53f67b00640d0048ef7089105",
-                ExpectedSha1 = "5c8e9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f",
+                ExpectedSha1 = "a8c1b39a2e41137835eda6a5de6d46dd9fadbaf2",
                 Description = "Sega Mark III / Master System BIOS (JP v2.1)",
                 IsRequired = false
             },
@@ -500,7 +500,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "neogeo",
                 FileName = "neogeo.zip",
                 ExpectedMd5 = "dffb72f116d36d025068b23970a4f6df",
-                ExpectedSha1 = "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+                ExpectedSha1 = null,
                 Description = "SNK Neo Geo AES / MVS System BIOS Pack (UniBIOS / MVS)",
                 IsRequired = true
             },
@@ -605,7 +605,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "intellivision",
                 FileName = "exec.bin",
                 ExpectedMd5 = "62e761035cb657903761800f4437b8af",
-                ExpectedSha1 = "a0a642e698f92e15a055a2c6b709c2b21520a40c",
+                ExpectedSha1 = "5a65b922b562cb1f57dab51b73151283f0e20c7a",
                 Description = "Intellivision Executive ROM",
                 IsRequired = true
             },
@@ -614,7 +614,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "intellivision",
                 FileName = "grom.bin",
                 ExpectedMd5 = "0cd5946c6473e42e8e4c2137785e427f",
-                ExpectedSha1 = "fa2e5874a2b615012640100765548604a3365810",
+                ExpectedSha1 = "f9608bb4ad1cfe3640d02844c7ad8e0bcd974917",
                 Description = "Intellivision Graphics ROM (GROM)",
                 IsRequired = true
             },
@@ -641,7 +641,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "channelf",
                 FileName = "sl31253.bin",
                 ExpectedMd5 = "ac9804d4c0e9d07e33472e3726ed15c3",
-                ExpectedSha1 = "0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a",
+                ExpectedSha1 = "81193965a374d77b99b4743d317824b53c3e3c78",
                 Description = "Fairchild Channel F PSU ROM (SL31253)",
                 IsRequired = true
             },
@@ -650,7 +650,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "channelf",
                 FileName = "sl31254.bin",
                 ExpectedMd5 = "da98f4bb3242ab80d76629021bb27585",
-                ExpectedSha1 = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+                ExpectedSha1 = "8f70d1b74483ba3a37e86cf16c849d601a8c3d2c",
                 Description = "Fairchild Channel F PSU ROM (SL31254)",
                 IsRequired = true
             },
