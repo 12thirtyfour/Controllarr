@@ -140,7 +140,8 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         },
         {
           name: 'status',
-          label: () => translate('Status'),
+          label: 'Play',
+          columnLabel: () => 'Play Now',
           isVisible: true,
         },
         {

@@ -8,7 +8,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   normalizeRegionOrder,
   useAddPlatformOption,
@@ -61,7 +60,6 @@ import usePlatform, {
   useSingleSeries,
   useToggleSeriesMonitored,
 } from 'Platform/usePlatform';
-import { loadLocalLibretroConfig } from 'Settings/Libretro/LibretroSettings';
 import QualityProfileName from 'Settings/Profiles/Quality/QualityProfileName';
 import sortByProp from 'Utilities/Array/sortByProp';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
@@ -138,7 +136,6 @@ interface PlatformDetailsProps {
 }
 
 function PlatformDetails({ seriesId }: PlatformDetailsProps) {
-  const navigate = useNavigate();
   const executeCommand = useExecuteCommand();
 
   const series = useSingleSeries(seriesId);
@@ -350,17 +347,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   const handleSeriesHistoryPress = useCallback(() => {
     setIsPlatformHistoryModalOpen(true);
   }, []);
-
-  const handlePlayNowPress = useCallback(() => {
-    const config = loadLocalLibretroConfig();
-
-    if (config.preferredLaunchMode === 'protocol') {
-      window.location.href = `controllarr://play/${seriesId}`;
-      return;
-    }
-
-    navigate(`/webplayer?gameId=${seriesId}`);
-  }, [navigate, seriesId]);
 
   const handlePlatformHistoryModalClose = useCallback(() => {
     setIsPlatformHistoryModalOpen(false);
@@ -675,16 +661,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
             iconName={icons.EXPORT}
             isDisabled={!hasRomFiles}
             onPress={handleExportPress}
-          />
-
-          <ToolbarItem
-            id="play-now"
-            priority={1}
-            groupId="left-b"
-            label="Play Now"
-            iconName={icons.QUICK}
-            isDisabled={!hasRomFiles}
-            onPress={handlePlayNowPress}
           />
 
           <ToolbarItem
