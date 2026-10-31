@@ -245,6 +245,20 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     [RestDeleteById]
     public NoContent DeleteSeries(int id, [FromQuery] bool deleteFiles = false, [FromQuery] bool addImportListExclusion = false)
     {
+        if (!deleteFiles && Request?.Query != null &&
+            Request.Query.TryGetValue("deleteFiles", out var dfVal) &&
+            bool.TryParse(dfVal.FirstOrDefault(), out var parsedDf))
+        {
+            deleteFiles = parsedDf;
+        }
+
+        if (!addImportListExclusion && Request?.Query != null &&
+            Request.Query.TryGetValue("addImportListExclusion", out var exclVal) &&
+            bool.TryParse(exclVal.FirstOrDefault(), out var parsedExcl))
+        {
+            addImportListExclusion = parsedExcl;
+        }
+
         _seriesService.DeleteSeries(new List<int> { id }, deleteFiles, addImportListExclusion);
 
         return TypedResults.NoContent();

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -30,6 +31,7 @@ namespace NzbDrone.Core.Tv
         Series FindByTitleInexact(string title);
         Series FindByPath(string path);
         void DeleteSeries(List<int> seriesIds, bool deleteFiles, bool addImportListExclusion);
+        bool IsSeriesDeletedWithFiles(int seriesId);
         List<Series> GetAllSeries();
         Dictionary<int, int> AllSeriesTvdbIds();
         Dictionary<int, string> GetAllSeriesPaths();
@@ -52,6 +54,8 @@ namespace NzbDrone.Core.Tv
         private readonly IEpisodeService _episodeService;
         private readonly IBuildSeriesPaths _seriesPathBuilder;
         private readonly IAutoTaggingService _autoTaggingService;
+        private static readonly ConcurrentDictionary<int, bool> DeletedSeriesWithFiles = new();
+
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
 
@@ -85,6 +89,7 @@ namespace NzbDrone.Core.Tv
         public Series AddSeries(Series newSeries)
         {
             _seriesRepository.Insert(newSeries);
+            DeletedSeriesWithFiles.TryRemove(newSeries.Id, out _);
             _eventAggregator.PublishEvent(new SeriesAddedEvent(GetSeries(newSeries.Id)));
 
             return newSeries;
@@ -93,6 +98,11 @@ namespace NzbDrone.Core.Tv
         public List<Series> AddSeries(List<Series> newSeries)
         {
             _seriesRepository.InsertMany(newSeries);
+            foreach (var s in newSeries)
+            {
+                DeletedSeriesWithFiles.TryRemove(s.Id, out _);
+            }
+
             _eventAggregator.PublishEvent(new SeriesImportedEvent(newSeries.Select(s => s.Id).ToList()));
 
             return newSeries;
@@ -174,9 +184,22 @@ namespace NzbDrone.Core.Tv
 
         public void DeleteSeries(List<int> seriesIds, bool deleteFiles, bool addImportListExclusion)
         {
+            if (deleteFiles && seriesIds != null)
+            {
+                foreach (var id in seriesIds)
+                {
+                    DeletedSeriesWithFiles[id] = true;
+                }
+            }
+
             var series = _seriesRepository.Get(seriesIds).ToList();
             _seriesRepository.DeleteMany(seriesIds);
             _eventAggregator.PublishEvent(new SeriesDeletedEvent(series, deleteFiles, addImportListExclusion));
+        }
+
+        public bool IsSeriesDeletedWithFiles(int seriesId)
+        {
+            return DeletedSeriesWithFiles.TryGetValue(seriesId, out var deleted) && deleted;
         }
 
         public List<Series> GetAllSeries()

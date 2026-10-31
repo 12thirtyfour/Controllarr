@@ -249,6 +249,12 @@ namespace NzbDrone.Core.Tv
                     try
                     {
                         series = RefreshSeriesInfo(seriesId);
+                        if (_seriesService.IsSeriesDeletedWithFiles(seriesId))
+                        {
+                            _logger.Debug("Platform {0} was deleted during refresh; skipping tag update and rescan.", series.Title);
+                            continue;
+                        }
+
                         UpdateTags(series);
                         RescanSeries(series, isNew, trigger);
                     }
@@ -262,6 +268,12 @@ namespace NzbDrone.Core.Tv
                     }
                     catch (Exception e)
                     {
+                        if (_seriesService.IsSeriesDeletedWithFiles(seriesId))
+                        {
+                            _logger.Debug("Platform {0} was deleted during refresh; aborting rescan.", series.Title);
+                            continue;
+                        }
+
                         _logger.Error(e, "Couldn't refresh info for {0}", series);
                         UpdateTags(series);
                         RescanSeries(series, isNew, trigger);

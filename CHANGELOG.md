@@ -52,6 +52,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added filter and sorting support for `Format` in frontend release table stores.
 
 ### Fixed
+- **Platform & Game Localization Dictionary Synchronization**:
+  - Added 196 missing `Platform`, `Game`, `RomFile`, and `Region` localization keys to `src/NzbDrone.Core/Localization/Core/en.json` (including `AddNewPlatform`, `DeletePlatformFolder`, `DeletePlatformFolderHelpText`, `DeletePlatformFolderConfirmation`, `DeletePlatformFolderGameCount`, `DeleteGamesFiles`, `DeleteGamesFilesHelpText`, and `DeletePlatformModalHeader`).
+  - Added automatic token aliasing in `frontend/src/Utilities/String/translate.ts` between `romFileCount`/`episodeFileCount`, `gameCount`/`episodeCount`, `totalGameCount`/`totalEpisodeCount`, and `regionCount`/`seasonCount`.
+- **Platform Folder Deletion Reliability & Race-Condition Protection**:
+  - Updated `MediaFileDeletionService` to handle `SeriesDeletedEvent` synchronously (`IHandle<SeriesDeletedEvent>`) so platform folders are deleted on disk prior to returning the HTTP `204 No Content` response.
+  - Hardened `DiskProviderBase.DeleteFolder` to strip `FileAttributes.ReadOnly` across both files (including hidden/system files) and directories recursively, with retry handling on transient `IOException` / `UnauthorizedAccessException` locks.
+  - Added `SeriesService.IsSeriesDeletedWithFiles` tracking across `RefreshSeriesService` and `DiskScanService` so in-flight background refreshes/scans abort and clean up rather than recreating deleted platform folders.
+  - Mapped renamed frontend command names (`DeletePlatformFiles`, `GameSearch`, `MissingGameSearch`, `CutoffUnmetGameSearch`, `DownloadedGamesScan`, `MovePlatform`) in V3 and V5 `CommandController`, and stabilized `useApiMutation` request options via `useRef`.
 - **Nested Collection ZIP & Unmanaged Disk Scanner Platform Identification**:
   - Implemented nested `.zip` archive inspection in `UnmanagedDiskScanner` and `RootFolderService`, recursively unpacking inner ROM entries in memory to extract real console extensions, CRC32 checksums, and game titles from wrapped archives (such as `1G1R.zip` containing `Game.zip` containing `Game.nes`).
   - Added deterministic non-zero `TvdbId` generation and in-memory games caching in `UnmanagedDiskScanner.FindMatchingEpisode`, preventing database episode collisions during batch ROM imports.

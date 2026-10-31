@@ -1,5 +1,5 @@
 import { useMutation, UseMutationOptions } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import ModelBase from 'App/ModelBase';
 import {
   ValidationError,
@@ -34,10 +34,13 @@ function useApiMutation<T, TData>(options: MutationOptions<T, TData>) {
     };
   }, [options]);
 
+  const requestOptionsRef = useRef(requestOptions);
+  requestOptionsRef.current = requestOptions;
+
   return useMutation<T, ApiError, TData>({
     ...options.mutationOptions,
     mutationFn: async (data?: TData) => {
-      const { path, ...otherOptions } = requestOptions;
+      const { path, ...otherOptions } = requestOptionsRef.current;
 
       return fetchJson<T, TData>({ path, ...otherOptions, body: data });
     },

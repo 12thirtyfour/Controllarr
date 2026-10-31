@@ -79,6 +79,16 @@ namespace NzbDrone.Core.MediaFiles
 
         public void Scan(Series series)
         {
+            if (series != null && series.Id > 0 && _seriesService.IsSeriesDeletedWithFiles(series.Id))
+            {
+                if (!string.IsNullOrWhiteSpace(series.Path) && _diskProvider.FolderExists(series.Path))
+                {
+                    _diskProvider.DeleteFolder(series.Path, true);
+                }
+
+                return;
+            }
+
             var rootFolder = _rootFolderService.GetBestRootFolderPath(series.Path);
 
             var seriesFolderExists = _diskProvider.FolderExists(series.Path);
@@ -215,6 +225,16 @@ namespace NzbDrone.Core.MediaFiles
 
             fileInfoStopwatch.Stop();
             _logger.Trace("Reprocessing existing files complete for: {0} [{1}]", series, decisionsStopwatch.Elapsed);
+
+            if (series.Id > 0 && _seriesService.IsSeriesDeletedWithFiles(series.Id))
+            {
+                if (!string.IsNullOrWhiteSpace(series.Path) && _diskProvider.FolderExists(series.Path))
+                {
+                    _diskProvider.DeleteFolder(series.Path, true);
+                }
+
+                return;
+            }
 
             RemoveEmptySeriesFolder(series.Path);
 

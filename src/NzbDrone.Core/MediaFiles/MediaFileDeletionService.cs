@@ -25,7 +25,7 @@ namespace NzbDrone.Core.MediaFiles
 
     public class MediaFileDeletionService : IDeleteMediaFiles,
                                             IExecute<DeleteSeriesFilesCommand>,
-                                            IHandleAsync<SeriesDeletedEvent>,
+                                            IHandle<SeriesDeletedEvent>,
                                             IHandle<EpisodeFileDeletedEvent>
     {
         private readonly IDiskProvider _diskProvider;
@@ -174,17 +174,24 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void Handle(SeriesDeletedEvent message)
         {
             if (message.DeleteFiles)
             {
-                var allSeries = _seriesService.GetAllSeriesPaths();
+                var allSeries = _seriesService.GetAllSeriesPaths() ?? new System.Collections.Generic.Dictionary<int, string>();
 
                 foreach (var series in message.Series)
                 {
+                    if (string.IsNullOrWhiteSpace(series?.Path))
+                    {
+                        continue;
+                    }
+
+                    var skipDelete = false;
+
                     foreach (var s in allSeries)
                     {
-                        if (s.Key == series.Id)
+                        if (s.Key == series.Id || string.IsNullOrWhiteSpace(s.Value))
                         {
                             continue;
                         }
@@ -192,14 +199,21 @@ namespace NzbDrone.Core.MediaFiles
                         if (series.Path.IsParentPath(s.Value))
                         {
                             _logger.Error("Platform path: '{0}' is a parent of another platform, not deleting files.", series.Path);
-                            return;
+                            skipDelete = true;
+                            break;
                         }
 
                         if (series.Path.PathEquals(s.Value))
                         {
                             _logger.Error("Platform path: '{0}' is the same as another platform, not deleting files.", series.Path);
-                            return;
+                            skipDelete = true;
+                            break;
                         }
+                    }
+
+                    if (skipDelete)
+                    {
+                        continue;
                     }
 
                     if (_diskProvider.FolderExists(series.Path))
@@ -210,6 +224,11 @@ namespace NzbDrone.Core.MediaFiles
                     _eventAggregator.PublishEvent(new DeleteCompletedEvent());
                 }
             }
+        }
+
+        public void HandleAsync(SeriesDeletedEvent message)
+        {
+            Handle(message);
         }
 
         [EventHandleOrder(EventHandleOrder.Last)]

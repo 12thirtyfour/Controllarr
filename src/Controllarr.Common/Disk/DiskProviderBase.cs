@@ -309,28 +309,68 @@ namespace NzbDrone.Common.Disk
         {
             Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
 
-            var files = GetFiles(path, recursive).ToList();
+            if (!Directory.Exists(path))
+            {
+                return;
+            }
 
-            files.ForEach(RemoveReadOnly);
+            ClearReadOnlyAttributes(path, recursive);
 
             var attempts = 0;
 
-            while (attempts < 3 && files.Any())
+            while (attempts < 3 && Directory.Exists(path))
             {
-                EmptyFolder(path);
-
-                if (GetFiles(path, recursive).Any())
+                try
                 {
-                    // Wait for IO operations to complete  after emptying the folder since they aren't always
-                    // instantly removed and it can lead to false positives that files are still present.
-                    Thread.Sleep(3000);
+                    if (recursive)
+                    {
+                        EmptyFolder(path);
+                    }
+
+                    RemoveReadOnly(path);
+                    Directory.Delete(path, recursive);
+                    return;
+                }
+                catch (Exception) when (attempts < 2)
+                {
+                    Thread.Sleep(500);
+                    ClearReadOnlyAttributes(path, recursive);
                 }
 
                 attempts++;
-                files = GetFiles(path, recursive).ToList();
             }
 
-            Directory.Delete(path, recursive);
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive);
+            }
+        }
+
+        private static void ClearReadOnlyAttributes(string path, bool recursive)
+        {
+            if (!Directory.Exists(path))
+            {
+                return;
+            }
+
+            var enumOptions = new EnumerationOptions
+            {
+                AttributesToSkip = 0,
+                RecurseSubdirectories = recursive,
+                IgnoreInaccessible = true
+            };
+
+            foreach (var file in Directory.EnumerateFiles(path, "*", enumOptions))
+            {
+                RemoveReadOnly(file);
+            }
+
+            foreach (var dir in Directory.EnumerateDirectories(path, "*", enumOptions))
+            {
+                RemoveReadOnly(dir);
+            }
+
+            RemoveReadOnly(path);
         }
 
         public string ReadAllText(string filePath)
@@ -408,15 +448,22 @@ namespace NzbDrone.Common.Disk
 
         private static void RemoveReadOnly(string path)
         {
-            if (File.Exists(path))
+            try
             {
-                var attributes = File.GetAttributes(path);
-
-                if (attributes.HasFlag(FileAttributes.ReadOnly))
+                if (File.Exists(path) || Directory.Exists(path))
                 {
-                    var newAttributes = attributes & ~FileAttributes.ReadOnly;
-                    File.SetAttributes(path, newAttributes);
+                    var attributes = File.GetAttributes(path);
+
+                    if (attributes.HasFlag(FileAttributes.ReadOnly))
+                    {
+                        var newAttributes = attributes & ~FileAttributes.ReadOnly;
+                        File.SetAttributes(path, newAttributes);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Logger.Trace(ex, "Unable to clear read-only attribute on {0}", path);
             }
         }
 
