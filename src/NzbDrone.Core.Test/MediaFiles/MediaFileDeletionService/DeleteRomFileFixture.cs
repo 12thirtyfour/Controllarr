@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using FizzWare.NBuilder;
 using Moq;
@@ -8,6 +9,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.Events;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
@@ -143,6 +145,45 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
             ExceptionVerification.ExpectedErrors(1);
             Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFile(_episodeFile.Path, "Series Title"), Times.Once());
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Delete(_episodeFile, DeleteMediaFileReason.Manual), Times.Never());
+        }
+
+        [Test]
+        public void should_delete_series_folder_when_delete_files_is_true()
+        {
+            GivenSeriesFolderExists();
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetAllSeriesPaths())
+                  .Returns(new Dictionary<int, string>());
+
+            Subject.Handle(new SeriesDeletedEvent(new List<Series> { _series }, true, false));
+
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFolder(_series.Path), Times.Once());
+        }
+
+        [Test]
+        public void should_not_delete_series_folder_when_delete_files_is_false()
+        {
+            GivenSeriesFolderExists();
+
+            Subject.Handle(new SeriesDeletedEvent(new List<Series> { _series }, false, false));
+
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFolder(It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void should_not_delete_series_folder_if_path_is_parent_of_another_series()
+        {
+            GivenSeriesFolderExists();
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetAllSeriesPaths())
+                  .Returns(new Dictionary<int, string> { { _series.Id + 1, Path.Combine(_series.Path, "SubPlatform") } });
+
+            Subject.Handle(new SeriesDeletedEvent(new List<Series> { _series }, true, false));
+
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFolder(It.IsAny<string>()), Times.Never());
+            ExceptionVerification.ExpectedErrors(1);
         }
     }
 }
