@@ -264,5 +264,79 @@ game (
             GameCatalogProxy.GetGameTdbUrl("3ds").Should().Be("https://www.gametdb.com/3dstdb.zip");
             GameCatalogProxy.GetGameTdbUrl("nes").Should().BeNull();
         }
+
+        [Test]
+        public void should_classify_gametdb_switch_regions_correctly_when_names_contain_language_tags()
+        {
+            Subject.TryGetPlatformEntry(1014, out var switchPlatform).Should().BeTrue();
+
+            var sampleXml = @"<xml>
+  <game name=""Monster Fruit Academy (EN,FR,JA,KO,ZHCN)"">
+    <id>AABBA</id>
+    <region>ALL</region>
+    <languages>EN,FR,JA,KO,ZHCN</languages>
+    <locale lang=""EN"">
+      <title>Monster Fruit Academy</title>
+    </locale>
+  </game>
+  <game name=""MODEL Debut 2 #nicola (JA)"">
+    <id>AABBB</id>
+    <region>JPN</region>
+    <languages>JA</languages>
+    <locale lang=""JA"">
+      <title>MODEL Debut 2 #nicola</title>
+    </locale>
+  </game>
+  <game name=""PJ MASKS: HEROES OF THE NIGHT (EN,FR,DE,ES,IT,NL,PT,SE,DK,NO,FI,AR,ZHCN,RU,PL)"">
+    <id>A22EA</id>
+    <region>EUR</region>
+    <locale lang=""EN"">
+      <title>PJ MASKS: HEROES OF THE NIGHT</title>
+    </locale>
+  </game>
+  <game name=""PJ MASKS: HEROES OF THE NIGHT (EN,FR,DE,ES,IT,NL,PT,SE,DK,NO,FI,AR,ZHCN,RU,PL)"">
+    <id>A22EB</id>
+    <region>USA</region>
+    <locale lang=""EN"">
+      <title>PJ MASKS: HEROES OF THE NIGHT</title>
+    </locale>
+  </game>
+  <game name=""Romancing SaGa Remastered (JA,KO,ZHCN,ZHTW)"">
+    <id>AABBC</id>
+    <region>KOR,TWN,CHN</region>
+    <languages>JA,KO,ZHCN,ZHTW</languages>
+    <locale lang=""EN"">
+      <title>Romancing SaGa Remastered</title>
+    </locale>
+  </game>
+</xml>";
+
+            var results = Subject.ParseGameTdbXmlContent(switchPlatform, sampleXml, new HashSet<string>());
+
+            results.Should().NotBeEmpty();
+
+            var monsterFruit = results.First(g => g.NoIntroName.Contains("Monster Fruit Academy"));
+            monsterFruit.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionWorldSeason);
+            monsterFruit.Title.Should().Be("Monster Fruit Academy");
+
+            var modelDebut = results.First(g => g.NoIntroName.Contains("MODEL Debut 2 #nicola"));
+            modelDebut.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionJapanSeason);
+            modelDebut.Title.Should().Be("MODEL Debut 2 #nicola");
+
+            var pjMasksEur = results.First(g => g.NoIntroName.Contains("PJ MASKS") && g.RegionSeasonNumber == GameCatalogProxy.RegionEuropeSeason);
+            pjMasksEur.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionEuropeSeason);
+
+            var pjMasksUsa = results.First(g => g.NoIntroName.Contains("PJ MASKS") && g.RegionSeasonNumber == GameCatalogProxy.RegionUsaSeason);
+            pjMasksUsa.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+
+            results.Where(g => g.Title == "PJ MASKS: HEROES OF THE NIGHT").Should().HaveCount(2);
+
+            var romancingSaga = results.First(g => g.NoIntroName.Contains("Romancing SaGa Remastered"));
+            romancingSaga.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionJapanSeason);
+
+            GameCatalogProxy.ResolveCatalogRegionLabel("ALL", "JA", null, "Some Game (JA)").Should().Be("Japan");
+            GameCatalogProxy.ResolveCatalogRegionLabel("PAL", "EN,FR,DE", null, null).Should().Be("Europe");
+            GameCatalogProxy.ResolveCatalogRegionLabel("NTSC-U", "EN", null, null).Should().Be("USA");
+        }
     }
 }

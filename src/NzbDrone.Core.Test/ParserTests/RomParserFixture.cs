@@ -106,5 +106,15 @@ namespace NzbDrone.Core.Test.ParserTests
             var result = RomParser.ParseRomName("  ");
             result.Should().BeNull();
         }
+
+        [Test]
+        public void Should_not_treat_language_codes_as_geographic_regions()
+        {
+            var result = RomParser.ParseRomName("Monster Fruit Academy (World) (EN,FR,JA,KO,ZHCN).nsp");
+            result.GameTitle.Should().Be("Monster Fruit Academy");
+            result.Regions.Should().Contain("World");
+            result.Regions.Should().NotContain("EN");
+            result.Regions.Should().NotContain("JA");
+        }
     }
 }
