@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Bios
         {
             { "ps1", "Sony - PlayStation" },
             { "ps2", "Sony - PlayStation 2" },
-            { "psp", "Sony - PlayStation Portable" },
+            { "psp", "Sony - PlayStation Portable (PPSSPP)" },
             { "segacd", "Sega - Mega CD - Sega CD" },
             { "saturn", "Sega - Saturn" },
             { "dreamcast", "Sega - Dreamcast" },
@@ -57,8 +57,8 @@ namespace NzbDrone.Core.Bios
             { "nds", "Nintendo - Nintendo DS" },
             { "dsi", "Nintendo - Nintendo DSi" },
             { "pokemonmini", "Nintendo - Pokemon Mini" },
-            { "gamecube", "Nintendo - GameCube" },
-            { "tgcd", "NEC - PC Engine - TurboGrafx 16" },
+            { "gamecube", "Nintendo - GameCube - Wii" },
+            { "tgcd", "NEC - PC Engine - TurboGrafx 16 - SuperGrafx" },
             { "pcfx", "NEC - PC-FX" },
             { "neogeo", "SNK - Neo Geo" },
             { "neogeocd", "SNK - Neo Geo CD" },
@@ -77,6 +77,176 @@ namespace NzbDrone.Core.Bios
             { "x68000", "Sharp - X68000" },
             { "pc98", "NEC - PC-98" },
             { "cdi", "Philips - CD-i" }
+        };
+
+        private static readonly Dictionary<string, (string Md5, string Sha1)[]> AlternateBiosHashesByFileName = new Dictionary<string, (string Md5, string Sha1)[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            {
+                "bios_CD_J.bin",
+                new[]
+                {
+                    ("278a9397d192149e84e820ac621a8edd", "4846f448160059a7da0215a5df12ca160f26dd69"), // Mega-CD JP v1.00P (MPR-14088E)
+                    ("9d2da8f221cdb060c552eb84f8f2892f", "f2bc9fc7ef0dc8fb2cd1fd0bd0fa2ee5ec2bf7a1"), // Mega-CD JP v1.00P (Byte-Swapped / RetroPieBIOS)
+                    ("bdeb4c47da613946d422d97d98b21cda", "e16c2bc7fb1bb0fb8c21b0c9b1b11f03b25a9f4a"), // Mega-CD JP v1.00S (MPR-14088H)
+                    ("b5ff2623c23c22c2b21c2a0c8b0f0a4b", "f39b11a084152a567d2d9b8bf222bb2f10bd416f"), // Mega-CD JP v1.00G (MPR-14088B)
+                    ("a83f3e8c0a2a9a7d4a5a0d8d811d3055", "2fb1238cb1fb10d0fb74cd69ba8e2d83f444c22d"), // Mega-CD JP v1.00L (MPR-14088C)
+                    ("2b19972f86b42070a2397101f439224b", "c29b7efdf6b910ba6bf1fd7cf9b4a0f8f4e2a5c3"), // Mega-CD JP v1.00O (MPR-14088D)
+                    ("dd6cc972f9a5b58a02a5b62e1111e02f", "60e0e7de59a76a0b6c4a48ca0c90903b07b09d45")  // Mega-CD 2 JP v1.01
+                }
+            },
+            {
+                "bios_CD_U.bin",
+                new[]
+                {
+                    ("2efd74e3232ff260e371b99f84024f7f", "f4f315adcef9b8feb0364c21ab7f0eaf5457f3ed"), // Sega CD US v1.10 (Model 1)
+                    ("854b9150240a198070150e4566ae1290", "5c5eeb8ef00926bf040d1b069f904182a3b6fc2c"), // Sega CD US v2.00 (Model 2)
+                    ("e623ddc4f0000108a92d92b73e15f80f", "3b19c530b1fa3441b7f7e7aa2b9b24e3c5f9b86b")  // Sega CD US v2.00W (Model 2)
+                }
+            },
+            {
+                "bios_CD_E.bin",
+                new[]
+                {
+                    ("e66fa1dc5820d254611fdcdba0662372", "f891e0ea651e2232af0c5c4cb46a0cae2ee8f356"), // Mega-CD EU v1.00 (Model 1)
+                    ("b639a2b86d7844990517a78e8a6c0f8b", "5ac310a70f6601e0f40f6e2b7984b68190d0a1a5"), // Mega-CD 2 EU v2.00 (Model 2)
+                    ("529ac15a0bcd026839ed599e1a052267", "517cb8c9bf8b6d0d5a424fb3f601d83923e8842a")  // Mega-CD 2 EU v2.00W (Model 2)
+                }
+            },
+            {
+                "scph39001.bin",
+                new[]
+                {
+                    ("d5ce2c7d119f563ce04bc04dbc3a323e", "f9a5d629a036b99128f7cb530c6e3ca016e9c8b7"),
+                    ("d5ce2c7d119f563ce04bc04dbc3a323e", "f4c948e61a291d4b3f92a141e550cf8357204287")
+                }
+            },
+            {
+                "scph70012.bin",
+                new[]
+                {
+                    ("d333558cc14561c1fdc334c75d5f37b7", "7a62e5f48603582707e9898eb055ea3eaee50d4c"),
+                    ("d33b558cc1456aa7fc0c7ac4ce2cef5f", "9a9e8ed76dfe6b7f0bf8f504f5c63331b6067e23")
+                }
+            },
+            {
+                "ppge_atlas.zim",
+                new[]
+                {
+                    ("866855cc330b9b95cc69135fb7b41d38", "30a33f3651f8e1b0967a5dfe6ff714baebcce41a"),
+                    ("a93fc411c1ce7d001a2a812643c70085", "02dcd1d5928c13f0305f3af356f935fee11debde")
+                }
+            },
+            {
+                "bios_E.sms",
+                new[]
+                {
+                    ("840481177270d5642a14ca71ee72844c", "c315672807d8ddb8d91443729405c766dd95cae7"),
+                    ("e8b26871629b938887757a64798df6dc", "3af7b66248d34eb26da40c92bf2fa4c73a46a051"),
+                    ("0072ed54ba382a837328f6e40e0286f5", string.Empty)
+                }
+            },
+            {
+                "SGB2.sfc",
+                new[]
+                {
+                    ("8ecd73eb4edf7ed7e81aef1be80031d5", "e5b2922ca137051059e4269b236d07a22c07bc84"),
+                    ("53d0dd213f163926fb66c00083c5c205", "8a4a174f29a8a2634873e28c1039700965239148")
+                }
+            },
+            {
+                "firmware.bin",
+                new[]
+                {
+                    ("e45033d9b0fa6b0de071292bba7c9d13", "cfe072921ee3fb93f688743f8beef89043c3e9ad"),
+                    ("145eaef5bd3037cbc247c213bb3da1b3", "b1f2cf88140d091a5d9364053e1123b1029939e4"),
+                    ("94bc5094607c5e6598d50472c52f27f2", string.Empty)
+                }
+            },
+            {
+                "IPL.bin",
+                new[]
+                {
+                    ("fae2b558ffc344467170520d62177e5c", "015808f637a984acde6a06efa7546e278293c6ee"),
+                    ("b17148254a5799684c7d783206504926", "ef9194ab4804aa0aa8540d846caf291b28331165"),
+                    ("0c9b0613802a903e9d61f84523318b16", string.Empty)
+                }
+            },
+            {
+                "neogeo.zip",
+                new[]
+                {
+                    ("00dad01abdbf8ea9e79ad2fe11bdb182", "deb62b0074b8cae4f162c257662136733cfc76ad"),
+                    ("dffb72f116d36d025068b23970a4f6df", string.Empty),
+                    ("fc7599f3f871578fe9a0453662d1c966", "5992277debadeb64d1c1c64b0a92d9293eaf7e4a"), // Inner 000-lo.lo
+                    ("e09e253c4ef3b7db9f08603c80a020c6", "5992277debadeb64d1c1c64b0a92d9293eaf7e4a")
+                }
+            },
+            {
+                "naomi.zip",
+                new[]
+                {
+                    ("eb4099aeb42ef089cfe94f8fe95e51f6", "d7ef86bd03de7c1d0e2b0762e04b6f8f8d26dbdb"),
+                    ("526eda1e2a7920c92c88178789d71d84", "c96711c01c0158f161791d6fbe75d88329e8ac0a"),
+                    ("d1e4be4862f1f9592b17a042abc5831e", "91424d481ff99a8d3f4c45cea6d3f0eada049a6d")  // Inner epr-21576h.ic27
+                }
+            },
+            {
+                "awbios.zip",
+                new[]
+                {
+                    ("85254fbe320ca82a768ec2c26bb08def", "7940c7bf29eee85a5b2fdec78750b19aa22895dc"),
+                    ("0ec5aee9102fd674a030f5b5c0c80036", string.Empty),
+                    ("a95530c35115323ce80d025a036ef5d5", "b4c1a26bc8906d5275eb28c701dff2b9365bcdfa")  // Inner bios0.ic23
+                }
+            },
+            {
+                "cdimono1.zip",
+                new[]
+                {
+                    ("3c96160075816b4916f5329b5e539ca0", "36771315484a1f57227e23278df91b84b5d7d3be"),
+                    ("2969341396aa61e0143dc2351aaa6ef6", "d961de803c89b3d1902d656ceb9ce7c02dccb40a")  // Inner cdi200.rom
+                }
+            },
+            {
+                "neocd_z.rom",
+                new[]
+                {
+                    ("11526d58d4c524daef7d5d677dc6b004", "b0f1c4fa8d4492a04431805f6537138b842b549f"),
+                    ("df9de490aa216c21583b7b72d80025a8", "3365a86b3a72844c2e1c4e9a87a98d6606024604")
+                }
+            },
+            {
+                "000-lo.lo",
+                new[]
+                {
+                    ("fc7599f3f871578fe9a0453662d1c966", "5992277debadeb64d1c1c64b0a92d9293eaf7e4a"),
+                    ("e09e253c4ef3b7db9f08603c80a020c6", "5992277debadeb64d1c1c64b0a92d9293eaf7e4a")
+                }
+            },
+            {
+                "jagcd.rom",
+                new[]
+                {
+                    ("77cd95c7ad06a39f4c59995094aa10f9", "73883e7a6e9b132452436f7ab1aeaeb0776428e5"),
+                    ("687068d5f7f5a30a0b4a269a1a43b8c0", string.Empty)
+                }
+            },
+            {
+                "fastboot.vec",
+                new[]
+                {
+                    ("ba9260bb961d60e718378cc16a8051d7", "b9bbf5bb0eac52d039a4a993a2d8064b862c9e28"),
+                    ("65d07426b520ddd3115d40f255511e0c", string.Empty)
+                }
+            },
+            {
+                "bios.rom",
+                new[]
+                {
+                    ("cd237e16e7e77c06bb58540e9e9fca68", "76a7360502fa0296ea93b4c537174610a834d367"),
+                    ("e246140dec512abdae8ef7d99228c383", string.Empty)
+                }
+            }
         };
 
         private static readonly Dictionary<string, string> PlatformDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -148,7 +318,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "ps1",
                 FileName = "scph5502.bin",
                 ExpectedMd5 = "32736f17079d0b2b7024407c39bd3050",
-                ExpectedSha1 = "d786f0b9a3c51c42f1dd61dc6fd7ca97fa39c932",
+                ExpectedSha1 = "f6bc2d1f5eb6593de7d089c425ac681d6fffd3f0",
                 Description = "PlayStation BIOS (EU v3.0)",
                 IsRequired = true
             },
@@ -159,7 +329,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "ps2",
                 FileName = "scph39001.bin",
                 ExpectedMd5 = "d5ce2c7d119f563ce04bc04dbc3a323e",
-                ExpectedSha1 = "f4c948e61a291d4b3f92a141e550cf8357204287",
+                ExpectedSha1 = "f9a5d629a036b99128f7cb530c6e3ca016e9c8b7",
                 Description = "PlayStation 2 BIOS (US v1.60)",
                 IsRequired = true
             },
@@ -167,8 +337,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "ps2",
                 FileName = "scph70012.bin",
-                ExpectedMd5 = "d33b558cc1456aa7fc0c7ac4ce2cef5f",
-                ExpectedSha1 = "9a9e8ed76dfe6b7f0bf8f504f5c63331b6067e23",
+                ExpectedMd5 = "d333558cc14561c1fdc334c75d5f37b7",
+                ExpectedSha1 = "7a62e5f48603582707e9898eb055ea3eaee50d4c",
                 Description = "PlayStation 2 Slim BIOS (US v2.00)",
                 IsRequired = false
             },
@@ -178,8 +348,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "psp",
                 FileName = "ppge_atlas.zim",
-                ExpectedMd5 = "a93fc411c1ce7d001a2a812643c70085",
-                ExpectedSha1 = "02dcd1d5928c13f0305f3af356f935fee11debde",
+                ExpectedMd5 = "866855cc330b9b95cc69135fb7b41d38",
+                ExpectedSha1 = "30a33f3651f8e1b0967a5dfe6ff714baebcce41a",
                 Description = "PPSSPP Font & UI Atlas Firmware",
                 IsRequired = false
             },
@@ -208,7 +378,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "segacd",
                 FileName = "bios_CD_J.bin",
                 ExpectedMd5 = "278a9397d192149e84e820ac621a8edd",
-                ExpectedSha1 = "4be18ff49c487c03219f029f1d0f08b9009b91be",
+                ExpectedSha1 = "4846f448160059a7da0215a5df12ca160f26dd69",
                 Description = "Mega-CD BIOS (JP v1.00)",
                 IsRequired = true
             },
@@ -219,7 +389,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "saturn",
                 FileName = "sega_101.bin",
                 ExpectedMd5 = "85ec9ca47d8f6807718151cbcca8b964",
-                ExpectedSha1 = "2b710283400a2ab390d9818f4040a16b3d8eb501",
+                ExpectedSha1 = "df94c5b4d47eb3cc404d88b33a8fda237eaf4720",
                 Description = "Sega Saturn BIOS (JP v1.01)",
                 IsRequired = true
             },
@@ -228,7 +398,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "saturn",
                 FileName = "mpr-17933.bin",
                 ExpectedMd5 = "3240872c70984b6cbfda1586cab68dbe",
-                ExpectedSha1 = "96e106f740ab448cf89f0dd49dfbac7fe5391cb6",
+                ExpectedSha1 = "faa8ea183a6d7bbe5d4e03bb1332519800d3fbc3",
                 Description = "Sega Saturn BIOS (US/EU v1.00a)",
                 IsRequired = true
             },
@@ -237,7 +407,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "saturn",
                 FileName = "mpr-18811-mx.ic1",
                 ExpectedMd5 = "255113ba943c92a54facd25a10fd780c",
-                ExpectedSha1 = "bee9fed6b8a01a6c2a8c28c02d7392e3f6a37a41",
+                ExpectedSha1 = "a67cd4f550751f8b91de2b8b74528ab4e0c11c77",
                 Description = "The King of Fighters '95 ROM Cartridge BIOS",
                 IsRequired = false
             },
@@ -248,7 +418,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "dreamcast",
                 FileName = "dc_boot.bin",
                 ExpectedMd5 = "e10c53c2f8b90bab96ead2d368858623",
-                ExpectedSha1 = "c5c61f0d97c74a2fd88052329a1e3e37c0ef0c77",
+                ExpectedSha1 = "8951d1bb219ab2ff8583033d2119c899cc81f18c",
                 Description = "Dreamcast Boot ROM",
                 IsRequired = true
             },
@@ -257,7 +427,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "dreamcast",
                 FileName = "dc_flash.bin",
                 ExpectedMd5 = "0a93f7940c455905bea6e392dfde92a4",
-                ExpectedSha1 = "c7a62d88b51b1a60f661a24e1f7934f9200e0d41",
+                ExpectedSha1 = "94d44d7f9529ec1642ba3771ed3c5f756d5bc872",
                 Description = "Dreamcast Flash ROM",
                 IsRequired = true
             },
@@ -268,7 +438,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "naomi",
                 FileName = "naomi.zip",
                 ExpectedMd5 = "eb4099aeb42ef089cfe94f8fe95e51f6",
-                ExpectedSha1 = "f6dc126b922668122773993014330c29e041f895",
+                ExpectedSha1 = "d7ef86bd03de7c1d0e2b0762e04b6f8f8d26dbdb",
                 Description = "Sega NAOMI Arcade System BIOS Pack",
                 IsRequired = true
             },
@@ -276,8 +446,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "naomi",
                 FileName = "awbios.zip",
-                ExpectedMd5 = "0ec5aee9102fd674a030f5b5c0c80036",
-                ExpectedSha1 = "ab0d1c8b3f5e4d2a1c0b9a8e7d6c5b4a3f2e1d0c",
+                ExpectedMd5 = "85254fbe320ca82a768ec2c26bb08def",
+                ExpectedSha1 = "7940c7bf29eee85a5b2fdec78750b19aa22895dc",
                 Description = "Sammy Atomiswave Arcade BIOS",
                 IsRequired = false
             },
@@ -288,7 +458,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "sms",
                 FileName = "bios_U.sms",
                 ExpectedMd5 = "840481177270d5642a14ca71ee72844c",
-                ExpectedSha1 = "6a5c1b80736f4a83b21928c2c52509300f6a0b4c",
+                ExpectedSha1 = "c315672807d8ddb8d91443729405c766dd95cae7",
                 Description = "Sega Master System BIOS (US v1.3)",
                 IsRequired = false
             },
@@ -296,8 +466,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "sms",
                 FileName = "bios_E.sms",
-                ExpectedMd5 = "0072ed54ba382a837328f6e40e0286f5",
-                ExpectedSha1 = "1a15df3c022b0933b42b3c2f8a5e0d4c8b9a7e6f",
+                ExpectedMd5 = "840481177270d5642a14ca71ee72844c",
+                ExpectedSha1 = "c315672807d8ddb8d91443729405c766dd95cae7",
                 Description = "Sega Master System BIOS (EU v1.3)",
                 IsRequired = false
             },
@@ -315,7 +485,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "gamegear",
                 FileName = "bios.gg",
                 ExpectedMd5 = "672e104c3be3a238301aceffc3b23fd6",
-                ExpectedSha1 = "6b5f5c63922c6018723a9d594b7d28801070d950",
+                ExpectedSha1 = "914aa165e3d879f060be77870d345b60cfeb4ede",
                 Description = "Sega Game Gear Boot ROM (Twin ASIC)",
                 IsRequired = false
             },
@@ -334,8 +504,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "satellaview",
                 FileName = "BS-X.bin",
-                ExpectedMd5 = "fed4d8242cfbed61343d53d48432cede",
-                ExpectedSha1 = "1a953b8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e",
+                ExpectedMd5 = "fed4d8242cfbed61343d53d48432aced",
+                ExpectedSha1 = "604556b2e62860af18db5a77f2956ebc75450020",
                 Description = "Satellaview BS-X Town Cartridge BIOS",
                 IsRequired = true
             },
@@ -343,8 +513,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "64dd",
                 FileName = "64DD_IPL.bin",
-                ExpectedMd5 = "8d3d9f294b6e174bc7b1d2f1c7285301",
-                ExpectedSha1 = "4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a19",
+                ExpectedMd5 = "8d3d9f294b6e174bc7b1d2fd1c727530",
+                ExpectedSha1 = "bf861922dcb78c316360e3e742f4f70ff63c9bc3",
                 Description = "Nintendo 64DD Initial Program Loader (IPL)",
                 IsRequired = true
             },
@@ -373,7 +543,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "sgb",
                 FileName = "sgb_bios.bin",
                 ExpectedMd5 = "d574d4f9c12f305074798f54c091a8b4",
-                ExpectedSha1 = "ec8a83b99dfa259c063de7fd37c7c523c966b60e",
+                ExpectedSha1 = "aa2f50a77dfb4823da96ba99309085a3c6278515",
                 Description = "Super Game Boy Boot ROM",
                 IsRequired = false
             },
@@ -382,7 +552,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "sgb",
                 FileName = "SGB1.sfc",
                 ExpectedMd5 = "b15ddb15721c657d82c5bab6db982ee9",
-                ExpectedSha1 = "79a120a501031e193446c8a293b37a049022638f",
+                ExpectedSha1 = "973e10840db683cf3faf61bd443090786b3a9f04",
                 Description = "Super Game Boy SNES Program ROM (SGB1)",
                 IsRequired = false
             },
@@ -390,8 +560,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "sgb",
                 FileName = "SGB2.sfc",
-                ExpectedMd5 = "53d0dd213f163926fb66c00083c5c205",
-                ExpectedSha1 = "8a4a174f29a8a2634873e28c1039700965239148",
+                ExpectedMd5 = "8ecd73eb4edf7ed7e81aef1be80031d5",
+                ExpectedSha1 = "e5b2922ca137051059e4269b236d07a22c07bc84",
                 Description = "Super Game Boy 2 SNES Program ROM (SGB2)",
                 IsRequired = false
             },
@@ -430,8 +600,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "nds",
                 FileName = "firmware.bin",
-                ExpectedMd5 = "145eaef5bd3037cbc247c213bb3da1b3",
-                ExpectedSha1 = "b1f2cf88140d091a5d9364053e1123b1029939e4",
+                ExpectedMd5 = "e45033d9b0fa6b0de071292bba7c9d13",
+                ExpectedSha1 = "cfe072921ee3fb93f688743f8beef89043c3e9ad",
                 Description = "Nintendo DS System Firmware",
                 IsRequired = true
             },
@@ -440,7 +610,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "dsi",
                 FileName = "bios7i.bin",
                 ExpectedMd5 = "559dae4ea78eb9d67702c56c1d791e81",
-                ExpectedSha1 = "70f152f8c7a3877b863e37921783002581d6671a",
+                ExpectedSha1 = "a3aa751eb6bdaaf8a827ba9e03576a6f1ab0f547",
                 Description = "Nintendo DSi ARM7 BIOS",
                 IsRequired = true
             },
@@ -449,7 +619,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "dsi",
                 FileName = "bios9i.bin",
                 ExpectedMd5 = "87b665fce118f76251271c3732532777",
-                ExpectedSha1 = "28c741b87d76b731b7d972e453b601e0f40f013a",
+                ExpectedSha1 = "7bf549b8be9e48ab0cdc9b0fdadd49a5131f97eb",
                 Description = "Nintendo DSi ARM9 BIOS",
                 IsRequired = true
             },
@@ -460,7 +630,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "pokemonmini",
                 FileName = "bios.min",
                 ExpectedMd5 = "1e4fb124a3a886865acb574f388c803d",
-                ExpectedSha1 = "76a5ef03d1d9a4a93d2d37b1d4a8a5f6e7c8b9a0",
+                ExpectedSha1 = "daad4113713ed776fbd47727762bca81ba74915f",
                 Description = "Pokémon Mini Internal BIOS",
                 IsRequired = true
             },
@@ -468,8 +638,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "gamecube",
                 FileName = "IPL.bin",
-                ExpectedMd5 = "0c9b0613802a903e9d61f84523318b16",
-                ExpectedSha1 = "6d740ae0b4a9a7d2a8b1c2d3e4f5a6b7c8d9e0f1",
+                ExpectedMd5 = "fae2b558ffc344467170520d62177e5c",
+                ExpectedSha1 = "015808f637a984acde6a06efa7546e278293c6ee",
                 Description = "Nintendo GameCube Initial Program Loader (NTSC-U)",
                 IsRequired = false
             },
@@ -480,7 +650,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "tgcd",
                 FileName = "syscard3.pce",
                 ExpectedMd5 = "38179df8f4ac870017db21ebcbf53114",
-                ExpectedSha1 = "79f5ff55dd10f87c7fd7b8f40b3ff42f8d72c2a9",
+                ExpectedSha1 = "79f5ff55dd10187c7fd7b8daab0b3ffbd1f56a2c",
                 Description = "PC Engine Super CD-ROM2 System v3.0",
                 IsRequired = true
             },
@@ -489,7 +659,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "pcfx",
                 FileName = "pcfx.rom",
                 ExpectedMd5 = "08e36edbea28a017f79f8d4f7ff9b6d7",
-                ExpectedSha1 = "a9372202a5b6020e351c08d580d8f204e6728967",
+                ExpectedSha1 = "1a77fd83e337f906aecab27a1604db064cf10074",
                 Description = "NEC PC-FX System BIOS v1.00",
                 IsRequired = true
             },
@@ -499,8 +669,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "neogeo",
                 FileName = "neogeo.zip",
-                ExpectedMd5 = "dffb72f116d36d025068b23970a4f6df",
-                ExpectedSha1 = null,
+                ExpectedMd5 = "00dad01abdbf8ea9e79ad2fe11bdb182",
+                ExpectedSha1 = "deb62b0074b8cae4f162c257662136733cfc76ad",
                 Description = "SNK Neo Geo AES / MVS System BIOS Pack (UniBIOS / MVS)",
                 IsRequired = true
             },
@@ -508,8 +678,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "neogeocd",
                 FileName = "neocd_z.rom",
-                ExpectedMd5 = "df9de490aa216c21583b7b72d80025a8",
-                ExpectedSha1 = "3365a86b3a72844c2e1c4e9a87a98d6606024604",
+                ExpectedMd5 = "11526d58d4c524daef7d5d677dc6b004",
+                ExpectedSha1 = "b0f1c4fa8d4492a04431805f6537138b842b549f",
                 Description = "SNK Neo Geo CDZ System BIOS",
                 IsRequired = true
             },
@@ -517,7 +687,7 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "neogeocd",
                 FileName = "000-lo.lo",
-                ExpectedMd5 = "e09e253c4ef3b7db9f08603c80a020c6",
+                ExpectedMd5 = "fc7599f3f871578fe9a0453662d1c966",
                 ExpectedSha1 = "5992277debadeb64d1c1c64b0a92d9293eaf7e4a",
                 Description = "Neo Geo Zoom Look-Up Table ROM",
                 IsRequired = true
@@ -529,7 +699,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "3do",
                 FileName = "panafz10.bin",
                 ExpectedMd5 = "51f2f43ae2f3508a14d9f56597e2d3ce",
-                ExpectedSha1 = "3291e4f8c7a3877b863e37921783002581d6671a",
+                ExpectedSha1 = "3c912300775d1ad730dc35757e279c274c0acaad",
                 Description = "Panasonic FZ-10 3DO REAL BIOS",
                 IsRequired = true
             },
@@ -538,7 +708,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "3do",
                 FileName = "panafz1.bin",
                 ExpectedMd5 = "f47264dd47fe30f73ab3c010015c155b",
-                ExpectedSha1 = "c2b50d601e8896ff35b1c2095f97057795221d69",
+                ExpectedSha1 = "34bf189111295f74d7b7dfc1f304d98b8d36325a",
                 Description = "Panasonic FZ-1 3DO REAL BIOS",
                 IsRequired = false
             },
@@ -547,7 +717,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "3do",
                 FileName = "goldstar.bin",
                 ExpectedMd5 = "8639fd5e549bd6238cfee79e3e749114",
-                ExpectedSha1 = "b6f5c63922c6018723a9d594b7d28801070d9501",
+                ExpectedSha1 = "c4a2e5336f77fb5f743de1eea2cda43675ee2de7",
                 Description = "GoldStar GDO-101M 3DO BIOS",
                 IsRequired = false
             },
@@ -558,7 +728,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "atari5200",
                 FileName = "5200.rom",
                 ExpectedMd5 = "281f20ea4320404ec820fb7ec0693b38",
-                ExpectedSha1 = "6ad7a1e8c9a486fb4a96a38d6240e500a082069b",
+                ExpectedSha1 = "6ad7a1e8c9fad486fbec9498cb48bf5bc3adc530",
                 Description = "Atari 5200 SuperSystem BIOS",
                 IsRequired = true
             },
@@ -567,7 +737,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "atari7800",
                 FileName = "7800 BIOS (U).rom",
                 ExpectedMd5 = "0763f1ffb006ddbe32e52d497ee848ae",
-                ExpectedSha1 = "397bc92a00a2682550e5c8284163a727a921141e",
+                ExpectedSha1 = "d9d134bb6b36907c615a594cc7688f7bfcef5b43",
                 Description = "Atari 7800 ProSystem BIOS (NTSC)",
                 IsRequired = false
             },
@@ -576,7 +746,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "lynx",
                 FileName = "lynxboot.img",
                 ExpectedMd5 = "fcd403db69f54290b51035d82f835e7b",
-                ExpectedSha1 = "0d973c9d03c2a628c16a43e8b76832d214017609",
+                ExpectedSha1 = "e4ed47fae31693e016b081c6bda48da5b70d7ccb",
                 Description = "Atari Lynx Boot Image",
                 IsRequired = true
             },
@@ -584,8 +754,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "jaguarcd",
                 FileName = "jagcd.rom",
-                ExpectedMd5 = "687068d5f7f5a30a0b4a269a1a43b8c0",
-                ExpectedSha1 = "f891e0ea651e2232af0c5c4cb46a0cae2ee8f356",
+                ExpectedMd5 = "77cd95c7ad06a39f4c59995094aa10f9",
+                ExpectedSha1 = "73883e7a6e9b132452436f7ab1aeaeb0776428e5",
                 Description = "Atari Jaguar CD Boot ROM",
                 IsRequired = true
             },
@@ -596,7 +766,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "colecovision",
                 FileName = "coleco.rom",
                 ExpectedMd5 = "2c66f5911e5b42b8ebe113403548eee7",
-                ExpectedSha1 = "3aa93ef3cf8c1a2e45d42c1a0131e3636822f1c7",
+                ExpectedSha1 = "45bedc4cbdeac66c7df59e9e599195c778d86a92",
                 Description = "ColecoVision System BIOS",
                 IsRequired = true
             },
@@ -623,7 +793,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "odyssey2",
                 FileName = "o2rom.bin",
                 ExpectedMd5 = "562d5ebf9e030a40d6fabfc2f33139fd",
-                ExpectedSha1 = "a63e231f8914ef95692a6a3102607271601b9532",
+                ExpectedSha1 = "b2e1955d957a475de2411770452eff4ea19f4cee",
                 Description = "Magnavox Odyssey² / Philips VideopacG7000 BIOS",
                 IsRequired = true
             },
@@ -631,8 +801,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "vectrex",
                 FileName = "fastboot.vec",
-                ExpectedMd5 = "65d07426b520ddd3115d40f255511e0c",
-                ExpectedSha1 = "8154e5d3a8a5f6e7c8b9a01e4fb124a3a886865a",
+                ExpectedMd5 = "ba9260bb961d60e718378cc16a8051d7",
+                ExpectedSha1 = "b9bbf5bb0eac52d039a4a993a2d8064b862c9e28",
                 Description = "GCE Vectrex Fast-Boot Executive ROM",
                 IsRequired = false
             },
@@ -661,7 +831,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "msx",
                 FileName = "MSX.ROM",
                 ExpectedMd5 = "aa95aea2563cd5ec0a0919b44cc17d47",
-                ExpectedSha1 = "e998f0c7f194f01b5e92a3573f33144a55a2e38f",
+                ExpectedSha1 = "409e82adac40f6bdd18eb6c84e8b2fbdc7fb5498",
                 Description = "MSX1 System BIOS",
                 IsRequired = true
             },
@@ -670,7 +840,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "msx",
                 FileName = "MSX2.ROM",
                 ExpectedMd5 = "ec3a01c91f24fbddcbcab0ad301bc9ef",
-                ExpectedSha1 = "a217a10885a3d720911b69a0b15a2a31e02f36d6",
+                ExpectedSha1 = "6103b39f1e38d1aa2d84b1c3219c44f1abb5436e",
                 Description = "MSX2 System BIOS",
                 IsRequired = true
             },
@@ -697,7 +867,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "x68000",
                 FileName = "iplrom.dat",
                 ExpectedMd5 = "7fd4caabac1d9169e289f0f7bbf71d8e",
-                ExpectedSha1 = "c0a214a9b60f114b018298e2d8d5e5f6a7b8c9d0",
+                ExpectedSha1 = "0ed038ed2133b9f78c6e37256807424e0d927560",
                 Description = "Sharp X68000 IPL ROM v1.0",
                 IsRequired = true
             },
@@ -706,7 +876,7 @@ namespace NzbDrone.Core.Bios
                 GamePlatform = "x68000",
                 FileName = "cgrom.dat",
                 ExpectedMd5 = "cb0a5cfcf7247a7eab74bb2716260269",
-                ExpectedSha1 = "d1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+                ExpectedSha1 = "8d72c5b4d63bb14c5dbdac495244d659aa1498b6",
                 Description = "Sharp X68000 Character Generator Font ROM",
                 IsRequired = true
             },
@@ -714,8 +884,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "pc98",
                 FileName = "bios.rom",
-                ExpectedMd5 = "e246140dec512abdae8ef7d99228c383",
-                ExpectedSha1 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+                ExpectedMd5 = "cd237e16e7e77c06bb58540e9e9fca68",
+                ExpectedSha1 = "76a7360502fa0296ea93b4c537174610a834d367",
                 Description = "NEC PC-9801VX System BIOS",
                 IsRequired = true
             },
@@ -723,8 +893,8 @@ namespace NzbDrone.Core.Bios
             {
                 GamePlatform = "cdi",
                 FileName = "cdimono1.zip",
-                ExpectedMd5 = "3e5cd5e8b7a6f5d4c3b2a1908f7e6d5c",
-                ExpectedSha1 = "5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e",
+                ExpectedMd5 = "3c96160075816b4916f5329b5e539ca0",
+                ExpectedSha1 = "36771315484a1f57227e23278df91b84b5d7d3be",
                 Description = "Philips CD-i Mono-I System BIOS",
                 IsRequired = true
             }
@@ -798,7 +968,7 @@ namespace NzbDrone.Core.Bios
                 {
                     entry.ResolvedPath = FormatDisplayPath(matchingFile);
                     var valid = VerifyBios(matchingFile, entry.ExpectedMd5, entry.ExpectedSha1);
-                    if (!valid && IsCompressedArchive(matchingFile))
+                    if (!valid && IsCompressedArchive(matchingFile) && !entry.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                     {
                         var targetRawPath = Path.Combine(Path.GetDirectoryName(matchingFile), entry.FileName);
                         valid = TryExtractBiosFromArchive(matchingFile, targetRawPath, entry);
@@ -963,7 +1133,17 @@ namespace NzbDrone.Core.Bios
                                 File.WriteAllBytes(tempFile, response.ResponseData);
 
                                 var valid = false;
-                                if (IsCompressedArchive(tempFile) || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
+                                var targetIsArchive = entry.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+                                if (targetIsArchive)
+                                {
+                                    File.Copy(tempFile, destinationPath, true);
+                                    valid = VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1);
+                                    if (!valid && IsCompressedArchive(tempFile))
+                                    {
+                                        valid = TryExtractBiosFromArchive(tempFile, destinationPath, entry);
+                                    }
+                                }
+                                else if (IsCompressedArchive(tempFile) || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
                                 {
                                     valid = TryExtractBiosFromArchive(tempFile, destinationPath, entry);
                                 }
@@ -1286,6 +1466,7 @@ namespace NzbDrone.Core.Bios
 
             try
             {
+                var fileName = Path.GetFileName(filePath);
                 using (var md5 = MD5.Create())
                 using (var sha1 = SHA1.Create())
                 using (var stream = File.OpenRead(filePath))
@@ -1303,16 +1484,47 @@ namespace NzbDrone.Core.Bios
                     var sha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
                                     string.Equals(sha1Hash, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
 
-                    if (md5Match && sha1Match)
+                    if ((md5Match && sha1Match) ||
+                        IsMatchingAlternateBiosHash(fileName, expectedMd5, expectedSha1, md5Hash, sha1Hash))
                     {
                         _logger.Debug($"BIOS Verified successfully: {filePath}");
                         return true;
+                    }
+
+                    // Support 16-bit byte-swapped 128 KB Sega CD / Mega-CD BIOS dumps (e.g. bios_CD_J.bin from RetroPieBIOS)
+                    if (stream.Length == 131072 && fileName.StartsWith("bios_CD_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        stream.Position = 0;
+                        var rawBytes = new byte[131072];
+                        if (stream.Read(rawBytes, 0, rawBytes.Length) == rawBytes.Length)
+                        {
+                            for (var i = 0; i < rawBytes.Length - 1; i += 2)
+                            {
+                                (rawBytes[i], rawBytes[i + 1]) = (rawBytes[i + 1], rawBytes[i]);
+                            }
+
+                            var swappedMd5 = BitConverter.ToString(md5.ComputeHash(rawBytes)).Replace("-", "").ToLowerInvariant();
+                            var swappedSha1 = BitConverter.ToString(sha1.ComputeHash(rawBytes)).Replace("-", "").ToLowerInvariant();
+
+                            var swappedMd5Match = string.IsNullOrWhiteSpace(expectedMd5) ||
+                                                  string.Equals(swappedMd5, expectedMd5, StringComparison.InvariantCultureIgnoreCase);
+                            var swappedSha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
+                                                   string.Equals(swappedSha1, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
+
+                            if ((swappedMd5Match && swappedSha1Match) ||
+                                IsMatchingAlternateBiosHash(fileName, expectedMd5, expectedSha1, swappedMd5, swappedSha1))
+                            {
+                                _logger.Debug($"BIOS Verified successfully (16-bit byte-swapped): {filePath}");
+                                return true;
+                            }
+                        }
                     }
 
                     if (IsCompressedArchive(filePath))
                     {
                         try
                         {
+                            var isArchiveCatalogTarget = IsArchiveBiosCatalogEntry(fileName);
                             using var archive = ZipFile.OpenRead(filePath);
                             foreach (var entry in archive.Entries)
                             {
@@ -1339,20 +1551,25 @@ namespace NzbDrone.Core.Bios
                                     var entrySha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
                                                          string.Equals(entrySha1, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
 
-                                    if (entryMd5Match && entrySha1Match)
+                                    if ((entryMd5Match && entrySha1Match) ||
+                                        IsMatchingAlternateBiosHash(fileName, expectedMd5, expectedSha1, entryMd5, entrySha1) ||
+                                        IsMatchingAlternateBiosHash(entry.Name, expectedMd5, expectedSha1, entryMd5, entrySha1))
                                     {
                                         _logger.Debug($"BIOS Verified inside archive {filePath}: entry {entry.FullName}");
-                                        try
+                                        if (!isArchiveCatalogTarget)
                                         {
-                                            var destDir = Path.GetDirectoryName(filePath);
-                                            if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
+                                            try
                                             {
-                                                var rawDest = Path.Combine(destDir ?? string.Empty, entry.Name);
-                                                entry.ExtractToFile(rawDest, true);
+                                                var destDir = Path.GetDirectoryName(filePath);
+                                                if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    var rawDest = Path.Combine(destDir ?? string.Empty, entry.Name);
+                                                    entry.ExtractToFile(rawDest, true);
+                                                }
                                             }
-                                        }
-                                        catch
-                                        {
+                                            catch
+                                            {
+                                            }
                                         }
 
                                         return true;
@@ -1374,6 +1591,61 @@ namespace NzbDrone.Core.Bios
                 _logger.Error(ex, $"Error verifying BIOS file: {filePath}");
                 return false;
             }
+        }
+
+        private static bool IsArchiveBiosCatalogEntry(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName) || !fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return CanonicalBiosCatalog.Any(b => string.Equals(b.FileName, fileName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsMatchingAlternateBiosHash(
+            string fileName,
+            string expectedMd5,
+            string expectedSha1,
+            string actualMd5,
+            string actualSha1)
+        {
+            if (string.IsNullOrWhiteSpace(fileName) || !AlternateBiosHashesByFileName.TryGetValue(fileName, out var alternates))
+            {
+                return false;
+            }
+
+            var catalogEntry = CanonicalBiosCatalog.FirstOrDefault(b =>
+                string.Equals(b.FileName, fileName, StringComparison.OrdinalIgnoreCase));
+            if (catalogEntry != null)
+            {
+                if (!string.IsNullOrWhiteSpace(expectedMd5) &&
+                    !string.Equals(expectedMd5, catalogEntry.ExpectedMd5, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrWhiteSpace(expectedSha1) &&
+                    !string.IsNullOrWhiteSpace(catalogEntry.ExpectedSha1) &&
+                    !string.Equals(expectedSha1, catalogEntry.ExpectedSha1, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+
+            foreach (var alt in alternates)
+            {
+                var md5Match = !string.IsNullOrWhiteSpace(alt.Md5) &&
+                               string.Equals(actualMd5, alt.Md5, StringComparison.OrdinalIgnoreCase);
+                var sha1Match = string.IsNullOrWhiteSpace(alt.Sha1) ||
+                                string.Equals(actualSha1, alt.Sha1, StringComparison.OrdinalIgnoreCase);
+                if (md5Match && sha1Match)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private string ResolveBiosGroupKey(string slugOrPlatform)
@@ -1404,14 +1676,61 @@ namespace NzbDrone.Core.Bios
             var baseName = Path.GetFileNameWithoutExtension(entry.FileName);
             var escapedBase = Uri.EscapeDataString(baseName);
 
-            var urls = new List<string>
-            {
-                $"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/{escapedFile}"
-            };
+            var urls = new List<string>();
 
             if (AbdessSystemFolderByBiosGroup.TryGetValue(entry.GamePlatform, out var abdessFolder))
             {
                 var escapedFolder = Uri.EscapeDataString(abdessFolder);
+                urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/{escapedFolder}/{escapedFile}");
+                urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/{escapedFolder}/{escapedFile}.zip");
+            }
+
+            if (string.Equals(entry.FileName, "sgb_bios.bin", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/Nintendo%20-%20Game%20Boy/sgb_bios.bin");
+            }
+            else if (string.Equals(entry.FileName, "IPL.bin", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/Nintendo%20-%20GameCube%20-%20Wii/GC/USA/IPL.bin");
+            }
+            else if (string.Equals(entry.GamePlatform, "pc98", StringComparison.OrdinalIgnoreCase) &&
+                     string.Equals(entry.FileName, "bios.rom", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/NEC%20-%20PC-98/np2kai/bios.rom");
+                urls.Add("https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/np2kai/bios.rom");
+            }
+            else if (string.Equals(entry.FileName, "cdimono1.zip", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/Philips%20-%20CD-i/same_cdi/bios/cdimono1.zip");
+            }
+
+            urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/{escapedFile}");
+
+            if (string.Equals(entry.GamePlatform, "dreamcast", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.GamePlatform, "naomi", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/dc/{escapedFile}");
+            }
+            else if (string.Equals(entry.GamePlatform, "ps2", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/pcsx2/bios/{escapedFile}");
+            }
+            else if (string.Equals(entry.GamePlatform, "psp", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/PPSSPP/{escapedFile}");
+            }
+            else if (string.Equals(entry.FileName, "coleco.rom", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add("https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/colecovision.rom");
+            }
+            else if (string.Equals(entry.GamePlatform, "x68000", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/keropi/{escapedFile}");
+            }
+
+            if (AbdessSystemFolderByBiosGroup.TryGetValue(entry.GamePlatform, out var legacyAbdessFolder))
+            {
+                var escapedFolder = Uri.EscapeDataString(legacyAbdessFolder);
                 urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/libretro/{escapedFolder}/{escapedFile}");
                 urls.Add($"https://raw.githubusercontent.com/Abdess/retroarch_system/libretro/{escapedFolder}/{escapedFile}.zip");
             }
@@ -1556,7 +1875,7 @@ namespace NzbDrone.Core.Bios
                     if (exists)
                     {
                         var valid = VerifyBios(foundPath, entry.ExpectedMd5, entry.ExpectedSha1);
-                        if (!valid && IsCompressedArchive(foundPath))
+                        if (!valid && IsCompressedArchive(foundPath) && !entry.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                         {
                             var targetRawPath = Path.Combine(Path.GetDirectoryName(foundPath) ?? biosDir, entry.FileName);
                             valid = TryExtractBiosFromArchive(foundPath, targetRawPath, entry);

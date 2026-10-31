@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- **Canonical BIOS Catalog Cryptographic Hash Verification & Sega CD JP BIOS Support**:
+  - Audited and corrected `ExpectedMd5` and `ExpectedSha1` checksums across all 57 entries in `CanonicalBiosCatalog` in `src/NzbDrone.Core/Bios/BiosService.cs` (including `bios_CD_J.bin` for Mega-CD JP v1.00, which previously had a mismatched `ExpectedSha1` that caused valid files to fail verification and be discarded).
+  - Added multi-revision verification support (`AlternateBiosHashesByFileName`) and 16-bit byte-swapped ROM detection for Sega CD / Mega-CD (`bios_CD_J.bin`, `bios_CD_U.bin`, `bios_CD_E.bin`) and official regional BIOS revisions.
+  - Preserved `.zip`-packaged arcade/system BIOS archives (`neogeo.zip`, `naomi.zip`, `awbios.zip`, `cdimono1.zip`) intact on disk during verification and auto-download, and updated `BuildCandidateDownloadUrls` to target current `Abdess/retroarch_system` (`main/bios/...`) and `archtaurus/RetroPieBIOS` directory paths.
+
 ### Changed
 - **Direct API V5, Command, Configuration & Localization Naming Alignment (Zero Aliasing)**:
   - Removed all code-level token aliasing in `frontend/src/Utilities/String/translate.ts` and updated localization templates in `src/NzbDrone.Core/Localization/Core/en.json` and `PlatformIndexProgressBar.tsx` to use `{romFileCount}`, `{gameCount}`, `{totalGameCount}`, `{gameFormat}`, and `{game}` directly.

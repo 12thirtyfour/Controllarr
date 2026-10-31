@@ -183,5 +183,57 @@ namespace NzbDrone.Core.Test.BiosTests
             fdsBios.Should().NotBeNull();
             fdsBios.IsVerified.Should().BeFalse();
         }
+
+        [Test]
+        public void Should_have_valid_cryptographic_hashes_for_all_canonical_bios_catalog_entries()
+        {
+            var catalog = Subject.GetCatalog();
+            catalog.Should().NotBeEmpty();
+
+            foreach (var entry in catalog)
+            {
+                entry.ExpectedMd5.Should().NotBeNullOrWhiteSpace($"{entry.GamePlatform}/{entry.FileName} must define ExpectedMd5");
+                entry.ExpectedMd5.Should().MatchRegex("^[0-9a-f]{32}$", $"{entry.GamePlatform}/{entry.FileName} ExpectedMd5 must be 32 hex chars");
+                entry.ExpectedSha1.Should().NotBeNullOrWhiteSpace($"{entry.GamePlatform}/{entry.FileName} must define ExpectedSha1");
+                entry.ExpectedSha1.Should().MatchRegex("^[0-9a-f]{40}$", $"{entry.GamePlatform}/{entry.FileName} ExpectedSha1 must be 40 hex chars");
+                entry.ExpectedSha1.Should().NotContain("a1b2c3d4e5f6", $"{entry.GamePlatform}/{entry.FileName} must not contain placeholder SHA1");
+            }
+
+            var segaCdJp = catalog.FirstOrDefault(b => b.GamePlatform == "segacd" && b.FileName == "bios_CD_J.bin");
+            segaCdJp.Should().NotBeNull();
+            segaCdJp.ExpectedMd5.Should().Be("278a9397d192149e84e820ac621a8edd");
+            segaCdJp.ExpectedSha1.Should().Be("4846f448160059a7da0215a5df12ca160f26dd69");
+        }
+
+        [Test]
+        public void Should_verify_byteswapped_sega_cd_bios_dump()
+        {
+            var linearRom = new byte[131072];
+            for (var i = 0; i < linearRom.Length; i++)
+            {
+                linearRom[i] = (byte)((i * 31) & 0xFF);
+            }
+
+            string linearMd5;
+            string linearSha1;
+            using (var md5 = MD5.Create())
+            using (var sha1 = SHA1.Create())
+            {
+                linearMd5 = BitConverter.ToString(md5.ComputeHash(linearRom)).Replace("-", "").ToLowerInvariant();
+                linearSha1 = BitConverter.ToString(sha1.ComputeHash(linearRom)).Replace("-", "").ToLowerInvariant();
+            }
+
+            var swappedRom = new byte[131072];
+            for (var i = 0; i < linearRom.Length - 1; i += 2)
+            {
+                swappedRom[i] = linearRom[i + 1];
+                swappedRom[i + 1] = linearRom[i];
+            }
+
+            var biosPath = Path.Combine(_tempDir, "bios_CD_J.bin");
+            File.WriteAllBytes(biosPath, swappedRom);
+
+            Subject.VerifyBios(biosPath, linearMd5, linearSha1).Should().BeTrue();
+        }
     }
 }
