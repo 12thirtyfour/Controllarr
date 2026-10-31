@@ -77,5 +77,14 @@ namespace NzbDrone.Core.Test.Localization
         {
             Assert.Throws<ArgumentNullException>(() => Subject.GetLocalizedString(null));
         }
+
+        [Test]
+        public void should_resolve_platform_and_delete_modal_keys()
+        {
+            Subject.GetLocalizedString("AddNewPlatform").Should().Be("Add New Platform");
+            Subject.GetLocalizedString("DeletePlatformFolder").Should().Be("Delete Platform Folder");
+            Subject.GetLocalizedString("DeletePlatformFolderHelpText").Should().Be("Delete the platform folder and its contents");
+            Subject.GetLocalizedString("DeletePlatformFolderConfirmation").Should().Contain("{path}");
+        }
     }
 }
