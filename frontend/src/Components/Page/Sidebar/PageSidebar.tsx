@@ -56,7 +56,7 @@ interface SidebarGroup {
 
 const GROUPS: SidebarGroup[] = [
   {
-    label: () => translate('Media'),
+    label: () => translate('Platforms'),
     items: [
       {
         iconName: icons.HOME,

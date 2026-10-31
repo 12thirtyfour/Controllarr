@@ -21,6 +21,10 @@ import Label from 'Components/Label';
 import IconButton from 'Components/Link/IconButton';
 import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import Menu from 'Components/Menu/Menu';
+import MenuContent from 'Components/Menu/MenuContent';
+import MenuItem from 'Components/Menu/MenuItem';
+import ToolbarMenuButton from 'Components/Menu/ToolbarMenuButton';
 import MetadataAttribution from 'Components/MetadataAttribution';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -590,6 +594,51 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     <PlatformDetailsProvider seriesId={seriesId}>
       <PageContent title={title}>
         <PageToolbar>
+          <ToolbarItem id="search" priority={1} groupId="left-a">
+            <Menu alignMenu="left">
+              <ToolbarMenuButton
+                iconName={icons.SEARCH}
+                text={translate('Search')}
+                isDisabled={!monitored || !hasGames}
+                showIndicator={isSearching || isSearchingCollection}
+              />
+              <MenuContent>
+                <MenuItem
+                  isDisabled={
+                    !monitored || !hasMonitoredGames || !hasGames || isSearching
+                  }
+                  title={
+                    hasMonitoredGames
+                      ? undefined
+                      : translate('NoMonitoredGames')
+                  }
+                  onPress={handleSearchPress}
+                >
+                  <Icon
+                    className={styles.actionMenuIcon}
+                    name={isSearching ? icons.SPINNER : icons.SEARCH}
+                    isSpinning={isSearching}
+                    size={14}
+                  />
+                  {translate('SearchMonitored')}
+                </MenuItem>
+                <MenuItem
+                  isDisabled={!monitored || !hasGames || isSearchingCollection}
+                  title={translate('SearchForCollectionHelpText')}
+                  onPress={handleSearchCollectionPress}
+                >
+                  <Icon
+                    className={styles.actionMenuIcon}
+                    name={isSearchingCollection ? icons.SPINNER : icons.SEARCH}
+                    isSpinning={isSearchingCollection}
+                    size={14}
+                  />
+                  {translate('SearchForCollection')}
+                </MenuItem>
+              </MenuContent>
+            </Menu>
+          </ToolbarItem>
+
           <ToolbarItem
             id="refresh"
             priority={1}
@@ -600,34 +649,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
             title={translate('RefreshAndScanTooltip')}
             isSpinning={isRefreshing}
             onPress={handleRefreshPress}
-          />
-
-          <ToolbarItem
-            id="search-monitored"
-            priority={1}
-            groupId="left-a"
-            label={translate('SearchMonitored')}
-            iconName={icons.SEARCH}
-            isDisabled={!monitored || !hasMonitoredGames || !hasGames}
-            isSpinning={isSearching}
-            title={
-              hasMonitoredGames
-                ? undefined
-                : translate('NoMonitoredGames')
-            }
-            onPress={handleSearchPress}
-          />
-
-          <ToolbarItem
-            id="search-collection"
-            priority={1}
-            groupId="left-a"
-            label={translate('SearchForCollection')}
-            iconName={icons.SEARCH}
-            isDisabled={!monitored || !hasGames}
-            isSpinning={isSearchingCollection}
-            title={translate('SearchForCollectionHelpText')}
-            onPress={handleSearchCollectionPress}
           />
 
           <OverflowDivider groupId="left-a">

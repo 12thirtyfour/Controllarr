@@ -413,3 +413,7 @@
     gap: 6px;
   }
 }
+
+.actionMenuIcon {
+  margin-right: 8px;
+}
