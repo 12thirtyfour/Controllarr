@@ -7,6 +7,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Bios;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
@@ -46,6 +47,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
         private readonly ILocalEpisodeCustomFormatCalculationService _localEpisodeFormatCalculator;
         private readonly IEventAggregator _eventAggregator;
         private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
+        private readonly IBiosService _biosService;
         private readonly Logger _logger;
 
         public ManualImportService(IDiskProvider diskProvider,
@@ -63,7 +65,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                                    ICustomFormatCalculationService formatCalculator,
                                    IEventAggregator eventAggregator,
                                    Logger logger,
-                                   IUnmanagedDiskScanner unmanagedDiskScanner)
+                                   IUnmanagedDiskScanner unmanagedDiskScanner,
+                                   IBiosService biosService = null)
         {
             _diskProvider = diskProvider;
             _parsingService = parsingService;
@@ -81,6 +84,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             _eventAggregator = eventAggregator;
             _logger = logger;
             _unmanagedDiskScanner = unmanagedDiskScanner;
+            _biosService = biosService;
         }
 
         public List<ManualImportItem> GetMediaFiles(int seriesId, int? seasonNumber)
@@ -597,6 +601,36 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                     }
 
                     existingFile = false;
+                }
+
+                if (_biosService != null && series != null &&
+                    _biosService.IsKnownBiosFileName(Path.GetFileName(actualPath)))
+                {
+                    var isBios = _biosService.ProcessCandidateBiosFile(actualPath, series, move: message.ImportMode == ImportMode.Move);
+                    if (isBios)
+                    {
+                        var biosDest = Path.Combine(series.Path, "BIOS", Path.GetFileName(actualPath));
+                        var biosResult = new ImportResult(new ImportDecision(new LocalEpisode
+                        {
+                            Path = biosDest,
+                            Series = series
+                        }));
+                        imported.Add(biosResult);
+                        importedUntrackedDownload.Add(biosResult);
+
+                        if (tempExtractDir != null && Directory.Exists(tempExtractDir))
+                        {
+                            try
+                            {
+                                Directory.Delete(tempExtractDir, true);
+                            }
+                            catch
+                            {
+                            }
+                        }
+
+                        continue;
+                    }
                 }
 
                 TrackedDownload trackedDownload = null;

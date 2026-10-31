@@ -235,5 +235,98 @@ namespace NzbDrone.Core.Test.BiosTests
 
             Subject.VerifyBios(biosPath, linearMd5, linearSha1).Should().BeTrue();
         }
+
+        [Test]
+        public void Should_process_and_import_candidate_bios_file_into_series_bios_directory()
+        {
+            var seriesDir = Path.Combine(_tempDir, "Sega CD");
+            Directory.CreateDirectory(seriesDir);
+
+            var series = new NzbDrone.Core.Tv.Series
+            {
+                Id = 1,
+                Title = "Sega CD",
+                TitleSlug = "segacd",
+                Path = seriesDir
+            };
+
+            var downloadSource = Path.Combine(_tempDir, "downloads", "bios_CD_U.bin");
+            Directory.CreateDirectory(Path.GetDirectoryName(downloadSource));
+            var payload = Encoding.UTF8.GetBytes("fake_segacd_bios_payload");
+            File.WriteAllBytes(downloadSource, payload);
+
+            var segaCdEntry = BiosService.CanonicalBiosCatalog.First(b => b.GamePlatform == "segacd" && b.FileName == "bios_CD_U.bin");
+            var originalMd5 = segaCdEntry.ExpectedMd5;
+            var originalSha1 = segaCdEntry.ExpectedSha1;
+
+            try
+            {
+                using (var md5 = MD5.Create())
+                using (var sha1 = SHA1.Create())
+                {
+                    segaCdEntry.ExpectedMd5 = BitConverter.ToString(md5.ComputeHash(payload)).Replace("-", "").ToLowerInvariant();
+                    segaCdEntry.ExpectedSha1 = BitConverter.ToString(sha1.ComputeHash(payload)).Replace("-", "").ToLowerInvariant();
+                }
+
+                Subject.IsKnownBiosFileName("bios_CD_U.bin").Should().BeTrue();
+                Subject.IsKnownBiosFileName("unknown_game.bin").Should().BeFalse();
+
+                var result = Subject.ProcessCandidateBiosFile(downloadSource, series, move: true);
+                result.Should().BeTrue();
+
+                var expectedBiosPath = Path.Combine(seriesDir, "BIOS", "bios_CD_U.bin");
+                File.Exists(expectedBiosPath).Should().BeTrue();
+                File.Exists(downloadSource).Should().BeFalse("moved source should no longer exist");
+            }
+            finally
+            {
+                segaCdEntry.ExpectedMd5 = originalMd5;
+                segaCdEntry.ExpectedSha1 = originalSha1;
+            }
+        }
+
+        [Test]
+        public void Should_scan_and_move_loose_bios_file_into_series_bios_directory()
+        {
+            var seriesDir = Path.Combine(_tempDir, "Sega CD");
+            Directory.CreateDirectory(seriesDir);
+
+            var series = new NzbDrone.Core.Tv.Series
+            {
+                Id = 1,
+                Title = "Sega CD",
+                TitleSlug = "segacd",
+                Path = seriesDir
+            };
+
+            var looseFile = Path.Combine(seriesDir, "bios_CD_U.bin");
+            var payload = Encoding.UTF8.GetBytes("loose_bios_payload");
+            File.WriteAllBytes(looseFile, payload);
+
+            var segaCdEntry = BiosService.CanonicalBiosCatalog.First(b => b.GamePlatform == "segacd" && b.FileName == "bios_CD_U.bin");
+            var originalMd5 = segaCdEntry.ExpectedMd5;
+            var originalSha1 = segaCdEntry.ExpectedSha1;
+
+            try
+            {
+                using (var md5 = MD5.Create())
+                using (var sha1 = SHA1.Create())
+                {
+                    segaCdEntry.ExpectedMd5 = BitConverter.ToString(md5.ComputeHash(payload)).Replace("-", "").ToLowerInvariant();
+                    segaCdEntry.ExpectedSha1 = BitConverter.ToString(sha1.ComputeHash(payload)).Replace("-", "").ToLowerInvariant();
+                }
+
+                Subject.ScanAndVerifyPlatformBios(series);
+
+                var expectedBiosPath = Path.Combine(seriesDir, "BIOS", "bios_CD_U.bin");
+                File.Exists(expectedBiosPath).Should().BeTrue();
+                File.Exists(looseFile).Should().BeFalse("loose file in series root must be moved into BIOS subfolder");
+            }
+            finally
+            {
+                segaCdEntry.ExpectedMd5 = originalMd5;
+                segaCdEntry.ExpectedSha1 = originalSha1;
+            }
+        }
     }
 }

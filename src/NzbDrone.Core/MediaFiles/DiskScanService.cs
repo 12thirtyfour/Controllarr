@@ -10,6 +10,7 @@ using NzbDrone.Common;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
@@ -46,6 +47,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IUpdateMediaInfo _updateMediaInfoService;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
+        private readonly IBiosService _biosService;
 
         public DiskScanService(IDiskProvider diskProvider,
                                IMakeImportDecision importDecisionMaker,
@@ -57,7 +59,8 @@ namespace NzbDrone.Core.MediaFiles
                                IRootFolderService rootFolderService,
                                IUpdateMediaInfo updateMediaInfoService,
                                IEventAggregator eventAggregator,
-                               Logger logger)
+                               Logger logger,
+                               IBiosService biosService = null)
         {
             _diskProvider = diskProvider;
             _importDecisionMaker = importDecisionMaker;
@@ -70,6 +73,7 @@ namespace NzbDrone.Core.MediaFiles
             _updateMediaInfoService = updateMediaInfoService;
             _eventAggregator = eventAggregator;
             _logger = logger;
+            _biosService = biosService;
         }
 
         private static readonly Regex ExcludedExtrasSubFolderRegex = new Regex(@"(?:\\|\/|^)(?:extras|extrafanart|behind the scenes|deleted scenes|featurettes|interviews|other|scenes|samples|shorts|trailers|theme[-_. ]music|backdrops)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -179,6 +183,19 @@ namespace NzbDrone.Core.MediaFiles
             var videoFilesStopwatch = Stopwatch.StartNew();
             MigrateLegacySeasonFolders(series);
             ExtractCollectionArchives(series);
+
+            if (_biosService != null)
+            {
+                try
+                {
+                    _biosService.ScanAndVerifyPlatformBios(series);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Failed to scan and verify platform BIOS for {0}", series);
+                }
+            }
+
             var mediaFileList = FilterPaths(series.Path, GetVideoFiles(series.Path)).ToList();
             videoFilesStopwatch.Stop();
             _logger.Trace("Finished getting ROM files for: {0} [{1}]", series, videoFilesStopwatch.Elapsed);
@@ -423,6 +440,55 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     using (var archive = ZipFile.OpenRead(archiveFile))
                     {
+                        var biosEntries = archive.Entries.Where(e =>
+                        {
+                            if (e.FullName.EndsWith("/") || e.FullName.EndsWith("\\"))
+                            {
+                                return false;
+                            }
+
+                            if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") || e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return false;
+                            }
+
+                            if (_biosService != null && _biosService.IsKnownBiosFileName(e.Name))
+                            {
+                                return true;
+                            }
+
+                            var segments = e.FullName.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+                            return segments.Any(s => string.Equals(s, "BIOS", StringComparison.OrdinalIgnoreCase));
+                        }).ToList();
+
+                        if (biosEntries.Count > 0)
+                        {
+                            var targetBiosDirectory = Path.Combine(series.Path, "BIOS");
+                            if (!_diskProvider.FolderExists(targetBiosDirectory))
+                            {
+                                _diskProvider.CreateFolder(targetBiosDirectory);
+                            }
+
+                            foreach (var bEntry in biosEntries)
+                            {
+                                var destBiosPath = Path.Combine(targetBiosDirectory, bEntry.Name);
+                                try
+                                {
+                                    bEntry.ExtractToFile(destBiosPath, true);
+                                    if (_biosService != null)
+                                    {
+                                        _biosService.ProcessCandidateBiosFile(destBiosPath, series, move: false);
+                                    }
+
+                                    _logger.Info("Extracted and verified collection BIOS {0} for {1}", bEntry.Name, series.Title);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Debug(ex, "Failed to extract collection BIOS entry {0}", bEntry.FullName);
+                                }
+                            }
+                        }
+
                         var validExtensions = MediaFileExtensions.RomExtensions;
                         var gameEntries = archive.Entries.Where(e =>
                         {

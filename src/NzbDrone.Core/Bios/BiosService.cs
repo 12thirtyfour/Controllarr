@@ -26,6 +26,10 @@ namespace NzbDrone.Core.Bios
         List<BiosFile> GetCatalog(string platformSlug = null);
         List<BiosFile> ScanAndVerifyBiosDirectory(string biosDirectory, string platformSlug = null);
         List<BiosFile> DownloadMissingBios(string platformSlug = null, string fileName = null);
+        bool IsKnownBiosFileName(string fileName);
+        bool TryGetBiosFile(string fileName, out BiosFile biosFile, string platformSlug = null);
+        bool ProcessCandidateBiosFile(string sourceFilePath, Series series, bool move = false);
+        void ScanAndVerifyPlatformBios(Series series);
     }
 
     public class BiosService : IBiosService
@@ -292,7 +296,7 @@ namespace NzbDrone.Core.Bios
             { "cdi", "Philips CD-i" }
         };
 
-        private static readonly List<BiosFile> CanonicalBiosCatalog = new List<BiosFile>
+        internal static readonly List<BiosFile> CanonicalBiosCatalog = new List<BiosFile>
         {
             // Sony PlayStation (PS1) - Keep exact 3 entries for unit test compatibility
             new BiosFile
@@ -1058,6 +1062,155 @@ namespace NzbDrone.Core.Bios
             }
 
             return GetCatalog(platformSlug);
+        }
+
+        public bool IsKnownBiosFileName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            var cleanName = Path.GetFileName(fileName);
+            return CanonicalBiosCatalog.Any(b => string.Equals(b.FileName, cleanName, StringComparison.OrdinalIgnoreCase)) ||
+                   AlternateBiosHashesByFileName.ContainsKey(cleanName);
+        }
+
+        public bool TryGetBiosFile(string fileName, out BiosFile biosFile, string platformSlug = null)
+        {
+            biosFile = null;
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            var cleanName = Path.GetFileName(fileName);
+            var normalizedGroup = string.IsNullOrWhiteSpace(platformSlug) ? null : ResolveBiosGroupKey(platformSlug);
+
+            var candidate = CanonicalBiosCatalog.FirstOrDefault(b =>
+                string.Equals(b.FileName, cleanName, StringComparison.OrdinalIgnoreCase) &&
+                (normalizedGroup == null || string.Equals(b.GamePlatform, normalizedGroup, StringComparison.OrdinalIgnoreCase)));
+
+            if (candidate != null)
+            {
+                biosFile = CloneBiosFile(candidate);
+                return true;
+            }
+
+            if (AlternateBiosHashesByFileName.ContainsKey(cleanName))
+            {
+                var altMatch = CanonicalBiosCatalog.FirstOrDefault(b =>
+                    string.Equals(b.FileName, cleanName, StringComparison.OrdinalIgnoreCase));
+                if (altMatch != null)
+                {
+                    biosFile = CloneBiosFile(altMatch);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool ProcessCandidateBiosFile(string sourceFilePath, Series series, bool move = false)
+        {
+            if (series == null || string.IsNullOrWhiteSpace(series.Path) || string.IsNullOrWhiteSpace(sourceFilePath))
+            {
+                return false;
+            }
+
+            if (!File.Exists(sourceFilePath))
+            {
+                return false;
+            }
+
+            var fileName = Path.GetFileName(sourceFilePath);
+            if (!TryGetBiosFile(fileName, out var biosFile, series.TitleSlug))
+            {
+                return false;
+            }
+
+            var isValid = VerifyBios(sourceFilePath, biosFile.ExpectedMd5, biosFile.ExpectedSha1);
+            if (!isValid)
+            {
+                _logger.Warn("Candidate BIOS file {0} at {1} failed cryptographic verification", fileName, sourceFilePath);
+                return false;
+            }
+
+            var biosDir = Path.Combine(series.Path, "BIOS");
+            Directory.CreateDirectory(biosDir);
+            var destinationPath = Path.Combine(biosDir, biosFile.FileName);
+
+            if (string.Equals(Path.GetFullPath(sourceFilePath), Path.GetFullPath(destinationPath), StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.Info("Verified existing BIOS file {0} for platform {1}", biosFile.FileName, series.Title);
+                return true;
+            }
+
+            try
+            {
+                if (move)
+                {
+                    File.Move(sourceFilePath, destinationPath, true);
+                }
+                else
+                {
+                    File.Copy(sourceFilePath, destinationPath, true);
+                }
+
+                var verified = VerifyBios(destinationPath, biosFile.ExpectedMd5, biosFile.ExpectedSha1);
+                if (verified)
+                {
+                    _logger.Info("Successfully {0} and verified BIOS file {1} to {2}", move ? "imported" : "copied", biosFile.FileName, destinationPath);
+                    var fileLength = new FileInfo(destinationPath).Length;
+                    RecordBiosDownloadHistory(biosFile, series.TitleSlug, destinationPath, $"file://{sourceFilePath}", fileLength);
+                    return true;
+                }
+
+                File.Delete(destinationPath);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to {0} BIOS file {1} to {2}", move ? "move" : "copy", sourceFilePath, destinationPath);
+                return false;
+            }
+        }
+
+        public void ScanAndVerifyPlatformBios(Series series)
+        {
+            if (series == null || string.IsNullOrWhiteSpace(series.Path) || !Directory.Exists(series.Path))
+            {
+                return;
+            }
+
+            var biosDir = Path.Combine(series.Path, "BIOS");
+            if (!Directory.Exists(biosDir))
+            {
+                Directory.CreateDirectory(biosDir);
+            }
+
+            try
+            {
+                var looseFiles = Directory.GetFiles(series.Path, "*.*", SearchOption.AllDirectories);
+                foreach (var file in looseFiles)
+                {
+                    var fileName = Path.GetFileName(file);
+                    if (IsKnownBiosFileName(fileName))
+                    {
+                        var dir = Path.GetDirectoryName(file);
+                        if (!string.Equals(Path.GetFullPath(dir ?? string.Empty), Path.GetFullPath(biosDir), StringComparison.OrdinalIgnoreCase))
+                        {
+                            ProcessCandidateBiosFile(file, series, move: true);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error checking loose BIOS files in {0}", series.Path);
+            }
+
+            ScanAndVerifyBiosDirectory(biosDir, series.TitleSlug);
         }
 
         private bool TryDownloadAndVerifyBios(BiosFile entry, string targetDir, string platformSlug = null)

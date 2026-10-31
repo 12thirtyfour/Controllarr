@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
@@ -36,6 +37,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IConfigService _configService;
         private readonly IRejectedFileExtensionService _rejectedFileExtensionService;
         private readonly IRomPatchingService _romPatchingService;
+        private readonly IBiosService _biosService;
         private readonly Logger _logger;
 
         public DownloadedEpisodesImportService(IDiskProvider diskProvider,
@@ -49,7 +51,8 @@ namespace NzbDrone.Core.MediaFiles
                                                IConfigService configService,
                                                IRejectedFileExtensionService rejectedFileExtensionService,
                                                Logger logger,
-                                               IRomPatchingService romPatchingService = null)
+                                               IRomPatchingService romPatchingService = null,
+                                               IBiosService biosService = null)
         {
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
@@ -62,6 +65,7 @@ namespace NzbDrone.Core.MediaFiles
             _configService = configService;
             _rejectedFileExtensionService = rejectedFileExtensionService;
             _romPatchingService = romPatchingService;
+            _biosService = biosService;
             _logger = logger;
         }
 
@@ -221,6 +225,38 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var patchResults = new List<ImportResult>();
+
+            if (_biosService != null && series != null)
+            {
+                try
+                {
+                    var allCandidateFiles = _diskProvider.GetFiles(directoryInfo.FullName, true);
+                    foreach (var candidateFile in allCandidateFiles)
+                    {
+                        var fileName = Path.GetFileName(candidateFile);
+                        if (_biosService.IsKnownBiosFileName(fileName) ||
+                            candidateFile.Contains($"{Path.DirectorySeparatorChar}BIOS{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                            candidateFile.Contains($"{Path.DirectorySeparatorChar}bios{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var processed = _biosService.ProcessCandidateBiosFile(candidateFile, series, move: importMode == ImportMode.Move);
+                            if (processed)
+                            {
+                                _logger.Info("Imported and verified BIOS file {0} from download for {1}", fileName, series.Title);
+                                patchResults.Add(new ImportResult(new ImportDecision(new LocalEpisode
+                                {
+                                    Path = Path.Combine(series.Path, "BIOS", fileName),
+                                    Series = series
+                                })));
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Error processing candidate BIOS files in download folder {0}", directoryInfo.FullName);
+                }
+            }
+
             var remainingVideoFiles = new List<string>();
 
             foreach (var candidateFile in videoFiles)
@@ -339,6 +375,23 @@ namespace NzbDrone.Core.MediaFiles
                             new ImportRejection(ImportRejectionReason.UserRejectedExtension, $"Caution: Found file with user defined rejected extension: '{extension}'")),
                         $"Caution: Found executable file with user defined rejected extension: '{extension}'")
                 };
+            }
+
+            if (_biosService != null && series != null && _biosService.IsKnownBiosFileName(fileInfo.Name))
+            {
+                var processed = _biosService.ProcessCandidateBiosFile(fileInfo.FullName, series, move: importMode == ImportMode.Move);
+                if (processed)
+                {
+                    _logger.Info("Imported and verified downloaded BIOS file {0} for {1}", fileInfo.Name, series.Title);
+                    return new List<ImportResult>
+                    {
+                        new ImportResult(new ImportDecision(new LocalEpisode
+                        {
+                            Path = Path.Combine(series.Path, "BIOS", fileInfo.Name),
+                            Series = series
+                        }))
+                    };
+                }
             }
 
             if (extension.IsNullOrWhiteSpace() || !MediaFileExtensions.Extensions.Contains(extension))

@@ -22,6 +22,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Renamed `AutoUnmonitorPreviouslyDownloadedGames` and `GameTitleRequired` in `IConfigService` / `ConfigService`, removed duplicate backing-field shims from `NamingSettingsResource`, `NamingExampleResource`, and `MediaManagementSettingsResource`, and aligned `FileNameValidationService` validation property names (`StandardGameFormat`, `DailyGameFormat`, `AnimeGameFormat`) and `SignalRListener.tsx` handlers.
 
 ### Added
+- **Full BIOS Integration Across Downloads, Library Imports & Collection Archive Scans**:
+  - Treated BIOS files as first-class media assets across the download, library import, and disk scanning pipelines (`IBiosService`, `DiskScanService`, `DownloadedEpisodesImportService`, `UnmanagedDiskScanner`, `ManualImportService`).
+  - During platform and collection scanning (`DiskScanService`), candidate BIOS files inside collection zip archives and platform root directories are automatically identified, extracted/moved directly to the target `platform/BIOS` directory, and cryptographically verified.
+  - During download processing (`DownloadedEpisodesImportService`), completed downloads containing BIOS files are detected, verified, and placed into the platform's `BIOS` folder.
+  - During manual and unmanaged library importing (`UnmanagedDiskScanner`, `ManualImportService`), BIOS files in folders and zip archives are discovered, matched to their host platform under Season 99 (`[BIOS]`), and imported directly into `platform/BIOS`.
 - **GameTDB Database Integration (Switch, Wii, Wii U, 3DS)**:
   - Added automated download, decompression, and XML parsing of official GameTDB databases for Nintendo Switch (`switchtdb.zip`), Nintendo Wii (`wiitdb.zip`), Nintendo Wii U (`wiiutdb.zip`), and Nintendo 3DS (`3dstdb.zip`).
   - Automatically populates rich game catalogs with release overviews, release years, developer/publisher data, and complete cryptographic checksums (`CRC32`, `MD5`, `SHA1`).
