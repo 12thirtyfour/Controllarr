@@ -76,6 +76,48 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"\((?<pre>Proto[^\)]*|Beta[^\)]*|Sample[^\)]*|Demo[^\)]*)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex GeographicRegionTagRegex = new Regex(
+            @"\((?:USA|Europe|Japan|World|Asia|Australia|Brazil|Canada|China|Denmark|Finland|France|Germany|Greece|Hong Kong|India|Italy|Korea|Latin America|Mexico|Netherlands|Norway|Poland|Portugal|Russia|Scandinavia|Spain|Sweden|Taiwan|UK|United Kingdom)(?:\s*,\s*(?:USA|Europe|Japan|World|Asia|Australia|Brazil|Canada|China|Denmark|Finland|France|Germany|Greece|Hong Kong|India|Italy|Korea|Latin America|Mexico|Netherlands|Norway|Poland|Portugal|Russia|Scandinavia|Spain|Sweden|Taiwan|UK|United Kingdom))*\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex TrailingLanguageTagRegex = new Regex(
+            @"\((?<langs>(?:En|Fr|De|Es|It|Nl|Pt|Sv|Se|No|Da|Dk|Fi|Ja|Jp|Ko|Kr|Zh|Zhcn|Zhtw|Zhhk|Ru|Pl|Ar|Tr|Cs|Hu|El|Ro|Th|Id|Ms|Vi|Hi|He)(?:\s*[,+]\s*(?:En|Fr|De|Es|It|Nl|Pt|Sv|Se|No|Da|Dk|Fi|Ja|Jp|Ko|Kr|Zh|Zhcn|Zhtw|Zhhk|Ru|Pl|Ar|Tr|Cs|Hu|El|Ro|Th|Id|Ms|Vi|Hi|He))*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> UsaRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "USA", "US", "NTSC-U", "NTSC", "CAN", "CANADA", "BRA", "BRAZIL", "MEX", "MEXICO", "LATIN AMERICA"
+        };
+
+        private static readonly HashSet<string> EuropeRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "EUR", "EU", "EUROPE", "PAL", "PAL-R", "GBR", "UK", "UKV", "UNITED KINGDOM", "AUS", "AUSTRALIA",
+            "GER", "DEU", "GERMANY", "FRA", "FRANCE", "SPA", "ESP", "SPAIN", "ITA", "ITALY", "HOL", "NLD",
+            "NETHERLANDS", "RUS", "RUSSIA", "SWE", "SWEDEN", "NOR", "NORWAY", "DAN", "DEN", "DENMARK",
+            "FIN", "FINLAND", "POL", "POLAND", "POR", "PRT", "PORTUGAL", "SCAN", "SCANDINAVIA", "GRE", "GREECE"
+        };
+
+        private static readonly HashSet<string> JapanRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "JPN", "JP", "JAPAN", "NTSC-J", "KOR", "KR", "KOREA", "NTSC-K", "TWN", "TW", "TAIWAN", "NTSC-T",
+            "CHN", "CN", "CHINA", "HKG", "HK", "HONG KONG", "ASI", "AS", "ASIA"
+        };
+
+        private static readonly HashSet<string> WorldRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "WLD", "WORLD", "ALL"
+        };
+
+        private static readonly HashSet<string> AsianLanguageTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "JA", "JP", "KO", "KR", "ZH", "ZHCN", "ZHTW", "ZHHK", "CH", "TW", "HK"
+        };
+
+        private static readonly HashSet<string> EuropeanNonEnglishLanguageTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "FR", "DE", "ES", "IT", "NL", "PT", "RU", "PL", "SV", "SE", "DA", "DK", "NO", "FI", "CS", "HU", "EL", "RO", "TR"
+        };
+
         private static readonly HashSet<string> KnownRomExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".nes", ".unh", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd",
@@ -199,10 +241,15 @@ namespace NzbDrone.Core.MetadataSource.Game
             if (platformTvdbId.HasValue)
             {
                 SyncedPlatformGamesCache.TryRemove(platformTvdbId.Value, out _);
+                foreach (var kvp in DynamicGames.Where(kv => kv.Value.PlatformTvdbId == platformTvdbId.Value).ToList())
+                {
+                    DynamicGames.TryRemove(kvp.Key, out _);
+                }
             }
             else
             {
                 SyncedPlatformGamesCache.Clear();
+                DynamicGames.Clear();
             }
         }
 
@@ -560,6 +607,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                         {
                             rawName = StripKnownRomExtension(Path.GetFileName(rawName.Replace('\\', '/')));
                             rawName = RomParser.CleanIndexPrefix(rawName);
+                            if (!string.IsNullOrWhiteSpace(datEntry.Region))
+                            {
+                                var resolvedDatRegion = ResolveCatalogRegionLabel(datEntry.Region, null, null, rawName);
+                                rawName = EnsureGeographicRegionTag(rawName, rawName, resolvedDatRegion);
+                            }
                         }
 
                         if (string.IsNullOrWhiteSpace(rawName) ||
@@ -1072,29 +1124,20 @@ namespace NzbDrone.Core.MetadataSource.Game
                     }
 
                     var region = releaseEl.Element("region")?.Value?.Trim();
+                    var languages = releaseEl.Element("languages")?.Value?.Trim();
+                    var gameId = releaseEl.Element("titleid")?.Value?.Trim() ?? releaseEl.Element("serial")?.Value?.Trim();
                     var crc = releaseEl.Element("imgcrc")?.Value?.Trim();
                     var revision = releaseEl.Element("revision")?.Value?.Trim();
 
-                    var regionLabel = "World";
-                    if (string.Equals(region, "USA", StringComparison.OrdinalIgnoreCase) || string.Equals(region, "US", StringComparison.OrdinalIgnoreCase))
-                    {
-                        regionLabel = "USA";
-                    }
-                    else if (string.Equals(region, "EUR", StringComparison.OrdinalIgnoreCase) || string.Equals(region, "Europe", StringComparison.OrdinalIgnoreCase))
-                    {
-                        regionLabel = "Europe";
-                    }
-                    else if (string.Equals(region, "JPN", StringComparison.OrdinalIgnoreCase) || string.Equals(region, "Japan", StringComparison.OrdinalIgnoreCase))
-                    {
-                        regionLabel = "Japan";
-                    }
+                    var regionLabel = ResolveCatalogRegionLabel(region, languages, gameId, name);
 
                     var revSuffix = !string.IsNullOrWhiteSpace(revision) && revision != "0" && revision != "000"
                         ? $" (Rev {revision})"
                         : string.Empty;
-                    var noIntroName = name.Contains('(')
-                        ? name
-                        : $"{name} ({regionLabel}){revSuffix}";
+                    var baseWithRegion = EnsureGeographicRegionTag(name, name, regionLabel);
+                    var noIntroName = !string.IsNullOrEmpty(revSuffix) && !baseWithRegion.Contains("(Rev ", StringComparison.OrdinalIgnoreCase)
+                        ? $"{baseWithRegion}{revSuffix}"
+                        : baseWithRegion;
 
                     if (!string.IsNullOrWhiteSpace(crc))
                     {
@@ -1124,13 +1167,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     var catalogName = $"{platform.LibretroSystemName} (NSWDB)";
                     var existing = _datCacheService.GetAllDatFiles();
-                    if (forceRefresh || existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    var existingFile = existing?.FirstOrDefault(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase));
+                    if (forceRefresh || existingFile == null || !string.Equals(existingFile.Version, "v2", StringComparison.OrdinalIgnoreCase))
                     {
                         _datCacheService.Insert(
                             new DatFile
                             {
                                 Name = catalogName,
                                 Description = platform.Slug,
+                                Version = "v2",
                                 Category = "NSWDB",
                                 CreatedAt = DateTime.UtcNow
                             },
@@ -1207,7 +1252,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var synopsis = localeEn?.Element("synopsis")?.Value?.Trim();
 
                     var id = gameEl.Element("id")?.Value?.Trim();
-                    var region = gameEl.Element("region")?.Value?.Trim() ?? "World";
+                    var region = gameEl.Element("region")?.Value?.Trim();
+                    var languages = gameEl.Element("languages")?.Value?.Trim();
 
                     var title = !string.IsNullOrWhiteSpace(localeTitle) ? localeTitle : rawName;
                     if (string.IsNullOrWhiteSpace(title))
@@ -1215,25 +1261,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                         continue;
                     }
 
-                    var regionLabel = "World";
-                    if (region.Contains("USA", StringComparison.OrdinalIgnoreCase) || region.Contains("US", StringComparison.OrdinalIgnoreCase))
-                    {
-                        regionLabel = "USA";
-                    }
-                    else if (region.Contains("EUR", StringComparison.OrdinalIgnoreCase) || region.Contains("Europe", StringComparison.OrdinalIgnoreCase))
-                    {
-                        regionLabel = "Europe";
-                    }
-                    else if (region.Contains("JPN", StringComparison.OrdinalIgnoreCase) || region.Contains("Japan", StringComparison.OrdinalIgnoreCase))
-                    {
-                        regionLabel = "Japan";
-                    }
-
-                    var formattedName = rawName;
-                    if (string.IsNullOrWhiteSpace(formattedName) || !formattedName.Contains('('))
-                    {
-                        formattedName = $"{title} ({regionLabel})";
-                    }
+                    var regionLabel = ResolveCatalogRegionLabel(region, languages, id, rawName);
+                    var formattedName = EnsureGeographicRegionTag(rawName, title, regionLabel);
 
                     var releaseYear = platform.ReleaseYear;
                     var dateEl = gameEl.Element("date");
@@ -1321,13 +1350,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     var catalogName = $"{platform.LibretroSystemName} (GameTDB)";
                     var existing = _datCacheService.GetAllDatFiles();
-                    if (forceRefresh || existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    var existingFile = existing?.FirstOrDefault(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase));
+                    if (forceRefresh || existingFile == null || !string.Equals(existingFile.Version, "v2", StringComparison.OrdinalIgnoreCase))
                     {
                         _datCacheService.Insert(
                             new DatFile
                             {
                                 Name = catalogName,
                                 Description = platform.Slug,
+                                Version = "v2",
                                 Category = "GameTDB",
                                 CreatedAt = DateTime.UtcNow
                             },
@@ -2081,7 +2112,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("Korea", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Asia", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Taiwan", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("China", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Hong Kong", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("NTSC-J", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("NTSC-K", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(JP", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(J)", StringComparison.OrdinalIgnoreCase))
             {
@@ -2098,13 +2132,182 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("Italy", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Netherlands", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Sweden", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Russia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Poland", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Denmark", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Finland", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Norway", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Portugal", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Greece", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Scandinavia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("PAL", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(EU", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase))
             {
                 return RegionEuropeSeason;
             }
 
+            var langTokens = ExtractLanguageTokens(null, noIntroName);
+            if (langTokens.Count > 0)
+            {
+                if (langTokens.All(l => AsianLanguageTokens.Contains(l)))
+                {
+                    return RegionJapanSeason;
+                }
+
+                if (!langTokens.Contains("EN", StringComparer.OrdinalIgnoreCase) &&
+                    langTokens.All(l => EuropeanNonEnglishLanguageTokens.Contains(l)))
+                {
+                    return RegionEuropeSeason;
+                }
+
+                if (langTokens.Count >= 2)
+                {
+                    return RegionWorldSeason;
+                }
+            }
+
             return RegionUsaSeason;
+        }
+
+        public static string ResolveCatalogRegionLabel(string region, string languages = null, string gameId = null, string rawName = null)
+        {
+            var tokens = string.IsNullOrWhiteSpace(region)
+                ? Array.Empty<string>()
+                : region.Split(new[] { ',', ';', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .ToArray();
+
+            var specificTokens = tokens.Where(t => !WorldRegionTokens.Contains(t)).ToList();
+
+            var hasUsa = specificTokens.Any(t => UsaRegionTokens.Contains(t));
+            var hasEur = specificTokens.Any(t => EuropeRegionTokens.Contains(t));
+            var hasJpn = specificTokens.Any(t => JapanRegionTokens.Contains(t));
+
+            if (hasUsa && hasEur && hasJpn)
+            {
+                return "World";
+            }
+
+            foreach (var token in specificTokens)
+            {
+                if (UsaRegionTokens.Contains(token))
+                {
+                    return "USA";
+                }
+
+                if (EuropeRegionTokens.Contains(token))
+                {
+                    return "Europe";
+                }
+
+                if (JapanRegionTokens.Contains(token))
+                {
+                    return "Japan";
+                }
+            }
+
+            if (tokens.Length == 0 && !string.IsNullOrWhiteSpace(gameId))
+            {
+                var trimmedId = gameId.Trim();
+                if (trimmedId.Length == 4 || trimmedId.Length == 6)
+                {
+                    var regionChar = char.ToUpperInvariant(trimmedId[3]);
+                    if (regionChar == 'E' || regionChar == 'N')
+                    {
+                        return "USA";
+                    }
+
+                    if (regionChar == 'J' || regionChar == 'K' || regionChar == 'W' || regionChar == 'C')
+                    {
+                        return "Japan";
+                    }
+
+                    if (regionChar == 'P' || regionChar == 'D' || regionChar == 'F' || regionChar == 'S' ||
+                        regionChar == 'I' || regionChar == 'H' || regionChar == 'U' || regionChar == 'X' ||
+                        regionChar == 'Y' || regionChar == 'Z' || regionChar == 'R')
+                    {
+                        return "Europe";
+                    }
+                }
+            }
+
+            var langTokens = ExtractLanguageTokens(languages, rawName);
+            if (langTokens.Count > 0)
+            {
+                if (langTokens.All(l => AsianLanguageTokens.Contains(l)))
+                {
+                    return "Japan";
+                }
+
+                if (!langTokens.Contains("EN", StringComparer.OrdinalIgnoreCase) &&
+                    langTokens.All(l => EuropeanNonEnglishLanguageTokens.Contains(l)))
+                {
+                    return "Europe";
+                }
+            }
+
+            return "World";
+        }
+
+        public static string EnsureGeographicRegionTag(string rawName, string fallbackTitle, string regionLabel)
+        {
+            var candidate = !string.IsNullOrWhiteSpace(rawName) ? rawName.Trim() : fallbackTitle?.Trim();
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return string.Empty;
+            }
+
+            if (GeographicRegionTagRegex.IsMatch(candidate))
+            {
+                return candidate;
+            }
+
+            var effectiveRegion = string.IsNullOrWhiteSpace(regionLabel) ? "World" : regionLabel.Trim();
+            var openParenIndex = candidate.IndexOf('(');
+            if (openParenIndex > 0)
+            {
+                var prefix = candidate.Substring(0, openParenIndex).TrimEnd();
+                var suffix = candidate.Substring(openParenIndex).TrimStart();
+                return $"{prefix} ({effectiveRegion}) {suffix}";
+            }
+
+            return $"{candidate} ({effectiveRegion})";
+        }
+
+        private static List<string> ExtractLanguageTokens(string languages, string rawName)
+        {
+            var list = new List<string>();
+            if (!string.IsNullOrWhiteSpace(languages))
+            {
+                foreach (var part in languages.Split(new[] { ',', ';', '/', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var trimmed = part.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed))
+                    {
+                        list.Add(trimmed.ToUpperInvariant());
+                    }
+                }
+            }
+
+            if (list.Count == 0 && !string.IsNullOrWhiteSpace(rawName))
+            {
+                var match = TrailingLanguageTagRegex.Match(rawName);
+                if (match.Success)
+                {
+                    foreach (var part in match.Groups["langs"].Value.Split(new[] { ',', '+' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var trimmed = part.Trim();
+                        if (!string.IsNullOrWhiteSpace(trimmed))
+                        {
+                            list.Add(trimmed.ToUpperInvariant());
+                        }
+                    }
+                }
+            }
+
+            return list;
         }
 
         private static string NormalizeTitleArticle(string title)

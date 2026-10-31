@@ -52,6 +52,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added filter and sorting support for `Format` in frontend release table stores.
 
 ### Fixed
+- **Switch, Wii, Wii U & 3DS (GameTDB / NSWDB) Region Parsing & Classification**:
+  - Fixed `ParseGameTdbXmlContent` and `ParseNswdbXmlContent` in `GameCatalogProxy` where `<game name="...">` entries containing parenthetical language tags (e.g. `(EN,FR,JA,KO,ZHCN)` or `(JA)`) bypassed geographic region tag insertion (`!formattedName.Contains('(')`), causing ~21,635 Switch games (`ALL`, `JPN`, `EUR`, `KOR`, `TWN`, `CHN`) to fall through to `USA` (Season 1).
+  - Added `ResolveCatalogRegionLabel` and `EnsureGeographicRegionTag` to map all GameTDB and NSWDB region codes (`ALL`, `WLD`, `USA`, `NTSC-U`, `EUR`, `PAL`, `PAL-R`, `GBR`, `UKV`, `DEU`, `GER`, `FRA`, `ESP`, `SPA`, `ITA`, `HOL`, `RUS`, `AUS`, `JPN`, `NTSC-J`, `KOR`, `NTSC-K`, `TWN`, `NTSC-T`, `CHN`, `HKG`, `ASI`), Nintendo 4th-character title ID region codes, and Asian/European language-only fallbacks into their canonical regions (`World`, `USA`, `Europe`, `Japan`).
+  - Removed 2-letter language codes from `RomParser.RegionRegex` so language tags do not pollute `ParsedRomInfo.Regions`, bumped `GameTDB` and `NSWDB` `DatFile` cache schema version to `v2` to automatically upgrade existing SQLite `DatEntries` on refresh, and added `InvalidatePlatformCache` in `RefreshSeriesService` on platform refresh.
 - **Platform & Game Localization Dictionary Synchronization**:
   - Added 196 missing `Platform`, `Game`, `RomFile`, and `Region` localization keys to `src/NzbDrone.Core/Localization/Core/en.json` (including `AddNewPlatform`, `DeletePlatformFolder`, `DeletePlatformFolderHelpText`, `DeletePlatformFolderConfirmation`, `DeletePlatformFolderGameCount`, `DeleteGamesFiles`, `DeleteGamesFilesHelpText`, and `DeletePlatformModalHeader`).
   - Added automatic token aliasing in `frontend/src/Utilities/String/translate.ts` between `romFileCount`/`episodeFileCount`, `gameCount`/`episodeCount`, `totalGameCount`/`totalEpisodeCount`, and `regionCount`/`seasonCount`.

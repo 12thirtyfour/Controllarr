@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Parser
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private static readonly Regex RegionRegex = new Regex(@"\((?:USA|Europe|Japan|World|Asia|Australia|Brazil|Canada|China|France|Germany|Italy|Korea|Netherlands|Spain|Sweden|Taiwan|UK|En|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Ja|Ko|Zh|,\s*)+\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex RegionRegex = new Regex(@"\((?:USA|Europe|Japan|World|Asia|Australia|Brazil|Canada|China|Denmark|Finland|France|Germany|Greece|Hong Kong|India|Italy|Korea|Latin America|Mexico|Netherlands|Norway|Poland|Portugal|Russia|Scandinavia|Spain|Sweden|Taiwan|UK|United Kingdom|,\s*)+\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex RevisionRegex = new Regex(@"(?:\(|\[)(?:Rev\.?\s*(?<rev>[A-Za-z0-9.]+)|v(?<ver>\d+(?:\.\d+)*[A-Za-z]?)|Version\s*(?<ver>[\d.]+)|Alt\s*(?<alt>\d*)|PRG(?<prg>\d+))(?:\)|\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex HardwareRegex = new Regex(@"\((NES 2\.0|Headered|Unheadered)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DumpRegex = new Regex(@"\((Beta|Proto|Demo|Sample)\)|\[(?<tag>!|b|t|h|f|a|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);

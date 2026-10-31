@@ -81,6 +81,7 @@ namespace NzbDrone.Core.Tv
                         _ => series.SeasonType
                     }
                     : series.SeasonType;
+                (_seriesInfo as NzbDrone.Core.MetadataSource.Game.IGameCatalogService)?.InvalidatePlatformCache(series.TvdbId);
                 var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, effectiveSeasonType);
                 seriesInfo = tuple.Item1;
                 episodes = tuple.Item2;
