@@ -27,31 +27,31 @@ public class GameController : GameControllerWithSignalR
 
     [HttpGet]
     [Produces("application/json")]
-    public Results<Ok<List<EpisodeResource>>, BadRequest> GetEpisodes(int? seriesId, int? seasonNumber, [FromQuery]List<int> episodeIds, int? episodeFileId, [FromQuery] EpisodeSubresource[]? includeSubresources = null)
+    public Results<Ok<List<EpisodeResource>>, BadRequest> GetEpisodes(int? seriesId, int? seasonNumber, [FromQuery]List<int> gameIds, int? romFileId, [FromQuery] EpisodeSubresource[]? includeSubresources = null)
     {
         var includeSeries = includeSubresources.Contains(EpisodeSubresource.Series);
-        var includeEpisodeFile = includeSubresources.Contains(EpisodeSubresource.EpisodeFile);
+        var includeRomFile = includeSubresources.Contains(EpisodeSubresource.RomFile);
         var includeImages = includeSubresources.Contains(EpisodeSubresource.Images);
 
         if (seriesId.HasValue)
         {
             if (seasonNumber.HasValue)
             {
-                return TypedResults.Ok(MapToResource(_episodeService.GetEpisodesBySeason(seriesId.Value, seasonNumber.Value), includeSeries, includeEpisodeFile, includeImages));
+                return TypedResults.Ok(MapToResource(_episodeService.GetEpisodesBySeason(seriesId.Value, seasonNumber.Value), includeSeries, includeRomFile, includeImages));
             }
 
-            return TypedResults.Ok(MapToResource(_episodeService.GetEpisodeBySeries(seriesId.Value), includeSeries, includeEpisodeFile, includeImages));
+            return TypedResults.Ok(MapToResource(_episodeService.GetEpisodeBySeries(seriesId.Value), includeSeries, includeRomFile, includeImages));
         }
-        else if (episodeIds.Any())
+        else if (gameIds.Any())
         {
-            return TypedResults.Ok(MapToResource(_episodeService.GetEpisodes(episodeIds), includeSeries, includeEpisodeFile, includeImages));
+            return TypedResults.Ok(MapToResource(_episodeService.GetEpisodes(gameIds), includeSeries, includeRomFile, includeImages));
         }
-        else if (episodeFileId.HasValue)
+        else if (romFileId.HasValue)
         {
-            return TypedResults.Ok(MapToResource(_episodeService.GetEpisodesByFileId(episodeFileId.Value), includeSeries, includeEpisodeFile, includeImages));
+            return TypedResults.Ok(MapToResource(_episodeService.GetEpisodesByFileId(romFileId.Value), includeSeries, includeRomFile, includeImages));
         }
 
-        throw new BadRequestException("seriesId or episodeIds must be provided");
+        throw new BadRequestException("seriesId or gameIds must be provided");
     }
 
     [RestPutById]
@@ -71,16 +71,16 @@ public class GameController : GameControllerWithSignalR
     {
         var includeImages = includeSubresources.Contains(EpisodeSubresource.Images);
 
-        if (resource.EpisodeIds.Count == 1)
+        if (resource.GameIds.Count == 1)
         {
-            _episodeService.SetEpisodeMonitored(resource.EpisodeIds.First(), resource.Monitored);
+            _episodeService.SetEpisodeMonitored(resource.GameIds.First(), resource.Monitored);
         }
         else
         {
-            _episodeService.SetMonitored(resource.EpisodeIds, resource.Monitored);
+            _episodeService.SetMonitored(resource.GameIds, resource.Monitored);
         }
 
-        var resources = MapToResource(_episodeService.GetEpisodes(resource.EpisodeIds), false, false, includeImages);
+        var resources = MapToResource(_episodeService.GetEpisodes(resource.GameIds), false, false, includeImages);
 
         return TypedResults.Ok(resources);
     }

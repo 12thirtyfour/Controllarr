@@ -17,12 +17,12 @@ public class StatisticsResource : RestResource
     public int AnimeSeriesCount { get; set; }
     public int SeasonCount { get; set; }
     public int CompletedSeasonCount { get; set; }
-    public int TotalEpisodeCount { get; set; }
-    public int MonitoredEpisodeCount { get; set; }
-    public int DownloadedEpisodeCount { get; set; }
-    public int MissingEpisodeCount { get; set; }
-    public int UnairedEpisodeCount { get; set; }
-    public int EpisodeFileCount { get; set; }
+    public int TotalGameCount { get; set; }
+    public int MonitoredGameCount { get; set; }
+    public int DownloadedGameCount { get; set; }
+    public int MissingGameCount { get; set; }
+    public int UnairedGameCount { get; set; }
+    public int RomFileCount { get; set; }
     public long SizeOnDisk { get; set; }
     public required List<QualityProfileStatisticsResource> QualityProfileStatistics { get; set; }
     public required List<QualityStatisticsResource> QualityStatistics { get; set; }
@@ -47,12 +47,12 @@ public static class StatisticsResourceMapper
             AnimeSeriesCount = model.AnimeSeriesCount,
             SeasonCount = model.SeasonCount,
             CompletedSeasonCount = model.CompletedSeasonCount,
-            TotalEpisodeCount = model.TotalEpisodeCount,
-            MonitoredEpisodeCount = model.MonitoredEpisodeCount,
-            DownloadedEpisodeCount = model.DownloadedEpisodeCount,
-            MissingEpisodeCount = model.MissingEpisodeCount,
-            UnairedEpisodeCount = model.UnairedEpisodeCount,
-            EpisodeFileCount = model.EpisodeFileCount,
+            TotalGameCount = model.TotalEpisodeCount,
+            MonitoredGameCount = model.MonitoredEpisodeCount,
+            DownloadedGameCount = model.DownloadedEpisodeCount,
+            MissingGameCount = model.MissingEpisodeCount,
+            UnairedGameCount = model.UnairedEpisodeCount,
+            RomFileCount = model.EpisodeFileCount,
             SizeOnDisk = model.SizeOnDisk,
             QualityProfileStatistics = model.QualityProfileStatistics.ConvertAll(QualityProfileStatisticsResourceMapper.MapToResource),
             QualityStatistics = model.QualityStatistics.ConvertAll(QualityStatisticsResourceMapper.MapToResource),

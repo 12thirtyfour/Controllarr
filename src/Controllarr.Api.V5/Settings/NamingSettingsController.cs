@@ -26,10 +26,10 @@ public class NamingSettingsController : RestController<NamingSettingsResource>
         _filenameSampleService = filenameSampleService;
         _filenameValidationService = filenameValidationService;
 
-        SharedValidator.RuleFor(c => c.MultiEpisodeStyle).InclusiveBetween(0, 5);
-        SharedValidator.RuleFor(c => c.StandardEpisodeFormat).ValidEpisodeFormat();
-        SharedValidator.RuleFor(c => c.DailyEpisodeFormat).ValidDailyEpisodeFormat();
-        SharedValidator.RuleFor(c => c.AnimeEpisodeFormat).ValidAnimeEpisodeFormat();
+        SharedValidator.RuleFor(c => c.MultiGameStyle).InclusiveBetween(0, 5);
+        SharedValidator.RuleFor(c => c.StandardGameFormat).ValidEpisodeFormat();
+        SharedValidator.RuleFor(c => c.DailyGameFormat).ValidDailyEpisodeFormat();
+        SharedValidator.RuleFor(c => c.AnimeGameFormat).ValidAnimeEpisodeFormat();
         SharedValidator.RuleFor(c => c.SeriesFolderFormat).ValidSeriesFolderFormat();
         SharedValidator.RuleFor(c => c.SeasonFolderFormat).ValidSeasonFolderFormat();
         SharedValidator.RuleFor(c => c.SpecialsFolderFormat).ValidSpecialsFolderFormat();
@@ -85,23 +85,23 @@ public class NamingSettingsController : RestController<NamingSettingsResource>
         var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeEpisodeFormat) &&
                                     FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeEpisodeFormat);
 
-        sampleResource.SingleEpisodeExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult) != null
+        sampleResource.SingleGameExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult) != null
                 ? null
                 : singleEpisodeSampleResult.FileName;
 
-        sampleResource.MultiEpisodeExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult) != null
+        sampleResource.MultiGameExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult) != null
                 ? null
                 : multiEpisodeSampleResult.FileName;
 
-        sampleResource.DailyEpisodeExample = !hasOriginalDailyToken && _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult) != null
+        sampleResource.DailyGameExample = !hasOriginalDailyToken && _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult) != null
                 ? null
                 : dailyEpisodeSampleResult.FileName;
 
-        sampleResource.AnimeEpisodeExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult) != null
+        sampleResource.AnimeGameExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult) != null
                 ? null
                 : animeEpisodeSampleResult.FileName;
 
-        sampleResource.AnimeMultiEpisodeExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult) != null
+        sampleResource.AnimeMultiGameExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult) != null
                 ? null
                 : animeMultiEpisodeSampleResult.FileName;
 

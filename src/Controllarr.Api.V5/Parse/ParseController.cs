@@ -7,6 +7,7 @@ using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.Parser;
 using Sonarr.Api.V5.CustomFormats;
 using Sonarr.Api.V5.Episodes;
+using Sonarr.Api.V5.Release;
 using Sonarr.Api.V5.Series;
 using Sonarr.Http;
 
@@ -68,9 +69,9 @@ public class ParseController : Controller
             return TypedResults.Ok(new ParseResource
             {
                 Title = title,
-                ParsedEpisodeInfo = remoteEpisode.ParsedEpisodeInfo,
+                ParsedGameInfo = remoteEpisode.ParsedEpisodeInfo.ToResource(),
                 Series = remoteEpisode.Series?.ToResource(),
-                Episodes = remoteEpisode.Episodes.ToResource(),
+                Games = remoteEpisode.Episodes.ToResource(),
                 Languages = remoteEpisode.Languages,
                 CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
                 CustomFormatScore = remoteEpisode.CustomFormatScore
@@ -81,7 +82,7 @@ public class ParseController : Controller
             return TypedResults.Ok(new ParseResource
             {
                 Title = title,
-                ParsedEpisodeInfo = parsedEpisodeInfo
+                ParsedGameInfo = parsedEpisodeInfo.ToResource()
             });
         }
     }

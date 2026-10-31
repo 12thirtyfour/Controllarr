@@ -61,11 +61,11 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
 
     [HttpGet]
     [Produces("application/json")]
-    public Results<Ok<List<EpisodeFileResource>>, BadRequest> GetEpisodeFiles(int? seriesId, [FromQuery] List<int>? episodeFileIds)
+    public Results<Ok<List<EpisodeFileResource>>, BadRequest> GetEpisodeFiles(int? seriesId, [FromQuery] List<int>? romFileIds)
     {
-        if (!seriesId.HasValue && episodeFileIds?.Any() == false)
+        if (!seriesId.HasValue && romFileIds?.Any() == false)
         {
-            throw new BadRequestException("seriesId or episodeFileIds must be provided");
+            throw new BadRequestException("seriesId or romFileIds must be provided");
         }
 
         if (seriesId.HasValue)
@@ -82,7 +82,7 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
         }
         else
         {
-            var episodeFiles = _mediaFileService.Get(episodeFileIds);
+            var episodeFiles = _mediaFileService.Get(romFileIds);
 
             return TypedResults.Ok(episodeFiles.GroupBy(e => e.SeriesId)
                                .SelectMany(f => f.ToList()
@@ -133,7 +133,7 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
     [Consumes("application/json")]
     public NoContent DeleteEpisodeFiles([FromBody] EpisodeFileListResource resource)
     {
-        var episodeFiles = _mediaFileService.GetFiles(resource.EpisodeFileIds);
+        var episodeFiles = _mediaFileService.GetFiles(resource.RomFileIds);
         var series = _seriesService.GetSeries(episodeFiles.First().SeriesId);
 
         foreach (var episodeFile in episodeFiles)

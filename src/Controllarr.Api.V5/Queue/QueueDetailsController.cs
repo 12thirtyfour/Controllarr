@@ -39,23 +39,23 @@ namespace Sonarr.Api.V5.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public Ok<List<QueueResource>> GetQueue(int? seriesId, [FromQuery]List<int> episodeIds, [FromQuery] QueueSubresource[]? includeSubresources = null)
+        public Ok<List<QueueResource>> GetQueue(int? seriesId, [FromQuery]List<int> gameIds, [FromQuery] QueueSubresource[]? includeSubresources = null)
         {
             var queue = _queueService.GetQueue();
             var pending = _pendingReleaseService.GetPendingQueue();
             var fullQueue = queue.Concat(pending);
             var includeSeries = includeSubresources.Contains(QueueSubresource.Series);
-            var includeEpisodes = includeSubresources.Contains(QueueSubresource.Episodes);
+            var includeEpisodes = includeSubresources.Contains(QueueSubresource.Games);
 
             if (seriesId.HasValue)
             {
                 return TypedResults.Ok(fullQueue.Where(q => q.Series?.Id == seriesId).ToResource(includeSeries, includeEpisodes));
             }
 
-            if (episodeIds.Any())
+            if (gameIds.Any())
             {
                 return TypedResults.Ok(fullQueue.Where(q => q.Episodes.Any() &&
-                                            episodeIds.IntersectBy(e => e, q.Episodes, e => e.Id, null).Any())
+                                            gameIds.IntersectBy(e => e, q.Episodes, e => e.Id, null).Any())
                     .ToResource(includeSeries, includeEpisodes));
             }
 

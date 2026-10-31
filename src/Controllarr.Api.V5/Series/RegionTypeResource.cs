@@ -7,7 +7,7 @@ namespace Sonarr.Api.V5.Series
         public string? Name { get; set; }
         public string? Type { get; set; }
         public List<int> SeasonNumbers { get; set; } = [];
-        public int EpisodeCount { get; set; }
+        public int GameCount { get; set; }
     }
 
     public class SeasonTypeResource : RegionTypeResource
@@ -23,7 +23,7 @@ namespace Sonarr.Api.V5.Series
                 Name = model.Name,
                 Type = model.Type,
                 SeasonNumbers = model.SeasonNumbers,
-                EpisodeCount = model.EpisodeCount
+                GameCount = model.EpisodeCount
             };
         }
 

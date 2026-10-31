@@ -168,14 +168,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
 
     const seriesValue = settings.seriesFolderFormat?.value ?? '';
     const seasonValue = settings.seasonFolderFormat?.value ?? '';
-    const gameValue =
-      settings.standardGameFormat?.value ??
-      settings.standardEpisodeFormat?.value ??
-      '';
-    const rawDaily =
-      settings.dailyGameFormat?.value ??
-      settings.dailyEpisodeFormat?.value ??
-      '';
+    const gameValue = settings.standardGameFormat?.value ?? '';
+    const rawDaily = settings.dailyGameFormat?.value ?? '';
 
     const normalizedSeries = normalizeSegmentToConsoleVariables(
       seriesValue,
@@ -209,19 +203,17 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     }
 
     if (
-      (settings.standardGameFormat && settings.standardGameFormat.value !== normalizedGame) ||
-      (settings.standardEpisodeFormat && settings.standardEpisodeFormat.value !== normalizedGame)
+      settings.standardGameFormat &&
+      settings.standardGameFormat.value !== normalizedGame
     ) {
       updateSetting('standardGameFormat', normalizedGame);
-      updateSetting('standardEpisodeFormat', normalizedGame);
     }
 
     if (
-      (settings.dailyGameFormat && settings.dailyGameFormat.value !== normalizedDiscGame) ||
-      (settings.dailyEpisodeFormat && settings.dailyEpisodeFormat.value !== normalizedDiscGame)
+      settings.dailyGameFormat &&
+      settings.dailyGameFormat.value !== normalizedDiscGame
     ) {
       updateSetting('dailyGameFormat', normalizedDiscGame);
-      updateSetting('dailyEpisodeFormat', normalizedDiscGame);
     }
 
     setUnifiedPathFormat(
@@ -248,7 +240,6 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         updateSetting('seriesFolderFormat', seriesFolderFormat);
         updateSetting('seasonFolderFormat', seasonFolderFormat);
         updateSetting('standardGameFormat', standardGameFormat);
-        updateSetting('standardEpisodeFormat', standardGameFormat);
         return;
       }
 
@@ -260,14 +251,6 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
           splitUnifiedPathIntoBackendFields(nextDiscPath);
 
         updateSetting('dailyGameFormat', discGameFormat);
-        updateSetting('dailyEpisodeFormat', discGameFormat);
-        return;
-      }
-
-      if (change.name === 'renameGames') {
-        const val = change.value as boolean;
-        updateSetting('renameGames', val);
-        updateSetting('renameEpisodes', val);
         return;
       }
 
@@ -323,13 +306,13 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   const formatErrors = [
     ...(settings.seriesFolderFormat?.errors ?? []),
     ...(settings.seasonFolderFormat?.errors ?? []),
-    ...(settings.standardGameFormat?.errors ?? settings.standardEpisodeFormat?.errors ?? []),
+    ...(settings.standardGameFormat?.errors ?? []),
   ];
 
   const formatWarnings = [
     ...(settings.seriesFolderFormat?.warnings ?? []),
     ...(settings.seasonFolderFormat?.warnings ?? []),
-    ...(settings.standardGameFormat?.warnings ?? settings.standardEpisodeFormat?.warnings ?? []),
+    ...(settings.standardGameFormat?.warnings ?? []),
   ];
 
   return (
@@ -352,7 +335,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.CHECK}
               name="renameGames"
               onChange={handleInputChange}
-              {...(settings.renameGames ?? settings.renameEpisodes)}
+              {...settings.renameGames}
             />
           </FormRow>
 
@@ -432,8 +415,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.TEXT}
               name="discPathFormat"
               value={discPathFormat}
-              errors={settings.dailyGameFormat?.errors ?? settings.dailyEpisodeFormat?.errors ?? []}
-              warnings={settings.dailyGameFormat?.warnings ?? settings.dailyEpisodeFormat?.warnings ?? []}
+              errors={settings.dailyGameFormat?.errors ?? []}
+              warnings={settings.dailyGameFormat?.warnings ?? []}
               buttons={
                 <FormInputButton onPress={handleDiscNamingModalOpenClick}>
                   ?

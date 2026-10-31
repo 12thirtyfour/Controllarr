@@ -13,8 +13,8 @@ public class ManualImportReprocessResource : RestResource
     public string? RelativePath { get; set; }
     public int SeriesId { get; set; }
     public int? SeasonNumber { get; set; }
-    public List<EpisodeResource> Episodes { get; set; } = [];
-    public List<int>? EpisodeIds { get; set; }
+    public List<EpisodeResource> Games { get; set; } = [];
+    public List<int>? GameIds { get; set; }
     public QualityModel? Quality { get; set; }
     public List<Language> Languages { get; set; } = [];
     public string? ReleaseGroup { get; set; }

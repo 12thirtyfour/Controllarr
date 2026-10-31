@@ -11,7 +11,7 @@ namespace Sonarr.Api.V5.History;
 
 public class HistoryResource : RestResource
 {
-    public int EpisodeId { get; set; }
+    public int GameId { get; set; }
     public int SeriesId { get; set; }
     public required string SourceTitle { get; set; }
     public required List<Language> Languages { get; set; }
@@ -23,7 +23,7 @@ public class HistoryResource : RestResource
     public string? DownloadId { get; set; }
     public EpisodeHistoryEventType EventType { get; set; }
     public required Dictionary<string, string> Data { get; set; }
-    public EpisodeResource? Episode { get; set; }
+    public EpisodeResource? Game { get; set; }
     public SeriesResource? Series { get; set; }
 }
 
@@ -37,7 +37,7 @@ public static class HistoryResourceMapper
         return new HistoryResource
         {
             Id = model.Id,
-            EpisodeId = model.EpisodeId,
+            GameId = model.EpisodeId,
             SeriesId = model.SeriesId,
             SourceTitle = model.SourceTitle,
             Languages = model.Languages,

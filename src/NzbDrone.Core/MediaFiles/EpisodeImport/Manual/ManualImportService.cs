@@ -569,7 +569,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
 
                 var file = message.Files[i];
                 var series = _seriesService.GetSeries(file.SeriesId);
-                var episodes = _episodeService.GetEpisodes(file.EpisodeIds);
+                var episodes = _episodeService.GetEpisodes(file.GameIds);
                 var fileEpisodeInfo = Parser.Parser.ParsePath(file.Path) ?? new ParsedEpisodeInfo();
                 var existingFile = series.Path.IsParentPath(file.Path);
 

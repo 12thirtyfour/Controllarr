@@ -12,9 +12,9 @@ namespace Sonarr.Api.V5.Episodes
     {
         public int SeriesId { get; set; }
         public int TvdbId { get; set; }
-        public int EpisodeFileId { get; set; }
+        public int RomFileId { get; set; }
         public int SeasonNumber { get; set; }
-        public int EpisodeNumber { get; set; }
+        public int GameNumber { get; set; }
         public string? Title { get; set; }
         public string? AirDate { get; set; }
         public DateTime? AirDateUtc { get; set; }
@@ -22,12 +22,12 @@ namespace Sonarr.Api.V5.Episodes
         public int Runtime { get; set; }
         public string? FinaleType { get; set; }
         public string? Overview { get; set; }
-        public EpisodeFileResource? EpisodeFile { get; set; }
+        public EpisodeFileResource? RomFile { get; set; }
         public bool HasFile { get; set; }
         public bool Monitored { get; set; }
-        public int? AbsoluteEpisodeNumber { get; set; }
-        public int? SceneAbsoluteEpisodeNumber { get; set; }
-        public int? SceneEpisodeNumber { get; set; }
+        public int? AbsoluteGameNumber { get; set; }
+        public int? SceneAbsoluteGameNumber { get; set; }
+        public int? SceneGameNumber { get; set; }
         public int? SceneSeasonNumber { get; set; }
         public bool UnverifiedSceneNumbering { get; set; }
         public DateTime? EndTime { get; set; }
@@ -55,9 +55,9 @@ namespace Sonarr.Api.V5.Episodes
 
                 SeriesId = model.SeriesId,
                 TvdbId = model.TvdbId,
-                EpisodeFileId = model.EpisodeFileId,
+                RomFileId = model.EpisodeFileId,
                 SeasonNumber = model.SeasonNumber,
-                EpisodeNumber = model.EpisodeNumber,
+                GameNumber = model.EpisodeNumber,
                 Title = model.Title,
                 AirDate = model.AirDate,
                 AirDateUtc = model.AirDateUtc,
@@ -66,13 +66,13 @@ namespace Sonarr.Api.V5.Episodes
                 Overview = model.Overview,
                 LastSearchTime = model.LastSearchTime,
 
-                // EpisodeFile
+                // RomFile
 
                 HasFile = model.HasFile,
                 Monitored = model.Monitored,
-                AbsoluteEpisodeNumber = model.AbsoluteEpisodeNumber,
-                SceneAbsoluteEpisodeNumber = model.SceneAbsoluteEpisodeNumber,
-                SceneEpisodeNumber = model.SceneEpisodeNumber,
+                AbsoluteGameNumber = model.AbsoluteEpisodeNumber,
+                SceneAbsoluteGameNumber = model.SceneAbsoluteEpisodeNumber,
+                SceneGameNumber = model.SceneEpisodeNumber,
                 SceneSeasonNumber = model.SceneSeasonNumber,
                 UnverifiedSceneNumbering = model.UnverifiedSceneNumbering,
 

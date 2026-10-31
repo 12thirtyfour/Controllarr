@@ -18,11 +18,11 @@ public class ReleaseResource : RestResource
     public string? Format { get; set; }
     public List<Language> Languages { get; set; } = [];
     public int? MappedSeasonNumber { get; set; }
-    public int[] MappedEpisodeNumbers { get; set; } = [];
-    public int[] MappedAbsoluteEpisodeNumbers { get; set; } = [];
+    public int[] MappedGameNumbers { get; set; } = [];
+    public int[] MappedAbsoluteGameNumbers { get; set; } = [];
     public int? MappedSeriesId { get; set; }
-    public IEnumerable<ReleaseEpisodeResource> MappedEpisodeInfo { get; set; } = [];
-    public bool EpisodeRequested { get; set; }
+    public IEnumerable<ReleaseEpisodeResource> MappedGameInfo { get; set; } = [];
+    public bool GameRequested { get; set; }
     public bool DownloadAllowed { get; set; }
     public int ReleaseWeight { get; set; }
     public List<CustomFormatResource>? CustomFormats { get; set; }
@@ -52,10 +52,10 @@ public static class ReleaseResourceMapper
             Languages = remoteEpisode.Languages,
             MappedSeriesId = remoteEpisode.Series?.Id,
             MappedSeasonNumber = remoteEpisode.Episodes.FirstOrDefault()?.SeasonNumber,
-            MappedEpisodeNumbers = remoteEpisode.Episodes.Select(v => v.EpisodeNumber).ToArray(),
-            MappedAbsoluteEpisodeNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber!.Value).ToArray(),
-            MappedEpisodeInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
-            EpisodeRequested = remoteEpisode.EpisodeRequested,
+            MappedGameNumbers = remoteEpisode.Episodes.Select(v => v.EpisodeNumber).ToArray(),
+            MappedAbsoluteGameNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber!.Value).ToArray(),
+            MappedGameInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
+            GameRequested = remoteEpisode.EpisodeRequested,
             DownloadAllowed = remoteEpisode.DownloadAllowed && !releaseInfo.MissingCredentials,
             CustomFormatScore = remoteEpisode.CustomFormatScore,
             CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
@@ -87,9 +87,10 @@ public static class ReleaseResourceMapper
 public class ReleaseEpisodeResource
 {
     public int Id { get; set; }
+    public int RomFileId { get; set; }
     public int SeasonNumber { get; set; }
-    public int EpisodeNumber { get; set; }
-    public int? AbsoluteEpisodeNumber { get; set; }
+    public int GameNumber { get; set; }
+    public int? AbsoluteGameNumber { get; set; }
     public string? Title { get; set; }
 
     public ReleaseEpisodeResource()
@@ -99,9 +100,10 @@ public class ReleaseEpisodeResource
     public ReleaseEpisodeResource(Episode episode)
     {
         Id = episode.Id;
+        RomFileId = episode.EpisodeFileId;
         SeasonNumber = episode.SeasonNumber;
-        EpisodeNumber = episode.EpisodeNumber;
-        AbsoluteEpisodeNumber = episode.AbsoluteEpisodeNumber;
+        GameNumber = episode.EpisodeNumber;
+        AbsoluteGameNumber = episode.AbsoluteEpisodeNumber;
         Title = episode.Title;
     }
 }

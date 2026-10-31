@@ -7,7 +7,7 @@ public class TagStatisticsResource
     public int TagId { get; set; }
     public required string Label { get; set; }
     public int SeriesCount { get; set; }
-    public int EpisodeFileCount { get; set; }
+    public int RomFileCount { get; set; }
     public long SizeOnDisk { get; set; }
 }
 
@@ -20,7 +20,7 @@ public static class TagStatisticsResourceMapper
             TagId = model.TagId,
             Label = model.Label,
             SeriesCount = model.SeriesCount,
-            EpisodeFileCount = model.EpisodeFileCount,
+            RomFileCount = model.EpisodeFileCount,
             SizeOnDisk = model.SizeOnDisk
         };
     }

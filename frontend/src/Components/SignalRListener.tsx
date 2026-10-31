@@ -142,7 +142,7 @@ function SignalRListener() {
       return;
     }
 
-    if (name === 'game') {
+    if (name === 'episode') {
       if (body.action === 'updated') {
         const updatedItem = body.resource as Game;
 
@@ -152,7 +152,7 @@ function SignalRListener() {
       return;
     }
 
-    if (name === 'gamefile') {
+    if (name === 'episodefile') {
       if (body.action === 'updated') {
         const updatedItem = body.resource as RomFile;
 

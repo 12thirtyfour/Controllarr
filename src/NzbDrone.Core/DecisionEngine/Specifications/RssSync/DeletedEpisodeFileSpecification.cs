@@ -27,7 +27,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 
         public virtual DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)
         {
-            if (!_configService.AutoUnmonitorPreviouslyDownloadedEpisodes)
+            if (!_configService.AutoUnmonitorPreviouslyDownloadedGames)
             {
                 return DownloadSpecDecision.Accept();
             }

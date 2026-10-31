@@ -4,71 +4,15 @@ namespace Sonarr.Api.V5.Settings;
 
 public class NamingExampleResource
 {
-    private string? _singleEpisodeExample;
-    private string? _multiEpisodeExample;
-    private string? _dailyEpisodeExample;
-    private string? _animeEpisodeExample;
-    private string? _animeMultiEpisodeExample;
+    public string? SingleGameExample { get; set; }
 
-    public string? SingleEpisodeExample
-    {
-        get => _singleEpisodeExample;
-        set => _singleEpisodeExample = value;
-    }
+    public string? MultiGameExample { get; set; }
 
-    public string? SingleGameExample
-    {
-        get => _singleEpisodeExample;
-        set => _singleEpisodeExample = value;
-    }
+    public string? DailyGameExample { get; set; }
 
-    public string? MultiEpisodeExample
-    {
-        get => _multiEpisodeExample;
-        set => _multiEpisodeExample = value;
-    }
+    public string? AnimeGameExample { get; set; }
 
-    public string? MultiGameExample
-    {
-        get => _multiEpisodeExample;
-        set => _multiEpisodeExample = value;
-    }
-
-    public string? DailyEpisodeExample
-    {
-        get => _dailyEpisodeExample;
-        set => _dailyEpisodeExample = value;
-    }
-
-    public string? DailyGameExample
-    {
-        get => _dailyEpisodeExample;
-        set => _dailyEpisodeExample = value;
-    }
-
-    public string? AnimeEpisodeExample
-    {
-        get => _animeEpisodeExample;
-        set => _animeEpisodeExample = value;
-    }
-
-    public string? AnimeGameExample
-    {
-        get => _animeEpisodeExample;
-        set => _animeEpisodeExample = value;
-    }
-
-    public string? AnimeMultiEpisodeExample
-    {
-        get => _animeMultiEpisodeExample;
-        set => _animeMultiEpisodeExample = value;
-    }
-
-    public string? AnimeMultiGameExample
-    {
-        get => _animeMultiEpisodeExample;
-        set => _animeMultiEpisodeExample = value;
-    }
+    public string? AnimeMultiGameExample { get; set; }
 
     public string? SeriesFolderExample { get; set; }
 
@@ -84,19 +28,13 @@ public static class NamingConfigResourceMapper
         return new NamingSettingsResource
         {
             Id = model.Id,
-
-            RenameEpisodes = model.RenameEpisodes,
             RenameGames = model.RenameEpisodes,
             ReplaceIllegalCharacters = model.ReplaceIllegalCharacters,
             ColonReplacementFormat = (int)model.ColonReplacementFormat,
             CustomColonReplacementFormat = model.CustomColonReplacementFormat,
-            MultiEpisodeStyle = (int)model.MultiEpisodeStyle,
             MultiGameStyle = (int)model.MultiEpisodeStyle,
-            StandardEpisodeFormat = model.StandardEpisodeFormat,
             StandardGameFormat = model.StandardEpisodeFormat,
-            DailyEpisodeFormat = model.DailyEpisodeFormat,
             DailyGameFormat = model.DailyEpisodeFormat,
-            AnimeEpisodeFormat = model.AnimeEpisodeFormat,
             AnimeGameFormat = model.AnimeEpisodeFormat,
             SeriesFolderFormat = model.SeriesFolderFormat,
             SeasonFolderFormat = model.SeasonFolderFormat,
@@ -109,15 +47,14 @@ public static class NamingConfigResourceMapper
         return new NamingConfig
         {
             Id = resource.Id,
-
-            RenameEpisodes = resource.RenameGames || resource.RenameEpisodes,
+            RenameEpisodes = resource.RenameGames,
             ReplaceIllegalCharacters = resource.ReplaceIllegalCharacters,
-            MultiEpisodeStyle = (MultiEpisodeStyle)(resource.MultiGameStyle != 0 ? resource.MultiGameStyle : resource.MultiEpisodeStyle),
+            MultiEpisodeStyle = (MultiEpisodeStyle)resource.MultiGameStyle,
             ColonReplacementFormat = (ColonReplacementFormat)resource.ColonReplacementFormat,
             CustomColonReplacementFormat = resource.CustomColonReplacementFormat ?? "",
-            StandardEpisodeFormat = resource.StandardGameFormat ?? resource.StandardEpisodeFormat,
-            DailyEpisodeFormat = resource.DailyGameFormat ?? resource.DailyEpisodeFormat,
-            AnimeEpisodeFormat = resource.AnimeGameFormat ?? resource.AnimeEpisodeFormat,
+            StandardEpisodeFormat = resource.StandardGameFormat,
+            DailyEpisodeFormat = resource.DailyGameFormat,
+            AnimeEpisodeFormat = resource.AnimeGameFormat,
             SeriesFolderFormat = resource.SeriesFolderFormat,
             SeasonFolderFormat = resource.SeasonFolderFormat,
             SpecialsFolderFormat = resource.SpecialsFolderFormat

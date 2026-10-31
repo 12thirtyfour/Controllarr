@@ -65,10 +65,10 @@ public class PlatformResource : RestResource
     public string? OriginalCountry { get; set; }
     public HashSet<int>? Tags { get; set; }
     public DateTime Added { get; set; }
-    public AddSeriesOptions? AddOptions { get; set; }
+    public AddPlatformOptionsResource? AddOptions { get; set; }
     public Ratings? Ratings { get; set; }
     public SeriesStatisticsResource? Statistics { get; set; }
-    public bool? EpisodesChanged { get; set; }
+    public bool? GamesChanged { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [SwaggerIgnore]
     public bool? IsExcluded { get; set; }
@@ -76,6 +76,45 @@ public class PlatformResource : RestResource
 
 public class SeriesResource : PlatformResource
 {
+}
+
+public class AddPlatformOptionsResource : MonitoringOptions
+{
+    public bool SearchForMissingGames { get; set; }
+    public bool SearchForCutoffUnmetGames { get; set; }
+}
+
+public static class AddPlatformOptionsResourceMapper
+{
+    public static AddPlatformOptionsResource? ToResource(this AddSeriesOptions? model)
+    {
+        if (model == null)
+        {
+            return null;
+        }
+
+        return new AddPlatformOptionsResource
+        {
+            Monitor = model.Monitor,
+            SearchForMissingGames = model.SearchForMissingEpisodes,
+            SearchForCutoffUnmetGames = model.SearchForCutoffUnmetEpisodes
+        };
+    }
+
+    public static AddSeriesOptions? ToModel(this AddPlatformOptionsResource? resource)
+    {
+        if (resource == null)
+        {
+            return null;
+        }
+
+        return new AddSeriesOptions
+        {
+            Monitor = resource.Monitor,
+            SearchForMissingEpisodes = resource.SearchForMissingGames,
+            SearchForCutoffUnmetEpisodes = resource.SearchForCutoffUnmetGames
+        };
+    }
 }
 
 public static class PlatformResourceMapper
@@ -131,7 +170,7 @@ public static class PlatformResourceMapper
             Genres = model.Genres,
             Tags = model.Tags,
             Added = model.Added,
-            AddOptions = model.AddOptions,
+            AddOptions = model.AddOptions.ToResource(),
             Ratings = model.Ratings
         };
     }
@@ -183,7 +222,7 @@ public static class PlatformResourceMapper
             Genres = resource.Genres,
             Tags = resource.Tags,
             Added = resource.Added,
-            AddOptions = resource.AddOptions,
+            AddOptions = resource.AddOptions.ToModel(),
             Ratings = resource.Ratings
         };
     }

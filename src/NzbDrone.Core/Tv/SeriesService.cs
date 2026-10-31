@@ -532,7 +532,7 @@ namespace NzbDrone.Core.Tv
 
             if (queueMove)
             {
-                _commandQueueManager.Push(new MoveSeriesCommand
+                _commandQueueManager.Push(new MovePlatformCommand
                 {
                     SeriesId = series.Id,
                     SourcePath = sourcePath,
@@ -555,7 +555,7 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
-                if (command.Body is MoveSeriesCommand moveCommand)
+                if (command.Body is MovePlatformCommand moveCommand)
                 {
                     seriesIds.Add(moveCommand.SeriesId);
                 }

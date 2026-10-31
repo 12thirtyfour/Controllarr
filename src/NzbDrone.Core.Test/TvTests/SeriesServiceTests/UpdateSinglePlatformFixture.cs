@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
             var result = Subject.UpdateSeries(_series, _series.Path, destinationPath, true);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.Is<MoveSeriesCommand>(c => c.SeriesId == _series.Id && c.SourcePath == _series.Path && c.DestinationPath == destinationPath), It.IsAny<CommandPriority>(), CommandTrigger.Manual), Times.Once());
+                .Verify(v => v.Push(It.Is<MovePlatformCommand>(c => c.SeriesId == _series.Id && c.SourcePath == _series.Path && c.DestinationPath == destinationPath), It.IsAny<CommandPriority>(), CommandTrigger.Manual), Times.Once());
 
             result.Path.Should().Be(@"C:\Test\source".AsOsAgnostic());
             result.PendingPath.Should().Be(destinationPath);
@@ -69,14 +69,14 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
                     new CommandModel
                     {
                         Status = CommandStatus.Started,
-                        Body = new MoveSeriesCommand { SeriesId = _series.Id }
+                        Body = new MovePlatformCommand { SeriesId = _series.Id }
                     }
                 });
 
             var result = Subject.UpdateSeries(_series, _series.Path, @"C:\Test\new-destination".AsOsAgnostic(), true);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.IsAny<MoveSeriesCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+                .Verify(v => v.Push(It.IsAny<MovePlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
 
             result.Path.Should().Be(@"C:\Test\source".AsOsAgnostic());
             result.PendingPath.Should().Be(existingPendingPath);
@@ -100,7 +100,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
             result.PendingPath.Should().Be(newDestinationPath);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.Is<MoveSeriesCommand>(c => c.SeriesId == _series.Id), It.IsAny<CommandPriority>(), CommandTrigger.Manual), Times.Once());
+                .Verify(v => v.Push(It.Is<MovePlatformCommand>(c => c.SeriesId == _series.Id), It.IsAny<CommandPriority>(), CommandTrigger.Manual), Times.Once());
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
             var result = Subject.UpdateSeries(_series, _series.Path, destinationPath, false);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.IsAny<MoveSeriesCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+                .Verify(v => v.Push(It.IsAny<MovePlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
 
             result.Path.Should().Be(destinationPath);
         }
@@ -141,7 +141,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
                     new CommandModel
                     {
                         Status = CommandStatus.Started,
-                        Body = new MoveSeriesCommand { SeriesId = _series.Id }
+                        Body = new MovePlatformCommand { SeriesId = _series.Id }
                     }
                 });
 

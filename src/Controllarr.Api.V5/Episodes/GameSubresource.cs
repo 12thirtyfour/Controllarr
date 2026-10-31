@@ -3,13 +3,13 @@ namespace Sonarr.Api.V5.Episodes;
 public enum GameSubresource
 {
     Series,
-    EpisodeFile,
+    RomFile,
     Images
 }
 
 public enum EpisodeSubresource
 {
     Series,
-    EpisodeFile,
+    RomFile,
     Images
 }

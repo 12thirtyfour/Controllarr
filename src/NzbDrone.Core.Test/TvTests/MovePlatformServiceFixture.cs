@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Test.TvTests
     public class MovePlatformServiceFixture : CoreTest<MoveSeriesService>
     {
         private Series _series;
-        private MoveSeriesCommand _command;
+        private MovePlatformCommand _command;
         private BulkMoveSeriesCommand _bulkCommand;
 
         [SetUp]
@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Test.TvTests
                 .CreateNew()
                 .Build();
 
-            _command = new MoveSeriesCommand
+            _command = new MovePlatformCommand
                        {
                            SeriesId = 1,
                            SourcePath = @"C:\Test\TV\Series".AsOsAgnostic(),
@@ -214,7 +214,7 @@ namespace NzbDrone.Core.Test.TvTests
                   .Setup(s => s.FolderExists(It.IsAny<string>()))
                   .Returns(true);
 
-            Subject.Execute(new MoveSeriesCommand
+            Subject.Execute(new MovePlatformCommand
             {
                 SeriesId = 1,
                 SourcePath = _command.SourcePath,

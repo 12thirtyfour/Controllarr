@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Configuration
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }
 
         // Media Management
-        bool AutoUnmonitorPreviouslyDownloadedEpisodes { get; set; }
+        bool AutoUnmonitorPreviouslyDownloadedGames { get; set; }
         string RecycleBin { get; set; }
         int RecycleBinCleanupDays { get; set; }
         ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Configuration
         bool ImportExtraFiles { get; set; }
         string ExtraFileExtensions { get; set; }
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
-        EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
+        EpisodeTitleRequiredType GameTitleRequired { get; set; }
         string UserRejectedExtensions { get; set; }
 
         // Season Pack Upgrade (Media Management)

@@ -270,7 +270,7 @@ namespace NzbDrone.Core.Tv
             {
                 _logger.Debug("Detaching episode {0} from file.", episode.Id);
 
-                var unmonitorEpisodes = _configService.AutoUnmonitorPreviouslyDownloadedEpisodes;
+                var unmonitorEpisodes = _configService.AutoUnmonitorPreviouslyDownloadedGames;
 
                 var unmonitorForReason = message.Reason != DeleteMediaFileReason.Upgrade &&
                                          message.Reason != DeleteMediaFileReason.ManualOverride &&

@@ -106,8 +106,8 @@ interface StatisticsQueryParams {
   qualityProfileIds?: number[];
   qualityProfileIdsNot?: boolean;
   monitored?: boolean;
-  platformTypes?: string[];
-  platformTypesNot?: boolean;
+  seriesTypes?: string[];
+  seriesTypesNot?: boolean;
 }
 
 const mapFiltersToQueryParams = (
@@ -147,8 +147,8 @@ const mapFiltersToQueryParams = (
         params.monitored = isNegated ? !values[0] : Boolean(values[0]);
         break;
       case 'seriesType':
-        params.platformTypes = values.map(String);
-        params.platformTypesNot = isNegated || undefined;
+        params.seriesTypes = values.map(String);
+        params.seriesTypesNot = isNegated || undefined;
         break;
       default:
         break;

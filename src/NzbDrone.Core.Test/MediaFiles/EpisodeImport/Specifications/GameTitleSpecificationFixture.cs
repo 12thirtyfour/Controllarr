@@ -98,7 +98,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         public void should_accept_when_episode_title_is_never_required()
         {
             Mocker.GetMock<IConfigService>()
-                  .Setup(s => s.EpisodeTitleRequired)
+                  .Setup(s => s.GameTitleRequired)
                   .Returns(EpisodeTitleRequiredType.Never);
 
             Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
@@ -108,7 +108,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         public void should_accept_if_episode_title_is_required_for_bulk_season_releases_and_not_bulk_season()
         {
             Mocker.GetMock<IConfigService>()
-                  .Setup(s => s.EpisodeTitleRequired)
+                  .Setup(s => s.GameTitleRequired)
                   .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         public void should_accept_if_episode_title_is_required_for_bulk_season_releases()
         {
             Mocker.GetMock<IConfigService>()
-                  .Setup(s => s.EpisodeTitleRequired)
+                  .Setup(s => s.GameTitleRequired)
                   .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
@@ -141,7 +141,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             _localEpisode.Episodes.First().Title = "TBA";
 
             Mocker.GetMock<IConfigService>()
-                  .Setup(s => s.EpisodeTitleRequired)
+                  .Setup(s => s.GameTitleRequired)
                   .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
@@ -160,7 +160,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             _localEpisode.Episodes.First().Title = "TBA";
 
             Mocker.GetMock<IConfigService>()
-                  .Setup(s => s.EpisodeTitleRequired)
+                  .Setup(s => s.GameTitleRequired)
                   .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()

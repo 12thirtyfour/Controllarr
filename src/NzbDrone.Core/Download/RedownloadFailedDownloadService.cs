@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Download
             {
                 _logger.Debug("Failed download only contains one game, searching again");
 
-                _commandQueueManager.Push(new EpisodeSearchCommand(message.EpisodeIds));
+                _commandQueueManager.Push(new GameSearchCommand(message.EpisodeIds));
 
                 return;
             }
@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Download
 
             _logger.Debug("Failed download contains multiple games, searching again");
 
-            _commandQueueManager.Push(new EpisodeSearchCommand(message.EpisodeIds));
+            _commandQueueManager.Push(new GameSearchCommand(message.EpisodeIds));
         }
     }
 }

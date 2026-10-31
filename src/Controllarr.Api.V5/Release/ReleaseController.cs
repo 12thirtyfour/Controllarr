@@ -108,8 +108,8 @@ public class ReleaseController : RestController<ReleaseResource>
                 var overrideInfo = release.Override;
 
                 Ensure.That(overrideInfo.SeriesId, () => release.Override.SeriesId).IsNotNull();
-                Ensure.That(overrideInfo.EpisodeIds, () => overrideInfo.EpisodeIds).IsNotNull();
-                Ensure.That(overrideInfo.EpisodeIds, () => overrideInfo.EpisodeIds).HasItems();
+                Ensure.That(overrideInfo.GameIds, () => overrideInfo.GameIds).IsNotNull();
+                Ensure.That(overrideInfo.GameIds, () => overrideInfo.GameIds).HasItems();
                 Ensure.That(overrideInfo.Quality, () => overrideInfo.Quality).IsNotNull();
                 Ensure.That(overrideInfo.Languages, () => overrideInfo.Languages).IsNotNull();
 
@@ -130,16 +130,16 @@ public class ReleaseController : RestController<ReleaseResource>
                 };
 
                 remoteEpisode.Series = _seriesService.GetSeries(overrideInfo.SeriesId!.Value);
-                remoteEpisode.Episodes = _episodeService.GetEpisodes(overrideInfo.EpisodeIds);
+                remoteEpisode.Episodes = _episodeService.GetEpisodes(overrideInfo.GameIds);
                 remoteEpisode.ParsedEpisodeInfo.Quality = overrideInfo.Quality;
                 remoteEpisode.Languages = overrideInfo.Languages;
             }
 
             if (remoteEpisode.Series == null)
             {
-                if (release.SearchInfo?.EpisodeId.HasValue == true)
+                if (release.SearchInfo?.GameId.HasValue == true)
                 {
-                    var episode = _episodeService.GetEpisode(release.SearchInfo.EpisodeId.Value);
+                    var episode = _episodeService.GetEpisode(release.SearchInfo.GameId.Value);
 
                     remoteEpisode.Series = _seriesService.GetSeries(episode.SeriesId);
                     remoteEpisode.Episodes = new List<Episode> { episode };
@@ -166,9 +166,9 @@ public class ReleaseController : RestController<ReleaseResource>
             {
                 var episodes = _parsingService.GetEpisodes(remoteEpisode.ParsedEpisodeInfo, remoteEpisode.Series, true);
 
-                if (episodes.Empty() && release.SearchInfo?.EpisodeId.HasValue == true)
+                if (episodes.Empty() && release.SearchInfo?.GameId.HasValue == true)
                 {
-                    var episode = _episodeService.GetEpisode(release.SearchInfo.EpisodeId.Value);
+                    var episode = _episodeService.GetEpisode(release.SearchInfo.GameId.Value);
 
                     episodes = new List<Episode> { episode };
                 }
@@ -194,11 +194,11 @@ public class ReleaseController : RestController<ReleaseResource>
 
     [HttpGet]
     [Produces("application/json")]
-    public async Task<Results<Ok<List<ReleaseResource>>, BadRequest>> GetReleases(int? seriesId, int? episodeId, int? seasonNumber)
+    public async Task<Results<Ok<List<ReleaseResource>>, BadRequest>> GetReleases(int? seriesId, int? gameId, int? seasonNumber)
     {
-        if (episodeId.HasValue)
+        if (gameId.HasValue)
         {
-            return TypedResults.Ok(await GetEpisodeReleases(episodeId.Value));
+            return TypedResults.Ok(await GetEpisodeReleases(gameId.Value));
         }
 
         if (seriesId.HasValue && seasonNumber.HasValue)

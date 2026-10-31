@@ -9,7 +9,7 @@ public class IndexerBulkResource : ProviderBulkResource<IndexerBulkResource>
     public bool? EnableAutomaticSearch { get; set; }
     public bool? EnableInteractiveSearch { get; set; }
     public int? Priority { get; set; }
-    public int? SeasonSearchMaximumSingleEpisodeAge { get; set; }
+    public int? SeasonSearchMaximumSingleGameAge { get; set; }
 }
 
 public class IndexerBulkResourceMapper : ProviderBulkResourceMapper<IndexerBulkResource, IndexerDefinition>
@@ -22,7 +22,7 @@ public class IndexerBulkResourceMapper : ProviderBulkResourceMapper<IndexerBulkR
             existing.EnableAutomaticSearch = resource.EnableAutomaticSearch ?? existing.EnableAutomaticSearch;
             existing.EnableInteractiveSearch = resource.EnableInteractiveSearch ?? existing.EnableInteractiveSearch;
             existing.Priority = resource.Priority ?? existing.Priority;
-            existing.SeasonSearchMaximumSingleEpisodeAge = resource.SeasonSearchMaximumSingleEpisodeAge ?? existing.SeasonSearchMaximumSingleEpisodeAge;
+            existing.SeasonSearchMaximumSingleEpisodeAge = resource.SeasonSearchMaximumSingleGameAge ?? existing.SeasonSearchMaximumSingleEpisodeAge;
         });
 
         return existingDefinitions;

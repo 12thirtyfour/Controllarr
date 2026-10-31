@@ -4,7 +4,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class MissingEpisodeSearchCommand : Command
+    public class MissingGameSearchCommand : Command
     {
         public int? SeriesId { get; set; }
         public bool Monitored { get; set; }
@@ -15,12 +15,12 @@ namespace NzbDrone.Core.IndexerSearch
 
         public override bool SendUpdatesToClient => true;
 
-        public MissingEpisodeSearchCommand()
+        public MissingGameSearchCommand()
         {
             Monitored = true;
         }
 
-        public MissingEpisodeSearchCommand(int seriesId)
+        public MissingGameSearchCommand(int seriesId)
         {
             SeriesId = seriesId;
             Monitored = true;

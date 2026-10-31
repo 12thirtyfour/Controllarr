@@ -24,7 +24,7 @@ namespace NzbDrone.Core.MediaFiles
     }
 
     public class MediaFileDeletionService : IDeleteMediaFiles,
-                                            IExecute<DeleteSeriesFilesCommand>,
+                                            IExecute<DeletePlatformFilesCommand>,
                                             IHandle<SeriesDeletedEvent>,
                                             IHandle<EpisodeFileDeletedEvent>
     {
@@ -99,7 +99,7 @@ namespace NzbDrone.Core.MediaFiles
             _eventAggregator.PublishEvent(new DeleteCompletedEvent());
         }
 
-        public void Execute(DeleteSeriesFilesCommand message)
+        public void Execute(DeletePlatformFilesCommand message)
         {
             foreach (var seriesId in message.SeriesIds)
             {

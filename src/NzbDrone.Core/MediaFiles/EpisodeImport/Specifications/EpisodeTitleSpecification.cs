@@ -36,7 +36,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
                 return ImportSpecDecision.Accept();
             }
 
-            var episodeTitleRequired = _configService.EpisodeTitleRequired;
+            var episodeTitleRequired = _configService.GameTitleRequired;
 
             if (episodeTitleRequired == EpisodeTitleRequiredType.Never)
             {

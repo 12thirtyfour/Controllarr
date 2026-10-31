@@ -53,21 +53,10 @@ namespace Sonarr.Api.V3.Commands
         [Produces("application/json")]
         public ActionResult<CommandResource> StartCommand([FromBody] CommandResource commandResource)
         {
-            var normalizedCommandName = (commandResource.Name ?? string.Empty) switch
-            {
-                "DeletePlatformFiles" => "DeleteSeriesFiles",
-                "GameSearch" => "EpisodeSearch",
-                "MissingGameSearch" => "MissingEpisodeSearch",
-                "CutoffUnmetGameSearch" => "CutoffUnmetEpisodeSearch",
-                "DownloadedGamesScan" => "DownloadedEpisodesScan",
-                "MovePlatform" => "MoveSeries",
-                _ => commandResource.Name
-            };
-
             var commandType =
                 _knownTypes.GetImplementations(typeof(Command))
                                .Single(c => c.Name.Replace("Command", "")
-                                             .Equals(normalizedCommandName, StringComparison.InvariantCultureIgnoreCase));
+                                             .Equals(commandResource.Name, StringComparison.InvariantCultureIgnoreCase));
 
             Request.Body.Seek(0, SeekOrigin.Begin);
             using (var reader = new StreamReader(Request.Body))

@@ -6,8 +6,8 @@ public class RenameGameResource : RestResource
 {
     public int SeriesId { get; set; }
     public int SeasonNumber { get; set; }
-    public List<int> EpisodeNumbers { get; set; } = [];
-    public int EpisodeFileId { get; set; }
+    public List<int> GameNumbers { get; set; } = [];
+    public int RomFileId { get; set; }
     public string? ExistingPath { get; set; }
     public string? NewPath { get; set; }
 }
@@ -25,8 +25,8 @@ public static class RenameGameResourceMapper
             Id = model.EpisodeFileId,
             SeriesId = model.SeriesId,
             SeasonNumber = model.SeasonNumber,
-            EpisodeNumbers = model.EpisodeNumbers.ToList(),
-            EpisodeFileId = model.EpisodeFileId,
+            GameNumbers = model.EpisodeNumbers.ToList(),
+            RomFileId = model.EpisodeFileId,
             ExistingPath = model.ExistingPath,
             NewPath = model.NewPath
         };

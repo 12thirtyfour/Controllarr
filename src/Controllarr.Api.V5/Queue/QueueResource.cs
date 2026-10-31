@@ -13,10 +13,10 @@ namespace Sonarr.Api.V5.Queue
     public class QueueResource : RestResource
     {
         public int? SeriesId { get; set; }
-        public IEnumerable<int> EpisodeIds { get; set; } = [];
+        public IEnumerable<int> GameIds { get; set; } = [];
         public List<int> SeasonNumbers { get; set; } = [];
         public SeriesResource? Series { get; set; }
-        public List<EpisodeResource>? Episodes { get; set; }
+        public List<EpisodeResource>? Games { get; set; }
         public List<Language> Languages { get; set; } = [];
         public QualityModel Quality { get; set; } = new(NzbDrone.Core.Qualities.Quality.Unknown);
         public List<CustomFormatResource> CustomFormats { get; set; } = [];
@@ -38,7 +38,7 @@ namespace Sonarr.Api.V5.Queue
         public bool DownloadClientHasPostImportCategory { get; set; }
         public string? Indexer { get; set; }
         public string? OutputPath { get; set; }
-        public int EpisodesWithFilesCount { get; set; }
+        public int GamesWithFilesCount { get; set; }
         public bool IsFullSeason { get; set; }
     }
 
@@ -53,10 +53,10 @@ namespace Sonarr.Api.V5.Queue
             {
                 Id = model.Id,
                 SeriesId = model.Series?.Id,
-                EpisodeIds = model.Episodes?.Select(e => e.Id).ToList() ?? [],
+                GameIds = model.Episodes?.Select(e => e.Id).ToList() ?? [],
                 SeasonNumbers = model.SeasonNumber.HasValue ? [model.SeasonNumber.Value] : [],
                 Series = includeSeries && model.Series != null ? model.Series.ToResource() : null,
-                Episodes = includeEpisodes ? model.Episodes?.ToResource() : null,
+                Games = includeEpisodes ? model.Episodes?.ToResource() : null,
                 Languages = model.Languages,
                 Quality = model.Quality,
                 CustomFormats = customFormats?.ToResource(false) ?? [],
@@ -78,7 +78,7 @@ namespace Sonarr.Api.V5.Queue
                 DownloadClientHasPostImportCategory = model.DownloadClientHasPostImportCategory,
                 Indexer = model.Indexer,
                 OutputPath = model.OutputPath,
-                EpisodesWithFilesCount = model.Episodes?.Count(e => e.HasFile) ?? 0,
+                GamesWithFilesCount = model.Episodes?.Count(e => e.HasFile) ?? 0,
                 IsFullSeason = model.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason ?? false
             };
         }

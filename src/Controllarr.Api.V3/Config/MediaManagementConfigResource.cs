@@ -86,8 +86,8 @@ namespace Sonarr.Api.V3.Config
         {
             return new MediaManagementConfigResource
             {
-                AutoUnmonitorPreviouslyDownloadedEpisodes = model.AutoUnmonitorPreviouslyDownloadedEpisodes,
-                AutoUnmonitorPreviouslyDownloadedGames = model.AutoUnmonitorPreviouslyDownloadedEpisodes,
+                AutoUnmonitorPreviouslyDownloadedEpisodes = model.AutoUnmonitorPreviouslyDownloadedGames,
+                AutoUnmonitorPreviouslyDownloadedGames = model.AutoUnmonitorPreviouslyDownloadedGames,
                 RecycleBin = model.RecycleBin,
                 RecycleBinCleanupDays = model.RecycleBinCleanupDays,
                 DownloadPropersAndRepacks = model.DownloadPropersAndRepacks,
@@ -100,8 +100,8 @@ namespace Sonarr.Api.V3.Config
                 ChmodFolder = model.ChmodFolder,
                 ChownGroup = model.ChownGroup,
 
-                EpisodeTitleRequired = model.EpisodeTitleRequired,
-                GameTitleRequired = model.EpisodeTitleRequired,
+                EpisodeTitleRequired = model.GameTitleRequired,
+                GameTitleRequired = model.GameTitleRequired,
                 SkipFreeSpaceCheckWhenImporting = model.SkipFreeSpaceCheckWhenImporting,
                 SkipFreeSpaceCheckWhenGrabbing = model.SkipFreeSpaceCheckWhenGrabbing,
                 MinimumFreeSpaceWhenImporting = model.MinimumFreeSpaceWhenImporting,

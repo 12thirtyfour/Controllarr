@@ -85,10 +85,10 @@ namespace NzbDrone.Core.Configuration
             return _repository.Get(key.ToLower()) != null;
         }
 
-        public bool AutoUnmonitorPreviouslyDownloadedEpisodes
+        public bool AutoUnmonitorPreviouslyDownloadedGames
         {
-            get { return GetValueBoolean("AutoUnmonitorPreviouslyDownloadedEpisodes"); }
-            set { SetValue("AutoUnmonitorPreviouslyDownloadedEpisodes", value); }
+            get { return GetValueBoolean("AutoUnmonitorPreviouslyDownloadedGames"); }
+            set { SetValue("AutoUnmonitorPreviouslyDownloadedGames", value); }
         }
 
         public int Retention
@@ -261,11 +261,11 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("RescanAfterRefresh", value); }
         }
 
-        public EpisodeTitleRequiredType EpisodeTitleRequired
+        public EpisodeTitleRequiredType GameTitleRequired
         {
-            get { return GetValueEnum("EpisodeTitleRequired", EpisodeTitleRequiredType.Always); }
+            get { return GetValueEnum("GameTitleRequired", EpisodeTitleRequiredType.Always); }
 
-            set { SetValue("EpisodeTitleRequired", value); }
+            set { SetValue("GameTitleRequired", value); }
         }
 
         public string UserRejectedExtensions

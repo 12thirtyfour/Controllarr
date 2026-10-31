@@ -7,7 +7,7 @@ public class QualityProfileStatisticsResource
     public int QualityProfileId { get; set; }
     public required string Name { get; set; }
     public int SeriesCount { get; set; }
-    public int EpisodeFileCount { get; set; }
+    public int RomFileCount { get; set; }
     public long SizeOnDisk { get; set; }
 }
 
@@ -20,7 +20,7 @@ public static class QualityProfileStatisticsResourceMapper
             QualityProfileId = model.QualityProfileId,
             Name = model.Name,
             SeriesCount = model.SeriesCount,
-            EpisodeFileCount = model.EpisodeFileCount,
+            RomFileCount = model.EpisodeFileCount,
             SizeOnDisk = model.SizeOnDisk
         };
     }

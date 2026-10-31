@@ -77,7 +77,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         private void GivenUnmonitorDeletedEpisodes(bool enabled)
         {
             Mocker.GetMock<IConfigService>()
-                  .SetupGet(v => v.AutoUnmonitorPreviouslyDownloadedEpisodes)
+                  .SetupGet(v => v.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(enabled);
         }
 

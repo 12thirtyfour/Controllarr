@@ -172,18 +172,6 @@ function MediaManagement() {
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
-      if (change.name === 'gameTitleRequired') {
-        const val = change.value as string;
-        updateSetting('gameTitleRequired', val);
-        updateSetting('episodeTitleRequired', val);
-        return;
-      }
-      if (change.name === 'autoUnmonitorPreviouslyDownloadedGames') {
-        const val = change.value as boolean;
-        updateSetting('autoUnmonitorPreviouslyDownloadedGames', val);
-        updateSetting('autoUnmonitorPreviouslyDownloadedEpisodes', val);
-        return;
-      }
       updateSetting(
         change.name as keyof MediaManagementSettingsModel,
         change.value as MediaManagementSettingsModel[keyof MediaManagementSettingsModel]
@@ -293,7 +281,7 @@ function MediaManagement() {
                       name="gameTitleRequired"
                       values={gameTitleRequiredOptions}
                       onChange={handleInputChange}
-                      {...(settings.gameTitleRequired ?? settings.episodeTitleRequired)}
+                      {...settings.gameTitleRequired}
                     />
                   </FormRow>
 
@@ -541,7 +529,7 @@ function MediaManagement() {
                     type={inputTypes.CHECK}
                     name="autoUnmonitorPreviouslyDownloadedGames"
                     onChange={handleInputChange}
-                    {...(settings.autoUnmonitorPreviouslyDownloadedGames ?? settings.autoUnmonitorPreviouslyDownloadedEpisodes)}
+                    {...settings.autoUnmonitorPreviouslyDownloadedGames}
                   />
                 </FormRow>
 

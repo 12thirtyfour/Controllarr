@@ -6,7 +6,7 @@ namespace Sonarr.Api.V5.Statistics;
 public class QualityStatisticsResource
 {
     public required Quality Quality { get; set; }
-    public int EpisodeFileCount { get; set; }
+    public int RomFileCount { get; set; }
     public long SizeOnDisk { get; set; }
 }
 
@@ -17,7 +17,7 @@ public static class QualityStatisticsResourceMapper
         return new QualityStatisticsResource
         {
             Quality = model.Quality,
-            EpisodeFileCount = model.EpisodeFileCount,
+            RomFileCount = model.EpisodeFileCount,
             SizeOnDisk = model.SizeOnDisk
         };
     }

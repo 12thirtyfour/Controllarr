@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+- **Direct API V5, Command, Configuration & Localization Naming Alignment (Zero Aliasing)**:
+  - Removed all code-level token aliasing in `frontend/src/Utilities/String/translate.ts` and updated localization templates in `src/NzbDrone.Core/Localization/Core/en.json` and `PlatformIndexProgressBar.tsx` to use `{romFileCount}`, `{gameCount}`, `{totalGameCount}`, `{gameFormat}`, and `{game}` directly.
+  - Updated all `Controllarr.Api.V5` resources, subresource enums, and controller query parameters/routes (`PlatformStatisticsResource`, `RegionStatisticsResource`, `RegionTypeResource`, `PlatformResource`, `AddPlatformOptionsResource`, `GameResource`, `GameSubresource`, `CalendarSubresource`, `CutoffSubresource`, `GamesMonitoredResource`, `GameController`, `RenameGameResource`, `RomFileListResource`, `RomFileController`, `PlatformPassController`, `ReleaseGrabResource`, `ReleaseResource`, `ParsedGameInfoResource`, `ReleaseController`, `ManualImportResource`, `ManualImportReprocessResource`, `ManualImportController`, `HistoryResource`, `HistorySubresource`, `HistoryController`, `QueueSubresource`, `QueueResource`, `QueueController`, `QueueDetailsController`, `BlocklistResource`, `ConnectionResource`, `ImportListResource`, `IndexerResource`, `IndexerBulkResource`, `ReleaseProfileResource`, `ParseResource`, `ParseController`, `StatisticsResource`, `QualityProfileStatisticsResource`, `QualityStatisticsResource`, and `TagStatisticsResource`) to expose `Platform`, `Game`, and `RomFile` property names directly without duplicate `Episode` properties.
+  - Renamed core command classes and payloads (`GameSearchCommand` with `GameIds`, `MissingGameSearchCommand`, `CutoffUnmetGameSearchCommand`, `DeletePlatformFilesCommand`, `DownloadedGamesScanCommand`, `MovePlatformCommand`, and `ManualImportFile` with `GameIds` / `RomFileId`) and removed the `normalizedCommandName` translation switch from `CommandController`.
+  - Renamed `AutoUnmonitorPreviouslyDownloadedGames` and `GameTitleRequired` in `IConfigService` / `ConfigService`, removed duplicate backing-field shims from `NamingSettingsResource`, `NamingExampleResource`, and `MediaManagementSettingsResource`, and aligned `FileNameValidationService` validation property names (`StandardGameFormat`, `DailyGameFormat`, `AnimeGameFormat`) and `SignalRListener.tsx` handlers.
+
 ### Added
 - **GameTDB Database Integration (Switch, Wii, Wii U, 3DS)**:
   - Added automated download, decompression, and XML parsing of official GameTDB databases for Nintendo Switch (`switchtdb.zip`), Nintendo Wii (`wiitdb.zip`), Nintendo Wii U (`wiiutdb.zip`), and Nintendo 3DS (`3dstdb.zip`).

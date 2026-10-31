@@ -13,8 +13,8 @@ public class ConnectionResource : ProviderResource<ConnectionResource>
     public bool OnRename { get; set; }
     public bool OnSeriesAdd { get; set; }
     public bool OnSeriesDelete { get; set; }
-    public bool OnEpisodeFileDelete { get; set; }
-    public bool OnEpisodeFileDeleteForUpgrade { get; set; }
+    public bool OnRomFileDelete { get; set; }
+    public bool OnRomFileDeleteForUpgrade { get; set; }
     public bool OnHealthIssue { get; set; }
     public bool IncludeHealthWarnings { get; set; }
     public bool OnHealthRestored { get; set; }
@@ -27,8 +27,8 @@ public class ConnectionResource : ProviderResource<ConnectionResource>
     public bool SupportsOnRename { get; set; }
     public bool SupportsOnSeriesAdd { get; set; }
     public bool SupportsOnSeriesDelete { get; set; }
-    public bool SupportsOnEpisodeFileDelete { get; set; }
-    public bool SupportsOnEpisodeFileDeleteForUpgrade { get; set; }
+    public bool SupportsOnRomFileDelete { get; set; }
+    public bool SupportsOnRomFileDeleteForUpgrade { get; set; }
     public bool SupportsOnHealthIssue { get; set; }
     public bool SupportsOnHealthRestored { get; set; }
     public bool SupportsOnApplicationUpdate { get; set; }
@@ -49,8 +49,8 @@ public class ConnectionResourceMapper : ProviderResourceMapper<ConnectionResourc
         resource.OnRename = definition.OnRename;
         resource.OnSeriesAdd = definition.OnSeriesAdd;
         resource.OnSeriesDelete = definition.OnSeriesDelete;
-        resource.OnEpisodeFileDelete = definition.OnEpisodeFileDelete;
-        resource.OnEpisodeFileDeleteForUpgrade = definition.OnEpisodeFileDeleteForUpgrade;
+        resource.OnRomFileDelete = definition.OnEpisodeFileDelete;
+        resource.OnRomFileDeleteForUpgrade = definition.OnEpisodeFileDeleteForUpgrade;
         resource.OnHealthIssue = definition.OnHealthIssue;
         resource.IncludeHealthWarnings = definition.IncludeHealthWarnings;
         resource.OnHealthRestored = definition.OnHealthRestored;
@@ -63,8 +63,8 @@ public class ConnectionResourceMapper : ProviderResourceMapper<ConnectionResourc
         resource.SupportsOnRename = definition.SupportsOnRename;
         resource.SupportsOnSeriesAdd = definition.SupportsOnSeriesAdd;
         resource.SupportsOnSeriesDelete = definition.SupportsOnSeriesDelete;
-        resource.SupportsOnEpisodeFileDelete = definition.SupportsOnEpisodeFileDelete;
-        resource.SupportsOnEpisodeFileDeleteForUpgrade = definition.SupportsOnEpisodeFileDeleteForUpgrade;
+        resource.SupportsOnRomFileDelete = definition.SupportsOnEpisodeFileDelete;
+        resource.SupportsOnRomFileDeleteForUpgrade = definition.SupportsOnEpisodeFileDeleteForUpgrade;
         resource.SupportsOnHealthIssue = definition.SupportsOnHealthIssue;
         resource.SupportsOnHealthRestored = definition.SupportsOnHealthRestored;
         resource.SupportsOnApplicationUpdate = definition.SupportsOnApplicationUpdate;
@@ -84,8 +84,8 @@ public class ConnectionResourceMapper : ProviderResourceMapper<ConnectionResourc
         definition.OnRename = resource.OnRename;
         definition.OnSeriesAdd = resource.OnSeriesAdd;
         definition.OnSeriesDelete = resource.OnSeriesDelete;
-        definition.OnEpisodeFileDelete = resource.OnEpisodeFileDelete;
-        definition.OnEpisodeFileDeleteForUpgrade = resource.OnEpisodeFileDeleteForUpgrade;
+        definition.OnEpisodeFileDelete = resource.OnRomFileDelete;
+        definition.OnEpisodeFileDeleteForUpgrade = resource.OnRomFileDeleteForUpgrade;
         definition.OnHealthIssue = resource.OnHealthIssue;
         definition.IncludeHealthWarnings = resource.IncludeHealthWarnings;
         definition.OnHealthRestored = resource.OnHealthRestored;
@@ -98,8 +98,8 @@ public class ConnectionResourceMapper : ProviderResourceMapper<ConnectionResourc
         definition.SupportsOnRename = resource.SupportsOnRename;
         definition.SupportsOnSeriesAdd = resource.SupportsOnSeriesAdd;
         definition.SupportsOnSeriesDelete = resource.SupportsOnSeriesDelete;
-        definition.SupportsOnEpisodeFileDelete = resource.SupportsOnEpisodeFileDelete;
-        definition.SupportsOnEpisodeFileDeleteForUpgrade = resource.SupportsOnEpisodeFileDeleteForUpgrade;
+        definition.SupportsOnEpisodeFileDelete = resource.SupportsOnRomFileDelete;
+        definition.SupportsOnEpisodeFileDeleteForUpgrade = resource.SupportsOnRomFileDeleteForUpgrade;
         definition.SupportsOnHealthIssue = resource.SupportsOnHealthIssue;
         definition.SupportsOnHealthRestored = resource.SupportsOnHealthRestored;
         definition.SupportsOnApplicationUpdate = resource.SupportsOnApplicationUpdate;

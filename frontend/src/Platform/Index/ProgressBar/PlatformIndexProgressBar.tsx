@@ -70,7 +70,7 @@ function PlatformIndexProgressBar(props: PlatformIndexProgressBarProps) {
       size={detailedProgressBar ? sizes.MEDIUM : sizes.SMALL}
       showText={detailedProgressBar}
       text={text}
-      title={translate('SeriesProgressBarText', {
+      title={translate('PlatformProgressBarText', {
         romFileCount,
         gameCount,
         totalGameCount,

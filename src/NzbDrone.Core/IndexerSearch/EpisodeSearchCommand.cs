@@ -3,19 +3,19 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class EpisodeSearchCommand : Command
+    public class GameSearchCommand : Command
     {
-        public List<int> EpisodeIds { get; set; }
+        public List<int> GameIds { get; set; }
 
         public override bool SendUpdatesToClient => true;
 
-        public EpisodeSearchCommand()
+        public GameSearchCommand()
         {
         }
 
-        public EpisodeSearchCommand(List<int> episodeIds)
+        public GameSearchCommand(List<int> gameIds)
         {
-            EpisodeIds = episodeIds;
+            GameIds = gameIds;
         }
     }
 }

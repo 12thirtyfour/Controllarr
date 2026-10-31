@@ -8,7 +8,7 @@ namespace Sonarr.Api.V5.ImportLists;
 public class ImportListResource : ProviderResource<ImportListResource>
 {
     public bool EnableAutomaticAdd { get; set; }
-    public bool SearchForMissingEpisodes { get; set; }
+    public bool SearchForMissingGames { get; set; }
     public MonitorTypes ShouldMonitor { get; set; }
     public NewItemMonitorTypes MonitorNewItems { get; set; }
     public string? RootFolderPath { get; set; }
@@ -29,7 +29,7 @@ public class ImportListResourceMapper : ProviderResourceMapper<ImportListResourc
         var resource = base.ToResource(definition);
 
         resource.EnableAutomaticAdd = definition.EnableAutomaticAdd;
-        resource.SearchForMissingEpisodes = definition.SearchForMissingEpisodes;
+        resource.SearchForMissingGames = definition.SearchForMissingEpisodes;
         resource.ShouldMonitor = definition.ShouldMonitor;
         resource.MonitorNewItems = definition.MonitorNewItems;
         resource.RootFolderPath = definition.RootFolderPath;
@@ -50,7 +50,7 @@ public class ImportListResourceMapper : ProviderResourceMapper<ImportListResourc
         var definition = base.ToModel(resource, existingDefinition);
 
         definition.EnableAutomaticAdd = resource.EnableAutomaticAdd;
-        definition.SearchForMissingEpisodes = resource.SearchForMissingEpisodes;
+        definition.SearchForMissingEpisodes = resource.SearchForMissingGames;
         definition.ShouldMonitor = resource.ShouldMonitor;
         definition.MonitorNewItems = resource.MonitorNewItems;
         definition.RootFolderPath = resource.RootFolderPath;

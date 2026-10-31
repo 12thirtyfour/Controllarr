@@ -77,7 +77,7 @@ public class CutoffController : GameControllerWithSignalR
         }
 
         var includeSeries = includeSubresources.Contains(CutoffSubresource.Series);
-        var includeEpisodeFile = includeSubresources.Contains(CutoffSubresource.EpisodeFile);
+        var includeEpisodeFile = includeSubresources.Contains(CutoffSubresource.RomFile);
         var includeImages = includeSubresources.Contains(CutoffSubresource.Images);
 
         var resource = pagingSpec.ApplyToPage(spec => _episodeCutoffService.EpisodesWhereCutoffUnmet(spec, seriesTags, quality), v => MapToResource(v, includeSeries, includeEpisodeFile, includeImages));

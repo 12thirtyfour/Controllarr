@@ -21,8 +21,8 @@ public class ManualImportResource : RestResource
     public long Size { get; set; }
     public SeriesResource? Series { get; set; }
     public int? SeasonNumber { get; set; }
-    public List<EpisodeResource> Episodes { get; set; } = [];
-    public int? EpisodeFileId { get; set; }
+    public List<EpisodeResource> Games { get; set; } = [];
+    public int? RomFileId { get; set; }
     public string? ReleaseGroup { get; set; }
     public QualityModel? Quality { get; set; }
     public List<Language> Languages { get; set; } = [];
@@ -52,8 +52,8 @@ public static class ManualImportResourceMapper
             Size = model.Size,
             Series = model.Series?.ToResource(),
             SeasonNumber = model.SeasonNumber,
-            Episodes = model.Episodes?.ToResource() ?? [],
-            EpisodeFileId = model.EpisodeFileId,
+            Games = model.Episodes?.ToResource() ?? [],
+            RomFileId = model.EpisodeFileId,
             ReleaseGroup = model.ReleaseGroup,
             Quality = model.Quality,
             Languages = model.Languages,

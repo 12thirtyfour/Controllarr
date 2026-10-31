@@ -4,7 +4,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class CutoffUnmetEpisodeSearchCommand : Command
+    public class CutoffUnmetGameSearchCommand : Command
     {
         public int? SeriesId { get; set; }
         public bool Monitored { get; set; }
@@ -22,12 +22,12 @@ namespace NzbDrone.Core.IndexerSearch
             }
         }
 
-        public CutoffUnmetEpisodeSearchCommand()
+        public CutoffUnmetGameSearchCommand()
         {
             Monitored = true;
         }
 
-        public CutoffUnmetEpisodeSearchCommand(int seriesId)
+        public CutoffUnmetGameSearchCommand(int seriesId)
         {
             SeriesId = seriesId;
             Monitored = true;

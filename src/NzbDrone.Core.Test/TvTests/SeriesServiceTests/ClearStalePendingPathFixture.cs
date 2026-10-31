@@ -64,7 +64,7 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
                     new CommandModel
                     {
                         Status = CommandStatus.Started,
-                        Body = new MoveSeriesCommand { SeriesId = genuineSeries.Id }
+                        Body = new MovePlatformCommand { SeriesId = genuineSeries.Id }
                     }
                 });
 

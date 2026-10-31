@@ -13,7 +13,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public class DownloadedEpisodesCommandService : IExecute<DownloadedEpisodesScanCommand>
+    public class DownloadedEpisodesCommandService : IExecute<DownloadedGamesScanCommand>
     {
         private readonly IDownloadedEpisodesImportService _downloadedEpisodesImportService;
         private readonly ITrackedDownloadService _trackedDownloadService;
@@ -37,7 +37,7 @@ namespace NzbDrone.Core.MediaFiles
             _logger = logger;
         }
 
-        private List<ImportResult> ProcessPath(DownloadedEpisodesScanCommand message)
+        private List<ImportResult> ProcessPath(DownloadedGamesScanCommand message)
         {
             if (!_diskProvider.FolderExists(message.Path) && !_diskProvider.FileExists(message.Path))
             {
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.MediaFiles
             return _downloadedEpisodesImportService.ProcessPath(message.Path, message.ImportMode);
         }
 
-        public void Execute(DownloadedEpisodesScanCommand message)
+        public void Execute(DownloadedGamesScanCommand message)
         {
             List<ImportResult> importResults;
 

@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Organizer
 
         public ValidationFailure ValidateStandardFilename(SampleResult sampleResult)
         {
-            var validationFailure = new ValidationFailure("StandardEpisodeFormat", ERROR_MESSAGE);
+            var validationFailure = new ValidationFailure("StandardGameFormat", ERROR_MESSAGE);
             var parsedEpisodeInfo = sampleResult.FileName.Contains(Path.DirectorySeparatorChar)
                 ? Parser.Parser.ParsePath(sampleResult.FileName)
                 : Parser.Parser.ParseTitle(sampleResult.FileName);
@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Organizer
 
         public ValidationFailure ValidateDailyFilename(SampleResult sampleResult)
         {
-            var validationFailure = new ValidationFailure("DailyEpisodeFormat", ERROR_MESSAGE);
+            var validationFailure = new ValidationFailure("DailyGameFormat", ERROR_MESSAGE);
             var parsedEpisodeInfo = sampleResult.FileName.Contains(Path.DirectorySeparatorChar)
                 ? Parser.Parser.ParsePath(sampleResult.FileName)
                 : Parser.Parser.ParseTitle(sampleResult.FileName);
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Organizer
 
         public ValidationFailure ValidateAnimeFilename(SampleResult sampleResult)
         {
-            var validationFailure = new ValidationFailure("AnimeEpisodeFormat", ERROR_MESSAGE);
+            var validationFailure = new ValidationFailure("AnimeGameFormat", ERROR_MESSAGE);
             var parsedEpisodeInfo = sampleResult.FileName.Contains(Path.DirectorySeparatorChar)
                 ? Parser.Parser.ParsePath(sampleResult.FileName)
                 : Parser.Parser.ParseTitle(sampleResult.FileName);

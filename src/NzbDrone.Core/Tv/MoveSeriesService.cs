@@ -12,7 +12,7 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class MoveSeriesService : IExecute<MoveSeriesCommand>, IExecute<BulkMoveSeriesCommand>
+    public class MoveSeriesService : IExecute<MovePlatformCommand>, IExecute<BulkMoveSeriesCommand>
     {
         private readonly ISeriesService _seriesService;
         private readonly IBuildFileNames _filenameBuilder;
@@ -112,7 +112,7 @@ namespace NzbDrone.Core.Tv
             _seriesService.UpdateSeries(series);
         }
 
-        public void Execute(MoveSeriesCommand message)
+        public void Execute(MovePlatformCommand message)
         {
             var series = _seriesService.GetSeries(message.SeriesId);
             MoveSingleSeries(series, message.SourcePath, message.DestinationPath);

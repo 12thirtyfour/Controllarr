@@ -8,20 +8,7 @@ namespace Sonarr.Api.V5.Settings;
 
 public class MediaManagementSettingsResource : RestResource
 {
-    private bool _autoUnmonitorPreviouslyDownloadedEpisodes;
-    private EpisodeTitleRequiredType _episodeTitleRequired;
-
-    public bool AutoUnmonitorPreviouslyDownloadedEpisodes
-    {
-        get => _autoUnmonitorPreviouslyDownloadedEpisodes;
-        set => _autoUnmonitorPreviouslyDownloadedEpisodes = value;
-    }
-
-    public bool AutoUnmonitorPreviouslyDownloadedGames
-    {
-        get => _autoUnmonitorPreviouslyDownloadedEpisodes;
-        set => _autoUnmonitorPreviouslyDownloadedEpisodes = value;
-    }
+    public bool AutoUnmonitorPreviouslyDownloadedGames { get; set; }
 
     public string? RecycleBin { get; set; }
 
@@ -43,17 +30,7 @@ public class MediaManagementSettingsResource : RestResource
 
     public string? ChownGroup { get; set; }
 
-    public EpisodeTitleRequiredType EpisodeTitleRequired
-    {
-        get => _episodeTitleRequired;
-        set => _episodeTitleRequired = value;
-    }
-
-    public EpisodeTitleRequiredType GameTitleRequired
-    {
-        get => _episodeTitleRequired;
-        set => _episodeTitleRequired = value;
-    }
+    public EpisodeTitleRequiredType GameTitleRequired { get; set; }
 
     public bool SkipFreeSpaceCheckWhenGrabbing { get; set; }
 
@@ -94,8 +71,7 @@ public static class MediaManagementConfigResourceMapper
     {
         return new MediaManagementSettingsResource
         {
-            AutoUnmonitorPreviouslyDownloadedEpisodes = model.AutoUnmonitorPreviouslyDownloadedEpisodes,
-            AutoUnmonitorPreviouslyDownloadedGames = model.AutoUnmonitorPreviouslyDownloadedEpisodes,
+            AutoUnmonitorPreviouslyDownloadedGames = model.AutoUnmonitorPreviouslyDownloadedGames,
             RecycleBin = model.RecycleBin,
             RecycleBinCleanupDays = model.RecycleBinCleanupDays,
             DownloadPropersAndRepacks = model.DownloadPropersAndRepacks,
@@ -108,8 +84,7 @@ public static class MediaManagementConfigResourceMapper
             ChmodFolder = model.ChmodFolder,
             ChownGroup = model.ChownGroup,
 
-            EpisodeTitleRequired = model.EpisodeTitleRequired,
-            GameTitleRequired = model.EpisodeTitleRequired,
+            GameTitleRequired = model.GameTitleRequired,
             SkipFreeSpaceCheckWhenImporting = model.SkipFreeSpaceCheckWhenImporting,
             SkipFreeSpaceCheckWhenGrabbing = model.SkipFreeSpaceCheckWhenGrabbing,
             MinimumFreeSpaceWhenImporting = model.MinimumFreeSpaceWhenImporting,

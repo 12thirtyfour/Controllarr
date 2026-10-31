@@ -14,9 +14,9 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class EpisodeSearchService : IExecute<EpisodeSearchCommand>,
-                                        IExecute<MissingEpisodeSearchCommand>,
-                                        IExecute<CutoffUnmetEpisodeSearchCommand>
+    public class EpisodeSearchService : IExecute<GameSearchCommand>,
+                                        IExecute<MissingGameSearchCommand>,
+                                        IExecute<CutoffUnmetGameSearchCommand>
     {
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
@@ -107,9 +107,9 @@ namespace NzbDrone.Core.IndexerSearch
             return episodeMonitored && seriesMonitored;
         }
 
-        public void Execute(EpisodeSearchCommand message)
+        public void Execute(GameSearchCommand message)
         {
-            foreach (var episodeId in message.EpisodeIds)
+            foreach (var episodeId in message.GameIds)
             {
                 var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
                 var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
@@ -118,7 +118,7 @@ namespace NzbDrone.Core.IndexerSearch
             }
         }
 
-        public void Execute(MissingEpisodeSearchCommand message)
+        public void Execute(MissingGameSearchCommand message)
         {
             var monitored = message.Monitored;
             List<Episode> episodes;
@@ -175,7 +175,7 @@ namespace NzbDrone.Core.IndexerSearch
             SearchForBulkEpisodes(missing, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
 
-        public void Execute(CutoffUnmetEpisodeSearchCommand message)
+        public void Execute(CutoffUnmetGameSearchCommand message)
         {
             var monitored = message.Monitored;
 

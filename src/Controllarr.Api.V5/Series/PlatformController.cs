@@ -407,7 +407,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
             return;
         }
 
-        resource.EpisodesChanged = message.EpisodesChanged;
+        resource.GamesChanged = message.EpisodesChanged;
         BroadcastResourceChange(ModelAction.Updated, resource);
     }
 

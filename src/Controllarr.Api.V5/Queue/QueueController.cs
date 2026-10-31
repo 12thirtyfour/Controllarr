@@ -153,6 +153,11 @@ namespace Sonarr.Api.V5.Queue
                     "episode.title",
                     "episodes.airDateUtc",
                     "episodes.title",
+                    "game",
+                    "game.airDateUtc",
+                    "game.title",
+                    "games.airDateUtc",
+                    "games.title",
                     "estimatedCompletionTime",
                     "indexer",
                     "language",
@@ -170,7 +175,7 @@ namespace Sonarr.Api.V5.Queue
                 SortDirection.Ascending);
 
             var includeSeries = includeSubresources.Contains(QueueSubresource.Series);
-            var includeEpisodes = includeSubresources.Contains(QueueSubresource.Episodes);
+            var includeEpisodes = includeSubresources.Contains(QueueSubresource.Games);
 
             return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, seriesIds?.ToHashSet() ?? [], protocol, languages?.ToHashSet() ?? [], quality?.ToHashSet() ?? [], status?.ToHashSet() ?? [], includeUnknownSeriesItems), (q) => MapToResource(q, includeSeries, includeEpisodes)));
         }
@@ -303,12 +308,17 @@ namespace Sonarr.Api.V5.Queue
                 case "title":
                     return q => q.Title;
                 case "episode":
+                case "game":
                     return q => q.Episodes.FirstOrDefault();
                 case "episode.airDateUtc":
                 case "episodes.airDateUtc":
+                case "game.airDateUtc":
+                case "games.airDateUtc":
                     return q => q.Episodes.FirstOrDefault()?.AirDateUtc ?? DateTime.MinValue;
                 case "episode.title":
                 case "episodes.title":
+                case "game.title":
+                case "games.title":
                     return q => q.Episodes.FirstOrDefault()?.Title ?? string.Empty;
                 case "language":
                 case "languages":

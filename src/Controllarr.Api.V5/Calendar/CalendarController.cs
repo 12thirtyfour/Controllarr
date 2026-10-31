@@ -62,7 +62,7 @@ namespace Sonarr.Api.V5.Calendar
             }
 
             var includeSeries = includeSubresources.Contains(CalendarSubresource.Series);
-            var includeEpisodeFile = includeSubresources.Contains(CalendarSubresource.EpisodeFile);
+            var includeEpisodeFile = includeSubresources.Contains(CalendarSubresource.RomFile);
             var includeEpisodeImages = includeSubresources.Contains(CalendarSubresource.Images);
 
             var resources = MapToResource(result, includeSeries, includeEpisodeFile, includeEpisodeImages);

@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.TvTests
             var calls = new List<string>();
 
             Mocker.GetMock<IManageCommandQueue>()
-                  .Setup(s => s.Push(It.IsAny<MissingEpisodeSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()))
+                  .Setup(s => s.Push(It.IsAny<MissingGameSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()))
                   .Callback(() => calls.Add("search"));
 
             Mocker.GetMock<IEventAggregator>()

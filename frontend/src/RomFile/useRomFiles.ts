@@ -11,24 +11,19 @@ interface PlatformRomFiles {
 }
 
 interface RomFileIds {
-  romFileIds?: number[];
-  episodeFileIds?: number[];
+  romFileIds: number[];
 }
 
 export type RomFileFilter = PlatformRomFiles | RomFileIds;
 
 const useRomFiles = (params: RomFileFilter) => {
-  const ids = ('romFileIds' in params && params.romFileIds) || ('episodeFileIds' in params && params.episodeFileIds);
   const result = useApiQuery<RomFile[]>({
     path: '/episodeFile',
-    queryParams: {
-      ...params,
-      episodeFileIds: ids || undefined,
-    },
+    queryParams: { ...params },
     queryOptions: {
       enabled:
         ('seriesId' in params && params.seriesId !== undefined) ||
-        (Array.isArray(ids) && ids.length > 0),
+        ('romFileIds' in params && params.romFileIds.length > 0),
     },
   });
 

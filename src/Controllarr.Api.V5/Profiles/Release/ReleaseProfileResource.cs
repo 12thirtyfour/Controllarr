@@ -11,7 +11,7 @@ public class ReleaseProfileResource : RestResource
     public List<string> Ignored { get; set; } = [];
     public bool AirDateRestriction { get; set; }
     public int? AirDateGracePeriod { get; set; }
-    public bool AllowSeasonPackWithoutAllEpisodesAired { get; set; }
+    public bool AllowSeasonPackWithoutAllGamesAired { get; set; }
     public List<int> IndexerIds { get; set; } = [];
     public HashSet<int> Tags { get; set; } = [];
     public HashSet<int> ExcludedTags { get; set; } = [];
@@ -30,7 +30,7 @@ public static class RestrictionResourceMapper
             Ignored = model.Ignored ?? [],
             AirDateRestriction = model.AirDateRestriction,
             AirDateGracePeriod = model.AirDateGracePeriod,
-            AllowSeasonPackWithoutAllEpisodesAired = model.AllowSeasonPackWithoutAllEpisodesAired,
+            AllowSeasonPackWithoutAllGamesAired = model.AllowSeasonPackWithoutAllEpisodesAired,
             IndexerIds = model.IndexerIds ?? [],
             Tags = model.Tags ?? [],
             ExcludedTags = model.ExcludedTags ?? [],
@@ -48,7 +48,7 @@ public static class RestrictionResourceMapper
             Ignored = resource.Ignored,
             AirDateRestriction = resource.AirDateRestriction,
             AirDateGracePeriod = resource.AirDateGracePeriod ?? 0,
-            AllowSeasonPackWithoutAllEpisodesAired = resource.AllowSeasonPackWithoutAllEpisodesAired,
+            AllowSeasonPackWithoutAllEpisodesAired = resource.AllowSeasonPackWithoutAllGamesAired,
             IndexerIds = resource.IndexerIds,
             Tags = resource.Tags,
             ExcludedTags = resource.ExcludedTags

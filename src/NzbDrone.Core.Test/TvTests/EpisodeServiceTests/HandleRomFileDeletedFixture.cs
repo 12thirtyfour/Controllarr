@@ -91,7 +91,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeServiceTests
             GivenSingleEpisodeFile();
 
             Mocker.GetMock<IConfigService>()
-                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedEpisodes)
+                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(true);
 
             Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeServiceTests
             newEpisodeFile.Episodes = new LazyLoaded<List<Episode>>(_episodes);
 
             Mocker.GetMock<IConfigService>()
-                .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedEpisodes)
+                .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                 .Returns(true);
 
             Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
@@ -128,7 +128,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeServiceTests
             GivenSingleEpisodeFile();
 
             Mocker.GetMock<IConfigService>()
-                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedEpisodes)
+                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(false);
 
             Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.Upgrade));
@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeServiceTests
             GivenSingleEpisodeFile();
 
             Mocker.GetMock<IConfigService>()
-                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedEpisodes)
+                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(true);
 
             Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.Upgrade));
@@ -158,7 +158,7 @@ namespace NzbDrone.Core.Test.TvTests.EpisodeServiceTests
             GivenSingleEpisodeFile();
 
             Mocker.GetMock<IConfigService>()
-                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedEpisodes)
+                  .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(true);
 
             Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.ManualOverride));

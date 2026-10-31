@@ -19,7 +19,7 @@ public class IndexerController : ProviderControllerBase<IndexerResource, Indexer
         : base(signalRBroadcaster, indexerFactory, "indexer", ResourceMapper, BulkResourceMapper)
     {
         SharedValidator.RuleFor(c => c.Priority).InclusiveBetween(1, 50);
-        SharedValidator.RuleFor(c => c.SeasonSearchMaximumSingleEpisodeAge).GreaterThanOrEqualTo(0);
+        SharedValidator.RuleFor(c => c.SeasonSearchMaximumSingleGameAge).GreaterThanOrEqualTo(0);
         SharedValidator.RuleFor(c => c.DownloadClientId).SetValidator(downloadClientExistsValidator);
     }
 }
