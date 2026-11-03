@@ -14,6 +14,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added multi-revision verification support (`AlternateBiosHashesByFileName`) and 16-bit byte-swapped ROM detection for Sega CD / Mega-CD (`bios_CD_J.bin`, `bios_CD_U.bin`, `bios_CD_E.bin`) and official regional BIOS revisions.
   - Preserved `.zip`-packaged arcade/system BIOS archives (`neogeo.zip`, `naomi.zip`, `awbios.zip`, `cdimono1.zip`) intact on disk during verification and auto-download, and updated `BuildCandidateDownloadUrls` to target current `Abdess/retroarch_system` (`main/bios/...`) and `archtaurus/RetroPieBIOS` directory paths.
 
+### Removed
+- **Legacy Sonarr Remnants & Obsolete TV Services (Category 3 Consolidation)**:
+  - **Scene Mapping Scheduled Task & Cloud TV Proxy**: Removed periodic 3-hour `UpdateSceneMappingCommand` background task from `TaskManager.cs` and neutralized `SceneMappingProxy.Fetch()` to return an empty list, completely eliminating recurring network calls to `services.sonarr.tv`.
+  - **TheXEM TV Numbering Proxy & Specification**: Neutralized `UnverifiedSceneNumberingSpecification.cs` to unconditionally accept ROM files without requiring TV episode numbering confirmation, and neutralized `XemProxy.cs` endpoints to eliminate outbound network traffic to the blocked/defunct `thexem.info`.
+  - **SkyHook TV Proxy Decoupling & Offline Unit Testing**: Removed live HTTP requests and `SkyHookProxy` calls from `RefreshGameServiceFixture.cs`, generating in-memory test series and episode data fixtures to ensure 100% offline unit test isolation in compliance with architecture directives. Neutralized `DailyPlatformDataProxy.cs` to return empty collections immediately.
+  - **Obsolete TV Metadata Consumers**: Removed legacy Western Digital TV Live and Roku XML metadata consumers (`Roksbox` and `Wdtv`) along with their test fixtures from `src/NzbDrone.Core/Extras/Metadata/Consumers/`.
+  - **Defunct TV Anime Indexer (`Fanzub`)**: Removed defunct anime TV fansub indexer implementation and test fixtures (`Fanzub.cs`, `FanzubRequestGenerator.cs`, `FanzubSettings.cs`, `FanzubFixture.cs`).
+  - **Duplicate Localization String Keys**: Pruned redundant duplicate TV keys in `src/NzbDrone.Core/Localization/Core/en.json` (`AllowSeasonPackWithoutAllEpisodesAired*`, `AnEpisodeIsDownloading`, `CountSeasonsCountEpisodes`, `CountSeasonsOneEpisode`, `OneSeasonCountEpisodes`, `OneSeasonOneEpisode`) that shadowed game-native keys.
+
 ### Changed
 - **Category 2 Redundant & Duplicated Code Consolidation**:
   - **Dead jQuery Dependency Elimination**: Migrated `createAjaxRequest.js` and `requestAction.js` to modern standard `fetch`, `AbortController`, and `URLSearchParams` with promise `.done()`, `.fail()`, and `.always()` backwards compatibility shims, removing `jquery` from `package.json` and saving ~90KB minified.

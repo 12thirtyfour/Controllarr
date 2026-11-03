@@ -7,7 +7,6 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MetadataSource.SkyHook;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
@@ -25,12 +24,38 @@ namespace NzbDrone.Core.Test.TvTests
         [OneTimeSetUp]
         public void TestFixture()
         {
-            UseRealHttp();
+            var series = Builder<Series>.CreateNew()
+                .With(s => s.Id = 121361)
+                .With(s => s.Title = "Super Mario World")
+                .With(s => s.CleanTitle = "supermarioworld")
+                .With(s => s.Runtime = 30)
+                .With(s => s.Status = SeriesStatusType.Continuing)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 1, Monitored = true },
+                    new Season { SeasonNumber = 2, Monitored = true }
+                })
+                .Build();
 
-            _gameOfThrones = Mocker.Resolve<SkyHookProxy>().GetSeriesInfo(121361, Language.English, SeasonType.Official); // Game of thrones
+            var episodes = new List<Episode>();
+            for (var season = 1; season <= 2; season++)
+            {
+                for (var ep = 1; ep <= 10; ep++)
+                {
+                    episodes.Add(new Episode
+                    {
+                        Id = ((season - 1) * 10) + ep,
+                        SeriesId = series.Id,
+                        SeasonNumber = season,
+                        EpisodeNumber = ep,
+                        Title = $"Episode {season}x{ep}",
+                        AirDateUtc = DateTime.UtcNow.AddDays(-100 + (((season - 1) * 10) + ep)),
+                        Monitored = true
+                    });
+                }
+            }
 
-            // Remove specials.
-            _gameOfThrones.Item2.RemoveAll(v => v.SeasonNumber == 0);
+            _gameOfThrones = new Tuple<Series, List<Episode>>(series, episodes);
         }
 
         private List<Episode> GetEpisodes()
