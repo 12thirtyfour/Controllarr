@@ -1,14 +1,13 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.MediaFiles.Export;
 using Sonarr.Http;
 
-namespace Sonarr.Api.V3.Games
+namespace Sonarr.Api.V5.Games
 {
     public class SdCardExportRequestResource
     {
         public SdCardDeviceProfile Profile { get; set; }
-        public string TargetMountPath { get; set; }
+        public string TargetMountPath { get; set; } = string.Empty;
         public bool Overwrite { get; set; }
         public bool OptimizeFormatsForDevice { get; set; }
         public List<SdCardExportItem> Items { get; set; } = new List<SdCardExportItem>();
@@ -35,7 +34,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<SdCardExportResult> Export([FromBody] SdCardExportRequestResource request)
+        public ActionResult<SdCardExportResult> Export([FromBody] SdCardExportRequestResource? request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.TargetMountPath))
             {

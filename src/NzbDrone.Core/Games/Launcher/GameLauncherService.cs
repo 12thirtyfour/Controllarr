@@ -536,7 +536,7 @@ namespace NzbDrone.Core.Games.Launcher
                 PreferredLaunchMode = config.PreferredLaunchMode ?? "web",
                 Shader = config.DefaultShader ?? "none",
                 EmulatorJsDataPath = config.EmulatorJsDataPath ?? "https://cdn.emulatorjs.org/stable/data/",
-                RomStreamUrl = $"/api/v3/gamelauncher/{resolvedGameId}/rom",
+                RomStreamUrl = $"/api/v5/gamelauncher/{resolvedGameId}/rom",
                 DesktopProtocolUri = $"controllarr://play/{resolvedGameId}?core={encodedCore}&rom={encodedRom}",
                 WebPlayerUrl = $"/webplayer?gameId={resolvedGameId}&core={encodedCore}&rom={encodedRom}"
             };

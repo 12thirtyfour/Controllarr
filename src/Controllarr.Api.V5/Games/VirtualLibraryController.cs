@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Games.VirtualLibrary;
 using Sonarr.Http;
 
-namespace Sonarr.Api.V3.Games
+namespace Sonarr.Api.V5.Games
 {
     [V3ApiController("virtuallibrary")]
     [V5ApiController("virtuallibrary")]
@@ -33,7 +32,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<VirtualLibraryProfile> Save([FromBody] VirtualLibraryProfile profile)
+        public ActionResult<VirtualLibraryProfile> Save([FromBody] VirtualLibraryProfile? profile)
         {
             if (profile == null || string.IsNullOrWhiteSpace(profile.Name) || string.IsNullOrWhiteSpace(profile.TargetPath))
             {

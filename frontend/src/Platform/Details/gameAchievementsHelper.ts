@@ -206,7 +206,7 @@ function ensureLibraryLoaded(): void {
   }
 
   loadedUserKey = currentKey;
-  const apiRoot = window.Controllarr?.apiRoot ?? '/api/v3';
+  const apiRoot = window.Controllarr?.apiRoot ?? '/api/v5';
   const appApiKey = window.Controllarr?.apiKey ?? '';
   const query = new URLSearchParams({
     username,

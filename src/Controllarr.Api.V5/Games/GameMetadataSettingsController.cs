@@ -1,24 +1,23 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Dat;
 using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.MetadataSource.Game;
 using Sonarr.Http;
 
-namespace Sonarr.Api.V3.Games
+namespace Sonarr.Api.V5.Games
 {
     [V3ApiController("gamemetadata")]
     [V5ApiController("gamemetadata")]
     public class GameMetadataSettingsController : Controller
     {
         private readonly IGameMediaAssetService _gameMediaAssetService;
-        private readonly IDatCatalogUpdateService _datCatalogUpdateService;
-        private readonly IRomPatchingService _romPatchingService;
+        private readonly IDatCatalogUpdateService? _datCatalogUpdateService;
+        private readonly IRomPatchingService? _romPatchingService;
 
         public GameMetadataSettingsController(
             IGameMediaAssetService gameMediaAssetService,
-            IDatCatalogUpdateService datCatalogUpdateService = null,
-            IRomPatchingService romPatchingService = null)
+            IDatCatalogUpdateService? datCatalogUpdateService = null,
+            IRomPatchingService? romPatchingService = null)
         {
             _gameMediaAssetService = gameMediaAssetService;
             _datCatalogUpdateService = datCatalogUpdateService;
@@ -35,7 +34,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("settings")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<UnifiedMetadataSettingsModel> SaveUnifiedSettings([FromBody] UnifiedMetadataSettingsModel request)
+        public ActionResult<UnifiedMetadataSettingsModel> SaveUnifiedSettings([FromBody] UnifiedMetadataSettingsModel? request)
         {
             return Ok(_gameMediaAssetService.SaveUnifiedSettings(request));
         }
@@ -50,7 +49,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("sources")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<MetadataSourceConfigModel> SaveSources([FromBody] MetadataSourceConfigModel request)
+        public ActionResult<MetadataSourceConfigModel> SaveSources([FromBody] MetadataSourceConfigModel? request)
         {
             return Ok(_gameMediaAssetService.SaveMetadataSources(request));
         }
@@ -65,7 +64,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("assets")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<GameMediaAssetSettingsModel> SaveAssets([FromBody] GameMediaAssetSettingsModel request)
+        public ActionResult<GameMediaAssetSettingsModel> SaveAssets([FromBody] GameMediaAssetSettingsModel? request)
         {
             return Ok(_gameMediaAssetService.SaveMediaAssetSettings(request));
         }
@@ -80,7 +79,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("dats/import")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<DatImportResultModel> ImportDat([FromBody] DatImportRequestModel request)
+        public ActionResult<DatImportResultModel> ImportDat([FromBody] DatImportRequestModel? request)
         {
             return Ok(_gameMediaAssetService.ImportDatOrSmdb(request));
         }
@@ -95,7 +94,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("patches/apply")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<RomPatchResultModel> ApplyRomPatch([FromBody] RomPatchRequestModel request)
+        public ActionResult<RomPatchResultModel> ApplyRomPatch([FromBody] RomPatchRequestModel? request)
         {
             if (_romPatchingService == null)
             {

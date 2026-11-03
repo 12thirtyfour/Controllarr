@@ -1,22 +1,21 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Games.RetroAchievements;
 using Sonarr.Http;
 
-namespace Sonarr.Api.V3.Games
+namespace Sonarr.Api.V5.Games
 {
     public class RetroAchievementsCredentialsResource
     {
-        public string Username { get; set; }
-        public string WebApiKey { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string WebApiKey { get; set; } = string.Empty;
     }
 
     public class RetroAchievementsProgressRequestResource
     {
-        public string Username { get; set; }
-        public string GameTitle { get; set; }
-        public string ConsoleName { get; set; }
-        public string RomMd5Hash { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string GameTitle { get; set; } = string.Empty;
+        public string ConsoleName { get; set; } = string.Empty;
+        public string RomMd5Hash { get; set; } = string.Empty;
         public List<RetroAchievementBadge> Badges { get; set; } = new List<RetroAchievementBadge>();
     }
 
@@ -34,7 +33,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("credentials")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<bool> ValidateCredentials([FromBody] RetroAchievementsCredentialsResource resource)
+        public ActionResult<bool> ValidateCredentials([FromBody] RetroAchievementsCredentialsResource? resource)
         {
             if (resource == null)
             {
@@ -48,8 +47,8 @@ namespace Sonarr.Api.V3.Games
         [HttpGet("library")]
         [Produces("application/json")]
         public ActionResult<List<RetroAchievementsGameProgress>> GetLibraryProgress(
-            [FromQuery] string username = null,
-            [FromQuery] string webApiKey = null)
+            [FromQuery] string? username = null,
+            [FromQuery] string? webApiKey = null)
         {
             var results = _retroAchievementsService.GetUserLibraryProgress(username, webApiKey);
             return Ok(results);
@@ -58,7 +57,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("progress")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<RetroAchievementsGameProgress> GetMasteryProgress([FromBody] RetroAchievementsProgressRequestResource request)
+        public ActionResult<RetroAchievementsGameProgress> GetMasteryProgress([FromBody] RetroAchievementsProgressRequestResource? request)
         {
             if (request == null)
             {

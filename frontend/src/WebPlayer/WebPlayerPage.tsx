@@ -139,7 +139,7 @@ function WebPlayerPage() {
 
     const baseStream =
       descriptor.romStreamUrl ||
-      `/api/v3/gamelauncher/${descriptor.gameId}/rom`;
+      `/api/v5/gamelauncher/${descriptor.gameId}/rom`;
     const separator = baseStream.includes('?') ? '&' : '?';
 
     return `${urlBase}${baseStream}${

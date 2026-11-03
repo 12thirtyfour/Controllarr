@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,6 +7,7 @@ namespace NzbDrone.Core.Games
     public interface IPlatformCatalogService
     {
         List<PlatformDefinition> GetAll();
+        PlatformDefinition FindBySlug(string slug);
     }
 
     public class PlatformCatalogService : IPlatformCatalogService
@@ -547,9 +549,181 @@ namespace NzbDrone.Core.Games
             }
         };
 
+        public static readonly HashSet<string> KnownPlatformSlugs = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "nes", "fds", "snes", "satellaview", "n64", "64dd", "gamecube", "wii", "wiiu",
+            "gb", "gbc", "gba", "nds", "3ds", "switch",
+            "genesis", "segacd", "32x", "saturn", "dreamcast", "sms", "gg",
+            "tg16", "tgcd",
+            "ps1", "ps2", "psp", "ps3", "psvita",
+            "xbox", "xbox360",
+            "atari2600", "atari7800", "lynx", "jaguar", "jaguarcd",
+            "neogeo", "ngpc", "wonderswan", "vb", "arcade"
+        };
+
+        public static readonly HashSet<string> CartridgePlatforms = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "nes", "fds", "snes", "satellaview", "n64", "64dd", "gb", "gbc", "gba", "nds", "3ds", "switch",
+            "genesis", "32x", "sms", "gg", "tg16", "pce", "atari2600", "atari7800", "lynx",
+            "jaguar", "neogeo", "ngpc", "wonderswan", "vb", "psvita"
+        };
+
+        public static readonly Dictionary<string, HashSet<string>> ExclusiveExtensionsByPlatform = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nes"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nes", ".unf", ".fds" },
+            ["fds"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".fds" },
+            ["snes"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sfc", ".smc", ".bs" },
+            ["satellaview"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".bs" },
+            ["n64"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".z64", ".n64", ".v64", ".ndd" },
+            ["64dd"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ndd" },
+            ["gb"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gb" },
+            ["gbc"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gbc" },
+            ["gba"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gba" },
+            ["nds"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nds", ".dsi" },
+            ["3ds"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".3ds", ".cia", ".cci" },
+            ["switch"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nsp", ".xci", ".nsz" },
+            ["genesis"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".gen", ".smd" },
+            ["32x"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".32x" },
+            ["sms"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sms" },
+            ["gg"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gg" },
+            ["pce"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pce", ".sgx" },
+            ["tg16"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pce", ".sgx" },
+            ["atari2600"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".a26" },
+            ["atari7800"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".a78" },
+            ["lynx"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".lnx" },
+            ["jaguar"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".j64", ".jag" },
+            ["neogeo"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".neo" },
+            ["ngpc"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ngc", ".ngp" },
+            ["wonderswan"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ws", ".wsc" },
+            ["vb"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".vb" },
+            ["ps1"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pbp" },
+            ["ps3"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pkg" },
+            ["psvita"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".vpk" },
+            ["wiiu"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".wua", ".wux", ".wud", ".rpx" },
+            ["gamecube"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gcm", ".ciso" },
+            ["wii"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".wbfs" }
+        };
+
+        public static readonly Dictionary<string, string[]> PlatformAliases = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nes"] = new[] { "nes", "nintendo-entertainment-system", "nintendo entertainment system", "famicom" },
+            ["fds"] = new[] { "fds", "famicom-disk-system", "famicom disk system", "disk system" },
+            ["snes"] = new[] { "snes", "super-nintendo-entertainment-system", "super nintendo entertainment system", "super nintendo", "super nes", "super famicom", "sfc" },
+            ["satellaview"] = new[] { "satellaview", "bs-x", "bsx" },
+            ["n64"] = new[] { "n64", "nintendo-64", "nintendo 64", "ultra 64" },
+            ["64dd"] = new[] { "64dd", "nintendo-64dd", "nintendo 64dd" },
+            ["gamecube"] = new[] { "gamecube", "nintendo-gamecube", "nintendo gamecube", "gcn", "ngc" },
+            ["wii"] = new[] { "wii", "nintendo-wii", "nintendo wii" },
+            ["wiiu"] = new[] { "wii-u", "wiiu", "nintendo-wii-u", "nintendo wii u" },
+            ["gb"] = new[] { "game-boy", "game boy", "gameboy", "dmg" },
+            ["gbc"] = new[] { "game-boy-color", "game boy color", "gameboy color", "cgb" },
+            ["gba"] = new[] { "game-boy-advance", "game boy advance", "gameboy advance", "agb" },
+            ["nds"] = new[] { "nintendo-ds", "nintendo ds", "nds" },
+            ["3ds"] = new[] { "nintendo-3ds", "nintendo 3ds", "3ds", "n3ds" },
+            ["switch"] = new[] { "nintendo-switch", "nintendo switch", "switch", "nsw", "nx" },
+            ["genesis"] = new[] { "sega-genesis", "sega genesis", "genesis", "mega-drive", "mega drive", "megadrive", "md" },
+            ["segacd"] = new[] { "sega-cd", "sega cd", "segacd", "mega-cd", "mega cd", "scd" },
+            ["32x"] = new[] { "sega-32x", "sega 32x", "32x", "super 32x" },
+            ["saturn"] = new[] { "sega-saturn", "sega saturn", "saturn", "ss" },
+            ["dreamcast"] = new[] { "sega-dreamcast", "sega dreamcast", "dreamcast", "dc" },
+            ["sms"] = new[] { "sega-master-system", "sega master system", "master system", "sms" },
+            ["gg"] = new[] { "sega-game-gear", "sega game gear", "game gear", "gg" },
+            ["tg16"] = new[] { "turbografx-16", "turbografx 16", "turbografx", "tg16", "pc-engine", "pc engine", "pce" },
+            ["tgcd"] = new[] { "turbografx-cd", "turbografx cd", "tg-cd", "tgcd", "pc-engine-cd", "pc engine cd", "pcecd" },
+            ["ps1"] = new[] { "sony-playstation", "playstation", "ps1", "psx", "sony playstation", "psone" },
+            ["ps2"] = new[] { "sony-playstation-2", "playstation-2", "playstation 2", "ps2", "sony playstation 2" },
+            ["ps3"] = new[] { "sony-playstation-3", "playstation-3", "playstation 3", "ps3", "sony playstation 3" },
+            ["psp"] = new[] { "sony-playstation-portable", "playstation-portable", "playstation portable", "psp", "sony psp" },
+            ["psvita"] = new[] { "sony-playstation-vita", "playstation-vita", "playstation vita", "ps vita", "psv", "vita" },
+            ["xbox"] = new[] { "xbox", "original xbox", "og xbox" },
+            ["xbox360"] = new[] { "xbox-360", "xbox 360", "xbox360", "x360" },
+            ["atari2600"] = new[] { "atari-2600", "atari 2600", "2600", "vcs" },
+            ["atari7800"] = new[] { "atari-7800", "atari 7800", "7800" },
+            ["lynx"] = new[] { "atari-lynx", "atari lynx", "lynx" },
+            ["jaguar"] = new[] { "atari-jaguar", "atari jaguar", "jaguar" },
+            ["jaguarcd"] = new[] { "atari-jaguar-cd", "atari jaguar cd", "jaguar cd" },
+            ["neogeo"] = new[] { "neo-geo", "neo geo", "neogeo", "aes", "mvs" },
+            ["ngpc"] = new[] { "neo-geo-pocket-color", "neo geo pocket color", "ngpc", "ngp" },
+            ["wonderswan"] = new[] { "wonderswan", "wonderswan-color", "wonderswan color", "wsc", "ws" },
+            ["vb"] = new[] { "virtual-boy", "virtual boy", "vb" }
+        };
+
+        public static readonly Dictionary<string, string> CanonicalPlatformNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nes"] = "Nintendo Entertainment System",
+            ["fds"] = "Famicom Disk System",
+            ["snes"] = "Super Nintendo Entertainment System",
+            ["satellaview"] = "BS Satellaview",
+            ["n64"] = "Nintendo 64",
+            ["64dd"] = "Nintendo 64DD",
+            ["gamecube"] = "Nintendo GameCube",
+            ["wii"] = "Nintendo Wii",
+            ["wiiu"] = "Nintendo Wii U",
+            ["gb"] = "Nintendo Game Boy",
+            ["gbc"] = "Nintendo Game Boy Color",
+            ["gba"] = "Nintendo Game Boy Advance",
+            ["nds"] = "Nintendo DS",
+            ["3ds"] = "Nintendo 3DS",
+            ["switch"] = "Nintendo Switch",
+            ["genesis"] = "Sega Genesis",
+            ["segacd"] = "Sega CD",
+            ["32x"] = "Sega 32X",
+            ["saturn"] = "Sega Saturn",
+            ["dreamcast"] = "Sega Dreamcast",
+            ["sms"] = "Sega Master System",
+            ["gg"] = "Sega Game Gear",
+            ["tg16"] = "NEC TurboGrafx-16",
+            ["tgcd"] = "NEC TurboGrafx-CD",
+            ["ps1"] = "Sony PlayStation",
+            ["ps2"] = "Sony PlayStation 2",
+            ["ps3"] = "Sony PlayStation 3",
+            ["psp"] = "Sony PlayStation Portable",
+            ["psvita"] = "Sony PlayStation Vita",
+            ["xbox"] = "Microsoft Xbox",
+            ["xbox360"] = "Microsoft Xbox 360",
+            ["atari2600"] = "Atari 2600",
+            ["atari7800"] = "Atari 7800",
+            ["lynx"] = "Atari Lynx",
+            ["jaguar"] = "Atari Jaguar",
+            ["jaguarcd"] = "Atari Jaguar CD",
+            ["neogeo"] = "SNK Neo Geo",
+            ["ngpc"] = "SNK Neo Geo Pocket Color",
+            ["wonderswan"] = "Bandai WonderSwan",
+            ["vb"] = "Nintendo Virtual Boy"
+        };
+
+        public static readonly Dictionary<string, string> DefaultPlatformRawExtension = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "SNES", ".sfc" },
+            { "Super Nintendo Entertainment System", ".sfc" },
+            { "NES", ".nes" },
+            { "Nintendo Entertainment System", ".nes" },
+            { "Game Boy", ".gb" },
+            { "Game Boy Color", ".gbc" },
+            { "Game Boy Advance", ".gba" },
+            { "Genesis", ".md" },
+            { "Sega Genesis", ".md" },
+            { "Mega Drive", ".md" },
+            { "Master System", ".sms" },
+            { "Game Gear", ".gg" },
+            { "Nintendo 64", ".z64" },
+            { "Nintendo DS", ".nds" },
+            { "TurboGrafx-16", ".pce" }
+        };
+
         public List<PlatformDefinition> GetAll()
         {
             return Platforms.ToList();
+        }
+
+        public PlatformDefinition FindBySlug(string slug)
+        {
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                return null;
+            }
+
+            return Platforms.FirstOrDefault(p => string.Equals(p.Slug, slug, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

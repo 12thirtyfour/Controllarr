@@ -1,14 +1,13 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Bios;
 using Sonarr.Http;
 
-namespace Sonarr.Api.V3.Games
+namespace Sonarr.Api.V5.Games
 {
     public class BiosDownloadRequestResource
     {
-        public string PlatformSlug { get; set; }
-        public string FileName { get; set; }
+        public string? PlatformSlug { get; set; }
+        public string? FileName { get; set; }
     }
 
     [V3ApiController("bios")]
@@ -24,7 +23,7 @@ namespace Sonarr.Api.V3.Games
 
         [HttpGet]
         [Produces("application/json")]
-        public List<BiosFile> GetMatrix([FromQuery] string platformSlug = null, [FromQuery] string biosDirectory = null)
+        public List<BiosFile> GetMatrix([FromQuery] string? platformSlug = null, [FromQuery] string? biosDirectory = null)
         {
             if (!string.IsNullOrWhiteSpace(biosDirectory))
             {
@@ -37,7 +36,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("download")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public List<BiosFile> DownloadMissing([FromBody] BiosDownloadRequestResource request)
+        public List<BiosFile> DownloadMissing([FromBody] BiosDownloadRequestResource? request)
         {
             return _biosService.DownloadMissingBios(request?.PlatformSlug, request?.FileName);
         }

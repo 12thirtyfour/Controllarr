@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Dat
@@ -79,17 +79,7 @@ namespace NzbDrone.Core.Dat
             }
         }
 
-        private static readonly HashSet<string> KnownPlatformSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "nes", "fds", "snes", "satellaview", "n64", "64dd", "gamecube", "wii", "wiiu",
-            "gb", "gbc", "gba", "nds", "3ds", "switch",
-            "genesis", "segacd", "32x", "saturn", "dreamcast", "sms", "gg",
-            "tg16", "tgcd",
-            "ps1", "ps2", "psp", "ps3", "psvita",
-            "xbox", "xbox360",
-            "atari2600", "atari7800", "lynx", "jaguar", "jaguarcd",
-            "neogeo", "ngpc", "wonderswan", "vb"
-        };
+        private static readonly HashSet<string> KnownPlatformSlugs = PlatformCatalogService.KnownPlatformSlugs;
 
         public List<DatEntry> GetEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null)
         {

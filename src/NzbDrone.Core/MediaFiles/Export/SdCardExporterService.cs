@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Disc;
 
 namespace NzbDrone.Core.MediaFiles.Export
@@ -364,24 +365,7 @@ namespace NzbDrone.Core.MediaFiles.Export
             "Nintendo Wii"
         };
 
-        private static readonly Dictionary<string, string> DefaultPlatformRawExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "SNES", ".sfc" },
-            { "Super Nintendo Entertainment System", ".sfc" },
-            { "NES", ".nes" },
-            { "Nintendo Entertainment System", ".nes" },
-            { "Game Boy", ".gb" },
-            { "Game Boy Color", ".gbc" },
-            { "Game Boy Advance", ".gba" },
-            { "Genesis", ".md" },
-            { "Sega Genesis", ".md" },
-            { "Mega Drive", ".md" },
-            { "Master System", ".sms" },
-            { "Game Gear", ".gg" },
-            { "Nintendo 64", ".z64" },
-            { "Nintendo DS", ".nds" },
-            { "TurboGrafx-16", ".pce" }
-        };
+        private static readonly Dictionary<string, string> DefaultPlatformRawExtension = PlatformCatalogService.DefaultPlatformRawExtension;
 
         private static readonly Dictionary<string, string> OnionOsSystemMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {

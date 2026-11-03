@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Games.Launcher;
 using Sonarr.Http;
 
-namespace Sonarr.Api.V3.Games
+namespace Sonarr.Api.V5.Games
 {
     [V3ApiController("gamelauncher")]
     [V5ApiController("gamelauncher")]
@@ -26,7 +25,7 @@ namespace Sonarr.Api.V3.Games
         [HttpPost("config")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public ActionResult<LibretroLauncherConfig> SaveConfig([FromBody] LibretroLauncherConfig config)
+        public ActionResult<LibretroLauncherConfig> SaveConfig([FromBody] LibretroLauncherConfig? config)
         {
             if (config == null)
             {
