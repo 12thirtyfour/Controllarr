@@ -32,7 +32,6 @@ interface AgendaEventProps {
   absoluteGameNumber?: number;
   airDateUtc: string;
   monitored: boolean;
-  unverifiedSceneNumbering?: boolean;
   finaleType?: string;
   hasFile: boolean;
   grabbed?: boolean;
@@ -49,7 +48,6 @@ function AgendaEvent(props: AgendaEventProps) {
     absoluteGameNumber,
     airDateUtc,
     monitored,
-    unverifiedSceneNumbering,
     finaleType,
     hasFile,
     grabbed,
@@ -150,15 +148,6 @@ function AgendaEvent(props: AgendaEventProps) {
               name={icons.WARNING}
               kind={kinds.WARNING}
               title={translate('GameMissingAbsoluteNumber')}
-            />
-          ) : null}
-
-          {unverifiedSceneNumbering && !missingAbsoluteNumber ? (
-            <Icon
-              className={styles.statusIcon}
-              name={icons.WARNING}
-              kind={kinds.WARNING}
-              title={translate('SceneNumberNotVerified')}
             />
           ) : null}
 

@@ -121,11 +121,6 @@
   flex: 1 0 60px;
 }
 
-.useSceneNumbering {
-  composes: headerCell from 'Components/Table/VirtualTableHeaderCell.module.css';
-
-  flex: 0 0 145px;
-}
 
 .monitorNewItems {
   composes: headerCell from 'Components/Table/VirtualTableHeaderCell.module.css';

@@ -502,16 +502,6 @@ namespace NzbDrone.Core.MetadataSource.Game
             return SearchForNewSeries(imdbId, language);
         }
 
-        public List<Series> SearchForNewSeriesByAniListId(int aniListId, Language language)
-        {
-            return new List<Series>();
-        }
-
-        public List<Series> SearchForNewSeriesByMyAnimeListId(int malId, Language language)
-        {
-            return new List<Series>();
-        }
-
         public List<Series> SearchForNewSeriesByTmdbId(int tmdbId, Language language)
         {
             return SearchForNewSeries($"tvdb:{tmdbId}", language);

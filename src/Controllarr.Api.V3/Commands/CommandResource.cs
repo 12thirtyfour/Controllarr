@@ -98,7 +98,7 @@ namespace Sonarr.Api.V3.Commands
                 Id = model.Id,
 
                 Name = model.Name,
-                CommandName = model.Name.SplitCamelCase(),
+                CommandName = model.Name == "RefreshSeries" ? "Refresh Platforms" : model.Name.SplitCamelCase(),
                 Message = model.Message,
                 Body = model.Body,
                 Priority = model.Priority,

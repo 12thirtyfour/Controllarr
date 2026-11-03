@@ -50,7 +50,6 @@ interface GameRowProps {
   finaleType?: string;
   title: string;
   isSaving?: boolean;
-  unverifiedSceneNumbering?: boolean;
   isAlternateGroup?: boolean;
   romVersionLabel?: string;
   alternateVersionCount?: number;
@@ -82,7 +81,6 @@ function GameRow({
   runtime,
   finaleType,
   title,
-  unverifiedSceneNumbering,
   isSaving,
   isAlternateGroup = false,
   romVersionLabel,
@@ -194,7 +192,6 @@ function GameRow({
                 gameNumber={gameNumber}
                 absoluteGameNumber={absoluteGameNumber}
                 useSceneNumbering={useSceneNumbering}
-                unverifiedSceneNumbering={unverifiedSceneNumbering}
                 seriesType={seriesType}
                 sceneSeasonNumber={sceneSeasonNumber}
                 sceneGameNumber={sceneGameNumber}

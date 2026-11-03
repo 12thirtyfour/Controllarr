@@ -25,7 +25,6 @@ interface MissingRowProps {
   sceneSeasonNumber?: number;
   sceneGameNumber?: number;
   sceneAbsoluteGameNumber?: number;
-  unverifiedSceneNumbering: boolean;
   airDate?: string;
   airDateUtc?: string;
   lastSearchTime?: string;
@@ -43,7 +42,6 @@ function MissingRow({
   sceneSeasonNumber,
   sceneGameNumber,
   sceneAbsoluteGameNumber,
-  unverifiedSceneNumbering,
   airDate,
   airDateUtc,
   lastSearchTime,
@@ -107,7 +105,6 @@ function MissingRow({
                 sceneSeasonNumber={sceneSeasonNumber}
                 sceneGameNumber={sceneGameNumber}
                 sceneAbsoluteGameNumber={sceneAbsoluteGameNumber}
-                unverifiedSceneNumbering={unverifiedSceneNumbering}
               />
             </TableRowCell>
           );

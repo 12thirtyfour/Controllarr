@@ -28,23 +28,16 @@ export interface ISeriesTypeOption {
 const seriesTypeOptions: ISeriesTypeOption[] = [
   {
     key: platformTypes.STANDARD,
-    value: 'Standard',
+    value: 'Standard (Regional)',
     get format() {
-      return translate('StandardGameTypeFormat', { format: 'S01E05' });
-    },
-  },
-  {
-    key: platformTypes.DAILY,
-    value: 'Daily / Date',
-    get format() {
-      return translate('DailyGameTypeFormat', { format: '2020-05-25' });
+      return translate('StandardGameTypeFormat', { format: 'USA, Europe, Japan' });
     },
   },
   {
     key: platformTypes.ANIME,
-    value: 'Anime / Absolute',
+    value: 'Single Collection (Flat)',
     get format() {
-      return translate('AnimeGameTypeFormat', { format: '005' });
+      return translate('AnimeGameTypeFormat', { format: 'Direct ROM Catalog' });
     },
   },
 ];

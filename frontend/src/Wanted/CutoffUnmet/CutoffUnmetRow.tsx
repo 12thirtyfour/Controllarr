@@ -27,7 +27,6 @@ interface CutoffUnmetRowProps {
   sceneSeasonNumber?: number;
   sceneGameNumber?: number;
   sceneAbsoluteGameNumber?: number;
-  unverifiedSceneNumbering: boolean;
   airDate?: string;
   airDateUtc?: string;
   lastSearchTime?: string;
@@ -45,7 +44,6 @@ function CutoffUnmetRow({
   sceneSeasonNumber,
   sceneGameNumber,
   sceneAbsoluteGameNumber,
-  unverifiedSceneNumbering,
   airDate,
   airDateUtc,
   lastSearchTime,
@@ -109,7 +107,6 @@ function CutoffUnmetRow({
                 sceneSeasonNumber={sceneSeasonNumber}
                 sceneGameNumber={sceneGameNumber}
                 sceneAbsoluteGameNumber={sceneAbsoluteGameNumber}
-                unverifiedSceneNumbering={unverifiedSceneNumbering}
               />
             </TableRowCell>
           );

@@ -47,7 +47,7 @@ public class TaskController : RestControllerWithSignalR<TaskResource, ScheduledT
         return new TaskResource
         {
             Id = scheduledTask.Id,
-            Name = taskName.SplitCamelCase(),
+            Name = taskName == "RefreshSeries" ? "Refresh Platforms" : taskName.SplitCamelCase(),
             TaskName = taskName,
             Interval = scheduledTask.Interval,
             LastExecution = scheduledTask.LastExecution,

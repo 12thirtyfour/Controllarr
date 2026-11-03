@@ -135,23 +135,23 @@ function Statistics() {
       return [];
     }
 
-    return [
+    const items: DoughnutChartItem[] = [
       {
         label: translate('Standard'),
         value: data.standardSeriesCount,
         color: colors.bar,
       },
-      {
-        label: translate('Daily'),
-        value: data.dailySeriesCount,
-        color: colors.warningColor,
-      },
-      {
+    ];
+
+    if (data.animeSeriesCount > 0) {
+      items.push({
         label: translate('Anime'),
         value: data.animeSeriesCount,
         color: colors.palette[4],
-      },
-    ];
+      });
+    }
+
+    return items;
   }, [colors, data]);
 
   const gameItems = useMemo<DoughnutChartItem[]>(() => {
@@ -264,7 +264,7 @@ function Statistics() {
 
       <PageContentBody>
         <PageHeading
-          scope={translate('Media')}
+          scope={translate('Platforms')}
           title={translate('Statistics')}
         />
 

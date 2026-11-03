@@ -10,15 +10,10 @@ import SceneInfo from './SceneInfo';
 import styles from './GameNumber.module.css';
 
 function getWarningMessage(
-  unverifiedSceneNumbering: boolean,
   seriesType: SeriesType | undefined,
   absoluteGameNumber: number | undefined
 ) {
   const messages = [];
-
-  if (unverifiedSceneNumbering) {
-    messages.push(translate('SceneNumberNotVerified'));
-  }
 
   if (seriesType === 'anime' && !absoluteGameNumber) {
     messages.push(translate('GameMissingAbsoluteNumber'));
@@ -35,7 +30,6 @@ export interface GameNumberProps {
   sceneGameNumber?: number;
   sceneAbsoluteGameNumber?: number;
   useSceneNumbering?: boolean;
-  unverifiedSceneNumbering?: boolean;
   alternateTitles?: AlternateTitle[];
   seriesType?: SeriesType;
   showSeasonNumber?: boolean;
@@ -50,7 +44,6 @@ function GameNumber(props: GameNumberProps) {
     sceneGameNumber,
     sceneAbsoluteGameNumber,
     useSceneNumbering = false,
-    unverifiedSceneNumbering = false,
     alternateTitles: seriesAlternateTitles = [],
     seriesType,
     showSeasonNumber = false,
@@ -64,21 +57,16 @@ function GameNumber(props: GameNumberProps) {
     sceneSeasonNumber
   );
 
-  const hasSceneInformation =
-    sceneSeasonNumber !== undefined ||
-    sceneGameNumber !== undefined ||
-    (seriesType === 'anime' && sceneAbsoluteGameNumber !== undefined) ||
-    !!alternateTitles.length;
+  const hasAlternateTitles = !!alternateTitles.length;
 
   const warningMessage = getWarningMessage(
-    unverifiedSceneNumbering,
     seriesType,
     absoluteGameNumber
   );
 
   return (
     <span className={styles.gameNumber}>
-      {hasSceneInformation ? (
+      {hasAlternateTitles ? (
         <Popover
           anchor={
             <span>
@@ -98,7 +86,7 @@ function GameNumber(props: GameNumberProps) {
               )}
             </span>
           }
-          title={translate('SceneInformation')}
+          title={translate('ReleaseInformation')}
           body={
             <SceneInfo
               seasonNumber={seasonNumber}

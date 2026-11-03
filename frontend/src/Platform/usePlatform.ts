@@ -579,11 +579,6 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     valueType: filterBuilderValueTypes.TAG,
   },
   {
-    name: 'useSceneNumbering',
-    label: () => translate('SceneNumbering'),
-    type: filterBuilderTypes.EXACT,
-  },
-  {
     name: 'hasMissingSeason',
     label: () => translate('HasMissingSeason'),
     type: filterBuilderTypes.EXACT,

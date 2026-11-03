@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Preserved `.zip`-packaged arcade/system BIOS archives (`neogeo.zip`, `naomi.zip`, `awbios.zip`, `cdimono1.zip`) intact on disk during verification and auto-download, and updated `BuildCandidateDownloadUrls` to target current `Abdess/retroarch_system` (`main/bios/...`) and `archtaurus/RetroPieBIOS` directory paths.
 
 ### Removed
+- **Defunct TV-Only Trackers & Anime Import Lists**:
+  - Removed TV-exclusive tracker BroadcastheNet (`BroadcastheNet.cs` and fixtures) and movies/TV documentary tracker HDBits (`HDBits.cs` and fixtures).
+  - Removed TV anime import lists `AniList` and `MyAnimeList` (`src/NzbDrone.Core/ImportLists/AniList/` and `src/NzbDrone.Core/ImportLists/MyAnimeList/`).
+  - Removed TV scene numbering column (`useSceneNumbering`) from platform tables, options stores, and filter builders, and removed TV scene numbering warning badges.
 - **Legacy Sonarr Remnants & Obsolete TV Services (Category 3 Consolidation)**:
   - **Scene Mapping Scheduled Task & Cloud TV Proxy**: Removed periodic 3-hour `UpdateSceneMappingCommand` background task from `TaskManager.cs` and neutralized `SceneMappingProxy.Fetch()` to return an empty list, completely eliminating recurring network calls to `services.sonarr.tv`.
   - **TheXEM TV Numbering Proxy & Specification**: Neutralized `UnverifiedSceneNumberingSpecification.cs` to unconditionally accept ROM files without requiring TV episode numbering confirmation, and neutralized `XemProxy.cs` endpoints to eliminate outbound network traffic to the blocked/defunct `thexem.info`.
@@ -24,6 +28,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - **Duplicate Localization String Keys**: Pruned redundant duplicate TV keys in `src/NzbDrone.Core/Localization/Core/en.json` (`AllowSeasonPackWithoutAllEpisodesAired*`, `AnEpisodeIsDownloading`, `CountSeasonsCountEpisodes`, `CountSeasonsOneEpisode`, `OneSeasonCountEpisodes`, `OneSeasonOneEpisode`) that shadowed game-native keys.
 
 ### Changed
+- **Total TV Vocabulary, Terminology & Function Elimination**:
+  - **Platform Types & Descriptions**: Replaced TV "Anime" and "Daily" options in `PlatformTypeSelectInput.tsx`, `PlatformTypePopoverContent.tsx`, and `PlatformTypeFilterBuilderRowValue.tsx` with game-native terminology (`Standard (Regional)` with regional catalog hints, and `Single Collection (Flat)` with direct catalog hints; eliminated `Daily` talk shows completely).
+  - **Scheduled Tasks & Command Presentation**: Aligned `TaskController.cs` (V3 and V5) and `CommandResource.cs` (V3 and V5) to display "Refresh Platforms" instead of "Refresh Series" across the System Tasks table, command queue, and activity progress toasts.
+  - **Game Numbering & Alternate Title Display**: Refactored `GameNumber.tsx` and `SceneInfo.tsx` to display clean regional alternate titles without TV season/episode numbers and without TV `S01E02` suffixes, renaming "Scene Information" to "Release Information".
+  - **Statistics Page Cleanliness**: Aligned `Statistics.tsx` header scope to "Platforms" instead of "Media", and removed zero-count TV `Daily` and `Anime` slices from the Platform Types donut chart.
+  - **Localization & String Alignment**: Updated `en.json` to replace TV and anime strings with gaming equivalents ("Flat / Direct", "Flat Game Format", "Release Info", "Catalog Numbering").
 - **Category 2 Redundant & Duplicated Code Consolidation**:
   - **Dead jQuery Dependency Elimination**: Migrated `createAjaxRequest.js` and `requestAction.js` to modern standard `fetch`, `AbortController`, and `URLSearchParams` with promise `.done()`, `.fail()`, and `.always()` backwards compatibility shims, removing `jquery` from `package.json` and saving ~90KB minified.
   - **Platform Metadata, Alias & Extension Centralization**: Consolidated duplicate platform slug dictionaries, cartridge type sets, exclusive ROM file extensions, ODE/flash-cart raw extensions, and canonical platform display names into `PlatformCatalogService.cs`. `DatCacheService.cs`, `PlatformCompatibilityValidator.cs`, and `SdCardExporterService.cs` now consume the unified authoritative catalog directly, removing >150 lines of duplicate dictionaries.

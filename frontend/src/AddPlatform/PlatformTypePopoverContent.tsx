@@ -7,18 +7,13 @@ function PlatformTypePopoverContent() {
   return (
     <DescriptionList>
       <DescriptionListItem
-        title={translate('Anime')}
-        data={translate('AnimeGameTypeDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('Daily')}
-        data={translate('DailyGameTypeDescription')}
-      />
-
-      <DescriptionListItem
         title={translate('Standard')}
         data={translate('StandardGameTypeDescription')}
+      />
+
+      <DescriptionListItem
+        title={translate('Anime')}
+        data={translate('AnimeGameTypeDescription')}
       />
     </DescriptionList>
   );

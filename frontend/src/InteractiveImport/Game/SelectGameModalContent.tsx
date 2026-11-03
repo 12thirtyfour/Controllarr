@@ -220,7 +220,6 @@ function SelectGameModalContentInner(props: SelectGameModalContentProps) {
                       title={item.title}
                       airDate={item.airDate}
                       isAnime={isAnime}
-                      unverifiedSceneNumbering={item.unverifiedSceneNumbering}
                     />
                   ) : null;
                 })}

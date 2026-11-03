@@ -32,7 +32,6 @@ interface CalendarEventProps {
   absoluteGameNumber?: number;
   airDateUtc: string;
   monitored: boolean;
-  unverifiedSceneNumbering?: boolean;
   finaleType?: string;
   hasFile: boolean;
   grabbed?: boolean;
@@ -50,7 +49,6 @@ function CalendarEvent(props: CalendarEventProps) {
     absoluteGameNumber,
     airDateUtc,
     monitored,
-    unverifiedSceneNumbering,
     finaleType,
     hasFile,
     grabbed,
@@ -138,15 +136,6 @@ function CalendarEvent(props: CalendarEventProps) {
                 name={icons.WARNING}
                 kind={kinds.WARNING}
                 title={translate('GameMissingAbsoluteNumber')}
-              />
-            ) : null}
-
-            {unverifiedSceneNumbering && !missingAbsoluteNumber ? (
-              <Icon
-                className={styles.statusIcon}
-                name={icons.WARNING}
-                kind={kinds.WARNING}
-                title={translate('SceneNumberNotVerified')}
               />
             ) : null}
 

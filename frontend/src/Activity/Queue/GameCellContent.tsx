@@ -38,7 +38,6 @@ export default function GameCellContent({
         sceneSeasonNumber={game.sceneSeasonNumber}
         sceneGameNumber={game.sceneGameNumber}
         sceneAbsoluteGameNumber={game.sceneAbsoluteGameNumber}
-        unverifiedSceneNumbering={game.unverifiedSceneNumbering}
       />
     );
   }
@@ -57,7 +56,6 @@ export default function GameCellContent({
         sceneSeasonNumber={firstGame.sceneSeasonNumber}
         sceneGameNumber={firstGame.sceneGameNumber}
         sceneAbsoluteGameNumber={firstGame.sceneAbsoluteGameNumber}
-        unverifiedSceneNumbering={firstGame.unverifiedSceneNumbering}
       />
       {' - '}
       <SeasonGameNumber
@@ -69,7 +67,6 @@ export default function GameCellContent({
         sceneSeasonNumber={lastGame.sceneSeasonNumber}
         sceneGameNumber={lastGame.sceneGameNumber}
         sceneAbsoluteGameNumber={lastGame.sceneAbsoluteGameNumber}
-        unverifiedSceneNumbering={lastGame.unverifiedSceneNumbering}
       />
     </>
   );

@@ -139,7 +139,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
     originalLanguage,
     certification,
     year,
-    useSceneNumbering,
     language,
     seasonType,
     seasonTypes,
@@ -537,19 +536,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
           );
         }
 
-        if (name === 'useSceneNumbering') {
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              <CheckInput
-                className={styles.checkInput}
-                name="useSceneNumbering"
-                value={useSceneNumbering}
-                isDisabled={true}
-                onChange={checkInputCallback}
-              />
-            </VirtualTableRowCell>
-          );
-        }
 
         if (name === 'monitorNewItems') {
           return (

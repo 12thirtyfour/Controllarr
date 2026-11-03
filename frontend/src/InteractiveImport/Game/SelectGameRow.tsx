@@ -11,15 +11,10 @@ import Icon from '../../Components/Icon';
 import styles from './SelectGameRow.module.css';
 
 function getWarningMessage(
-  unverifiedSceneNumbering: boolean,
   isAnime: boolean,
   absoluteGameNumber: number | undefined
 ) {
   const messages = [];
-
-  if (unverifiedSceneNumbering) {
-    messages.push(translate('SceneNumberNotVerified'));
-  }
 
   if (isAnime && !absoluteGameNumber) {
     messages.push(translate('GameMissingAbsoluteNumber'));
@@ -36,7 +31,6 @@ interface SelectGameRowProps {
   airDate: string;
   isAnime: boolean;
   isSelected?: boolean;
-  unverifiedSceneNumbering?: boolean;
 }
 
 function SelectGameRow({
@@ -46,7 +40,6 @@ function SelectGameRow({
   title,
   airDate,
   isAnime,
-  unverifiedSceneNumbering = false,
 }: SelectGameRowProps) {
   const { toggleSelected, useIsSelected } = useSelect<Game>();
   const isSelected = useIsSelected(id);
@@ -67,7 +60,6 @@ function SelectGameRow({
   }, [id, isSelected, handleSelectedChange]);
 
   const warningMessage = getWarningMessage(
-    unverifiedSceneNumbering,
     isAnime,
     absoluteGameNumber
   );
