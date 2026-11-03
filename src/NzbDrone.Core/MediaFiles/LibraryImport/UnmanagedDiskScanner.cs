@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -402,13 +403,34 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     var (primaryName, crc32) = GetInnerRomDetails(primaryEntry);
                     var hashes = new Dictionary<string, string> { ["CRC32"] = crc32 };
 
-                    try
+                    var datMatch = _datCacheService?.FindByCrc32(crc32);
+                    if (datMatch != null && (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5)))
                     {
-                        using var entryStream = primaryEntry.Open();
-                        ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
+                        if (!string.IsNullOrWhiteSpace(datMatch.Sha1))
+                        {
+                            hashes["SHA-1"] = datMatch.Sha1.ToLowerInvariant();
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(datMatch.Md5))
+                        {
+                            hashes["MD5"] = datMatch.Md5.ToLowerInvariant();
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(datMatch.Sha256))
+                        {
+                            hashes["SHA-256"] = datMatch.Sha256.ToLowerInvariant();
+                        }
                     }
-                    catch
+                    else
                     {
+                        try
+                        {
+                            using var entryStream = primaryEntry.Open();
+                            ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
+                        }
+                        catch
+                        {
+                        }
                     }
 
                     var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, primaryName, filePath, hashes);
@@ -852,12 +874,34 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\"));
                     if (romEntry != null)
                     {
-                        using (var entryStream = romEntry.Open())
-                        {
-                            ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
-                        }
+                        var crc32Hex = romEntry.Crc32.ToString("x8").ToLowerInvariant();
+                        hashes["CRC32"] = crc32Hex;
 
-                        hashes["CRC32"] = romEntry.Crc32.ToString("x8").ToLowerInvariant();
+                        var datMatch = _datCacheService?.FindByCrc32(crc32Hex);
+                        if (datMatch != null && (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5)))
+                        {
+                            if (!string.IsNullOrWhiteSpace(datMatch.Sha1))
+                            {
+                                hashes["SHA-1"] = datMatch.Sha1.ToLowerInvariant();
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(datMatch.Md5))
+                            {
+                                hashes["MD5"] = datMatch.Md5.ToLowerInvariant();
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(datMatch.Sha256))
+                            {
+                                hashes["SHA-256"] = datMatch.Sha256.ToLowerInvariant();
+                            }
+                        }
+                        else
+                        {
+                            using (var entryStream = romEntry.Open())
+                            {
+                                ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -887,36 +931,43 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             using var sha1 = SHA1.Create();
             using var md5 = MD5.Create();
 
-            var buffer = new byte[8192];
-            var crc = 0xFFFFFFFFu;
-            int bytesRead;
-
-            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+            var buffer = ArrayPool<byte>.Shared.Rent(128 * 1024);
+            try
             {
-                sha256.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-                sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-                md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                var crc = 0xFFFFFFFFu;
+                int bytesRead;
+
+                while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    sha256.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                    sha1.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+                    md5.TransformBlock(buffer, 0, bytesRead, buffer, 0);
+
+                    if (computeCrc32)
+                    {
+                        for (var i = 0; i < bytesRead; i++)
+                        {
+                            crc = (crc >> 8) ^ Crc32Table[(crc ^ buffer[i]) & 0xFF];
+                        }
+                    }
+                }
+
+                sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                sha1.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                md5.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+                hashes["SHA-256"] = BitConverter.ToString(sha256.Hash).Replace("-", "").ToLowerInvariant();
+                hashes["SHA-1"] = BitConverter.ToString(sha1.Hash).Replace("-", "").ToLowerInvariant();
+                hashes["MD5"] = BitConverter.ToString(md5.Hash).Replace("-", "").ToLowerInvariant();
 
                 if (computeCrc32)
                 {
-                    for (var i = 0; i < bytesRead; i++)
-                    {
-                        crc = (crc >> 8) ^ Crc32Table[(crc ^ buffer[i]) & 0xFF];
-                    }
+                    hashes["CRC32"] = (~crc).ToString("x8").ToLowerInvariant();
                 }
             }
-
-            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            sha1.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            md5.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-
-            hashes["SHA-256"] = BitConverter.ToString(sha256.Hash).Replace("-", "").ToLowerInvariant();
-            hashes["SHA-1"] = BitConverter.ToString(sha1.Hash).Replace("-", "").ToLowerInvariant();
-            hashes["MD5"] = BitConverter.ToString(md5.Hash).Replace("-", "").ToLowerInvariant();
-
-            if (computeCrc32)
+            finally
             {
-                hashes["CRC32"] = (~crc).ToString("x8").ToLowerInvariant();
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 

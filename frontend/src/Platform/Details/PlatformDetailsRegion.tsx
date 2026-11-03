@@ -456,6 +456,108 @@ function PlatformDetailsSeason({
     }
   }, [romFileCount, previousRomFileCount]);
 
+  const gamesContainerRef = useRef<HTMLDivElement>(null);
+  const [windowRange, setWindowRange] = useState({ start: 0, end: 60 });
+
+  useEffect(() => {
+    if (!isExpanded || displayRows.length <= 50) {
+      return;
+    }
+
+    const container = gamesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const getScrollParent = (
+      node: HTMLElement | null
+    ): HTMLElement | Window => {
+      let current = node?.parentElement;
+      while (current) {
+        const { overflowY } = window.getComputedStyle(current);
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return window;
+    };
+
+    const scrollParent = getScrollParent(container);
+
+    const updateWindow = () => {
+      if (!gamesContainerRef.current) {
+        return;
+      }
+
+      const containerRect = gamesContainerRef.current.getBoundingClientRect();
+      const parentRect =
+        scrollParent instanceof HTMLElement
+          ? scrollParent.getBoundingClientRect()
+          : { top: 0, height: window.innerHeight };
+
+      const offsetTop = parentRect.top - containerRect.top;
+      const vHeight = parentRect.height;
+      const ROW_HEIGHT = 42;
+      const OVERSCAN = 25;
+
+      const start = Math.max(0, Math.floor(offsetTop / ROW_HEIGHT) - OVERSCAN);
+      const visibleCount = Math.ceil(vHeight / ROW_HEIGHT);
+      const end = Math.min(
+        displayRows.length,
+        start + visibleCount + 2 * OVERSCAN
+      );
+
+      setWindowRange((prev) => {
+        if (
+          Math.abs(prev.start - start) < 6 &&
+          Math.abs(prev.end - end) < 6 &&
+          end <= displayRows.length
+        ) {
+          return prev;
+        }
+        return { start, end };
+      });
+    };
+
+    updateWindow();
+
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          updateWindow();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    scrollParent.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+
+    return () => {
+      scrollParent.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [isExpanded, displayRows.length]);
+
+  const isVirtual = isExpanded && displayRows.length > 50;
+  const startIndex = isVirtual
+    ? Math.min(windowRange.start, displayRows.length)
+    : 0;
+  const endIndex = isVirtual
+    ? Math.min(Math.max(windowRange.end, startIndex + 1), displayRows.length)
+    : displayRows.length;
+  const visibleRows = isVirtual
+    ? displayRows.slice(startIndex, endIndex)
+    : displayRows;
+  const topSpacerHeight = isVirtual ? startIndex * 42 : 0;
+  const bottomSpacerHeight = isVirtual ? (displayRows.length - endIndex) * 42 : 0;
+  const visibleColumnCount = columns.filter(
+    (col) => col.isVisible !== false
+  ).length;
+
   return (
     <div className={styles.season}>
       <div className={styles.header}>
@@ -661,7 +763,7 @@ function PlatformDetailsSeason({
 
       <div>
         {isExpanded ? (
-          <div className={styles.games}>
+          <div ref={gamesContainerRef} className={styles.games}>
             {displayRows.length ? (
               <Table
                 columns={columns}
@@ -671,7 +773,20 @@ function PlatformDetailsSeason({
                 onTableOptionChange={handleTableOptionChange}
               >
                 <TableBody>
-                  {displayRows.map((row) => {
+                  {topSpacerHeight > 0 ? (
+                    <tr style={{ height: `${topSpacerHeight}px` }}>
+                      <td
+                        colSpan={visibleColumnCount}
+                        style={{
+                          padding: 0,
+                          border: 'none',
+                          height: `${topSpacerHeight}px`,
+                        }}
+                      />
+                    </tr>
+                  ) : null}
+
+                  {visibleRows.map((row) => {
                     const {
                       item,
                       versionLabel,
@@ -699,6 +814,19 @@ function PlatformDetailsSeason({
                       />
                     );
                   })}
+
+                  {bottomSpacerHeight > 0 ? (
+                    <tr style={{ height: `${bottomSpacerHeight}px` }}>
+                      <td
+                        colSpan={visibleColumnCount}
+                        style={{
+                          padding: 0,
+                          border: 'none',
+                          height: `${bottomSpacerHeight}px`,
+                        }}
+                      />
+                    </tr>
+                  ) : null}
                 </TableBody>
               </Table>
             ) : (

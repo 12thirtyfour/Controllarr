@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using NLog;
 using NzbDrone.Common.Http;
@@ -1220,9 +1221,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 using var entryStream = xmlEntry.Open();
-                using var reader = new StreamReader(entryStream, Encoding.UTF8);
-                var xmlContent = reader.ReadToEnd();
-                return ParseGameTdbXmlContent(platform, xmlContent, seenNames, forceRefresh);
+                return ParseGameTdbXmlStream(platform, entryStream, seenNames, forceRefresh);
             }
             catch (Exception ex)
             {
@@ -1231,9 +1230,50 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
         }
 
+        public List<GameCatalogEntry> ParseGameTdbXmlStream(
+            PlatformCatalogEntry platform,
+            Stream stream,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            if (stream == null)
+            {
+                return new List<GameCatalogEntry>();
+            }
+
+            using var xmlReader = XmlReader.Create(stream, new XmlReaderSettings
+            {
+                IgnoreWhitespace = true,
+                DtdProcessing = DtdProcessing.Ignore
+            });
+
+            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh);
+        }
+
         public List<GameCatalogEntry> ParseGameTdbXmlContent(
             PlatformCatalogEntry platform,
             string xmlContent,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            if (string.IsNullOrWhiteSpace(xmlContent))
+            {
+                return new List<GameCatalogEntry>();
+            }
+
+            using var textReader = new StringReader(xmlContent);
+            using var xmlReader = XmlReader.Create(textReader, new XmlReaderSettings
+            {
+                IgnoreWhitespace = true,
+                DtdProcessing = DtdProcessing.Ignore
+            });
+
+            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh);
+        }
+
+        private List<GameCatalogEntry> ParseGameTdbXmlReader(
+            PlatformCatalogEntry platform,
+            XmlReader xmlReader,
             HashSet<string> seenNames,
             bool forceRefresh = false)
         {
@@ -1242,107 +1282,119 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             try
             {
-                var doc = XDocument.Parse(xmlContent);
-                foreach (var gameEl in doc.Descendants("game"))
+                while (!xmlReader.EOF)
                 {
-                    var rawName = gameEl.Attribute("name")?.Value?.Trim();
-                    var localeEn = gameEl.Elements("locale").FirstOrDefault(l => string.Equals((string)l.Attribute("lang"), "EN", StringComparison.OrdinalIgnoreCase)) ??
-                                   gameEl.Elements("locale").FirstOrDefault();
-                    var localeTitle = localeEn?.Element("title")?.Value?.Trim();
-                    var synopsis = localeEn?.Element("synopsis")?.Value?.Trim();
-
-                    var id = gameEl.Element("id")?.Value?.Trim();
-                    var region = gameEl.Element("region")?.Value?.Trim();
-                    var languages = gameEl.Element("languages")?.Value?.Trim();
-
-                    var title = !string.IsNullOrWhiteSpace(localeTitle) ? localeTitle : rawName;
-                    if (string.IsNullOrWhiteSpace(title))
+                    if (xmlReader.NodeType == XmlNodeType.Element && xmlReader.LocalName == "game")
                     {
-                        continue;
-                    }
-
-                    var regionLabel = ResolveCatalogRegionLabel(region, languages, id, rawName);
-                    var formattedName = EnsureGeographicRegionTag(rawName, title, regionLabel);
-
-                    var releaseYear = platform.ReleaseYear;
-                    var dateEl = gameEl.Element("date");
-                    if (dateEl != null && int.TryParse((string)dateEl.Attribute("year"), out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2035)
-                    {
-                        releaseYear = parsedYear;
-                    }
-
-                    var romElements = gameEl.Elements("rom").ToList();
-                    string primaryCrc = null;
-                    string primarySha1 = null;
-                    string primaryMd5 = null;
-
-                    if (romElements.Count > 0)
-                    {
-                        foreach (var romEl in romElements)
+                        if (XNode.ReadFrom(xmlReader) is not XElement gameEl)
                         {
-                            var romName = (string)romEl.Attribute("name");
-                            var crc = (string)romEl.Attribute("crc");
-                            var md5 = (string)romEl.Attribute("md5");
-                            var sha1 = (string)romEl.Attribute("sha1");
-                            var sizeStr = (string)romEl.Attribute("size");
-                            long.TryParse(sizeStr, out var size);
+                            xmlReader.Read();
+                            continue;
+                        }
 
-                            if (string.IsNullOrWhiteSpace(romName))
-                            {
-                                var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
-                                romName = $"{formattedName}{defaultExt}";
-                            }
+                        var rawName = gameEl.Attribute("name")?.Value?.Trim();
+                        var localeEn = gameEl.Elements("locale").FirstOrDefault(l => string.Equals((string)l.Attribute("lang"), "EN", StringComparison.OrdinalIgnoreCase)) ??
+                                       gameEl.Elements("locale").FirstOrDefault();
+                        var localeTitle = localeEn?.Element("title")?.Value?.Trim();
+                        var synopsis = localeEn?.Element("synopsis")?.Value?.Trim();
 
-                            if (primaryCrc == null && !string.IsNullOrWhiteSpace(crc))
-                            {
-                                primaryCrc = crc;
-                                primarySha1 = sha1;
-                                primaryMd5 = md5;
-                                                            }
+                        var id = gameEl.Element("id")?.Value?.Trim();
+                        var region = gameEl.Element("region")?.Value?.Trim();
+                        var languages = gameEl.Element("languages")?.Value?.Trim();
 
-                            if (!string.IsNullOrWhiteSpace(crc) || !string.IsNullOrWhiteSpace(sha1) || !string.IsNullOrWhiteSpace(md5))
+                        var title = !string.IsNullOrWhiteSpace(localeTitle) ? localeTitle : rawName;
+                        if (string.IsNullOrWhiteSpace(title))
+                        {
+                            continue;
+                        }
+
+                        var regionLabel = ResolveCatalogRegionLabel(region, languages, id, rawName);
+                        var formattedName = EnsureGeographicRegionTag(rawName, title, regionLabel);
+
+                        var releaseYear = platform.ReleaseYear;
+                        var dateEl = gameEl.Element("date");
+                        if (dateEl != null && int.TryParse((string)dateEl.Attribute("year"), out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2035)
+                        {
+                            releaseYear = parsedYear;
+                        }
+
+                        var romElements = gameEl.Elements("rom").ToList();
+                        string primaryCrc = null;
+                        string primarySha1 = null;
+                        string primaryMd5 = null;
+
+                        if (romElements.Count > 0)
+                        {
+                            foreach (var romEl in romElements)
                             {
-                                datEntries.Add(new DatEntry
+                                var romName = (string)romEl.Attribute("name");
+                                var crc = (string)romEl.Attribute("crc");
+                                var md5 = (string)romEl.Attribute("md5");
+                                var sha1 = (string)romEl.Attribute("sha1");
+                                var sizeStr = (string)romEl.Attribute("size");
+                                long.TryParse(sizeStr, out var size);
+
+                                if (string.IsNullOrWhiteSpace(romName))
                                 {
-                                    GameName = formattedName,
-                                    RomName = romName,
-                                    Crc32 = crc?.ToLowerInvariant(),
-                                    Md5 = md5?.ToLowerInvariant(),
-                                    Sha1 = sha1?.ToLowerInvariant(),
-                                    Size = size > 0 ? size : 0,
-                                    Region = regionLabel
-                                });
+                                    var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
+                                    romName = $"{formattedName}{defaultExt}";
+                                }
+
+                                if (primaryCrc == null && !string.IsNullOrWhiteSpace(crc))
+                                {
+                                    primaryCrc = crc;
+                                    primarySha1 = sha1;
+                                    primaryMd5 = md5;
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(crc) || !string.IsNullOrWhiteSpace(sha1) || !string.IsNullOrWhiteSpace(md5))
+                                {
+                                    datEntries.Add(new DatEntry
+                                    {
+                                        GameName = formattedName,
+                                        RomName = romName,
+                                        Crc32 = crc?.ToLowerInvariant(),
+                                        Md5 = md5?.ToLowerInvariant(),
+                                        Sha1 = sha1?.ToLowerInvariant(),
+                                        Size = size > 0 ? size : 0,
+                                        Region = regionLabel
+                                    });
+                                }
                             }
                         }
-                    }
-                    else if (!string.IsNullOrWhiteSpace(id))
-                    {
-                        var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
-                        datEntries.Add(new DatEntry
+                        else if (!string.IsNullOrWhiteSpace(id))
                         {
-                            GameName = formattedName,
-                            RomName = $"{formattedName}{defaultExt}",
-                            Region = regionLabel
-                        });
-                    }
-
-                    if (!seenNames.Add(formattedName))
-                    {
-                        continue;
-                    }
-
-                    var entry = CreateCatalogEntryFromNoIntroName(platform, formattedName, releaseYear, $"GameTDB {platform.Name}");
-                    if (entry != null)
-                    {
-                        if (!string.IsNullOrWhiteSpace(synopsis))
-                        {
-                            entry.Overview = synopsis;
+                            var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
+                            datEntries.Add(new DatEntry
+                            {
+                                GameName = formattedName,
+                                RomName = $"{formattedName}{defaultExt}",
+                                Region = regionLabel
+                            });
                         }
 
-                        entry.ExpectedCrc32 = primaryCrc;
-                        entry.ExpectedSha1 = primarySha1;
-                        entry.ExpectedMd5 = primaryMd5;
-                        results.Add(entry);
+                        if (!seenNames.Add(formattedName))
+                        {
+                            continue;
+                        }
+
+                        var entry = CreateCatalogEntryFromNoIntroName(platform, formattedName, releaseYear, $"GameTDB {platform.Name}");
+                        if (entry != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(synopsis))
+                            {
+                                entry.Overview = synopsis;
+                            }
+
+                            entry.ExpectedCrc32 = primaryCrc;
+                            entry.ExpectedSha1 = primarySha1;
+                            entry.ExpectedMd5 = primaryMd5;
+                            results.Add(entry);
+                        }
+                    }
+                    else
+                    {
+                        xmlReader.Read();
                     }
                 }
 
