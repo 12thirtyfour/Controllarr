@@ -14,8 +14,8 @@
     background-color: var(--menuItemHoverBackgroundColor);
   }
 
-  &:hover .tvdbLinkIcon,
-  &:focus-within .tvdbLinkIcon {
+  &:hover .catalogLinkIcon,
+  &:focus-within .catalogLinkIcon {
     opacity: 1;
   }
 }
@@ -23,7 +23,7 @@
 .highlighted {
   background-color: var(--menuItemHoverBackgroundColor);
 
-  .tvdbLinkIcon {
+  .catalogLinkIcon {
     opacity: 1;
   }
 }
@@ -39,18 +39,18 @@
   overflow: hidden;
 }
 
-.tvdbLinkCell {
+.catalogLinkCell {
   flex-shrink: 0;
   margin-left: 8px;
 }
 
-.tvdbLink {
+.catalogLink {
   composes: link from 'Components/Link/Link.module.css';
 
   color: var(--inkMuted);
 }
 
-.tvdbLinkIcon {
+.catalogLinkIcon {
   opacity: 0;
   transition: opacity 120ms ease-out;
 }

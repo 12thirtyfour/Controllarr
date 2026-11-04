@@ -62,13 +62,13 @@ function ImportPlatformSearchResult({
         </Link>
       </div>
 
-      <div className={styles.tvdbLinkCell} role="gridcell">
+      <div className={styles.catalogLinkCell} role="gridcell">
         <Link
-          className={styles.tvdbLink}
+          className={styles.catalogLink}
           to={`https://www.igdb.com/search?q=${encodeURIComponent(title)}`}
         >
           <Icon
-            className={styles.tvdbLinkIcon}
+            className={styles.catalogLinkIcon}
             name={icons.EXTERNAL_LINK}
             size={16}
           />

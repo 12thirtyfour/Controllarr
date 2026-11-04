@@ -15,9 +15,6 @@ const fuseOptions = {
     'alternateTitles.title',
     'translations.title',
     'tvdbId',
-    'tvMazeId',
-    'imdbId',
-    'tmdbId',
     'tags.label',
   ],
 };

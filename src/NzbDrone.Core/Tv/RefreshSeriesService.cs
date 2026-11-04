@@ -127,7 +127,6 @@ namespace NzbDrone.Core.Tv
             series.FirstAired = seriesInfo.FirstAired;
             series.LastAired = seriesInfo.LastAired;
             series.Ratings = seriesInfo.Ratings;
-            series.Actors = seriesInfo.Actors;
             series.Genres = seriesInfo.Genres;
             if (seriesInfo.Certification.IsNotNullOrWhiteSpace())
             {

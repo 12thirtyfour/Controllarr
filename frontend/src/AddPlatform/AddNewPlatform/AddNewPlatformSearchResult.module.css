@@ -102,7 +102,7 @@
   flex-shrink: 0;
 }
 
-.tvdbLink {
+.catalogLink {
   composes: link from 'Components/Link/Link.module.css';
 
   display: flex;

@@ -22,9 +22,6 @@ function PlatformSearchResult(props: PlatformSearchResultProps) {
     images,
     alternateTitles,
     tvdbId,
-    tvMazeId,
-    imdbId,
-    tmdbId,
     tags,
   } = props;
 
@@ -56,19 +53,7 @@ function PlatformSearchResult(props: PlatformSearchResultProps) {
         ) : null}
 
         {match.key === 'tvdbId' && tvdbId ? (
-          <div className={styles.alternateTitle}>TvdbId: {tvdbId}</div>
-        ) : null}
-
-        {match.key === 'tvMazeId' && tvMazeId ? (
-          <div className={styles.alternateTitle}>TvMazeId: {tvMazeId}</div>
-        ) : null}
-
-        {match.key === 'imdbId' && imdbId ? (
-          <div className={styles.alternateTitle}>ImdbId: {imdbId}</div>
-        ) : null}
-
-        {match.key === 'tmdbId' && tmdbId ? (
-          <div className={styles.alternateTitle}>TmdbId: {tmdbId}</div>
+          <div className={styles.alternateTitle}>Catalog ID: {tvdbId}</div>
         ) : null}
 
         {tag ? (

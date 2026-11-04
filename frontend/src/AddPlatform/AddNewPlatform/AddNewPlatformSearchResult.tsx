@@ -75,7 +75,7 @@ function AddNewPlatformSearchResult({ series }: AddNewPlatformSearchResultProps)
     setIsNewAddPlatformModalOpen(false);
   }, []);
 
-  const handleTvdbLinkPress = useCallback((event: React.SyntheticEvent) => {
+  const handleCatalogLinkPress = useCallback((event: React.SyntheticEvent) => {
     event.stopPropagation();
   }, []);
 
@@ -149,12 +149,12 @@ function AddNewPlatformSearchResult({ series }: AddNewPlatformSearchResultProps)
               ) : null}
 
               <Link
-                className={styles.tvdbLink}
+                className={styles.catalogLink}
                 to={`https://www.igdb.com/search?q=${encodeURIComponent(
                   title
                 )}`}
                 aria-label={translate('ViewSeriesOnTvdb', { title })}
-                onPress={handleTvdbLinkPress}
+                onPress={handleCatalogLinkPress}
               >
                 <Icon name={icons.EXTERNAL_LINK} size={16} aria-hidden={true} />
               </Link>

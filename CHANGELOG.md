@@ -29,6 +29,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Preserved `.zip`-packaged arcade/system BIOS archives (`neogeo.zip`, `naomi.zip`, `awbios.zip`, `cdimono1.zip`) intact on disk during verification and auto-download, and updated `BuildCandidateDownloadUrls` to target current `Abdess/retroarch_system` (`main/bios/...`) and `archtaurus/RetroPieBIOS` directory paths.
 
 ### Removed
+- **TV Relics, Broadcast Scheduling Logic & External ID Purge**:
+  - Removed TV `Actor.cs` embedded document model and eliminated all `Actors` properties from `Series.cs` and `RefreshSeriesService.cs`.
+  - Removed TV broadcast runtime offset methods (`AdjustMultiEpisodeAirTime`, `AdjustDirectToDvdAirDate`) and TV series finale override logic (`FinaleType = "series"`) from `RefreshEpisodeService.cs`.
+  - Updated refresh logging messages in `RefreshEpisodeService.cs` to refer strictly to platforms and games rather than shows or aired episodes.
+  - Purged obsolete TV and movie identifier search filters (`tvMazeId`, `imdbId`, `tmdbId`) and hardcoded TV database labels (`TvdbId:`, `TvMazeId:`) from frontend search components (`PlatformSearchResult.tsx`, `PlatformSearchInput.tsx`, `fuse.worker.ts`, `PlatformDetailsLinks.tsx`, `PlatformDetails.tsx`), standardizing on `Catalog ID: {tvdbId}`.
+  - Renamed TV-specific CSS selectors (`tvdbLink`, `tvdbLinkCell`, `tvdbLinkIcon`) to `catalogLink` across `AddNewPlatformSearchResult.*` and `ImportPlatformSearchResult.*`.
+  - Purged dead Plex notification and watchlist localization keys from `en.json`.
+  - Removed obsolete direct-to-DVD and multi-episode air time test cases from `RefreshGameServiceFixture.cs`.
 - **Legacy TV Search & Parameter Logic from Indexers**:
   - **Newznab & Torznab TV Logic Purge**: Completely eliminated over 400 lines of dead TV querying logic in `NewznabRequestGenerator.cs`, removing all TV search capability properties (`SupportsTvQuerySearch`, `SupportsTvTitleSearch`, `SupportsTvTextSearches`, `SupportsTvdbSearch`, `SupportsImdbSearch`, `SupportsTvRageSearch`, `SupportsTvMazeSearch`, `SupportsTmdbSearch`, `SupportsSeasonSearch`, `SupportsEpisodeSearch`), TV query generators (`AddTvIdPageableRequests`, `AddTitlePageableRequests`), and TV season workarounds (`NewznabifySeasonNumber`), leaving only clean game title and collection search generation.
   - **Indexer Validation Decoupling**: Updated `TestCapabilities()` in `Newznab.cs` and `Torznab.cs` to eliminate mandatory TV parameter checks (`"season"`, `"ep"`, `"tvdbid"`, `"rid"`), validating indexers purely on standard text query (`"q"`) support.

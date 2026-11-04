@@ -13,7 +13,6 @@ namespace NzbDrone.Core.Tv
         {
             Images = new List<MediaCover.MediaCover>();
             Genres = new List<string>();
-            Actors = new List<Actor>();
             SeasonTypes = new List<SeasonType>();
             Translations = new List<SeriesTranslation>();
             Seasons = new List<Season>();
@@ -123,7 +122,6 @@ namespace NzbDrone.Core.Tv
         public int Year { get; set; }
         public Ratings Ratings { get; set; }
         public List<string> Genres { get; set; }
-        public List<Actor> Actors { get; set; }
         public string Certification { get; set; }
         public string RootFolderPath { get; set; }
         public DateTime Added { get; set; }

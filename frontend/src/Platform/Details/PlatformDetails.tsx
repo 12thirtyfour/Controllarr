@@ -516,9 +516,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
   const {
     tvdbId,
-    tvMazeId,
-    imdbId,
-    tmdbId,
     title,
     titleSlug,
     runtime,
@@ -880,9 +877,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                       tooltip={
                         <PlatformDetailsLinks
                           tvdbId={tvdbId}
-                          tvMazeId={tvMazeId}
-                          imdbId={imdbId}
-                          tmdbId={tmdbId}
                         />
                       }
                       kind={kinds.DEFAULT}

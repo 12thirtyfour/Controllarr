@@ -277,31 +277,6 @@ namespace NzbDrone.Core.Test.TvTests
         }
 
         [Test]
-        public void should_override_empty_airdate_for_direct_to_dvd()
-        {
-            var series = GetSeries();
-            series.Status = SeriesStatusType.Ended;
-
-            var episodes = Builder<Episode>.CreateListOfSize(10)
-                                           .All()
-                                           .With(v => v.AirDateUtc = null)
-                                           .BuildListOfNew();
-
-            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
-                .Returns(new List<Episode>());
-
-            List<Episode> updateEpisodes = null;
-            Mocker.GetMock<IEpisodeService>().Setup(c => c.InsertMany(It.IsAny<List<Episode>>()))
-                .Callback<List<Episode>>(c => updateEpisodes = c);
-
-            Subject.RefreshEpisodeInfo(series, episodes);
-
-            updateEpisodes.Should().NotBeNull();
-            updateEpisodes.Should().NotBeEmpty();
-            updateEpisodes.All(v => v.AirDateUtc.HasValue).Should().BeTrue();
-        }
-
-        [Test]
         public void should_use_tba_for_episode_title_when_null()
         {
             Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
@@ -316,51 +291,6 @@ namespace NzbDrone.Core.Test.TvTests
             Subject.RefreshEpisodeInfo(GetSeries(), episodes);
 
             _insertedEpisodes.First().Title.Should().Be("TBA");
-        }
-
-        [Test]
-        public void should_update_air_date_when_multiple_episodes_air_on_the_same_day()
-        {
-            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
-                .Returns(new List<Episode>());
-
-            var now = DateTime.UtcNow;
-            var series = GetSeries();
-
-            var episodes = Builder<Episode>.CreateListOfSize(2)
-                                           .All()
-                                           .With(e => e.SeasonNumber = 1)
-                                           .With(e => e.AirDate = now.ToShortDateString())
-                                           .With(e => e.AirDateUtc = now)
-                                           .Build()
-                                           .ToList();
-
-            Subject.RefreshEpisodeInfo(series, episodes);
-
-            _insertedEpisodes.First().AirDateUtc.Value.ToString("s").Should().Be(episodes.First().AirDateUtc.Value.ToString("s"));
-            _insertedEpisodes.Last().AirDateUtc.Value.ToString("s").Should().Be(episodes.First().AirDateUtc.Value.AddMinutes(series.Runtime).ToString("s"));
-        }
-
-        [Test]
-        public void should_not_update_air_date_when_more_than_three_episodes_air_on_the_same_day()
-        {
-            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
-                .Returns(new List<Episode>());
-
-            var now = DateTime.UtcNow;
-            var series = GetSeries();
-
-            var episodes = Builder<Episode>.CreateListOfSize(4)
-                                           .All()
-                                           .With(e => e.SeasonNumber = 1)
-                                           .With(e => e.AirDate = now.ToShortDateString())
-                                           .With(e => e.AirDateUtc = now)
-                                           .Build()
-                                           .ToList();
-
-            Subject.RefreshEpisodeInfo(series, episodes);
-
-            _insertedEpisodes.Should().OnlyContain(e => e.AirDateUtc.Value.ToString("s") == episodes.First().AirDateUtc.Value.ToString("s"));
         }
 
         [Test]

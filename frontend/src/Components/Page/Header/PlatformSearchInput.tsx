@@ -47,9 +47,6 @@ export interface SuggestedSeries
     | 'alternateTitles'
     | 'translations'
     | 'tvdbId'
-    | 'tvMazeId'
-    | 'imdbId'
-    | 'tmdbId'
   > {
   firstCharacter: string;
   tags: Tag[];
@@ -82,9 +79,6 @@ function usePlatformSuggestions(tagList: ReadonlyArray<Tag>) {
         alternateTitles = [],
         translations = [],
         tvdbId,
-        tvMazeId,
-        imdbId,
-        tmdbId,
         tags = [],
       } = series;
 
@@ -96,9 +90,6 @@ function usePlatformSuggestions(tagList: ReadonlyArray<Tag>) {
         alternateTitles,
         translations,
         tvdbId,
-        tvMazeId,
-        imdbId,
-        tmdbId,
         firstCharacter: title.charAt(0).toLowerCase(),
         tags: tags.reduce<Tag[]>((acc, id) => {
           const matchingTag = tagList.find((tag) => tag.id === id);

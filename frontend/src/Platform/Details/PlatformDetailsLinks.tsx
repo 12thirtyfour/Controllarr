@@ -8,7 +8,7 @@ import styles from './PlatformDetailsLinks.module.css';
 
 type PlatformDetailsLinksProps = Pick<
   Series,
-  'tvdbId' | 'tvMazeId' | 'imdbId' | 'tmdbId'
+  'tvdbId'
 >;
 
 interface PlatformDetailsLink {

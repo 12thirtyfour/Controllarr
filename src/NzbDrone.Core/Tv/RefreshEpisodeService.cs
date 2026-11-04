@@ -92,25 +92,11 @@ namespace NzbDrone.Core.Tv
                     episodeToUpdate.Ratings = episode.Ratings;
                     episodeToUpdate.Images = episode.Images;
 
-                    // TheTVDB has a severe lack of season/series finales, this helps smooth out that limitation so they can be displayed in the UI
-                    if (series.Status == SeriesStatusType.Ended &&
-                        episodeToUpdate.FinaleType == null &&
-                        episodeToUpdate.SeasonNumber > 0 &&
-                        episodeToUpdate.SeasonNumber == latestSeason.SeasonNumber &&
-                        episodeToUpdate.EpisodeNumber > 1 &&
-                        episodeToUpdate.EpisodeNumber == episodesPerSeason[episodeToUpdate.SeasonNumber] &&
-                        episodeToUpdate.AirDateUtc.HasValue &&
-                        episodeToUpdate.AirDateUtc.Value.After(DateTime.UtcNow.AddDays(-14)) &&
-                        orderedEpisodes.None(e => e.SeasonNumber == latestSeason.SeasonNumber && e.FinaleType != null))
-                    {
-                        episodeToUpdate.FinaleType = "series";
-                    }
-
                     successCount++;
                 }
                 catch (Exception e)
                 {
-                    _logger.Fatal(e, "An error has occurred while updating episode info for series {0}. {1}", series, episode);
+                    _logger.Fatal(e, "An error has occurred while updating game info for platform {0}. {1}", series, episode);
                     failCount++;
                 }
             }
@@ -120,9 +106,6 @@ namespace NzbDrone.Core.Tv
             var allEpisodes = new List<Episode>();
             allEpisodes.AddRange(newList);
             allEpisodes.AddRange(updateList);
-
-            AdjustMultiEpisodeAirTime(series, allEpisodes);
-            AdjustDirectToDvdAirDate(series, allEpisodes);
 
             _episodeService.DeleteMany(existingEpisodes);
             _episodeService.UpdateMany(updateList);
@@ -169,7 +152,7 @@ namespace NzbDrone.Core.Tv
             {
                 if (hasExisting)
                 {
-                    _logger.Warn("Show {0} ({1}) had {2} old episodes appear, please check monitored status.", series.TvdbId, series.Title, oldEpisodes.Count);
+                    _logger.Warn("Platform {0} ({1}) had {2} old games appear, please check monitored status.", series.TvdbId, series.Title, oldEpisodes.Count);
                 }
                 else
                 {
@@ -183,44 +166,7 @@ namespace NzbDrone.Core.Tv
                         }
                     }
 
-                    _logger.Warn("Show {0} ({1}) had {2} old episodes appear, unmonitored aired episodes to prevent unexpected downloads.", series.TvdbId, series.Title, oldEpisodes.Count);
-                }
-            }
-        }
-
-        private void AdjustMultiEpisodeAirTime(Series series, IEnumerable<Episode> allEpisodes)
-        {
-            var groups = allEpisodes.Where(c => c.AirDateUtc.HasValue)
-                                    .GroupBy(e => new { e.SeasonNumber, e.AirDate })
-                                    .Where(g => g.Count() > 1)
-                                    .ToList();
-
-            foreach (var group in groups)
-            {
-                if (group.Key.SeasonNumber != 0 && group.Count() > 3)
-                {
-                    _logger.Debug("Not adjusting multi-episode air times for series {0} season {1} since more than 3 episodes 'aired' on the same day", series.Title, group.Key.SeasonNumber);
-                    continue;
-                }
-
-                var episodeCount = 0;
-
-                foreach (var episode in group.OrderBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber))
-                {
-                    episode.AirDateUtc = episode.AirDateUtc.Value.AddMinutes(series.Runtime * episodeCount);
-                    episodeCount++;
-                }
-            }
-        }
-
-        private void AdjustDirectToDvdAirDate(Series series, IList<Episode> allEpisodes)
-        {
-            if (series.Status == SeriesStatusType.Ended && allEpisodes.All(v => !v.AirDateUtc.HasValue) && series.FirstAired.HasValue)
-            {
-                foreach (var episode in allEpisodes)
-                {
-                    episode.AirDateUtc = series.FirstAired;
-                    episode.AirDate = series.FirstAired.Value.ToString("yyyy-MM-dd");
+                    _logger.Warn("Platform {0} ({1}) had {2} old games appear, unmonitored released games to prevent unexpected downloads.", series.TvdbId, series.Title, oldEpisodes.Count);
                 }
             }
         }
