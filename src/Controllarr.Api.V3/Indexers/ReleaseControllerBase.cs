@@ -40,6 +40,13 @@ namespace Sonarr.Api.V3.Indexers
                     continue;
                 }
 
+                if (downloadDecision.RemoteEpisode?.Series != null &&
+                    !string.IsNullOrWhiteSpace(downloadDecision.RemoteEpisode.Release?.Title) &&
+                    !PlatformCompatibilityValidator.IsCompatible(downloadDecision.RemoteEpisode.Release.Title, downloadDecision.RemoteEpisode.Series.TitleSlug, downloadDecision.RemoteEpisode.Series.Title))
+                {
+                    continue;
+                }
+
                 var release = MapDecision(downloadDecision, result.Count);
 
                 result.Add(release);

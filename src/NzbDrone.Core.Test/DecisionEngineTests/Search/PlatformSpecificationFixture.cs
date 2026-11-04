@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
     {
         private Series _series1;
         private Series _series2;
-        private RemoteEpisode _remoteEpisode = new();
+        private RemoteEpisode _remoteEpisode;
         private SearchCriteriaBase _searchCriteria = new SingleEpisodeSearchCriteria();
         private ReleaseDecisionInformation _information;
 
@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
             _series1 = Builder<Series>.CreateNew().With(s => s.Id = 1).Build();
             _series2 = Builder<Series>.CreateNew().With(s => s.Id = 2).Build();
 
-            _remoteEpisode.Series = _series1;
+            _remoteEpisode = new RemoteEpisode { Series = _series1 };
             _information = new ReleaseDecisionInformation(false, _searchCriteria);
         }
 
@@ -43,6 +43,55 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
             _searchCriteria.Series = _series1;
 
             Subject.IsSatisfiedBy(_remoteEpisode, _information).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_release_when_title_has_incorrect_platform()
+        {
+            _series1.Title = "Nintendo Switch";
+            _series1.TitleSlug = "switch";
+            _searchCriteria.Series = _series1;
+
+            _remoteEpisode.Release = new ReleaseInfo
+            {
+                Title = "Super Mario Galaxy (Wii).iso"
+            };
+
+            var decision = Subject.IsSatisfiedBy(_remoteEpisode, _information);
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(DownloadRejectionReason.WrongSeries);
+        }
+
+        [Test]
+        public void should_accept_release_when_title_has_no_platform_detected()
+        {
+            _series1.Title = "Nintendo Switch";
+            _series1.TitleSlug = "switch";
+            _searchCriteria.Series = _series1;
+
+            _remoteEpisode.Release = new ReleaseInfo
+            {
+                Title = "Super Mario Galaxy (USA).zip"
+            };
+
+            var decision = Subject.IsSatisfiedBy(_remoteEpisode, _information);
+            decision.Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_accept_release_when_title_matches_target_platform()
+        {
+            _series1.Title = "Nintendo Switch";
+            _series1.TitleSlug = "switch";
+            _searchCriteria.Series = _series1;
+
+            _remoteEpisode.Release = new ReleaseInfo
+            {
+                Title = "Super Mario Galaxy [Nintendo Switch].nsp"
+            };
+
+            var decision = Subject.IsSatisfiedBy(_remoteEpisode, _information);
+            decision.Accepted.Should().BeTrue();
         }
     }
 }

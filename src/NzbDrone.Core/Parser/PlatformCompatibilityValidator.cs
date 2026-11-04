@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Parser
 
         private static readonly HashSet<string> DiscExclusiveExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".iso", ".chd", ".cso", ".cue", ".gdi", ".cdi", ".rvz", ".wbfs", ".wua", ".wux", ".wud", ".nsp", ".xci"
+            ".iso", ".chd", ".cso", ".cue", ".gdi", ".cdi", ".rvz", ".wbfs", ".wua", ".wux", ".wud"
         };
 
         private static readonly Dictionary<string, string[]> PlatformAliases = PlatformCatalogService.PlatformAliases;
@@ -23,6 +23,218 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex PlatformTagRegex = new Regex(
             @"(?:\b|_|\[|\()(3DS|NDS|GBA|GBC|N64|SNES|NES|PS1|PS2|PS3|PSP|PSX|WIIU|WII|GAMECUBE|XBOX360|XBOX|VITA|SEGACD|SCD|MEGACD|32X|GENESIS|MEGADRIVE|SATURN|DREAMCAST|SMS|GG)(?:\b|_|\]|\))",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly (Regex Pattern, string PlatformSlug)[] PlatformDetectionPatterns = new[]
+        {
+            // Nintendo Switch
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+switch|switch|nsw|nx)(?:\b|_|\]|\))|\bHAC-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "switch"),
+
+            // Nintendo Wii U
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+wii\s*u|wii\s*u|wii-u|wiiu)(?:\b|_|\]|\))|\bWUP-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "wiiu"),
+
+            // Nintendo Wii
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+wii|wii)(?:\b|_|\]|\))|\bRVL-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "wii"),
+
+            // Nintendo GameCube
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+gamecube|game\s*cube|gamecube|gcn|ngc)(?:\b|_|\]|\))|\bDOL-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gamecube"),
+
+            // Nintendo 64
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s*64|ultra\s*64|n64)(?:\b|_|\]|\))|\bNUS-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "n64"),
+
+            // Super Nintendo / Super Famicom
+            (new Regex(@"(?:\b|_|\[|\()(?:super\s+nintendo(?:\s+entertainment\s+system)?|super\s+nes|super\s+famicom|snes|sfc)(?:\b|_|\]|\))|\b(?:SHVC|SNS)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "snes"),
+
+            // Famicom Disk System
+            (new Regex(@"(?:\b|_|\[|\()(?:famicom\s+disk\s+system|fds)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "fds"),
+
+            // NES / Famicom
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+entertainment\s+system|nes|famicom)(?:\b|_|\]|\))|\b(?:NES|HVC)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "nes"),
+
+            // Game Boy Advance
+            (new Regex(@"(?:\b|_|\[|\()(?:game\s*boy\s+advance|gba|agb)(?:\b|_|\]|\))|\bAGB-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gba"),
+
+            // Game Boy Color
+            (new Regex(@"(?:\b|_|\[|\()(?:game\s*boy\s+color|gbc|cgb)(?:\b|_|\]|\))|\bCGB-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gbc"),
+
+            // Game Boy
+            (new Regex(@"(?:\b|_|\[|\()(?:game\s*boy|gameboy|dmg)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gb"),
+
+            // Nintendo 3DS
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+3ds|3ds|n3ds)(?:\b|_|\]|\))|\bCTR-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "3ds"),
+
+            // Nintendo DS
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+ds|nds|dsi)(?:\b|_|\]|\))|\bNTR-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "nds"),
+
+            // Virtual Boy
+            (new Regex(@"(?:\b|_|\[|\()(?:virtual\s*boy|vb)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "vb"),
+
+            // Sony PlayStation 5
+            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*5|playstation\s*5|ps5)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps5"),
+
+            // Sony PlayStation 4
+            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*4|playstation\s*4|ps4)(?:\b|_|\]|\))|\bCUSA-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps4"),
+
+            // Sony PlayStation 3
+            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*3|playstation\s*3|ps3)(?:\b|_|\]|\))|\b(?:BLUS|BLES|BCUS|BCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps3"),
+
+            // Sony PlayStation 2
+            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*2|playstation\s*2|ps2)(?:\b|_|\]|\))|\b(?:SLUS|SLES|SCES|SLPS)-2\d{4}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps2"),
+
+            // Sony PlayStation 1 / PSX
+            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation|playstation\s*1|playstation|ps1|psx|psone)(?:\b|_|\]|\))|\b(?:SLUS|SLES|SCES|SCUS|SLPS)-0\d{4}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps1"),
+
+            // PlayStation Portable
+            (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+portable|sony\s+psp|psp)(?:\b|_|\]|\))|\b(?:ULUS|ULES|UCUS|UCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psp"),
+
+            // PlayStation Vita
+            (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+vita|ps\s*vita|psvita|psv)(?:\b|_|\]|\))|\b(?:PCSB|PCSE|PCSG|PCSF)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psvita"),
+
+            // Xbox 360
+            (new Regex(@"(?:\b|_|\[|\()(?:xbox\s*360|x360)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox360"),
+
+            // Xbox One
+            (new Regex(@"(?:\b|_|\[|\()(?:xbox\s*one|xbo|xb1)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xboxone"),
+
+            // Xbox (Original)
+            (new Regex(@"(?:\b|_|\[|\()(?:original\s+xbox|og\s+xbox|xbox)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox"),
+
+            // Sega Genesis / Mega Drive
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+genesis|mega\s*drive|megadrive)(?:\b|_|\]|\))|(?:\[|\(|\.|_|-)\s*genesis\s*(?:\]|\)|\.|_|-)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "genesis"),
+
+            // Sega CD / Mega CD
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s*cd|mega\s*cd|segacd|megacd|scd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "segacd"),
+
+            // Sega 32X
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s*32x|super\s*32x|32x)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "32x"),
+
+            // Sega Saturn
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+saturn)(?:\b|_|\]|\))|(?:\[|\(|\.|_|-)\s*saturn\s*(?:\]|\)|\.|_|-)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "saturn"),
+
+            // Sega Dreamcast
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+dreamcast|dreamcast|dc)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "dreamcast"),
+
+            // Sega Master System
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+master\s+system|master\s+system|sms)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "sms"),
+
+            // Sega Game Gear
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+game\s+gear|game\s+gear|gg)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gg"),
+
+            // TurboGrafx-16 / PC Engine
+            (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:-16|\s*16)?|pc\s*engine|tg16|pce)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tg16"),
+
+            // TurboGrafx-CD / PC Engine CD
+            (new Regex(@"(?:\b|_|\[|\()(?:turbografx\s*cd|pc\s*engine\s*cd|tgcd|pcecd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
+
+            // Neo Geo Pocket
+            (new Regex(@"(?:\b|_|\[|\()(?:neo\s*geo\s*pocket(?:\s*color)?|ngpc|ngp)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ngpc"),
+
+            // Neo Geo
+            (new Regex(@"(?:\b|_|\[|\()(?:neo\s*geo|neogeo|aes|mvs)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "neogeo"),
+
+            // Atari 2600 / 7800 / Lynx / Jaguar
+            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*2600|a2600)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "atari2600"),
+            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*7800|a7800)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "atari7800"),
+            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*lynx|lynx)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "lynx"),
+            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar\s*cd|jaguar\s*cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguarcd"),
+            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar|jaguar)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguar"),
+
+            // WonderSwan
+            (new Regex(@"(?:\b|_|\[|\()(?:wonderswan(?:\s*color)?|wsc|ws)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "wonderswan"),
+        };
+
+        public static HashSet<string> DetectPlatforms(string text)
+        {
+            var detected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return detected;
+            }
+
+            foreach (var (pattern, platformSlug) in PlatformDetectionPatterns)
+            {
+                if (pattern.IsMatch(text))
+                {
+                    detected.Add(platformSlug);
+                }
+            }
+
+            var ext = Path.GetExtension(text);
+            if (!string.IsNullOrWhiteSpace(ext))
+            {
+                var extSlug = GetPlatformByExtension(ext.ToLowerInvariant());
+                if (!string.IsNullOrWhiteSpace(extSlug))
+                {
+                    detected.Add(extSlug);
+                }
+            }
+
+            if (detected.Contains("wiiu"))
+            {
+                detected.Remove("wii");
+            }
+
+            if (detected.Contains("ps5") || detected.Contains("ps4") || detected.Contains("ps3") || detected.Contains("ps2"))
+            {
+                detected.Remove("ps1");
+            }
+
+            if (detected.Contains("gba") || detected.Contains("gbc"))
+            {
+                detected.Remove("gb");
+            }
+
+            if (detected.Contains("xbox360") || detected.Contains("xboxone"))
+            {
+                detected.Remove("xbox");
+            }
+
+            if (detected.Contains("tgcd"))
+            {
+                detected.Remove("tg16");
+            }
+
+            if (detected.Contains("jaguarcd"))
+            {
+                detected.Remove("jaguar");
+            }
+
+            if (detected.Contains("ngpc"))
+            {
+                detected.Remove("neogeo");
+            }
+
+            if (detected.Contains("32x") || detected.Contains("segacd"))
+            {
+                detected.Remove("genesis");
+            }
+
+            if (detected.Contains("snes"))
+            {
+                detected.Remove("nes");
+            }
+
+            return detected;
+        }
+
+        public static bool IsPlatformMatch(string detectedSlug, string targetSlug)
+        {
+            if (string.Equals(detectedSlug, targetSlug, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if ((targetSlug is "tg16" && detectedSlug is "pce" or "tgcd") ||
+                (targetSlug is "pce" && detectedSlug is "tg16" or "pcecd") ||
+                (targetSlug is "snes" && detectedSlug is "satellaview") ||
+                (targetSlug is "nes" && detectedSlug is "fds") ||
+                (targetSlug is "n64" && detectedSlug is "64dd"))
+            {
+                return true;
+            }
+
+            return false;
+        }
 
         public static bool IsCompatible(string filePathOrName, string platformSlug, string platformName = null, string itemFormat = null, string archiveId = null)
         {
@@ -153,24 +365,31 @@ namespace NzbDrone.Core.Parser
                 }
             }
 
-            // Check filename platform tags (e.g. "Pokemon Ultra Sun USA 3DS-SUXXORS" or "@NES2.0")
-            var fileName = Path.GetFileName(filePathOrName);
-            if (!string.IsNullOrWhiteSpace(fileName))
+            // Check detected platforms from the file name, release title, item format, and archive ID
+            var detected = DetectPlatforms(filePathOrName);
+            if (!string.IsNullOrWhiteSpace(itemFormat))
             {
-                var match = PlatformTagRegex.Match(fileName);
-                if (match.Success)
+                foreach (var p in DetectPlatforms(itemFormat))
                 {
-                    var tag = match.Groups[1].Value.ToLowerInvariant();
-                    var tagPlatform = NormalizePlatformSlug(tag, null);
-                    if (!string.Equals(tagPlatform, targetSlug, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Check if target platform's aliases contain this tag
-                        if (!PlatformAliases.TryGetValue(targetSlug, out var targetAliases) ||
-                            !targetAliases.Any(a => string.Equals(a, tag, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            return false;
-                        }
-                    }
+                    detected.Add(p);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(archiveId))
+            {
+                foreach (var p in DetectPlatforms(archiveId))
+                {
+                    detected.Add(p);
+                }
+            }
+
+            // If an incorrect platform is detected, ignore it. If no platform name is detected, allow it.
+            if (detected.Count > 0)
+            {
+                var matchesTarget = detected.Any(p => IsPlatformMatch(p, targetSlug));
+                if (!matchesTarget)
+                {
+                    return false;
                 }
             }
 

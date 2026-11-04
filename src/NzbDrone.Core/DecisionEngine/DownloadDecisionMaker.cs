@@ -83,6 +83,14 @@ namespace NzbDrone.Core.DecisionEngine
                         continue;
                     }
 
+                    if (searchCriteria?.Series != null &&
+                        !PlatformCompatibilityValidator.IsCompatible(report.Title, searchCriteria.Series.TitleSlug, searchCriteria.Series.Title))
+                    {
+                        _logger.Debug("Skipping release '{0}' because an incorrect platform was detected for '{1}'", report.Title, searchCriteria.Series.Title);
+                        reportNumber++;
+                        continue;
+                    }
+
                     parsedEpisodeInfo = Parser.Parser.ParseTitle(report.Title);
 
                     if (parsedEpisodeInfo == null || parsedEpisodeInfo.IsPossibleSpecialEpisode)
@@ -221,6 +229,11 @@ namespace NzbDrone.Core.DecisionEngine
                 var series = searchCriteria.Series;
                 if (series != null)
                 {
+                    if (!PlatformCompatibilityValidator.IsCompatible(releaseTitle, series.TitleSlug, series.Title))
+                    {
+                        return null;
+                    }
+
                     // Check if this is a single game search and the release title matches the searched episode
                     if (searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
                     {

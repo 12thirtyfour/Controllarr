@@ -294,6 +294,13 @@ public class ReleaseController : RestController<ReleaseResource>
                 continue;
             }
 
+            if (downloadDecision.RemoteEpisode.Series != null &&
+                !string.IsNullOrWhiteSpace(downloadDecision.RemoteEpisode.Release.Title) &&
+                !PlatformCompatibilityValidator.IsCompatible(downloadDecision.RemoteEpisode.Release.Title, downloadDecision.RemoteEpisode.Series.TitleSlug, downloadDecision.RemoteEpisode.Series.Title))
+            {
+                continue;
+            }
+
             var release = downloadDecision.MapDecision(result.Count, _qualityProfile);
 
             release.History = AddHistory(downloadDecision.RemoteEpisode.Release, history);

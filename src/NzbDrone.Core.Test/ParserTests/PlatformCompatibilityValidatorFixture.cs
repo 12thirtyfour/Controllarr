@@ -33,6 +33,20 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("setup_mega_man_2_2.0.0.4.exe", "nes", "Nintendo Entertainment System", null, false)]
         [TestCase("Super Mario Bros (USA) (Official GOG Installer).zip", "nes", "Nintendo Entertainment System", null, false)]
         [TestCase("Super Mario Bros (USA).nes", "nes", "Nintendo Entertainment System", null, true)]
+        [TestCase("Super Mario Galaxy (Wii).iso", "switch", "Nintendo Switch", null, false)]
+        [TestCase("Super Mario Galaxy (Wii).wbfs", "switch", "Nintendo Switch", null, false)]
+        [TestCase("Super.Mario.Galaxy.USA.WII-SUSHi", "switch", "Nintendo Switch", null, false)]
+        [TestCase("Super Mario Galaxy (Nintendo Wii)", "switch", "Nintendo Switch", null, false)]
+        [TestCase("Super Mario Galaxy [Wii]", "switch", "Nintendo Switch", null, false)]
+        [TestCase("Super Mario Galaxy (USA).zip", "switch", "Nintendo Switch", null, true)]
+        [TestCase("Super Mario Galaxy (Switch)", "switch", "Nintendo Switch", null, true)]
+        [TestCase("Super Mario Galaxy [Nintendo Switch].nsp", "switch", "Nintendo Switch", null, true)]
+        [TestCase("Super Mario Galaxy [Nintendo Switch].xci", "switch", "Nintendo Switch", null, true)]
+        [TestCase("Super Mario Galaxy (Wii).iso", "wii", "Nintendo Wii", null, true)]
+        [TestCase("Super Mario Galaxy (Switch)", "wii", "Nintendo Wii", null, false)]
+        [TestCase("Sonic the Hedgehog (Genesis).zip", "sms", "Sega Master System", null, false)]
+        [TestCase("Sonic the Hedgehog (SMS).zip", "sms", "Sega Master System", null, true)]
+        [TestCase("Sonic the Hedgehog.zip", "sms", "Sega Master System", null, true)]
         public void should_validate_platform_compatibility(string candidatePath, string platformSlug, string platformName, string format, bool expected)
         {
             var result = PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName, format);

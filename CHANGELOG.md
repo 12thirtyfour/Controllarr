@@ -28,6 +28,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **NSWDB XML Endpoint HTTPS Protocol**: Updated NSWDB catalog proxy URL to `https://nswdb.com/xml.php` to prevent HTTP 301/302 redirects triggering `Server requested a redirect while in developer mode` errors.
 
 ### Added
+- **Cross-Platform Search Disambiguation & Release Filtering**:
+  - Implemented comprehensive platform detection (`DetectPlatforms`) in `PlatformCompatibilityValidator.cs` analyzing release titles, file names, bracketed platform tags (`[Wii]`, `(Switch)`), scene group prefixes/suffixes (`.WII-SUSHi`), product codes (`RVL-`, `DOL-`, `HAC-`, `WUP-`, `CUSA-`, etc.), and exclusive container extensions (`.wbfs`, `.nsp`, `.xci`).
+  - Added strict platform isolation to automatically ignore and reject releases when an incorrect platform is detected (e.g. searching for Super Mario Galaxy on Nintendo Switch ignores Wii versions).
+  - Ensured releases with no platform name detected in their title or file name pass through uninhibited to be downloaded and verified against DAT hash databases.
+  - Updated `PlatformSpecification`, `DownloadDecisionMaker`, and both V3/V5 `ReleaseController`s to filter out releases with conflicting platforms from search decision making and interactive search results.
+  - Removed `.nsp` and `.xci` from `DiscExclusiveExtensions` so Switch cartridge packages are never falsely rejected as optical disc formats.
 - **Absolute TV De-Televisonization Directive in AGENTS.md**: Formally enacted strict zero-TV tolerance policy mandating the systematic renaming, repurposing, or elimination of all remaining TV, broadcast, airing, schedule, episode, season, TVDB, TVMaze, TVRage, and scene mapping holdovers across all backend, frontend, API, persistence, and test layers.
 
 ### Removed
