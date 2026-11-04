@@ -92,7 +92,25 @@ namespace NzbDrone.Core.Indexers.Nyaa
 
         public virtual IndexerPageableRequestChain GetSearchRequests(SpecialEpisodeSearchCriteria searchCriteria)
         {
-            return new IndexerPageableRequestChain();
+            var pageableRequests = new IndexerPageableRequestChain();
+            var queryTitles = new List<string>();
+
+            if (searchCriteria.EpisodeQueryTitles != null)
+            {
+                queryTitles.AddRange(searchCriteria.EpisodeQueryTitles);
+            }
+
+            if (!queryTitles.Any() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
+            {
+                queryTitles.Add(searchCriteria.Series.Title);
+            }
+
+            foreach (var searchTitle in queryTitles.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).Select(PrepareQuery))
+            {
+                pageableRequests.Add(GetPagedRequests(searchTitle));
+            }
+
+            return pageableRequests;
         }
 
         private IEnumerable<IndexerRequest> GetPagedRequests(string term)

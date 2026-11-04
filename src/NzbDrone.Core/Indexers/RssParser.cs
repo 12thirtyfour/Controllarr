@@ -13,7 +13,6 @@ using NzbDrone.Common.Http;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Indexers.Exceptions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Indexers
@@ -68,10 +67,7 @@ namespace NzbDrone.Core.Indexers
                 {
                     var reportInfo = ProcessItem(item);
 
-                    if (reportInfo != null && !PlatformCompatibilityValidator.IsTvOrVideoRelease(reportInfo.Title))
-                    {
-                        releases.Add(reportInfo);
-                    }
+                    releases.AddIfNotNull(reportInfo);
                 }
                 catch (UnsupportedFeedException itemEx)
                 {

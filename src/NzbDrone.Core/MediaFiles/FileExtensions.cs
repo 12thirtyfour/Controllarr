@@ -17,6 +17,21 @@ namespace NzbDrone.Core.MediaFiles
             ".nzb"
         };
 
+        private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".mkv",
+            ".avi",
+            ".mp4",
+            ".wmv",
+            ".mov",
+            ".m4v",
+            ".flv",
+            ".mpg",
+            ".mpeg",
+            ".ts",
+            ".m2ts"
+        };
+
         public static HashSet<string> ArchiveExtensions => new(StringComparer.OrdinalIgnoreCase)
         {
             ".7z",
@@ -74,7 +89,7 @@ namespace NzbDrone.Core.MediaFiles
             title = FileExtensionRegex.Replace(title, m =>
             {
                 var extension = m.Value.ToLower();
-                if (MediaFileExtensions.Extensions.Contains(extension) || UsenetExtensions.Contains(extension))
+                if (MediaFileExtensions.Extensions.Contains(extension) || UsenetExtensions.Contains(extension) || VideoExtensions.Contains(extension))
                 {
                     return string.Empty;
                 }

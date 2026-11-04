@@ -38,6 +38,7 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
 
             _caps = new NewznabCapabilities
             {
+                SupportedSearchParameters = new[] { "q" },
                 Categories = Builder<NewznabCategory>.CreateListOfSize(1).All().With(t => t.Id = 1).Build().ToList()
             };
 

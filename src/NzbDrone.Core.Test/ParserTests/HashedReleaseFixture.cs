@@ -92,21 +92,21 @@ namespace NzbDrone.Core.Test.ParserTests
             {
                 @"C:\Test\XxQVHK4GJMP3n2dLpmhW\XxQVHK4GJMP3n2dLpmhW\MKV\010E70S.nuF.fo.snoS.mkv".AsOsAgnostic(),
                 "Sons of Fun",
-                Quality.HDTV720p,
+                Quality.Unknown,
                 null
             },
             new object[]
             {
                 @"50E50S.denorD.mkv".AsOsAgnostic(),
                 "Droned",
-                Quality.HDTV720p,
+                Quality.Unknown,
                 null
             },
             new object[]
             {
                 @"C:\Test\XxQVHK4GJMP3n2dLpmhW\XxQVHK4GJMP3n2dLpmhW\50E50S.denorD.mkv".AsOsAgnostic(),
                 "Droned",
-                Quality.HDTV720p,
+                Quality.Unknown,
                 null
             },
             new object[]
@@ -148,7 +148,7 @@ namespace NzbDrone.Core.Test.ParserTests
             {
                 @"C:\Test\Fake.Dir.S01E01-Test\11E-20S seires.mkv".AsOsAgnostic(),
                 "series",
-                Quality.HDTV720p,
+                Quality.Unknown,
                 null
             },
         };

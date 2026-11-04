@@ -332,7 +332,7 @@ namespace NzbDrone.Core.Test.MediaFiles
         {
             GivenValidSeries();
 
-            var fileName = @"C:\media\ba09030e-1234-1234-1234-123456789abc\Torrents\[HorribleSubs] Maria the Virgin Witch - 09 [720p].mkv".AsOsAgnostic();
+            var fileName = @"C:\media\ba09030e-1234-1234-1234-123456789abc\Torrents\[Homebrew] Maria the Witch - 09.nes".AsOsAgnostic();
 
             Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(fileName))
                   .Returns(false);

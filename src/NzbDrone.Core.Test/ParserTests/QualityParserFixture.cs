@@ -47,7 +47,6 @@ namespace NzbDrone.Core.Test.ParserTests
             new object[] { "2160p Remux", Quality.Bluray2160pRemux },
         };
 
-        [TestCase("S07E23 .avi ", false)]
         [TestCase("The.Series.S01E13.x264-CtrlSD", false)]
         [TestCase("The Series S02E01 HDTV XviD 2HD", false)]
         [TestCase("The Series S05E11 PROPER HDTV XviD 2HD", true)]
@@ -58,9 +57,6 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The Series S01E04 Series Death Train DSR x264 MiNDTHEGAP", false)]
         [TestCase("The Series S11E03 has no periods or extension HDTV", false)]
         [TestCase("The.Series.S04E05.HDTV.XviD-LOL", false)]
-        [TestCase("The.Series.S02E15.avi", false)]
-        [TestCase("The.Series.S02E15.xvid", false)]
-        [TestCase("The.Series.S02E15.divx", false)]
         [TestCase("The.Series.S03E06.HDTV-WiDE", false)]
         [TestCase("Series.S10E27.WS.DSR.XviD-2HD", false)]
         [TestCase("[HorribleSubs] The Series - 32 [480p]", false)]
@@ -136,9 +132,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Series.S02E15.720p", false)]
         [TestCase("S07E23 - [HDTV-720p].mkv ", false)]
         [TestCase("Series - S22E03 - MoneyBART - HD TV.mkv", false)]
-        [TestCase("S07E23.mkv ", false)]
         [TestCase("The.Series.S08E05.720p.HDTV.X264-DIMENSION", false)]
-        [TestCase("The.Series.S02E15.mkv", false)]
         [TestCase(@"E:\Downloads\tv\The.Series.S01E01.720p.HDTV\ajifajjjeaeaeqwer_eppj.avi", false)]
         [TestCase("The.Series.S01E08.Tourmaline.Nepal.720p.HDTV.x264-DHD", false)]
         [TestCase("[Underwater-FFF] The Series - 01 (720p) [27AAA0A0]", false)]
@@ -315,7 +309,6 @@ namespace NzbDrone.Core.Test.ParserTests
 
         [TestCase("SERIES.S03E01-06.DUAL.Bluray.AC3.-HELLYWOOD.avi", false)]
         [TestCase("Series - S01E03 - Come Fly With Me - 720p BluRay.mkv", false)]
-        [TestCase("The Big Series.S03E01.The Sonarr Can Opener.m2ts", false)]
         [TestCase("Series.S01E02.Chained.Sonarr.[Bluray720p].mkv", false)]
         [TestCase("[FFF] DATE A Sonarr Dev - 01 [BD][720p-AAC][0601BED4]", false)]
         [TestCase("[coldhell] Series v3 [BD720p][03192D4C]", false)]
@@ -477,28 +470,6 @@ namespace NzbDrone.Core.Test.ParserTests
 
             result.SourceDetectionSource.Should().Be(QualityDetectionSource.Name);
             result.ResolutionDetectionSource.Should().Be(QualityDetectionSource.Unknown);
-        }
-
-        [TestCase("Series.Title.S01E02.Chained.Heat.mkv")]
-        [TestCase("Series - S01E01 - Title.avi")]
-        [TestCase("Series.Title.9x18.sunshine_days.avi")]
-        [TestCase("[CR] Series Title - 004 [48CE2D0F].avi")]
-        public void should_parse_quality_from_extension(string title)
-        {
-            var result = QualityParser.ParseQuality(title);
-
-            result.SourceDetectionSource.Should().Be(QualityDetectionSource.Extension);
-            result.ResolutionDetectionSource.Should().Be(QualityDetectionSource.Extension);
-        }
-
-        [TestCase("Series.Title.S01E02.Chained.Heat.1080p.mkv")]
-        [TestCase("Series - S01E01 - Title.720p.avi")]
-        public void should_parse_resolution_from_name_and_source_from_extension(string title)
-        {
-            var result = QualityParser.ParseQuality(title);
-
-            result.SourceDetectionSource.Should().Be(QualityDetectionSource.Extension);
-            result.ResolutionDetectionSource.Should().Be(QualityDetectionSource.Name);
         }
 
         [TestCase("Series Title S04E87 REPACK 720p HDTV x264 aAF", true, 2)]

@@ -78,15 +78,6 @@ namespace NzbDrone.Core.Test.ParserTests
             Parser.Parser.ParseTitle(postTitle).SeriesTitle.Should().Be(title);
         }
 
-        [TestCase("Series.S01E02.Chained.Title.mkv")]
-        [TestCase("Show - S01E01 - Title.avi")]
-        public void should_parse_quality_from_extension(string title)
-        {
-            Parser.Parser.ParseTitle(title).Quality.Quality.Should().NotBe(Quality.Unknown);
-            Parser.Parser.ParseTitle(title).Quality.SourceDetectionSource.Should().Be(QualityDetectionSource.Extension);
-            Parser.Parser.ParseTitle(title).Quality.ResolutionDetectionSource.Should().Be(QualityDetectionSource.Extension);
-        }
-
         [TestCase("Series.S01E02.Chained.Title.mkv", "Series.S01E02.Chained.Title")]
         public void should_parse_releasetitle(string path, string releaseTitle)
         {

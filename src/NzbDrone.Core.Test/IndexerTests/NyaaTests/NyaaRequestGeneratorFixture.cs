@@ -10,7 +10,9 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
 {
     public class NyaaRequestGeneratorFixture : CoreTest<NyaaRequestGenerator>
     {
+        private SingleEpisodeSearchCriteria _singleSearchCriteria;
         private SeasonSearchCriteria _seasonSearchCriteria;
+        private SpecialEpisodeSearchCriteria _specialSearchCriteria;
         private AnimeEpisodeSearchCriteria _animeSearchCriteria;
         private AnimeSeasonSearchCriteria _animeSeasonSearchCriteria;
 
@@ -22,89 +24,78 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
                 BaseUrl = "http://127.0.0.1:1234/",
             };
 
+            _singleSearchCriteria = new SingleEpisodeSearchCriteria()
+            {
+                SceneTitles = new List<string>() { "Chrono Trigger" },
+                SeasonNumber = 1,
+                EpisodeNumber = 1
+            };
+
             _seasonSearchCriteria = new SeasonSearchCriteria()
             {
-                SceneTitles = new List<string>() { "Naruto Shippuuden" },
+                SceneTitles = new List<string>() { "Super Nintendo" },
                 SeasonNumber = 1,
+            };
+
+            _specialSearchCriteria = new SpecialEpisodeSearchCriteria()
+            {
+                EpisodeQueryTitles = new[] { "Pokemon Emerald Rogue" }
             };
 
             _animeSearchCriteria = new AnimeEpisodeSearchCriteria()
             {
-                SceneTitles = new List<string>() { "Naruto Shippuuden" },
-                AbsoluteEpisodeNumber = 9,
-                SeasonNumber = 1,
-                EpisodeNumber = 9
+                SceneTitles = new List<string>() { "Naruto" },
+                AbsoluteEpisodeNumber = 9
             };
 
             _animeSeasonSearchCriteria = new AnimeSeasonSearchCriteria()
             {
-                SceneTitles = new List<string>() { "Naruto Shippuuden" },
+                SceneTitles = new List<string>() { "Naruto" },
                 SeasonNumber = 3
             };
         }
 
         [Test]
-        public void should_search_season()
+        public void should_search_game_single()
+        {
+            var results = Subject.GetSearchRequests(_singleSearchCriteria);
+
+            results.GetAllTiers().Should().HaveCount(1);
+            var page = results.GetAllTiers().First().First();
+
+            page.Url.FullUri.Should().Contain("term=Chrono+Trigger");
+            page.Url.FullUri.Should().Contain("cats=6_2&filter=1");
+        }
+
+        [Test]
+        public void should_search_platform_collection()
         {
             var results = Subject.GetSearchRequests(_seasonSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
-
             var page = results.GetAllTiers().First().First();
 
-            page.Url.FullUri.Should().Contain("term=Naruto+Shippuuden+s01");
+            page.Url.FullUri.Should().Contain("term=Super+Nintendo");
+            page.Url.FullUri.Should().Contain("cats=6_2&filter=1");
         }
 
         [Test]
-        public void should_also_use_standard_numbering_for_anime_search()
+        public void should_search_special_query()
         {
-            var results = Subject.GetSearchRequests(_animeSearchCriteria);
-
-            results.GetTier(0).Should().HaveCount(3);
-            var pages = results.GetTier(0).Take(3).Select(t => t.First()).ToList();
-
-            pages[0].Url.FullUri.Should().Contain("term=Naruto+Shippuuden+9");
-            pages[1].Url.FullUri.Should().Contain("term=Naruto+Shippuuden+09");
-            pages[2].Url.FullUri.Should().Contain("term=Naruto+Shippuuden+s01e09");
-        }
-
-        [Test]
-        public void should_search_by_standard_season_number()
-        {
-            var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
+            var results = Subject.GetSearchRequests(_specialSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
-
             var page = results.GetAllTiers().First().First();
 
-            page.Url.FullUri.Should().Contain("term=Naruto+Shippuuden+s03");
+            page.Url.FullUri.Should().Contain("term=Pokemon+Emerald+Rogue");
+            page.Url.FullUri.Should().Contain("cats=6_2&filter=1");
         }
 
         [Test]
-        public void should_search_season_title_alias_without_the_season_number()
+        public void should_return_empty_for_anime_criteria()
         {
-            _animeSeasonSearchCriteria.SeasonSceneTitles = new List<string> { "Naruto Shippuuden" };
-
-            var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
-
-            results.GetTier(0).Should().HaveCount(1);
-            results.GetTier(0).First().First().Url.FullUri.Should().Contain("term=Naruto+Shippuuden");
-            results.GetTier(0).First().First().Url.FullUri.Should().NotContain("s03");
-        }
-
-        [Test]
-        public void should_only_search_the_season_title_without_the_season_number()
-        {
-            _animeSeasonSearchCriteria.SceneTitles = new List<string> { "Naruto", "Naruto Shippuuden" };
-            _animeSeasonSearchCriteria.SeasonSceneTitles = new List<string> { "Naruto Shippuuden" };
-
-            var results = Subject.GetSearchRequests(_animeSeasonSearchCriteria);
-
-            var pages = results.GetTier(0).Select(t => t.First().Url.FullUri).ToList();
-
-            pages.Should().HaveCount(2);
-            pages.Should().Contain(p => p.Contains("term=Naruto+s03"));
-            pages.Should().Contain(p => p.Contains("term=Naruto+Shippuuden") && !p.Contains("s03"));
+            Subject.GetSearchRequests(_animeSearchCriteria).GetAllTiers().Should().BeEmpty();
+            Subject.GetSearchRequests(_animeSeasonSearchCriteria).GetAllTiers().Should().BeEmpty();
         }
     }
 }

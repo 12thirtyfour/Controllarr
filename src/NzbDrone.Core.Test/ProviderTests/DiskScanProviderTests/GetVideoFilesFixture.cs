@@ -19,12 +19,12 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
         {
             _fileNames = new[]
                         {
-                            @"30 Rock1.mkv",
-                            @"30 Rock2.avi",
-                            @"30 Rock3.MP4",
-                            @"30 Rock4.wMv",
-                            @"movie.exe",
-                            @"movie"
+                            @"Super Mario Bros (USA).nes",
+                            @"Chrono Trigger (USA).sfc",
+                            @"Pokemon - Emerald Version (USA).gba",
+                            @"Legend of Zelda, The - Ocarina of Time (USA).z64",
+                            @"installer.exe",
+                            @"readme"
                         };
         }
 
@@ -100,7 +100,7 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
 
             var filteredFiles = Subject.FilterPaths(path, allFiles);
             filteredFiles.Should().NotContain(specialFiles);
-            filteredFiles.Count.Should().BeGreaterThan(0);
+            filteredFiles.Should().HaveCount(6); // 4 games + 2 non-games (FilterPaths filters paths/folders, not extensions)
         }
     }
 }
