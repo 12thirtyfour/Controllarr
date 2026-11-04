@@ -96,9 +96,17 @@ namespace NzbDrone.Core.Profiles.Delay
 
         private DelayProfile FetchBestForTags(HashSet<int> tagIds)
         {
-            return _repo.All()
+            var profile = _repo.All()
                         .Where(r => r.Tags.Intersect(tagIds).Any() || r.Tags.Empty())
-                        .OrderBy(d => d.Order).First();
+                        .OrderBy(d => d.Order).FirstOrDefault();
+
+            if (profile != null && !profile.EnableHttp && profile.Tags.Empty())
+            {
+                profile.EnableHttp = true;
+                _repo.Update(profile);
+            }
+
+            return profile ?? new DelayProfile { EnableHttp = true, EnableTorrent = true, EnableUsenet = true };
         }
 
         public List<DelayProfile> Reorder(int id, int? afterId)

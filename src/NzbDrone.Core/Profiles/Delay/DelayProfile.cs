@@ -8,7 +8,7 @@ namespace NzbDrone.Core.Profiles.Delay
     {
         public bool EnableUsenet { get; set; }
         public bool EnableTorrent { get; set; }
-        public bool EnableHttp { get; set; }
+        public bool EnableHttp { get; set; } = true;
         public DownloadProtocol PreferredProtocol { get; set; }
         public List<DownloadProtocol> ProtocolPriority { get; set; }
         public int UsenetDelay { get; set; }

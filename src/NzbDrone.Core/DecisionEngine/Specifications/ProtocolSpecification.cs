@@ -38,8 +38,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
             if (subject.Release.DownloadProtocol == DownloadProtocol.Http && !delayProfile.EnableHttp)
             {
-                _logger.Debug("[{0}] HTTP is not enabled for this platform", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "HTTP is not enabled for this platform");
+                _logger.Debug("[{0}] HTTP/HTTPS is not enabled for this platform", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "HTTP/HTTPS is not enabled for this platform");
             }
 
             return DownloadSpecDecision.Accept();

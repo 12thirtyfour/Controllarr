@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
@@ -101,6 +102,57 @@ namespace NzbDrone.Core.Profiles.Qualities
 
             if (profiles.Any())
             {
+                var gamingQualities = new[]
+                {
+                    Quality.VerifiedGoodDump,
+                    Quality.VerifiedRedump,
+                    Quality.NoIntroVerified,
+                    Quality.UnverifiedRaw,
+                    Quality.BetaProto,
+                    Quality.TranslationPatch,
+                    Quality.Unknown
+                };
+
+                foreach (var profile in profiles)
+                {
+                    var modified = false;
+
+                    foreach (var gq in gamingQualities)
+                    {
+                        var qualityItem = profile.Items?.FirstOrDefault(i => i.Quality == gq) ??
+                                          profile.Items?.SelectMany(i => i.Items ?? new List<QualityProfileQualityItem>()).FirstOrDefault(i => i.Quality == gq);
+
+                        if (qualityItem != null)
+                        {
+                            if (!qualityItem.Allowed && (string.IsNullOrWhiteSpace(profile.Name) || profile.Name.Equals("Any", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                qualityItem.Allowed = true;
+                                modified = true;
+                            }
+                        }
+                        else
+                        {
+                            if (profile.Items == null)
+                            {
+                                profile.Items = new List<QualityProfileQualityItem>();
+                            }
+
+                            profile.Items.Insert(0, new QualityProfileQualityItem { Quality = gq, Allowed = true });
+                            modified = true;
+                        }
+                    }
+
+                    if (modified)
+                    {
+                        if (profile.Cutoff == 0 || profile.Cutoff == Quality.SDTV.Id)
+                        {
+                            profile.Cutoff = Quality.VerifiedGoodDump.Id;
+                        }
+
+                        Update(profile);
+                    }
+                }
+
                 _rankService.SeedAll(profiles);
 
                 return;
@@ -109,62 +161,43 @@ namespace NzbDrone.Core.Profiles.Qualities
             _logger.Info("Setting up default quality profiles");
 
             AddDefaultProfile("Any",
-                Quality.SDTV,
-                Quality.SDTV,
-                Quality.WEBRip480p,
-                Quality.WEBDL480p,
-                Quality.DVD,
-                Quality.Bluray480p,
-                Quality.Bluray576p,
-                Quality.HDTV720p,
-                Quality.HDTV1080p,
-                Quality.WEBRip720p,
-                Quality.WEBDL720p,
-                Quality.WEBRip1080p,
-                Quality.WEBDL1080p,
-                Quality.Bluray720p,
-                Quality.Bluray1080p);
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedRedump,
+                Quality.NoIntroVerified,
+                Quality.UnverifiedRaw,
+                Quality.BetaProto,
+                Quality.TranslationPatch,
+                Quality.Unknown);
 
-            AddDefaultProfile("SD",
-                Quality.SDTV,
-                Quality.SDTV,
-                Quality.WEBRip480p,
-                Quality.WEBDL480p,
-                Quality.DVD,
-                Quality.Bluray480p,
-                Quality.Bluray576p);
+            AddDefaultProfile("Verified Dumps",
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedRedump,
+                Quality.NoIntroVerified);
 
-            AddDefaultProfile("HD-720p",
-                Quality.HDTV720p,
-                Quality.HDTV720p,
-                Quality.WEBRip720p,
-                Quality.WEBDL720p,
-                Quality.Bluray720p);
+            AddDefaultProfile("Retail Dumps",
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedRedump,
+                Quality.NoIntroVerified,
+                Quality.UnverifiedRaw);
 
-            AddDefaultProfile("HD-1080p",
-                Quality.HDTV1080p,
-                Quality.HDTV1080p,
-                Quality.WEBRip1080p,
-                Quality.WEBDL1080p,
-                Quality.Bluray1080p);
+            AddDefaultProfile("Homebrew & Hacks",
+                Quality.UnverifiedRaw,
+                Quality.UnverifiedRaw,
+                Quality.BetaProto,
+                Quality.TranslationPatch,
+                Quality.Unknown);
 
-            AddDefaultProfile("Ultra-HD",
-                Quality.HDTV2160p,
-                Quality.HDTV2160p,
-                Quality.WEBRip2160p,
-                Quality.WEBDL2160p,
-                Quality.Bluray2160p);
+            AddDefaultProfile("Clean ROMs",
+                Quality.NoIntroVerified,
+                Quality.VerifiedGoodDump,
+                Quality.NoIntroVerified);
 
-            AddDefaultProfile("HD - 720p/1080p",
-                Quality.HDTV720p,
-                Quality.HDTV720p,
-                Quality.HDTV1080p,
-                Quality.WEBRip720p,
-                Quality.WEBDL720p,
-                Quality.WEBRip1080p,
-                Quality.WEBDL1080p,
-                Quality.Bluray720p,
-                Quality.Bluray1080p);
+            AddDefaultProfile("Optical Discs",
+                Quality.VerifiedRedump,
+                Quality.VerifiedRedump);
         }
 
         public void Handle(CustomFormatAddedEvent message)
