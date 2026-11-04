@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Download.Pending
 
     public class PendingReleaseAdditionalInfo
     {
-        public SeriesMatchType SeriesMatchType { get; set; }
+        public PlatformMatchType PlatformMatchType { get; set; }
         public ReleaseSourceType ReleaseSource { get; set; }
     }
 }

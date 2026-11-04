@@ -174,7 +174,7 @@ namespace NzbDrone.Core.History
                 history.Data.Add("ImdbId", message.Episode.Release.ImdbId);
                 history.Data.Add("Protocol", ((int)message.Episode.Release.DownloadProtocol).ToString());
                 history.Data.Add("CustomFormatScore", message.Episode.CustomFormatScore.ToString());
-                history.Data.Add("SeriesMatchType", message.Episode.SeriesMatchType.ToString());
+                history.Data.Add("PlatformMatchType", message.Episode.PlatformMatchType.ToString());
                 history.Data.Add("ReleaseSource", message.Episode.ReleaseSource.ToString());
                 history.Data.Add("IndexerFlags", message.Episode.Release.IndexerFlags.ToString());
                 history.Data.Add("ReleaseType", message.Episode.ParsedEpisodeInfo.ReleaseType.ToString());

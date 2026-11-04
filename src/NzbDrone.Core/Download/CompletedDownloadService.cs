@@ -115,11 +115,11 @@ namespace NzbDrone.Core.Download
                     return;
                 }
 
-                Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.SERIES_MATCH_TYPE, SeriesMatchType.Unknown.ToString()), out SeriesMatchType seriesMatchType);
+                Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.SERIES_MATCH_TYPE, PlatformMatchType.Unknown.ToString()), out PlatformMatchType platformMatchType);
                 Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
 
                 // Show a warning if the release was matched by ID and the source is not interactive search
-                if (seriesMatchType == SeriesMatchType.Id && releaseSource != ReleaseSourceType.InteractiveSearch)
+                if (platformMatchType == PlatformMatchType.Id && releaseSource != ReleaseSourceType.InteractiveSearch)
                 {
                     trackedDownload.Warn("Found matching series via grab history, but release was matched to series by ID. Automatic import is not possible. See the FAQ for details.");
                     SetStateToImportBlocked(trackedDownload);

@@ -372,7 +372,7 @@ namespace NzbDrone.Core.Download.Pending
                 release.RemoteEpisode = new RemoteEpisode
                 {
                     Series = series,
-                    SeriesMatchType = release.AdditionalInfo?.SeriesMatchType ?? SeriesMatchType.Unknown,
+                    PlatformMatchType = release.AdditionalInfo?.PlatformMatchType ?? PlatformMatchType.Unknown,
                     ReleaseSource = release.AdditionalInfo?.ReleaseSource ?? ReleaseSourceType.Unknown,
                     ParsedEpisodeInfo = release.ParsedEpisodeInfo,
                     Release = release.Release
@@ -383,7 +383,7 @@ namespace NzbDrone.Core.Download.Pending
                     release.RemoteEpisode.MappedSeasonNumber = knownRemoteEpisode.MappedSeasonNumber;
                     release.RemoteEpisode.Episodes = knownRemoteEpisode.Episodes;
                 }
-                else if (ValidateParsedEpisodeInfo.ValidateForSeriesType(release.ParsedEpisodeInfo, series))
+                else if (ValidateParsedGameInfo.ValidateForSeriesType(release.ParsedEpisodeInfo, series))
                 {
                     try
                     {
@@ -537,7 +537,7 @@ namespace NzbDrone.Core.Download.Pending
                 Reason = reason,
                 AdditionalInfo = new PendingReleaseAdditionalInfo
                 {
-                    SeriesMatchType = decision.RemoteEpisode.SeriesMatchType,
+                    PlatformMatchType = decision.RemoteEpisode.PlatformMatchType,
                     ReleaseSource = decision.RemoteEpisode.ReleaseSource
                 }
             });

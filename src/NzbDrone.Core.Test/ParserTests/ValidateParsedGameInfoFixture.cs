@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [Test]
         public void should_return_true_if_episode_info_is_not_daily()
         {
-            ValidateParsedEpisodeInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeTrue();
+            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeTrue();
         }
 
         [Test]
@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Test.ParserTests
             GivenDailyParsedEpisodeInfo();
             GivenDailySeries();
 
-            ValidateParsedEpisodeInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeTrue();
+            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeTrue();
         }
 
         [Test]
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             GivenDailyParsedEpisodeInfo();
 
-            ValidateParsedEpisodeInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeFalse();
+            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeFalse();
             ExceptionVerification.ExpectedWarns(1);
         }
 
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             GivenDailyParsedEpisodeInfo();
 
-            ValidateParsedEpisodeInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series, false);
+            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series, false);
             ExceptionVerification.ExpectedWarns(0);
         }
     }

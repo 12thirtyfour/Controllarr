@@ -225,7 +225,7 @@ namespace NzbDrone.Core.Parser
                 if (seriesMatch != null)
                 {
                     series = seriesMatch.Series;
-                    remoteEpisode.SeriesMatchType = seriesMatch.MatchType;
+                    remoteEpisode.PlatformMatchType = seriesMatch.MatchType;
                 }
             }
 
@@ -247,7 +247,7 @@ namespace NzbDrone.Core.Parser
                 }
 
                 if (remoteEpisode.MappedSeasonNumber.HasValue &&
-                    ValidateParsedEpisodeInfo.ValidateForSeriesType(parsedEpisodeInfo, series))
+                    ValidateParsedGameInfo.ValidateForSeriesType(parsedEpisodeInfo, series))
                 {
                     remoteEpisode.Episodes = GetEpisodes(parsedEpisodeInfo, series, remoteEpisode.MappedSeasonNumber.Value, sceneSource, searchCriteria);
                 }
@@ -443,7 +443,7 @@ namespace NzbDrone.Core.Parser
             return null;
         }
 
-        private FindSeriesResult FindSeries(ParsedEpisodeInfo parsedEpisodeInfo, int tvdbId, int tvRageId, string imdbId, SceneMapping sceneMapping, SearchCriteriaBase searchCriteria)
+        private FindPlatformResult FindSeries(ParsedEpisodeInfo parsedEpisodeInfo, int tvdbId, int tvRageId, string imdbId, SceneMapping sceneMapping, SearchCriteriaBase searchCriteria)
         {
             Series series = null;
 
@@ -451,7 +451,7 @@ namespace NzbDrone.Core.Parser
             {
                 if (searchCriteria != null && searchCriteria.Series.TvdbId == sceneMapping.TvdbId)
                 {
-                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Alias);
+                    return new FindPlatformResult(searchCriteria.Series, PlatformMatchType.Alias);
                 }
 
                 series = _seriesService.FindByTvdbId(sceneMapping.TvdbId);
@@ -462,7 +462,7 @@ namespace NzbDrone.Core.Parser
                     return null;
                 }
 
-                return new FindSeriesResult(series, SeriesMatchType.Alias);
+                return new FindPlatformResult(series, PlatformMatchType.Alias);
             }
 
             if (searchCriteria != null)
@@ -470,12 +470,12 @@ namespace NzbDrone.Core.Parser
                 if (searchCriteria.Series.CleanOriginalTitle.IsNotNullOrWhiteSpace() &&
                     searchCriteria.Series.CleanOriginalTitle == parsedEpisodeInfo.SeriesTitle.CleanSeriesTitle())
                 {
-                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Title);
+                    return new FindPlatformResult(searchCriteria.Series, PlatformMatchType.Title);
                 }
 
                 if (searchCriteria.Series.CleanTitle == parsedEpisodeInfo.SeriesTitle.CleanSeriesTitle())
                 {
-                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Title);
+                    return new FindPlatformResult(searchCriteria.Series, PlatformMatchType.Title);
                 }
 
                 if (tvdbId > 0 && tvdbId == searchCriteria.Series.TvdbId)
@@ -487,7 +487,7 @@ namespace NzbDrone.Core.Parser
                            .WriteSentryWarn("TvdbIdMatch", tvdbId.ToString(), parsedEpisodeInfo.SeriesTitle)
                            .Log();
 
-                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Id);
+                    return new FindPlatformResult(searchCriteria.Series, PlatformMatchType.Id);
                 }
 
                 if (tvRageId > 0 && tvRageId == searchCriteria.Series.TvRageId && tvdbId <= 0)
@@ -499,7 +499,7 @@ namespace NzbDrone.Core.Parser
                            .WriteSentryWarn("TvRageIdMatch", tvRageId.ToString(), parsedEpisodeInfo.SeriesTitle)
                            .Log();
 
-                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Id);
+                    return new FindPlatformResult(searchCriteria.Series, PlatformMatchType.Id);
                 }
 
                 if (imdbId.IsNotNullOrWhiteSpace() && imdbId.Equals(searchCriteria.Series.ImdbId, StringComparison.Ordinal) && tvdbId <= 0)
@@ -511,33 +511,33 @@ namespace NzbDrone.Core.Parser
                            .WriteSentryWarn("ImdbIdMatch", imdbId, parsedEpisodeInfo.SeriesTitle)
                            .Log();
 
-                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Id);
+                    return new FindPlatformResult(searchCriteria.Series, PlatformMatchType.Id);
                 }
             }
 
-            var matchType = SeriesMatchType.Unknown;
+            var matchType = PlatformMatchType.Unknown;
             series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitle);
 
             if (series != null)
             {
-                matchType = SeriesMatchType.Title;
+                matchType = PlatformMatchType.Title;
             }
 
             if (series == null && parsedEpisodeInfo.SeriesTitleInfo.AllTitles != null)
             {
                 series = GetSeriesByAllTitles(parsedEpisodeInfo);
-                matchType = SeriesMatchType.Title;
+                matchType = PlatformMatchType.Title;
             }
 
             if (series == null && parsedEpisodeInfo.SeriesTitleInfo.Year > 0)
             {
                 series = _seriesService.FindByTitle(parsedEpisodeInfo.SeriesTitleInfo.TitleWithoutYear, parsedEpisodeInfo.SeriesTitleInfo.Year);
-                matchType = SeriesMatchType.Title;
+                matchType = PlatformMatchType.Title;
 
                 if (series == null)
                 {
                     series = GetSeriesAliasTitleAndYear(parsedEpisodeInfo);
-                    matchType = SeriesMatchType.Alias;
+                    matchType = PlatformMatchType.Alias;
                 }
             }
 
@@ -554,7 +554,7 @@ namespace NzbDrone.Core.Parser
                            .WriteSentryWarn("TvdbIdMatch", tvdbId.ToString(), parsedEpisodeInfo.SeriesTitle)
                            .Log();
 
-                    matchType = SeriesMatchType.Id;
+                    matchType = PlatformMatchType.Id;
                 }
             }
 
@@ -571,7 +571,7 @@ namespace NzbDrone.Core.Parser
                            .WriteSentryWarn("TvRageIdMatch", tvRageId.ToString(), parsedEpisodeInfo.SeriesTitle)
                            .Log();
 
-                    matchType = SeriesMatchType.Id;
+                    matchType = PlatformMatchType.Id;
                 }
             }
 
@@ -588,7 +588,7 @@ namespace NzbDrone.Core.Parser
                            .WriteSentryWarn("ImdbIdMatch", imdbId, parsedEpisodeInfo.SeriesTitle)
                            .Log();
 
-                    matchType = SeriesMatchType.Id;
+                    matchType = PlatformMatchType.Id;
                 }
             }
 
@@ -598,7 +598,7 @@ namespace NzbDrone.Core.Parser
                 return null;
             }
 
-            return new FindSeriesResult(series, matchType);
+            return new FindPlatformResult(series, matchType);
         }
 
         private Episode GetDailyEpisode(Series series, string airDate, int? part, SearchCriteriaBase searchCriteria)

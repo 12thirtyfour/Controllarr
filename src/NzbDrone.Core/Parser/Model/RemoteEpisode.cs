@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Parser.Model
         public TorrentSeedConfiguration SeedConfiguration { get; set; }
         public List<CustomFormat> CustomFormats { get; set; }
         public int CustomFormatScore { get; set; }
-        public SeriesMatchType SeriesMatchType { get; set; }
+        public PlatformMatchType PlatformMatchType { get; set; }
         public List<Language> Languages { get; set; }
         public ReleaseSourceType ReleaseSource { get; set; }
 

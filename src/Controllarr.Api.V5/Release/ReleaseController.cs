@@ -125,7 +125,7 @@ public class ReleaseController : RestController<ReleaseResource>
                     SeedConfiguration = remoteEpisode.SeedConfiguration,
                     CustomFormats = remoteEpisode.CustomFormats,
                     CustomFormatScore = remoteEpisode.CustomFormatScore,
-                    SeriesMatchType = remoteEpisode.SeriesMatchType,
+                    PlatformMatchType = remoteEpisode.PlatformMatchType,
                     ReleaseSource = remoteEpisode.ReleaseSource
                 };
 

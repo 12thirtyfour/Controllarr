@@ -1,20 +1,20 @@
-﻿using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Parser.Model
 {
-    public class FindSeriesResult
+    public class FindPlatformResult
     {
         public Series Series { get; set; }
-        public SeriesMatchType MatchType { get; set; }
+        public PlatformMatchType MatchType { get; set; }
 
-        public FindSeriesResult(Series series, SeriesMatchType matchType)
+        public FindPlatformResult(Series series, PlatformMatchType matchType)
         {
             Series = series;
             MatchType = matchType;
         }
     }
 
-    public enum SeriesMatchType
+    public enum PlatformMatchType
     {
         Unknown = 0,
         Title = 1,

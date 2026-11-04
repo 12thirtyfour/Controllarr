@@ -74,7 +74,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
                 return new List<Episode>();
             }
 
-            if (ValidateParsedEpisodeInfo.ValidateForSeriesType(bestEpisodeInfoForEpisodes, localEpisode.Series, isMediaFile))
+            if (ValidateParsedGameInfo.ValidateForSeriesType(bestEpisodeInfoForEpisodes, localEpisode.Series, isMediaFile))
             {
                 var episodes = _parsingService.GetEpisodes(bestEpisodeInfoForEpisodes, localEpisode.Series, localEpisode.SceneSource);
 
