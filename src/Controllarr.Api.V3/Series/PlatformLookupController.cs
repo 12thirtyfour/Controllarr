@@ -46,8 +46,8 @@ namespace Sonarr.Api.V3.Series
                 throw new BadRequestException($"Invalid language: {languageId}");
             }
 
-            var tvDbResults = _searchProxy.SearchForNewSeries(term, searchLanguage);
-            return MapToResource(tvDbResults);
+            var catalogResults = _searchProxy.SearchForNewSeries(term, searchLanguage);
+            return MapToResource(catalogResults);
         }
 
         private IEnumerable<SeriesResource> MapToResource(IEnumerable<NzbDrone.Core.Tv.Series> series)

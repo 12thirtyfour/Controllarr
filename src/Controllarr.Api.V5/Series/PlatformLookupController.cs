@@ -55,8 +55,8 @@ public class PlatformLookupController : Controller
             throw new BadRequestException($"Invalid language: {languageId}");
         }
 
-        var tvDbResults = _searchProxy.SearchForNewSeries(term, searchLanguage);
-        return TypedResults.Ok(MapToResource(tvDbResults));
+        var catalogResults = _searchProxy.SearchForNewSeries(term, searchLanguage);
+        return TypedResults.Ok(MapToResource(catalogResults));
     }
 
     private IEnumerable<SeriesResource> MapToResource(IEnumerable<NzbDrone.Core.Tv.Series> series)

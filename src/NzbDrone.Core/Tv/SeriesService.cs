@@ -108,9 +108,9 @@ namespace NzbDrone.Core.Tv
             return newSeries;
         }
 
-        public Series FindByTvdbId(int tvRageId)
+        public Series FindByTvdbId(int tvdbId)
         {
-            return _seriesRepository.FindByTvdbId(tvRageId);
+            return _seriesRepository.FindByTvdbId(tvdbId);
         }
 
         public Series FindByTvRageId(int tvRageId)
