@@ -21,12 +21,12 @@ using RestSharp;
 using Sonarr.Api.V3.Blocklist;
 using Sonarr.Api.V3.Config;
 using Sonarr.Api.V3.DownloadClient;
-using Sonarr.Api.V3.EpisodeFiles;
-using Sonarr.Api.V3.Episodes;
+using Sonarr.Api.V3.Games;
 using Sonarr.Api.V3.History;
+using Sonarr.Api.V3.Platforms;
 using Sonarr.Api.V3.Profiles.Quality;
+using Sonarr.Api.V3.RomFiles;
 using Sonarr.Api.V3.RootFolders;
-using Sonarr.Api.V3.Series;
 using Sonarr.Api.V3.System.Tasks;
 using Sonarr.Api.V3.Tags;
 

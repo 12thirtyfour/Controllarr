@@ -8,8 +8,8 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Tv;
-using Sonarr.Api.V5.Episodes;
-using Sonarr.Api.V5.Series;
+using Sonarr.Api.V5.Games;
+using Sonarr.Api.V5.Platforms;
 using Sonarr.Http;
 using Sonarr.Http.Extensions;
 

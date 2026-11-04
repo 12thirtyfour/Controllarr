@@ -4,7 +4,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Extras.Files;
-using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation;
+using NzbDrone.Core.MediaFiles.GameImport.Aggregation;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
 

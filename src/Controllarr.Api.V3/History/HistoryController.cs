@@ -9,8 +9,8 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Tv;
-using Sonarr.Api.V3.Episodes;
-using Sonarr.Api.V3.Series;
+using Sonarr.Api.V3.Games;
+using Sonarr.Api.V3.Platforms;
 using Sonarr.Http;
 using Sonarr.Http.Extensions;
 

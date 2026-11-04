@@ -1,6 +1,6 @@
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.Qualities;
 using Sonarr.Http.REST;
 

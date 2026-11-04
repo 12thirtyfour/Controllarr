@@ -2,7 +2,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.GameImport;
 
 namespace NzbDrone.Core.Download;
 

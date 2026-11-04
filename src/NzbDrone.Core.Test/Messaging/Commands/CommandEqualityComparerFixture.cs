@@ -9,7 +9,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.MediaFiles.Commands;
-using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
+using NzbDrone.Core.MediaFiles.GameImport.Manual;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Update.Commands;
 using NzbDrone.Test.Common;

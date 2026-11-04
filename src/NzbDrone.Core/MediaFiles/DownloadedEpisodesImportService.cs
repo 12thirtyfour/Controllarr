@@ -9,7 +9,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;

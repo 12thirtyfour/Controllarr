@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using Sonarr.Api.V3.Series;
+using Sonarr.Api.V3.Platforms;
 
 namespace NzbDrone.Integration.Test
 {

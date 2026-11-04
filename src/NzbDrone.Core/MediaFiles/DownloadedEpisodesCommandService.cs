@@ -8,7 +8,7 @@ using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.MediaFiles.Commands;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.MediaFiles

@@ -6,9 +6,9 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.Parser;
 using Sonarr.Api.V5.CustomFormats;
-using Sonarr.Api.V5.Episodes;
+using Sonarr.Api.V5.Games;
+using Sonarr.Api.V5.Platforms;
 using Sonarr.Api.V5.Release;
-using Sonarr.Api.V5.Series;
 using Sonarr.Http;
 
 namespace Sonarr.Api.V5.Parse;

@@ -1,13 +1,13 @@
 using NzbDrone.Common.Crypto;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
-using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
+using NzbDrone.Core.MediaFiles.GameImport;
+using NzbDrone.Core.MediaFiles.GameImport.Manual;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using Sonarr.Api.V5.CustomFormats;
-using Sonarr.Api.V5.Episodes;
-using Sonarr.Api.V5.Series;
+using Sonarr.Api.V5.Games;
+using Sonarr.Api.V5.Platforms;
 using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V5.ManualImport;

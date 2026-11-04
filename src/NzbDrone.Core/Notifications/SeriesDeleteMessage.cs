@@ -19,8 +19,8 @@ namespace NzbDrone.Core.Notifications
             Series = series;
             DeletedFiles = deleteFiles;
             DeletedFilesMessage = DeletedFiles ?
-                "Series removed and all files were deleted" :
-                "Series removed, files were not deleted";
+                "Platform removed and all files were deleted" :
+                "Platform removed, files were not deleted";
             Message = series.Title + " - " + DeletedFilesMessage;
         }
     }

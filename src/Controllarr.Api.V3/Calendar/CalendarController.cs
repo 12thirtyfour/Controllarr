@@ -8,7 +8,7 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Tags;
 using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
-using Sonarr.Api.V3.Episodes;
+using Sonarr.Api.V3.Games;
 using Sonarr.Http;
 
 namespace Sonarr.Api.V3.Calendar

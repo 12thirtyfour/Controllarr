@@ -4,8 +4,8 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.Parser;
 using Sonarr.Api.V3.CustomFormats;
-using Sonarr.Api.V3.Episodes;
-using Sonarr.Api.V3.Series;
+using Sonarr.Api.V3.Games;
+using Sonarr.Api.V3.Platforms;
 using Sonarr.Http;
 
 namespace Sonarr.Api.V3.Parse

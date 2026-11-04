@@ -6,7 +6,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
-using Sonarr.Api.V5.Episodes;
+using Sonarr.Api.V5.Games;
 using Sonarr.Http;
 using Sonarr.Http.Extensions;
 

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using NLog;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.GameImport;
 
 namespace NzbDrone.Core.MediaFiles.Synchronization
 {

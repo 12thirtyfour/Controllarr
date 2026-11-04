@@ -1,8 +1,8 @@
 using NzbDrone.Core.Languages;
 using Sonarr.Api.V5.CustomFormats;
-using Sonarr.Api.V5.Episodes;
+using Sonarr.Api.V5.Games;
+using Sonarr.Api.V5.Platforms;
 using Sonarr.Api.V5.Release;
-using Sonarr.Api.V5.Series;
 using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V5.Parse;

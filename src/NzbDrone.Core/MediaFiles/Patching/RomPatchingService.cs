@@ -8,7 +8,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Dat;
-using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;

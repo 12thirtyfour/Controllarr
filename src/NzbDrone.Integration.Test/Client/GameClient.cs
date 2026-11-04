@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using RestSharp;
-using Sonarr.Api.V3.Episodes;
+using Sonarr.Api.V3.Games;
 
 namespace NzbDrone.Integration.Test.Client
 {

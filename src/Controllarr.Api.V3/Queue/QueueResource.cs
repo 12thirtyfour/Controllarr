@@ -7,8 +7,8 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
 using Sonarr.Api.V3.CustomFormats;
-using Sonarr.Api.V3.Episodes;
-using Sonarr.Api.V3.Series;
+using Sonarr.Api.V3.Games;
+using Sonarr.Api.V3.Platforms;
 using Sonarr.Http.REST;
 
 #pragma warning disable CS0612

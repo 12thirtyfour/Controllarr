@@ -4,7 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Integration.Test.Client;
-using Sonarr.Api.V3.Episodes;
+using Sonarr.Api.V3.Games;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {

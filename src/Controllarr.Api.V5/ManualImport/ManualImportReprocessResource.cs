@@ -2,7 +2,7 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using Sonarr.Api.V5.CustomFormats;
-using Sonarr.Api.V5.Episodes;
+using Sonarr.Api.V5.Games;
 using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V5.ManualImport;

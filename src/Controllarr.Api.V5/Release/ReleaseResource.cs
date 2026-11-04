@@ -3,7 +3,7 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Tv;
 using Sonarr.Api.V5.CustomFormats;
-using Sonarr.Api.V5.Series;
+using Sonarr.Api.V5.Platforms;
 using Sonarr.Http.REST;
 
 namespace Sonarr.Api.V5.Release;

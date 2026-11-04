@@ -3,7 +3,7 @@ using System.Threading;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Test.Common;
-using Sonarr.Api.V3.Series;
+using Sonarr.Api.V3.Platforms;
 
 namespace NzbDrone.Integration.Test.ApiTests
 {

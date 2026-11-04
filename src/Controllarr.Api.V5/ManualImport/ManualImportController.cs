@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaFiles.EpisodeImport.Manual;
+using NzbDrone.Core.MediaFiles.GameImport.Manual;
 using NzbDrone.Core.Qualities;
 using Sonarr.Http;
 using Sonarr.Http.REST;
