@@ -124,7 +124,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             var platformParam = string.Empty;
             if (!string.IsNullOrWhiteSpace(platformSlug))
             {
-                platformParam = $"&_platform={Uri.EscapeDataString(platformSlug)}";
+                platformParam = $"#_platform={Uri.EscapeDataString(platformSlug)}";
                 if (!string.IsNullOrWhiteSpace(platformName))
                 {
                     platformParam += $"&_platformName={Uri.EscapeDataString(platformName)}";

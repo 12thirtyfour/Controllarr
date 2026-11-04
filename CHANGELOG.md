@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- **Title Truncation & Prefix Corruption**: Fixed catalog ingestion regexes where titles containing terms like "Rev Up", "Revenge", "Altered", or starting with numbers like "007" were having their prefixes stripped or converted into punctuation-prefixed titles (e.g. `! RC Grand Prix`). Hardened `ResidualRevisionRegex` to require bracketed revisions or trailing suffixes and updated `IndexPrefixRegex` with negative lookaheads for titles like 007.
+- **Multi-Disc Games Primary Ordering, Bundling & Monitoring**: Fixed multi-disc games (such as Sega CD, PSX) mistakenly prioritizing Disc 2 over Disc 1 or leaving Disc 1 unmonitored. Grouped versions and discs cleanly, ensuring Disc 1 is always assigned as the primary retail entry, all discs of a multi-disc title are monitored upon initial platform addition, and UI badges clearly differentiate between discs, versions, and hybrid combinations (`+X disc(s)`, `+X version(s)`, `+X (discs & versions)`).
+- **Internet Archive 400 Bad Request**: Resolved HTTP 400 `[UNSUPPORTED_VALUE]` errors from `archive.org/advancedsearch.php` by transmitting internal metadata tags (`_platform`, `_platformName`) via URL fragment (`#...`) rather than query parameters, preventing Archive.org parameter rejections while allowing internal parsers to extract platform context seamlessly.
+- **NSWDB XML Endpoint HTTPS Protocol**: Updated NSWDB catalog proxy URL to `https://nswdb.com/xml.php` to prevent HTTP 301/302 redirects triggering `Server requested a redirect while in developer mode` errors.
+
 ### Added
 - **Absolute TV De-Televisonization Directive in AGENTS.md**: Formally enacted strict zero-TV tolerance policy mandating the systematic renaming, repurposing, or elimination of all remaining TV, broadcast, airing, schedule, episode, season, TVDB, TVMaze, TVRage, and scene mapping holdovers across all backend, frontend, API, persistence, and test layers.
 

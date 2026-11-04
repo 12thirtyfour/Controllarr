@@ -59,6 +59,23 @@ function isEncryptedLabel(label: string) {
   return /\bencrypted\b/i.test(label);
 }
 
+function parseDiscNumber(versionLabel: string, title?: string): number {
+  const match = (versionLabel || '').match(/\bdisc\s*(\d+)\b/i) || (title || '').match(/\bdisc\s*(\d+)\b/i);
+  return match ? parseInt(match[1], 10) : 1;
+}
+
+function hasDiscTag(versionLabel: string, title?: string): boolean {
+  return /\bdisc\s*\d+\b/i.test(versionLabel || '') || /\bdisc\s*\d+\b/i.test(title || '');
+}
+
+function parseCleanVersion(versionLabel: string): string {
+  const clean = (versionLabel || '')
+    .replace(/\bdisc\s*\d+\b/i, '')
+    .replace(/^[\s,-]+|[\s,-]+$/g, '')
+    .trim();
+  return clean || 'Retail (v1.0)';
+}
+
 function parseBaseGameAndVersion(item: Game) {
   const rawTitle = item.title ?? '';
 
@@ -242,6 +259,7 @@ function PlatformDetailsSeason({
       versionLabel: string;
       isAlternateGroup: boolean;
       alternateVersionCount: number;
+      alternateType: 'versions' | 'discs' | 'both';
       isGroupExpanded: boolean;
       groupKey: string;
     }[] = [];
@@ -274,7 +292,21 @@ function PlatformDetailsSeason({
           : isEncryptedLabel(b.versionLabel)
           ? 1
           : 0;
-        return aBucket - bBucket;
+        if (aBucket !== bBucket) {
+          return aBucket - bBucket;
+        }
+
+        const aVer = parseCleanVersion(a.versionLabel);
+        const bVer = parseCleanVersion(b.versionLabel);
+        if (aVer !== bVer) {
+          return preferOriginalRelease
+            ? aVer.localeCompare(bVer)
+            : bVer.localeCompare(aVer);
+        }
+
+        const aDisc = parseDiscNumber(a.versionLabel, a.item.title);
+        const bDisc = parseDiscNumber(b.versionLabel, b.item.title);
+        return aDisc - bDisc;
       });
 
       const retailEntries = entries.filter(
@@ -284,6 +316,20 @@ function PlatformDetailsSeason({
       // Demos, Protos, Betas, and Samples are never considered for 1G1R at all
       if (!isCompletionist && retailEntries.length === 0) {
         return;
+      }
+
+      const discCount = entries.filter((e) => hasDiscTag(e.versionLabel, e.item.title)).length;
+      const distinctVersionCount = new Set(entries.map((e) => parseCleanVersion(e.versionLabel))).size;
+      const isMultiDisc = discCount > 1;
+      const isMultiVersion = distinctVersionCount > 1;
+
+      let alternateType: 'versions' | 'discs' | 'both' = 'versions';
+      if (isMultiDisc && isMultiVersion) {
+        alternateType = 'both';
+      } else if (isMultiDisc) {
+        alternateType = 'discs';
+      } else {
+        alternateType = 'versions';
       }
 
       const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
@@ -299,30 +345,41 @@ function PlatformDetailsSeason({
             versionLabel: entry.versionLabel,
             isAlternateGroup,
             alternateVersionCount: idx === 0 ? alternateVersionCount : 0,
+            alternateType,
             isGroupExpanded,
             groupKey,
           });
         });
       } else {
-        const monitoredRetailEntry = retailEntries.find(
-          (e) => e.item.monitored
+        // Multi-disc entries must always use Disc 1 as primary
+        const disc1Entry = retailEntries.find(
+          (e) => parseDiscNumber(e.versionLabel, e.item.title) === 1
         );
-        const monitoredEntry =
-          monitoredRetailEntry ?? entries.find((e) => e.item.monitored);
-        const unencryptedRetailEntries = retailEntries.filter(
-          (e) => !isEncryptedLabel(e.versionLabel)
-        );
-        const fallbackPool =
-          unencryptedRetailEntries.length > 0
-            ? unencryptedRetailEntries
-            : retailEntries;
-        const fallbackRetail =
-          fallbackPool.length > 0
-            ? preferOriginalRelease
-              ? fallbackPool[0]
-              : fallbackPool[fallbackPool.length - 1]
-            : entries[0];
-        const primaryEntry = monitoredEntry ?? fallbackRetail;
+
+        let primaryEntry: typeof entries[0];
+        if (isMultiDisc && disc1Entry) {
+          primaryEntry = disc1Entry;
+        } else {
+          const monitoredRetailEntry = retailEntries.find(
+            (e) => e.item.monitored
+          );
+          const monitoredEntry =
+            monitoredRetailEntry ?? entries.find((e) => e.item.monitored);
+          const unencryptedRetailEntries = retailEntries.filter(
+            (e) => !isEncryptedLabel(e.versionLabel)
+          );
+          const fallbackPool =
+            unencryptedRetailEntries.length > 0
+              ? unencryptedRetailEntries
+              : retailEntries;
+          const fallbackRetail =
+            fallbackPool.length > 0
+              ? preferOriginalRelease
+                ? fallbackPool[0]
+                : fallbackPool[fallbackPool.length - 1]
+              : entries[0];
+          primaryEntry = monitoredEntry ?? fallbackRetail;
+        }
 
         rows.push({
           item: {
@@ -332,6 +389,7 @@ function PlatformDetailsSeason({
           versionLabel: primaryEntry.versionLabel,
           isAlternateGroup,
           alternateVersionCount,
+          alternateType,
           isGroupExpanded: false,
           groupKey,
         });
@@ -792,6 +850,7 @@ function PlatformDetailsSeason({
                       versionLabel,
                       isAlternateGroup,
                       alternateVersionCount,
+                      alternateType,
                       isGroupExpanded,
                       groupKey,
                     } = row;
@@ -804,6 +863,7 @@ function PlatformDetailsSeason({
                         romVersionLabel={versionLabel}
                         isAlternateGroup={isAlternateGroup}
                         alternateVersionCount={alternateVersionCount}
+                        alternateType={alternateType}
                         isGroupExpanded={isGroupExpanded}
                         groupKey={groupKey}
                         isSaving={

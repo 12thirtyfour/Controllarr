@@ -62,7 +62,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex ResidualRevisionRegex = new Regex(
-            @"(?:\s*[\(\[]\s*)?(?:Rev\.?\s*[A-Za-z0-9.]+|v\d+(?:\.\d+)*[A-Za-z]?|Version\s*[\d.]+|Alt\s*\d*|PRG\d+)(?:\s*[\)\]])?",
+            @"(?:\s*[\(\[]\s*(?:Rev\.?\s*[0-9A-Za-z\.]+|v\d+(?:\.\d+)*[A-Za-z]?|Version\s*[\d\.]+|Alt\s*\d+|PRG\d+)\s*[\)\]]|\s+-\s+(?:Rev\.?\s*[0-9A-Za-z]+|v\d+(?:\.\d+)*[A-Za-z]?)$)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex RevisionTagRegex = new Regex(
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex DiscTagRegex = new Regex(
-            @"\((?<disc>Disc\s*\d+[^\)]*|Disk\s*[A-Z0-9]+[^\)]*)\)",
+            @"(?:\(|\[)?\b(?<disc>Disc\s*(?<num>\d+)[^\)\]]*|Disk\s*(?<num>[A-Z0-9]+)[^\)\]]*)\b(?:\)|\])?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex PreReleaseTagRegex = new Regex(
@@ -750,7 +750,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 if (string.Equals(platform.Slug, "switch", StringComparison.OrdinalIgnoreCase))
                 {
-                    var nswdbRequest = new HttpRequest("http://nswdb.com/xml.php")
+                    var nswdbRequest = new HttpRequest("https://nswdb.com/xml.php")
                     {
                         SuppressHttpError = true,
                         RequestTimeout = TimeSpan.FromSeconds(15)
@@ -1671,7 +1671,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             return true;
         }
 
-        private static GameCatalogEntry CreateCatalogEntryFromNoIntroName(
+        internal static GameCatalogEntry CreateCatalogEntryFromNoIntroName(
             PlatformCatalogEntry platform,
             string noIntroName,
             int year,
@@ -1779,6 +1779,45 @@ namespace NzbDrone.Core.MetadataSource.Game
             return false;
         }
 
+        private static int? ExtractDiscNumber(string revisionTag, string noIntroName)
+        {
+            var match = DiscTagRegex.Match(noIntroName ?? string.Empty);
+            if (!match.Success && !string.IsNullOrWhiteSpace(revisionTag))
+            {
+                match = DiscTagRegex.Match(revisionTag);
+            }
+
+            if (match.Success)
+            {
+                var numStr = match.Groups["num"].Value;
+                if (int.TryParse(numStr, out var num))
+                {
+                    return num;
+                }
+
+                if (!string.IsNullOrWhiteSpace(numStr) && numStr.Length == 1 && char.IsLetter(numStr[0]))
+                {
+                    return char.ToUpperInvariant(numStr[0]) - 'A' + 1;
+                }
+
+                return 1;
+            }
+
+            return null;
+        }
+
+        private static string ExtractVersionOnly(string revisionTag, string noIntroName)
+        {
+            var raw = revisionTag ?? string.Empty;
+            var withoutDisc = DiscTagRegex.Replace(raw, string.Empty).Trim(' ', ',', '-');
+            if (string.IsNullOrWhiteSpace(withoutDisc))
+            {
+                return "Retail (v1.0)";
+            }
+
+            return withoutDisc;
+        }
+
         private static HashSet<int> GetDefaultMonitoredGameIds(
             List<GameCatalogEntry> games,
             Games.EncryptionPreference encryptionPreference)
@@ -1789,8 +1828,6 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 var retailItems = group
                     .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName))
-                    .OrderBy(i => GetRevisionSortOrder(i.RevisionTag))
-                    .ThenBy(i => i.NoIntroName, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 if (retailItems.Count == 0)
@@ -1805,16 +1842,35 @@ namespace NzbDrone.Core.MetadataSource.Game
                     .Where(i => IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
                     .ToList();
 
+                void MonitorPreferredVersion(List<GameCatalogEntry> items)
+                {
+                    if (items.Count == 0)
+                    {
+                        return;
+                    }
+
+                    var versionGroups = items
+                        .GroupBy(i => ExtractVersionOnly(i.RevisionTag, i.NoIntroName))
+                        .OrderBy(vg => GetRevisionSortOrder(vg.Key))
+                        .ToList();
+
+                    var preferredVersionItems = versionGroups.Last();
+                    foreach (var game in preferredVersionItems)
+                    {
+                        monitoredIds.Add(game.TvdbId);
+                    }
+                }
+
                 if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
                     encryptionPreference == Games.EncryptionPreference.Both)
                 {
                     if (unencryptedRetail.Count > 0)
                     {
-                        monitoredIds.Add(unencryptedRetail.Last().TvdbId);
+                        MonitorPreferredVersion(unencryptedRetail);
                     }
                     else if (encryptionPreference == Games.EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
                     {
-                        monitoredIds.Add(encryptedRetail.Last().TvdbId);
+                        MonitorPreferredVersion(encryptedRetail);
                     }
                 }
 
@@ -1823,11 +1879,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     if (encryptedRetail.Count > 0)
                     {
-                        monitoredIds.Add(encryptedRetail.Last().TvdbId);
+                        MonitorPreferredVersion(encryptedRetail);
                     }
                     else if (encryptionPreference == Games.EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
                     {
-                        monitoredIds.Add(unencryptedRetail.Last().TvdbId);
+                        MonitorPreferredVersion(unencryptedRetail);
                     }
                 }
             }
@@ -1894,15 +1950,28 @@ namespace NzbDrone.Core.MetadataSource.Game
                     continue;
                 }
 
-                var ordered = retailItems
-                    .OrderBy(i => GetRevisionSortOrder(i.RevisionTag))
-                    .ThenBy(i => i.NoIntroName, StringComparer.OrdinalIgnoreCase)
+                var versionGroups = retailItems
+                    .GroupBy(i => ExtractVersionOnly(i.RevisionTag, i.NoIntroName))
+                    .OrderBy(vg => GetRevisionSortOrder(vg.Key))
                     .ToList();
 
-                for (var idx = 0; idx < ordered.Count; idx++)
+                for (var vIdx = 0; vIdx < versionGroups.Count; vIdx++)
                 {
-                    ordered[idx].IsInitialRelease = idx == 0;
-                    ordered[idx].IsLatestRevision = idx == ordered.Count - 1;
+                    var isLatestVersion = vIdx == versionGroups.Count - 1;
+                    var isInitialVersion = vIdx == 0;
+                    var vItems = versionGroups[vIdx].ToList();
+
+                    var orderedDiscs = vItems
+                        .OrderBy(i => ExtractDiscNumber(i.RevisionTag, i.NoIntroName) ?? 1)
+                        .ThenBy(i => i.NoIntroName, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    for (var dIdx = 0; dIdx < orderedDiscs.Count; dIdx++)
+                    {
+                        var isFirstDisc = dIdx == 0;
+                        orderedDiscs[dIdx].IsLatestRevision = isLatestVersion && isFirstDisc;
+                        orderedDiscs[dIdx].IsInitialRelease = isInitialVersion && isFirstDisc;
+                    }
                 }
             }
         }
@@ -2392,7 +2461,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             var cleaned = ResidualRevisionRegex.Replace(title, string.Empty).Trim();
-            return RomParser.CleanIndexPrefix(cleaned);
+            cleaned = RomParser.CleanIndexPrefix(cleaned);
+            return cleaned.Trim().TrimStart('-', ':', '.', '\'', '"', '!');
         }
 
         private static string StripArticle(string title)

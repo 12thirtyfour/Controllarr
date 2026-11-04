@@ -51,6 +51,7 @@ interface GameRowProps {
   isAlternateGroup?: boolean;
   romVersionLabel?: string;
   alternateVersionCount?: number;
+  alternateType?: 'versions' | 'discs' | 'both';
   isGroupExpanded?: boolean;
   groupKey?: string;
   onToggleGroupExpand?: (groupKey: string) => void;
@@ -82,6 +83,7 @@ function GameRow({
   isAlternateGroup = false,
   romVersionLabel,
   alternateVersionCount = 0,
+  alternateType = 'versions',
   isGroupExpanded = false,
   groupKey = '',
   onToggleGroupExpand,
@@ -225,7 +227,17 @@ function GameRow({
                   onClick={handleToggleGroupExpandPress}
                 >
                   {isGroupExpanded
-                    ? 'Hide versions'
+                    ? alternateType === 'discs'
+                      ? 'Hide discs'
+                      : alternateType === 'both'
+                      ? 'Hide discs & versions'
+                      : 'Hide versions'
+                    : alternateType === 'discs'
+                    ? `+${alternateVersionCount} disc${
+                        alternateVersionCount > 1 ? 's' : ''
+                      }`
+                    : alternateType === 'both'
+                    ? `+${alternateVersionCount} (discs & versions)`
                     : `+${alternateVersionCount} version${
                         alternateVersionCount > 1 ? 's' : ''
                       }`}

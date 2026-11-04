@@ -338,5 +338,71 @@ game (
             GameCatalogProxy.ResolveCatalogRegionLabel("PAL", "EN,FR,DE", null, null).Should().Be("Europe");
             GameCatalogProxy.ResolveCatalogRegionLabel("NTSC-U", "EN", null, null).Should().Be("USA");
         }
+
+        [Test]
+        public void should_preserve_titles_without_truncating_rev_or_numbers()
+        {
+            Subject.TryGetPlatformEntry(1014, out var switchPlatform);
+
+            var revUp = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(switchPlatform, "Rev Up! RC Grand Prix (USA)", 2020, "Test");
+            revUp.Should().NotBeNull();
+            revUp.Title.Should().Be("Rev Up! RC Grand Prix");
+
+            var alteredBeast = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(switchPlatform, "Altered Beast (USA)", 2018, "Test");
+            alteredBeast.Should().NotBeNull();
+            alteredBeast.Title.Should().Be("Altered Beast");
+
+            var agent007 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(switchPlatform, "007: GoldenEye (USA)", 2023, "Test");
+            agent007.Should().NotBeNull();
+            agent007.Title.Should().Be("007: GoldenEye");
+
+            var racing007 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(switchPlatform, "007 Racing (USA)", 2000, "Test");
+            racing007.Should().NotBeNull();
+            racing007.Title.Should().Be("007 Racing");
+        }
+
+        [Test]
+        public void should_populate_multi_disc_game_with_disc_1_as_primary_and_all_discs_monitored()
+        {
+            Subject.TryGetPlatformEntry(1016, out var segaCdPlatform);
+            segaCdPlatform.Should().NotBeNull();
+
+            var disc1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "Night Trap (USA) (Disc 1)", 1992, "Test");
+            var disc2 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "Night Trap (USA) (Disc 2)", 1992, "Test");
+
+            disc1.Should().NotBeNull();
+            disc2.Should().NotBeNull();
+
+            disc1.BaseTitle.Should().Be("Night Trap");
+            disc2.BaseTitle.Should().Be("Night Trap");
+            disc1.RevisionTag.Should().Be("Disc 1");
+            disc2.RevisionTag.Should().Be("Disc 2");
+
+            var list = new List<GameCatalogEntry> { disc1, disc2 };
+
+            // When building the episodes for Sega CD with multi-disc game
+            var cachedDatEntries = new List<NzbDrone.Core.Dat.DatEntry>
+            {
+                new NzbDrone.Core.Dat.DatEntry { GameName = "Night Trap (USA) (Disc 1)", RomName = "Night Trap (USA) (Disc 1).chd", Region = "USA" },
+                new NzbDrone.Core.Dat.DatEntry { GameName = "Night Trap (USA) (Disc 2)", RomName = "Night Trap (USA) (Disc 2).chd", Region = "USA" }
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform(Moq.It.IsAny<string>(), Moq.It.IsAny<string>(), Moq.It.IsAny<string>()))
+                .Returns(cachedDatEntries);
+
+            Subject.InvalidatePlatformCache(1016);
+            var result = Subject.GetSeriesInfo(1016, Language.English, "notEncrypted");
+
+            var nightTrapEpisodes = result.Item2.Where(e => e.Title == "Night Trap").ToList();
+            nightTrapEpisodes.Should().HaveCount(2);
+
+            var epDisc1 = nightTrapEpisodes.First(e => e.FinaleType == "Disc 1");
+            var epDisc2 = nightTrapEpisodes.First(e => e.FinaleType == "Disc 2");
+
+            // Both discs must be monitored on initial add
+            epDisc1.Monitored.Should().BeTrue();
+            epDisc2.Monitored.Should().BeTrue();
+        }
     }
 }

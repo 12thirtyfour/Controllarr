@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex FullSetRegex = new Regex(@"\((Complete Set|Full Set|1G1R|Parent-Clone|[\d\-]+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FormatTokenRegex = new Regex(@"\b(3ds|cia|cci|nds|dsi|gba|gbc|gb|nes|snes|sfc|smc|n64|z64|v64|iso|ciso|chd|rvz|gcm|wbfs|wux|wud|wua|nsp|nsz|xci|pbp|cso|vpk|pkg|bin|cue|gdi|cdi|zip|7z)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BracketCleanupRegex = new Regex(@"\[.*?\]|\(.*?\)", RegexOptions.Compiled);
-        private static readonly Regex IndexPrefixRegex = new Regex(@"^(?:\[#?\d+\]|\(#?\d+\)|#\d+|0\d{1,4})\s*[-_.)]?\s*", RegexOptions.Compiled);
+        private static readonly Regex IndexPrefixRegex = new Regex(@"^(?:\[#?\d+\]|\(#?\d+\)|#\d+|(?!007\b)0\d{1,4})(?:\s*[-_.)]\s*|\s+)", RegexOptions.Compiled);
 
         private static readonly string[] IgnoredPrefixes = { "_Top", "A-F", "G-K", "1 USA", "2 Japan", "Translations" };
 
