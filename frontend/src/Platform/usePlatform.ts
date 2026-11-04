@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import moment from 'moment-timezone';
 import { useCallback, useMemo } from 'react';
 import { FilterBuilderTag } from 'Components/Filter/Builder/FilterBuilderRowValue';
 import { Filter, FilterBuilderProp } from 'Filters/Filter';
@@ -9,7 +8,6 @@ import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import {
   filterBuilderTypes,
   filterBuilderValueTypes,
-  sortDirections,
 } from 'Helpers/Props';
 import { FilterType } from 'Helpers/Props/filterTypes';
 import getFilterTypePredicate from 'Helpers/Props/getFilterTypePredicate';
@@ -113,33 +111,8 @@ const SORT_PREDICATES = {
       : 0;
   },
 
-  network: (item: Series, _: SortDirection) => {
-    const { network } = item;
 
-    return network?.toLowerCase() ?? '';
-  },
 
-  nextAiring: (item: Series, direction: SortDirection) => {
-    const { nextAiring } = item;
-
-    if (nextAiring) {
-      return moment(nextAiring).unix();
-    }
-
-    return direction === sortDirections.DESCENDING ? 0 : Number.MAX_VALUE;
-  },
-
-  previousAiring: (item: Series, direction: SortDirection) => {
-    const { previousAiring } = item;
-
-    if (previousAiring) {
-      return moment(previousAiring).unix();
-    }
-
-    return direction === sortDirections.DESCENDING
-      ? Number.MAX_VALUE * -1
-      : Number.MAX_VALUE;
-  },
 
   gameProgress: (item: Series, _: SortDirection) => {
     const statistics = item.statistics;
@@ -158,9 +131,6 @@ const SORT_PREDICATES = {
     return item.statistics?.totalGameCount ?? 0;
   },
 
-  seasonCount: (item: Series, _: SortDirection) => {
-    return item.statistics?.seasonCount ?? 0;
-  },
 
   originalLanguage: (item: Series, _: SortDirection) => {
     const { originalLanguage } = item;
@@ -174,11 +144,6 @@ const SORT_PREDICATES = {
     return language?.name ?? '';
   },
 
-  seasonType: (item: Series, _: SortDirection) => {
-    const { seasonType, seasonTypes } = item;
-
-    return seasonTypes?.find((s) => s.type === seasonType)?.name ?? seasonType;
-  },
 
   ratings: (item: Series, _: SortDirection) => {
     const { ratings } = item;
@@ -212,21 +177,7 @@ const FILTER_PREDICATES = {
     return gameCount - romFileCount > 0;
   },
 
-  nextAiring: (
-    item: Series,
-    filterValue: string | { time: string; value: number },
-    type: FilterType
-  ) => {
-    return dateFilterPredicate(item.nextAiring, filterValue, type);
-  },
 
-  previousAiring: (
-    item: Series,
-    filterValue: string | { time: string; value: number },
-    type: FilterType
-  ) => {
-    return dateFilterPredicate(item.previousAiring, filterValue, type);
-  },
 
   added: (
     item: Series,
@@ -278,11 +229,6 @@ const FILTER_PREDICATES = {
     return predicate(romFileQualities, filterValue);
   },
 
-  seasonCount: (item: Series, filterValue: number, type: FilterType) => {
-    const predicate = getFilterTypePredicate(type);
-    const seasonCount = item.statistics?.seasonCount ?? 0;
-    return predicate(seasonCount, filterValue);
-  },
 
   sizeOnDisk: (item: Series, filterValue: number, type: FilterType) => {
     const predicate = getFilterTypePredicate(type);
@@ -304,63 +250,7 @@ const FILTER_PREDICATES = {
     return predicate(averageSize, filterValue);
   },
 
-  hasMissingSeason: (item: Series, filterValue: boolean, type: FilterType) => {
-    const predicate = getFilterTypePredicate(type);
-    const { seasons = [] } = item;
 
-    const hasMissingSeason = seasons.some((season) => {
-      const { seasonNumber } = season;
-      const statistics = season.statistics;
-      const romFileCount = statistics?.romFileCount ?? 0;
-      const gameCount = statistics?.gameCount ?? 0;
-      const totalGameCount = statistics?.totalGameCount ?? 0;
-
-      return (
-        seasonNumber > 0 &&
-        totalGameCount > 0 &&
-        gameCount === totalGameCount &&
-        romFileCount === 0
-      );
-    });
-
-    return predicate(hasMissingSeason, filterValue);
-  },
-
-  seasonsMonitoredStatus: (
-    item: Series,
-    filterValue: string,
-    type: FilterType
-  ) => {
-    const predicate = getFilterTypePredicate(type);
-    const { seasons = [] } = item;
-
-    const { monitoredCount, unmonitoredCount } = seasons.reduce(
-      (acc, { seasonNumber, monitored }) => {
-        if (seasonNumber <= 0) {
-          return acc;
-        }
-
-        if (monitored) {
-          acc.monitoredCount++;
-        } else {
-          acc.unmonitoredCount++;
-        }
-
-        return acc;
-      },
-      { monitoredCount: 0, unmonitoredCount: 0 }
-    );
-
-    let seasonsMonitoredStatus = 'partial';
-
-    if (monitoredCount === 0) {
-      seasonsMonitoredStatus = 'none';
-    } else if (unmonitoredCount === 0) {
-      seasonsMonitoredStatus = 'all';
-    }
-
-    return predicate(seasonsMonitoredStatus, filterValue);
-  },
 
   gamesMonitoredStatus: (
     item: Series,
@@ -432,11 +322,6 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     label: () => translate('Added'),
     type: filterBuilderTypes.DATE,
     valueType: filterBuilderValueTypes.DATE,
-  },
-  {
-    name: 'seasonCount',
-    label: () => translate('SeasonCount'),
-    type: filterBuilderTypes.NUMBER,
   },
   {
     name: 'gameProgress',

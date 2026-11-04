@@ -3,7 +3,6 @@ import React, { useCallback, useState } from 'react';
 import { useSelect } from 'App/Select/SelectContext';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
-import CheckInput from 'Components/Form/CheckInput';
 import HeartRating from 'Components/HeartRating';
 import IconButton from 'Components/Link/IconButton';
 import Link from 'Components/Link/Link';
@@ -15,7 +14,6 @@ import VirtualTableSelectCell from 'Components/Table/Cells/VirtualTableSelectCel
 import Column from 'Components/Table/Column';
 import getReleaseTypeName from 'Game/getReleaseTypeName';
 import { icons } from 'Helpers/Props';
-import useCountryName from 'Internationalization/useCountryName';
 import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
 import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import { Statistics } from 'Platform/Platform';
@@ -47,7 +45,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
   const {
     series,
     qualityProfile,
-    latestSeason,
     isRefreshingSeries,
     isSearchingSeries,
   } = usePlatformIndexItem(seriesId);
@@ -59,7 +56,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
   const [isEditPlatformModalOpen, setIsEditPlatformModalOpen] = useState(false);
   const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] = useState(false);
   const { getIsSelected, toggleSelected } = useSelect();
-  const originalCountryName = useCountryName(series?.originalCountry);
 
   const onRefreshPress = useCallback(() => {
     executeCommand({
@@ -100,10 +96,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
     setIsDeletePlatformModalOpen(false);
   }, [setIsDeletePlatformModalOpen]);
 
-  const checkInputCallback = useCallback(() => {
-    // Mock handler to satisfy `onChange` being required for `CheckInput`.
-  }, []);
-
   const onSelectedChange = useCallback(
     ({ id, value, shiftKey }: SelectStateInputProps) => {
       toggleSelected({
@@ -114,8 +106,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
     },
     [toggleSelected]
   );
-
-  const nextAiring = series?.nextAiring;
 
   if (!series) {
     return null;
@@ -129,15 +119,11 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
     path,
     titleSlug,
     pendingPath,
-    previousAiring,
     added,
     statistics = {} as Statistics,
-    seasonFolder,
     images,
     seriesType,
-    network,
     originalLanguage,
-    certification,
     year,
     language,
     seasonType,
@@ -232,22 +218,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
           );
         }
 
-        if (name === 'network') {
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              {network}
-            </VirtualTableRowCell>
-          );
-        }
-
-        if (name === 'originalCountry') {
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              {originalCountryName}
-            </VirtualTableRowCell>
-          );
-        }
-
         if (name === 'originalLanguage') {
           return (
             <VirtualTableRowCell key={name} className={styles[name]}>
@@ -263,40 +233,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
                 {qualityProfile?.name ?? ''}
               </span>
             </VirtualTableRowCell>
-          );
-        }
-
-        if (name === 'nextAiring') {
-          if (!nextAiring) {
-            return (
-              <VirtualTableRowCell key={name} className={styles[name]}>
-                <span className={styles.nextAiringEmpty}>—</span>
-              </VirtualTableRowCell>
-            );
-          }
-
-          return (
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore ts(2739)
-            <RelativeDateCell
-              key={name}
-              className={classNames(styles[name], styles.nextAiringMono)}
-              date={nextAiring}
-              component={VirtualTableRowCell}
-            />
-          );
-        }
-
-        if (name === 'previousAiring') {
-          return (
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore ts(2739)
-            <RelativeDateCell
-              key={name}
-              className={styles[name]}
-              date={previousAiring}
-              component={VirtualTableRowCell}
-            />
           );
         }
 
@@ -326,19 +262,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
           );
         }
 
-        if (name === 'seasonFolder') {
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              <CheckInput
-                name="seasonFolder"
-                value={seasonFolder}
-                isDisabled={true}
-                onChange={checkInputCallback}
-              />
-            </VirtualTableRowCell>
-          );
-        }
-
         if (name === 'gameProgress') {
           return (
             <VirtualTableRowCell key={name} className={styles[name]}>
@@ -349,31 +272,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
                 gameCount={gameCount}
                 romFileCount={romFileCount}
                 totalGameCount={totalGameCount}
-                width={125}
-                detailedProgressBar={true}
-                isStandalone={true}
-              />
-            </VirtualTableRowCell>
-          );
-        }
-
-        if (name === 'latestSeason') {
-          if (!latestSeason) {
-            return <VirtualTableRowCell key={name} className={styles[name]} />;
-          }
-
-          const seasonStatistics = latestSeason.statistics || {};
-
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              <PlatformIndexProgressBar
-                seriesId={seriesId}
-                seasonNumber={latestSeason.seasonNumber}
-                monitored={monitored}
-                status={status}
-                gameCount={seasonStatistics.gameCount}
-                romFileCount={seasonStatistics.romFileCount}
-                totalGameCount={seasonStatistics.totalGameCount}
                 width={125}
                 detailedProgressBar={true}
                 isStandalone={true}
@@ -464,14 +362,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
           return (
             <VirtualTableRowCell key={name} className={styles[name]}>
               <HeartRating rating={ratings.value} votes={ratings.votes} />
-            </VirtualTableRowCell>
-          );
-        }
-
-        if (name === 'certification') {
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              {certification}
             </VirtualTableRowCell>
           );
         }

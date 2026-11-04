@@ -30,7 +30,6 @@ namespace Sonarr.Api.V3.Platforms
         public DateTime? NextAiring { get; set; }
         public DateTime? PreviousAiring { get; set; }
         public string Network { get; set; }
-        public string AirTime { get; set; }
         public List<MediaCover> Images { get; set; }
         public Language Language { get; set; }
         public Language OriginalLanguage { get; set; }
@@ -122,7 +121,6 @@ namespace Sonarr.Api.V3.Platforms
                        // NextAiring
                        // PreviousAiring
                        Network = model.Network,
-                       AirTime = model.AirTime,
 
                        // JsonClone
                        Images = model.Images.JsonClone(),
@@ -202,7 +200,6 @@ namespace Sonarr.Api.V3.Platforms
                        // NextAiring
                        // PreviousAiring
                        Network = resource.Network,
-                       AirTime = resource.AirTime,
                        Images = resource.Images,
 
                        SeasonType = resource.SeasonType ?? SeasonType.Official,

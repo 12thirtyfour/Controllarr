@@ -1,6 +1,5 @@
 using System.Linq;
 using NLog;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 
@@ -9,12 +8,10 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
     public class SingleGameSearchMatchSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
-        private readonly ISceneMappingService _sceneMappingService;
 
-        public SingleGameSearchMatchSpecification(ISceneMappingService sceneMappingService, Logger logger)
+        public SingleGameSearchMatchSpecification(Logger logger)
         {
             _logger = logger;
-            _sceneMappingService = sceneMappingService;
         }
 
         public SpecificationPriority Priority => SpecificationPriority.Default;

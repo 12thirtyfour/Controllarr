@@ -134,14 +134,11 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
     status,
     path,
     titleSlug,
-    nextAiring,
-    previousAiring,
     added,
     overview,
     statistics = {} as Statistics,
     images,
     tags,
-    network,
   } = series;
 
   const {
@@ -262,19 +259,14 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
           <PlatformIndexOverviewInfo
             ref={chipStripRef}
             monitored={monitored}
-            network={network}
-            nextAiring={nextAiring}
-            previousAiring={previousAiring}
             added={added}
             seasonCount={seasonCount}
             qualityProfile={qualityProfile}
             sizeOnDisk={sizeOnDisk}
             path={path}
             sortKey={sortKey}
-            showNetwork={overviewOptions.showNetwork}
             showMonitored={overviewOptions.showMonitored}
             showQualityProfile={overviewOptions.showQualityProfile}
-            showPreviousAiring={overviewOptions.showPreviousAiring}
             showAdded={overviewOptions.showAdded}
             showSeasonCount={overviewOptions.showSeasonCount}
             showPath={overviewOptions.showPath}

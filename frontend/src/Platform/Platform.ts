@@ -57,9 +57,7 @@ export interface Ratings {
 
 export interface AlternateTitle {
   seasonNumber: number;
-  sceneSeasonNumber?: number;
   title: string;
-  sceneOrigin: 'unknown' | 'unknown:tvdb' | 'mixed' | 'tvdb';
   comment?: string;
 }
 

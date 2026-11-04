@@ -20,8 +20,6 @@ import {
 } from 'Platform/platformOptionsStore';
 import PlatformPoster from 'Platform/PlatformPoster';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
-import formatDateTime from 'Utilities/Date/formatDateTime';
-import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import translate from 'Utilities/String/translate';
 import usePlatformIndexItem from '../usePlatformIndexItem';
 import PlatformIndexPosterInfo from './PlatformIndexPosterInfo';
@@ -134,11 +132,7 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
     status,
     path,
     titleSlug,
-    originalCountry,
     originalLanguage,
-    network,
-    nextAiring,
-    previousAiring,
     added,
     statistics = {} as Statistics,
     images,
@@ -281,25 +275,6 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
         </div>
       ) : null}
 
-      {nextAiring ? (
-        <div
-          className={styles.nextAiring}
-          title={`${translate('NextAiring')}: ${formatDateTime(
-            nextAiring,
-            longDateFormat,
-            timeFormat
-          )}`}
-        >
-          {getRelativeDate({
-            date: nextAiring,
-            shortDateFormat,
-            showRelativeDates,
-            timeFormat,
-            timeForToday: true,
-          })}
-        </div>
-      ) : null}
-
       {showTags && tags.length ? (
         <div className={styles.tags}>
           <div className={styles.tagsList}>
@@ -309,10 +284,7 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
       ) : null}
 
       <PlatformIndexPosterInfo
-        originalCountry={originalCountry}
         originalLanguage={originalLanguage}
-        network={network}
-        previousAiring={previousAiring}
         added={added}
         seasonCount={seasonCount}
         sizeOnDisk={sizeOnDisk}

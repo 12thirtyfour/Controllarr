@@ -36,25 +36,6 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
         >
           {translate('Title')}
         </SortMenuItem>
-
-        <SortMenuItem
-          name="network"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('Network')}
-        </SortMenuItem>
-
-        <SortMenuItem
-          name="originalCountry"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('OriginalCountry')}
-        </SortMenuItem>
-
         <SortMenuItem
           name="originalLanguage"
           sortKey={sortKey}
@@ -72,25 +53,6 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
         >
           {translate('QualityProfile')}
         </SortMenuItem>
-
-        <SortMenuItem
-          name="nextAiring"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('NextAiring')}
-        </SortMenuItem>
-
-        <SortMenuItem
-          name="previousAiring"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('PreviousAiring')}
-        </SortMenuItem>
-
         <SortMenuItem
           name="added"
           sortKey={sortKey}
@@ -99,16 +61,6 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
         >
           {translate('Added')}
         </SortMenuItem>
-
-        <SortMenuItem
-          name="seasonCount"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('Seasons')}
-        </SortMenuItem>
-
         <SortMenuItem
           name="gameProgress"
           sortKey={sortKey}
@@ -126,16 +78,6 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
         >
           {translate('GameCount')}
         </SortMenuItem>
-
-        <SortMenuItem
-          name="latestSeason"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('LatestSeason')}
-        </SortMenuItem>
-
         <SortMenuItem
           name="path"
           sortKey={sortKey}

@@ -31,7 +31,6 @@ import translate from 'Utilities/String/translate';
 import InteractiveSearchPayload from './InteractiveSearchPayload';
 import OverrideMatchModal from './OverrideMatch/OverrideMatchModal';
 import Peers from './Peers';
-import ReleaseSceneIndicator from './ReleaseSceneIndicator';
 import { Release, useGrabRelease } from './useReleases';
 import styles from './InteractiveSearchRow.module.css';
 
@@ -96,26 +95,16 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     languages,
     customFormatScore,
     customFormats,
-    sceneMapping,
     mappedSeriesId,
     mappedSeasonNumber,
-    mappedGameNumbers,
-    mappedAbsoluteGameNumbers,
     mappedGameInfo,
-    gameRequested,
     searchPayload,
     downloadAllowed,
   } = props;
 
   const { rejections = [] } = decision;
 
-  const {
-    absoluteGameNumbers,
-    gameNumbers,
-    isDaily,
-    seasonNumber,
-    quality,
-  } = parsedInfo;
+  const { quality } = parsedInfo;
 
   const {
     guid,
@@ -276,18 +265,6 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
               Pinned
             </Label>
           )}
-          <ReleaseSceneIndicator
-            className={styles.sceneMapping}
-            seasonNumber={mappedSeasonNumber}
-            gameNumbers={mappedGameNumbers}
-            absoluteGameNumbers={mappedAbsoluteGameNumbers}
-            sceneSeasonNumber={seasonNumber}
-            sceneGameNumbers={gameNumbers}
-            sceneAbsoluteGameNumbers={absoluteGameNumbers}
-            sceneMapping={sceneMapping}
-            gameRequested={gameRequested}
-            isDaily={isDaily}
-          />
         </div>
       </VirtualTableRowCell>
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import HeartRating from 'Components/HeartRating';
 import PlatformTagList from 'Components/PlatformTagList';
-import useCountryName from 'Internationalization/useCountryName';
 import Language from 'Language/Language';
 import { Ratings } from 'Platform/Platform';
 import { QualityProfileModel } from 'Settings/Profiles/Quality/useQualityProfiles';
@@ -12,12 +11,9 @@ import translate from 'Utilities/String/translate';
 import styles from './PlatformIndexPosterInfo.module.css';
 
 interface PlatformIndexPosterInfoProps {
-  originalCountry?: string;
   originalLanguage?: Language;
-  network?: string;
   showQualityProfile: boolean;
   qualityProfile?: QualityProfileModel;
-  previousAiring?: string;
   added?: string;
   seasonCount: number;
   path: string;
@@ -34,12 +30,9 @@ interface PlatformIndexPosterInfoProps {
 
 function PlatformIndexPosterInfo(props: PlatformIndexPosterInfoProps) {
   const {
-    originalCountry,
     originalLanguage,
-    network,
     qualityProfile,
     showQualityProfile,
-    previousAiring,
     added,
     seasonCount,
     path,
@@ -53,24 +46,6 @@ function PlatformIndexPosterInfo(props: PlatformIndexPosterInfoProps) {
     timeFormat,
     showTags,
   } = props;
-
-  const originalCountryName = useCountryName(originalCountry);
-
-  if (sortKey === 'network' && network) {
-    return (
-      <div className={styles.info} title={translate('Network')}>
-        {network}
-      </div>
-    );
-  }
-
-  if (sortKey === 'originalCountry' && !!originalCountryName) {
-    return (
-      <div className={styles.info} title={translate('OriginalCountry')}>
-        {originalCountryName}
-      </div>
-    );
-  }
 
   if (sortKey === 'originalLanguage' && !!originalLanguage?.name) {
     return (
@@ -88,27 +63,6 @@ function PlatformIndexPosterInfo(props: PlatformIndexPosterInfoProps) {
     return (
       <div className={styles.info} title={translate('QualityProfile')}>
         {qualityProfile.name}
-      </div>
-    );
-  }
-
-  if (sortKey === 'previousAiring' && previousAiring) {
-    return (
-      <div
-        className={styles.info}
-        title={`${translate('PreviousAiring')}: ${formatDateTime(
-          previousAiring,
-          longDateFormat,
-          timeFormat
-        )}`}
-      >
-        {getRelativeDate({
-          date: previousAiring,
-          shortDateFormat,
-          showRelativeDates,
-          timeFormat,
-          timeForToday: true,
-        })}
       </div>
     );
   }

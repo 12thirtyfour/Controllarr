@@ -62,7 +62,6 @@ namespace Sonarr.Api.V3.Indexers
         public int ReleaseWeight { get; set; }
         public List<CustomFormatResource> CustomFormats { get; set; }
         public int CustomFormatScore { get; set; }
-        public AlternateTitleResource SceneMapping { get; set; }
 
         public string MagnetUrl { get; set; }
         public string InfoHash { get; set; }
@@ -157,7 +156,6 @@ namespace Sonarr.Api.V3.Indexers
                 // ReleaseWeight
                 CustomFormatScore = remoteEpisode.CustomFormatScore,
                 CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
-                SceneMapping = remoteEpisode.SceneMapping.ToResource(),
 
                 MagnetUrl = torrentInfo.MagnetUrl,
                 InfoHash = torrentInfo.InfoHash,

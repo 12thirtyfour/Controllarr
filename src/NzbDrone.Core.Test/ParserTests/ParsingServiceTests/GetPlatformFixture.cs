@@ -1,7 +1,6 @@
 ﻿using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -52,7 +51,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         {
             var series = new Series { TvdbId = 100 };
             Mocker.GetMock<ISeriesService>().Setup(v => v.FindByTitle("Welcome")).Returns(series);
-            Mocker.GetMock<ISceneMappingService>().Setup(v => v.FindTvdbId("Mairimashita", It.IsAny<string>(), It.IsAny<int>())).Returns(100);
+            Mocker.GetMock<ISeriesService>().Setup(v => v.FindByTitle("Mairimashita")).Returns(series);
 
             var result = Subject.GetSeries("Welcome (Mairimashita).S01E01.720p.WEB-DL-Viva");
 

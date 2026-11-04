@@ -33,7 +33,6 @@ public enum ImportRejectionReason
     Unpacking,
     ExistingFileHasMoreEpisodes,
     SplitEpisode,
-    UnverifiedSceneMapping,
     NotQualityUpgrade,
     NotRevisionUpgrade,
     NotCustomFormatUpgrade,

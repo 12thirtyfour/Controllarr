@@ -11,20 +11,15 @@ import translate from 'Utilities/String/translate';
 import styles from './PlatformIndexOverviewInfo.module.css';
 
 interface PlatformIndexOverviewInfoProps {
-  showNetwork: boolean;
   showMonitored: boolean;
   showQualityProfile: boolean;
-  showPreviousAiring: boolean;
   showAdded: boolean;
   showSeasonCount: boolean;
   showPath: boolean;
   showSizeOnDisk: boolean;
   showTags: boolean;
   monitored: boolean;
-  nextAiring?: string;
-  network?: string;
   qualityProfile?: QualityProfileModel;
-  previousAiring?: string;
   added?: string;
   seasonCount: number;
   path: string;
@@ -39,20 +34,15 @@ const PlatformIndexOverviewInfo = forwardRef<
   PlatformIndexOverviewInfoProps
 >((props, ref) => {
   const {
-    showNetwork,
     showMonitored,
     showQualityProfile,
-    showPreviousAiring,
     showAdded,
     showSeasonCount,
     showPath,
     showSizeOnDisk,
     showTags,
     monitored,
-    nextAiring,
-    network,
     qualityProfile,
-    previousAiring,
     added,
     seasonCount,
     path,
@@ -68,32 +58,6 @@ const PlatformIndexOverviewInfo = forwardRef<
   const tagList = useTagList();
 
   const chips: ReactNode[] = [];
-
-  if (nextAiring) {
-    chips.push(
-      <span
-        key="nextAiring"
-        className={classNames(styles.chip, styles.chipAiring)}
-        title={formatDateTime(nextAiring, longDateFormat, timeFormat)}
-      >
-        {getRelativeDate({
-          date: nextAiring,
-          shortDateFormat,
-          showRelativeDates,
-          timeFormat,
-          timeForToday: true,
-        })}
-      </span>
-    );
-  }
-
-  if (network && (showNetwork || sortKey === 'network')) {
-    chips.push(
-      <span key="network" className={styles.chip}>
-        {network}
-      </span>
-    );
-  }
 
   if (showMonitored || sortKey === 'monitored') {
     chips.push(
@@ -132,25 +96,6 @@ const PlatformIndexOverviewInfo = forwardRef<
     chips.push(
       <span key="qualityProfile" className={styles.chip}>
         {qualityProfile.name}
-      </span>
-    );
-  }
-
-  if (previousAiring && (showPreviousAiring || sortKey === 'previousAiring')) {
-    chips.push(
-      <span
-        key="previousAiring"
-        className={styles.chip}
-        title={formatDateTime(previousAiring, longDateFormat, timeFormat)}
-      >
-        <span className={styles.dateLabel}>{translate('Aired')}</span>
-        {getRelativeDate({
-          date: previousAiring,
-          shortDateFormat,
-          showRelativeDates,
-          timeFormat,
-          timeForToday: true,
-        })}
       </span>
     );
   }

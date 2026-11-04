@@ -29,7 +29,6 @@ namespace Sonarr.Api.V5.Games
         public int? SceneAbsoluteGameNumber { get; set; }
         public int? SceneGameNumber { get; set; }
         public int? SceneSeasonNumber { get; set; }
-        public bool UnverifiedSceneNumbering { get; set; }
         public DateTime? EndTime { get; set; }
         public DateTime? GrabDate { get; set; }
         public SeriesResource? Series { get; set; }
@@ -74,7 +73,6 @@ namespace Sonarr.Api.V5.Games
                 SceneAbsoluteGameNumber = model.SceneAbsoluteEpisodeNumber,
                 SceneGameNumber = model.SceneEpisodeNumber,
                 SceneSeasonNumber = model.SceneSeasonNumber,
-                UnverifiedSceneNumbering = model.UnverifiedSceneNumbering,
 
                 // Series = model.Series.MapToResource(),
             };

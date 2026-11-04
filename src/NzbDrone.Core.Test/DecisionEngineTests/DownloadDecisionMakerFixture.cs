@@ -4,7 +4,6 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.IndexerSearch.Definitions;
@@ -352,16 +351,12 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             GivenSpecifications(_pass1, _pass2, _pass3);
 
-            Mocker.GetMock<ISceneMappingService>()
-                  .Setup(s => s.FindTvdbId(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
-                  .Returns(12345);
-
             _remoteEpisode.Series = null;
 
             var result = Subject.GetRssDecision(_reports);
 
             result.Should().HaveCount(1);
-            result.First().Rejections.First().Message.Should().Contain("12345");
+            result.First().Rejections.First().Reason.Should().Be(DownloadRejectionReason.UnknownSeries);
         }
 
         [Test]

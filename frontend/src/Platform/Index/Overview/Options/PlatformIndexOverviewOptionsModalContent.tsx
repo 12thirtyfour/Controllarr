@@ -49,9 +49,7 @@ function PlatformIndexOverviewOptionsModalContent({
     detailedProgressBar,
     size,
     showMonitored,
-    showNetwork,
     showQualityProfile,
-    showPreviousAiring,
     showAdded,
     showSeasonCount,
     showPath,
@@ -109,34 +107,12 @@ function PlatformIndexOverviewOptionsModalContent({
           </FormRow>
 
           <FormRow>
-            <FormLabel>{translate('ShowNetwork')}</FormLabel>
-            <FormInputHelpText text={translate('ShowNetworkHelpText')} />
-            <FormInput
-              type={inputTypes.CHECK}
-              name="showNetwork"
-              value={showNetwork}
-              onChange={onOverviewOptionChange}
-            />
-          </FormRow>
-
-          <FormRow>
             <FormLabel>{translate('ShowQualityProfile')}</FormLabel>
             <FormInputHelpText text={translate('ShowQualityProfileHelpText')} />
             <FormInput
               type={inputTypes.CHECK}
               name="showQualityProfile"
               value={showQualityProfile}
-              onChange={onOverviewOptionChange}
-            />
-          </FormRow>
-
-          <FormRow>
-            <FormLabel>{translate('ShowPreviousAiring')}</FormLabel>
-            <FormInputHelpText text={translate('ShowPreviousAiringHelpText')} />
-            <FormInput
-              type={inputTypes.CHECK}
-              name="showPreviousAiring"
-              value={showPreviousAiring}
               onChange={onOverviewOptionChange}
             />
           </FormRow>

@@ -150,9 +150,6 @@ export default function PlatformIndexPosters({
     }
 
     switch (sortKey) {
-      case 'network':
-      case 'seasons':
-      case 'previousAiring':
       case 'added':
       case 'path':
       case 'sizeOnDisk':

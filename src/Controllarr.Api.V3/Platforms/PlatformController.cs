@@ -4,7 +4,6 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.MediaCover;
@@ -42,7 +41,6 @@ namespace Sonarr.Api.V3.Platforms
         private readonly IPlatformTranslationService _seriesTranslationService;
         private readonly IAddPlatformService _addSeriesService;
         private readonly ISeriesStatisticsService _seriesStatisticsService;
-        private readonly ISceneMappingService _sceneMappingService;
         private readonly IMapCoversToLocal _coverMapper;
         private readonly IRootFolderService _rootFolderService;
 
@@ -51,7 +49,6 @@ namespace Sonarr.Api.V3.Platforms
                             IPlatformTranslationService seriesTranslationService,
                             IAddPlatformService addSeriesService,
                             ISeriesStatisticsService seriesStatisticsService,
-                            ISceneMappingService sceneMappingService,
                             IMapCoversToLocal coverMapper,
                             IRootFolderService rootFolderService,
                             RootFolderValidator rootFolderValidator,
@@ -69,7 +66,6 @@ namespace Sonarr.Api.V3.Platforms
             _seriesTranslationService = seriesTranslationService;
             _addSeriesService = addSeriesService;
             _seriesStatisticsService = seriesStatisticsService;
-            _sceneMappingService = sceneMappingService;
 
             _coverMapper = coverMapper;
             _rootFolderService = rootFolderService;
@@ -304,14 +300,7 @@ namespace Sonarr.Api.V3.Platforms
 
         private void PopulateAlternateTitles(SeriesResource resource)
         {
-            var mappings = _sceneMappingService.FindByTvdbId(resource.TvdbId);
-
-            if (mappings == null)
-            {
-                return;
-            }
-
-            resource.AlternateTitles = mappings.ConvertAll(AlternateTitleResourceMapper.ToResource);
+            resource.AlternateTitles = new List<AlternateTitleResource>();
         }
 
         private void FetchAndPopulateTranslations(SeriesResource resource)

@@ -24,6 +24,14 @@
 - Hardware Target Game Database (HTGDB) / SourceMaterial Database (SMDB) folder layouts for flash-carts and ODEs (MiSTer, OnionOS, Analogue Pocket, EverDrive, etc.).
 - Strict cryptographic hash-gating for unofficial content, ROM hacks, and homebrew.
 
+## Absolute TV De-Televisonization Directive (Strict Zero-TV Tolerance)
+- Controllarr is exclusively an automated console ROM and game library manager. This application is **no longer about television**.
+- All TV references, titles, naming, functions, models, database mappings, filters, schedules, airing dates, TVDB, TVMaze, TVRage, scene mappings, season folders, and episode concepts must be systematically renamed, removed, or repurposed into gaming equivalents.
+- Whenever a TV-related concept is encountered:
+  - If it has been repurposed for gaming (e.g. game versions, platforms, regions, ROM formats, release years), correct its naming, titles, properties, and documentation to reflect accurate gaming terminology.
+  - If it is obsolete or not needed (e.g. TVDB IDs/APIs, TV broadcast air dates, TV air time, TV airing schedules, scene mappings, TV season folders, TV ratings/certifications, subtitles), remove it completely from the application without breaking core functionality.
+- Never reintroduce or leave behind TV holdovers in any layer (backend C#, frontend TypeScript/React, persistence layers, API DTOs, or unit tests).
+
 ## Proportional Verification & Push Hygiene
 Match local build/test verification to the scope of the changes made:
 1. **Documentation-only changes** (`README.md`, `ROADMAP.md`, `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md`, `AGENTS.md`, Wiki): Do **not** run `dotnet build`, `dotnet test`, or `yarn build`.

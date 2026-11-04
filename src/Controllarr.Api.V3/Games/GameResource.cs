@@ -32,7 +32,6 @@ namespace Sonarr.Api.V3.Games
         public int? SceneAbsoluteEpisodeNumber { get; set; }
         public int? SceneEpisodeNumber { get; set; }
         public int? SceneSeasonNumber { get; set; }
-        public bool UnverifiedSceneNumbering { get; set; }
         public SeriesResource Series { get; set; }
         public List<MediaCover> Images { get; set; }
 
@@ -80,7 +79,6 @@ namespace Sonarr.Api.V3.Games
                 SceneAbsoluteEpisodeNumber = model.SceneAbsoluteEpisodeNumber,
                 SceneEpisodeNumber = model.SceneEpisodeNumber,
                 SceneSeasonNumber = model.SceneSeasonNumber,
-                UnverifiedSceneNumbering = model.UnverifiedSceneNumbering,
 
                 // Series = model.Series.MapToResource(),
             };

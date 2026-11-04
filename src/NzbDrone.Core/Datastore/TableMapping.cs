@@ -9,7 +9,6 @@ using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFilters;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
@@ -108,8 +107,6 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<DownloadClientDefinition>("DownloadClients").RegisterModel()
                   .Ignore(x => x.ImplementationName)
                   .Ignore(d => d.Protocol);
-
-            Mapper.Entity<SceneMapping>("PlatformMappings").RegisterModel();
 
             Mapper.Entity<GameHistory>("History").RegisterModel();
 

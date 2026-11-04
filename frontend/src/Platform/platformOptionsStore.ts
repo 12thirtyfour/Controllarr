@@ -24,9 +24,7 @@ export interface SeriesOptions {
     detailedProgressBar: boolean;
     size: 'small' | 'medium' | 'large';
     showMonitored: boolean;
-    showNetwork: boolean;
     showQualityProfile: boolean;
-    showPreviousAiring: boolean;
     showAdded: boolean;
     showSeasonCount: boolean;
     showPath: boolean;
@@ -66,9 +64,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         detailedProgressBar: false,
         size: 'medium',
         showMonitored: true,
-        showNetwork: false,
         showQualityProfile: true,
-        showPreviousAiring: false,
         showAdded: false,
         showSeasonCount: true,
         showPath: false,
@@ -112,34 +108,10 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           isVisible: false,
         },
         {
-          name: 'network',
-          label: () => translate('Network'),
-          isSortable: true,
-          isVisible: false,
-        },
-        {
           name: 'qualityProfileId',
           label: () => translate('QualityProfile'),
           isSortable: true,
           isVisible: true,
-        },
-        {
-          name: 'nextAiring',
-          label: () => translate('NextAiring'),
-          isSortable: true,
-          isVisible: false,
-        },
-        {
-          name: 'previousAiring',
-          label: () => translate('PreviousAiring'),
-          isSortable: true,
-          isVisible: false,
-        },
-        {
-          name: 'originalCountry',
-          label: () => translate('OriginalCountry'),
-          isSortable: true,
-          isVisible: false,
         },
         {
           name: 'originalLanguage',
@@ -160,12 +132,6 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           isVisible: true,
         },
         {
-          name: 'seasonFolder',
-          label: () => translate('SeasonFolder'),
-          isSortable: true,
-          isVisible: false,
-        },
-        {
           name: 'gameProgress',
           label: () => translate('Games'),
           isSortable: true,
@@ -174,12 +140,6 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         {
           name: 'gameCount',
           label: () => translate('GameCount'),
-          isSortable: true,
-          isVisible: false,
-        },
-        {
-          name: 'latestSeason',
-          label: () => translate('LatestSeason'),
           isSortable: true,
           isVisible: false,
         },
@@ -217,12 +177,6 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           name: 'ratings',
           label: () => translate('Rating'),
           isSortable: true,
-          isVisible: false,
-        },
-        {
-          name: 'certification',
-          label: () => translate('Certification'),
-          isSortable: false,
           isVisible: false,
         },
         {

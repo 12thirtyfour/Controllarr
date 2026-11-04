@@ -27,7 +27,6 @@ public class ReleaseResource : RestResource
     public int ReleaseWeight { get; set; }
     public List<CustomFormatResource>? CustomFormats { get; set; }
     public int CustomFormatScore { get; set; }
-    public AlternateTitleResource? SceneMapping { get; set; }
 }
 
 public static class ReleaseResourceMapper
@@ -59,7 +58,6 @@ public static class ReleaseResourceMapper
             DownloadAllowed = remoteEpisode.DownloadAllowed && !releaseInfo.MissingCredentials,
             CustomFormatScore = remoteEpisode.CustomFormatScore,
             CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
-            SceneMapping = remoteEpisode.SceneMapping?.ToResource(),
         };
     }
 

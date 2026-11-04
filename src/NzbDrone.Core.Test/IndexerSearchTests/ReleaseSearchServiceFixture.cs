@@ -8,7 +8,6 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
@@ -53,14 +52,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             Mocker.GetMock<IEpisodeService>()
                 .Setup(v => v.GetEpisodesBySeason(_xemSeries.Id, It.IsAny<int>()))
                 .Returns<int, int>((i, j) => _xemEpisodes.Where(d => d.SeasonNumber == j).ToList());
-
-            Mocker.GetMock<ISceneMappingService>()
-                  .Setup(s => s.FindByTvdbId(It.IsAny<int>()))
-                  .Returns(new List<SceneMapping>());
-
-            Mocker.GetMock<ISceneMappingService>()
-                  .Setup(s => s.GetSceneNames(It.IsAny<int>(), It.IsAny<List<int>>(), It.IsAny<List<int>>()))
-                  .Returns(new List<string>());
         }
 
         private void WithEpisode(int seasonNumber, int episodeNumber, int? sceneSeasonNumber, int? sceneEpisodeNumber, string airDate = null)
@@ -587,80 +578,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         }
 
         [Test]
-        public async Task season_search_for_anime_should_pass_search_mode_from_scene_mapping()
-        {
-            WithEpisodes();
-            _xemSeries.SeriesType = SeriesTypes.Anime;
-            _xemEpisodes.ForEach(e => e.EpisodeFileId = 0);
-
-            // Season 1 episodes map to scene season 2 (see WithEpisodes), so the scene
-            // mapping must target scene season 2 to survive the season filter.
-            Mocker.GetMock<ISceneMappingService>()
-                  .Setup(s => s.FindByTvdbId(It.IsAny<int>()))
-                  .Returns(new List<SceneMapping>
-                  {
-                      new SceneMapping
-                      {
-                          TvdbId = _xemSeries.TvdbId,
-                          SearchTerm = "Sonarrs Season Title",
-                          ParseTerm = "sonarrsseasontitle",
-                          SeasonNumber = 2,
-                          SceneSeasonNumber = 2,
-                          SearchMode = SearchMode.SearchTitle
-                      }
-                  });
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.SeasonSearch(_xemSeries.Id, 1, true, false, true, false);
-
-            var criteria = allCriteria.OfType<AnimeSeasonSearchCriteria>().ToList();
-
-            criteria.Should().Contain(c => c.SearchMode == SearchMode.SearchTitle);
-            criteria.Should().Contain(c => c.SceneTitles.Contains("Sonarrs Season Title"));
-        }
-
-        [Test]
-        public async Task season_search_for_anime_should_search_a_series_wide_alias_and_a_season_title_together()
-        {
-            WithEpisodes();
-            _xemSeries.SeriesType = SeriesTypes.Anime;
-            _xemEpisodes.ForEach(e => e.EpisodeFileId = 0);
-
-            Mocker.GetMock<ISceneMappingService>()
-                  .Setup(s => s.FindByTvdbId(It.IsAny<int>()))
-                  .Returns(new List<SceneMapping>
-                  {
-                      new SceneMapping
-                      {
-                          TvdbId = _xemSeries.TvdbId,
-                          SearchTerm = "Sonarrs Season Title",
-                          ParseTerm = "sonarrsseasontitle",
-                          SeasonNumber = 2,
-                          SceneSeasonNumber = 2
-                      },
-                      new SceneMapping
-                      {
-                          TvdbId = _xemSeries.TvdbId,
-                          SearchTerm = "Sonarrs Series Alias",
-                          ParseTerm = "sonarrsseriesalias",
-                          SearchMode = SearchMode.SearchTitle
-                      }
-                  });
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.SeasonSearch(_xemSeries.Id, 1, true, false, true, false);
-
-            var criteria = allCriteria.OfType<AnimeSeasonSearchCriteria>().ToList();
-
-            criteria.Should().ContainSingle();
-            criteria.First().SceneTitles.Should().Contain("Sonarrs Season Title");
-            criteria.First().SceneTitles.Should().Contain("Sonarrs Series Alias");
-            criteria.First().SeasonSceneTitles.Should().BeEquivalentTo(new[] { "Sonarrs Season Title" });
-        }
-
-        [Test]
         public async Task season_search_for_daily_should_search_multiple_years()
         {
             WithEpisode(1, 1, null, null, "2005-12-30");
@@ -731,94 +648,9 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             await Subject.SeasonSearch(_xemSeries.Id, 7, false, false, true, false);
 
-            Mocker.GetMock<ISceneMappingService>()
-                  .Verify(v => v.FindByTvdbId(_xemSeries.Id), Times.Once());
-
             allCriteria.Should().HaveCount(1);
             allCriteria.First().Should().BeOfType<SeasonSearchCriteria>();
             allCriteria.First().As<SeasonSearchCriteria>().SeasonNumber.Should().Be(7);
-        }
-
-        [Test]
-        public async Task episode_search_should_use_all_available_numbering_from_services_and_xem()
-        {
-            WithEpisode(1, 12, 2, 3);
-
-            Mocker.GetMock<ISceneMappingService>()
-                .Setup(s => s.FindByTvdbId(It.IsAny<int>()))
-                .Returns(new List<SceneMapping>
-                {
-                    new SceneMapping
-                    {
-                        TvdbId = _xemSeries.TvdbId,
-                        SearchTerm = _xemSeries.Title,
-                        ParseTerm = _xemSeries.Title,
-                        FilterRegex = "(?i)-(BTN)$",
-                        SeasonNumber = 1,
-                        SceneSeasonNumber = 1,
-                        SceneOrigin = "tvdb",
-                        Type = "ServicesProvider"
-                    }
-                });
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.EpisodeSearch(_xemEpisodes.First(), false, false);
-
-            Mocker.GetMock<ISceneMappingService>()
-                .Verify(v => v.FindByTvdbId(_xemSeries.Id), Times.Once());
-
-            allCriteria.Should().HaveCount(2);
-
-            allCriteria.First().Should().BeOfType<SingleEpisodeSearchCriteria>();
-            allCriteria.First().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(1);
-            allCriteria.First().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(12);
-
-            allCriteria.Last().Should().BeOfType<SingleEpisodeSearchCriteria>();
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
-        }
-
-        [Test]
-        public async Task episode_search_should_include_series_title_when_not_a_direct_title_match()
-        {
-            _xemSeries.Title = "Sonarr's Title";
-            _xemSeries.CleanTitle = "sonarrstitle";
-
-            WithEpisode(1, 12, 2, 3);
-
-            Mocker.GetMock<ISceneMappingService>()
-                .Setup(s => s.FindByTvdbId(It.IsAny<int>()))
-                .Returns(new List<SceneMapping>
-                {
-                    new SceneMapping
-                    {
-                        TvdbId = _xemSeries.TvdbId,
-                        SearchTerm = "Sonarrs Title",
-                        ParseTerm = _xemSeries.CleanTitle,
-                        SeasonNumber = 1,
-                        SceneSeasonNumber = 1,
-                        SceneOrigin = "tvdb",
-                        Type = "ServicesProvider"
-                    }
-                });
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.EpisodeSearch(_xemEpisodes.First(), false, false);
-
-            Mocker.GetMock<ISceneMappingService>()
-                .Verify(v => v.FindByTvdbId(_xemSeries.Id), Times.Once());
-
-            allCriteria.Should().HaveCount(2);
-
-            allCriteria.First().Should().BeOfType<SingleEpisodeSearchCriteria>();
-            allCriteria.First().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(1);
-            allCriteria.First().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(12);
-
-            allCriteria.Last().Should().BeOfType<SingleEpisodeSearchCriteria>();
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().SeasonNumber.Should().Be(2);
-            allCriteria.Last().As<SingleEpisodeSearchCriteria>().EpisodeNumber.Should().Be(3);
         }
 
         [Test]

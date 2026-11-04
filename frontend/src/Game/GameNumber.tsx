@@ -43,7 +43,6 @@ function GameNumber(props: GameNumberProps) {
     sceneSeasonNumber,
     sceneGameNumber,
     sceneAbsoluteGameNumber,
-    useSceneNumbering = false,
     alternateTitles: seriesAlternateTitles = [],
     seriesType,
     showSeasonNumber = false,
@@ -52,9 +51,7 @@ function GameNumber(props: GameNumberProps) {
   const alternateTitles = filterAlternateTitles(
     seriesAlternateTitles,
     null,
-    useSceneNumbering,
-    seasonNumber,
-    sceneSeasonNumber
+    seasonNumber
   );
 
   const hasAlternateTitles = !!alternateTitles.length;

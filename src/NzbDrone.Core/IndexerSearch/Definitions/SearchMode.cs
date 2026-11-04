@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace NzbDrone.Core.DataAugmentation.Scene
+namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     [Flags]
     public enum SearchMode

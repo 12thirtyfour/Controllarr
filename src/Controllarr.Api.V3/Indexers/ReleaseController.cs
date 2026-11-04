@@ -94,7 +94,6 @@ namespace Sonarr.Api.V3.Indexers
                     {
                         Release = remoteEpisode.Release,
                         ParsedEpisodeInfo = remoteEpisode.ParsedEpisodeInfo.JsonClone(),
-                        SceneMapping = remoteEpisode.SceneMapping,
                         MappedSeasonNumber = remoteEpisode.MappedSeasonNumber,
                         EpisodeRequested = remoteEpisode.EpisodeRequested,
                         DownloadAllowed = remoteEpisode.DownloadAllowed,

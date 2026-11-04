@@ -67,7 +67,6 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
     NO_CHANGE
   );
   const [seriesType, setSeriesType] = useState(NO_CHANGE);
-  const [seasonFolder, setSeasonFolder] = useState(NO_CHANGE);
   const [rootFolderPath, setRootFolderPath] = useState(NO_CHANGE);
   const [isConfirmMoveModalOpen, setIsConfirmMoveModalOpen] = useState(false);
   const { selectedCount } = useSelect();
@@ -121,7 +120,6 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
       monitorNewItems,
       qualityProfileId,
       seriesType,
-      seasonFolder,
       rootFolderPath,
       onSavePress,
       onModalClose,
@@ -145,9 +143,6 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
           break;
         case 'seriesType':
           setSeriesType(value as string);
-          break;
-        case 'seasonFolder':
-          setSeasonFolder(value as string);
           break;
         case 'rootFolderPath':
           setRootFolderPath(value as string);

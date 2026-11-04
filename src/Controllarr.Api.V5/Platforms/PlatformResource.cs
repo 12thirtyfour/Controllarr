@@ -20,7 +20,6 @@ public class PlatformResource : RestResource
     public DateTime? NextAiring { get; set; }
     public DateTime? PreviousAiring { get; set; }
     public string? Network { get; set; }
-    public string? AirTime { get; set; }
     public List<MediaCover>? Images { get; set; }
     public Language? Language { get; set; }
     public Language? OriginalLanguage { get; set; }
@@ -129,7 +128,6 @@ public static class PlatformResourceMapper
             Status = model.Status,
             Overview = model.Overview,
             Network = model.Network,
-            AirTime = model.AirTime,
             Images = model.Images.JsonClone(),
             Language = model.Language ?? Language.English,
             SeasonType = model.SeasonType,
@@ -185,7 +183,6 @@ public static class PlatformResourceMapper
             Status = resource.Status,
             Overview = resource.Overview,
             Network = resource.Network,
-            AirTime = resource.AirTime,
             Images = resource.Images,
             Language = resource.Language,
             SeasonType = resource.SeasonType,

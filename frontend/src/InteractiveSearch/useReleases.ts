@@ -15,7 +15,6 @@ import getFilterTypePredicate from 'Helpers/Props/getFilterTypePredicate';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import Language from 'Language/Language';
 import { QualityModel } from 'Quality/Quality';
-import { AlternateTitle } from 'Platform/Platform';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import Rejection from 'typings/Rejection';
 import sortByProp from 'Utilities/Array/sortByProp';
@@ -56,7 +55,6 @@ export interface Release extends ModelBase {
   releaseWeight: number;
   customFormats: CustomFormat[];
   customFormatScore: number;
-  sceneMapping?: AlternateTitle;
 }
 
 export interface ParsedInfo {

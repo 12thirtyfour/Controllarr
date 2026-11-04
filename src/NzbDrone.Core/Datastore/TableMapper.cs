@@ -14,7 +14,6 @@ namespace NzbDrone.Core.Datastore
             { "PlatformTranslations", "PlatformTranslations" },
             { "Episodes", "Games" },
             { "EpisodeFiles", "RomFiles" },
-            { "SceneMappings", "PlatformMappings" }
         };
 
         private readonly HashSet<string> _allowedOrderBy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

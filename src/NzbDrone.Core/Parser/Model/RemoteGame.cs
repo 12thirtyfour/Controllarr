@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Tv;
@@ -13,7 +12,6 @@ namespace NzbDrone.Core.Parser.Model
     {
         public ReleaseInfo Release { get; set; }
         public ParsedEpisodeInfo ParsedEpisodeInfo { get; set; }
-        public SceneMapping SceneMapping { get; set; }
         public int? MappedSeasonNumber { get; set; }
         public Series Series { get; set; }
         public List<Episode> Episodes { get; set; }

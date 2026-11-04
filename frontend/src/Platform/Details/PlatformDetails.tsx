@@ -50,7 +50,6 @@ import {
   tooltipPositions,
 } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
-import useCountryName from 'Internationalization/useCountryName';
 import OrganizePreviewModal from 'Organize/OrganizePreviewModal';
 import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
 import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
@@ -310,8 +309,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
     return filterAlternateTitles(
       series.alternateTitles,
-      series.title,
-      series.useSceneNumbering
+      series.title
     );
   }, [series]);
 
@@ -459,7 +457,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     refetchRomFiles();
   }, [refetchGames, refetchRomFiles]);
 
-  const originalCountryName = useCountryName(series?.originalCountry);
 
   useEffect(() => {
     populate();
@@ -518,7 +515,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     tvdbId,
     title,
     titleSlug,
-    runtime,
     ratings,
     path,
     pendingPath,
@@ -526,7 +522,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     qualityProfileId,
     language,
     status,
-    network,
     originalLanguage,
     overview,
     images,
@@ -816,11 +811,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                 </div>
 
                 <div className={styles.details}>
-                  {runtime ? (
-                    <span className={styles.runtime}>
-                      {translate('PlatformDetailsRuntime', { runtime })}
-                    </span>
-                  ) : null}
 
                   {ratings.value ? (
                     <HeartRating
@@ -1001,30 +991,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                         <span className={styles.originalLanguageName}>
                           {originalLanguage.name}
                         </span>
-                      </Label>
-                    ) : null}
-
-                    {originalCountryName ? (
-                      <Label
-                        className={styles.detailsLabel}
-                        title={translate('OriginalCountry')}
-                        size={sizes.LARGE}
-                        icon={icons.GLOBE}
-                      >
-                        <span className={styles.originalCountry}>
-                          {originalCountryName}
-                        </span>
-                      </Label>
-                    ) : null}
-
-                    {network ? (
-                      <Label
-                        className={styles.detailsLabel}
-                        title={translate('Network')}
-                        size={sizes.LARGE}
-                        icon={icons.NETWORK}
-                      >
-                        <span className={styles.network}>{network}</span>
                       </Label>
                     ) : null}
                   </div>

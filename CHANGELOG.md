@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **Absolute TV De-Televisonization Directive in AGENTS.md**: Formally enacted strict zero-TV tolerance policy mandating the systematic renaming, repurposing, or elimination of all remaining TV, broadcast, airing, schedule, episode, season, TVDB, TVMaze, TVRage, and scene mapping holdovers across all backend, frontend, API, persistence, and test layers.
+
+### Removed
+- **Complete Elimination of Scene Mapping Subsystem (Phase 3)**:
+  - Purged all 10 files in `src/NzbDrone.Core/DataAugmentation/Scene/` (`ISceneMappingProvider`, `InvalidSceneMappingException`, `SceneMapping`, `SceneMappingProxy`, `SceneMappingRepository`, `SceneMappingService`, `SceneMappingsUpdatedEvent`, `ServicesProvider`, `UpdateSceneMappingCommand`), retiring the directory entirely.
+  - Relocated core search definition `SearchMode.cs` cleanly into `NzbDrone.Core.IndexerSearch.Definitions`.
+  - Removed `SceneMapping` entity mapping from `TableMapping.cs` and `TableMapper.cs`.
+  - Removed `SceneMappingSpecification` from decision engine specifications.
+  - Removed `SceneMapping` properties and dependencies from `RemoteGame.cs`, `SingleGameSearchMatchSpecification.cs`, `DownloadDecisionMaker.cs`, `ReleaseSearchService.cs`, and `ParsingService.cs`.
+  - Purged obsolete scene mapping tests from `SceneMappingProxyFixture.cs`, `SceneMappingServiceFixture.cs`, and `GetGamesFixture.cs`.
+- **Frontend Declutter & TV Metric Purge (Phase 1)**:
+  - Purged TV broadcast airings (`nextAiring`, `previousAiring`), broadcast networks (`network`), original country, season folders, latest season, and TV certifications from `PlatformIndexOverview`, `PlatformIndexRow`, `PlatformIndexPoster`, `PlatformIndexPosters`, `PlatformIndexSortMenu`, `PlatformDetails`, `platformOptionsStore.ts`, and `usePlatform.ts`.
+  - Deleted obsolete `ReleaseSceneIndicator.tsx` and accompanying CSS module files, and removed scene mapping indicators from `InteractiveSearchRow.tsx`.
+- **TVDB, TV Metadata, and Entity Model Pruning (Category 5)**:
+  - Pruned broadcast holdovers (`AirTime`, `AiredAfterSeasonNumber`, `AiredBeforeSeasonNumber`, `AiredBeforeEpisodeNumber`) from domain models (`Platform`, `Game`), refresh pipelines (`RefreshPlatformService`, `RefreshGameService`), and API V3 & V5 DTOs (`PlatformResource`, `GameResource`, `ReleaseResource`).
+  - Streamlined `filterAlternateTitles.ts` by removing legacy TVDB origin and scene season number filter branches.
+
 ### Refactored
 - **Purge of Video-Specific Concepts, Containers, Formats, and Specifications**:
   - Removed video container extension collection (`.mkv`, `.avi`, `.mp4`, `.wmv`, `.mov`, `.m4v`, `.flv`, `.mpg`, `.mpeg`, `.ts`, `.m2ts`) from `FileExtensions.cs` and `RemoveFileExtension`, ensuring only console ROMs, disc images, and valid archives are handled as media file extensions.

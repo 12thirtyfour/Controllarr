@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.TPL;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.MediaCover;
@@ -41,7 +40,6 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     private readonly ISeriesService _seriesService;
     private readonly IAddPlatformService _addSeriesService;
     private readonly ISeriesStatisticsService _seriesStatisticsService;
-    private readonly ISceneMappingService _sceneMappingService;
     private readonly IPlatformTranslationService _seriesTranslationService;
     private readonly IMapCoversToLocal _coverMapper;
     private readonly IRootFolderService _rootFolderService;
@@ -52,7 +50,6 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                         ISeriesService seriesService,
                         IAddPlatformService addSeriesService,
                         ISeriesStatisticsService seriesStatisticsService,
-                        ISceneMappingService sceneMappingService,
                         IPlatformTranslationService seriesTranslationService,
                         IMapCoversToLocal coverMapper,
                         IRootFolderService rootFolderService,
@@ -71,7 +68,6 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         _seriesService = seriesService;
         _addSeriesService = addSeriesService;
         _seriesStatisticsService = seriesStatisticsService;
-        _sceneMappingService = sceneMappingService;
         _seriesTranslationService = seriesTranslationService;
 
         _coverMapper = coverMapper;
@@ -359,14 +355,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
 
     private void PopulateAlternateTitles(SeriesResource resource)
     {
-        var mappings = _sceneMappingService.FindByTvdbId(resource.TvdbId);
-
-        if (mappings == null)
-        {
-            return;
-        }
-
-        resource.AlternateTitles = mappings.ConvertAll(AlternateTitleResourceMapper.ToResource);
+        resource.AlternateTitles = new List<AlternateTitleResource>();
     }
 
     private void LinkRootFolderPath(SeriesResource resource)

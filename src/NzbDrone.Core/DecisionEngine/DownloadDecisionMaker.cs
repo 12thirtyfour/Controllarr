@@ -8,7 +8,6 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.IndexerSearch.Definitions;
@@ -30,21 +29,18 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IParsingService _parsingService;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IRemoteGameAggregationService _aggregationService;
-        private readonly ISceneMappingService _sceneMappingService;
         private readonly Logger _logger;
 
         public DownloadDecisionMaker(IEnumerable<IDownloadDecisionEngineSpecification> specifications,
                                      IParsingService parsingService,
                                      ICustomFormatCalculationService formatService,
                                      IRemoteGameAggregationService aggregationService,
-                                     ISceneMappingService sceneMappingService,
                                      Logger logger)
         {
             _specifications = specifications;
             _parsingService = parsingService;
             _formatCalculator = formatService;
             _aggregationService = aggregationService;
-            _sceneMappingService = sceneMappingService;
             _logger = logger;
         }
 
@@ -122,16 +118,7 @@ namespace NzbDrone.Core.DecisionEngine
 
                         if (remoteEpisode.Series == null)
                         {
-                            var matchingTvdbId = _sceneMappingService.FindTvdbId(parsedEpisodeInfo.SeriesTitle, parsedEpisodeInfo.ReleaseTitle, parsedEpisodeInfo.SeasonNumber ?? -1);
-
-                            if (matchingTvdbId.HasValue)
-                            {
-                                decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.MatchesAnotherSeries, $"{parsedEpisodeInfo.SeriesTitle} matches an alias for series with TVDB ID: {matchingTvdbId}"));
-                            }
-                            else
-                            {
-                                decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Platform"));
-                            }
+                            decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Platform"));
                         }
                         else if (remoteEpisode.Episodes.Empty())
                         {
