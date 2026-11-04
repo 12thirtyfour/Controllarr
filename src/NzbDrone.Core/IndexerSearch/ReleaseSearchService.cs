@@ -8,7 +8,6 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.DecisionEngine;
-using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.MetadataSource.Game;
@@ -65,14 +64,8 @@ namespace NzbDrone.Core.IndexerSearch
         {
             var series = _seriesService.GetSeries(episode.SeriesId);
 
-            if (series.SeriesType == SeriesTypes.Daily)
+            if (series.SeriesType == SeriesTypes.Daily && !string.IsNullOrWhiteSpace(episode.AirDate))
             {
-                if (string.IsNullOrWhiteSpace(episode.AirDate))
-                {
-                    _logger.Error("Game release is missing release date. Try refreshing platform info.");
-                    throw new SearchFailedException("Air date is missing");
-                }
-
                 return await SearchDaily(series, episode, false, userInvokedSearch, interactiveSearch);
             }
 

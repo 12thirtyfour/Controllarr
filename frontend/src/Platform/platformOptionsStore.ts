@@ -66,7 +66,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         detailedProgressBar: false,
         size: 'medium',
         showMonitored: true,
-        showNetwork: true,
+        showNetwork: false,
         showQualityProfile: true,
         showPreviousAiring: false,
         showAdded: false,
