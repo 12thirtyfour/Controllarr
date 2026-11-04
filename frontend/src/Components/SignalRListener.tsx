@@ -16,7 +16,6 @@ import Series from 'Platform/Platform';
 import { DownloadClientModel } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { ImportListModel } from 'Settings/ImportLists/ImportLists/useImportLists';
 import { IndexerModel } from 'Settings/Indexers/useIndexers';
-import { MetadataModel } from 'Settings/Metadata/useMetadata';
 import { NotificationModel } from 'Settings/Notifications/useConnections';
 import { repopulatePage } from 'Utilities/pagePopulator';
 import SignalRLogger from 'Utilities/SignalRLogger';
@@ -199,15 +198,6 @@ function SignalRListener() {
       return;
     }
 
-    if (name === 'metadata') {
-      const updatedItem = body.resource as MetadataModel;
-
-      if (body.action === 'updated') {
-        updateQueryClientItem(queryClient, ['/metadata'], updatedItem, false);
-      }
-
-      return;
-    }
 
     if (name === 'connection') {
       const updatedItem = body.resource as NotificationModel;
