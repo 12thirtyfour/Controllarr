@@ -14,10 +14,10 @@ using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
 
-namespace NzbDrone.Core.Test.MediaFiles.UpdateEpisodeFileServiceTests
+namespace NzbDrone.Core.Test.MediaFiles.UpdateRomFileServiceTests
 {
     [TestFixture]
-    public class ChangeFileDateForFileFixture : CoreTest<UpdateEpisodeFileService>
+    public class ChangeFileDateForFileFixture : CoreTest<UpdateRomFileService>
     {
         private readonly DateTime _veryOldAirDateUtc = new(1965, 01, 01, 0, 0, 0, 512, 512, DateTimeKind.Utc);
         private DateTime _lastWrite = new(2025, 07, 27, 12, 0, 0, 512, 512, DateTimeKind.Utc);

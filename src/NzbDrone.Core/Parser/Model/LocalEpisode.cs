@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Parser.Model
         public ParsedEpisodeInfo FolderEpisodeInfo { get; set; }
         public Series Series { get; set; }
         public List<Episode> Episodes { get; set; } = [];
-        public List<DeletedEpisodeFile> OldFiles { get; set; }
+        public List<DeletedRomFile> OldFiles { get; set; }
         public QualityModel Quality { get; set; }
         public List<Language> Languages { get; set; } = [];
         public IndexerFlags IndexerFlags { get; set; }

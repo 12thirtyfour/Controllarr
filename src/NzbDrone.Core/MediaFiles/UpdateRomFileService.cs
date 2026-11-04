@@ -14,23 +14,23 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public interface IUpdateEpisodeFileService
+    public interface IUpdateRomFileService
     {
         void ChangeFileDateForFile(EpisodeFile episodeFile, Series series, List<Episode> episodes);
     }
 
-    public class UpdateEpisodeFileService : IUpdateEpisodeFileService,
-                                            IHandle<PlatformScannedEvent>
+    public class UpdateRomFileService : IUpdateRomFileService,
+                                        IHandle<PlatformScannedEvent>
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IConfigService _configService;
         private readonly IEpisodeService _episodeService;
         private readonly Logger _logger;
 
-        public UpdateEpisodeFileService(IDiskProvider diskProvider,
-                                        IConfigService configService,
-                                        IEpisodeService episodeService,
-                                        Logger logger)
+        public UpdateRomFileService(IDiskProvider diskProvider,
+                                    IConfigService configService,
+                                    IEpisodeService episodeService,
+                                    Logger logger)
         {
             _diskProvider = diskProvider;
             _configService = configService;

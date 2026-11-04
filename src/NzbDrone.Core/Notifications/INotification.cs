@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Notifications
 
         void OnGrab(GrabMessage grabMessage);
         void OnDownload(DownloadMessage message);
-        void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles);
+        void OnRename(Series series, List<RenamedRomFile> renamedFiles);
         void OnImportComplete(ImportCompleteMessage message);
         void OnEpisodeFileDelete(GameDeleteMessage deleteMessage);
         void OnSeriesAdd(PlatformAddMessage message);

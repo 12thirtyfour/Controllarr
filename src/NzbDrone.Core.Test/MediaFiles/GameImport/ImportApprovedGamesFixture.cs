@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             Mocker.GetMock<IUpgradeMediaFiles>()
                   .Setup(s => s.UpgradeEpisodeFile(It.IsAny<EpisodeFile>(), It.IsAny<LocalEpisode>(), It.IsAny<bool>()))
-                  .Returns(new EpisodeFileMoveResult());
+                  .Returns(new RomFileMoveResult());
 
             Mocker.GetMock<IHistoryService>()
                 .Setup(x => x.FindByDownloadId(It.IsAny<string>()))

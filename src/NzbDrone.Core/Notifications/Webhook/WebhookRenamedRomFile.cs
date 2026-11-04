@@ -1,10 +1,10 @@
-﻿using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
     public class WebhookRenamedRomFile : WebhookRomFile
     {
-        public WebhookRenamedRomFile(RenamedEpisodeFile renamedEpisode)
+        public WebhookRenamedRomFile(RenamedRomFile renamedEpisode)
             : base(renamedEpisode.EpisodeFile)
         {
             PreviousRelativePath = renamedEpisode.PreviousRelativePath;

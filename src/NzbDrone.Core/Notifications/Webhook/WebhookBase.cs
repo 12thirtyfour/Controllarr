@@ -144,7 +144,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        protected WebhookRenamePayload BuildOnRenamePayload(Series series, List<RenamedEpisodeFile> renamedFiles)
+        protected WebhookRenamePayload BuildOnRenamePayload(Series series, List<RenamedRomFile> renamedFiles)
         {
             return new WebhookRenamePayload
             {
@@ -152,7 +152,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(series),
-                RenamedEpisodeFiles = renamedFiles.ConvertAll(x => new WebhookRenamedRomFile(x))
+                RenamedRomFiles = renamedFiles.ConvertAll(x => new WebhookRenamedRomFile(x))
             };
         }
 

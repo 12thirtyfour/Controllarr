@@ -9,12 +9,12 @@ namespace NzbDrone.Core.MediaFiles.Events
     {
         public LocalEpisode EpisodeInfo { get; private set; }
         public EpisodeFile ImportedEpisode { get; private set; }
-        public List<DeletedEpisodeFile> OldFiles { get; private set; }
+        public List<DeletedRomFile> OldFiles { get; private set; }
         public bool NewDownload { get; private set; }
         public DownloadClientItemClientInfo DownloadClientInfo { get; set; }
         public string DownloadId { get; private set; }
 
-        public GameImportedEvent(LocalEpisode episodeInfo, EpisodeFile importedEpisode, List<DeletedEpisodeFile> oldFiles, bool newDownload, DownloadClientItem downloadClientItem)
+        public GameImportedEvent(LocalEpisode episodeInfo, EpisodeFile importedEpisode, List<DeletedRomFile> oldFiles, bool newDownload, DownloadClientItem downloadClientItem)
         {
             EpisodeInfo = episodeInfo;
             ImportedEpisode = importedEpisode;

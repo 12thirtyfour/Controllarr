@@ -196,7 +196,7 @@ namespace NzbDrone.Core.Notifications.CustomScript
             ExecuteScript(environmentVariables);
         }
 
-        public override void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles)
+        public override void OnRename(Series series, List<RenamedRomFile> renamedFiles)
         {
             var environmentVariables = new StringDictionary();
 

@@ -38,7 +38,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy.SendWebhook(BuildOnImportCompletePayload(message), Settings);
         }
 
-        public override void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles)
+        public override void OnRename(Series series, List<RenamedRomFile> renamedFiles)
         {
             _proxy.SendWebhook(BuildOnRenamePayload(series, renamedFiles), Settings);
         }

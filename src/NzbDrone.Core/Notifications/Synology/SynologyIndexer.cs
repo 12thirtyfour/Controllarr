@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Notifications.Synology
             }
         }
 
-        public override void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles)
+        public override void OnRename(Series series, List<RenamedRomFile> renamedFiles)
         {
             if (Settings.UpdateLibrary)
             {

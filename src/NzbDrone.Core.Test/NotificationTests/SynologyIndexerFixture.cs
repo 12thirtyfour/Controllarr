@@ -33,14 +33,14 @@ namespace NzbDrone.Core.Test.NotificationTests
                     RelativePath = "file1.S01E01E02.mkv"
                 },
 
-                OldFiles = new List<DeletedEpisodeFile>
+                OldFiles = new List<DeletedRomFile>
                 {
-                    new DeletedEpisodeFile(new EpisodeFile
+                    new DeletedRomFile(new EpisodeFile
                     {
                         RelativePath = "file1.S01E01.mkv"
                     },
                         null),
-                    new DeletedEpisodeFile(new EpisodeFile
+                    new DeletedRomFile(new EpisodeFile
                     {
                         RelativePath = "file1.S01E02.mkv"
                     },
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             (Subject.Definition.Settings as SynologyIndexerSettings).UpdateLibrary = false;
 
-            Subject.OnRename(_series, new List<RenamedEpisodeFile>());
+            Subject.OnRename(_series, new List<RenamedRomFile>());
 
             Mocker.GetMock<ISynologyIndexerProxy>()
                 .Verify(v => v.UpdateFolder(_series.Path), Times.Never());
@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         [Test]
         public void should_update_entire_series_folder_on_rename()
         {
-            Subject.OnRename(_series, new List<RenamedEpisodeFile>());
+            Subject.OnRename(_series, new List<RenamedRomFile>());
 
             Mocker.GetMock<ISynologyIndexerProxy>()
                 .Verify(v => v.UpdateFolder(@"C:\Test\".AsOsAgnostic()), Times.Once());

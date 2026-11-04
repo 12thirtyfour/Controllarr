@@ -10,20 +10,20 @@ namespace NzbDrone.Core.MediaFiles
 {
     public interface IUpgradeMediaFiles
     {
-        EpisodeFileMoveResult UpgradeEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode, bool copyOnly = false);
+        RomFileMoveResult UpgradeEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode, bool copyOnly = false);
     }
 
     public class UpgradeMediaFileService : IUpgradeMediaFiles
     {
         private readonly IRecycleBinProvider _recycleBinProvider;
         private readonly IMediaFileService _mediaFileService;
-        private readonly IMoveEpisodeFiles _episodeFileMover;
+        private readonly IMoveRomFiles _episodeFileMover;
         private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
         public UpgradeMediaFileService(IRecycleBinProvider recycleBinProvider,
                                        IMediaFileService mediaFileService,
-                                       IMoveEpisodeFiles episodeFileMover,
+                                       IMoveRomFiles episodeFileMover,
                                        IDiskProvider diskProvider,
                                        Logger logger)
         {
@@ -34,9 +34,9 @@ namespace NzbDrone.Core.MediaFiles
             _logger = logger;
         }
 
-        public EpisodeFileMoveResult UpgradeEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode, bool copyOnly = false)
+        public RomFileMoveResult UpgradeEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode, bool copyOnly = false)
         {
-            var moveFileResult = new EpisodeFileMoveResult();
+            var moveFileResult = new RomFileMoveResult();
             var existingFiles = localEpisode.Episodes
                                             .Where(e => e.EpisodeFileId > 0)
                                             .Select(e => e.EpisodeFile.Value)
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.MediaFiles
                     _logger.Warn("Existing episode file missing from disk: {0}", episodeFilePath);
                 }
 
-                moveFileResult.OldFiles.Add(new DeletedEpisodeFile(file, recycleBinPath));
+                moveFileResult.OldFiles.Add(new DeletedRomFile(file, recycleBinPath));
                 _mediaFileService.Delete(file, DeleteMediaFileReason.Upgrade);
             }
 

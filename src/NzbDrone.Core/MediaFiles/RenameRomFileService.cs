@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -28,7 +28,7 @@ namespace NzbDrone.Core.MediaFiles
     {
         private readonly ISeriesService _seriesService;
         private readonly IMediaFileService _mediaFileService;
-        private readonly IMoveEpisodeFiles _episodeFileMover;
+        private readonly IMoveRomFiles _episodeFileMover;
         private readonly IEventAggregator _eventAggregator;
         private readonly IEpisodeService _episodeService;
         private readonly IBuildFileNames _filenameBuilder;
@@ -37,7 +37,7 @@ namespace NzbDrone.Core.MediaFiles
 
         public RenameRomFileService(ISeriesService seriesService,
                                         IMediaFileService mediaFileService,
-                                        IMoveEpisodeFiles episodeFileMover,
+                                        IMoveRomFiles episodeFileMover,
                                         IEventAggregator eventAggregator,
                                         IEpisodeService episodeService,
                                         IBuildFileNames filenameBuilder,
@@ -127,9 +127,9 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        private List<RenamedEpisodeFile> RenameFiles(List<EpisodeFile> episodeFiles, Series series)
+        private List<RenamedRomFile> RenameFiles(List<EpisodeFile> episodeFiles, Series series)
         {
-            var renamed = new List<RenamedEpisodeFile>();
+            var renamed = new List<RenamedRomFile>();
 
             foreach (var episodeFile in episodeFiles)
             {
@@ -143,7 +143,7 @@ namespace NzbDrone.Core.MediaFiles
 
                     _mediaFileService.Update(episodeFile);
 
-                    renamed.Add(new RenamedEpisodeFile
+                    renamed.Add(new RenamedRomFile
                                 {
                                     EpisodeFile = episodeFile,
                                     PreviousRelativePath = previousRelativePath,

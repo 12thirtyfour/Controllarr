@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Notifications
         {
         }
 
-        public virtual void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles)
+        public virtual void OnRename(Series series, List<RenamedRomFile> renamedFiles)
         {
         }
 

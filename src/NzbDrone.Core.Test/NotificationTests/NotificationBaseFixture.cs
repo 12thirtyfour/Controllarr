@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.NotificationTests
                 TestLogger.Info("OnDownload was called");
             }
 
-            public override void OnRename(Series series, List<RenamedEpisodeFile> renamedFiles)
+            public override void OnRename(Series series, List<RenamedRomFile> renamedFiles)
             {
                 TestLogger.Info("OnRename was called");
             }

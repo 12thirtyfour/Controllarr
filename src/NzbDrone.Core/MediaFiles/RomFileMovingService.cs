@@ -20,17 +20,17 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public interface IMoveEpisodeFiles
+    public interface IMoveRomFiles
     {
         EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series);
         EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode);
         EpisodeFile CopyEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode);
     }
 
-    public class EpisodeFileMovingService : IMoveEpisodeFiles
+    public class RomFileMovingService : IMoveRomFiles
     {
         private readonly IEpisodeService _episodeService;
-        private readonly IUpdateEpisodeFileService _updateEpisodeFileService;
+        private readonly IUpdateRomFileService _updateEpisodeFileService;
         private readonly IBuildFileNames _buildFileNames;
         private readonly IDiskTransferService _diskTransferService;
         private readonly IDiskProvider _diskProvider;
@@ -45,8 +45,8 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IArchiveExtractionService _archiveExtractionService;
         private readonly Logger _logger;
 
-        public EpisodeFileMovingService(IEpisodeService episodeService,
-                                IUpdateEpisodeFileService updateEpisodeFileService,
+        public RomFileMovingService(IEpisodeService episodeService,
+                                IUpdateRomFileService updateEpisodeFileService,
                                 IBuildFileNames buildFileNames,
                                 IDiskTransferService diskTransferService,
                                 IDiskProvider diskProvider,

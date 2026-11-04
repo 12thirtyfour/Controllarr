@@ -70,7 +70,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                                                            .ThenByDescending(e => e.LocalEpisode.Size))
             {
                 var localEpisode = importDecision.LocalEpisode;
-                var oldFiles = new List<DeletedEpisodeFile>();
+                var oldFiles = new List<DeletedRomFile>();
 
                 try
                 {

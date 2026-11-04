@@ -17,10 +17,10 @@ using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
 
-namespace NzbDrone.Core.Test.MediaFiles.EpisodeFileMovingServiceTests
+namespace NzbDrone.Core.Test.MediaFiles.RomFileMovingServiceTests
 {
     [TestFixture]
-    public class MoveRomFileFixture : CoreTest<EpisodeFileMovingService>
+    public class MoveRomFileFixture : CoreTest<RomFileMovingService>
     {
         private Series _series;
         private EpisodeFile _episodeFile;

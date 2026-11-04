@@ -1,6 +1,6 @@
-﻿namespace NzbDrone.Core.MediaFiles
+namespace NzbDrone.Core.MediaFiles
 {
-    public class RenamedEpisodeFile
+    public class RenamedRomFile
     {
         public EpisodeFile EpisodeFile { get; set; }
         public string PreviousPath { get; set; }
