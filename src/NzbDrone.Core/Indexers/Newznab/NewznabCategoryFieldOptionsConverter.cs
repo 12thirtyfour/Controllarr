@@ -8,17 +8,11 @@ namespace NzbDrone.Core.Indexers.Newznab
     {
         public static List<FieldSelectOption<int>> GetFieldSelectOptions(List<NewznabCategory> categories)
         {
-            // Categories not relevant for Controllarr (Movies, Audio, TV, XXX, Books)
-            var ignoreCategories = new[] { 2000, 3000, 5000, 6000, 7000 };
-
-            // And maybe relevant for specific users (0 = Unknown, 4000 = PC/Games)
-            var unimportantCategories = new[] { 0, 4000 };
-
             var result = new List<FieldSelectOption<int>>();
 
             if (categories == null)
             {
-                // Fetching categories failed, use default Newznab Console & Other categories
+                // Fetching categories failed, use default Newznab Console categories
                 categories = new List<NewznabCategory>
                 {
                     new NewznabCategory
@@ -42,21 +36,11 @@ namespace NzbDrone.Core.Indexers.Newznab
                             new NewznabCategory { Id = 1140, Name = "Xbox One" },
                             new NewznabCategory { Id = 1180, Name = "PS4" }
                         }
-                    },
-                    new NewznabCategory
-                    {
-                        Id = 8000,
-                        Name = "Other",
-                        Subcategories = new List<NewznabCategory>
-                        {
-                            new NewznabCategory { Id = 8010, Name = "Misc" },
-                            new NewznabCategory { Id = 8020, Name = "Hashed" }
-                        }
                     }
                 };
             }
 
-            foreach (var category in categories.Where(cat => !ignoreCategories.Contains(cat.Id)).OrderBy(cat => unimportantCategories.Contains(cat.Id)).ThenBy(cat => cat.Id))
+            foreach (var category in categories.Where(cat => cat.Id >= 1000 && cat.Id < 2000).OrderBy(cat => cat.Id))
             {
                 result.Add(new FieldSelectOption<int>
                 {
@@ -67,7 +51,7 @@ namespace NzbDrone.Core.Indexers.Newznab
 
                 if (category.Subcategories != null)
                 {
-                    foreach (var subcat in category.Subcategories.OrderBy(cat => cat.Id))
+                    foreach (var subcat in category.Subcategories.Where(sub => sub.Id >= 1000 && sub.Id < 2000).OrderBy(cat => cat.Id))
                     {
                         result.Add(new FieldSelectOption<int>
                         {

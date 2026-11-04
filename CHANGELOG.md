@@ -31,6 +31,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Absolute TV De-Televisonization Directive in AGENTS.md**: Formally enacted strict zero-TV tolerance policy mandating the systematic renaming, repurposing, or elimination of all remaining TV, broadcast, airing, schedule, episode, season, TVDB, TVMaze, TVRage, and scene mapping holdovers across all backend, frontend, API, persistence, and test layers.
 
 ### Removed
+- **Purge of PC (4000s) and Other (8000s) Categories from Newznab & Torznab**:
+  - Strictly limited Newznab and Torznab category presentation to console game categories (1000s) in NewznabCategoryFieldOptionsConverter, stripping out 4000s (PC) and 8000s (Other/Books).
+  - Updated default Categories in NewznabSettings and TorznabSettings to only include standard console categories (1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180).
+  - Removed GamesPC from FileListSettings default categories.
+  - Classified 4000-series (PC) and 8000-series (Other) under NonGameCategories in NewznabRssParser and TorznabRssParser, ensuring RSS feeds discard non-console releases when category filtering is active.
+  - Added database migration 244 (purge_pc_and_other_categories_from_indexers) to sanitize existing saved indexer configurations, stripping out any non-console category IDs.
 - **Complete Elimination of Quality, Delay, and Release Profiles**:
   - Abolished all video-centric profile filtering (`QualityAllowedByProfileSpecification`, `CustomFormatAllowedbyProfileSpecification`, `AcceptableSizeSpecification`, `AirDateSpecification`, `DelaySpecification`) from the decision engine. Candidate releases matching the platform's supported file types are accepted immediately for download without arbitrary pre-download quality rejections, leaving dump verification (Verified Good Dump, Verified Redump, No-Intro, etc.) to authentic cryptographic hashing (CRC32, MD5, SHA-1) against DAT databases post-download.
   - Abolished Delay Profiles and protocol restrictions in `ProtocolSpecification`, accepting all direct HTTP/HTTPS, BitTorrent, and Usenet downloads immediately without waiting periods.

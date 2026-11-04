@@ -113,8 +113,8 @@ namespace NzbDrone.Core.Indexers.Torznab
                     var isExplicitlyAllowed = AllowedCategories != null && parsedCatIds.Any(c => AllowedCategories.Contains(c));
                     if (!isExplicitlyAllowed)
                     {
-                        var hasGameCat = parsedCatIds.Any(c => c / 1000 == 1 || c / 1000 == 4 || c / 1000 == 8);
-                        var hasNonGameCat = parsedCatIds.Any(c => c / 1000 == 2 || c / 1000 == 3 || c / 1000 == 5 || c / 1000 == 6 || c / 1000 == 7);
+                        var hasGameCat = parsedCatIds.Any(c => c / 1000 == 1);
+                        var hasNonGameCat = parsedCatIds.Any(c => c / 1000 != 1);
 
                         if (hasNonGameCat && !hasGameCat)
                         {

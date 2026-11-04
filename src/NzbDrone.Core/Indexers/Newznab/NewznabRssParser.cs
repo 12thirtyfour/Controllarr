@@ -15,9 +15,9 @@ namespace NzbDrone.Core.Indexers.Newznab
     {
         public const string ns = "{http://www.newznab.com/DTD/2010/feeds/attributes/}";
 
-        private static readonly HashSet<int> NonGameCategories = new HashSet<int> { 2, 3, 5, 6, 7 };
-        private static readonly HashSet<int> GameCategories = new HashSet<int> { 1, 4, 8 };
-        private static readonly string[] NonGameCategoryTerms = { "tv", "television", "movie", "movies", "music", "audio", "ebook", "ebooks", "book", "books", "xxx", "adult", "erotica" };
+        private static readonly HashSet<int> NonGameCategories = new HashSet<int> { 2, 3, 4, 5, 6, 7, 8 };
+        private static readonly HashSet<int> GameCategories = new HashSet<int> { 1 };
+        private static readonly string[] NonGameCategoryTerms = { "tv", "television", "movie", "movies", "music", "audio", "ebook", "ebooks", "book", "books", "xxx", "adult", "erotica", "pc", "windows" };
         private static readonly string[] GameCategoryTerms = { "game", "games", "rom", "roms", "console", "nintendo", "sega", "sony", "playstation", "xbox", "atari", "emulator", "emulation" };
 
         public bool FilterNonGameCategories { get; set; } = true;

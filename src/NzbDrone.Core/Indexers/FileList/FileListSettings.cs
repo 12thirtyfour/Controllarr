@@ -33,8 +33,7 @@ namespace NzbDrone.Core.Indexers.FileList
 
             Categories = new int[]
             {
-                (int)FileListCategories.GamesConsole,
-                (int)FileListCategories.GamesPC
+                (int)FileListCategories.GamesConsole
             };
 
             MultiLanguages = Array.Empty<int>();
