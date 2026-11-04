@@ -211,7 +211,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     }
 
                     // If the file doesn't exist but EpisodeInfo is not null then the message is coming from
-                    // ImportApprovedEpisodes and the file must have been removed part way through processing
+                    // ImportApprovedGames and the file must have been removed part way through processing
                     return new HealthCheck(GetType(),
                         HealthCheckResult.Error,
                         HealthCheckReason.RemotePathMappingFileRemoved,

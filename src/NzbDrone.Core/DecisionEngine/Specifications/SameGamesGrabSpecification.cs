@@ -3,12 +3,12 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    public class SameEpisodesGrabSpecification : IDownloadDecisionEngineSpecification
+    public class SameGamesGrabSpecification : IDownloadDecisionEngineSpecification
     {
-        private readonly SameEpisodesSpecification _sameEpisodesSpecification;
+        private readonly SameGamesSpecification _sameEpisodesSpecification;
         private readonly Logger _logger;
 
-        public SameEpisodesGrabSpecification(SameEpisodesSpecification sameEpisodesSpecification, Logger logger)
+        public SameGamesGrabSpecification(SameGamesSpecification sameEpisodesSpecification, Logger logger)
         {
             _sameEpisodesSpecification = sameEpisodesSpecification;
             _logger = logger;

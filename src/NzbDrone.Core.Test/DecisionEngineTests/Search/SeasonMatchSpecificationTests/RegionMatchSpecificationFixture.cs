@@ -6,10 +6,10 @@ using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 
-namespace NzbDrone.Core.Test.DecisionEngineTests.Search.SeasonMatchSpecificationTests
+namespace NzbDrone.Core.Test.DecisionEngineTests.Search.RegionMatchSpecificationTests
 {
     [TestFixture]
-    public class RegionMatchSpecificationFixture : TestBase<SeasonMatchSpecification>
+    public class RegionMatchSpecificationFixture : TestBase<RegionMatchSpecification>
     {
         private readonly RemoteEpisode _remoteEpisode = new();
         private readonly SeasonSearchCriteria _searchCriteria = new();

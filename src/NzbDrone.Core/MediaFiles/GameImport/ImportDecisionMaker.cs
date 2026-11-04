@@ -32,7 +32,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
         private readonly IDiskProvider _diskProvider;
         private readonly IDetectSample _detectSample;
         private readonly ITrackedDownloadService _trackedDownloadService;
-        private readonly ILocalEpisodeCustomFormatCalculationService _formatCalculator;
+        private readonly ILocalGameCustomFormatCalculationService _formatCalculator;
         private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
         private readonly Logger _logger;
 
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                                    IDiskProvider diskProvider,
                                    IDetectSample detectSample,
                                    ITrackedDownloadService trackedDownloadService,
-                                   ILocalEpisodeCustomFormatCalculationService formatCalculator,
+                                   ILocalGameCustomFormatCalculationService formatCalculator,
                                    Logger logger,
                                    IUnmanagedDiskScanner unmanagedDiskScanner)
         {

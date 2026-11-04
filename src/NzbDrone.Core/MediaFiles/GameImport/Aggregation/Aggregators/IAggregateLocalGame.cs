@@ -3,7 +3,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
 {
-    public interface IAggregateLocalEpisode
+    public interface IAggregateLocalGame
     {
         int Order { get; }
         LocalEpisode Aggregate(LocalEpisode localEpisode, DownloadClientItem downloadClientItem);

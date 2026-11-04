@@ -20,7 +20,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 {
     [TestFixture]
-    public class DeletedRomFileSpecificationFixture : CoreTest<DeletedEpisodeFileSpecification>
+    public class DeletedRomFileSpecificationFixture : CoreTest<DeletedRomFileSpecification>
     {
         private RemoteEpisode _parseResultMulti;
         private RemoteEpisode _parseResultSingle;

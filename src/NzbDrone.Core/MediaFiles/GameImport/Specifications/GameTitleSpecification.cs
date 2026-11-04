@@ -10,14 +10,14 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 {
-    public class EpisodeTitleSpecification : IImportDecisionEngineSpecification
+    public class GameTitleSpecification : IImportDecisionEngineSpecification
     {
         private readonly IConfigService _configService;
         private readonly IBuildFileNames _buildFileNames;
         private readonly IEpisodeService _episodeService;
         private readonly Logger _logger;
 
-        public EpisodeTitleSpecification(IConfigService configService,
+        public GameTitleSpecification(IConfigService configService,
                                          IBuildFileNames buildFileNames,
                                          IEpisodeService episodeService,
                                          Logger logger)
@@ -38,7 +38,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             var episodeTitleRequired = _configService.GameTitleRequired;
 
-            if (episodeTitleRequired == EpisodeTitleRequiredType.Never)
+            if (episodeTitleRequired == GameTitleRequiredType.Never)
             {
                 _logger.Debug("Episode titles are never required, skipping check");
                 return ImportSpecDecision.Accept();
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                                               !e.AirDateUtc.HasValue ||
                                               e.AirDateUtc.Value == firstEpisode.AirDateUtc.Value);
 
-            if (episodeTitleRequired == EpisodeTitleRequiredType.BulkSeasonReleases &&
+            if (episodeTitleRequired == GameTitleRequiredType.BulkSeasonReleases &&
                 allEpisodesOnTheSameDay &&
                 episodesInSeason.Count(e => !e.AirDateUtc.HasValue ||
                                             e.AirDateUtc.Value == firstEpisode.AirDateUtc.Value) < 4)

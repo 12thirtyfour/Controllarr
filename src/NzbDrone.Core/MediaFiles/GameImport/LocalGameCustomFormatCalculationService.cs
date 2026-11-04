@@ -6,18 +6,18 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport;
 
-public interface ILocalEpisodeCustomFormatCalculationService
+public interface ILocalGameCustomFormatCalculationService
 {
     public List<CustomFormat> ParseEpisodeCustomFormats(LocalEpisode localEpisode);
     public void UpdateEpisodeCustomFormats(LocalEpisode localEpisode);
 }
 
-public class LocalEpisodeCustomFormatCalculationService : ILocalEpisodeCustomFormatCalculationService
+public class LocalGameCustomFormatCalculationService : ILocalGameCustomFormatCalculationService
 {
     private readonly IBuildFileNames _fileNameBuilder;
     private readonly ICustomFormatCalculationService _formatCalculator;
 
-    public LocalEpisodeCustomFormatCalculationService(IBuildFileNames fileNameBuilder, ICustomFormatCalculationService formatCalculator)
+    public LocalGameCustomFormatCalculationService(IBuildFileNames fileNameBuilder, ICustomFormatCalculationService formatCalculator)
     {
         _fileNameBuilder = fileNameBuilder;
         _formatCalculator = formatCalculator;

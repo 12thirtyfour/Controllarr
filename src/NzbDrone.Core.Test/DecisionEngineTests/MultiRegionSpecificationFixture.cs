@@ -11,7 +11,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
     [TestFixture]
-    public class MultiRegionSpecificationFixture : CoreTest<MultiSeasonSpecification>
+    public class MultiRegionSpecificationFixture : CoreTest<MultiRegionSpecification>
     {
         private RemoteEpisode _remoteEpisode;
 

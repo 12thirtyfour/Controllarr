@@ -30,7 +30,7 @@ public class MediaManagementSettingsResource : RestResource
 
     public string? ChownGroup { get; set; }
 
-    public EpisodeTitleRequiredType GameTitleRequired { get; set; }
+    public GameTitleRequiredType GameTitleRequired { get; set; }
 
     public bool SkipFreeSpaceCheckWhenGrabbing { get; set; }
 

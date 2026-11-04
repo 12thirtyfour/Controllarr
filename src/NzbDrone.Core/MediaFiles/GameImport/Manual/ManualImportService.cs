@@ -38,13 +38,13 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
         private readonly IMakeImportDecision _importDecisionMaker;
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
-        private readonly IImportApprovedEpisodes _importApprovedEpisodes;
+        private readonly IImportApprovedGames _importApprovedEpisodes;
         private readonly IAggregationService _aggregationService;
         private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly IDownloadedGamesImportService _downloadedGamesImportService;
         private readonly IMediaFileService _mediaFileService;
         private readonly ICustomFormatCalculationService _formatCalculator;
-        private readonly ILocalEpisodeCustomFormatCalculationService _localGameFormatCalculator;
+        private readonly ILocalGameCustomFormatCalculationService _localGameFormatCalculator;
         private readonly IEventAggregator _eventAggregator;
         private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
         private readonly IBiosService _biosService;
@@ -57,11 +57,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                                    ISeriesService seriesService,
                                    IEpisodeService episodeService,
                                    IAggregationService aggregationService,
-                                   IImportApprovedEpisodes importApprovedEpisodes,
+                                   IImportApprovedGames importApprovedEpisodes,
                                    ITrackedDownloadService trackedDownloadService,
                                    IDownloadedGamesImportService downloadedGamesImportService,
                                    IMediaFileService mediaFileService,
-                                   ILocalEpisodeCustomFormatCalculationService localGameFormatCalculator,
+                                   ILocalGameCustomFormatCalculationService localGameFormatCalculator,
                                    ICustomFormatCalculationService formatCalculator,
                                    IEventAggregator eventAggregator,
                                    Logger logger,

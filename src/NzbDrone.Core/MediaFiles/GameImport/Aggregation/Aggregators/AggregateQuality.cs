@@ -8,7 +8,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
 {
-    public class AggregateQuality : IAggregateLocalEpisode
+    public class AggregateQuality : IAggregateLocalGame
     {
         public int Order => 1;
 

@@ -8,7 +8,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
 {
-    public class AggregateLanguage : IAggregateLocalEpisode
+    public class AggregateLanguage : IAggregateLocalGame
     {
         public int Order => 1;
 

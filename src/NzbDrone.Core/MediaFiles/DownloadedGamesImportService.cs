@@ -31,7 +31,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly ISeriesService _seriesService;
         private readonly IParsingService _parsingService;
         private readonly IMakeImportDecision _importDecisionMaker;
-        private readonly IImportApprovedEpisodes _importApprovedEpisodes;
+        private readonly IImportApprovedGames _importApprovedEpisodes;
         private readonly IDetectSample _detectSample;
         private readonly IRuntimeInfo _runtimeInfo;
         private readonly IConfigService _configService;
@@ -45,7 +45,7 @@ namespace NzbDrone.Core.MediaFiles
                                                ISeriesService seriesService,
                                                IParsingService parsingService,
                                                IMakeImportDecision importDecisionMaker,
-                                               IImportApprovedEpisodes importApprovedEpisodes,
+                                               IImportApprovedGames importApprovedEpisodes,
                                                IDetectSample detectSample,
                                                IRuntimeInfo runtimeInfo,
                                                IConfigService configService,

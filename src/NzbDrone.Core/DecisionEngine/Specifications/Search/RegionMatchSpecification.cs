@@ -4,11 +4,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 {
-    public class SeasonMatchSpecification : IDownloadDecisionEngineSpecification
+    public class RegionMatchSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public SeasonMatchSpecification(Logger logger)
+        public RegionMatchSpecification(Logger logger)
         {
             _logger = logger;
         }

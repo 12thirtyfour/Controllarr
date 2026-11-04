@@ -6,12 +6,12 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 {
-    public class SameEpisodesImportSpecification : IImportDecisionEngineSpecification
+    public class SameGamesImportSpecification : IImportDecisionEngineSpecification
     {
-        private readonly SameEpisodesSpecification _sameEpisodesSpecification;
+        private readonly SameGamesSpecification _sameEpisodesSpecification;
         private readonly Logger _logger;
 
-        public SameEpisodesImportSpecification(SameEpisodesSpecification sameEpisodesSpecification, Logger logger)
+        public SameGamesImportSpecification(SameGamesSpecification sameEpisodesSpecification, Logger logger)
         {
             _sameEpisodesSpecification = sameEpisodesSpecification;
             _logger = logger;

@@ -4,11 +4,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 {
-    public class EpisodeRequestedSpecification : IDownloadDecisionEngineSpecification
+    public class GameRequestedSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public EpisodeRequestedSpecification(Logger logger)
+        public GameRequestedSpecification(Logger logger)
         {
             _logger = logger;
         }

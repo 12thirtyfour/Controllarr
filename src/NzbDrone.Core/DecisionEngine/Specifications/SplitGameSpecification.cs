@@ -3,11 +3,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    public class SplitEpisodeSpecification : IDownloadDecisionEngineSpecification
+    public class SplitGameSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public SplitEpisodeSpecification(Logger logger)
+        public SplitGameSpecification(Logger logger)
         {
             _logger = logger;
         }

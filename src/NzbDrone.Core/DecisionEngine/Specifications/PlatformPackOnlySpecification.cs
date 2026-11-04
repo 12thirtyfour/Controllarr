@@ -7,11 +7,11 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    public class SeasonPackOnlySpecification : IDownloadDecisionEngineSpecification
+    public class PlatformPackOnlySpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public SeasonPackOnlySpecification(Logger logger)
+        public PlatformPackOnlySpecification(Logger logger)
         {
             _logger = logger;
         }

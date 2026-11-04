@@ -10,7 +10,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 {
     [TestFixture]
-    public class FullRegionSpecificationFixture : CoreTest<FullSeasonSpecification>
+    public class FullRegionSpecificationFixture : CoreTest<FullRegionSpecification>
     {
         private LocalEpisode _localEpisode;
 

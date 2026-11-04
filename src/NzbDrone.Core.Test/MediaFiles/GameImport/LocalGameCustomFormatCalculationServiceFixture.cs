@@ -19,7 +19,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 {
     [TestFixture]
-    public class LocalGameCustomFormatCalculationServiceFixture : CoreTest<LocalEpisodeCustomFormatCalculationService>
+    public class LocalGameCustomFormatCalculationServiceFixture : CoreTest<LocalGameCustomFormatCalculationService>
     {
         private const int EnglishCustomFormatScore = 10;
         private const int SpanishCustomFormatScore = 2;

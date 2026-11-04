@@ -38,7 +38,7 @@ namespace NzbDrone.Core.MediaFiles
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IMakeImportDecision _importDecisionMaker;
-        private readonly IImportApprovedEpisodes _importApprovedEpisodes;
+        private readonly IImportApprovedGames _importApprovedEpisodes;
         private readonly IConfigService _configService;
         private readonly ISeriesService _seriesService;
         private readonly IMediaFileService _mediaFileService;
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.MediaFiles
 
         public DiskScanService(IDiskProvider diskProvider,
                                IMakeImportDecision importDecisionMaker,
-                               IImportApprovedEpisodes importApprovedEpisodes,
+                               IImportApprovedGames importApprovedEpisodes,
                                IConfigService configService,
                                ISeriesService seriesService,
                                IMediaFileService mediaFileService,

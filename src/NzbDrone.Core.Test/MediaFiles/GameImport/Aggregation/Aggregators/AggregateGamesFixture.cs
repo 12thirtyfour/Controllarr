@@ -14,7 +14,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators
 {
     [TestFixture]
-    public class AugmentEpisodesFixture : CoreTest<AggregateEpisodes>
+    public class AugmentEpisodesFixture : CoreTest<AggregateGames>
     {
         private Series _series;
 
@@ -23,9 +23,9 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators
         {
             _series = Builder<Series>.CreateNew().Build();
 
-            var augmenters = new List<Mock<IAggregateLocalEpisode>>
+            var augmenters = new List<Mock<IAggregateLocalGame>>
                              {
-                                 new Mock<IAggregateLocalEpisode>()
+                                 new Mock<IAggregateLocalGame>()
                              };
 
             Mocker.GetMock<IParsingService>()

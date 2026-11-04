@@ -4,11 +4,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 {
-    public class MonitoredEpisodeSpecification : IDownloadDecisionEngineSpecification
+    public class MonitoredGameSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public MonitoredEpisodeSpecification(Logger logger)
+        public MonitoredGameSpecification(Logger logger)
         {
             _logger = logger;
         }

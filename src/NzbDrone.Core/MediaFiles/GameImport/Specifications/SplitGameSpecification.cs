@@ -4,11 +4,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 {
-    public class SplitEpisodeSpecification : IImportDecisionEngineSpecification
+    public class SplitGameSpecification : IImportDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public SplitEpisodeSpecification(Logger logger)
+        public SplitGameSpecification(Logger logger)
         {
             _logger = logger;
         }

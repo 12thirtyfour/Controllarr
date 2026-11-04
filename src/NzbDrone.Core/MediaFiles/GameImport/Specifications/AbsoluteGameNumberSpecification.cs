@@ -8,12 +8,12 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 {
-    public class AbsoluteEpisodeNumberSpecification : IImportDecisionEngineSpecification
+    public class AbsoluteGameNumberSpecification : IImportDecisionEngineSpecification
     {
         private readonly IBuildFileNames _buildFileNames;
         private readonly Logger _logger;
 
-        public AbsoluteEpisodeNumberSpecification(IBuildFileNames buildFileNames, Logger logger)
+        public AbsoluteGameNumberSpecification(IBuildFileNames buildFileNames, Logger logger)
         {
             _buildFileNames = buildFileNames;
             _logger = logger;

@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Configuration
         bool ImportExtraFiles { get; set; }
         string ExtraFileExtensions { get; set; }
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
-        EpisodeTitleRequiredType GameTitleRequired { get; set; }
+        GameTitleRequiredType GameTitleRequired { get; set; }
         string UserRejectedExtensions { get; set; }
 
         // Season Pack Upgrade (Media Management)

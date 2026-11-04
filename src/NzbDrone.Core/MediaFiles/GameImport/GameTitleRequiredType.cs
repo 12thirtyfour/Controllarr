@@ -1,6 +1,6 @@
 ﻿namespace NzbDrone.Core.MediaFiles.GameImport
 {
-    public enum EpisodeTitleRequiredType
+    public enum GameTitleRequiredType
     {
         Always = 0,
         BulkSeasonReleases = 1,

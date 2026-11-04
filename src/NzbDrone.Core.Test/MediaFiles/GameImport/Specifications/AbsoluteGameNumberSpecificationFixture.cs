@@ -13,7 +13,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 {
     [TestFixture]
-    public class AbsoluteGameNumberSpecificationFixture : CoreTest<AbsoluteEpisodeNumberSpecification>
+    public class AbsoluteGameNumberSpecificationFixture : CoreTest<AbsoluteGameNumberSpecification>
     {
         private Series _series;
         private LocalEpisode _localEpisode;

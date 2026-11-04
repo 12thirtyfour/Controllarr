@@ -11,7 +11,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
     [TestFixture]
-    public class SameGamesSpecificationFixture : CoreTest<SameEpisodesSpecification>
+    public class SameGamesSpecificationFixture : CoreTest<SameGamesSpecification>
     {
         private List<Episode> _episodes;
 

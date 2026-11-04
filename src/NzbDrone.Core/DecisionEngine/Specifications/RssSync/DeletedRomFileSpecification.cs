@@ -9,13 +9,13 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 {
-    public class DeletedEpisodeFileSpecification : IDownloadDecisionEngineSpecification
+    public class DeletedRomFileSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IConfigService _configService;
         private readonly Logger _logger;
 
-        public DeletedEpisodeFileSpecification(IDiskProvider diskProvider, IConfigService configService, Logger logger)
+        public DeletedRomFileSpecification(IDiskProvider diskProvider, IConfigService configService, Logger logger)
         {
             _diskProvider = diskProvider;
             _configService = configService;

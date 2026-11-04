@@ -6,12 +6,12 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 {
-    public class SingleEpisodeSearchMatchSpecification : IDownloadDecisionEngineSpecification
+    public class SingleGameSearchMatchSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
         private readonly ISceneMappingService _sceneMappingService;
 
-        public SingleEpisodeSearchMatchSpecification(ISceneMappingService sceneMappingService, Logger logger)
+        public SingleGameSearchMatchSpecification(ISceneMappingService sceneMappingService, Logger logger)
         {
             _logger = logger;
             _sceneMappingService = sceneMappingService;

@@ -9,7 +9,7 @@ namespace Sonarr.Api.V3.Config
     public class MediaManagementConfigResource : RestResource
     {
         private bool _autoUnmonitorPreviouslyDownloadedEpisodes;
-        private EpisodeTitleRequiredType _episodeTitleRequired;
+        private GameTitleRequiredType _episodeTitleRequired;
 
         public bool AutoUnmonitorPreviouslyDownloadedEpisodes
         {
@@ -43,13 +43,13 @@ namespace Sonarr.Api.V3.Config
 
         public string ChownGroup { get; set; }
 
-        public EpisodeTitleRequiredType EpisodeTitleRequired
+        public GameTitleRequiredType EpisodeTitleRequired
         {
             get => _episodeTitleRequired;
             set => _episodeTitleRequired = value;
         }
 
-        public EpisodeTitleRequiredType GameTitleRequired
+        public GameTitleRequiredType GameTitleRequired
         {
             get => _episodeTitleRequired;
             set => _episodeTitleRequired = value;

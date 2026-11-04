@@ -13,9 +13,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 {
     [TestFixture]
 
-    public class MonitoredGameSpecificationFixture : CoreTest<MonitoredEpisodeSpecification>
+    public class MonitoredGameSpecificationFixture : CoreTest<MonitoredGameSpecification>
     {
-        private MonitoredEpisodeSpecification _monitoredEpisodeSpecification;
+        private MonitoredGameSpecification _monitoredEpisodeSpecification;
 
         private RemoteEpisode _parseResultMulti;
         private RemoteEpisode _parseResultSingle;
@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [SetUp]
         public void Setup()
         {
-            _monitoredEpisodeSpecification = Mocker.Resolve<MonitoredEpisodeSpecification>();
+            _monitoredEpisodeSpecification = Mocker.Resolve<MonitoredGameSpecification>();
 
             _fakeSeries = Builder<Series>.CreateNew()
                 .With(c => c.Monitored = true)

@@ -16,7 +16,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 {
     [TestFixture]
-    public class GameTitleSpecificationFixture : CoreTest<EpisodeTitleSpecification>
+    public class GameTitleSpecificationFixture : CoreTest<GameTitleSpecification>
     {
         private Series _series;
         private LocalEpisode _localEpisode;
@@ -99,7 +99,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         {
             Mocker.GetMock<IConfigService>()
                   .Setup(s => s.GameTitleRequired)
-                  .Returns(EpisodeTitleRequiredType.Never);
+                  .Returns(GameTitleRequiredType.Never);
 
             Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
         }
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         {
             Mocker.GetMock<IConfigService>()
                   .Setup(s => s.GameTitleRequired)
-                  .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
+                  .Returns(GameTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.GetEpisodesBySeason(It.IsAny<int>(), It.IsAny<int>()))
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         {
             Mocker.GetMock<IConfigService>()
                   .Setup(s => s.GameTitleRequired)
-                  .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
+                  .Returns(GameTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.GetEpisodesBySeason(It.IsAny<int>(), It.IsAny<int>()))
@@ -142,7 +142,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             Mocker.GetMock<IConfigService>()
                   .Setup(s => s.GameTitleRequired)
-                  .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
+                  .Returns(GameTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.GetEpisodesBySeason(It.IsAny<int>(), It.IsAny<int>()))
@@ -161,7 +161,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             Mocker.GetMock<IConfigService>()
                   .Setup(s => s.GameTitleRequired)
-                  .Returns(EpisodeTitleRequiredType.BulkSeasonReleases);
+                  .Returns(GameTitleRequiredType.BulkSeasonReleases);
 
             Mocker.GetMock<IEpisodeService>()
                   .Setup(s => s.GetEpisodesBySeason(It.IsAny<int>(), It.IsAny<int>()))

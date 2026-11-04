@@ -8,13 +8,13 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
 {
-    public class AggregateEpisodes : IAggregateLocalEpisode
+    public class AggregateGames : IAggregateLocalGame
     {
         public int Order => 1;
 
         private readonly IParsingService _parsingService;
 
-        public AggregateEpisodes(IParsingService parsingService)
+        public AggregateGames(IParsingService parsingService)
         {
             _parsingService = parsingService;
         }

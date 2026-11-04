@@ -15,7 +15,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.DecisionEngineTests
 {
     [TestFixture]
-    public class SingleGameAgeDownloadDecisionFixture : CoreTest<SeasonPackOnlySpecification>
+    public class SingleGameAgeDownloadDecisionFixture : CoreTest<PlatformPackOnlySpecification>
     {
         private RemoteEpisode _parseResultMulti;
         private RemoteEpisode _parseResultSingle;

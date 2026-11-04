@@ -19,13 +19,13 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation
 
     public class AggregationService : IAggregationService
     {
-        private readonly IEnumerable<IAggregateLocalEpisode> _augmenters;
+        private readonly IEnumerable<IAggregateLocalGame> _augmenters;
         private readonly IDiskProvider _diskProvider;
         private readonly IVideoFileInfoReader _videoFileInfoReader;
         private readonly IConfigService _configService;
         private readonly Logger _logger;
 
-        public AggregationService(IEnumerable<IAggregateLocalEpisode> augmenters,
+        public AggregationService(IEnumerable<IAggregateLocalGame> augmenters,
                                  IDiskProvider diskProvider,
                                  IVideoFileInfoReader videoFileInfoReader,
                                  IConfigService configService,

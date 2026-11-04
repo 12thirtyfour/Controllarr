@@ -3,11 +3,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    public class MultiSeasonSpecification : IDownloadDecisionEngineSpecification
+    public class MultiRegionSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public MultiSeasonSpecification(Logger logger)
+        public MultiRegionSpecification(Logger logger)
         {
             _logger = logger;
         }

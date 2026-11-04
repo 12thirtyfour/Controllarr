@@ -4,7 +4,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
 {
-    public class AggregateReleaseHash : IAggregateLocalEpisode
+    public class AggregateReleaseHash : IAggregateLocalGame
     {
         public int Order => 1;
 

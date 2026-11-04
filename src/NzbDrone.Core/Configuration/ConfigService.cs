@@ -261,9 +261,9 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("RescanAfterRefresh", value); }
         }
 
-        public EpisodeTitleRequiredType GameTitleRequired
+        public GameTitleRequiredType GameTitleRequired
         {
-            get { return GetValueEnum("GameTitleRequired", EpisodeTitleRequiredType.Always); }
+            get { return GetValueEnum("GameTitleRequired", GameTitleRequiredType.Always); }
 
             set { SetValue("GameTitleRequired", value); }
         }

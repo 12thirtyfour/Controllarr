@@ -5,11 +5,11 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    public class SameEpisodesSpecification
+    public class SameGamesSpecification
     {
         private readonly IEpisodeService _episodeService;
 
-        public SameEpisodesSpecification(IEpisodeService episodeService)
+        public SameGamesSpecification(IEpisodeService episodeService)
         {
             _episodeService = episodeService;
         }

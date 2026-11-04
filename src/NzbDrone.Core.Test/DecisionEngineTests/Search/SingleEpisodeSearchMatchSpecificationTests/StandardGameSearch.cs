@@ -7,10 +7,10 @@ using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 
-namespace NzbDrone.Core.Test.DecisionEngineTests.Search.SingleEpisodeSearchMatchSpecificationTests
+namespace NzbDrone.Core.Test.DecisionEngineTests.Search.SingleGameSearchMatchSpecificationTests
 {
     [TestFixture]
-    public class StandardGameSearch : TestBase<SingleEpisodeSearchMatchSpecification>
+    public class StandardGameSearch : TestBase<SingleGameSearchMatchSpecification>
     {
         private readonly RemoteEpisode _remoteEpisode = new();
         private readonly SingleEpisodeSearchCriteria _searchCriteria = new();

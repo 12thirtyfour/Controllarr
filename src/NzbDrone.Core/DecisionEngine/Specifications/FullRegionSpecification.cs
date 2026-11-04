@@ -7,12 +7,12 @@ using NzbDrone.Core.Profiles.Releases;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
-    public class FullSeasonSpecification : IDownloadDecisionEngineSpecification
+    public class FullRegionSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly IReleaseProfileService _releaseProfileService;
         private readonly Logger _logger;
 
-        public FullSeasonSpecification(IReleaseProfileService releaseProfileService, Logger logger)
+        public FullRegionSpecification(IReleaseProfileService releaseProfileService, Logger logger)
         {
             _releaseProfileService = releaseProfileService;
             _logger = logger;

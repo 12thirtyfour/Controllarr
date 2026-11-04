@@ -16,12 +16,12 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.MediaFiles.GameImport
 {
-    public interface IImportApprovedEpisodes
+    public interface IImportApprovedGames
     {
         List<ImportResult> Import(List<ImportDecision> decisions, bool newDownload, DownloadClientItem downloadClientItem = null, ImportMode importMode = ImportMode.Auto);
     }
 
-    public class ImportApprovedEpisodes : IImportApprovedEpisodes
+    public class ImportApprovedGames : IImportApprovedGames
     {
         private readonly IUpgradeMediaFiles _episodeFileUpgrader;
         private readonly IMediaFileService _mediaFileService;
@@ -33,7 +33,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
 
-        public ImportApprovedEpisodes(IUpgradeMediaFiles episodeFileUpgrader,
+        public ImportApprovedGames(IUpgradeMediaFiles episodeFileUpgrader,
                                       IMediaFileService mediaFileService,
                                       IExtraService extraService,
                                       IExistingExtraFiles existingExtraFiles,

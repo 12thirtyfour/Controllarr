@@ -5,11 +5,11 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 {
-    public class FullSeasonSpecification : IImportDecisionEngineSpecification
+    public class FullRegionSpecification : IImportDecisionEngineSpecification
     {
         private readonly Logger _logger;
 
-        public FullSeasonSpecification(Logger logger)
+        public FullRegionSpecification(Logger logger)
         {
             _logger = logger;
         }
