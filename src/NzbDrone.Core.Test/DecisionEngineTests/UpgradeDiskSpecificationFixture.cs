@@ -317,7 +317,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_if_custom_formats_is_met_and_quality_and_format_higher()
         {
-            var customFormat = new CustomFormat("My Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 1 };
+            var customFormat = new CustomFormat("My Format", new ReleaseTitleSpecification { Value = ".*" }) { Id = 1 };
 
             GivenProfile(new QualityProfile
             {
@@ -372,7 +372,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_if_quality_profile_does_not_allow_upgrades_but_format_cutoff_is_above_current_score()
         {
-            var customFormat = new CustomFormat("My Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 1 };
+            var customFormat = new CustomFormat("My Format", new ReleaseTitleSpecification { Value = ".*" }) { Id = 1 };
 
             GivenProfile(new QualityProfile
             {
@@ -405,7 +405,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_if_quality_profile_does_not_allow_upgrades_but_format_cutoff_is_above_current_score_and_is_revision_upgrade()
         {
-            var customFormat = new CustomFormat("My Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 1 };
+            var customFormat = new CustomFormat("My Format", new ReleaseTitleSpecification { Value = ".*" }) { Id = 1 };
 
             Mocker.GetMock<IConfigService>()
                 .SetupGet(s => s.DownloadPropersAndRepacks)

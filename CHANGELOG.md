@@ -9,6 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Refactored
+- **Purge of Video-Specific Concepts, Containers, Formats, and Specifications**:
+  - Removed video container extension collection (`.mkv`, `.avi`, `.mp4`, `.wmv`, `.mov`, `.m4v`, `.flv`, `.mpg`, `.mpeg`, `.ts`, `.m2ts`) from `FileExtensions.cs` and `RemoveFileExtension`, ensuring only console ROMs, disc images, and valid archives are handled as media file extensions.
+  - Guarded `VideoFileInfoReader` (`GetMediaInfo` and `GetRunTime`) against all console ROM and optical disc extensions (`MediaFileExtensions.RomExtensions`), bypassing FFProbe execution for game assets.
+  - Removed obsolete video-specific `ResolutionSpecification.cs` from Custom Formats and renamed `SeasonPackSpecificationValidator` to `ReleaseTypeSpecificationValidator`.
+  - Hardened `CustomFormatSpecificationListConverter` to gracefully skip obsolete or unregistered custom format specifications during deserialization without throwing errors.
+  - Replaced video-specific mock sample templates (`1080p.WEBDL.x264-EVOLVE.mkv`, video codecs `AVC`, HDR `BT.2020`/`HLG`) in `FileNameSampleService.cs` with authentic console ROM naming samples (`Super.Mario.World.USA.sfc`, `Final.Fantasy.VII.USA.Disc1.chd`, `1G1R`, `No-Intro`, `Redump`).
+  - Purged video sample detection holdovers (`.flv`, `.strm`, "valid video file" log warnings) in `DetectSample.cs` and updated `DetectSampleFixture.cs` to test ROM formats (`.sfc`, `.chd`).
+  - Removed orphaned `frontend/src/RomFile/MediaInfo.tsx` component and cleaned up unused `mediaInfo` props in `GameRow.tsx`.
 - **Complete Elimination of TV Terminology & Folder Retirement (`Tv/` -> `Platforms/`)**:
   - Successfully eliminated all TV terminology (`Episode`, `Series`, `Season`, `Tv`) in file names and domain entities across the entire codebase (excluding historical database migration files preserving schema version integrity):
     - Completely retired directory `src/NzbDrone.Core/Tv/`, migrating all entities into `src/NzbDrone.Core/Platforms/`.

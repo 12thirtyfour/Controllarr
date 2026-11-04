@@ -212,9 +212,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_true_when_qualities_are_the_same_and_languages_are_the_same_with_higher_custom_format_score()
         {
-            _remoteEpisode.CustomFormats = new List<CustomFormat> { new CustomFormat("My Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 1 } };
+            _remoteEpisode.CustomFormats = new List<CustomFormat> { new CustomFormat("My Format", new ReleaseTitleSpecification { Value = ".*" }) { Id = 1 } };
 
-            var lowFormat = new List<CustomFormat> { new CustomFormat("Bad Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 2 } };
+            var lowFormat = new List<CustomFormat> { new CustomFormat("Bad Format", new ReleaseTitleSpecification { Value = ".*" }) { Id = 2 } };
 
             CustomFormatsTestHelpers.GivenCustomFormats(_remoteEpisode.CustomFormats.First(), lowFormat.First());
 

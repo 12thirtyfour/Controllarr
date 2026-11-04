@@ -6,9 +6,9 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.CustomFormats
 {
-    public class SeasonPackSpecificationValidator : AbstractValidator<ReleaseTypeSpecification>
+    public class ReleaseTypeSpecificationValidator : AbstractValidator<ReleaseTypeSpecification>
     {
-        public SeasonPackSpecificationValidator()
+        public ReleaseTypeSpecificationValidator()
         {
             RuleFor(c => c.Value).Custom((releaseType, context) =>
             {
@@ -22,7 +22,7 @@ namespace NzbDrone.Core.CustomFormats
 
     public class ReleaseTypeSpecification : CustomFormatSpecificationBase
     {
-        private static readonly SeasonPackSpecificationValidator Validator = new();
+        private static readonly ReleaseTypeSpecificationValidator Validator = new();
 
         public override int Order => 10;
         public override string ImplementationName => "Release Type";

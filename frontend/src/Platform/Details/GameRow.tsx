@@ -20,7 +20,6 @@ import { useRomFile } from 'RomFile/RomFileProvider';
 import { icons, kinds } from 'Helpers/Props';
 import { useSingleSeries } from 'Platform/usePlatform';
 import { loadLocalLibretroConfig } from 'Settings/Libretro/LibretroSettings';
-import MediaInfoModel from 'typings/MediaInfo';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import formatRuntime from 'Utilities/Number/formatRuntime';
@@ -55,7 +54,6 @@ interface GameRowProps {
   isGroupExpanded?: boolean;
   groupKey?: string;
   onToggleGroupExpand?: (groupKey: string) => void;
-  mediaInfo?: MediaInfoModel;
   columns: Column[];
   onMonitorGamePress: (
     gameId: number,

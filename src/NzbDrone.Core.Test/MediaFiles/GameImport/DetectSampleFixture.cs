@@ -65,9 +65,9 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
         }
 
         [Test]
-        public void should_return_false_for_flv()
+        public void should_return_false_for_rom_file()
         {
-            _localEpisode.Path = @"C:\Test\some.show.s01e01.flv";
+            _localEpisode.Path = @"C:\Test\Super Mario World (USA).sfc";
 
             Subject.IsSample(_localEpisode.Series,
                 _localEpisode.Path,
@@ -77,9 +77,9 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
         }
 
         [Test]
-        public void should_return_false_for_strm()
+        public void should_return_false_for_disc_image()
         {
-            _localEpisode.Path = @"C:\Test\some.show.s01e01.strm";
+            _localEpisode.Path = @"C:\Test\Metal Gear Solid (USA) (Disc 1).chd";
 
             Subject.IsSample(_localEpisode.Series,
                 _localEpisode.Path,

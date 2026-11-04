@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 
@@ -126,109 +125,63 @@ namespace NzbDrone.Core.Organizer
             _singleEpisode = new List<Episode> { _episode1 };
             _multiEpisodes = new List<Episode> { _episode1, _episode2, _episode3 };
 
-            var mediaInfo = new MediaInfoModel
-            {
-                VideoFormat = "AVC",
-                VideoBitDepth = 10,
-                VideoColourPrimaries = "bt2020",
-                VideoTransferCharacteristics = "HLG",
-                AudioStreams =
-                [
-                    new MediaInfoAudioStreamModel
-                    {
-                        Language = "ger",
-                        Format = "dts",
-                        Channels = 6,
-                        ChannelPositions = "5.1",
-                    }
-                ],
-                SubtitleStreams =
-                [
-                    new MediaInfoSubtitleStreamModel { Language = "eng" },
-                    new MediaInfoSubtitleStreamModel { Language = "ger" }
-                ],
-            };
-
-            var mediaInfoAnime = new MediaInfoModel
-            {
-                VideoFormat = "AVC",
-                VideoBitDepth = 10,
-                VideoColourPrimaries = "BT.2020",
-                VideoTransferCharacteristics = "HLG",
-                AudioStreams =
-                [
-                    new MediaInfoAudioStreamModel
-                    {
-                        Language = "jpn",
-                        Format = "dts",
-                        Channels = 6,
-                        ChannelPositions = "5.1",
-                    }
-                ],
-                SubtitleStreams =
-                [
-                    new MediaInfoSubtitleStreamModel { Language = "jpn" },
-                    new MediaInfoSubtitleStreamModel { Language = "eng" }
-                ],
-            };
-
             _customFormats = new List<CustomFormat>
             {
                 new CustomFormat
                 {
-                    Name = "Surround Sound",
+                    Name = "1G1R",
                     IncludeCustomFormatWhenRenaming = true
                 },
                 new CustomFormat
                 {
-                    Name = "x264",
+                    Name = "VerifiedGoodDump",
                     IncludeCustomFormatWhenRenaming = true
                 }
             };
 
             _singleEpisodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.WEBDL1080p, new Revision(2)),
-                RelativePath = "The.Series.Title's!.S01E01.1080p.WEBDL.x264-EVOLVE.mkv",
-                SceneName = "The.Series.Title's!.S01E01.1080p.WEBDL.x264-EVOLVE",
-                ReleaseGroup = "RlsGrp",
-                MediaInfo = mediaInfo
+                Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(1)),
+                RelativePath = "Super.Mario.World.USA.sfc",
+                SceneName = "Super.Mario.World.USA",
+                ReleaseGroup = "No-Intro",
+                MediaInfo = null
             };
 
             _multiEpisodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.WEBDL1080p, new Revision(2)),
-                RelativePath = "The.Series.Title's!.S01E01-E03.1080p.WEBDL.x264-EVOLVE.mkv",
-                SceneName = "The.Series.Title's!.S01E01-E03.1080p.WEBDL.x264-EVOLVE",
-                ReleaseGroup = "RlsGrp",
-                MediaInfo = mediaInfo,
+                Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(1)),
+                RelativePath = "Final.Fantasy.VII.USA.Disc1.chd",
+                SceneName = "Final.Fantasy.VII.USA.Disc1",
+                ReleaseGroup = "Redump",
+                MediaInfo = null
             };
 
             _dailyEpisodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.WEBDL1080p, new Revision(2)),
-                RelativePath = "The.Series.Title's!.2013.10.30.1080p.WEBDL.x264-EVOLVE.mkv",
-                SceneName = "The.Series.Title's!.2013.10.30.1080p.WEBDL.x264-EVOLVE",
-                ReleaseGroup = "RlsGrp",
-                MediaInfo = mediaInfo
+                Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(1)),
+                RelativePath = "The.Legend.of.Zelda.Ocarina.of.Time.USA.Rev.A.z64",
+                SceneName = "The.Legend.of.Zelda.Ocarina.of.Time.USA.Rev.A",
+                ReleaseGroup = "No-Intro",
+                MediaInfo = null
             };
 
             _animeEpisodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.WEBDL1080p, new Revision(2)),
-                RelativePath = "[RlsGroup] The Series Title's! - 001 [1080P].mkv",
-                SceneName = "[RlsGroup] The Series Title's! - 001 [1080P]",
-                ReleaseGroup = "RlsGrp",
-                MediaInfo = mediaInfoAnime
+                Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(1)),
+                RelativePath = "Chrono.Trigger.USA.sfc",
+                SceneName = "Chrono.Trigger.USA",
+                ReleaseGroup = "No-Intro",
+                MediaInfo = null
             };
 
             _animeMultiEpisodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.WEBDL1080p, new Revision(2)),
-                RelativePath = "[RlsGroup] The Series Title's! - 001 - 103 [1080p].mkv",
-                SceneName = "[RlsGroup] The Series Title's! - 001 - 103 [1080p]",
-                ReleaseGroup = "RlsGrp",
-                MediaInfo = mediaInfoAnime
+                Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(1)),
+                RelativePath = "Metal.Gear.Solid.USA.Disc1.chd",
+                SceneName = "Metal.Gear.Solid.USA.Disc1",
+                ReleaseGroup = "Redump",
+                MediaInfo = null
             };
         }
 

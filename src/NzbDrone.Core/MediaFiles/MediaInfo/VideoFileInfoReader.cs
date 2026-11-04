@@ -45,9 +45,10 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                 throw new FileNotFoundException("Media file does not exist: " + filename);
             }
 
-            if (MediaFileExtensions.DiskExtensions
-                .Concat(MediaFileExtensions.StreamingExtensions)
-                .Contains(Path.GetExtension(filename)))
+            var extension = Path.GetExtension(filename);
+            if (MediaFileExtensions.RomExtensions.Contains(extension) ||
+                MediaFileExtensions.DiskExtensions.Contains(extension) ||
+                MediaFileExtensions.StreamingExtensions.Contains(extension))
             {
                 return null;
             }

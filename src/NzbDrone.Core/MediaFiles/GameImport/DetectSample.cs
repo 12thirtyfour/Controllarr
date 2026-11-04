@@ -91,18 +91,6 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 return DetectSampleResult.NotSample;
             }
 
-            if (extension != null && extension.Equals(".flv", StringComparison.InvariantCultureIgnoreCase))
-            {
-                _logger.Debug("Skipping sample check for .flv file");
-                return DetectSampleResult.NotSample;
-            }
-
-            if (extension != null && extension.Equals(".strm", StringComparison.InvariantCultureIgnoreCase))
-            {
-                _logger.Debug("Skipping sample check for .strm file");
-                return DetectSampleResult.NotSample;
-            }
-
             return DetectSampleResult.Indeterminate;
         }
 
@@ -112,7 +100,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
 
             if (fileRuntime.TotalMinutes.Equals(0))
             {
-                _logger.Error("[{0}] has a runtime of 0, is it a valid video file?", path);
+                _logger.Debug("[{0}] has a runtime of 0", path);
                 return DetectSampleResult.Sample;
             }
 

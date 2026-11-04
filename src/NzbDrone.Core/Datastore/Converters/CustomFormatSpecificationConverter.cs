@@ -43,12 +43,19 @@ namespace NzbDrone.Core.Datastore.Converters
                 reader.Read(); // Move to start of object (stored in this property)
                 ValidateToken(reader, JsonTokenType.StartObject); // Start of formattag
 
-                var type = Type.GetType($"NzbDrone.Core.CustomFormats.{typename}, Controllarr.Core", true);
-                var item = (ICustomFormatSpecification)JsonSerializer.Deserialize(ref reader, type, options);
-                results.Add(item);
-
-                reader.Read(); // Move past end of body object
-                reader.Read(); // Move past end of 'wrapper' object
+                var type = Type.GetType($"NzbDrone.Core.CustomFormats.{typename}, Controllarr.Core", false);
+                if (type != null)
+                {
+                    var item = (ICustomFormatSpecification)JsonSerializer.Deserialize(ref reader, type, options);
+                    results.Add(item);
+                    reader.Read(); // Move past end of body object
+                    reader.Read(); // Move past end of 'wrapper' object
+                }
+                else
+                {
+                    reader.Skip(); // Skip obsolete or unknown specification body
+                    reader.Read(); // Move past end of 'wrapper' object
+                }
             }
 
             ValidateToken(reader, JsonTokenType.EndArray);
