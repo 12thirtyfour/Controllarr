@@ -8,7 +8,6 @@ using FluentMigrator;
 using NLog;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Datastore.Migration.Framework;
-using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
@@ -17,7 +16,7 @@ namespace NzbDrone.Core.Datastore.Migration
     [Migration(198)]
     public class parse_title_from_existing_subtitle_files : NzbDroneMigrationBase
     {
-        private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(AggregateSubtitleInfo));
+        private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(parse_title_from_existing_subtitle_files));
 
         protected override void MainDbUpgrade()
         {

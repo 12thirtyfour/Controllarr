@@ -17,7 +17,6 @@ using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
-using NzbDrone.Core.Extras.Subtitles;
 using NzbDrone.Core.History;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.ImportLists.Exclusions;
@@ -153,7 +152,6 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<NamingConfig>("NamingConfig").RegisterModel();
             Mapper.Entity<Blocklist>("Blocklist").RegisterModel();
             Mapper.Entity<MetadataFile>("MetadataFiles").RegisterModel();
-            Mapper.Entity<SubtitleFile>("SubtitleFiles").RegisterModel();
             Mapper.Entity<OtherExtraFile>("ExtraFiles").RegisterModel();
 
             Mapper.Entity<PendingRelease>("PendingReleases").RegisterModel()
