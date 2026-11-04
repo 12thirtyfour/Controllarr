@@ -5,6 +5,22 @@ using NzbDrone.Core.Games;
 
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
+    public class RegionSearchCriteria : SearchCriteriaBase
+    {
+        public int SeasonNumber { get; set; }
+        public bool IsPlatformCollectionSearch { get; set; }
+
+        public override string ToString()
+        {
+            var region = RegionHelper.GetRegionName(SeasonNumber);
+            return string.Format("[{0} : {1}]", Series.Title, region);
+        }
+    }
+
+    public class SeasonSearchCriteria : RegionSearchCriteria
+    {
+    }
+
     public class AnimeSeasonSearchCriteria : SearchCriteriaBase
     {
         public int SeasonNumber { get; set; }
@@ -17,6 +33,16 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         {
             var region = RegionHelper.GetRegionName(SeasonNumber);
             return $"[{Series.Title} : {region}]";
+        }
+    }
+
+    public class DailySeasonSearchCriteria : SearchCriteriaBase
+    {
+        public int Year { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("[{0} : {1}]", Series.Title, Year);
         }
     }
 }
