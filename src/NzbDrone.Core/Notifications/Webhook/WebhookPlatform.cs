@@ -5,7 +5,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
-    public class WebhookSeries
+    public class WebhookPlatform
     {
         public int Id { get; set; }
         public string Title { get; set; }
@@ -25,11 +25,11 @@ namespace NzbDrone.Core.Notifications.Webhook
         public Language OriginalLanguage { get; set; }
         public string OriginalCountry { get; set; }
 
-        public WebhookSeries()
+        public WebhookPlatform()
         {
         }
 
-        public WebhookSeries(Series series, List<string> tags)
+        public WebhookPlatform(Series series, List<string> tags)
         {
             Id = series.Id;
             Title = series.Title;

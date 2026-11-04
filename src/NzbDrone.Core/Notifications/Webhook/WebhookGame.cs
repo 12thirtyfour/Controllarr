@@ -3,13 +3,13 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
-    public class WebhookEpisode
+    public class WebhookGame
     {
-        public WebhookEpisode()
+        public WebhookGame()
         {
         }
 
-        public WebhookEpisode(Episode episode)
+        public WebhookGame(Episode episode)
         {
             Id = episode.Id;
             SeasonNumber = episode.SeasonNumber;

@@ -4,7 +4,7 @@ namespace NzbDrone.Core.Notifications.Webhook
 {
     public class WebhookRenamePayload : WebhookPayload
     {
-        public WebhookSeries Series { get; set; }
-        public List<WebhookRenamedEpisodeFile> RenamedEpisodeFiles { get; set; }
+        public WebhookPlatform Series { get; set; }
+        public List<WebhookRenamedRomFile> RenamedEpisodeFiles { get; set; }
     }
 }

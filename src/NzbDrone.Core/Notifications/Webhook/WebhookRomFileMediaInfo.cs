@@ -5,13 +5,13 @@ using NzbDrone.Core.MediaFiles.MediaInfo;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
-    public class WebhookEpisodeFileMediaInfo
+    public class WebhookRomFileMediaInfo
     {
-        public WebhookEpisodeFileMediaInfo()
+        public WebhookRomFileMediaInfo()
         {
         }
 
-        public WebhookEpisodeFileMediaInfo(EpisodeFile episodeFile)
+        public WebhookRomFileMediaInfo(EpisodeFile episodeFile)
         {
             AudioChannels = MediaInfoFormatter.FormatAudioChannels(episodeFile.MediaInfo.PrimaryAudioStream);
             AudioCodec = MediaInfoFormatter.FormatAudioCodec(episodeFile.MediaInfo.PrimaryAudioStream, episodeFile.SceneName);

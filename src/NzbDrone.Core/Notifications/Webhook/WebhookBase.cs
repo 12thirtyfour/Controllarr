@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(message.Series),
-                Episodes = remoteEpisode.Episodes.ConvertAll(x => new WebhookEpisode(x)),
+                Episodes = remoteEpisode.Episodes.ConvertAll(x => new WebhookGame(x)),
                 Release = new WebhookRelease(quality, remoteEpisode),
                 DownloadClient = message.DownloadClientName,
                 DownloadClientType = message.DownloadClientType,
@@ -59,8 +59,8 @@ namespace NzbDrone.Core.Notifications.Webhook
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(message.Series),
-                Episodes = episodeFile.Episodes.Value.ConvertAll(x => new WebhookEpisode(x)),
-                EpisodeFile = new WebhookEpisodeFile(episodeFile)
+                Episodes = episodeFile.Episodes.Value.ConvertAll(x => new WebhookGame(x)),
+                EpisodeFile = new WebhookRomFile(episodeFile)
                 {
                     SourcePath = message.SourcePath
                 },
@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Notifications.Webhook
 
             if (message.OldFiles.Any())
             {
-                payload.DeletedFiles = message.OldFiles.ConvertAll(x => new WebhookEpisodeFile(x.EpisodeFile)
+                payload.DeletedFiles = message.OldFiles.ConvertAll(x => new WebhookRomFile(x.EpisodeFile)
                 {
                     Path = Path.Combine(message.Series.Path, x.EpisodeFile.RelativePath),
                     RecycleBinPath = x.RecycleBinPath
@@ -94,8 +94,8 @@ namespace NzbDrone.Core.Notifications.Webhook
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(message.Series),
-                Episodes = message.Episodes.ConvertAll(x => new WebhookEpisode(x)),
-                EpisodeFiles = episodeFiles.ConvertAll(e => new WebhookEpisodeFile(e)),
+                Episodes = message.Episodes.ConvertAll(x => new WebhookGame(x)),
+                EpisodeFiles = episodeFiles.ConvertAll(e => new WebhookRomFile(e)),
                 Release = new WebhookGrabbedRelease(message.Release, episodeFiles.First().IndexerFlags, episodeFiles.First().ReleaseType),
                 DownloadClient = message.DownloadClientInfo?.Name,
                 DownloadClientType = message.DownloadClientInfo?.Type,
@@ -107,23 +107,23 @@ namespace NzbDrone.Core.Notifications.Webhook
             return payload;
         }
 
-        protected WebhookEpisodeDeletePayload BuildOnEpisodeFileDelete(GameDeleteMessage deleteMessage)
+        protected WebhookGameDeletePayload BuildOnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            return new WebhookEpisodeDeletePayload
+            return new WebhookGameDeletePayload
             {
                 EventType = WebhookEventType.EpisodeFileDelete,
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(deleteMessage.Series),
-                Episodes = deleteMessage.EpisodeFile.Episodes.Value.ConvertAll(x => new WebhookEpisode(x)),
-                EpisodeFile = new WebhookEpisodeFile(deleteMessage.EpisodeFile),
+                Episodes = deleteMessage.EpisodeFile.Episodes.Value.ConvertAll(x => new WebhookGame(x)),
+                EpisodeFile = new WebhookRomFile(deleteMessage.EpisodeFile),
                 DeleteReason = deleteMessage.Reason
             };
         }
 
-        protected WebhookSeriesAddPayload BuildOnSeriesAdd(PlatformAddMessage addMessage)
+        protected WebhookPlatformAddPayload BuildOnSeriesAdd(PlatformAddMessage addMessage)
         {
-            return new WebhookSeriesAddPayload
+            return new WebhookPlatformAddPayload
             {
                 EventType = WebhookEventType.SeriesAdd,
                 InstanceName = _configFileProvider.InstanceName,
@@ -132,9 +132,9 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        protected WebhookSeriesDeletePayload BuildOnSeriesDelete(PlatformDeleteMessage deleteMessage)
+        protected WebhookPlatformDeletePayload BuildOnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            return new WebhookSeriesDeletePayload
+            return new WebhookPlatformDeletePayload
             {
                 EventType = WebhookEventType.SeriesDelete,
                 InstanceName = _configFileProvider.InstanceName,
@@ -152,7 +152,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(series),
-                RenamedEpisodeFiles = renamedFiles.ConvertAll(x => new WebhookRenamedEpisodeFile(x))
+                RenamedEpisodeFiles = renamedFiles.ConvertAll(x => new WebhookRenamedRomFile(x))
             };
         }
 
@@ -205,7 +205,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
                 Series = GetSeries(message.Series),
-                Episodes = remoteEpisode.Episodes.ConvertAll(x => new WebhookEpisode(x)),
+                Episodes = remoteEpisode.Episodes.ConvertAll(x => new WebhookGame(x)),
                 DownloadInfo = new WebhookDownloadClientItem(quality, message.TrackedDownload.DownloadItem),
                 DownloadClient = message.DownloadClientInfo?.Name,
                 DownloadClientType = message.DownloadClientInfo?.Type,
@@ -224,7 +224,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                 EventType = WebhookEventType.Test,
                 InstanceName = _configFileProvider.InstanceName,
                 ApplicationUrl = _configService.ApplicationUrl,
-                Series = new WebhookSeries
+                Series = new WebhookPlatform
                 {
                     Id = 1,
                     Title = "Test Title",
@@ -232,7 +232,7 @@ namespace NzbDrone.Core.Notifications.Webhook
                     TvdbId = 1234,
                     Tags = new List<string> { "test-tag" }
                 },
-                Episodes = new List<WebhookEpisode>
+                Episodes = new List<WebhookGame>
                 {
                     new()
                     {
@@ -245,7 +245,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        private WebhookSeries GetSeries(Series series)
+        private WebhookPlatform GetSeries(Series series)
         {
             if (series == null)
             {
@@ -254,7 +254,7 @@ namespace NzbDrone.Core.Notifications.Webhook
 
             _mediaCoverService.ConvertToLocalUrls(series.Id, series.Images, series.Added);
 
-            return new WebhookSeries(series, GetTagLabels(series));
+            return new WebhookPlatform(series, GetTagLabels(series));
         }
 
         private List<string> GetTagLabels(Series series)
