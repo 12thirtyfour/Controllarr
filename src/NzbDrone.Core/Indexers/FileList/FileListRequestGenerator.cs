@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
 
 namespace NzbDrone.Core.Indexers.FileList
@@ -25,22 +23,7 @@ namespace NzbDrone.Core.Indexers.FileList
         {
             var pageableRequests = new IndexerPageableRequestChain();
 
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
-            {
-                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
-            }
-
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
-            {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
-            }
-
-            pageableRequests.AddTier();
-
-            if (searchCriteria.SearchMode == SearchMode.Default)
-            {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
-            }
+            AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
 
             return pageableRequests;
         }
@@ -49,22 +32,7 @@ namespace NzbDrone.Core.Indexers.FileList
         {
             var pageableRequests = new IndexerPageableRequestChain();
 
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
-            {
-                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
-            }
-
-            if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
-            {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
-            }
-
-            pageableRequests.AddTier();
-
-            if (searchCriteria.SearchMode == SearchMode.Default)
-            {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
-            }
+            AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
 
             return pageableRequests;
         }
@@ -92,14 +60,6 @@ namespace NzbDrone.Core.Indexers.FileList
         public IndexerPageableRequestChain GetSearchRequests(SpecialEpisodeSearchCriteria searchCriteria)
         {
             return new IndexerPageableRequestChain();
-        }
-
-        private void AddImdbRequests(IndexerPageableRequestChain chain, SearchCriteriaBase searchCriteria, string searchType, IEnumerable<int> categories, string parameters)
-        {
-            if (searchCriteria.Series.ImdbId.IsNotNullOrWhiteSpace())
-            {
-                chain.Add(GetRequest(searchType, categories, string.Format("&type=imdb&query={0}{1}", searchCriteria.Series.ImdbId, parameters)));
-            }
         }
 
         private void AddNameRequests(IndexerPageableRequestChain chain, SearchCriteriaBase searchCriteria, string searchType, IEnumerable<int> categories, string parameters)

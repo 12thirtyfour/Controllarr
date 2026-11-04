@@ -82,61 +82,17 @@ namespace NzbDrone.Core.Indexers.Nyaa
 
         public virtual IndexerPageableRequestChain GetSearchRequests(AnimeEpisodeSearchCriteria searchCriteria)
         {
-            var pageableRequests = new IndexerPageableRequestChain();
-
-            foreach (var searchTitle in searchCriteria.SceneTitles.Select(PrepareQuery))
-            {
-                if (searchCriteria.AbsoluteEpisodeNumber > 0)
-                {
-                    pageableRequests.Add(GetPagedRequests($"{searchTitle}+{searchCriteria.AbsoluteEpisodeNumber:0}"));
-
-                    if (searchCriteria.AbsoluteEpisodeNumber < 10)
-                    {
-                        pageableRequests.Add(GetPagedRequests($"{searchTitle}+{searchCriteria.AbsoluteEpisodeNumber:00}"));
-                    }
-                }
-
-                if (searchCriteria.SeasonNumber > 0 && searchCriteria.EpisodeNumber > 0)
-                {
-                    pageableRequests.Add(GetPagedRequests($"{searchTitle}+s{searchCriteria.SeasonNumber:00}e{searchCriteria.EpisodeNumber:00}"));
-                }
-            }
-
-            return pageableRequests;
+            return new IndexerPageableRequestChain();
         }
 
         public virtual IndexerPageableRequestChain GetSearchRequests(AnimeSeasonSearchCriteria searchCriteria)
         {
-            var pageableRequests = new IndexerPageableRequestChain();
-
-            foreach (var sceneTitle in searchCriteria.SceneTitles)
-            {
-                var searchTitle = PrepareQuery(sceneTitle);
-
-                if (searchCriteria.SeasonSceneTitles.Contains(sceneTitle, StringComparer.InvariantCultureIgnoreCase))
-                {
-                    // A season title alias already identifies the season, no need to add a season number.
-                    pageableRequests.Add(GetPagedRequests(searchTitle));
-                }
-                else if (searchCriteria.SeasonNumber > 0)
-                {
-                    pageableRequests.Add(GetPagedRequests($"{searchTitle}+s{searchCriteria.SeasonNumber:00}"));
-                }
-            }
-
-            return pageableRequests;
+            return new IndexerPageableRequestChain();
         }
 
         public virtual IndexerPageableRequestChain GetSearchRequests(SpecialEpisodeSearchCriteria searchCriteria)
         {
-            var pageableRequests = new IndexerPageableRequestChain();
-
-            foreach (var queryTitle in searchCriteria.EpisodeQueryTitles)
-            {
-                pageableRequests.Add(GetPagedRequests(PrepareQuery(queryTitle)));
-            }
-
-            return pageableRequests;
+            return new IndexerPageableRequestChain();
         }
 
         private IEnumerable<IndexerRequest> GetPagedRequests(string term)
