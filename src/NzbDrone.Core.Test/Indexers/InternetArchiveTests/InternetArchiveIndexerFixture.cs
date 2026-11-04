@@ -13,6 +13,7 @@ using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
 {
@@ -270,6 +271,64 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             release.InfoUrl.Should().Be("https://archive.org/details/htgdb-gamepacks");
             release.Size.Should().Be(524288);
             release.RequiresCredentials.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_parse_search_response_when_title_is_array_of_strings()
+        {
+            var parser = new InternetArchiveParser(new InternetArchiveIndexerSettings());
+            var json = @"{
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""2003_11_27_DPCS0803"",
+                            ""title"": [""2003-11-27 DPCS0803"", ""2003 11 27 DPCS0803""],
+                            ""mediatype"": [""software""],
+                            ""date"": [""2003-11-27""],
+                            ""publicdate"": ""2020-01-01T00:00:00Z"",
+                            ""item_size"": 123456
+                        }
+                    ]
+                }
+            }";
+
+            var request = new HttpRequest("https://archive.org/advancedsearch.php?q=test");
+            var response = new HttpResponse(request, new HttpHeader(), json);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            releases[0].Title.Should().Be("2003-11-27 DPCS0803");
+            releases[0].Guid.Should().Be("IA-2003_11_27_DPCS0803");
+            releases[0].Size.Should().Be(123456);
+        }
+
+        [Test]
+        public void should_scope_query_strictly_to_primary_archives_when_configured()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                Series = new Series { Title = "Nintendo Entertainment System", TitleSlug = "nes" },
+                Episodes = new List<Episode> { new Episode { Title = "106 Games" } }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+            var pagedRequest = requests.FirstOrDefault(r => r.HttpRequest.Url.FullUri.Contains("advancedsearch.php"));
+
+            pagedRequest.Should().NotBeNull();
+            var uri = pagedRequest.HttpRequest.Url.FullUri;
+            uri.Should().Contain("htgdb-gamepacks");
+            uri.Should().NotContain("OR+mediatype%3Asoftware");
         }
 
         [Test]

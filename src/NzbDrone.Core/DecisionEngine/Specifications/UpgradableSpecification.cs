@@ -80,6 +80,13 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return true;
             }
 
+            var currentId = currentQuality.Quality?.Id ?? 0;
+            var newId = newQuality?.Quality?.Id ?? 0;
+            if (newId > currentId)
+            {
+                return true;
+            }
+
             if (newQuality != null && IsRevisionUpgrade(currentQuality, newQuality))
             {
                 return true;
@@ -90,12 +97,30 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         private bool CustomFormatCutoffNotMet(QualityProfile profile, List<CustomFormat> currentFormats)
         {
-            return false;
+            if (profile == null)
+            {
+                return false;
+            }
+
+            var score = profile.CalculateCustomFormatScore(currentFormats);
+            var cutoff = profile.UpgradeAllowed ? profile.CutoffFormatScore : profile.MinFormatScore;
+
+            return score < cutoff;
         }
 
         public bool CutoffNotMet(QualityProfile profile, QualityModel currentQuality, List<CustomFormat> currentFormats, QualityModel newQuality = null)
         {
-            return QualityCutoffNotMet(profile, currentQuality, newQuality);
+            if (QualityCutoffNotMet(profile, currentQuality, newQuality))
+            {
+                return true;
+            }
+
+            if (CustomFormatCutoffNotMet(profile, currentFormats))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public bool IsRevisionUpgrade(QualityModel currentQuality, QualityModel newQuality)

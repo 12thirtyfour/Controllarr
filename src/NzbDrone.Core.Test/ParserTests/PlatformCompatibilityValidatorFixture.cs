@@ -29,6 +29,10 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Pokemon Red.gb", "game-boy", "Game Boy", null, true)]
         [TestCase("Pokemon Crystal.gbc", "game-boy-color", "Game Boy Color", null, true)]
         [TestCase("Pokemon Crystal.gbc", "game-boy", "Game Boy", null, false)]
+        [TestCase("Mega Man 2 (USA).exe", "nes", "Nintendo Entertainment System", null, false)]
+        [TestCase("setup_mega_man_2_2.0.0.4.exe", "nes", "Nintendo Entertainment System", null, false)]
+        [TestCase("Super Mario Bros (USA) (Official GOG Installer).zip", "nes", "Nintendo Entertainment System", null, false)]
+        [TestCase("Super Mario Bros (USA).nes", "nes", "Nintendo Entertainment System", null, true)]
         public void should_validate_platform_compatibility(string candidatePath, string platformSlug, string platformName, string format, bool expected)
         {
             var result = PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName, format);

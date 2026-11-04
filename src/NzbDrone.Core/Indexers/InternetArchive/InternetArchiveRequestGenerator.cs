@@ -231,7 +231,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
             if (collectionQuery != null)
             {
-                return $"({collectionQuery} OR mediatype:software) AND (\"{escapedTerm}\" OR {term})";
+                return $"{collectionQuery} AND (\"{escapedTerm}\" OR {term})";
             }
 
             return $"mediatype:software AND (\"{escapedTerm}\" OR {term})";

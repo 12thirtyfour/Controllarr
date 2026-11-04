@@ -214,16 +214,22 @@ namespace NzbDrone.Core.Download.Pending
             }
 
             // Return best quality release for each episode group, this may result in multiple for the same episode if the episodes in each release differ
-            var deduped = queued.Where(q => q.Episodes.Any()).GroupBy(q => q.Episodes.Select(e => e.Id)).Select(g =>
-            {
-                var series = g.First().Series;
+            var deduped = queued.Where(q => q.Episodes.Any())
+                                .GroupBy(q => string.Join(",", q.Episodes.Select(e => e.Id).OrderBy(id => id)))
+                                .Select(g =>
+                                {
+                                    var series = g.First().Series;
+                                    var profile = series?.QualityProfile?.Value;
+                                    var comparer = profile != null && profile.Items.Any()
+                                        ? new QualityModelComparer(profile)
+                                        : QualityModelComparer.Default;
 
-                return g.OrderByDescending(e => e.Quality, new QualityModelComparer(series.QualityProfile))
-                        .ThenBy(q => PrioritizeDownloadProtocol(q.Series, q.Protocol))
-                        .First();
-            });
+                                    return g.OrderByDescending(e => e.Quality, comparer)
+                                            .ThenBy(q => PrioritizeDownloadProtocol(q.Series, q.Protocol))
+                                            .First();
+                                });
 
-            return deduped.ToList();
+            return deduped.Concat(queued.Where(q => q.Episodes.Empty())).ToList();
         }
 
         public List<Queue.Queue> GetPendingQueueObsolete()
@@ -257,8 +263,12 @@ namespace NzbDrone.Core.Download.Pending
             var deduped = queued.Where(q => q.Episode != null).GroupBy(q => q.Episode.Id).Select(g =>
             {
                 var series = g.First().Series;
+                var profile = series?.QualityProfile?.Value;
+                var comparer = profile != null && profile.Items.Any()
+                    ? new QualityModelComparer(profile)
+                    : QualityModelComparer.Default;
 
-                return g.OrderByDescending(e => e.Quality, new QualityModelComparer(series.QualityProfile))
+                return g.OrderByDescending(e => e.Quality, comparer)
                     .ThenBy(q => PrioritizeDownloadProtocol(q.Series, q.Protocol))
                     .First();
             });
@@ -280,25 +290,45 @@ namespace NzbDrone.Core.Download.Pending
         public void RemovePendingQueueItems(int queueId)
         {
             var targetItem = FindPendingRelease(queueId);
+            if (targetItem == null)
+            {
+                return;
+            }
+
             var seriesReleases = _repository.AllBySeriesId(targetItem.SeriesId);
 
             var releasesToRemove = seriesReleases.Where(
                 c => c.ParsedEpisodeInfo.SeasonNumbers.SequenceEqual(targetItem.ParsedEpisodeInfo.SeasonNumbers) &&
-                     c.ParsedEpisodeInfo.EpisodeNumbers.SequenceEqual(targetItem.ParsedEpisodeInfo.EpisodeNumbers));
+                     c.ParsedEpisodeInfo.EpisodeNumbers.SequenceEqual(targetItem.ParsedEpisodeInfo.EpisodeNumbers)).ToList();
 
-            _repository.DeleteMany(releasesToRemove.Select(c => c.Id));
+            if (releasesToRemove.Any())
+            {
+                _repository.DeleteMany(releasesToRemove.Select(c => c.Id));
+                UpdatePendingReleases();
+                _eventAggregator.PublishEvent(new PendingReleasesUpdatedEvent());
+            }
         }
 
         public void RemovePendingQueueItemsObsolete(int queueId)
         {
             var targetItem = FindPendingReleaseObsolete(queueId);
+            if (targetItem == null)
+            {
+                return;
+            }
+
             var seriesReleases = _repository.AllBySeriesId(targetItem.SeriesId);
 
             var releasesToRemove = seriesReleases.Where(
                 c => c.ParsedEpisodeInfo.SeasonNumbers.SequenceEqual(targetItem.ParsedEpisodeInfo.SeasonNumbers) &&
-                     c.ParsedEpisodeInfo.EpisodeNumbers.SequenceEqual(targetItem.ParsedEpisodeInfo.EpisodeNumbers));
+                     c.ParsedEpisodeInfo.EpisodeNumbers.SequenceEqual(targetItem.ParsedEpisodeInfo.EpisodeNumbers)).ToList();
 
-            _repository.DeleteMany(releasesToRemove.Select(c => c.Id));
+            if (releasesToRemove.Any())
+            {
+                _repository.DeleteMany(releasesToRemove.Select(c => c.Id));
+                UpdatePendingReleases();
+                _eventAggregator.PublishEvent(new PendingReleasesUpdatedEvent());
+            }
         }
 
         public RemoteEpisode OldestPendingRelease(int seriesId, int[] episodeIds)
@@ -575,12 +605,15 @@ namespace NzbDrone.Core.Download.Pending
                 return;
             }
 
-            var profile = remoteEpisode.Series.QualityProfile;
+            var profile = remoteEpisode.Series?.QualityProfile?.Value;
+            var comparer = profile != null && profile.Items.Any()
+                ? new QualityModelComparer(profile)
+                : QualityModelComparer.Default;
 
             foreach (var existingReport in existingReports)
             {
-                var compare = new QualityModelComparer(profile).Compare(remoteEpisode.ParsedEpisodeInfo.Quality,
-                                                                        existingReport.RemoteEpisode.ParsedEpisodeInfo.Quality);
+                var compare = comparer.Compare(remoteEpisode.ParsedEpisodeInfo.Quality,
+                                              existingReport.RemoteEpisode.ParsedEpisodeInfo.Quality);
 
                 // Only remove lower/equal quality pending releases
                 // It is safer to retry these releases on the next round than remove it and try to re-add it (if its still in the feed)
@@ -611,12 +644,12 @@ namespace NzbDrone.Core.Download.Pending
 
         private PendingRelease FindPendingRelease(int queueId)
         {
-            return GetPendingReleases().First(p => GetQueueId(p) == queueId);
+            return GetPendingReleases().FirstOrDefault(p => GetQueueId(p) == queueId);
         }
 
         private PendingRelease FindPendingReleaseObsolete(int queueId)
         {
-            return GetPendingReleases().First(p => p.RemoteEpisode.Episodes.Any(e => queueId == GetQueueId(p, e)));
+            return GetPendingReleases().FirstOrDefault(p => p.RemoteEpisode.Episodes.Any(e => queueId == GetQueueId(p, e)));
         }
 
         private int GetQueueId(PendingRelease pendingRelease)
@@ -631,9 +664,14 @@ namespace NzbDrone.Core.Download.Pending
 
         private int PrioritizeDownloadProtocol(Series series, DownloadProtocol downloadProtocol)
         {
-            var delayProfile = _delayProfileService.BestForTags(series.Tags);
+            if (series == null)
+            {
+                return 1;
+            }
 
-            if (downloadProtocol == delayProfile.PreferredProtocol)
+            var delayProfile = _delayProfileService.BestForTags(series.Tags ?? new HashSet<int>());
+
+            if (delayProfile != null && downloadProtocol == delayProfile.PreferredProtocol)
             {
                 return 0;
             }

@@ -39,6 +39,12 @@ namespace NzbDrone.Core.Parser
             {
                 ext = ext.ToLowerInvariant();
 
+                // Reject PC executables and installers for console platforms
+                if (ext is ".exe" or ".msi" or ".bat" or ".cmd" or ".com" or ".appimage" or ".dmg")
+                {
+                    return false;
+                }
+
                 // Cartridge platforms cannot have disc/optical exclusive extensions
                 if (isCartridge && DiscExclusiveExtensions.Contains(ext))
                 {
@@ -85,6 +91,16 @@ namespace NzbDrone.Core.Parser
             if (!string.IsNullOrWhiteSpace(archiveId))
             {
                 var lowerArchiveId = archiveId.ToLowerInvariant();
+
+                // Reject PC / GOG installer packages
+                if (lowerArchiveId.Contains("gog-installer") ||
+                    lowerArchiveId.Contains("official-gog") ||
+                    lowerArchiveId.Contains("gog_games") ||
+                    lowerArchiveId.Contains("goggames"))
+                {
+                    return false;
+                }
+
                 foreach (var (platform, aliases) in PlatformAliases)
                 {
                     if (string.Equals(platform, targetSlug, StringComparison.OrdinalIgnoreCase))
@@ -156,6 +172,15 @@ namespace NzbDrone.Core.Parser
                         }
                     }
                 }
+            }
+
+            var lowerPathOrName = filePathOrName.ToLowerInvariant();
+            if (lowerPathOrName.Contains("gog-installer") ||
+                lowerPathOrName.Contains("official-gog") ||
+                lowerPathOrName.Contains("official gog") ||
+                lowerPathOrName.Contains("gog.com"))
+            {
+                return false;
             }
 
             return true;

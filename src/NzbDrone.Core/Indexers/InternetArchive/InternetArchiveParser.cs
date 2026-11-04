@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Indexers.Exceptions;
 using NzbDrone.Core.Parser;
@@ -73,27 +75,212 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         public List<InternetArchiveDoc> Docs { get; set; }
     }
 
+    public class SingleOrArrayStringConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(string);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.StartArray)
+            {
+                var token = JToken.Load(reader);
+                if (token is JArray array && array.Count > 0)
+                {
+                    return array[0]?.ToString();
+                }
+
+                return null;
+            }
+
+            return reader.Value?.ToString();
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value);
+        }
+    }
+
+    public class FlexibleDateTimeConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(DateTime) || objectType == typeof(DateTime?);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.Date)
+            {
+                return reader.Value as DateTime?;
+            }
+
+            if (reader.TokenType == JsonToken.StartArray)
+            {
+                var token = JToken.Load(reader);
+                if (token is JArray array && array.Count > 0)
+                {
+                    return ParseDateTimeString(array[0]?.ToString());
+                }
+
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.String || reader.TokenType == JsonToken.Integer)
+            {
+                return ParseDateTimeString(reader.Value?.ToString());
+            }
+
+            return null;
+        }
+
+        private static DateTime? ParseDateTimeString(string val)
+        {
+            if (string.IsNullOrWhiteSpace(val))
+            {
+                return null;
+            }
+
+            if (DateTime.TryParse(val, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dt))
+            {
+                return dt;
+            }
+
+            if (int.TryParse(val, out var year) && year >= 1970 && year <= 2100)
+            {
+                return new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            }
+
+            return null;
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value);
+        }
+    }
+
+    public class FlexibleLongConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(long) || objectType == typeof(long?);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.Integer)
+            {
+                return Convert.ToInt64(reader.Value);
+            }
+
+            if (reader.TokenType == JsonToken.StartArray)
+            {
+                var token = JToken.Load(reader);
+                if (token is JArray array && array.Count > 0)
+                {
+                    var str = array[0]?.ToString();
+                    return long.TryParse(str, out var v) ? v : (long?)null;
+                }
+
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.String)
+            {
+                var str = reader.Value?.ToString();
+                return long.TryParse(str, out var v) ? v : (long?)null;
+            }
+
+            return null;
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value);
+        }
+    }
+
+    public class FlexibleIntConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(int) || objectType == typeof(int?);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.Integer)
+            {
+                return Convert.ToInt32(reader.Value);
+            }
+
+            if (reader.TokenType == JsonToken.StartArray)
+            {
+                var token = JToken.Load(reader);
+                if (token is JArray array && array.Count > 0)
+                {
+                    var str = array[0]?.ToString();
+                    return int.TryParse(str, out var v) ? v : (int?)null;
+                }
+
+                return null;
+            }
+
+            if (reader.TokenType == JsonToken.String)
+            {
+                var str = reader.Value?.ToString();
+                return int.TryParse(str, out var v) ? v : (int?)null;
+            }
+
+            return null;
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value);
+        }
+    }
+
     public class InternetArchiveDoc
     {
         [JsonProperty("identifier")]
+        [JsonConverter(typeof(SingleOrArrayStringConverter))]
         public string Identifier { get; set; }
 
         [JsonProperty("title")]
+        [JsonConverter(typeof(SingleOrArrayStringConverter))]
         public string Title { get; set; }
 
         [JsonProperty("mediatype")]
+        [JsonConverter(typeof(SingleOrArrayStringConverter))]
         public string Mediatype { get; set; }
 
         [JsonProperty("date")]
+        [JsonConverter(typeof(FlexibleDateTimeConverter))]
         public DateTime? Date { get; set; }
 
         [JsonProperty("publicdate")]
+        [JsonConverter(typeof(FlexibleDateTimeConverter))]
         public DateTime? PublicDate { get; set; }
 
         [JsonProperty("item_size")]
+        [JsonConverter(typeof(FlexibleLongConverter))]
         public long? ItemSize { get; set; }
 
         [JsonProperty("downloads")]
+        [JsonConverter(typeof(FlexibleIntConverter))]
         public int? Downloads { get; set; }
 
         [JsonProperty("access-restricted-item")]
