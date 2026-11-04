@@ -6,17 +6,17 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.Aggregation
 {
-    public interface IRemoteEpisodeAggregationService
+    public interface IRemoteGameAggregationService
     {
         RemoteEpisode Augment(RemoteEpisode remoteEpisode);
     }
 
-    public class RemoteEpisodeAggregationService : IRemoteEpisodeAggregationService
+    public class RemoteGameAggregationService : IRemoteGameAggregationService
     {
-        private readonly IEnumerable<IAggregateRemoteEpisode> _augmenters;
+        private readonly IEnumerable<IAggregateRemoteGame> _augmenters;
         private readonly Logger _logger;
 
-        public RemoteEpisodeAggregationService(IEnumerable<IAggregateRemoteEpisode> augmenters,
+        public RemoteGameAggregationService(IEnumerable<IAggregateRemoteGame> augmenters,
                                   Logger logger)
         {
             _augmenters = augmenters;

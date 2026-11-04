@@ -29,14 +29,14 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IEnumerable<IDownloadDecisionEngineSpecification> _specifications;
         private readonly IParsingService _parsingService;
         private readonly ICustomFormatCalculationService _formatCalculator;
-        private readonly IRemoteEpisodeAggregationService _aggregationService;
+        private readonly IRemoteGameAggregationService _aggregationService;
         private readonly ISceneMappingService _sceneMappingService;
         private readonly Logger _logger;
 
         public DownloadDecisionMaker(IEnumerable<IDownloadDecisionEngineSpecification> specifications,
                                      IParsingService parsingService,
                                      ICustomFormatCalculationService formatService,
-                                     IRemoteEpisodeAggregationService aggregationService,
+                                     IRemoteGameAggregationService aggregationService,
                                      ISceneMappingService sceneMappingService,
                                      Logger logger)
         {

@@ -92,7 +92,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 var seasonPackUpgradeThreshold = _configService.SeasonPackUpgradeThreshold;
                 _logger.Debug("Total upgradable games: {0} out of {1}. Region import setting: {2}, Threshold: {3}%", upgradedCount, totalEpisodesInPack, seasonPackUpgrade, seasonPackUpgradeThreshold);
                 var upgradablePercentage = (double)upgradedCount / totalEpisodesInPack * 100;
-                if (seasonPackUpgrade == SeasonPackUpgradeType.Any)
+                if (seasonPackUpgrade == PlatformPackUpgradeType.Any)
                 {
                     if (upgradedCount > 0)
                     {
@@ -101,7 +101,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
                 else
                 {
-                    var threshold = seasonPackUpgrade == SeasonPackUpgradeType.All
+                    var threshold = seasonPackUpgrade == PlatformPackUpgradeType.All
                         ? 100.0
                         : _configService.SeasonPackUpgradeThreshold;
                     if (upgradablePercentage >= threshold)

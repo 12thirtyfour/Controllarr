@@ -451,7 +451,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             Mocker.GetMock<IConfigService>()
                   .SetupGet(s => s.SeasonPackUpgrade)
-                  .Returns(SeasonPackUpgradeType.All);
+                  .Returns(PlatformPackUpgradeType.All);
 
             _parseResultMulti.ParsedEpisodeInfo.FullSeason = true;
             _parseResultMulti.Episodes = new List<Episode>
@@ -479,7 +479,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             Mocker.GetMock<IConfigService>()
                 .SetupGet(s => s.SeasonPackUpgrade)
-                .Returns(SeasonPackUpgradeType.Threshold);
+                .Returns(PlatformPackUpgradeType.Threshold);
 
             Mocker.GetMock<IConfigService>()
                 .SetupGet(s => s.SeasonPackUpgradeThreshold)
@@ -520,7 +520,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             Mocker.GetMock<IConfigService>()
                   .SetupGet(s => s.SeasonPackUpgrade)
-                  .Returns(SeasonPackUpgradeType.Any);
+                  .Returns(PlatformPackUpgradeType.Any);
 
             _parseResultMulti.ParsedEpisodeInfo.FullSeason = true;
             _parseResultMulti.Episodes = new List<Episode>

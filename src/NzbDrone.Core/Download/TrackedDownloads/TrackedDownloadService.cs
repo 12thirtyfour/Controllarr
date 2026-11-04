@@ -28,7 +28,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
     }
 
     public class TrackedDownloadService : ITrackedDownloadService,
-                                          IHandle<EpisodeGrabbedEvent>,
+                                          IHandle<GameGrabbedEvent>,
                                           IHandle<GameInfoRefreshedEvent>,
                                           IHandle<PlatformAddedEvent>,
                                           IHandle<PlatformEditedEvent>,
@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         private readonly IHistoryService _historyService;
         private readonly ISeriesService _seriesService;
         private readonly IDownloadHistoryService _downloadHistoryService;
-        private readonly IRemoteEpisodeAggregationService _aggregationService;
+        private readonly IRemoteGameAggregationService _aggregationService;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                       IHistoryService historyService,
                                       ISeriesService seriesService,
                                       IDownloadHistoryService downloadHistoryService,
-                                      IRemoteEpisodeAggregationService aggregationService,
+                                      IRemoteGameAggregationService aggregationService,
                                       ICustomFormatCalculationService formatCalculator,
                                       IEventAggregator eventAggregator,
                                       ICacheManager cacheManager,
@@ -144,7 +144,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 if (historyItems.Any())
                 {
                     var firstHistoryItem = historyItems.First();
-                    var grabbedEvent = historyItems.FirstOrDefault(v => v.EventType == EpisodeHistoryEventType.Grabbed);
+                    var grabbedEvent = historyItems.FirstOrDefault(v => v.EventType == GameHistoryEventType.Grabbed);
 
                     trackedDownload.Indexer = grabbedEvent?.Data?.GetValueOrDefault("indexer");
                     trackedDownload.Added = grabbedEvent?.Date;
@@ -168,7 +168,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                         {
                             trackedDownload.RemoteEpisode = _parsingService.Map(parsedEpisodeInfo,
                                 firstHistoryItem.SeriesId,
-                                historyItems.Where(v => v.EventType == EpisodeHistoryEventType.Grabbed)
+                                historyItems.Where(v => v.EventType == GameHistoryEventType.Grabbed)
                                     .Select(h => h.EpisodeId).Distinct());
                         }
                     }
@@ -292,7 +292,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(EpisodeGrabbedEvent message)
+        public void Handle(GameGrabbedEvent message)
         {
             if (message.DownloadId.IsNullOrWhiteSpace())
             {

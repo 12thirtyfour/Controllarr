@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Download
 
             if (downloadId.IsNullOrWhiteSpace())
             {
-                if (history.EventType == EpisodeHistoryEventType.Grabbed)
+                if (history.EventType == GameHistoryEventType.Grabbed)
                 {
                     PublishDownloadFailedEvent(history, new List<int> { history.EpisodeId }, message, source, skipRedownload: skipRedownload);
                     return;
@@ -49,10 +49,10 @@ namespace NzbDrone.Core.Download
                 throw new InvalidOperationException("Unable to mark download as failed, history item was not grabbed and has no download ID");
             }
 
-            var grabbedHistory = new List<EpisodeHistory>();
+            var grabbedHistory = new List<GameHistory>();
 
             // If the history item is a grabbed item (it should be, at least from the UI) add it as the first history item
-            if (history.EventType == EpisodeHistoryEventType.Grabbed)
+            if (history.EventType == GameHistoryEventType.Grabbed)
             {
                 grabbedHistory.Add(history);
             }
@@ -135,9 +135,9 @@ namespace NzbDrone.Core.Download
             PublishDownloadFailedEvent(grabbedItems.First(), GetEpisodeIds(grabbedItems), failure, $"{BuildInfo.AppName} Failed Download Handling", trackedDownload);
         }
 
-        private void PublishDownloadFailedEvent(EpisodeHistory historyItem, List<int> episodeIds, string message, string source, TrackedDownload trackedDownload = null, bool skipRedownload = false)
+        private void PublishDownloadFailedEvent(GameHistory historyItem, List<int> episodeIds, string message, string source, TrackedDownload trackedDownload = null, bool skipRedownload = false)
         {
-            Enum.TryParse(historyItem.Data.GetValueOrDefault(EpisodeHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
+            Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
 
             var downloadFailedEvent = new DownloadFailedEvent
             {
@@ -145,7 +145,7 @@ namespace NzbDrone.Core.Download
                 EpisodeIds = episodeIds,
                 Quality = historyItem.Quality,
                 SourceTitle = historyItem.SourceTitle,
-                DownloadClient = historyItem.Data.GetValueOrDefault(EpisodeHistory.DOWNLOAD_CLIENT),
+                DownloadClient = historyItem.Data.GetValueOrDefault(GameHistory.DOWNLOAD_CLIENT),
                 DownloadId = historyItem.DownloadId,
                 Message = message,
                 Source = source,
@@ -159,15 +159,15 @@ namespace NzbDrone.Core.Download
             _eventAggregator.PublishEvent(downloadFailedEvent);
         }
 
-        private List<int> GetEpisodeIds(List<EpisodeHistory> historyItems)
+        private List<int> GetEpisodeIds(List<GameHistory> historyItems)
         {
             return historyItems.Select(h => h.EpisodeId).Distinct().ToList();
         }
 
-        private List<EpisodeHistory> GetGrabbedHistory(string downloadId)
+        private List<GameHistory> GetGrabbedHistory(string downloadId)
         {
             // Sort by date so items are always in the same order
-            return _historyService.Find(downloadId, EpisodeHistoryEventType.Grabbed)
+            return _historyService.Find(downloadId, GameHistoryEventType.Grabbed)
                 .OrderByDescending(h => h.Date)
                 .ToList();
         }

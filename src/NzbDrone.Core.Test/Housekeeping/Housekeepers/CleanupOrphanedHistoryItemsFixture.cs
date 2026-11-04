@@ -12,7 +12,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 {
     [TestFixture]
-    public class CleanupOrphanedHistoryItemsFixture : DbTest<CleanupOrphanedHistoryItems, EpisodeHistory>
+    public class CleanupOrphanedHistoryItemsFixture : DbTest<CleanupOrphanedHistoryItems, GameHistory>
     {
         private Series _series;
         private Episode _episode;
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         {
             GivenEpisode();
 
-            var history = Builder<EpisodeHistory>.CreateNew()
+            var history = Builder<GameHistory>.CreateNew()
                 .With(h => h.Languages = new List<Language> { Language.English })
                 .With(h => h.Quality = new QualityModel())
                 .With(h => h.EpisodeId = _episode.Id)
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         {
             GivenSeries();
 
-            var history = Builder<EpisodeHistory>.CreateNew()
+            var history = Builder<GameHistory>.CreateNew()
                 .With(h => h.Languages = new List<Language> { Language.English })
                 .With(h => h.Quality = new QualityModel())
                 .With(h => h.SeriesId = _series.Id)
@@ -75,7 +75,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
             GivenSeries();
             GivenEpisode();
 
-            var history = Builder<EpisodeHistory>.CreateListOfSize(2)
+            var history = Builder<GameHistory>.CreateListOfSize(2)
                 .All()
                 .With(h => h.Languages = new List<Language> { Language.English })
                 .With(h => h.Quality = new QualityModel())
@@ -97,7 +97,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
             GivenSeries();
             GivenEpisode();
 
-            var history = Builder<EpisodeHistory>.CreateListOfSize(2)
+            var history = Builder<GameHistory>.CreateListOfSize(2)
                 .All()
                 .With(h => h.Languages = new List<Language> { Language.English })
                 .With(h => h.Quality = new QualityModel())

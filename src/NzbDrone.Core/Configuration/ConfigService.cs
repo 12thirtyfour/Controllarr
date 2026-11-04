@@ -274,9 +274,9 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("UserRejectedExtensions", value); }
         }
 
-        public SeasonPackUpgradeType SeasonPackUpgrade
+        public PlatformPackUpgradeType SeasonPackUpgrade
         {
-            get { return GetValueEnum("SeasonPackUpgrade", SeasonPackUpgradeType.All); }
+            get { return GetValueEnum("SeasonPackUpgrade", PlatformPackUpgradeType.All); }
             set { SetValue("SeasonPackUpgrade", value); }
         }
 

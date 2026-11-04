@@ -25,7 +25,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
             }
 
             var grabbedHistories = _historyService.FindByDownloadId(downloadClientItem.DownloadId)
-                .Where(h => h.EventType == EpisodeHistoryEventType.Grabbed)
+                .Where(h => h.EventType == GameHistoryEventType.Grabbed)
                 .ToList();
 
             if (grabbedHistories.Empty())

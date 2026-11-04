@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Configuration
         string UserRejectedExtensions { get; set; }
 
         // Season Pack Upgrade (Media Management)
-        SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
+        PlatformPackUpgradeType SeasonPackUpgrade { get; set; }
         double SeasonPackUpgradeThreshold { get; set; }
 
         bool ExtractFullSetCompletely { get; set; }

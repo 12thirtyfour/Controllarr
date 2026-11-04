@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
 
             Mocker.GetMock<IHistoryService>()
                   .Setup(s => s.FindByDownloadId(_trackedDownload.DownloadItem.DownloadId))
-                  .Returns(new List<EpisodeHistory>());
+                  .Returns(new List<GameHistory>());
 
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetSeries("Drone.S01E01.HDTV"))
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
         {
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByDownloadId(_trackedDownload.DownloadItem.DownloadId))
-                .Returns(new List<EpisodeHistory>());
+                .Returns(new List<GameHistory>());
         }
 
         private void GivenSeriesMatch()
@@ -89,9 +89,9 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             _trackedDownload.DownloadItem.Title = "Droned Pilot"; // Set a badly named download
             Mocker.GetMock<IHistoryService>()
                   .Setup(s => s.FindByDownloadId(It.Is<string>(i => i == "1234")))
-                  .Returns(new List<EpisodeHistory>
+                  .Returns(new List<GameHistory>
                   {
-                      new EpisodeHistory() { SourceTitle = "Droned S01E01", EventType = EpisodeHistoryEventType.Grabbed }
+                      new GameHistory() { SourceTitle = "Droned S01E01", EventType = GameHistoryEventType.Grabbed }
                   });
 
             Mocker.GetMock<IParsingService>()

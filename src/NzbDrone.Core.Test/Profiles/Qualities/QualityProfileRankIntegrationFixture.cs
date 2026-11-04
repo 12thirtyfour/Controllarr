@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Test.Qualities
             InsertHistory(seriesB.Id, episodeB1.Id, Quality.HDTV720p);
             InsertHistory(seriesB.Id, episodeB2.Id, Quality.Bluray1080p);
 
-            var spec = new PagingSpec<EpisodeHistory>
+            var spec = new PagingSpec<GameHistory>
             {
                 Page = 1,
                 PageSize = 10,
@@ -194,14 +194,14 @@ namespace NzbDrone.Core.Test.Qualities
 
         private void InsertHistory(int seriesId, int episodeId, Quality quality)
         {
-            Mocker.Resolve<IHistoryRepository>().Insert(new EpisodeHistory
+            Mocker.Resolve<IHistoryRepository>().Insert(new GameHistory
             {
                 SeriesId = seriesId,
                 EpisodeId = episodeId,
                 SourceTitle = "test",
                 Date = DateTime.UtcNow,
                 Quality = new QualityModel(quality),
-                EventType = EpisodeHistoryEventType.Grabbed,
+                EventType = GameHistoryEventType.Grabbed,
                 Languages = new List<Language> { Language.English }
             });
         }

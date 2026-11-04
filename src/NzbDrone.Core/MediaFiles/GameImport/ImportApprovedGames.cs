@@ -91,7 +91,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                     {
                         var grabHistory = _historyService.FindByDownloadId(downloadClientItem.DownloadId)
                             .OrderByDescending(h => h.Date)
-                            .FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed);
+                            .FirstOrDefault(h => h.EventType == GameHistoryEventType.Grabbed);
 
                         if (Enum.TryParse(grabHistory?.Data.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags))
                         {

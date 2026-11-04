@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Build();
         }
 
-        private void GivenHistory(List<EpisodeHistory> history)
+        private void GivenHistory(List<GameHistory> history)
         {
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByEpisodeId(It.IsAny<int>()))
@@ -71,10 +71,10 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         [Test]
         public void should_accept_if_episode_has_not_been_imported()
         {
-            var history = Builder<EpisodeHistory>.CreateListOfSize(1)
+            var history = Builder<GameHistory>.CreateListOfSize(1)
                 .All()
                 .With(h => h.EpisodeId = _episode.Id)
-                .With(h => h.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(h => h.EventType = GameHistoryEventType.Grabbed)
                 .Build()
                 .ToList();
 
@@ -86,17 +86,17 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         [Test]
         public void should_accept_if_episode_was_grabbed_after_being_imported()
         {
-            var history = Builder<EpisodeHistory>.CreateListOfSize(3)
+            var history = Builder<GameHistory>.CreateListOfSize(3)
                 .All()
                 .With(h => h.EpisodeId = _episode.Id)
                 .TheFirst(1)
-                .With(h => h.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(h => h.EventType = GameHistoryEventType.Grabbed)
                 .With(h => h.Date = DateTime.UtcNow)
                 .TheNext(1)
-                .With(h => h.EventType = EpisodeHistoryEventType.DownloadFolderImported)
+                .With(h => h.EventType = GameHistoryEventType.DownloadFolderImported)
                 .With(h => h.Date = DateTime.UtcNow.AddDays(-1))
                 .TheNext(1)
-                .With(h => h.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(h => h.EventType = GameHistoryEventType.Grabbed)
                 .With(h => h.Date = DateTime.UtcNow.AddDays(-2))
                 .Build()
                 .ToList();
@@ -109,14 +109,14 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         [Test]
         public void should_reject_if_episode_imported_after_being_grabbed()
         {
-            var history = Builder<EpisodeHistory>.CreateListOfSize(2)
+            var history = Builder<GameHistory>.CreateListOfSize(2)
                 .All()
                 .With(h => h.EpisodeId = _episode.Id)
                 .TheFirst(1)
-                .With(h => h.EventType = EpisodeHistoryEventType.DownloadFolderImported)
+                .With(h => h.EventType = GameHistoryEventType.DownloadFolderImported)
                 .With(h => h.Date = DateTime.UtcNow.AddDays(-1))
                 .TheNext(1)
-                .With(h => h.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(h => h.EventType = GameHistoryEventType.Grabbed)
                 .With(h => h.Date = DateTime.UtcNow.AddDays(-2))
                 .Build()
                 .ToList();

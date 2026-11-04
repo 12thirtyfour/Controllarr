@@ -1952,9 +1952,9 @@ namespace NzbDrone.Core.Bios
                 var languages = new List<Language> { Language.English };
                 var now = DateTime.UtcNow;
 
-                var grabbedHistory = new EpisodeHistory
+                var grabbedHistory = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.Grabbed,
+                    EventType = GameHistoryEventType.Grabbed,
                     Date = now,
                     Quality = qualityModel,
                     SourceTitle = sourceTitle,
@@ -1971,9 +1971,9 @@ namespace NzbDrone.Core.Bios
                 grabbedHistory.Data.Add("DownloadUrl", sourceUrl);
                 _historyRepository.Insert(grabbedHistory);
 
-                var importedHistory = new EpisodeHistory
+                var importedHistory = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.DownloadFolderImported,
+                    EventType = GameHistoryEventType.DownloadFolderImported,
                     Date = now.AddMilliseconds(50),
                     Quality = qualityModel,
                     SourceTitle = sourceTitle,

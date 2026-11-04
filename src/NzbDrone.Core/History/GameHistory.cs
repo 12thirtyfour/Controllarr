@@ -7,7 +7,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.History
 {
-    public class EpisodeHistory : ModelBase
+    public class GameHistory : ModelBase
     {
         public const string DOWNLOAD_CLIENT = "downloadClient";
         public const string SERIES_MATCH_TYPE = "seriesMatchType";
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.History
         public const string SIZE = "size";
         public const string INDEXER = "indexer";
 
-        public EpisodeHistory()
+        public GameHistory()
         {
             Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
@@ -28,13 +28,13 @@ namespace NzbDrone.Core.History
         public DateTime Date { get; set; }
         public Episode Episode { get; set; }
         public Series Series { get; set; }
-        public EpisodeHistoryEventType EventType { get; set; }
+        public GameHistoryEventType EventType { get; set; }
         public Dictionary<string, string> Data { get; set; }
         public List<Language> Languages { get; set; }
         public string DownloadId { get; set; }
     }
 
-    public enum EpisodeHistoryEventType
+    public enum GameHistoryEventType
     {
         Unknown = 0,
         Grabbed = 1,

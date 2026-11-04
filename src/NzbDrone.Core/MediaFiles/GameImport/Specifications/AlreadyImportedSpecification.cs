@@ -41,9 +41,9 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                 var episodeHistory = _historyService.FindByEpisodeId(episode.Id);
                 var lastImported = episodeHistory.FirstOrDefault(h =>
                     h.DownloadId == downloadClientItem.DownloadId &&
-                    h.EventType == EpisodeHistoryEventType.DownloadFolderImported);
+                    h.EventType == GameHistoryEventType.DownloadFolderImported);
                 var lastGrabbed = episodeHistory.FirstOrDefault(h =>
-                    h.DownloadId == downloadClientItem.DownloadId && h.EventType == EpisodeHistoryEventType.Grabbed);
+                    h.DownloadId == downloadClientItem.DownloadId && h.EventType == GameHistoryEventType.Grabbed);
 
                 if (lastImported == null)
                 {

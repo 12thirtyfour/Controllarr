@@ -84,7 +84,7 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            var grabbedHistories = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId).Where(h => h.EventType == EpisodeHistoryEventType.Grabbed).ToList();
+            var grabbedHistories = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId).Where(h => h.EventType == GameHistoryEventType.Grabbed).ToList();
             var historyItem = grabbedHistories.MaxBy(h => h.Date);
 
             if (historyItem == null && trackedDownload.DownloadItem.Category.IsNullOrWhiteSpace())
@@ -115,8 +115,8 @@ namespace NzbDrone.Core.Download
                     return;
                 }
 
-                Enum.TryParse(historyItem.Data.GetValueOrDefault(EpisodeHistory.SERIES_MATCH_TYPE, SeriesMatchType.Unknown.ToString()), out SeriesMatchType seriesMatchType);
-                Enum.TryParse(historyItem.Data.GetValueOrDefault(EpisodeHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
+                Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.SERIES_MATCH_TYPE, SeriesMatchType.Unknown.ToString()), out SeriesMatchType seriesMatchType);
+                Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
 
                 // Show a warning if the release was matched by ID and the source is not interactive search
                 if (seriesMatchType == SeriesMatchType.Id && releaseSource != ReleaseSourceType.InteractiveSearch)
@@ -231,7 +231,7 @@ namespace NzbDrone.Core.Download
                 .OrderByDescending(h => h.Date)
                 .ToList();
 
-            var grabbedHistory = historyItems.Where(h => h.EventType == EpisodeHistoryEventType.Grabbed).ToList();
+            var grabbedHistory = historyItems.Where(h => h.EventType == GameHistoryEventType.Grabbed).ToList();
             var releaseInfo = grabbedHistory.Count > 0 ? new GrabbedReleaseInfo(grabbedHistory) : null;
 
             if (allEpisodesImported)
@@ -350,7 +350,7 @@ namespace NzbDrone.Core.Download
             {
                 _logger.Warn("Import blocked for '{0}': {1}", trackedDownload.DownloadItem.Title, trackedDownload.StatusMessages.SelectMany(m => m.Messages).ConcatToString("; "));
 
-                var grabbedHistories = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId).Where(h => h.EventType == EpisodeHistoryEventType.Grabbed).ToList();
+                var grabbedHistories = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId).Where(h => h.EventType == GameHistoryEventType.Grabbed).ToList();
 
                 trackedDownload.HasNotifiedManualInteractionRequired = true;
 

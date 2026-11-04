@@ -17,11 +17,11 @@ namespace Sonarr.Api.V5.Parse;
 public class ParseController : Controller
 {
     private readonly IParsingService _parsingService;
-    private readonly IRemoteEpisodeAggregationService _aggregationService;
+    private readonly IRemoteGameAggregationService _aggregationService;
     private readonly ICustomFormatCalculationService _formatCalculator;
 
     public ParseController(IParsingService parsingService,
-                           IRemoteEpisodeAggregationService aggregationService,
+                           IRemoteGameAggregationService aggregationService,
                            ICustomFormatCalculationService formatCalculator)
     {
         _parsingService = parsingService;

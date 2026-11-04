@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
                 .Returns([
-                    new EpisodeHistory()
+                    new GameHistory()
                     {
                         DownloadId = "35238",
                         SourceTitle = "TV Series S01",
@@ -89,13 +89,13 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         [Test]
         public void should_set_indexer()
         {
-            var episodeHistory = new EpisodeHistory()
+            var episodeHistory = new GameHistory()
             {
                 DownloadId = "35238",
                 SourceTitle = "TV Series S01",
                 SeriesId = 5,
                 EpisodeId = 4,
-                EventType = EpisodeHistoryEventType.Grabbed,
+                EventType = GameHistoryEventType.Grabbed,
             };
             episodeHistory.Data.Add("indexer", "MyIndexer (Prowlarr)");
             Mocker.GetMock<IHistoryService>()
@@ -178,7 +178,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
                 .Returns([
-                    new EpisodeHistory()
+                    new GameHistory()
                     {
                         DownloadId = "35238",
                         SourceTitle = "TV Series Special",
@@ -453,7 +453,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             var imported = Subject.TrackDownload(client, item);
             imported.State.Should().Be(TrackedDownloadState.Imported);
 
-            Subject.Handle(new EpisodeGrabbedEvent(remoteEpisode) { DownloadId = "35238" });
+            Subject.Handle(new GameGrabbedEvent(remoteEpisode) { DownloadId = "35238" });
 
             Mocker.GetMock<IDownloadHistoryService>()
                 .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))

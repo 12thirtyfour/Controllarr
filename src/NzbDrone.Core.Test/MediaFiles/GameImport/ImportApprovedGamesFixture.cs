@@ -71,7 +71,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             Mocker.GetMock<IHistoryService>()
                 .Setup(x => x.FindByDownloadId(It.IsAny<string>()))
-                .Returns(new List<EpisodeHistory>());
+                .Returns(new List<GameHistory>());
 
             _downloadClientItem = Builder<DownloadClientItem>.CreateNew()
                 .With(d => d.OutputPath = new OsPath(outputPath))

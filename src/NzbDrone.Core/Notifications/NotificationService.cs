@@ -17,7 +17,7 @@ using NzbDrone.Core.Update.History.Events;
 namespace NzbDrone.Core.Notifications
 {
     public class NotificationService
-        : IHandle<EpisodeGrabbedEvent>,
+        : IHandle<GameGrabbedEvent>,
           IHandle<GameImportedEvent>,
           IHandle<DownloadCompletedEvent>,
           IHandle<UntrackedDownloadCompletedEvent>,
@@ -133,7 +133,7 @@ namespace NzbDrone.Core.Notifications
             return false;
         }
 
-        public void Handle(EpisodeGrabbedEvent message)
+        public void Handle(GameGrabbedEvent message)
         {
             var grabMessage = new GrabMessage
             {

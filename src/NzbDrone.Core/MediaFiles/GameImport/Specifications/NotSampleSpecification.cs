@@ -38,7 +38,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                     return ImportSpecDecision.Reject(ImportRejectionReason.SampleIndeterminate, "Unable to determine if file is a sample");
                 }
             }
-            catch (InvalidSeasonException e)
+            catch (InvalidRegionException e)
             {
                 _logger.Warn(e, "Invalid season detected during sample check");
             }

@@ -56,12 +56,12 @@ namespace NzbDrone.Core.Parser.Model
 
                 if (seasons.Empty())
                 {
-                    throw new InvalidSeasonException("Expected one season, but found none");
+                    throw new InvalidRegionException("Expected one season, but found none");
                 }
 
                 if (seasons.Count > 1)
                 {
-                    throw new InvalidSeasonException("Expected one season, but found {0} ({1})", seasons.Count, string.Join(", ", seasons));
+                    throw new InvalidRegionException("Expected one season, but found {0} ({1})", seasons.Count, string.Join(", ", seasons));
                 }
 
                 return seasons.Single();

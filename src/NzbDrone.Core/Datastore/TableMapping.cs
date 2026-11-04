@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<SceneMapping>("PlatformMappings").RegisterModel();
 
-            Mapper.Entity<EpisodeHistory>("History").RegisterModel();
+            Mapper.Entity<GameHistory>("History").RegisterModel();
 
             Mapper.Entity<Series>("Platforms").RegisterModel()
                   .Ignore(s => s.RootFolderPath)

@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Download.Pending
                                          IHandle<PlatformEditedEvent>,
                                          IHandle<PlatformUpdatedEvent>,
                                          IHandle<PlatformDeletedEvent>,
-                                         IHandle<EpisodeGrabbedEvent>,
+                                         IHandle<GameGrabbedEvent>,
                                          IHandle<RssSyncCompleteEvent>,
                                          IHandle<QualityProfileUpdatedEvent>,
                                          IHandle<ConfigSavedEvent>,
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Download.Pending
         private readonly ITaskManager _taskManager;
         private readonly IConfigService _configService;
         private readonly ICustomFormatCalculationService _formatCalculator;
-        private readonly IRemoteEpisodeAggregationService _aggregationService;
+        private readonly IRemoteGameAggregationService _aggregationService;
         private readonly IDownloadClientFactory _downloadClientFactory;
         private readonly IIndexerFactory _indexerFactory;
         private readonly IEventAggregator _eventAggregator;
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Download.Pending
                                     ITaskManager taskManager,
                                     IConfigService configService,
                                     ICustomFormatCalculationService formatCalculator,
-                                    IRemoteEpisodeAggregationService aggregationService,
+                                    IRemoteGameAggregationService aggregationService,
                                     IDownloadClientFactory downloadClientFactory,
                                     IIndexerFactory indexerFactory,
                                     IEventAggregator eventAggregator,
@@ -662,7 +662,7 @@ namespace NzbDrone.Core.Download.Pending
             UpdatePendingReleases();
         }
 
-        public void Handle(EpisodeGrabbedEvent message)
+        public void Handle(GameGrabbedEvent message)
         {
             RemoveGrabbed(message.Episode);
             UpdatePendingReleases();

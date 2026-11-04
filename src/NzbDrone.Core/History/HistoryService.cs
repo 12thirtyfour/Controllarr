@@ -16,22 +16,22 @@ namespace NzbDrone.Core.History
 {
     public interface IHistoryService
     {
-        PagingSpec<EpisodeHistory> Paged(PagingSpec<EpisodeHistory> pagingSpec, int[] languages, int[] qualities);
-        EpisodeHistory MostRecentForEpisode(int episodeId);
-        List<EpisodeHistory> FindByEpisodeId(int episodeId);
-        EpisodeHistory MostRecentForDownloadId(string downloadId);
-        EpisodeHistory Get(int historyId);
-        List<EpisodeHistory> GetBySeries(int seriesId, EpisodeHistoryEventType? eventType);
-        List<EpisodeHistory> GetBySeason(int seriesId, int seasonNumber, EpisodeHistoryEventType? eventType);
-        List<EpisodeHistory> GetByEpisode(int episodeId, EpisodeHistoryEventType? eventType);
-        List<EpisodeHistory> Find(string downloadId, EpisodeHistoryEventType eventType);
-        List<EpisodeHistory> FindByDownloadId(string downloadId);
+        PagingSpec<GameHistory> Paged(PagingSpec<GameHistory> pagingSpec, int[] languages, int[] qualities);
+        GameHistory MostRecentForEpisode(int episodeId);
+        List<GameHistory> FindByEpisodeId(int episodeId);
+        GameHistory MostRecentForDownloadId(string downloadId);
+        GameHistory Get(int historyId);
+        List<GameHistory> GetBySeries(int seriesId, GameHistoryEventType? eventType);
+        List<GameHistory> GetBySeason(int seriesId, int seasonNumber, GameHistoryEventType? eventType);
+        List<GameHistory> GetByEpisode(int episodeId, GameHistoryEventType? eventType);
+        List<GameHistory> Find(string downloadId, GameHistoryEventType eventType);
+        List<GameHistory> FindByDownloadId(string downloadId);
         string FindDownloadId(GameImportedEvent trackedDownload);
-        List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType);
+        List<GameHistory> Since(DateTime date, GameHistoryEventType? eventType);
     }
 
     public class HistoryService : IHistoryService,
-                                  IHandle<EpisodeGrabbedEvent>,
+                                  IHandle<GameGrabbedEvent>,
                                   IHandle<GameImportedEvent>,
                                   IHandle<DownloadFailedEvent>,
                                   IHandle<RomFileDeletedEvent>,
@@ -48,52 +48,52 @@ namespace NzbDrone.Core.History
             _logger = logger;
         }
 
-        public PagingSpec<EpisodeHistory> Paged(PagingSpec<EpisodeHistory> pagingSpec, int[] languages, int[] qualities)
+        public PagingSpec<GameHistory> Paged(PagingSpec<GameHistory> pagingSpec, int[] languages, int[] qualities)
         {
             return _historyRepository.GetPaged(pagingSpec, languages, qualities);
         }
 
-        public EpisodeHistory MostRecentForEpisode(int episodeId)
+        public GameHistory MostRecentForEpisode(int episodeId)
         {
             return _historyRepository.MostRecentForEpisode(episodeId);
         }
 
-        public List<EpisodeHistory> FindByEpisodeId(int episodeId)
+        public List<GameHistory> FindByEpisodeId(int episodeId)
         {
             return _historyRepository.FindByEpisodeId(episodeId);
         }
 
-        public EpisodeHistory MostRecentForDownloadId(string downloadId)
+        public GameHistory MostRecentForDownloadId(string downloadId)
         {
             return _historyRepository.MostRecentForDownloadId(downloadId);
         }
 
-        public EpisodeHistory Get(int historyId)
+        public GameHistory Get(int historyId)
         {
             return _historyRepository.Get(historyId);
         }
 
-        public List<EpisodeHistory> GetBySeries(int seriesId, EpisodeHistoryEventType? eventType)
+        public List<GameHistory> GetBySeries(int seriesId, GameHistoryEventType? eventType)
         {
             return _historyRepository.GetBySeries(seriesId, eventType);
         }
 
-        public List<EpisodeHistory> GetBySeason(int seriesId, int seasonNumber, EpisodeHistoryEventType? eventType)
+        public List<GameHistory> GetBySeason(int seriesId, int seasonNumber, GameHistoryEventType? eventType)
         {
             return _historyRepository.GetBySeason(seriesId, seasonNumber, eventType);
         }
 
-        public List<EpisodeHistory> GetByEpisode(int episodeId, EpisodeHistoryEventType? eventType)
+        public List<GameHistory> GetByEpisode(int episodeId, GameHistoryEventType? eventType)
         {
             return _historyRepository.GetByEpisode(episodeId, eventType);
         }
 
-        public List<EpisodeHistory> Find(string downloadId, EpisodeHistoryEventType eventType)
+        public List<GameHistory> Find(string downloadId, GameHistoryEventType eventType)
         {
             return _historyRepository.FindByDownloadId(downloadId).Where(c => c.EventType == eventType).ToList();
         }
 
-        public List<EpisodeHistory> FindByDownloadId(string downloadId)
+        public List<GameHistory> FindByDownloadId(string downloadId)
         {
             return _historyRepository.FindByDownloadId(downloadId);
         }
@@ -109,10 +109,10 @@ namespace NzbDrone.Core.History
             var episodesHistory = allHistory.Where(h => episodeIds.Contains(h.EpisodeId)).ToList();
 
             var processedDownloadId = episodesHistory
-                .Where(c => c.EventType != EpisodeHistoryEventType.Grabbed && c.DownloadId != null)
+                .Where(c => c.EventType != GameHistoryEventType.Grabbed && c.DownloadId != null)
                 .Select(c => c.DownloadId);
 
-            var stillDownloading = episodesHistory.Where(c => c.EventType == EpisodeHistoryEventType.Grabbed && !processedDownloadId.Contains(c.DownloadId)).ToList();
+            var stillDownloading = episodesHistory.Where(c => c.EventType == GameHistoryEventType.Grabbed && !processedDownloadId.Contains(c.DownloadId)).ToList();
 
             string downloadId = null;
 
@@ -141,13 +141,13 @@ namespace NzbDrone.Core.History
             return downloadId;
         }
 
-        public void Handle(EpisodeGrabbedEvent message)
+        public void Handle(GameGrabbedEvent message)
         {
             foreach (var episode in message.Episode.Episodes)
             {
-                var history = new EpisodeHistory
+                var history = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.Grabbed,
+                    EventType = GameHistoryEventType.Grabbed,
                     Date = DateTime.UtcNow,
                     Quality = message.Episode.ParsedEpisodeInfo.Quality,
                     SourceTitle = message.Episode.Release.Title,
@@ -209,9 +209,9 @@ namespace NzbDrone.Core.History
 
             foreach (var episode in message.EpisodeInfo.Episodes)
             {
-                var history = new EpisodeHistory
+                var history = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.DownloadFolderImported,
+                    EventType = GameHistoryEventType.DownloadFolderImported,
                     Date = DateTime.UtcNow,
                     Quality = message.EpisodeInfo.Quality,
                     SourceTitle = message.ImportedEpisode.SceneName ?? Path.GetFileNameWithoutExtension(message.EpisodeInfo.Path),
@@ -240,9 +240,9 @@ namespace NzbDrone.Core.History
         {
             foreach (var episodeId in message.EpisodeIds)
             {
-                var history = new EpisodeHistory
+                var history = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.DownloadFailed,
+                    EventType = GameHistoryEventType.DownloadFailed,
                     Date = DateTime.UtcNow,
                     Quality = message.Quality,
                     SourceTitle = message.SourceTitle,
@@ -256,9 +256,9 @@ namespace NzbDrone.Core.History
                 history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem.DownloadClientInfo.Name);
                 history.Data.Add("Message", message.Message);
                 history.Data.Add("Source", message.Source);
-                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup ?? message.Data.GetValueOrDefault(EpisodeHistory.RELEASE_GROUP));
-                history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString() ?? message.Data.GetValueOrDefault(EpisodeHistory.SIZE));
-                history.Data.Add("Indexer", message.TrackedDownload?.RemoteEpisode?.Release?.Indexer ?? message.Data.GetValueOrDefault(EpisodeHistory.INDEXER));
+                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup ?? message.Data.GetValueOrDefault(GameHistory.RELEASE_GROUP));
+                history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString() ?? message.Data.GetValueOrDefault(GameHistory.SIZE));
+                history.Data.Add("Indexer", message.TrackedDownload?.RemoteEpisode?.Release?.Indexer ?? message.Data.GetValueOrDefault(GameHistory.INDEXER));
 
                 _historyRepository.Insert(history);
             }
@@ -279,9 +279,9 @@ namespace NzbDrone.Core.History
 
             foreach (var episode in message.EpisodeFile.Episodes.Value)
             {
-                var history = new EpisodeHistory
+                var history = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.EpisodeFileDeleted,
+                    EventType = GameHistoryEventType.EpisodeFileDeleted,
                     Date = DateTime.UtcNow,
                     Quality = message.EpisodeFile.Quality,
                     SourceTitle = message.EpisodeFile.Path,
@@ -309,9 +309,9 @@ namespace NzbDrone.Core.History
 
             foreach (var episode in message.EpisodeFile.Episodes.Value)
             {
-                var history = new EpisodeHistory
+                var history = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.EpisodeFileRenamed,
+                    EventType = GameHistoryEventType.EpisodeFileRenamed,
                     Date = DateTime.UtcNow,
                     Quality = message.EpisodeFile.Quality,
                     SourceTitle = message.OriginalPath,
@@ -335,13 +335,13 @@ namespace NzbDrone.Core.History
 
         public void Handle(DownloadIgnoredEvent message)
         {
-            var historyToAdd = new List<EpisodeHistory>();
+            var historyToAdd = new List<GameHistory>();
 
             foreach (var episodeId in message.EpisodeIds)
             {
-                var history = new EpisodeHistory
+                var history = new GameHistory
                 {
-                    EventType = EpisodeHistoryEventType.DownloadIgnored,
+                    EventType = GameHistoryEventType.DownloadIgnored,
                     Date = DateTime.UtcNow,
                     Quality = message.Quality,
                     SourceTitle = message.SourceTitle,
@@ -370,7 +370,7 @@ namespace NzbDrone.Core.History
             _historyRepository.DeleteForSeries(message.Series.Select(m => m.Id).ToList());
         }
 
-        public List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType)
+        public List<GameHistory> Since(DateTime date, GameHistoryEventType? eventType)
         {
             return _historyRepository.Since(date, eventType);
         }

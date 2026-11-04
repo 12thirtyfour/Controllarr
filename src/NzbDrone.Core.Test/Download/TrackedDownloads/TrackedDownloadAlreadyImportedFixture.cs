@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
     {
         private List<Episode> _episodes;
         private TrackedDownload _trackedDownload;
-        private List<EpisodeHistory> _historyItems;
+        private List<GameHistory> _historyItems;
 
         [SetUp]
         public void Setup()
@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                                                        .With(t => t.DownloadItem = downloadItem)
                                                        .Build();
 
-            _historyItems = new List<EpisodeHistory>();
+            _historyItems = new List<GameHistory>();
         }
 
         public void GivenEpisodes(int count)
@@ -44,12 +44,12 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                                                .BuildList());
         }
 
-        public void GivenHistoryForEpisode(Episode episode, params EpisodeHistoryEventType[] eventTypes)
+        public void GivenHistoryForEpisode(Episode episode, params GameHistoryEventType[] eventTypes)
         {
             foreach (var eventType in eventTypes)
             {
                 _historyItems.Add(
-                    Builder<EpisodeHistory>.CreateNew()
+                    Builder<GameHistory>.CreateNew()
                                             .With(h => h.EpisodeId = episode.Id)
                                             .With(h => h.EventType = eventType)
                                             .Build());
@@ -71,7 +71,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         {
             GivenEpisodes(1);
 
-            GivenHistoryForEpisode(_episodes[0], EpisodeHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[0], GameHistoryEventType.Grabbed);
 
             Subject.IsImported(_trackedDownload, _historyItems)
                    .Should()
@@ -83,8 +83,8 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         {
             GivenEpisodes(2);
 
-            GivenHistoryForEpisode(_episodes[0], EpisodeHistoryEventType.Grabbed);
-            GivenHistoryForEpisode(_episodes[1], EpisodeHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[0], GameHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[1], GameHistoryEventType.Grabbed);
 
             Subject.IsImported(_trackedDownload, _historyItems)
                    .Should()
@@ -96,8 +96,8 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         {
             GivenEpisodes(2);
 
-            GivenHistoryForEpisode(_episodes[0], EpisodeHistoryEventType.DownloadFolderImported, EpisodeHistoryEventType.Grabbed);
-            GivenHistoryForEpisode(_episodes[1], EpisodeHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[0], GameHistoryEventType.DownloadFolderImported, GameHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[1], GameHistoryEventType.Grabbed);
 
             Subject.IsImported(_trackedDownload, _historyItems)
                    .Should()
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         {
             GivenEpisodes(1);
 
-            GivenHistoryForEpisode(_episodes[0], EpisodeHistoryEventType.DownloadFolderImported, EpisodeHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[0], GameHistoryEventType.DownloadFolderImported, GameHistoryEventType.Grabbed);
 
             Subject.IsImported(_trackedDownload, _historyItems)
                    .Should()
@@ -121,8 +121,8 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         {
             GivenEpisodes(2);
 
-            GivenHistoryForEpisode(_episodes[0], EpisodeHistoryEventType.DownloadFolderImported, EpisodeHistoryEventType.Grabbed);
-            GivenHistoryForEpisode(_episodes[1], EpisodeHistoryEventType.DownloadFolderImported, EpisodeHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[0], GameHistoryEventType.DownloadFolderImported, GameHistoryEventType.Grabbed);
+            GivenHistoryForEpisode(_episodes[1], GameHistoryEventType.DownloadFolderImported, GameHistoryEventType.Grabbed);
 
             Subject.IsImported(_trackedDownload, _historyItems)
                    .Should()

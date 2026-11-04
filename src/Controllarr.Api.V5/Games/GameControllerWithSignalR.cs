@@ -14,7 +14,7 @@ using Sonarr.Http.REST;
 namespace Sonarr.Api.V5.Games;
 
 public abstract class GameControllerWithSignalR : RestControllerWithSignalR<EpisodeResource, Episode>,
-                                                     IHandle<EpisodeGrabbedEvent>,
+                                                     IHandle<GameGrabbedEvent>,
                                                      IHandle<GameImportedEvent>,
                                                      IHandle<RomFileDeletedEvent>
 {
@@ -120,7 +120,7 @@ public abstract class GameControllerWithSignalR : RestControllerWithSignalR<Epis
     }
 
     [NonAction]
-    public void Handle(EpisodeGrabbedEvent message)
+    public void Handle(GameGrabbedEvent message)
     {
         foreach (var episode in message.Episode.Episodes)
         {

@@ -86,7 +86,7 @@ namespace NzbDrone.Core.Test.Download
 
             await Subject.DownloadReport(_parseResult, null);
 
-            VerifyEventPublished<EpisodeGrabbedEvent>();
+            VerifyEventPublished<GameGrabbedEvent>();
         }
 
         [Test]
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.Test.Download
 
             Assert.ThrowsAsync<DownloadClientUnavailableException>(async () => await Subject.DownloadReport(_parseResult, null));
 
-            VerifyEventNotPublished<EpisodeGrabbedEvent>();
+            VerifyEventNotPublished<GameGrabbedEvent>();
         }
 
         [Test]
@@ -205,7 +205,7 @@ namespace NzbDrone.Core.Test.Download
             Assert.ThrowsAsync<DownloadClientUnavailableException>(async () => await Subject.DownloadReport(_parseResult, null));
 
             Mocker.GetMock<IDownloadClient>().Verify(c => c.Download(It.IsAny<RemoteEpisode>(), It.IsAny<IIndexer>()), Times.Never());
-            VerifyEventNotPublished<EpisodeGrabbedEvent>();
+            VerifyEventNotPublished<GameGrabbedEvent>();
         }
 
         [Test]
@@ -228,7 +228,7 @@ namespace NzbDrone.Core.Test.Download
 
             Mocker.GetMock<IDownloadClientStatusService>().Verify(c => c.GetBlockedProviders(), Times.Never());
             mockUsenet.Verify(c => c.Download(It.IsAny<RemoteEpisode>(), It.IsAny<IIndexer>()), Times.Once());
-            VerifyEventPublished<EpisodeGrabbedEvent>();
+            VerifyEventPublished<GameGrabbedEvent>();
         }
 
         [Test]

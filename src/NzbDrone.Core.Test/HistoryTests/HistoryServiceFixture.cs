@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Test.HistoryTests
             Subject.Handle(new GameImportedEvent(localEpisode, episodeFile, new List<DeletedEpisodeFile>(), true, downloadClientItem));
 
             Mocker.GetMock<IHistoryRepository>()
-                .Verify(v => v.Insert(It.Is<EpisodeHistory>(h => h.SourceTitle == Path.GetFileNameWithoutExtension(localEpisode.Path))));
+                .Verify(v => v.Insert(It.Is<GameHistory>(h => h.SourceTitle == Path.GetFileNameWithoutExtension(localEpisode.Path))));
         }
     }
 }

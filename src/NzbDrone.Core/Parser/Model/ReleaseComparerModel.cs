@@ -22,7 +22,7 @@ public class ReleaseComparerModel
         Size = blocklist.Size ?? 0;
     }
 
-    public ReleaseComparerModel(EpisodeHistory history)
+    public ReleaseComparerModel(GameHistory history)
     {
         Title = history.SourceTitle;
         PublishedDate = history.Date;

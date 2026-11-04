@@ -2,7 +2,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.Aggregation.Aggregators
 {
-    public interface IAggregateRemoteEpisode
+    public interface IAggregateRemoteGame
     {
         RemoteEpisode Aggregate(RemoteEpisode remoteEpisode);
     }

@@ -53,9 +53,9 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 return;
             }
 
-            var grabbedHistories = Builder<EpisodeHistory>.CreateListOfSize(episodes.Length)
+            var grabbedHistories = Builder<GameHistory>.CreateListOfSize(episodes.Length)
                 .All()
-                .With(h => h.EventType == EpisodeHistoryEventType.Grabbed)
+                .With(h => h.EventType == GameHistoryEventType.Grabbed)
                 .BuildList();
 
             for (var i = 0; i < grabbedHistories.Count; i++)

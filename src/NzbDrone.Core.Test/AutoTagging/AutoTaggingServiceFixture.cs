@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Test.AutoTagging
         [Test]
         public void should_have_tags_to_add_if_series_does_not_have_match_tag_and_series_matches_all_rules()
         {
-            _tag.Specifications.Add(new SeriesTypeSpecification
+            _tag.Specifications.Add(new PlatformTypeSpecification
                                     {
                                         Name = "Series Type",
                                         Value = (int)_series.SeriesType

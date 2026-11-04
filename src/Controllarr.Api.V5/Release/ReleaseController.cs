@@ -262,7 +262,7 @@ public class ReleaseController : RestController<ReleaseResource>
         var decisions = _downloadDecisionMaker.GetRssDecision(reports);
         var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
 
-        return MapDecisions(prioritizedDecisions, new List<EpisodeHistory>());
+        return MapDecisions(prioritizedDecisions, new List<GameHistory>());
     }
 
     private string GetCacheKey(ReleaseResource resource)
@@ -275,7 +275,7 @@ public class ReleaseController : RestController<ReleaseResource>
         return string.Concat(resource.IndexerId, "_", resource.Guid);
     }
 
-    private List<ReleaseResource> MapDecisions(IEnumerable<DownloadDecision> decisions, List<EpisodeHistory> history)
+    private List<ReleaseResource> MapDecisions(IEnumerable<DownloadDecision> decisions, List<GameHistory> history)
     {
         var result = new List<ReleaseResource>();
 
@@ -302,9 +302,9 @@ public class ReleaseController : RestController<ReleaseResource>
         return result;
     }
 
-    private ReleaseHistoryResource? AddHistory(ReleaseInfo release, List<EpisodeHistory> history)
+    private ReleaseHistoryResource? AddHistory(ReleaseInfo release, List<GameHistory> history)
     {
-        var grabbed = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed &&
+        var grabbed = history.FirstOrDefault(h => h.EventType == GameHistoryEventType.Grabbed &&
                                                   (((h.Data.TryGetValue("guid", out var guid) && string.Equals(guid, release.Guid, StringComparison.OrdinalIgnoreCase)) ||
                                                     (h.Data.TryGetValue("Guid", out var capitalGuid) && string.Equals(capitalGuid, release.Guid, StringComparison.OrdinalIgnoreCase))) ||
                                                    (h.Data.TryGetValue("nzbInfoUrl", out var infoUrl) && infoUrl.IsNotNullOrWhiteSpace() && infoUrl.Equals(release.InfoUrl, StringComparison.Ordinal))));
@@ -318,14 +318,14 @@ public class ReleaseController : RestController<ReleaseResource>
 
             if (torrentInfo.InfoHash.IsNotNullOrWhiteSpace())
             {
-                grabbed = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed &&
+                grabbed = history.FirstOrDefault(h => h.EventType == GameHistoryEventType.Grabbed &&
                                                       ReleaseComparer.SameTorrent(new ReleaseComparerModel(h),
                                                           torrentInfo));
             }
 
             if (grabbed == null)
             {
-                grabbed = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed &&
+                grabbed = history.FirstOrDefault(h => h.EventType == GameHistoryEventType.Grabbed &&
                                                       h.SourceTitle == release.Title &&
                                                       (DownloadProtocol)Convert.ToInt32(
                                                           h.Data.GetValueOrDefault("protocol")) ==
@@ -336,7 +336,7 @@ public class ReleaseController : RestController<ReleaseResource>
         }
         else if (grabbed == null)
         {
-            grabbed = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.Grabbed &&
+            grabbed = history.FirstOrDefault(h => h.EventType == GameHistoryEventType.Grabbed &&
                                                   ReleaseComparer.SameNzb(new ReleaseComparerModel(h),
                                                       release));
         }
@@ -348,7 +348,7 @@ public class ReleaseController : RestController<ReleaseResource>
                 Grabbed = grabbed.Date,
             };
 
-            var failedHistory = history.FirstOrDefault(h => h.EventType == EpisodeHistoryEventType.DownloadFailed &&
+            var failedHistory = history.FirstOrDefault(h => h.EventType == GameHistoryEventType.DownloadFailed &&
                                                             h.DownloadId == grabbed.DownloadId);
 
             if (failedHistory != null)

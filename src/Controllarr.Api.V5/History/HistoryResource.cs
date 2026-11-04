@@ -21,7 +21,7 @@ public class HistoryResource : RestResource
     public bool QualityCutoffNotMet { get; set; }
     public DateTime Date { get; set; }
     public string? DownloadId { get; set; }
-    public EpisodeHistoryEventType EventType { get; set; }
+    public GameHistoryEventType EventType { get; set; }
     public required Dictionary<string, string> Data { get; set; }
     public EpisodeResource? Game { get; set; }
     public SeriesResource? Series { get; set; }
@@ -29,7 +29,7 @@ public class HistoryResource : RestResource
 
 public static class HistoryResourceMapper
 {
-    public static HistoryResource ToResource(this EpisodeHistory model, ICustomFormatCalculationService formatCalculator)
+    public static HistoryResource ToResource(this GameHistory model, ICustomFormatCalculationService formatCalculator)
     {
         var customFormats = formatCalculator.ParseCustomFormat(model, model.Series);
         var customFormatScore = model.Series.QualityProfile.Value.CalculateCustomFormatScore(customFormats);

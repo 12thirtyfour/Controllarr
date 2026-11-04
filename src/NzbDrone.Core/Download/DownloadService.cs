@@ -183,7 +183,7 @@ namespace NzbDrone.Core.Download
                 throw;
             }
 
-            var episodeGrabbedEvent = new EpisodeGrabbedEvent(remoteEpisode);
+            var episodeGrabbedEvent = new GameGrabbedEvent(remoteEpisode);
             episodeGrabbedEvent.DownloadClient = downloadClient.Name;
             episodeGrabbedEvent.DownloadClientId = downloadClient.Definition.Id;
             episodeGrabbedEvent.DownloadClientName = downloadClient.Definition.Name;

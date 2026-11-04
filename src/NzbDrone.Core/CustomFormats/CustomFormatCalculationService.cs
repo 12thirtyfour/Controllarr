@@ -18,7 +18,7 @@ namespace NzbDrone.Core.CustomFormats
         List<CustomFormat> ParseCustomFormat(EpisodeFile episodeFile, Series series);
         List<CustomFormat> ParseCustomFormat(EpisodeFile episodeFile);
         List<CustomFormat> ParseCustomFormat(Blocklist blocklist, Series series);
-        List<CustomFormat> ParseCustomFormat(EpisodeHistory history, Series series);
+        List<CustomFormat> ParseCustomFormat(GameHistory history, Series series);
         List<CustomFormat> ParseCustomFormat(LocalEpisode localEpisode, string fileName);
     }
 
@@ -84,7 +84,7 @@ namespace NzbDrone.Core.CustomFormats
             return ParseCustomFormat(input);
         }
 
-        public List<CustomFormat> ParseCustomFormat(EpisodeHistory history, Series series)
+        public List<CustomFormat> ParseCustomFormat(GameHistory history, Series series)
         {
             var parsed = Parser.Parser.ParseTitle(history.SourceTitle);
 

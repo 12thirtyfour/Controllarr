@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Download.History
     }
 
     public class DownloadHistoryService : IDownloadHistoryService,
-                                          IHandle<EpisodeGrabbedEvent>,
+                                          IHandle<GameGrabbedEvent>,
                                           IHandle<GameImportedEvent>,
                                           IHandle<DownloadCompletedEvent>,
                                           IHandle<DownloadFailedEvent>,
@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Download.History
                               .FirstOrDefault(d => d.EventType == DownloadHistoryEventType.DownloadGrabbed);
         }
 
-        public void Handle(EpisodeGrabbedEvent message)
+        public void Handle(GameGrabbedEvent message)
         {
             // Don't store grabbed events for clients that don't download IDs
             if (message.DownloadId.IsNullOrWhiteSpace())

@@ -12,7 +12,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.HistoryTests
 {
     [TestFixture]
-    public class HistoryRepositoryFixture : DbTest<HistoryRepository, EpisodeHistory>
+    public class HistoryRepositoryFixture : DbTest<HistoryRepository, GameHistory>
     {
         private Series _series1;
         private Series _series2;
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.HistoryTests
         [Test]
         public void should_read_write_dictionary()
         {
-            var history = Builder<EpisodeHistory>.CreateNew()
+            var history = Builder<GameHistory>.CreateNew()
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .With(c => c.Quality = new QualityModel())
                 .BuildNew();
@@ -48,18 +48,18 @@ namespace NzbDrone.Core.Test.HistoryTests
         [Test]
         public void should_get_download_history()
         {
-            var historyBluray = Builder<EpisodeHistory>.CreateNew()
+            var historyBluray = Builder<GameHistory>.CreateNew()
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
                 .With(c => c.SeriesId = 12)
-                .With(c => c.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(c => c.EventType = GameHistoryEventType.Grabbed)
                 .BuildNew();
 
-            var historyDvd = Builder<EpisodeHistory>.CreateNew()
+            var historyDvd = Builder<GameHistory>.CreateNew()
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .With(c => c.Quality = new QualityModel(Quality.DVD))
                 .With(c => c.SeriesId = 12)
-                .With(c => c.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(c => c.EventType = GameHistoryEventType.Grabbed)
              .BuildNew();
 
             Subject.Insert(historyBluray);
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Test.HistoryTests
         [Test]
         public void should_delete_history_items_by_seriesId()
         {
-            var items = Builder<EpisodeHistory>.CreateListOfSize(5)
+            var items = Builder<GameHistory>.CreateListOfSize(5)
                 .TheFirst(1)
                 .With(c => c.SeriesId = _series2.Id)
                 .TheRest()
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Test.HistoryTests
                 .With(c => c.Id = 0)
                 .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
                 .With(c => c.Languages = new List<Language> { Language.English })
-                .With(c => c.EventType = EpisodeHistoryEventType.Grabbed)
+                .With(c => c.EventType = GameHistoryEventType.Grabbed)
                 .BuildListOfNew();
 
             Db.InsertMany(items);

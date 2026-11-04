@@ -8,7 +8,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 {
     public interface ITrackedDownloadAlreadyImported
     {
-        bool IsImported(TrackedDownload trackedDownload, List<EpisodeHistory> historyItems);
+        bool IsImported(TrackedDownload trackedDownload, List<GameHistory> historyItems);
     }
 
     public class TrackedDownloadAlreadyImported : ITrackedDownloadAlreadyImported
@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             _logger = logger;
         }
 
-        public bool IsImported(TrackedDownload trackedDownload, List<EpisodeHistory> historyItems)
+        public bool IsImported(TrackedDownload trackedDownload, List<GameHistory> historyItems)
         {
             _logger.Trace("Checking if all games for '{0}' have been imported", trackedDownload.DownloadItem.Title);
 
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
                 _logger.Trace("Last event for game: {0} [{1}] is: {2}", e.Title, e.Id, lastHistoryItem.EventType);
 
-                return lastHistoryItem.EventType == EpisodeHistoryEventType.DownloadFolderImported;
+                return lastHistoryItem.EventType == GameHistoryEventType.DownloadFolderImported;
             });
 
             _logger.Trace("All games for '{0}' have been imported: {1}", trackedDownload.DownloadItem.Title, allEpisodesImportedInHistory);

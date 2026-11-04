@@ -38,7 +38,7 @@ namespace Sonarr.Api.V3.History
             _seriesService = seriesService;
         }
 
-        protected HistoryResource MapToResource(EpisodeHistory model, bool includeSeries, bool includeEpisode)
+        protected HistoryResource MapToResource(GameHistory model, bool includeSeries, bool includeEpisode)
         {
             var resource = model.ToResource(_formatCalculator);
 
@@ -65,7 +65,7 @@ namespace Sonarr.Api.V3.History
         public PagingResource<HistoryResource> GetHistory([FromQuery] PagingRequestResource paging, bool includeSeries, bool includeEpisode, [FromQuery(Name = "eventType")] int[] eventTypes, int? episodeId, string downloadId, [FromQuery] int[] seriesIds = null, [FromQuery] int[] languages = null, [FromQuery] int[] quality = null)
         {
             var pagingResource = new PagingResource<HistoryResource>(paging);
-            var pagingSpec = pagingResource.MapToPagingSpec<HistoryResource, EpisodeHistory>(
+            var pagingSpec = pagingResource.MapToPagingSpec<HistoryResource, GameHistory>(
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "date",
@@ -99,14 +99,14 @@ namespace Sonarr.Api.V3.History
 
         [HttpGet("since")]
         [Produces("application/json")]
-        public List<HistoryResource> GetHistorySince(DateTime date, EpisodeHistoryEventType? eventType = null, bool includeSeries = false, bool includeEpisode = false)
+        public List<HistoryResource> GetHistorySince(DateTime date, GameHistoryEventType? eventType = null, bool includeSeries = false, bool includeEpisode = false)
         {
             return _historyService.Since(date, eventType).Select(h => MapToResource(h, includeSeries, includeEpisode)).ToList();
         }
 
         [HttpGet("series")]
         [Produces("application/json")]
-        public List<HistoryResource> GetSeriesHistory(int seriesId, int? seasonNumber, EpisodeHistoryEventType? eventType = null, bool includeSeries = false, bool includeEpisode = false)
+        public List<HistoryResource> GetSeriesHistory(int seriesId, int? seasonNumber, GameHistoryEventType? eventType = null, bool includeSeries = false, bool includeEpisode = false)
         {
             var series = _seriesService.GetSeries(seriesId);
 

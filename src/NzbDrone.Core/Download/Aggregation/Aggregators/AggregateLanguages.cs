@@ -10,7 +10,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.Aggregation.Aggregators
 {
-    public class AggregateLanguages : IAggregateRemoteEpisode
+    public class AggregateLanguages : IAggregateRemoteGame
     {
         private readonly IIndexerFactory _indexerFactory;
         private readonly Logger _logger;

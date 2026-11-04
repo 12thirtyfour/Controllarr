@@ -75,7 +75,7 @@ namespace Sonarr.Api.V3.Config
 
         public string UserRejectedExtensions { get; set; }
 
-        public SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
+        public PlatformPackUpgradeType SeasonPackUpgrade { get; set; }
 
         public double SeasonPackUpgradeThreshold { get; set; }
     }

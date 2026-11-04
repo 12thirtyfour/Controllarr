@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Parser.Model
 
         public List<int> EpisodeIds { get; set; }
 
-        public GrabbedReleaseInfo(List<EpisodeHistory> grabbedHistories)
+        public GrabbedReleaseInfo(List<GameHistory> grabbedHistories)
         {
             var grabbedHistory = grabbedHistories.MaxBy(h => h.Date);
             var episodeIds = grabbedHistories.Select(h => h.EpisodeId).Distinct().ToList();
