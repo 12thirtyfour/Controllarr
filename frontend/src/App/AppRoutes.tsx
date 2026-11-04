@@ -12,7 +12,6 @@ const ImportPlatform = lazy(() => import('AddPlatform/ImportPlatform/Import/Impo
 const ImportPlatformSelectFolder = lazy(
   () => import('AddPlatform/ImportPlatform/SelectFolder/ImportPlatformSelectFolder')
 );
-const CalendarPage = lazy(() => import('Calendar/CalendarPage'));
 const RomPatcherPage = lazy(() => import('RomPatcher/RomPatcherPage'));
 const BiosSettings = lazy(() => import('Settings/Bios/BiosSettings'));
 const CollectionSettings = lazy(() => import('Settings/Collection/CollectionSettings'));
@@ -96,12 +95,6 @@ export function appRouteElements() {
       <Route path="/series/:titleSlug" element={<PlatformDetailsPage />} />
 
       <Route path="/statistics" element={<Statistics />} />
-
-      {/*
-        Calendar
-      */}
-
-      <Route path="/calendar" element={<CalendarPage />} />
 
       {/*
         Activity
