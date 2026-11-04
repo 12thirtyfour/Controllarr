@@ -9,7 +9,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Parser.Model
 {
-    public class RemoteEpisode
+    public class RemoteGame
     {
         public ReleaseInfo Release { get; set; }
         public ParsedEpisodeInfo ParsedEpisodeInfo { get; set; }
@@ -28,7 +28,7 @@ namespace NzbDrone.Core.Parser.Model
 
         public ParsedRomInfo ParsedRomInfo { get; set; }
 
-        public RemoteEpisode()
+        public RemoteGame()
         {
             Episodes = new List<Episode>();
             CustomFormats = new List<CustomFormat>();
@@ -44,6 +44,10 @@ namespace NzbDrone.Core.Parser.Model
         {
             return Release.Title;
         }
+    }
+
+    public class RemoteEpisode : RemoteGame
+    {
     }
 
     public enum ReleaseSourceType

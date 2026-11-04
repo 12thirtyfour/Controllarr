@@ -12,7 +12,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Parser.Model
 {
-    public class LocalEpisode
+    public class LocalGame
     {
         public string Path { get; set; }
         public long Size { get; set; }
@@ -149,5 +149,9 @@ namespace NzbDrone.Core.Parser.Model
 
             return System.IO.Path.GetFileName(Path);
         }
+    }
+
+    public class LocalEpisode : LocalGame
+    {
     }
 }

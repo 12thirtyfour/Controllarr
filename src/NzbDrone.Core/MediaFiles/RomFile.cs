@@ -10,7 +10,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public class EpisodeFile : ModelBase
+    public class RomFile : ModelBase
     {
         public int SeriesId { get; set; }
         public int SeasonNumber { get; set; }
@@ -54,5 +54,9 @@ namespace NzbDrone.Core.MediaFiles
 
             return string.Empty;
         }
+    }
+
+    public class EpisodeFile : RomFile
+    {
     }
 }

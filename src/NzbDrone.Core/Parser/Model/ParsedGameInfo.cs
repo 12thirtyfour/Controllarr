@@ -8,7 +8,7 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Parser.Model
 {
-    public class ParsedEpisodeInfo
+    public class ParsedGameInfo
     {
         public string ReleaseTitle { get; set; }
         public string SeriesTitle { get; set; }
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Parser.Model
         public string ReleaseTokens { get; set; }
         public int? DailyPart { get; set; }
 
-        public ParsedEpisodeInfo()
+        public ParsedGameInfo()
         {
             EpisodeNumbers = Array.Empty<int>();
             AbsoluteEpisodeNumbers = Array.Empty<int>();
@@ -161,5 +161,9 @@ namespace NzbDrone.Core.Parser.Model
 
             return string.Format("{0} - {1} {2}", SeriesTitle, gameString, Quality);
         }
+    }
+
+    public class ParsedEpisodeInfo : ParsedGameInfo
+    {
     }
 }
