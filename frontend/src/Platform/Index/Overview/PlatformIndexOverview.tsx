@@ -63,7 +63,7 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
     isSelectMode,
   } = props;
 
-  const { series, qualityProfile, isRefreshingSeries, isSearchingSeries } =
+  const { series, isRefreshingSeries, isSearchingSeries } =
     usePlatformIndexItem(seriesId);
 
   const overviewOptions = usePlatformOverviewOptions();
@@ -261,12 +261,10 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
             monitored={monitored}
             added={added}
             seasonCount={seasonCount}
-            qualityProfile={qualityProfile}
             sizeOnDisk={sizeOnDisk}
             path={path}
             sortKey={sortKey}
             showMonitored={overviewOptions.showMonitored}
-            showQualityProfile={overviewOptions.showQualityProfile}
             showAdded={overviewOptions.showAdded}
             showSeasonCount={overviewOptions.showSeasonCount}
             showPath={overviewOptions.showPath}

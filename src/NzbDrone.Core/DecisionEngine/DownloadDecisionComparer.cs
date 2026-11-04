@@ -188,14 +188,38 @@ namespace NzbDrone.Core.DecisionEngine
 
         private int CompareQuality(DownloadDecision x, DownloadDecision y)
         {
-            if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
+            var xQuality = x.RemoteEpisode?.ParsedEpisodeInfo?.Quality;
+            var yQuality = y.RemoteEpisode?.ParsedEpisodeInfo?.Quality;
+
+            if (xQuality == null && yQuality == null)
             {
-                return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality));
+                return 0;
             }
 
-            return CompareAll(
-                CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality)),
-                CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.ParsedEpisodeInfo.Quality.Revision));
+            if (xQuality == null)
+            {
+                return -1;
+            }
+
+            if (yQuality == null)
+            {
+                return 1;
+            }
+
+            var xId = xQuality.Quality?.Id ?? 0;
+            var yId = yQuality.Quality?.Id ?? 0;
+
+            if (xId != yId)
+            {
+                return xId.CompareTo(yId);
+            }
+
+            if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
+            {
+                return 0;
+            }
+
+            return xQuality.Revision.CompareTo(yQuality.Revision);
         }
 
         private int CompareCustomFormatScore(DownloadDecision x, DownloadDecision y)
@@ -209,13 +233,25 @@ namespace NzbDrone.Core.DecisionEngine
             {
                 var delayProfile = _delayProfileService.BestForTags(remoteEpisode.Series.Tags);
                 var downloadProtocol = remoteEpisode.Release.DownloadProtocol;
+
                 if (delayProfile?.ProtocolPriority != null && delayProfile.ProtocolPriority.Count > 0)
                 {
                     var index = delayProfile.ProtocolPriority.IndexOf(downloadProtocol);
                     return index >= 0 ? delayProfile.ProtocolPriority.Count - index : 0;
                 }
 
-                return downloadProtocol == delayProfile.PreferredProtocol ? 1 : 0;
+                if (delayProfile != null && delayProfile.PreferredProtocol != DownloadProtocol.Unknown)
+                {
+                    return downloadProtocol == delayProfile.PreferredProtocol ? 1 : 0;
+                }
+
+                return downloadProtocol switch
+                {
+                    DownloadProtocol.Http => 3,
+                    DownloadProtocol.Torrent => 2,
+                    DownloadProtocol.Usenet => 1,
+                    _ => 0
+                };
             });
 
             return result;

@@ -44,7 +44,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
 
   const {
     series,
-    qualityProfile,
     isRefreshingSeries,
     isSearchingSeries,
   } = usePlatformIndexItem(seriesId);
@@ -226,15 +225,7 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
           );
         }
 
-        if (name === 'qualityProfileId') {
-          return (
-            <VirtualTableRowCell key={name} className={styles[name]}>
-              <span className={styles.qualityChip}>
-                {qualityProfile?.name ?? ''}
-              </span>
-            </VirtualTableRowCell>
-          );
-        }
+
 
         if (name === 'added') {
           return (

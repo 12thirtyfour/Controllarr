@@ -23,6 +23,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Absolute TV De-Televisonization Directive in AGENTS.md**: Formally enacted strict zero-TV tolerance policy mandating the systematic renaming, repurposing, or elimination of all remaining TV, broadcast, airing, schedule, episode, season, TVDB, TVMaze, TVRage, and scene mapping holdovers across all backend, frontend, API, persistence, and test layers.
 
 ### Removed
+- **Complete Elimination of Quality, Delay, and Release Profiles**:
+  - Abolished all video-centric profile filtering (`QualityAllowedByProfileSpecification`, `CustomFormatAllowedbyProfileSpecification`, `AcceptableSizeSpecification`, `AirDateSpecification`, `DelaySpecification`) from the decision engine. Candidate releases matching the platform's supported file types are accepted immediately for download without arbitrary pre-download quality rejections, leaving dump verification (Verified Good Dump, Verified Redump, No-Intro, etc.) to authentic cryptographic hashing (CRC32, MD5, SHA-1) against DAT databases post-download.
+  - Abolished Delay Profiles and protocol restrictions in `ProtocolSpecification`, accepting all direct HTTP/HTTPS, BitTorrent, and Usenet downloads immediately without waiting periods.
+  - Refactored `UpgradableSpecification` and `DownloadDecisionComparer` to operate directly on authentic dump verification status and revisions without requiring quality profile cutoffs or database lookups.
+  - Streamlined UI across Platform Index (table, overview, posters, sort menu), Platform Details, and Settings: removed quality profile chips, badges, and sort options, removed `DelayProfiles` and `ReleaseProfiles` sections, updated Settings navigation to expose Virtual Libraries directly (`/settings/virtuallibraries`), and decoupled application startup from quality profile loading.
 - **Complete Elimination of Scene Mapping Subsystem (Phase 3)**:
   - Purged all 10 files in `src/NzbDrone.Core/DataAugmentation/Scene/` (`ISceneMappingProvider`, `InvalidSceneMappingException`, `SceneMapping`, `SceneMappingProxy`, `SceneMappingRepository`, `SceneMappingService`, `SceneMappingsUpdatedEvent`, `ServicesProvider`, `UpdateSceneMappingCommand`), retiring the directory entirely.
   - Relocated core search definition `SearchMode.cs` cleanly into `NzbDrone.Core.IndexerSearch.Definitions`.

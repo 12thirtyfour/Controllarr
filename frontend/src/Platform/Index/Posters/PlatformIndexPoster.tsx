@@ -56,14 +56,13 @@ function getStatusBadge(status: PlatformStatus, showStatuses: ShowStatusMode[]) 
 function PlatformIndexPoster(props: PlatformIndexPosterProps) {
   const { seriesId, sortKey, isSelectMode, posterWidth, posterHeight } = props;
 
-  const { series, qualityProfile, isRefreshingSeries, isSearchingSeries } =
+  const { series, isRefreshingSeries, isSearchingSeries } =
     usePlatformIndexItem(seriesId);
 
   const {
     detailedProgressBar,
     showTitle,
     showMonitored,
-    showQualityProfile,
     showTags,
     showSearchAction,
     showStatuses,
@@ -250,28 +249,19 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
         </div>
       ) : null}
 
-      {showMonitored || (showQualityProfile && !!qualityProfile?.name) ? (
+      {showMonitored ? (
         <div className={styles.meta}>
-          {showMonitored ? (
-            <Link
-              className={styles.monitoredLink}
-              title={
-                monitored
-                  ? translate('ToggleMonitoredToUnmonitored')
-                  : translate('ToggleUnmonitoredToMonitored')
-              }
-              onPress={onMonitorPress}
-            >
-              {monitoredLabel}
-            </Link>
-          ) : null}
-
-          {showMonitored && showQualityProfile && !!qualityProfile?.name ? (
-            <span className={styles.metaSep}> · </span>
-          ) : null}
-          {showQualityProfile && !!qualityProfile?.name
-            ? qualityProfile.name
-            : null}
+          <Link
+            className={styles.monitoredLink}
+            title={
+              monitored
+                ? translate('ToggleMonitoredToUnmonitored')
+                : translate('ToggleUnmonitoredToMonitored')
+            }
+            onPress={onMonitorPress}
+          >
+            {monitoredLabel}
+          </Link>
         </div>
       ) : null}
 
@@ -289,8 +279,6 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
         seasonCount={seasonCount}
         sizeOnDisk={sizeOnDisk}
         path={path}
-        qualityProfile={qualityProfile}
-        showQualityProfile={showQualityProfile}
         showRelativeDates={showRelativeDates}
         sortKey={sortKey}
         shortDateFormat={shortDateFormat}

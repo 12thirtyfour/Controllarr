@@ -1,5 +1,4 @@
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
@@ -18,16 +17,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public virtual DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)
         {
-            var minScore = subject.Series.QualityProfile.Value.MinFormatScore;
-            var score = subject.CustomFormatScore;
-
-            if (score < minScore)
-            {
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.CustomFormatMinimumScore, "Custom Formats {0} have score {1} below platform profile minimum {2}", subject.CustomFormats.ConcatToString(), score, minScore);
-            }
-
-            _logger.Trace("Custom Format Score of {0} [{1}] above platform profile minimum {2}", score, subject.CustomFormats.ConcatToString(), minScore);
-
+            // Quality profile minimum custom format scores are abolished in Controllarr.
             return DownloadSpecDecision.Accept();
         }
     }

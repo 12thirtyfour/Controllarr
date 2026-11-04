@@ -7,7 +7,6 @@ import { useLanguages } from 'Language/useLanguages';
 import usePlatform from 'Platform/usePlatform';
 import useIndexerFlags from 'Settings/Indexers/useIndexerFlags';
 import { useMetadataSourceSettings } from 'Settings/MetadataSource/useMetadataSourceSettings';
-import { useQualityProfiles } from 'Settings/Profiles/Quality/useQualityProfiles';
 import { useUiSettings } from 'Settings/UI/useUiSettings';
 import useSystemStatus from 'System/Status/useSystemStatus';
 import useTags from 'Tags/useTags';
@@ -33,8 +32,6 @@ const useAppPage = () => {
   const { isFetched: isUiSettingsFetched, error: uiSettingsError } =
     useUiSettings();
 
-  const { isFetched: isQualityProfilesFetched, error: qualityProfilesError } =
-    useQualityProfiles();
 
   const { isFetched: isLanguagesFetched, error: languagesError } =
     useLanguages();
@@ -56,7 +53,6 @@ const useAppPage = () => {
     isTagsFetched &&
     isTranslationsFetched &&
     isUiSettingsFetched &&
-    isQualityProfilesFetched &&
     isLanguagesFetched &&
     isMetadataSourceSettingsFetched;
 
@@ -66,7 +62,6 @@ const useAppPage = () => {
         customFiltersError ||
         seriesError ||
         uiSettingsError ||
-        qualityProfilesError ||
         languagesError ||
         indexerFlagsError ||
         systemStatusError ||
@@ -79,7 +74,6 @@ const useAppPage = () => {
         customFiltersError,
         tagsError,
         uiSettingsError,
-        qualityProfilesError,
         languagesError,
         indexerFlagsError,
         systemStatusError,
@@ -91,7 +85,6 @@ const useAppPage = () => {
     customFiltersError,
     seriesError,
     uiSettingsError,
-    qualityProfilesError,
     languagesError,
     indexerFlagsError,
     systemStatusError,

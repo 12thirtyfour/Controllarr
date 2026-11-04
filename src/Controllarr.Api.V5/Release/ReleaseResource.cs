@@ -75,7 +75,9 @@ public static class ReleaseResourceMapper
         }
         else
         {
-            release.QualityWeight = profile.GetIndex(release.ParsedInfo.Quality.Quality).Index * 100;
+            var qualityId = release.ParsedInfo.Quality.Quality?.Id ?? 0;
+            var index = profile?.GetIndex(release.ParsedInfo.Quality.Quality).Index ?? qualityId;
+            release.QualityWeight = index * 100;
             release.QualityWeight += release.ParsedInfo.Quality.Revision.Real * 10;
             release.QualityWeight += release.ParsedInfo.Quality.Revision.Version;
         }

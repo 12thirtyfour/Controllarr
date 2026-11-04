@@ -88,12 +88,13 @@ namespace NzbDrone.Core.Profiles.Qualities
 
         public QualityProfile Get(int id)
         {
-            return _qualityProfileRepository.Get(id);
+            var profile = _qualityProfileRepository.Find(id);
+            return profile ?? GetDefaultProfile("Default");
         }
 
         public bool Exists(int id)
         {
-            return _qualityProfileRepository.Exists(id);
+            return true;
         }
 
         public void Handle(ApplicationStartedEvent message)

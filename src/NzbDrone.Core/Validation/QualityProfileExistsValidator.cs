@@ -1,4 +1,4 @@
-﻿using FluentValidation.Validators;
+using FluentValidation.Validators;
 using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.Validation
@@ -16,12 +16,8 @@ namespace NzbDrone.Core.Validation
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
-            if (context?.PropertyValue == null || (int)context.PropertyValue == 0)
-            {
-                return true;
-            }
-
-            return _qualityProfileService.Exists((int)context.PropertyValue);
+            // Quality profiles are obsolete in Controllarr. Validation always succeeds.
+            return true;
         }
     }
 }

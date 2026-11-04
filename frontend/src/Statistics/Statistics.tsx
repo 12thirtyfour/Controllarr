@@ -191,25 +191,6 @@ function Statistics() {
     ];
   }, [colors, data]);
 
-  const qualityProfileItems = useMemo<BarChartItem[]>(() => {
-    if (!data) {
-      return [];
-    }
-
-    return data.qualityProfileStatistics.map((profile) => {
-      return {
-        label: profile.name,
-        value: profile.seriesCount ?? 0,
-        tooltipLines: [
-          `${translate(
-            'RomFiles'
-          )}: ${(profile.romFileCount ?? 0).toLocaleString()}`,
-          `${translate('SizeOnDisk')}: ${formatBytes(profile.sizeOnDisk ?? 0)}`,
-        ],
-      };
-    });
-  }, [data]);
-
   const qualityItems = useMemo<BarChartItem[]>(() => {
     if (!data) {
       return [];
@@ -296,10 +277,7 @@ function Statistics() {
             </div>
 
             <div className={styles.charts}>
-              <BarChart
-                title={translate('QualityProfiles')}
-                items={qualityProfileItems}
-              />
+
 
               <BarChart
                 title={translate('GameQualities')}

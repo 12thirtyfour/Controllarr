@@ -3,7 +3,6 @@ import HeartRating from 'Components/HeartRating';
 import PlatformTagList from 'Components/PlatformTagList';
 import Language from 'Language/Language';
 import { Ratings } from 'Platform/Platform';
-import { QualityProfileModel } from 'Settings/Profiles/Quality/useQualityProfiles';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
@@ -12,8 +11,6 @@ import styles from './PlatformIndexPosterInfo.module.css';
 
 interface PlatformIndexPosterInfoProps {
   originalLanguage?: Language;
-  showQualityProfile: boolean;
-  qualityProfile?: QualityProfileModel;
   added?: string;
   seasonCount: number;
   path: string;
@@ -31,8 +28,6 @@ interface PlatformIndexPosterInfoProps {
 function PlatformIndexPosterInfo(props: PlatformIndexPosterInfoProps) {
   const {
     originalLanguage,
-    qualityProfile,
-    showQualityProfile,
     added,
     seasonCount,
     path,
@@ -55,17 +50,7 @@ function PlatformIndexPosterInfo(props: PlatformIndexPosterInfoProps) {
     );
   }
 
-  if (
-    sortKey === 'qualityProfileId' &&
-    !showQualityProfile &&
-    !!qualityProfile?.name
-  ) {
-    return (
-      <div className={styles.info} title={translate('QualityProfile')}>
-        {qualityProfile.name}
-      </div>
-    );
-  }
+
 
   if (sortKey === 'added' && added) {
     const addedDate = getRelativeDate({

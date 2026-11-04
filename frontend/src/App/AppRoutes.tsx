@@ -128,7 +128,11 @@ export function appRouteElements() {
 
       <Route path="/settings/collection" element={<CollectionSettings />} />
 
-      <Route path="/settings/profiles" element={<Profiles />} />
+      <Route path="/settings/virtuallibraries" element={<Profiles />} />
+      <Route
+        path="/settings/profiles"
+        element={<Navigate to="/settings/virtuallibraries" replace={true} />}
+      />
 
       <Route path="/settings/indexers" element={<IndexerSettings />} />
 

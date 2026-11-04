@@ -54,7 +54,9 @@ namespace Sonarr.Api.V3.Indexers
 
             release.ReleaseWeight = initialWeight;
 
-            release.QualityWeight = _qualityProfile.GetIndex(release.Quality.Quality).Index * 100;
+            var qualityId = release.Quality?.Quality?.Id ?? 0;
+            var index = _qualityProfile?.GetIndex(release.Quality.Quality).Index ?? qualityId;
+            release.QualityWeight = index * 100;
 
             release.QualityWeight += release.Quality.Revision.Real * 10;
             release.QualityWeight += release.Quality.Revision.Version;

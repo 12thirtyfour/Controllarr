@@ -23,8 +23,6 @@ import { InputChanged } from 'typings/inputs';
 import fetchJson from 'Utilities/Fetch/fetchJson';
 import getQueryPath from 'Utilities/Fetch/getQueryPath';
 import translate from 'Utilities/String/translate';
-import DelayProfiles from './Delay/DelayProfiles';
-import ReleaseProfiles from './Release/ReleaseProfiles';
 import styles from './Profiles.module.css';
 
 interface VirtualLibraryProfile {
@@ -357,24 +355,6 @@ function Profiles() {
                 ))}
               </div>
             ) : null}
-          </div>
-
-          <div className={settingsStyles.pageSection}>
-            <SectionHeading
-              title={translate('DelayProfiles')}
-              description={translate('DelayProfilesSectionDescription')}
-            />
-
-            <DelayProfiles />
-          </div>
-
-          <div className={settingsStyles.pageSection}>
-            <SectionHeading
-              title={translate('ReleaseProfiles')}
-              description={translate('ReleaseProfilesSectionDescription')}
-            />
-
-            <ReleaseProfiles />
           </div>
         </div>
       </PageContentBody>

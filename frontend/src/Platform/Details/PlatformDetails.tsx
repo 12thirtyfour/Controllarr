@@ -63,7 +63,6 @@ import usePlatform, {
   useSingleSeries,
   useToggleSeriesMonitored,
 } from 'Platform/usePlatform';
-import QualityProfileName from 'Settings/Profiles/Quality/QualityProfileName';
 import sortByProp from 'Utilities/Array/sortByProp';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
 import formatBytes from 'Utilities/Number/formatBytes';
@@ -519,7 +518,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     path,
     pendingPath,
     statistics = {} as Statistics,
-    qualityProfileId,
     language,
     status,
     originalLanguage,
@@ -921,18 +919,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                       position={tooltipPositions.BOTTOM}
                     />
 
-                    <Label
-                      className={styles.detailsLabel}
-                      title={translate('QualityProfile')}
-                      size={sizes.LARGE}
-                      icon={icons.PROFILE}
-                    >
-                      <span className={styles.qualityProfileName}>
-                        <QualityProfileName
-                          qualityProfileId={qualityProfileId}
-                        />
-                      </span>
-                    </Label>
+
 
                     <Link onPress={handleRetroAchievementsPress}>
                       <Label

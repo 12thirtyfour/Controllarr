@@ -43,7 +43,7 @@ function buildSections(): SectionEntry[] {
         'Configure collection strategy (1G1R vs. Completionist), revision priority, unofficial content defaults, and region ordering',
     },
     {
-      to: '/settings/profiles',
+      to: '/settings/virtuallibraries',
       iconName: icons.PROFILE,
       title: 'Virtual Libraries',
       summary:

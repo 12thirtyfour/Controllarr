@@ -143,7 +143,7 @@ const GROUPS: SidebarGroup[] = [
             title: () => 'Collection Settings',
             to: '/settings/collection',
           },
-          { title: () => 'Virtual Libraries', to: '/settings/profiles' },
+          { title: () => 'Virtual Libraries', to: '/settings/virtuallibraries' },
           { title: () => translate('Indexers'), to: '/settings/indexers' },
           {
             title: () => translate('DownloadClients'),

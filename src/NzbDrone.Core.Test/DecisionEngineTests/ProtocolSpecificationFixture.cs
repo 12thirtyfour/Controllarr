@@ -1,11 +1,8 @@
-using System.Collections.Generic;
 using FluentAssertions;
-using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -15,20 +12,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
     public class ProtocolSpecificationFixture : CoreTest<ProtocolSpecification>
     {
         private RemoteEpisode _remoteEpisode;
-        private DelayProfile _delayProfile;
 
         [SetUp]
         public void Setup()
         {
-            _remoteEpisode = new RemoteEpisode();
-            _remoteEpisode.Release = new ReleaseInfo();
-            _remoteEpisode.Series = new Series();
-
-            _delayProfile = new DelayProfile();
-
-            Mocker.GetMock<IDelayProfileService>()
-                  .Setup(s => s.BestForTags(It.IsAny<HashSet<int>>()))
-                  .Returns(_delayProfile);
+            _remoteEpisode = new RemoteEpisode
+            {
+                Release = new ReleaseInfo(),
+                Series = new Series()
+            };
         }
 
         private void GivenProtocol(DownloadProtocol downloadProtocol)
@@ -37,57 +29,31 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
-        public void should_be_true_if_usenet_and_usenet_is_enabled()
+        public void should_be_true_if_usenet()
         {
             GivenProtocol(DownloadProtocol.Usenet);
-            _delayProfile.EnableUsenet = true;
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(true);
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
-        public void should_be_true_if_torrent_and_torrent_is_enabled()
+        public void should_be_true_if_torrent()
         {
             GivenProtocol(DownloadProtocol.Torrent);
-            _delayProfile.EnableTorrent = true;
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(true);
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
-        public void should_be_true_if_http_and_http_is_enabled()
+        public void should_be_true_if_http()
         {
             GivenProtocol(DownloadProtocol.Http);
-            _delayProfile.EnableHttp = true;
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(true);
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
-        public void should_be_false_if_usenet_and_usenet_is_disabled()
+        public void should_be_false_if_protocol_is_unknown()
         {
-            GivenProtocol(DownloadProtocol.Usenet);
-            _delayProfile.EnableUsenet = false;
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(false);
-        }
-
-        [Test]
-        public void should_be_false_if_torrent_and_torrent_is_disabled()
-        {
-            GivenProtocol(DownloadProtocol.Torrent);
-            _delayProfile.EnableTorrent = false;
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(false);
-        }
-
-        [Test]
-        public void should_be_false_if_http_and_http_is_disabled()
-        {
-            GivenProtocol(DownloadProtocol.Http);
-            _delayProfile.EnableHttp = false;
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().Be(false);
+            GivenProtocol(DownloadProtocol.Unknown);
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
         }
     }
 }

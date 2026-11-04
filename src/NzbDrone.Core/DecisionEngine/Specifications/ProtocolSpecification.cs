@@ -10,8 +10,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         private readonly IDelayProfileService _delayProfileService;
         private readonly Logger _logger;
 
-        public ProtocolSpecification(IDelayProfileService delayProfileService,
-                                     Logger logger)
+        public ProtocolSpecification(IDelayProfileService delayProfileService, Logger logger)
         {
             _delayProfileService = delayProfileService;
             _logger = logger;
@@ -22,24 +21,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public virtual DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)
         {
-            var delayProfile = _delayProfileService.BestForTags(subject.Series.Tags);
+            _logger.Debug("Checking if release protocol is valid: {0}", subject.Release.DownloadProtocol);
 
-            if (subject.Release.DownloadProtocol == DownloadProtocol.Usenet && !delayProfile.EnableUsenet)
+            if (subject.Release.DownloadProtocol == DownloadProtocol.Unknown)
             {
-                _logger.Debug("[{0}] Usenet is not enabled for this platform", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Usenet is not enabled for this platform");
-            }
-
-            if (subject.Release.DownloadProtocol == DownloadProtocol.Torrent && !delayProfile.EnableTorrent)
-            {
-                _logger.Debug("[{0}] Torrent is not enabled for this platform", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Torrent is not enabled for this platform");
-            }
-
-            if (subject.Release.DownloadProtocol == DownloadProtocol.Http && !delayProfile.EnableHttp)
-            {
-                _logger.Debug("[{0}] HTTP/HTTPS is not enabled for this platform", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "HTTP/HTTPS is not enabled for this platform");
+                _logger.Debug("[{0}] Download protocol is unknown", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.ProtocolDisabled, "Download protocol is unknown");
             }
 
             return DownloadSpecDecision.Accept();

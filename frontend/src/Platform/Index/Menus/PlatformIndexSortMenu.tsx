@@ -45,14 +45,7 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
           {translate('OriginalLanguage')}
         </SortMenuItem>
 
-        <SortMenuItem
-          name="qualityProfileId"
-          sortKey={sortKey}
-          sortDirection={sortDirection}
-          onPress={onSortSelect}
-        >
-          {translate('QualityProfile')}
-        </SortMenuItem>
+
         <SortMenuItem
           name="added"
           sortKey={sortKey}

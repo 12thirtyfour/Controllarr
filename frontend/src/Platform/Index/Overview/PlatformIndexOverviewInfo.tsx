@@ -1,6 +1,5 @@
 import classNames from 'classnames';
 import React, { forwardRef, ReactNode } from 'react';
-import { QualityProfileModel } from 'Settings/Profiles/Quality/useQualityProfiles';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { useTagList } from 'Tags/useTags';
 import sortByProp from 'Utilities/Array/sortByProp';
@@ -12,14 +11,12 @@ import styles from './PlatformIndexOverviewInfo.module.css';
 
 interface PlatformIndexOverviewInfoProps {
   showMonitored: boolean;
-  showQualityProfile: boolean;
   showAdded: boolean;
   showSeasonCount: boolean;
   showPath: boolean;
   showSizeOnDisk: boolean;
   showTags: boolean;
   monitored: boolean;
-  qualityProfile?: QualityProfileModel;
   added?: string;
   seasonCount: number;
   path: string;
@@ -35,14 +32,12 @@ const PlatformIndexOverviewInfo = forwardRef<
 >((props, ref) => {
   const {
     showMonitored,
-    showQualityProfile,
     showAdded,
     showSeasonCount,
     showPath,
     showSizeOnDisk,
     showTags,
     monitored,
-    qualityProfile,
     added,
     seasonCount,
     path,
@@ -89,16 +84,7 @@ const PlatformIndexOverviewInfo = forwardRef<
     );
   }
 
-  if (
-    qualityProfile?.name &&
-    (showQualityProfile || sortKey === 'qualityProfileId')
-  ) {
-    chips.push(
-      <span key="qualityProfile" className={styles.chip}>
-        {qualityProfile.name}
-      </span>
-    );
-  }
+
 
   if (added && (showAdded || sortKey === 'added')) {
     chips.push(

@@ -1,6 +1,6 @@
 import Column from 'Components/Table/Column';
 
-const growableColumns = ['network', 'qualityProfileId', 'path', 'tags'];
+const growableColumns = ['path', 'tags'];
 
 export default function hasGrowableColumns(columns: Column[]) {
   return columns.some((column) => {

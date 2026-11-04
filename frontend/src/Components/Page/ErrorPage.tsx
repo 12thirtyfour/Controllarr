@@ -11,7 +11,6 @@ interface ErrorPageProps {
   seriesError: ApiError | null;
   customFiltersError: ApiError | null;
   tagsError: ApiError | null;
-  qualityProfilesError: ApiError | null;
   uiSettingsError: ApiError | null;
   systemStatusError: ApiError | null;
 }
@@ -24,7 +23,6 @@ function ErrorPage(props: ErrorPageProps) {
     seriesError,
     customFiltersError,
     tagsError,
-    qualityProfilesError,
     uiSettingsError,
     systemStatusError,
   } = props;
@@ -53,11 +51,7 @@ function ErrorPage(props: ErrorPageProps) {
       tagsError,
       translate('FailedToLoadTagsFromApi')
     );
-  } else if (qualityProfilesError) {
-    errorMessage = getErrorMessage(
-      qualityProfilesError,
-      translate('FailedToLoadQualityProfilesFromApi')
-    );
+
   } else if (uiSettingsError) {
     errorMessage = getErrorMessage(
       uiSettingsError,
