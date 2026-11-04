@@ -98,6 +98,48 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         [Test]
+        public void should_only_search_user_configured_categories()
+        {
+            Subject.Settings.Categories = new[] { 1010, 1020 };
+
+            var results = Subject.GetSearchRequests(_singleEpisodeSearchCriteria);
+
+            results.GetAllTiers().Should().HaveCount(1);
+            var page = results.GetAllTiers().First().First();
+
+            page.Url.Query.Should().Contain("&cat=1010,1020&");
+        }
+
+        [Test]
+        public void should_preserve_custom_tracker_categories_without_filtering()
+        {
+            Subject.Settings.Categories = new[] { 2050, 3050, 7050 };
+
+            var results = Subject.GetSearchRequests(_singleEpisodeSearchCriteria);
+
+            results.GetAllTiers().Should().HaveCount(1);
+            var page = results.GetAllTiers().First().First();
+
+            page.Url.Query.Should().Contain("&cat=2050,3050,7050&");
+        }
+
+        [Test]
+        public void should_not_inject_hardcoded_background_categories_when_empty()
+        {
+            Subject.Settings.Categories = System.Array.Empty<int>();
+
+            var results = Subject.GetSearchRequests(_singleEpisodeSearchCriteria);
+
+            results.GetAllTiers().Should().HaveCount(1);
+            var page = results.GetAllTiers().First().First();
+
+            page.Url.Query.Should().NotContain("cat=");
+            page.Url.Query.Should().NotContain("1000");
+            page.Url.Query.Should().NotContain("4000");
+            page.Url.Query.Should().NotContain("8000");
+        }
+
+        [Test]
         public void should_return_empty_for_anime_episode_search()
         {
             var results = Subject.GetSearchRequests(_animeSearchCriteria);

@@ -44,7 +44,8 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             return new NewznabRssParser
             {
-                FilterNonGameCategories = Settings?.FilterNonGameCategories ?? true
+                FilterNonGameCategories = Settings?.FilterNonGameCategories ?? true,
+                AllowedCategories = Settings?.Categories != null ? new HashSet<int>(Settings.Categories) : null
             };
         }
 

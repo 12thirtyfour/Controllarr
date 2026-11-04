@@ -515,7 +515,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                 foreach (var searchTerm in searchCriteria.SceneTitles)
                 {
                     chain.Add(GetPagedRequests(MaxPages,
-                        Settings.Categories,
+                        categories,
                         "tvsearch",
                         $"&title={Uri.EscapeDataString(searchTerm)}{parameters}"));
                 }
@@ -526,7 +526,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                 foreach (var queryTitle in queryTitles)
                 {
                     chain.Add(GetPagedRequests(MaxPages,
-                        Settings.Categories,
+                        categories,
                         "tvsearch",
                         $"&q={NewsnabifyTitle(queryTitle)}{parameters}"));
                 }
@@ -535,15 +535,11 @@ namespace NzbDrone.Core.Indexers.Newznab
 
         private IEnumerable<IndexerRequest> GetPagedRequests(int maxPages, IEnumerable<int> categories, string searchType, string parameters)
         {
-            if (categories.Empty())
-            {
-                yield break;
-            }
-
-            var categoriesQuery = string.Join(",", categories.Distinct());
+            var catList = categories?.Distinct().ToList() ?? new List<int>();
+            var categoriesParam = catList.Any() ? $"&cat={string.Join(",", catList)}" : string.Empty;
 
             var baseUrl =
-                $"{Settings.BaseUrl.TrimEnd('/')}{Settings.ApiPath.TrimEnd('/')}?t={searchType}&cat={categoriesQuery}&extended=1{Settings.AdditionalParameters}";
+                $"{Settings.BaseUrl.TrimEnd('/')}{Settings.ApiPath.TrimEnd('/')}?t={searchType}{categoriesParam}&extended=1{Settings.AdditionalParameters}";
 
             if (Settings.ApiKey.IsNotNullOrWhiteSpace())
             {
@@ -575,20 +571,9 @@ namespace NzbDrone.Core.Indexers.Newznab
             return seasonNumber == 0 ? "00" : seasonNumber.ToString();
         }
 
-        private static readonly HashSet<int> NonGameCategoryHundreds = new HashSet<int> { 2, 3, 5, 6, 7 };
-
         private IList<int> GetSearchCategories(SearchCriteriaBase searchCriteria)
         {
-            var categories = Settings?.Categories?
-                .Where(cat => !NonGameCategoryHundreds.Contains(cat / 1000))
-                .ToList() ?? new List<int>();
-
-            if (categories.Empty())
-            {
-                categories = new List<int> { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180, 4000, 4010, 4020, 4030, 4040, 4050, 4060, 4070, 8000, 8010 };
-            }
-
-            return categories;
+            return Settings?.Categories?.Distinct().ToList() ?? new List<int>();
         }
 
         private static string CleanGameTitleForSearch(string rawTitle)

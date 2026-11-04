@@ -33,9 +33,8 @@ namespace NzbDrone.Core.Indexers.FileList
 
             Categories = new int[]
             {
-                (int)FileListCategories.TV_SD,
-                (int)FileListCategories.TV_HD,
-                (int)FileListCategories.TV_4K
+                (int)FileListCategories.GamesConsole,
+                (int)FileListCategories.GamesPC
             };
 
             MultiLanguages = Array.Empty<int>();
@@ -80,19 +79,11 @@ namespace NzbDrone.Core.Indexers.FileList
 
     public enum FileListCategories
     {
-        [FieldOption(Label = "Anime")]
-        Anime = 24,
-        [FieldOption(Label = "Animation")]
-        Animation = 15,
-        [FieldOption(Label = "TV 4K")]
-        TV_4K = 27,
-        [FieldOption(Label = "TV HD")]
-        TV_HD = 21,
-        [FieldOption(Label = "TV SD")]
-        TV_SD = 23,
-        [FieldOption(Label = "Sport")]
-        Sport = 13,
-        [FieldOption(Label = "RO Dubbed")]
-        RoDubbed = 28
+        [FieldOption(Label = "Games PC")]
+        GamesPC = 9,
+        [FieldOption(Label = "Games Console")]
+        GamesConsole = 10,
+        [FieldOption(Label = "Software")]
+        Software = 25
     }
 }

@@ -44,7 +44,8 @@ namespace NzbDrone.Core.Indexers.Torznab
         {
             return new TorznabRssParser
             {
-                FilterNonGameCategories = Settings?.FilterNonGameCategories ?? true
+                FilterNonGameCategories = Settings?.FilterNonGameCategories ?? true,
+                AllowedCategories = Settings?.Categories != null ? new HashSet<int>(Settings.Categories) : null
             };
         }
 

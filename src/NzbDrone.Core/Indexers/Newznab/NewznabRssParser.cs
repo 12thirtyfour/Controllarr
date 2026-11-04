@@ -21,6 +21,7 @@ namespace NzbDrone.Core.Indexers.Newznab
         private static readonly string[] GameCategoryTerms = { "game", "games", "rom", "roms", "console", "nintendo", "sega", "sony", "playstation", "xbox", "atari", "emulator", "emulation" };
 
         public bool FilterNonGameCategories { get; set; } = true;
+        public ICollection<int> AllowedCategories { get; set; }
 
         public NewznabRssParser()
         {
@@ -124,13 +125,17 @@ namespace NzbDrone.Core.Indexers.Newznab
 
                 if (parsedCatIds.Any())
                 {
-                    var hasGameCat = parsedCatIds.Any(c => GameCategories.Contains(c / 1000));
-                    var hasNonGameCat = parsedCatIds.Any(c => NonGameCategories.Contains(c / 1000));
-
-                    if (hasNonGameCat && !hasGameCat)
+                    var isExplicitlyAllowed = AllowedCategories != null && parsedCatIds.Any(c => AllowedCategories.Contains(c));
+                    if (!isExplicitlyAllowed)
                     {
-                        _logger.Debug("Filtering out non-game Newznab item '{0}' in category {1}", item.Title(), string.Join(",", parsedCatIds));
-                        return null;
+                        var hasGameCat = parsedCatIds.Any(c => GameCategories.Contains(c / 1000));
+                        var hasNonGameCat = parsedCatIds.Any(c => NonGameCategories.Contains(c / 1000));
+
+                        if (hasNonGameCat && !hasGameCat)
+                        {
+                            _logger.Debug("Filtering out non-game Newznab item '{0}' in category {1}", item.Title(), string.Join(",", parsedCatIds));
+                            return null;
+                        }
                     }
                 }
                 else if (categoryElements.Any())

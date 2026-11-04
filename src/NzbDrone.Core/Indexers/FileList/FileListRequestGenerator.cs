@@ -27,19 +27,19 @@ namespace NzbDrone.Core.Indexers.FileList
 
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
             {
-                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, $"&season={searchCriteria.SeasonNumber}&episode={searchCriteria.EpisodeNumber}");
+                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
             }
 
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
             {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, $"&season={searchCriteria.SeasonNumber}&episode={searchCriteria.EpisodeNumber}");
+                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
             }
 
             pageableRequests.AddTier();
 
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, $"&season={searchCriteria.SeasonNumber}&episode={searchCriteria.EpisodeNumber}");
+                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
             }
 
             return pageableRequests;
@@ -51,19 +51,19 @@ namespace NzbDrone.Core.Indexers.FileList
 
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchID) || searchCriteria.SearchMode == SearchMode.Default)
             {
-                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, $"&season={searchCriteria.SeasonNumber}");
+                AddImdbRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
             }
 
             if (searchCriteria.SearchMode.HasFlag(SearchMode.SearchTitle))
             {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, $"&season={searchCriteria.SeasonNumber}");
+                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
             }
 
             pageableRequests.AddTier();
 
             if (searchCriteria.SearchMode == SearchMode.Default)
             {
-                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, $"&season={searchCriteria.SeasonNumber}");
+                AddNameRequests(pageableRequests, searchCriteria, "search-torrents", Settings.Categories, string.Empty);
             }
 
             return pageableRequests;
@@ -104,7 +104,18 @@ namespace NzbDrone.Core.Indexers.FileList
 
         private void AddNameRequests(IndexerPageableRequestChain chain, SearchCriteriaBase searchCriteria, string searchType, IEnumerable<int> categories, string parameters)
         {
-            foreach (var sceneTitle in searchCriteria.SceneTitles)
+            var queryTitles = new List<string>();
+            if (searchCriteria.SceneTitles != null)
+            {
+                queryTitles.AddRange(searchCriteria.SceneTitles);
+            }
+
+            if (searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
+            {
+                queryTitles.Add(searchCriteria.Series.Title);
+            }
+
+            foreach (var sceneTitle in queryTitles.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 chain.Add(GetRequest(searchType, categories, string.Format("&type=name&query={0}{1}", Uri.EscapeDataString(sceneTitle.Trim()), parameters)));
             }
@@ -112,14 +123,10 @@ namespace NzbDrone.Core.Indexers.FileList
 
         private IEnumerable<IndexerRequest> GetRequest(string searchType, IEnumerable<int> categories, string parameters)
         {
-            if (categories.Empty())
-            {
-                yield break;
-            }
+            var catList = categories?.Distinct().ToList() ?? new List<int>();
+            var categoriesParam = catList.Any() ? $"&category={string.Join(",", catList)}" : string.Empty;
 
-            var categoriesQuery = string.Join(",", categories.Distinct());
-
-            var baseUrl = string.Format("{0}/api.php?action={1}&category={2}{3}", Settings.BaseUrl.TrimEnd('/'), searchType, categoriesQuery, parameters);
+            var baseUrl = string.Format("{0}/api.php?action={1}{2}{3}", Settings.BaseUrl.TrimEnd('/'), searchType, categoriesParam, parameters);
 
             var request = new IndexerRequest(baseUrl, HttpAccept.Json);
             request.HttpRequest.Credentials = new BasicNetworkCredential(Settings.Username.Trim(), Settings.Passkey.Trim());

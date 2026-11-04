@@ -22,13 +22,26 @@ namespace NzbDrone.Core.Indexers.Nyaa
         public virtual IndexerPageableRequestChain GetSearchRequests(SingleEpisodeSearchCriteria searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
+            var queryTitles = new List<string>();
 
-            if (searchCriteria.SeasonNumber > 0 && searchCriteria.EpisodeNumber > 0)
+            if (searchCriteria.SceneTitles != null)
             {
-                foreach (var searchTitle in searchCriteria.SceneTitles.Select(PrepareQuery))
-                {
-                    pageableRequests.Add(GetPagedRequests($"{searchTitle}+s{searchCriteria.SeasonNumber:00}e{searchCriteria.EpisodeNumber:00}"));
-                }
+                queryTitles.AddRange(searchCriteria.SceneTitles);
+            }
+
+            if (searchCriteria.Episodes != null)
+            {
+                queryTitles.AddRange(searchCriteria.Episodes.Select(e => e.Title));
+            }
+
+            if (!queryTitles.Any() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
+            {
+                queryTitles.Add(searchCriteria.Series.Title);
+            }
+
+            foreach (var searchTitle in queryTitles.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).Select(PrepareQuery))
+            {
+                pageableRequests.Add(GetPagedRequests(searchTitle));
             }
 
             return pageableRequests;
@@ -37,13 +50,21 @@ namespace NzbDrone.Core.Indexers.Nyaa
         public virtual IndexerPageableRequestChain GetSearchRequests(SeasonSearchCriteria searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
+            var queryTitles = new List<string>();
 
-            if (searchCriteria.SeasonNumber > 0)
+            if (searchCriteria.SceneTitles != null)
             {
-                foreach (var searchTitle in searchCriteria.SceneTitles.Select(PrepareQuery))
-                {
-                    pageableRequests.Add(GetPagedRequests($"{searchTitle}+s{searchCriteria.SeasonNumber:00}"));
-                }
+                queryTitles.AddRange(searchCriteria.SceneTitles);
+            }
+
+            if (!queryTitles.Any() && searchCriteria.Series != null && !string.IsNullOrWhiteSpace(searchCriteria.Series.Title))
+            {
+                queryTitles.Add(searchCriteria.Series.Title);
+            }
+
+            foreach (var searchTitle in queryTitles.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).Select(PrepareQuery))
+            {
+                pageableRequests.Add(GetPagedRequests(searchTitle));
             }
 
             return pageableRequests;
