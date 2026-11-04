@@ -31,17 +31,17 @@ namespace NzbDrone.Core.Notifications.Prowl
             _prowlProxy.SendNotification(IMPORT_COMPLETE_TITLE, message.Message, Settings);
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             _prowlProxy.SendNotification(EPISODE_DELETED_TITLE, deleteMessage.Message, Settings);
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             _prowlProxy.SendNotification(SERIES_ADDED_TITLE, message.Message, Settings);
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             _prowlProxy.SendNotification(SERIES_DELETED_TITLE, deleteMessage.Message, Settings);
         }

@@ -50,21 +50,21 @@ namespace NzbDrone.Core.Notifications.Email
             SendEmail(Settings, IMPORT_COMPLETE_TITLE, body);
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message} deleted.";
 
             SendEmail(Settings, EPISODE_DELETED_TITLE_BRANDED, body);
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             var body = $"{message.Message}";
 
             SendEmail(Settings, SERIES_ADDED_TITLE_BRANDED, body);
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message}";
 

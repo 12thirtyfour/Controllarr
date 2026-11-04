@@ -15,16 +15,16 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public interface IRenameEpisodeFileService
+    public interface IRenameRomFileService
     {
-        List<RenameEpisodeFilePreview> GetRenamePreviews(int seriesId);
-        List<RenameEpisodeFilePreview> GetRenamePreviews(int seriesId, int seasonNumber);
-        List<RenameEpisodeFilePreview> GetRenamePreviews(List<int> seriesIds);
+        List<RenameRomFilePreview> GetRenamePreviews(int seriesId);
+        List<RenameRomFilePreview> GetRenamePreviews(int seriesId, int seasonNumber);
+        List<RenameRomFilePreview> GetRenamePreviews(List<int> seriesIds);
     }
 
-    public class RenameEpisodeFileService : IRenameEpisodeFileService,
+    public class RenameRomFileService : IRenameRomFileService,
                                             IExecute<RenameFilesCommand>,
-                                            IExecute<RenameSeriesCommand>
+                                            IExecute<RenamePlatformCommand>
     {
         private readonly ISeriesService _seriesService;
         private readonly IMediaFileService _mediaFileService;
@@ -35,7 +35,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IDiskProvider _diskProvider;
         private readonly Logger _logger;
 
-        public RenameEpisodeFileService(ISeriesService seriesService,
+        public RenameRomFileService(ISeriesService seriesService,
                                         IMediaFileService mediaFileService,
                                         IMoveEpisodeFiles episodeFileMover,
                                         IEventAggregator eventAggregator,
@@ -54,7 +54,7 @@ namespace NzbDrone.Core.MediaFiles
             _logger = logger;
         }
 
-        public List<RenameEpisodeFilePreview> GetRenamePreviews(int seriesId)
+        public List<RenameRomFilePreview> GetRenamePreviews(int seriesId)
         {
             var series = _seriesService.GetSeries(seriesId);
             var episodes = _episodeService.GetEpisodeBySeries(seriesId);
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.MediaFiles
                 .ToList();
         }
 
-        public List<RenameEpisodeFilePreview> GetRenamePreviews(int seriesId, int seasonNumber)
+        public List<RenameRomFilePreview> GetRenamePreviews(int seriesId, int seasonNumber)
         {
             var series = _seriesService.GetSeries(seriesId);
             var episodes = _episodeService.GetEpisodesBySeason(seriesId, seasonNumber);
@@ -76,7 +76,7 @@ namespace NzbDrone.Core.MediaFiles
                 .OrderByDescending(e => e.EpisodeNumbers.First()).ToList();
         }
 
-        public List<RenameEpisodeFilePreview> GetRenamePreviews(List<int> seriesIds)
+        public List<RenameRomFilePreview> GetRenamePreviews(List<int> seriesIds)
         {
             var seriesList = _seriesService.GetSeries(seriesIds);
             var episodesList = _episodeService.GetEpisodesBySeries(seriesIds).ToLookup(e => e.SeriesId);
@@ -95,7 +95,7 @@ namespace NzbDrone.Core.MediaFiles
                 .ToList();
         }
 
-        private IEnumerable<RenameEpisodeFilePreview> GetPreviews(Series series, List<Episode> episodes, List<EpisodeFile> files)
+        private IEnumerable<RenameRomFilePreview> GetPreviews(Series series, List<Episode> episodes, List<EpisodeFile> files)
         {
             foreach (var f in files)
             {
@@ -114,7 +114,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 if (!episodeFilePath.PathEquals(newPath, StringComparison.Ordinal))
                 {
-                    yield return new RenameEpisodeFilePreview
+                    yield return new RenameRomFilePreview
                     {
                         SeriesId = series.Id,
                         SeasonNumber = seasonNumber,
@@ -190,7 +190,7 @@ namespace NzbDrone.Core.MediaFiles
             _eventAggregator.PublishEvent(new RenameCompletedEvent());
         }
 
-        public void Execute(RenameSeriesCommand message)
+        public void Execute(RenamePlatformCommand message)
         {
             _logger.Debug("Renaming all files for selected platforms");
             var seriesToRename = _seriesService.GetSeries(message.SeriesIds);

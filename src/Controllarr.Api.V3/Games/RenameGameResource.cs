@@ -20,7 +20,7 @@ namespace Sonarr.Api.V3.Games
 
     public static class RenameGameResourceMapper
     {
-        public static RenameEpisodeResource ToResource(this NzbDrone.Core.MediaFiles.RenameEpisodeFilePreview model)
+        public static RenameEpisodeResource ToResource(this NzbDrone.Core.MediaFiles.RenameRomFilePreview model)
         {
             if (model == null)
             {
@@ -39,7 +39,7 @@ namespace Sonarr.Api.V3.Games
             };
         }
 
-        public static List<RenameEpisodeResource> ToResource(this IEnumerable<NzbDrone.Core.MediaFiles.RenameEpisodeFilePreview> models)
+        public static List<RenameEpisodeResource> ToResource(this IEnumerable<NzbDrone.Core.MediaFiles.RenameRomFilePreview> models)
         {
             return models.Select(ToResource).ToList();
         }

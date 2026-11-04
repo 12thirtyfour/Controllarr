@@ -34,7 +34,7 @@ namespace NzbDrone.Core.MediaFiles
 
     public class DiskScanService :
         IDiskScanService,
-        IExecute<RescanSeriesCommand>
+        IExecute<RescanPlatformCommand>
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IMakeImportDecision _importDecisionMaker;
@@ -711,7 +711,7 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        public void Execute(RescanSeriesCommand message)
+        public void Execute(RescanPlatformCommand message)
         {
             if (message.SeriesId.HasValue)
             {

@@ -18,7 +18,7 @@ public class RenameEpisodeResource : RenameGameResource
 
 public static class RenameGameResourceMapper
 {
-    public static RenameEpisodeResource ToResource(this NzbDrone.Core.MediaFiles.RenameEpisodeFilePreview model)
+    public static RenameEpisodeResource ToResource(this NzbDrone.Core.MediaFiles.RenameRomFilePreview model)
     {
         return new RenameEpisodeResource
         {
@@ -32,7 +32,7 @@ public static class RenameGameResourceMapper
         };
     }
 
-    public static List<RenameEpisodeResource> ToResource(this IEnumerable<NzbDrone.Core.MediaFiles.RenameEpisodeFilePreview> models)
+    public static List<RenameEpisodeResource> ToResource(this IEnumerable<NzbDrone.Core.MediaFiles.RenameRomFilePreview> models)
     {
         return models.Select(ToResource).ToList();
     }

@@ -2,17 +2,17 @@
 
 namespace NzbDrone.Core.MediaFiles.Commands
 {
-    public class RescanSeriesCommand : Command
+    public class RescanPlatformCommand : Command
     {
         public int? SeriesId { get; set; }
 
         public override bool SendUpdatesToClient => true;
 
-        public RescanSeriesCommand()
+        public RescanPlatformCommand()
         {
         }
 
-        public RescanSeriesCommand(int seriesId)
+        public RescanPlatformCommand(int seriesId)
         {
             SeriesId = seriesId;
         }

@@ -61,15 +61,15 @@ namespace NzbDrone.Core.Notifications
         {
         }
 
-        public virtual void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public virtual void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
         }
 
-        public virtual void OnSeriesAdd(SeriesAddMessage message)
+        public virtual void OnSeriesAdd(PlatformAddMessage message)
         {
         }
 
-        public virtual void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public virtual void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
         }
 

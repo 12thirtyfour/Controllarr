@@ -17,7 +17,7 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class RefreshSeriesService : IExecute<RefreshSeriesCommand>
+    public class RefreshPlatformService : IExecute<RefreshPlatformCommand>
     {
         private readonly IProvideSeriesInfo _seriesInfo;
         private readonly NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy _gameMetadataProxy;
@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Tv
         private readonly ICommandResultReporter _commandResultReporter;
         private readonly Logger _logger;
 
-        public RefreshSeriesService(IProvideSeriesInfo seriesInfo,
+        public RefreshPlatformService(IProvideSeriesInfo seriesInfo,
                                     NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy gameMetadataProxy,
                                     ISeriesService seriesService,
                                     ISeriesTranslationService seriesTranslationService,
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Tv
             }
         }
 
-        public void Execute(RefreshSeriesCommand message)
+        public void Execute(RefreshPlatformCommand message)
         {
             var trigger = message.Trigger;
             var isNew = message.IsNewSeries;

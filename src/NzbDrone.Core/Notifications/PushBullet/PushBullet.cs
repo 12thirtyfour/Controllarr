@@ -34,17 +34,17 @@ namespace NzbDrone.Core.Notifications.PushBullet
             _proxy.SendNotification(IMPORT_COMPLETE_TITLE_BRANDED, message.Message, Settings);
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             _proxy.SendNotification(EPISODE_DELETED_TITLE, deleteMessage.Message, Settings);
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             _proxy.SendNotification(SERIES_ADDED_TITLE, message.Message, Settings);
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             _proxy.SendNotification(SERIES_DELETED_TITLE, deleteMessage.Message, Settings);
         }

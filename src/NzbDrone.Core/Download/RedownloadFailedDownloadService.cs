@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Download
             {
                 _logger.Debug("Failed download was entire region, searching again");
 
-                _commandQueueManager.Push(new SeasonSearchCommand
+                _commandQueueManager.Push(new RegionSearchCommand
                 {
                     SeriesId = message.SeriesId,
                     SeasonNumber = seasonNumber

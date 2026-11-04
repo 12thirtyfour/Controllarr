@@ -2,17 +2,17 @@
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class SeriesSearchCommand : Command
+    public class PlatformSearchCommand : Command
     {
         public int SeriesId { get; set; }
 
         public override bool SendUpdatesToClient => true;
 
-        public SeriesSearchCommand()
+        public PlatformSearchCommand()
         {
         }
 
-        public SeriesSearchCommand(int seriesId)
+        public PlatformSearchCommand(int seriesId)
         {
             SeriesId = seriesId;
         }

@@ -181,7 +181,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                     _logger.Warn(e, "Couldn't import episode " + localEpisode);
                     importResults.Add(new ImportResult(importDecision, "Failed to import episode, Destination already exists."));
 
-                    _commandQueueManager.Push(new RescanSeriesCommand(localEpisode.Series.Id));
+                    _commandQueueManager.Push(new RescanPlatformCommand(localEpisode.Series.Id));
                 }
                 catch (RecycleBinException e)
                 {

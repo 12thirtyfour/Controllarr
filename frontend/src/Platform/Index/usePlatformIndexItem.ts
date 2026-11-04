@@ -9,11 +9,11 @@ export function usePlatformIndexItem(seriesId: number) {
   const series = useSingleSeries(seriesId);
   const qualityProfile = usePlatformQualityProfile(series);
 
-  const isRefreshingSeries = useCommandExecuting(CommandNames.RefreshSeries, {
+  const isRefreshingSeries = useCommandExecuting(CommandNames.RefreshPlatform, {
     seriesIds: [seriesId],
   });
 
-  const isSearchingSeries = useCommandExecuting(CommandNames.SeriesSearch, {
+  const isSearchingSeries = useCommandExecuting(CommandNames.PlatformSearch, {
     seriesId,
   });
 

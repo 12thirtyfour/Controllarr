@@ -101,7 +101,7 @@ namespace NzbDrone.Core.Jobs
                     new ScheduledTask
                     {
                         Interval = 12 * 60,
-                        TypeName = typeof(RefreshSeriesCommand).FullName
+                        TypeName = typeof(RefreshPlatformCommand).FullName
                     },
 
                     new ScheduledTask

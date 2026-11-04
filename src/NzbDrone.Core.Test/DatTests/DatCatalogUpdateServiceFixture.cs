@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Test.DatTests
             _gameCatalogServiceMock.Verify(g => g.SyncPlatformDatCatalogs(1012, true, "both"), Times.Once);
             _commandQueueMock.Verify(
                 q => q.Push(
-                    It.Is<RefreshSeriesCommand>(c => c.SeriesIds.Contains(1) && c.SeriesIds.Contains(2)),
+                    It.Is<RefreshPlatformCommand>(c => c.SeriesIds.Contains(1) && c.SeriesIds.Contains(2)),
                     It.IsAny<CommandPriority>(),
                     It.IsAny<CommandTrigger>()),
                 Times.Once);

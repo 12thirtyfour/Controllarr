@@ -5,7 +5,7 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Tv.Commands
 {
-    public class RefreshSeriesCommand : Command
+    public class RefreshPlatformCommand : Command
     {
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int SeriesId
@@ -23,12 +23,12 @@ namespace NzbDrone.Core.Tv.Commands
         public List<int> SeriesIds { get; set; }
         public bool IsNewSeries { get; set; }
 
-        public RefreshSeriesCommand()
+        public RefreshPlatformCommand()
         {
             SeriesIds = new List<int>();
         }
 
-        public RefreshSeriesCommand(List<int> seriesIds, bool isNewSeries = false)
+        public RefreshPlatformCommand(List<int> seriesIds, bool isNewSeries = false)
         {
             SeriesIds = seriesIds;
             IsNewSeries = isNewSeries;

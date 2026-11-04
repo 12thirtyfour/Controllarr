@@ -3,14 +3,14 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.MediaFiles.Commands
 {
-    public class RenameSeriesCommand : Command
+    public class RenamePlatformCommand : Command
     {
         public List<int> SeriesIds { get; set; }
 
         public override bool SendUpdatesToClient => true;
         public override bool RequiresDiskAccess => true;
 
-        public RenameSeriesCommand()
+        public RenamePlatformCommand()
         {
             SeriesIds = new List<int>();
         }

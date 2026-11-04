@@ -5,13 +5,13 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class SeasonSearchService : IExecute<SeasonSearchCommand>
+    public class RegionSearchService : IExecute<RegionSearchCommand>
     {
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly Logger _logger;
 
-        public SeasonSearchService(ISearchForReleases releaseSearchService,
+        public RegionSearchService(ISearchForReleases releaseSearchService,
                                    IProcessDownloadDecisions processDownloadDecisions,
                                    Logger logger)
         {
@@ -20,7 +20,7 @@ namespace NzbDrone.Core.IndexerSearch
             _logger = logger;
         }
 
-        public void Execute(SeasonSearchCommand message)
+        public void Execute(RegionSearchCommand message)
         {
             var decisions = _releaseSearchService.SeasonSearch(message.SeriesId, message.SeasonNumber, false, true, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
             var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();

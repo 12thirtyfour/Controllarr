@@ -187,7 +187,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
   const { isRefreshing, isRenaming, isSearching, isSearchingCollection } = useMemo(() => {
     const seriesRefreshingCommand = findCommand(commands, {
-      name: CommandNames.RefreshSeries,
+      name: CommandNames.RefreshPlatform,
     });
 
     const isSeriesRefreshingCommandExecuting = isCommandExecuting(
@@ -208,7 +208,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
     const isSearchingExecuting = isCommandExecuting(
       findCommand(commands, {
-        name: CommandNames.SeriesSearch,
+        name: CommandNames.PlatformSearch,
         seriesId,
       })
     );
@@ -228,7 +228,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     );
 
     const isRenamingSeriesCommand = findCommand(commands, {
-      name: CommandNames.RenameSeries,
+      name: CommandNames.RenamePlatform,
     });
 
     const isRenamingSeries =
@@ -435,14 +435,14 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
   const handleRefreshPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.RefreshSeries,
+      name: CommandNames.RefreshPlatform,
       seriesId,
     });
   }, [seriesId, executeCommand]);
 
   const handleSearchPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.SeriesSearch,
+      name: CommandNames.PlatformSearch,
       seriesId,
     });
   }, [seriesId, executeCommand]);

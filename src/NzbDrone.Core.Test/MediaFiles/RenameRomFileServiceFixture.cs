@@ -12,7 +12,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.MediaFiles
 {
-    public class RenameRomFileServiceFixture : CoreTest<RenameEpisodeFileService>
+    public class RenameRomFileServiceFixture : CoreTest<RenameRomFileService>
     {
         private Series _series;
         private List<EpisodeFile> _episodeFiles;

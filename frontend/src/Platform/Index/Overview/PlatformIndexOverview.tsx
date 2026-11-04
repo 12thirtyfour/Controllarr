@@ -80,14 +80,14 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
 
   const onRefreshPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.RefreshSeries,
+      name: CommandNames.RefreshPlatform,
       seriesIds: [seriesId],
     });
   }, [seriesId, executeCommand]);
 
   const onSearchPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.SeriesSearch,
+      name: CommandNames.PlatformSearch,
       seriesId,
     });
   }, [seriesId, executeCommand]);
@@ -226,7 +226,7 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
               <SpinnerIconButton
                 className={styles.action}
                 name={icons.REFRESH}
-                title={translate('RefreshSeries')}
+                title={translate('RefreshPlatform')}
                 isSpinning={isRefreshingSeries}
                 onPress={onRefreshPress}
               />

@@ -45,17 +45,17 @@ namespace NzbDrone.Core.Notifications.Notifiarr
             _proxy.SendNotification(BuildOnRenamePayload(series, renamedFiles), Settings);
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             _proxy.SendNotification(BuildOnEpisodeFileDelete(deleteMessage), Settings);
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             _proxy.SendNotification(BuildOnSeriesAdd(message), Settings);
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             _proxy.SendNotification(BuildOnSeriesDelete(deleteMessage), Settings);
         }

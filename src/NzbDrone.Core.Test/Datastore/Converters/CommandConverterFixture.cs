@@ -22,7 +22,7 @@ namespace NzbDrone.Core.Test.Datastore.Converters
         [Test]
         public void should_return_json_string_when_saving_boolean_to_db()
         {
-            var command = new RefreshSeriesCommand();
+            var command = new RefreshPlatformCommand();
 
             Subject.SetValue(_param, command);
             _param.Value.Should().BeOfType<string>();
@@ -38,9 +38,9 @@ namespace NzbDrone.Core.Test.Datastore.Converters
         [Test]
         public void should_return_command_when_getting_json_from_db()
         {
-            var data = "{\"name\": \"RefreshSeries\"}";
+            var data = "{\"name\": \"RefreshPlatform\"}";
 
-            Subject.Parse(data).Should().BeOfType<RefreshSeriesCommand>();
+            Subject.Parse(data).Should().BeOfType<RefreshPlatformCommand>();
         }
 
         [Test]

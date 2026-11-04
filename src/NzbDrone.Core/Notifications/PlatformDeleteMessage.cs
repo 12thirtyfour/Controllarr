@@ -2,7 +2,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Notifications
 {
-    public class SeriesDeleteMessage
+    public class PlatformDeleteMessage
     {
         public string Message { get; set; }
         public Series Series { get; set; }
@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Notifications
             return Message;
         }
 
-        public SeriesDeleteMessage(Series series, bool deleteFiles)
+        public PlatformDeleteMessage(Series series, bool deleteFiles)
         {
             Series = series;
             DeletedFiles = deleteFiles;

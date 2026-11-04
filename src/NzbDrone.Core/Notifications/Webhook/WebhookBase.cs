@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             return payload;
         }
 
-        protected WebhookEpisodeDeletePayload BuildOnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        protected WebhookEpisodeDeletePayload BuildOnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             return new WebhookEpisodeDeletePayload
             {
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        protected WebhookSeriesAddPayload BuildOnSeriesAdd(SeriesAddMessage addMessage)
+        protected WebhookSeriesAddPayload BuildOnSeriesAdd(PlatformAddMessage addMessage)
         {
             return new WebhookSeriesAddPayload
             {
@@ -132,7 +132,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        protected WebhookSeriesDeletePayload BuildOnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        protected WebhookSeriesDeletePayload BuildOnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             return new WebhookSeriesDeletePayload
             {

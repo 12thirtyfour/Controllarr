@@ -306,7 +306,7 @@ namespace NzbDrone.Integration.Test
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, new byte[2048]);
 
-                Commands.PostAndWait(new RefreshSeriesCommand(new List<int> { series.Id }));
+                Commands.PostAndWait(new RefreshPlatformCommand(new List<int> { series.Id }));
 
                 Commands.WaitAll();
 

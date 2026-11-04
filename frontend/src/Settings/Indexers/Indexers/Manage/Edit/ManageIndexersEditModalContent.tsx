@@ -65,7 +65,7 @@ function ManageIndexersEditModalContent(
   const [priority, setPriority] = useState<null | number>(null);
   const [
     seasonSearchMaximumSingleGameAge,
-    setSeasonSearchMaximumSingleGameAge,
+    setRegionSearchMaximumSingleGameAge,
   ] = useState<null | number>(null);
 
   const save = useCallback(() => {
@@ -128,7 +128,7 @@ function ManageIndexersEditModalContent(
         setPriority(value as number);
         break;
       case 'seasonSearchMaximumSingleGameAge':
-        setSeasonSearchMaximumSingleGameAge(value as number);
+        setRegionSearchMaximumSingleGameAge(value as number);
         break;
       default:
         console.warn(`EditIndexersModalContent Unknown Input: '${name}'`);

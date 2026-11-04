@@ -63,14 +63,14 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
 
   const onRefreshPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.RefreshSeries,
+      name: CommandNames.RefreshPlatform,
       seriesIds: [seriesId],
     });
   }, [seriesId, executeCommand]);
 
   const onSearchPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.SeriesSearch,
+      name: CommandNames.PlatformSearch,
       seriesId,
     });
   }, [seriesId, executeCommand]);
@@ -569,7 +569,7 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
             <VirtualTableRowCell key={name} className={styles[name]}>
               <SpinnerIconButton
                 name={icons.REFRESH}
-                title={translate('RefreshSeries')}
+                title={translate('RefreshPlatform')}
                 isSpinning={isRefreshingSeries}
                 onPress={onRefreshPress}
               />

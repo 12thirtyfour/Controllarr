@@ -41,7 +41,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
         private readonly IImportApprovedEpisodes _importApprovedEpisodes;
         private readonly IAggregationService _aggregationService;
         private readonly ITrackedDownloadService _trackedDownloadService;
-        private readonly IDownloadedEpisodesImportService _downloadedEpisodesImportService;
+        private readonly IDownloadedGamesImportService _downloadedGamesImportService;
         private readonly IMediaFileService _mediaFileService;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly ILocalEpisodeCustomFormatCalculationService _localEpisodeFormatCalculator;
@@ -59,7 +59,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                                    IAggregationService aggregationService,
                                    IImportApprovedEpisodes importApprovedEpisodes,
                                    ITrackedDownloadService trackedDownloadService,
-                                   IDownloadedEpisodesImportService downloadedEpisodesImportService,
+                                   IDownloadedGamesImportService downloadedGamesImportService,
                                    IMediaFileService mediaFileService,
                                    ILocalEpisodeCustomFormatCalculationService localEpisodeFormatCalculator,
                                    ICustomFormatCalculationService formatCalculator,
@@ -77,7 +77,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             _aggregationService = aggregationService;
             _importApprovedEpisodes = importApprovedEpisodes;
             _trackedDownloadService = trackedDownloadService;
-            _downloadedEpisodesImportService = downloadedEpisodesImportService;
+            _downloadedGamesImportService = downloadedGamesImportService;
             _mediaFileService = mediaFileService;
             _localEpisodeFormatCalculator = localEpisodeFormatCalculator;
             _formatCalculator = formatCalculator;
@@ -748,7 +748,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                 if (_diskProvider.FolderExists(outputPath))
                 {
-                    if (_downloadedEpisodesImportService.ShouldDeleteFolder(
+                    if (_downloadedGamesImportService.ShouldDeleteFolder(
                             new DirectoryInfo(outputPath), importedSeries) &&
                         trackedDownload.DownloadItem.CanMoveFiles)
                     {

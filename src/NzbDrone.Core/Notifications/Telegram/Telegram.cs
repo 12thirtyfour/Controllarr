@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Notifications.Telegram
             _proxy.SendNotification(title, message.Message, links, Settings);
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             var title = Settings.IncludeAppNameInTitle ? EPISODE_DELETED_TITLE_BRANDED : EPISODE_DELETED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Notifications.Telegram
             _proxy.SendNotification(title, deleteMessage.Message, links, Settings);
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             var title = Settings.IncludeAppNameInTitle ? SERIES_ADDED_TITLE_BRANDED : SERIES_ADDED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Notifications.Telegram
             _proxy.SendNotification(title, message.Message, links, Settings);
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             var title = Settings.IncludeAppNameInTitle ? SERIES_DELETED_TITLE_BRANDED : SERIES_DELETED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;

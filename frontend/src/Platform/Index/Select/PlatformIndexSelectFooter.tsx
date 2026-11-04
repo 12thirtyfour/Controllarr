@@ -39,7 +39,7 @@ function PlatformIndexSelectFooter() {
     CommandNames.DeletePlatformFiles
   );
 
-  const isOrganizingSeries = useCommandExecuting(CommandNames.RenameSeries);
+  const isOrganizingSeries = useCommandExecuting(CommandNames.RenamePlatform);
 
   const isSaving = isSavingSeriesEditor || isUpdatingSeriesMonitor;
   const isDeleting = isBulkDeleting;

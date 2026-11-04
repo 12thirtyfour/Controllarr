@@ -97,15 +97,15 @@ export interface NewCommandBody {
 }
 
 export interface CommandBodyMap {
-  RefreshSeries: SeriesCommandBody | MultipleSeriesCommandBody;
-  SeriesSearch: SeriesCommandBody;
+  RefreshPlatform: SeriesCommandBody | MultipleSeriesCommandBody;
+  PlatformSearch: SeriesCommandBody;
   PlatformCollectionSearch: SeriesCommandBody;
-  SeasonSearch: SeasonCommandBody;
+  RegionSearch: SeasonCommandBody;
   GameSearch: GameCommandBody | SeriesGameCommandBody;
   MissingGameSearch: BaseCommandBody;
   CutoffUnmetGameSearch: BaseCommandBody;
   RenameFiles: RenameFilesCommandBody;
-  RenameSeries: MultipleSeriesCommandBody;
+  RenamePlatform: MultipleSeriesCommandBody;
   MovePlatform: MovePlatformCommandBody;
   ManualImport: ManualImportCommandBody;
   DownloadedGamesScan: SeriesCommandBody | BaseCommandBody;

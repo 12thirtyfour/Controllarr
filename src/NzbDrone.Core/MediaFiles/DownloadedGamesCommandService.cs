@@ -13,23 +13,23 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public class DownloadedEpisodesCommandService : IExecute<DownloadedGamesScanCommand>
+    public class DownloadedGamesCommandService : IExecute<DownloadedGamesScanCommand>
     {
-        private readonly IDownloadedEpisodesImportService _downloadedEpisodesImportService;
+        private readonly IDownloadedGamesImportService _downloadedGamesImportService;
         private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly IDiskProvider _diskProvider;
         private readonly ICompletedDownloadService _completedDownloadService;
         private readonly ICommandResultReporter _commandResultReporter;
         private readonly Logger _logger;
 
-        public DownloadedEpisodesCommandService(IDownloadedEpisodesImportService downloadedEpisodesImportService,
+        public DownloadedGamesCommandService(IDownloadedGamesImportService downloadedGamesImportService,
                                                 ITrackedDownloadService trackedDownloadService,
                                                 IDiskProvider diskProvider,
                                                 ICompletedDownloadService completedDownloadService,
                                                 ICommandResultReporter commandResultReporter,
                                                 Logger logger)
         {
-            _downloadedEpisodesImportService = downloadedEpisodesImportService;
+            _downloadedGamesImportService = downloadedGamesImportService;
             _trackedDownloadService = trackedDownloadService;
             _diskProvider = diskProvider;
             _completedDownloadService = completedDownloadService;
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     _logger.Debug("External directory scan request for known download {0}. [{1}]", message.DownloadClientId, message.Path);
 
-                    var importResults = _downloadedEpisodesImportService.ProcessPath(message.Path, message.ImportMode, trackedDownload.RemoteEpisode.Series, trackedDownload.DownloadItem);
+                    var importResults = _downloadedGamesImportService.ProcessPath(message.Path, message.ImportMode, trackedDownload.RemoteEpisode.Series, trackedDownload.DownloadItem);
 
                     _completedDownloadService.VerifyImport(trackedDownload, importResults);
 
@@ -63,7 +63,7 @@ namespace NzbDrone.Core.MediaFiles
                 _logger.Warn("External directory scan request for unknown download {0}, attempting normal import. [{1}]", message.DownloadClientId, message.Path);
             }
 
-            return _downloadedEpisodesImportService.ProcessPath(message.Path, message.ImportMode);
+            return _downloadedGamesImportService.ProcessPath(message.Path, message.ImportMode);
         }
 
         public void Execute(DownloadedGamesScanCommand message)

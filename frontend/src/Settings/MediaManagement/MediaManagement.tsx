@@ -485,7 +485,7 @@ function MediaManagement() {
                     {translate('RescanSeriesFolderAfterRefresh')}
                   </FormLabel>
                   <FormInputHelpText
-                    text={translate('RescanAfterRefreshSeriesHelpText')}
+                    text={translate('RescanAfterRefreshPlatformHelpText')}
                   />
                   <FormInput
                     type={inputTypes.SELECT}

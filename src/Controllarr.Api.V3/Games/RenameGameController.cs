@@ -10,11 +10,11 @@ namespace Sonarr.Api.V3.Games
     [V3ApiController("rename")]
     public class RenameGameController : Controller
     {
-        private readonly IRenameEpisodeFileService _renameEpisodeFileService;
+        private readonly IRenameRomFileService _renameRomFileService;
 
-        public RenameGameController(IRenameEpisodeFileService renameEpisodeFileService)
+        public RenameGameController(IRenameRomFileService renameRomFileService)
         {
-            _renameEpisodeFileService = renameEpisodeFileService;
+            _renameRomFileService = renameRomFileService;
         }
 
         [HttpGet]
@@ -23,10 +23,10 @@ namespace Sonarr.Api.V3.Games
         {
             if (seasonNumber.HasValue)
             {
-                return _renameEpisodeFileService.GetRenamePreviews(seriesId, seasonNumber.Value).ToResource();
+                return _renameRomFileService.GetRenamePreviews(seriesId, seasonNumber.Value).ToResource();
             }
 
-            return _renameEpisodeFileService.GetRenamePreviews(seriesId).ToResource();
+            return _renameRomFileService.GetRenamePreviews(seriesId).ToResource();
         }
 
         [HttpGet("bulk")]
@@ -43,7 +43,7 @@ namespace Sonarr.Api.V3.Games
                 throw new BadRequestException("seriesIds must be positive integers");
             }
 
-            return _renameEpisodeFileService.GetRenamePreviews(seriesIds).ToResource();
+            return _renameRomFileService.GetRenamePreviews(seriesIds).ToResource();
         }
     }
 }

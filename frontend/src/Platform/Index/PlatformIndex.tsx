@@ -95,7 +95,7 @@ function PlatformIndexBody({ platformIndex }: PlatformIndexBodyProps) {
 
   const executeCommand = useExecuteCommand();
   const isRssSyncExecuting = useCommandExecuting(CommandNames.RssSync);
-  const isRefreshingSeries = useCommandExecuting(CommandNames.RefreshSeries);
+  const isRefreshingSeries = useCommandExecuting(CommandNames.RefreshPlatform);
   const isSmallScreen = useAppDimension('isSmallScreen');
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
@@ -113,12 +113,12 @@ function PlatformIndexBody({ platformIndex }: PlatformIndexBodyProps) {
     refreshLabel = translate('UpdateFiltered');
   }
 
-  const handleRefreshSeriesPress = useCallback(() => {
+  const handleRefreshPlatformPress = useCallback(() => {
     const seriesToRefresh =
       isSelectMode && anySelected ? getSelectedIds() : data.map((m) => m.id);
 
     executeCommand({
-      name: CommandNames.RefreshSeries,
+      name: CommandNames.RefreshPlatform,
       seriesIds: seriesToRefresh,
     });
   }, [executeCommand, anySelected, isSelectMode, data, getSelectedIds]);
@@ -299,7 +299,7 @@ function PlatformIndexBody({ platformIndex }: PlatformIndexBodyProps) {
           iconName={icons.REFRESH}
           isSpinning={isRefreshingSeries}
           isDisabled={hasNoSeries}
-          onPress={handleRefreshSeriesPress}
+          onPress={handleRefreshPlatformPress}
         />
 
         <ToolbarItem

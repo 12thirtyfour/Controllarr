@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Tv
                 message.Series.Language != message.OldSeries.Language ||
                 message.Series.SeasonType != message.OldSeries.SeasonType)
             {
-                _commandQueueManager.Push(new RefreshSeriesCommand([message.Series.Id], false));
+                _commandQueueManager.Push(new RefreshPlatformCommand([message.Series.Id], false));
             }
         }
     }

@@ -2,7 +2,7 @@
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class SeasonSearchCommand : Command
+    public class RegionSearchCommand : Command
     {
         public int SeriesId { get; set; }
         public int SeasonNumber { get; set; }

@@ -2,11 +2,11 @@ interface GameSearchPayload {
   gameId: number;
 }
 
-interface SeasonSearchPayload {
+interface RegionSearchPayload {
   seriesId: number;
   seasonNumber: number;
 }
 
-type InteractiveSearchPayload = GameSearchPayload | SeasonSearchPayload;
+type InteractiveSearchPayload = GameSearchPayload | RegionSearchPayload;
 
 export default InteractiveSearchPayload;

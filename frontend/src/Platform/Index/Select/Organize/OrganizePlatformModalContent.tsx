@@ -45,7 +45,7 @@ function OrganizePlatformModalContent({
 
   const onOrganizePress = useCallback(() => {
     executeCommand({
-      name: CommandNames.RenameSeries,
+      name: CommandNames.RenamePlatform,
       seriesIds,
     });
 

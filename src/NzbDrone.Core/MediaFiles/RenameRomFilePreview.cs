@@ -2,7 +2,7 @@
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public class RenameEpisodeFilePreview
+    public class RenameRomFilePreview
     {
         public int SeriesId { get; set; }
         public int SeasonNumber { get; set; }

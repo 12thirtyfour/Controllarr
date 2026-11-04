@@ -16,7 +16,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.IndexerSearchTests
 {
     [TestFixture]
-    public class PlatformSearchServiceFixture : CoreTest<SeriesSearchService>
+    public class PlatformSearchServiceFixture : CoreTest<PlatformSearchService>
     {
         private Series _series;
 
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                                   new Season { SeasonNumber = 1, Monitored = true }
                               };
 
-            Subject.Execute(new SeriesSearchCommand { SeriesId = _series.Id, Trigger = CommandTrigger.Manual });
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id, Trigger = CommandTrigger.Manual });
 
             Mocker.GetMock<ISearchForReleases>()
                 .Verify(v => v.SeasonSearch(_series.Id, It.IsAny<int>(), false, true, true, false), Times.Exactly(_series.Seasons.Count(s => s.Monitored)));
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             _series.QualityProfile.Value.UpgradeAllowed = false;
 
-            Subject.Execute(new SeriesSearchCommand { SeriesId = _series.Id, Trigger = CommandTrigger.Manual });
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id, Trigger = CommandTrigger.Manual });
 
             Mocker.GetMock<ISearchForReleases>()
                 .Verify(v => v.SeasonSearch(_series.Id, It.IsAny<int>(), true, true, true, false), Times.Exactly(_series.Seasons.Count(s => s.Monitored)));
@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                   .ReturnsAsync(new List<DownloadDecision>())
                   .Callback<int, int, bool, bool, bool, bool>((seriesId, seasonNumber, missingOnly, monitoredOnly, userInvokedSearch, interactiveSearch) => seasonOrder.Add(seasonNumber));
 
-            Subject.Execute(new SeriesSearchCommand { SeriesId = _series.Id, Trigger = CommandTrigger.Manual });
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id, Trigger = CommandTrigger.Manual });
 
             seasonOrder.First().Should().Be(_series.Seasons.OrderBy(s => s.SeasonNumber).First().SeasonNumber);
         }

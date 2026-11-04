@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Tv
 
             if (addOptions.SearchForMissingEpisodes && addOptions.SearchForCutoffUnmetEpisodes)
             {
-                _commandQueueManager.Push(new SeriesSearchCommand(series.Id));
+                _commandQueueManager.Push(new PlatformSearchCommand(series.Id));
             }
             else
             {

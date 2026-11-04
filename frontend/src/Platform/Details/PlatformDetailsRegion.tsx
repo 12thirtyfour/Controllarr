@@ -130,7 +130,7 @@ function useIsSearching(seriesId: number, seasonNumber: number) {
   const { data: commands } = useCommands();
   return isCommandExecuting(
     findCommand(commands, {
-      name: CommandNames.SeasonSearch,
+      name: CommandNames.RegionSearch,
       seriesId,
       seasonNumber,
     })
@@ -384,7 +384,7 @@ function PlatformDetailsSeason({
 
   const handleSearchPress = useCallback(() => {
     executeCommand({
-      name: CommandNames.SeasonSearch,
+      name: CommandNames.RegionSearch,
       seriesId,
       seasonNumber,
     });

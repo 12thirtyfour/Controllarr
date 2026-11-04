@@ -9,7 +9,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class SeriesSearchService : IExecute<SeriesSearchCommand>
+    public class PlatformSearchService : IExecute<PlatformSearchCommand>
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
@@ -17,7 +17,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly Logger _logger;
 
-        public SeriesSearchService(ISeriesService seriesService,
+        public PlatformSearchService(ISeriesService seriesService,
                                    IEpisodeService episodeService,
                                    ISearchForReleases releaseSearchService,
                                    IProcessDownloadDecisions processDownloadDecisions,
@@ -30,7 +30,7 @@ namespace NzbDrone.Core.IndexerSearch
             _logger = logger;
         }
 
-        public void Execute(SeriesSearchCommand message)
+        public void Execute(PlatformSearchCommand message)
         {
             var series = _seriesService.GetSeries(message.SeriesId);
             var downloadedCount = 0;

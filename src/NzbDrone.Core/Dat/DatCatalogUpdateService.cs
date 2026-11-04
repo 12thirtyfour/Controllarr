@@ -101,7 +101,7 @@ namespace NzbDrone.Core.Dat
 
             if (refreshedSeriesIds.Count > 0 && _commandQueueManager != null)
             {
-                _commandQueueManager.Push(new RefreshSeriesCommand(refreshedSeriesIds, false));
+                _commandQueueManager.Push(new RefreshPlatformCommand(refreshedSeriesIds, false));
             }
 
             return result;

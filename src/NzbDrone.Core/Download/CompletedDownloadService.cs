@@ -29,7 +29,7 @@ namespace NzbDrone.Core.Download
         private readonly IEventAggregator _eventAggregator;
         private readonly IHistoryService _historyService;
         private readonly IProvideImportItemService _provideImportItemService;
-        private readonly IDownloadedEpisodesImportService _downloadedEpisodesImportService;
+        private readonly IDownloadedGamesImportService _downloadedGamesImportService;
         private readonly IParsingService _parsingService;
         private readonly ISeriesService _seriesService;
         private readonly ITrackedDownloadAlreadyImported _trackedDownloadAlreadyImported;
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Download
         public CompletedDownloadService(IEventAggregator eventAggregator,
                                         IHistoryService historyService,
                                         IProvideImportItemService provideImportItemService,
-                                        IDownloadedEpisodesImportService downloadedEpisodesImportService,
+                                        IDownloadedGamesImportService downloadedGamesImportService,
                                         IParsingService parsingService,
                                         ISeriesService seriesService,
                                         ITrackedDownloadAlreadyImported trackedDownloadAlreadyImported,
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Download
             _eventAggregator = eventAggregator;
             _historyService = historyService;
             _provideImportItemService = provideImportItemService;
-            _downloadedEpisodesImportService = downloadedEpisodesImportService;
+            _downloadedGamesImportService = downloadedGamesImportService;
             _parsingService = parsingService;
             _seriesService = seriesService;
             _trackedDownloadAlreadyImported = trackedDownloadAlreadyImported;
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Download
             trackedDownload.State = TrackedDownloadState.Importing;
 
             var outputPath = trackedDownload.ImportItem.OutputPath.FullPath;
-            var importResults = _downloadedEpisodesImportService.ProcessPath(outputPath,
+            var importResults = _downloadedGamesImportService.ProcessPath(outputPath,
                 ImportMode.Auto,
                 trackedDownload.RemoteEpisode.Series,
                 trackedDownload.ImportItem);

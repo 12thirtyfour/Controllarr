@@ -396,7 +396,7 @@ namespace NzbDrone.Core.Notifications
                 return;
             }
 
-            var deleteMessage = new EpisodeDeleteMessage();
+            var deleteMessage = new GameDeleteMessage();
             deleteMessage.Message = GetMessage(message.EpisodeFile.Series, message.EpisodeFile.Episodes, message.EpisodeFile.Quality);
             deleteMessage.Series = message.EpisodeFile.Series;
             deleteMessage.EpisodeFile = message.EpisodeFile;
@@ -426,7 +426,7 @@ namespace NzbDrone.Core.Notifications
         public void Handle(SeriesAddCompletedEvent message)
         {
             var series = message.Series;
-            var addMessage = new SeriesAddMessage
+            var addMessage = new PlatformAddMessage
             {
                 Series = series,
                 Message = series.Title
@@ -454,7 +454,7 @@ namespace NzbDrone.Core.Notifications
         {
             foreach (var series in message.Series)
             {
-                var deleteMessage = new SeriesDeleteMessage(series, message.DeleteFiles);
+                var deleteMessage = new PlatformDeleteMessage(series, message.DeleteFiles);
 
                 foreach (var notification in _notificationFactory.OnSeriesDeleteEnabled())
                 {

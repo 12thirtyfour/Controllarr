@@ -44,17 +44,17 @@ namespace NzbDrone.Core.Notifications.Gotify
             SendNotification(IMPORT_COMPLETE_TITLE, message.Message, message.Series);
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage message)
+        public override void OnEpisodeFileDelete(GameDeleteMessage message)
         {
             SendNotification(EPISODE_DELETED_TITLE, message.Message, message.Series);
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             SendNotification(SERIES_ADDED_TITLE, message.Message, message.Series);
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage message)
+        public override void OnSeriesDelete(PlatformDeleteMessage message)
         {
             SendNotification(SERIES_DELETED_TITLE, message.Message, message.Series);
         }

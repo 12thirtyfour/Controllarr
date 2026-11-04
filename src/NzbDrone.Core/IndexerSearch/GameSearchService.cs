@@ -14,7 +14,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class EpisodeSearchService : IExecute<GameSearchCommand>,
+    public class GameSearchService : IExecute<GameSearchCommand>,
                                         IExecute<MissingGameSearchCommand>,
                                         IExecute<CutoffUnmetGameSearchCommand>
     {
@@ -25,7 +25,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IQueueService _queueService;
         private readonly Logger _logger;
 
-        public EpisodeSearchService(ISearchForReleases releaseSearchService,
+        public GameSearchService(ISearchForReleases releaseSearchService,
                                     IProcessDownloadDecisions processDownloadDecisions,
                                     IEpisodeService episodeService,
                                     IEpisodeCutoffService episodeCutoffService,
@@ -44,13 +44,13 @@ namespace NzbDrone.Core.IndexerSearch
         {
             _logger.ProgressInfo("Performing search for {0} games", episodes.Count);
             var downloadedCount = 0;
-            var groups = new List<EpisodeSearchGroup>();
+            var groups = new List<GameSearchGroup>();
 
             foreach (var series in episodes.GroupBy(e => e.SeriesId))
             {
                 foreach (var season in series.Select(e => e).GroupBy(e => e.SeasonNumber))
                 {
-                    groups.Add(new EpisodeSearchGroup
+                    groups.Add(new GameSearchGroup
                     {
                         SeriesId = series.Key,
                         SeasonNumber = season.Key,

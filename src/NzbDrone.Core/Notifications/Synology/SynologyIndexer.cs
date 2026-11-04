@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Notifications.Synology
             }
         }
 
-        public override void OnEpisodeFileDelete(EpisodeDeleteMessage deleteMessage)
+        public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             if (Settings.UpdateLibrary)
             {
@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Notifications.Synology
             }
         }
 
-        public override void OnSeriesAdd(SeriesAddMessage message)
+        public override void OnSeriesAdd(PlatformAddMessage message)
         {
             if (Settings.UpdateLibrary)
             {
@@ -75,7 +75,7 @@ namespace NzbDrone.Core.Notifications.Synology
             }
         }
 
-        public override void OnSeriesDelete(SeriesDeleteMessage deleteMessage)
+        public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             if (deleteMessage.DeletedFiles)
             {

@@ -17,14 +17,14 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles
 {
-    public interface IDownloadedEpisodesImportService
+    public interface IDownloadedGamesImportService
     {
         List<ImportResult> ProcessRootFolder(DirectoryInfo directoryInfo);
         List<ImportResult> ProcessPath(string path, ImportMode importMode = ImportMode.Auto, Series series = null, DownloadClientItem downloadClientItem = null);
         bool ShouldDeleteFolder(DirectoryInfo directoryInfo, Series series);
     }
 
-    public class DownloadedEpisodesImportService : IDownloadedEpisodesImportService
+    public class DownloadedGamesImportService : IDownloadedGamesImportService
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IDiskScanService _diskScanService;
@@ -40,7 +40,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IBiosService _biosService;
         private readonly Logger _logger;
 
-        public DownloadedEpisodesImportService(IDiskProvider diskProvider,
+        public DownloadedGamesImportService(IDiskProvider diskProvider,
                                                IDiskScanService diskScanService,
                                                ISeriesService seriesService,
                                                IParsingService parsingService,
