@@ -330,7 +330,7 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var changed = false;
-            var newEvent = new EpisodeFolderCreatedEvent(series, episodeFile);
+            var newEvent = new GameFolderCreatedEvent(series, episodeFile);
 
             if (!_diskProvider.FolderExists(seriesFolder))
             {

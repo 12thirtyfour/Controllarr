@@ -29,13 +29,13 @@ namespace Sonarr.Api.V5.Platforms;
 [Route("api/v5/platform")]
 [Route("api/v5/series")]
 public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbDrone.Core.Tv.Series>,
-                            IHandle<EpisodeImportedEvent>,
-                            IHandle<EpisodeFileDeletedEvent>,
-                            IHandle<SeriesUpdatedEvent>,
-                            IHandle<SeriesEditedEvent>,
-                            IHandle<SeriesDeletedEvent>,
-                            IHandle<SeriesRenamedEvent>,
-                            IHandle<SeriesBulkEditedEvent>,
+                            IHandle<GameImportedEvent>,
+                            IHandle<RomFileDeletedEvent>,
+                            IHandle<PlatformUpdatedEvent>,
+                            IHandle<PlatformEditedEvent>,
+                            IHandle<PlatformDeletedEvent>,
+                            IHandle<PlatformRenamedEvent>,
+                            IHandle<PlatformBulkEditedEvent>,
                             IHandle<MediaCoversUpdatedEvent>
 {
     private readonly ISeriesService _seriesService;
@@ -375,13 +375,13 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     }
 
     [NonAction]
-    public void Handle(EpisodeImportedEvent message)
+    public void Handle(GameImportedEvent message)
     {
         BroadcastResourceChange(ModelAction.Updated, message.ImportedEpisode.SeriesId);
     }
 
     [NonAction]
-    public void Handle(EpisodeFileDeletedEvent message)
+    public void Handle(RomFileDeletedEvent message)
     {
         if (message.Reason == DeleteMediaFileReason.Upgrade)
         {
@@ -392,13 +392,13 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     }
 
     [NonAction]
-    public void Handle(SeriesUpdatedEvent message)
+    public void Handle(PlatformUpdatedEvent message)
     {
         BroadcastResourceChange(ModelAction.Updated, message.Series.Id);
     }
 
     [NonAction]
-    public void Handle(SeriesEditedEvent message)
+    public void Handle(PlatformEditedEvent message)
     {
         var resource = GetSeriesResource(message.Series, false);
 
@@ -412,7 +412,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     }
 
     [NonAction]
-    public void Handle(SeriesDeletedEvent message)
+    public void Handle(PlatformDeletedEvent message)
     {
         foreach (var series in message.Series)
         {
@@ -428,13 +428,13 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     }
 
     [NonAction]
-    public void Handle(SeriesRenamedEvent message)
+    public void Handle(PlatformRenamedEvent message)
     {
         BroadcastResourceChange(ModelAction.Updated, message.Series.Id);
     }
 
     [NonAction]
-    public void Handle(SeriesBulkEditedEvent message)
+    public void Handle(PlatformBulkEditedEvent message)
     {
         foreach (var series in message.Series)
         {

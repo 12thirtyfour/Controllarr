@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
         {
             GivenSingleEpisodeFile();
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
 
             Mocker.GetMock<IEpisodeRepository>()
                 .Verify(v => v.ClearFileId(It.IsAny<Episode>(), It.IsAny<bool>()), Times.Once());
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
         {
             GivenMultiEpisodeFile();
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
 
             Mocker.GetMock<IEpisodeRepository>()
                 .Verify(v => v.ClearFileId(It.IsAny<Episode>(), It.IsAny<bool>()), Times.Exactly(2));
@@ -94,8 +94,8 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
                   .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(true);
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
-            Subject.HandleAsync(new SeriesScannedEvent(_series, new List<string>()));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
+            Subject.HandleAsync(new PlatformScannedEvent(_series, new List<string>()));
 
             Mocker.GetMock<IEpisodeRepository>()
                 .Verify(v => v.SetMonitored(It.IsAny<IEnumerable<int>>(), false), Times.Once());
@@ -114,9 +114,9 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
                 .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                 .Returns(true);
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
-            Subject.Handle(new EpisodeFileAddedEvent(newEpisodeFile));
-            Subject.HandleAsync(new SeriesScannedEvent(_series, new List<string>()));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.MissingFromDisk));
+            Subject.Handle(new RomFileAddedEvent(newEpisodeFile));
+            Subject.HandleAsync(new PlatformScannedEvent(_series, new List<string>()));
 
             Mocker.GetMock<IEpisodeRepository>()
                 .Verify(v => v.SetMonitored(It.IsAny<IEnumerable<int>>(), false), Times.Never());
@@ -131,7 +131,7 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
                   .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(false);
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.Upgrade));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.Upgrade));
 
             Mocker.GetMock<IEpisodeRepository>()
                 .Verify(v => v.ClearFileId(It.IsAny<Episode>(), false), Times.Once());
@@ -146,7 +146,7 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
                   .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(true);
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.Upgrade));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.Upgrade));
 
             Mocker.GetMock<IEpisodeRepository>()
                 .Verify(v => v.ClearFileId(It.IsAny<Episode>(), false), Times.Once());
@@ -161,7 +161,7 @@ namespace NzbDrone.Core.Test.PlatformTests.GameServiceTests
                   .SetupGet(s => s.AutoUnmonitorPreviouslyDownloadedGames)
                   .Returns(true);
 
-            Subject.Handle(new EpisodeFileDeletedEvent(_episodeFile, DeleteMediaFileReason.ManualOverride));
+            Subject.Handle(new RomFileDeletedEvent(_episodeFile, DeleteMediaFileReason.ManualOverride));
 
             Mocker.GetMock<IEpisodeRepository>()
                   .Verify(v => v.ClearFileId(It.IsAny<Episode>(), false), Times.Once());

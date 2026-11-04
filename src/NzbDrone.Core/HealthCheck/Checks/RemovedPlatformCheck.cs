@@ -7,10 +7,10 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    [CheckOn(typeof(SeriesUpdatedEvent))]
-    [CheckOn(typeof(SeriesDeletedEvent))]
-    [CheckOn(typeof(SeriesRefreshCompleteEvent))]
-    public class RemovedPlatformCheck : HealthCheckBase, ICheckOnCondition<SeriesUpdatedEvent>, ICheckOnCondition<SeriesDeletedEvent>
+    [CheckOn(typeof(PlatformUpdatedEvent))]
+    [CheckOn(typeof(PlatformDeletedEvent))]
+    [CheckOn(typeof(PlatformRefreshCompleteEvent))]
+    public class RemovedPlatformCheck : HealthCheckBase, ICheckOnCondition<PlatformUpdatedEvent>, ICheckOnCondition<PlatformDeletedEvent>
     {
         private readonly ISeriesService _seriesService;
 
@@ -53,12 +53,12 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 "#platform-removed-from-catalog");
         }
 
-        public bool ShouldCheckOnEvent(SeriesDeletedEvent deletedEvent)
+        public bool ShouldCheckOnEvent(PlatformDeletedEvent deletedEvent)
         {
             return deletedEvent.Series.Any(s => s.Status == SeriesStatusType.Deleted);
         }
 
-        public bool ShouldCheckOnEvent(SeriesUpdatedEvent updatedEvent)
+        public bool ShouldCheckOnEvent(PlatformUpdatedEvent updatedEvent)
         {
             return updatedEvent.Series.Status == SeriesStatusType.Deleted;
         }

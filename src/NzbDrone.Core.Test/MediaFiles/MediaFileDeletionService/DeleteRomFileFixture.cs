@@ -156,7 +156,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
                   .Setup(s => s.GetAllSeriesPaths())
                   .Returns(new Dictionary<int, string>());
 
-            Subject.Handle(new SeriesDeletedEvent(new List<Series> { _series }, true, false));
+            Subject.Handle(new PlatformDeletedEvent(new List<Series> { _series }, true, false));
 
             Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFolder(_series.Path), Times.Once());
         }
@@ -166,7 +166,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
         {
             GivenSeriesFolderExists();
 
-            Subject.Handle(new SeriesDeletedEvent(new List<Series> { _series }, false, false));
+            Subject.Handle(new PlatformDeletedEvent(new List<Series> { _series }, false, false));
 
             Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFolder(It.IsAny<string>()), Times.Never());
         }
@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
                   .Setup(s => s.GetAllSeriesPaths())
                   .Returns(new Dictionary<int, string> { { _series.Id + 1, Path.Combine(_series.Path, "SubPlatform") } });
 
-            Subject.Handle(new SeriesDeletedEvent(new List<Series> { _series }, true, false));
+            Subject.Handle(new PlatformDeletedEvent(new List<Series> { _series }, true, false));
 
             Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFolder(It.IsAny<string>()), Times.Never());
             ExceptionVerification.ExpectedErrors(1);

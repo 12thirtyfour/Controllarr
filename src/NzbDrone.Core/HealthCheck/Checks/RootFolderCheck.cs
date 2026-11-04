@@ -10,10 +10,10 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {
-    [CheckOn(typeof(SeriesDeletedEvent))]
-    [CheckOn(typeof(SeriesMovedEvent))]
-    [CheckOn(typeof(EpisodeImportedEvent), CheckOnCondition.FailedOnly)]
-    [CheckOn(typeof(EpisodeImportFailedEvent), CheckOnCondition.SuccessfulOnly)]
+    [CheckOn(typeof(PlatformDeletedEvent))]
+    [CheckOn(typeof(PlatformMovedEvent))]
+    [CheckOn(typeof(GameImportedEvent), CheckOnCondition.FailedOnly)]
+    [CheckOn(typeof(GameImportFailedEvent), CheckOnCondition.SuccessfulOnly)]
     public class RootFolderCheck : HealthCheckBase
     {
         private readonly ISeriesService _seriesService;

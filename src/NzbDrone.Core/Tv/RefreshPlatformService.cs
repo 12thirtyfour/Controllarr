@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Tv
                     series.Status = SeriesStatusType.Deleted;
                     _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
                     _logger.Debug("Platform marked as deleted in game database for {0}", series.Title);
-                    _eventAggregator.PublishEvent(new SeriesUpdatedEvent(series));
+                    _eventAggregator.PublishEvent(new PlatformUpdatedEvent(series));
                 }
 
                 throw;
@@ -155,7 +155,7 @@ namespace NzbDrone.Core.Tv
             _refreshEpisodeService.RefreshEpisodeInfo(series, episodes);
 
             _logger.Debug("Finished platform refresh for {0}", series.Title);
-            _eventAggregator.PublishEvent(new SeriesUpdatedEvent(series));
+            _eventAggregator.PublishEvent(new PlatformUpdatedEvent(series));
 
             return series;
         }
@@ -202,14 +202,14 @@ namespace NzbDrone.Core.Tv
             else if (rescanAfterRefresh == RescanAfterRefreshType.Never)
             {
                 _logger.Trace("Skipping rescan of {0}. Reason: never rescan after refresh", series);
-                _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.NeverRescanAfterRefresh));
+                _eventAggregator.PublishEvent(new PlatformScanSkippedEvent(series, SeriesScanSkippedReason.NeverRescanAfterRefresh));
 
                 return;
             }
             else if (rescanAfterRefresh == RescanAfterRefreshType.AfterManual && trigger != CommandTrigger.Manual)
             {
                 _logger.Trace("Skipping rescan of {0}. Reason: not after automatic scans", series);
-                _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RescanAfterManualRefreshOnly));
+                _eventAggregator.PublishEvent(new PlatformScanSkippedEvent(series, SeriesScanSkippedReason.RescanAfterManualRefreshOnly));
 
                 return;
             }
@@ -238,7 +238,7 @@ namespace NzbDrone.Core.Tv
         {
             var trigger = message.Trigger;
             var isNew = message.IsNewSeries;
-            _eventAggregator.PublishEvent(new SeriesRefreshStartingEvent(trigger == CommandTrigger.Manual));
+            _eventAggregator.PublishEvent(new PlatformRefreshStartingEvent(trigger == CommandTrigger.Manual));
 
             if (message.SeriesIds.Any())
             {
@@ -319,7 +319,7 @@ namespace NzbDrone.Core.Tv
                 }
             }
 
-            _eventAggregator.PublishEvent(new SeriesRefreshCompleteEvent());
+            _eventAggregator.PublishEvent(new PlatformRefreshCompleteEvent());
         }
     }
 }

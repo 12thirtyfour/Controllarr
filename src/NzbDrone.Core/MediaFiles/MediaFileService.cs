@@ -27,7 +27,7 @@ namespace NzbDrone.Core.MediaFiles
         List<EpisodeFile> GetFilesWithRelativePath(int seriesId, string relativePath);
     }
 
-    public class MediaFileService : IMediaFileService, IHandleAsync<SeriesDeletedEvent>
+    public class MediaFileService : IMediaFileService, IHandleAsync<PlatformDeletedEvent>
     {
         private readonly IEventAggregator _eventAggregator;
         private readonly IMediaFileRepository _mediaFileRepository;
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.MediaFiles
         public EpisodeFile Add(EpisodeFile episodeFile)
         {
             var addedFile = _mediaFileRepository.Insert(episodeFile);
-            _eventAggregator.PublishEvent(new EpisodeFileAddedEvent(addedFile));
+            _eventAggregator.PublishEvent(new RomFileAddedEvent(addedFile));
             return addedFile;
         }
 
@@ -64,7 +64,7 @@ namespace NzbDrone.Core.MediaFiles
             episodeFile.Path = Path.Combine(episodeFile.Series.Value.Path, episodeFile.RelativePath);
 
             _mediaFileRepository.Delete(episodeFile);
-            _eventAggregator.PublishEvent(new EpisodeFileDeletedEvent(episodeFile, reason));
+            _eventAggregator.PublishEvent(new RomFileDeletedEvent(episodeFile, reason));
         }
 
         public List<EpisodeFile> GetFilesBySeries(int seriesId)
@@ -114,7 +114,7 @@ namespace NzbDrone.Core.MediaFiles
             return _mediaFileRepository.GetFilesWithRelativePath(seriesId, relativePath);
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             _mediaFileRepository.DeleteForSeries(message.Series.Select(s => s.Id).ToList());
         }

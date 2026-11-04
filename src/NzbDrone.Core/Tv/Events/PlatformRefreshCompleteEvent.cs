@@ -2,7 +2,7 @@
 
 namespace NzbDrone.Core.Tv.Events
 {
-    public class SeriesRefreshCompleteEvent : IEvent
+    public class PlatformRefreshCompleteEvent : IEvent
     {
     }
 }

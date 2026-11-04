@@ -18,11 +18,11 @@ namespace NzbDrone.Core.Download.History
 
     public class DownloadHistoryService : IDownloadHistoryService,
                                           IHandle<EpisodeGrabbedEvent>,
-                                          IHandle<EpisodeImportedEvent>,
+                                          IHandle<GameImportedEvent>,
                                           IHandle<DownloadCompletedEvent>,
                                           IHandle<DownloadFailedEvent>,
                                           IHandle<DownloadIgnoredEvent>,
-                                          IHandle<SeriesDeletedEvent>
+                                          IHandle<PlatformDeletedEvent>
     {
         private readonly IDownloadHistoryRepository _repository;
         private readonly IHistoryService _historyService;
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Download.History
             _repository.Insert(history);
         }
 
-        public void Handle(EpisodeImportedEvent message)
+        public void Handle(GameImportedEvent message)
         {
             if (!message.NewDownload)
             {
@@ -227,7 +227,7 @@ namespace NzbDrone.Core.Download.History
             _repository.Insert(history);
         }
 
-        public void Handle(SeriesDeletedEvent message)
+        public void Handle(PlatformDeletedEvent message)
         {
             _repository.DeleteBySeriesIds(message.Series.Select(m => m.Id).ToList());
         }

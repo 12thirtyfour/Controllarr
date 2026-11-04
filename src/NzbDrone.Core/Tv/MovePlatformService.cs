@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Tv
 
                 UpdatePath(series.Id, destinationPath);
 
-                _eventAggregator.PublishEvent(new SeriesMovedEvent(series, sourcePath, destinationPath));
+                _eventAggregator.PublishEvent(new PlatformMovedEvent(series, sourcePath, destinationPath));
             }
             catch (IOException ex)
             {

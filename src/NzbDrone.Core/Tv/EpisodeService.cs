@@ -43,10 +43,10 @@ namespace NzbDrone.Core.Tv
     }
 
     public class EpisodeService : IEpisodeService,
-                                  IHandle<EpisodeFileDeletedEvent>,
-                                  IHandle<EpisodeFileAddedEvent>,
-                                  IHandleAsync<SeriesDeletedEvent>,
-                                  IHandleAsync<SeriesScannedEvent>
+                                  IHandle<RomFileDeletedEvent>,
+                                  IHandle<RomFileAddedEvent>,
+                                  IHandleAsync<PlatformDeletedEvent>,
+                                  IHandleAsync<PlatformScannedEvent>
     {
         private readonly IEpisodeRepository _episodeRepository;
         private readonly IConfigService _configService;
@@ -264,7 +264,7 @@ namespace NzbDrone.Core.Tv
             throw new InvalidOperationException($"Multiple episodes with the same air date found. Date: {date}");
         }
 
-        public void Handle(EpisodeFileDeletedEvent message)
+        public void Handle(RomFileDeletedEvent message)
         {
             foreach (var episode in GetEpisodesByFileId(message.EpisodeFile.Id))
             {
@@ -291,7 +291,7 @@ namespace NzbDrone.Core.Tv
             }
         }
 
-        public void Handle(EpisodeFileAddedEvent message)
+        public void Handle(RomFileAddedEvent message)
         {
             foreach (var episode in message.EpisodeFile.Episodes.Value)
             {
@@ -311,13 +311,13 @@ namespace NzbDrone.Core.Tv
             }
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             var episodes = _episodeRepository.GetEpisodesBySeriesIds(message.Series.Select(s => s.Id).ToList());
             _episodeRepository.DeleteMany(episodes);
         }
 
-        public void HandleAsync(SeriesScannedEvent message)
+        public void HandleAsync(PlatformScannedEvent message)
         {
             lock (_cache)
             {

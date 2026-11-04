@@ -139,14 +139,14 @@ namespace NzbDrone.Core.MediaFiles
                 if (!_diskProvider.FolderExists(rootFolder))
                 {
                     _logger.Warn("Platform's root folder ({0}) doesn't exist.", rootFolder);
-                    _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderDoesNotExist));
+                    _eventAggregator.PublishEvent(new PlatformScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderDoesNotExist));
                     return;
                 }
 
                 if (_diskProvider.FolderEmpty(rootFolder))
                 {
                     _logger.Warn("Platform's root folder ({0}) is empty.", rootFolder);
-                    _eventAggregator.PublishEvent(new SeriesScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderIsEmpty));
+                    _eventAggregator.PublishEvent(new PlatformScanSkippedEvent(series, SeriesScanSkippedReason.RootFolderIsEmpty));
                     return;
                 }
             }
@@ -275,7 +275,7 @@ namespace NzbDrone.Core.MediaFiles
         private void CompletedScanning(Series series, List<string> possibleExtraFiles)
         {
             _logger.Info("Completed scanning disk for {0}", series.Title);
-            _eventAggregator.PublishEvent(new SeriesScannedEvent(series, possibleExtraFiles));
+            _eventAggregator.PublishEvent(new PlatformScannedEvent(series, possibleExtraFiles));
         }
 
         public string[] GetVideoFiles(string path, bool allDirectories = true)

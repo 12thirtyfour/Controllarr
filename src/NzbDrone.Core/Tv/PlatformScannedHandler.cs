@@ -7,8 +7,8 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class PlatformScannedHandler : IHandle<SeriesScannedEvent>,
-                                        IHandle<SeriesScanSkippedEvent>
+    public class PlatformScannedHandler : IHandle<PlatformScannedEvent>,
+                                        IHandle<PlatformScanSkippedEvent>
     {
         private readonly IGameMonitoredService _episodeMonitoredService;
         private readonly ISeriesService _seriesService;
@@ -70,15 +70,15 @@ namespace NzbDrone.Core.Tv
             series.AddOptions = null;
             _seriesService.RemoveAddOptions(series);
 
-            _eventAggregator.PublishEvent(new SeriesAddCompletedEvent(series));
+            _eventAggregator.PublishEvent(new PlatformAddCompletedEvent(series));
         }
 
-        public void Handle(SeriesScannedEvent message)
+        public void Handle(PlatformScannedEvent message)
         {
             HandleScanEvents(message.Series);
         }
 
-        public void Handle(SeriesScanSkippedEvent message)
+        public void Handle(PlatformScanSkippedEvent message)
         {
             HandleScanEvents(message.Series);
         }

@@ -15,10 +15,10 @@ namespace NzbDrone.Core.HealthCheck.Checks
     [CheckOn(typeof(ProviderUpdatedEvent<IImportList>))]
     [CheckOn(typeof(ProviderDeletedEvent<IImportList>))]
     [CheckOn(typeof(ModelEvent<RootFolder>))]
-    [CheckOn(typeof(SeriesDeletedEvent))]
-    [CheckOn(typeof(SeriesMovedEvent))]
-    [CheckOn(typeof(EpisodeImportedEvent), CheckOnCondition.FailedOnly)]
-    [CheckOn(typeof(EpisodeImportFailedEvent), CheckOnCondition.SuccessfulOnly)]
+    [CheckOn(typeof(PlatformDeletedEvent))]
+    [CheckOn(typeof(PlatformMovedEvent))]
+    [CheckOn(typeof(GameImportedEvent), CheckOnCondition.FailedOnly)]
+    [CheckOn(typeof(GameImportFailedEvent), CheckOnCondition.SuccessfulOnly)]
     public class ImportListRootFolderCheck : HealthCheckBase
     {
         private readonly IImportListFactory _importListFactory;

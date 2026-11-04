@@ -276,7 +276,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                   .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
-            Subject.Handle(new EpisodeInfoRefreshedEvent(remoteEpisode.Series, new List<Episode>(), new List<Episode>(), remoteEpisode.Episodes));
+            Subject.Handle(new GameInfoRefreshedEvent(remoteEpisode.Series, new List<Episode>(), new List<Episode>(), remoteEpisode.Episodes));
 
             var trackedDownloads = Subject.GetTrackedDownloads();
             trackedDownloads.Should().HaveCount(1);
@@ -335,7 +335,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                   .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
-            Subject.Handle(new EpisodeInfoRefreshedEvent(remoteEpisode.Series, new List<Episode>(), new List<Episode>(), remoteEpisode.Episodes));
+            Subject.Handle(new GameInfoRefreshedEvent(remoteEpisode.Series, new List<Episode>(), new List<Episode>(), remoteEpisode.Episodes));
 
             var trackedDownloads = Subject.GetTrackedDownloads();
             trackedDownloads.Should().HaveCount(1);
@@ -394,7 +394,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                   .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
                   .Returns(default(RemoteEpisode));
 
-            Subject.Handle(new SeriesDeletedEvent([remoteEpisode.Series], true, true));
+            Subject.Handle(new PlatformDeletedEvent([remoteEpisode.Series], true, true));
 
             var trackedDownloads = Subject.GetTrackedDownloads();
             trackedDownloads.Should().HaveCount(1);

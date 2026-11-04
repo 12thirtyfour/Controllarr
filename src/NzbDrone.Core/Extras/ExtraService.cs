@@ -24,9 +24,9 @@ namespace NzbDrone.Core.Extras
 
     public class ExtraService : IExtraService,
                                 IHandle<MediaCoversUpdatedEvent>,
-                                IHandle<EpisodeFolderCreatedEvent>,
-                                IHandle<SeriesScannedEvent>,
-                                IHandle<SeriesRenamedEvent>,
+                                IHandle<GameFolderCreatedEvent>,
+                                IHandle<PlatformScannedEvent>,
+                                IHandle<PlatformRenamedEvent>,
                                 IHandle<DownloadsProcessedEvent>
     {
         private readonly IMediaFileService _mediaFileService;
@@ -128,7 +128,7 @@ namespace NzbDrone.Core.Extras
             }
         }
 
-        public void Handle(SeriesScannedEvent message)
+        public void Handle(PlatformScannedEvent message)
         {
             var series = message.Series;
             var episodeFiles = GetEpisodeFiles(series.Id);
@@ -139,7 +139,7 @@ namespace NzbDrone.Core.Extras
             }
         }
 
-        public void Handle(EpisodeFolderCreatedEvent message)
+        public void Handle(GameFolderCreatedEvent message)
         {
             var series = message.Series;
 
@@ -159,7 +159,7 @@ namespace NzbDrone.Core.Extras
             }
         }
 
-        public void Handle(SeriesRenamedEvent message)
+        public void Handle(PlatformRenamedEvent message)
         {
             var series = message.Series;
             var episodeFiles = GetEpisodeFiles(series.Id);

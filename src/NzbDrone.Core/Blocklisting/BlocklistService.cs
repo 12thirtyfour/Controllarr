@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Blocklisting
     public class BlocklistService : IBlocklistService,
                                     IExecute<ClearBlocklistCommand>,
                                     IHandle<DownloadFailedEvent>,
-                                    IHandleAsync<SeriesDeletedEvent>
+                                    IHandleAsync<PlatformDeletedEvent>
     {
         private readonly IBlocklistRepository _blocklistRepository;
 
@@ -157,7 +157,7 @@ namespace NzbDrone.Core.Blocklisting
             _blocklistRepository.Insert(blocklist);
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             _blocklistRepository.DeleteForSeriesIds(message.Series.Select(m => m.Id).ToList());
         }

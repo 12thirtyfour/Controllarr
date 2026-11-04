@@ -23,8 +23,8 @@ namespace NzbDrone.Core.MediaCover
     }
 
     public class MediaCoverService :
-        IHandleAsync<SeriesUpdatedEvent>,
-        IHandleAsync<SeriesDeletedEvent>,
+        IHandleAsync<PlatformUpdatedEvent>,
+        IHandleAsync<PlatformDeletedEvent>,
         IMapCoversToLocal
     {
         private readonly IMediaCoverProxy _mediaCoverProxy;
@@ -280,14 +280,14 @@ namespace NzbDrone.Core.MediaCover
             };
         }
 
-        public void HandleAsync(SeriesUpdatedEvent message)
+        public void HandleAsync(PlatformUpdatedEvent message)
         {
             var updated = EnsureCovers(message.Series);
 
             _eventAggregator.PublishEvent(new MediaCoversUpdatedEvent(message.Series, updated));
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             foreach (var series in message.Series)
             {

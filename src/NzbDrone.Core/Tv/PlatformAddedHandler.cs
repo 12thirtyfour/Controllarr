@@ -7,8 +7,8 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class PlatformAddedHandler : IHandle<SeriesAddedEvent>,
-                                      IHandle<SeriesImportedEvent>
+    public class PlatformAddedHandler : IHandle<PlatformAddedEvent>,
+                                      IHandle<PlatformImportedEvent>
     {
         private readonly IManageCommandQueue _commandQueueManager;
 
@@ -17,12 +17,12 @@ namespace NzbDrone.Core.Tv
             _commandQueueManager = commandQueueManager;
         }
 
-        public void Handle(SeriesAddedEvent message)
+        public void Handle(PlatformAddedEvent message)
         {
             _commandQueueManager.Push(new RefreshPlatformCommand(new List<int> { message.Series.Id }, true));
         }
 
-        public void Handle(SeriesImportedEvent message)
+        public void Handle(PlatformImportedEvent message)
         {
             _commandQueueManager.PushMany(message.SeriesIds.Select(s => new RefreshPlatformCommand(new List<int> { s }, true)).ToList());
         }

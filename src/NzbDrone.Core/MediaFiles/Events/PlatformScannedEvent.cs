@@ -4,15 +4,15 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.Events
 {
-    public class SeriesRenamedEvent : IEvent
+    public class PlatformScannedEvent : IEvent
     {
         public Series Series { get; private set; }
-        public List<RenamedEpisodeFile> RenamedFiles { get; private set; }
+        public List<string> PossibleExtraFiles { get; set; }
 
-        public SeriesRenamedEvent(Series series, List<RenamedEpisodeFile> renamedFiles)
+        public PlatformScannedEvent(Series series, List<string> possibleExtraFiles)
         {
             Series = series;
-            RenamedFiles = renamedFiles;
+            PossibleExtraFiles = possibleExtraFiles;
         }
     }
 }

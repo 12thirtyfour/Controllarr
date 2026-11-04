@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Extras
         List<string> ImportExtraFiles(Series series, List<string> possibleExtraFiles, string fileNameBeforeRename);
     }
 
-    public class ExistingExtraFileService : IExistingExtraFiles, IHandle<SeriesScannedEvent>
+    public class ExistingExtraFileService : IExistingExtraFiles, IHandle<PlatformScannedEvent>
     {
         private readonly List<IImportExistingExtraFiles> _existingExtraFileImporters;
         private readonly Logger _logger;
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Extras
             return importedFiles;
         }
 
-        public void Handle(SeriesScannedEvent message)
+        public void Handle(PlatformScannedEvent message)
         {
             var series = message.Series;
             var possibleExtraFiles = message.PossibleExtraFiles;

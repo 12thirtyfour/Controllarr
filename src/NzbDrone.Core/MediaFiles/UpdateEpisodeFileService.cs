@@ -20,7 +20,7 @@ namespace NzbDrone.Core.MediaFiles
     }
 
     public class UpdateEpisodeFileService : IUpdateEpisodeFileService,
-                                            IHandle<SeriesScannedEvent>
+                                            IHandle<PlatformScannedEvent>
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IConfigService _configService;
@@ -100,7 +100,7 @@ namespace NzbDrone.Core.MediaFiles
             return false;
         }
 
-        public void Handle(SeriesScannedEvent message)
+        public void Handle(PlatformScannedEvent message)
         {
             if (_configService.FileDate == FileDateType.None)
             {

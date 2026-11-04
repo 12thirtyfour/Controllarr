@@ -29,11 +29,11 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
     public class TrackedDownloadService : ITrackedDownloadService,
                                           IHandle<EpisodeGrabbedEvent>,
-                                          IHandle<EpisodeInfoRefreshedEvent>,
-                                          IHandle<SeriesAddedEvent>,
-                                          IHandle<SeriesEditedEvent>,
-                                          IHandle<SeriesBulkEditedEvent>,
-                                          IHandle<SeriesDeletedEvent>
+                                          IHandle<GameInfoRefreshedEvent>,
+                                          IHandle<PlatformAddedEvent>,
+                                          IHandle<PlatformEditedEvent>,
+                                          IHandle<PlatformBulkEditedEvent>,
+                                          IHandle<PlatformDeletedEvent>
     {
         private readonly IParsingService _parsingService;
         private readonly IHistoryService _historyService;
@@ -309,7 +309,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(EpisodeInfoRefreshedEvent message)
+        public void Handle(GameInfoRefreshedEvent message)
         {
             var needsToUpdate = false;
 
@@ -334,7 +334,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(SeriesAddedEvent message)
+        public void Handle(PlatformAddedEvent message)
         {
             var cachedItems = _cache.Values
                 .Where(t =>
@@ -350,7 +350,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(SeriesEditedEvent message)
+        public void Handle(PlatformEditedEvent message)
         {
             var cachedItems = _cache.Values
                 .Where(t =>
@@ -366,7 +366,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(SeriesBulkEditedEvent message)
+        public void Handle(PlatformBulkEditedEvent message)
         {
             var cachedItems = _cache.Values
                 .Where(t =>
@@ -382,7 +382,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(SeriesDeletedEvent message)
+        public void Handle(PlatformDeletedEvent message)
         {
             var cachedItems = _cache.Values
                 .Where(t =>

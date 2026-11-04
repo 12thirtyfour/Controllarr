@@ -18,13 +18,13 @@ namespace NzbDrone.Core.Notifications
 {
     public class NotificationService
         : IHandle<EpisodeGrabbedEvent>,
-          IHandle<EpisodeImportedEvent>,
+          IHandle<GameImportedEvent>,
           IHandle<DownloadCompletedEvent>,
           IHandle<UntrackedDownloadCompletedEvent>,
-          IHandle<SeriesRenamedEvent>,
-          IHandle<SeriesAddCompletedEvent>,
-          IHandle<SeriesDeletedEvent>,
-          IHandle<EpisodeFileDeletedEvent>,
+          IHandle<PlatformRenamedEvent>,
+          IHandle<PlatformAddCompletedEvent>,
+          IHandle<PlatformDeletedEvent>,
+          IHandle<RomFileDeletedEvent>,
           IHandle<HealthCheckFailedEvent>,
           IHandle<HealthCheckRestoredEvent>,
           IHandle<UpdateInstalledEvent>,
@@ -166,7 +166,7 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
-        public void Handle(EpisodeImportedEvent message)
+        public void Handle(GameImportedEvent message)
         {
             if (!message.NewDownload)
             {
@@ -293,7 +293,7 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
-        public void Handle(SeriesRenamedEvent message)
+        public void Handle(PlatformRenamedEvent message)
         {
             foreach (var notification in _notificationFactory.OnRenameEnabled())
             {
@@ -387,7 +387,7 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
-        public void Handle(EpisodeFileDeletedEvent message)
+        public void Handle(RomFileDeletedEvent message)
         {
             if (message.EpisodeFile.Episodes.Value.Empty())
             {
@@ -423,7 +423,7 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
-        public void Handle(SeriesAddCompletedEvent message)
+        public void Handle(PlatformAddCompletedEvent message)
         {
             var series = message.Series;
             var addMessage = new PlatformAddMessage
@@ -450,7 +450,7 @@ namespace NzbDrone.Core.Notifications
             }
         }
 
-        public void Handle(SeriesDeletedEvent message)
+        public void Handle(PlatformDeletedEvent message)
         {
             foreach (var series in message.Series)
             {

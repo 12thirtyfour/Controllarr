@@ -2,11 +2,11 @@
 
 namespace NzbDrone.Core.Tv.Events
 {
-    public class SeriesAddedEvent : IEvent
+    public class PlatformAddedEvent : IEvent
     {
         public Series Series { get; private set; }
 
-        public SeriesAddedEvent(Series series)
+        public PlatformAddedEvent(Series series)
         {
             Series = series;
         }

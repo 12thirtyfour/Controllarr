@@ -26,17 +26,17 @@ namespace NzbDrone.Core.History
         List<EpisodeHistory> GetByEpisode(int episodeId, EpisodeHistoryEventType? eventType);
         List<EpisodeHistory> Find(string downloadId, EpisodeHistoryEventType eventType);
         List<EpisodeHistory> FindByDownloadId(string downloadId);
-        string FindDownloadId(EpisodeImportedEvent trackedDownload);
+        string FindDownloadId(GameImportedEvent trackedDownload);
         List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType);
     }
 
     public class HistoryService : IHistoryService,
                                   IHandle<EpisodeGrabbedEvent>,
-                                  IHandle<EpisodeImportedEvent>,
+                                  IHandle<GameImportedEvent>,
                                   IHandle<DownloadFailedEvent>,
-                                  IHandle<EpisodeFileDeletedEvent>,
-                                  IHandle<EpisodeFileRenamedEvent>,
-                                  IHandle<SeriesDeletedEvent>,
+                                  IHandle<RomFileDeletedEvent>,
+                                  IHandle<RomFileRenamedEvent>,
+                                  IHandle<PlatformDeletedEvent>,
                                   IHandle<DownloadIgnoredEvent>
     {
         private readonly IHistoryRepository _historyRepository;
@@ -98,7 +98,7 @@ namespace NzbDrone.Core.History
             return _historyRepository.FindByDownloadId(downloadId);
         }
 
-        public string FindDownloadId(EpisodeImportedEvent trackedDownload)
+        public string FindDownloadId(GameImportedEvent trackedDownload)
         {
             _logger.Debug("Trying to find downloadId for {0} from history", trackedDownload.ImportedEpisode.Path);
 
@@ -193,7 +193,7 @@ namespace NzbDrone.Core.History
             }
         }
 
-        public void Handle(EpisodeImportedEvent message)
+        public void Handle(GameImportedEvent message)
         {
             if (!message.NewDownload)
             {
@@ -264,7 +264,7 @@ namespace NzbDrone.Core.History
             }
         }
 
-        public void Handle(EpisodeFileDeletedEvent message)
+        public void Handle(RomFileDeletedEvent message)
         {
             if (message.Reason == DeleteMediaFileReason.NoLinkedEpisodes)
             {
@@ -300,7 +300,7 @@ namespace NzbDrone.Core.History
             }
         }
 
-        public void Handle(EpisodeFileRenamedEvent message)
+        public void Handle(RomFileRenamedEvent message)
         {
             var sourcePath = message.OriginalPath;
             var sourceRelativePath = message.Series.Path.GetRelativePath(message.OriginalPath);
@@ -365,7 +365,7 @@ namespace NzbDrone.Core.History
             _historyRepository.InsertMany(historyToAdd);
         }
 
-        public void Handle(SeriesDeletedEvent message)
+        public void Handle(PlatformDeletedEvent message)
         {
             _historyRepository.DeleteForSeries(message.Series.Select(m => m.Id).ToList());
         }

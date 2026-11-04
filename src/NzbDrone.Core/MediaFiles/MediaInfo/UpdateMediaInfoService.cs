@@ -16,7 +16,7 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
         bool UpdateMediaInfo(EpisodeFile episodeFile, Series series);
     }
 
-    public class UpdateMediaInfoService : IUpdateMediaInfo, IHandle<SeriesScannedEvent>
+    public class UpdateMediaInfoService : IUpdateMediaInfo, IHandle<PlatformScannedEvent>
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IMediaFileService _mediaFileService;
@@ -37,7 +37,7 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
             _logger = logger;
         }
 
-        public void Handle(SeriesScannedEvent message)
+        public void Handle(PlatformScannedEvent message)
         {
             if (!_configService.EnableMediaInfo)
             {

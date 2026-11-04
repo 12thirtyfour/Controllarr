@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Tv
         {
             _seriesRepository.Insert(newSeries);
             DeletedSeriesWithFiles.TryRemove(newSeries.Id, out _);
-            _eventAggregator.PublishEvent(new SeriesAddedEvent(GetSeries(newSeries.Id)));
+            _eventAggregator.PublishEvent(new PlatformAddedEvent(GetSeries(newSeries.Id)));
 
             return newSeries;
         }
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Tv
                 DeletedSeriesWithFiles.TryRemove(s.Id, out _);
             }
 
-            _eventAggregator.PublishEvent(new SeriesImportedEvent(newSeries.Select(s => s.Id).ToList()));
+            _eventAggregator.PublishEvent(new PlatformImportedEvent(newSeries.Select(s => s.Id).ToList()));
 
             return newSeries;
         }
@@ -194,7 +194,7 @@ namespace NzbDrone.Core.Tv
 
             var series = _seriesRepository.Get(seriesIds).ToList();
             _seriesRepository.DeleteMany(seriesIds);
-            _eventAggregator.PublishEvent(new SeriesDeletedEvent(series, deleteFiles, addImportListExclusion));
+            _eventAggregator.PublishEvent(new PlatformDeletedEvent(series, deleteFiles, addImportListExclusion));
         }
 
         public bool IsSeriesDeletedWithFiles(int seriesId)
@@ -310,7 +310,7 @@ namespace NzbDrone.Core.Tv
             var updatedSeries = _seriesRepository.Update(series);
             if (publishUpdatedEvent)
             {
-                _eventAggregator.PublishEvent(new SeriesEditedEvent(updatedSeries, storedSeries, episodeMonitoredChanged));
+                _eventAggregator.PublishEvent(new PlatformEditedEvent(updatedSeries, storedSeries, episodeMonitoredChanged));
             }
 
             return updatedSeries;
@@ -488,7 +488,7 @@ namespace NzbDrone.Core.Tv
 
             _seriesRepository.UpdateMany(series);
             _logger.Debug("{0} platforms updated", series.Count);
-            _eventAggregator.PublishEvent(new SeriesBulkEditedEvent(series));
+            _eventAggregator.PublishEvent(new PlatformBulkEditedEvent(series));
 
             if (moveQueue.Any())
             {
@@ -661,7 +661,7 @@ namespace NzbDrone.Core.Tv
             }
 
             _seriesRepository.SetFields(series, s => s.Tags);
-            _eventAggregator.PublishEvent(new SeriesBulkEditedEvent(series));
+            _eventAggregator.PublishEvent(new PlatformBulkEditedEvent(series));
         }
     }
 }

@@ -21,7 +21,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
     [CheckOn(typeof(ProviderUpdatedEvent<IDownloadClient>))]
     [CheckOn(typeof(ProviderDeletedEvent<IDownloadClient>))]
     [CheckOn(typeof(ModelEvent<RemotePathMapping>))]
-    [CheckOn(typeof(EpisodeImportFailedEvent), CheckOnCondition.SuccessfulOnly)]
+    [CheckOn(typeof(GameImportFailedEvent), CheckOnCondition.SuccessfulOnly)]
     public class RemotePathMappingCheck : HealthCheckBase, IProvideHealthCheck
     {
         private readonly IDiskProvider _diskProvider;
@@ -189,7 +189,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 return new HealthCheck(GetType());
             }
 
-            if (message is EpisodeImportFailedEvent failureMessage)
+            if (message is GameImportFailedEvent failureMessage)
             {
                 // if we can see the file exists but the import failed then likely a permissions issue
                 if (failureMessage.EpisodeInfo != null)

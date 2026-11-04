@@ -4,14 +4,14 @@ using NzbDrone.Common.Messaging;
 
 namespace NzbDrone.Core.Tv.Events
 {
-    public class EpisodeInfoRefreshedEvent : IEvent
+    public class GameInfoRefreshedEvent : IEvent
     {
         public Series Series { get; set; }
         public ReadOnlyCollection<Episode> Added { get; private set; }
         public ReadOnlyCollection<Episode> Updated { get; private set; }
         public ReadOnlyCollection<Episode> Removed { get; private set; }
 
-        public EpisodeInfoRefreshedEvent(Series series, IList<Episode> added, IList<Episode> updated, IList<Episode> removed)
+        public GameInfoRefreshedEvent(Series series, IList<Episode> added, IList<Episode> updated, IList<Episode> removed)
         {
             Series = series;
             Added = new ReadOnlyCollection<Episode>(added);

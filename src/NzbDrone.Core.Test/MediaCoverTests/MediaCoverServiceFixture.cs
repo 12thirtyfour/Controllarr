@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
                   .Setup(v => v.AlreadyExists(It.IsAny<string>(), It.IsAny<string>()))
                   .Returns(true);
 
-            Subject.HandleAsync(new SeriesUpdatedEvent(_series));
+            Subject.HandleAsync(new PlatformUpdatedEvent(_series));
             Subject.ConvertToLocalUrls(_series.Id, covers, _series.Added);
 
             covers.Single().Url.Should().Be($"/MediaCover/{_series.Id}/poster.jpg?h=2a57c239a7baaae159e7");
@@ -154,7 +154,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
                   .Setup(v => v.FileExists(It.IsAny<string>()))
                   .Returns(true);
 
-            Subject.HandleAsync(new SeriesUpdatedEvent(_series));
+            Subject.HandleAsync(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IImageResizer>()
                   .Verify(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Exactly(2));
@@ -171,7 +171,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
                   .Setup(v => v.FileExists(It.IsAny<string>()))
                   .Returns(false);
 
-            Subject.HandleAsync(new SeriesUpdatedEvent(_series));
+            Subject.HandleAsync(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IImageResizer>()
                   .Verify(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Exactly(2));
@@ -192,7 +192,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
                   .Setup(v => v.GetFileSize(It.IsAny<string>()))
                   .Returns(1000);
 
-            Subject.HandleAsync(new SeriesUpdatedEvent(_series));
+            Subject.HandleAsync(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IImageResizer>()
                   .Verify(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never());
@@ -213,7 +213,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
                   .Setup(v => v.GetFileSize(It.IsAny<string>()))
                   .Returns(0);
 
-            Subject.HandleAsync(new SeriesUpdatedEvent(_series));
+            Subject.HandleAsync(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IImageResizer>()
                   .Verify(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Exactly(2));
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
                   .Setup(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
                   .Throws<ApplicationException>();
 
-            Subject.HandleAsync(new SeriesUpdatedEvent(_series));
+            Subject.HandleAsync(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IImageResizer>()
                   .Verify(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Exactly(2));

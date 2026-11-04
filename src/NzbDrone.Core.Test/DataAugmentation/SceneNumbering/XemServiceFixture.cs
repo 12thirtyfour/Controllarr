@@ -102,7 +102,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
         [Test]
         public void should_not_fetch_scenenumbering_if_not_listed()
         {
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IXemProxy>()
                   .Verify(v => v.GetSceneTvdbMappings(10), Times.Never());
@@ -116,7 +116,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
         {
             GivenTvdbMappings();
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.UseSceneNumbering == true), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
         {
             GivenExistingMapping();
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
@@ -140,7 +140,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
 
             _theXemSeriesIds.Clear();
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
@@ -157,7 +157,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
                   .Setup(v => v.GetXemSeriesIds())
                   .Throws(new InvalidOperationException());
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
@@ -171,7 +171,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             GivenTvdbMappings();
             _theXemTvdbMappings.RemoveAll(v => v.Tvdb.Season == 2 && v.Tvdb.Episode == 5);
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 2 && v.EpisodeNumber == 5);
 
@@ -183,7 +183,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
         {
             GivenTvdbMappings();
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 3 && v.EpisodeNumber == 1);
 
@@ -196,7 +196,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             GivenTvdbMappings();
             _theXemTvdbMappings.RemoveAll(v => v.Scene.Season == 3);
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 3 && v.EpisodeNumber == 1);
 
@@ -209,7 +209,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             GivenTvdbMappings();
             _theXemTvdbMappings.RemoveAll(v => v.Scene.Season == 2);
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 2 && v.EpisodeNumber == 1);
 
@@ -223,7 +223,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             _theXemTvdbMappings.RemoveAll(v => v.Scene.Season == 2 && v.Tvdb.Episode <= 1);
             _theXemTvdbMappings.First(v => v.Scene.Season == 2 && v.Scene.Episode == 2).Scene.Episode = 1;
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 2 && v.EpisodeNumber == 1);
 
@@ -238,7 +238,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             specialMapping.Tvdb.Season = 0;
             specialMapping.Tvdb.Episode = 1;
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 2 && v.EpisodeNumber == 5);
 
@@ -253,7 +253,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             GivenTvdbMappings();
             _theXemTvdbMappings.RemoveAll(v => v.Tvdb.Season == 2 && v.Tvdb.Episode == 5);
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 2 && v.EpisodeNumber == 5);
 
@@ -271,7 +271,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             dualMapping.Scene.Season = 2;
             dualMapping.Scene.Episode = 3;
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 2 && v.EpisodeNumber == 5);
 
@@ -285,7 +285,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
         {
             GivenTvdbMappings();
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 3 && v.EpisodeNumber == 2);
 
@@ -300,7 +300,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             GivenTvdbMappings();
             _theXemTvdbMappings.RemoveAll(v => v.Scene.Season != 1);
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             var episode = _episodes.First(v => v.SeasonNumber == 3 && v.EpisodeNumber == 2);
 
@@ -317,7 +317,7 @@ namespace NzbDrone.Core.Test.DataAugmentation.SceneNumbering
             AddTvdbMapping(0, 0, 0, 8, 3, 1); // 3x01 -> 3x01
             AddTvdbMapping(0, 0, 0, 9, 3, 2); // 3x02 -> 3x02
 
-            Subject.Handle(new SeriesUpdatedEvent(_series));
+            Subject.Handle(new PlatformUpdatedEvent(_series));
 
             Mocker.GetMock<IEpisodeService>()
                   .Verify(v => v.UpdateEpisodes(It.Is<List<Episode>>(e => e.Any(c => c.SceneAbsoluteEpisodeNumber == 0 && c.SceneSeasonNumber == 0 && c.SceneEpisodeNumber == 0))), Times.Never());

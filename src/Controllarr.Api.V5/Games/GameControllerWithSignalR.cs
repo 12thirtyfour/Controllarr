@@ -15,8 +15,8 @@ namespace Sonarr.Api.V5.Games;
 
 public abstract class GameControllerWithSignalR : RestControllerWithSignalR<EpisodeResource, Episode>,
                                                      IHandle<EpisodeGrabbedEvent>,
-                                                     IHandle<EpisodeImportedEvent>,
-                                                     IHandle<EpisodeFileDeletedEvent>
+                                                     IHandle<GameImportedEvent>,
+                                                     IHandle<RomFileDeletedEvent>
 {
     protected readonly IEpisodeService _episodeService;
     protected readonly ISeriesService _seriesService;
@@ -132,7 +132,7 @@ public abstract class GameControllerWithSignalR : RestControllerWithSignalR<Epis
     }
 
     [NonAction]
-    public void Handle(EpisodeImportedEvent message)
+    public void Handle(GameImportedEvent message)
     {
         foreach (var episode in message.EpisodeInfo.Episodes)
         {
@@ -141,7 +141,7 @@ public abstract class GameControllerWithSignalR : RestControllerWithSignalR<Epis
     }
 
     [NonAction]
-    public void Handle(EpisodeFileDeletedEvent message)
+    public void Handle(RomFileDeletedEvent message)
     {
         foreach (var episode in message.EpisodeFile.Episodes.Value)
         {

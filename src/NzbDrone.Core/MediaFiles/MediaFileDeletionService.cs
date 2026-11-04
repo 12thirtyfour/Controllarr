@@ -25,8 +25,8 @@ namespace NzbDrone.Core.MediaFiles
 
     public class MediaFileDeletionService : IDeleteMediaFiles,
                                             IExecute<DeletePlatformFilesCommand>,
-                                            IHandle<SeriesDeletedEvent>,
-                                            IHandle<EpisodeFileDeletedEvent>
+                                            IHandle<PlatformDeletedEvent>,
+                                            IHandle<RomFileDeletedEvent>
     {
         private readonly IDiskProvider _diskProvider;
         private readonly IRecycleBinProvider _recycleBinProvider;
@@ -174,7 +174,7 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        public void Handle(SeriesDeletedEvent message)
+        public void Handle(PlatformDeletedEvent message)
         {
             if (message.DeleteFiles)
             {
@@ -226,13 +226,13 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             Handle(message);
         }
 
         [EventHandleOrder(EventHandleOrder.Last)]
-        public void Handle(EpisodeFileDeletedEvent message)
+        public void Handle(RomFileDeletedEvent message)
         {
             if (!_configService.DeleteEmptyFolders || message.Reason == DeleteMediaFileReason.MissingFromDisk)
             {

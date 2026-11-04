@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Games.VirtualLibrary
         void SyncAllAuto();
     }
 
-    public class VirtualLibraryService : IVirtualLibraryService, IHandle<SeriesRefreshCompleteEvent>
+    public class VirtualLibraryService : IVirtualLibraryService, IHandle<PlatformRefreshCompleteEvent>
     {
         private static readonly List<VirtualLibraryPresetInfo> Presets = new List<VirtualLibraryPresetInfo>
         {
@@ -244,7 +244,7 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             }
         }
 
-        public void Handle(SeriesRefreshCompleteEvent message)
+        public void Handle(PlatformRefreshCompleteEvent message)
         {
             SyncAllAuto();
         }

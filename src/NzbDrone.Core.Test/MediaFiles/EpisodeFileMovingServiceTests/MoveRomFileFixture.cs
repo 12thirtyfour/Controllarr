@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeFileMovingServiceTests
             Subject.MoveEpisodeFile(_episodeFile, _localEpisode);
 
             Mocker.GetMock<IEventAggregator>()
-                  .Verify(s => s.PublishEvent<EpisodeFolderCreatedEvent>(It.Is<EpisodeFolderCreatedEvent>(p =>
+                  .Verify(s => s.PublishEvent<GameFolderCreatedEvent>(It.Is<GameFolderCreatedEvent>(p =>
                       p.SeriesFolder.IsNotNullOrWhiteSpace())),
                       Times.Once());
         }
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeFileMovingServiceTests
             Subject.MoveEpisodeFile(_episodeFile, _localEpisode);
 
             Mocker.GetMock<IEventAggregator>()
-                  .Verify(s => s.PublishEvent<EpisodeFolderCreatedEvent>(It.Is<EpisodeFolderCreatedEvent>(p =>
+                  .Verify(s => s.PublishEvent<GameFolderCreatedEvent>(It.Is<GameFolderCreatedEvent>(p =>
                       p.SeasonFolder.IsNotNullOrWhiteSpace())),
                       Times.Once());
         }
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeFileMovingServiceTests
             Subject.MoveEpisodeFile(_episodeFile, _localEpisode);
 
             Mocker.GetMock<IEventAggregator>()
-                  .Verify(s => s.PublishEvent<EpisodeFolderCreatedEvent>(It.Is<EpisodeFolderCreatedEvent>(p =>
+                  .Verify(s => s.PublishEvent<GameFolderCreatedEvent>(It.Is<GameFolderCreatedEvent>(p =>
                       p.SeriesFolder.IsNotNullOrWhiteSpace())),
                       Times.Never());
         }

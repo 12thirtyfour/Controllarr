@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Tv
         List<PlatformTranslation> UpdateTranslations(int seriesId, List<PlatformTranslation> translations);
     }
 
-    public class PlatformTranslationService : IPlatformTranslationService, IHandleAsync<SeriesDeletedEvent>
+    public class PlatformTranslationService : IPlatformTranslationService, IHandleAsync<PlatformDeletedEvent>
     {
         private readonly IPlatformTranslationRepository _seriesTranslationRepository;
         private readonly Logger _logger;
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.Tv
             return translations;
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             _seriesTranslationRepository.DeleteTranslations(message.Series.Select(s => s.Id).ToList());
         }

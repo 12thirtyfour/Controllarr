@@ -26,8 +26,8 @@ namespace Sonarr.Api.V3.RomFiles
     [Route("api/v3/romfile")]
     [Route("api/v3/episodefile")]
     public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, EpisodeFile>,
-                                 IHandle<EpisodeFileAddedEvent>,
-                                 IHandle<EpisodeFileDeletedEvent>
+                                 IHandle<RomFileAddedEvent>,
+                                 IHandle<RomFileDeletedEvent>
     {
         private readonly IMediaFileService _mediaFileService;
         private readonly IDeleteMediaFiles _mediaFileDeletionService;
@@ -231,13 +231,13 @@ namespace Sonarr.Api.V3.RomFiles
         }
 
         [NonAction]
-        public void Handle(EpisodeFileAddedEvent message)
+        public void Handle(RomFileAddedEvent message)
         {
             BroadcastResourceChange(ModelAction.Updated, message.EpisodeFile.Id);
         }
 
         [NonAction]
-        public void Handle(EpisodeFileDeletedEvent message)
+        public void Handle(RomFileDeletedEvent message)
         {
             BroadcastResourceChange(ModelAction.Deleted, message.EpisodeFile.Id);
         }

@@ -152,7 +152,7 @@ namespace NzbDrone.Core.MediaFiles
 
                     _logger.Debug("Renamed ROM file: {0}", episodeFile);
 
-                    _eventAggregator.PublishEvent(new EpisodeFileRenamedEvent(series, episodeFile, previousPath));
+                    _eventAggregator.PublishEvent(new RomFileRenamedEvent(series, episodeFile, previousPath));
                 }
                 catch (FileAlreadyExistsException ex)
                 {
@@ -172,7 +172,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 _diskProvider.RemoveEmptySubfolders(series.Path);
 
-                _eventAggregator.PublishEvent(new SeriesRenamedEvent(series, renamed));
+                _eventAggregator.PublishEvent(new PlatformRenamedEvent(series, renamed));
             }
 
             return renamed;

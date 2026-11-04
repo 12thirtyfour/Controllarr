@@ -113,8 +113,8 @@ namespace NzbDrone.Core.MetadataSource.Game
 
     public class GameMediaAssetService :
         IGameMediaAssetService,
-        IHandle<SeriesRefreshCompleteEvent>,
-        IHandle<EpisodeImportedEvent>
+        IHandle<PlatformRefreshCompleteEvent>,
+        IHandle<GameImportedEvent>
     {
         private static readonly ConcurrentDictionary<string, Queue<DateTime>> ScraperRequestWindows =
             new ConcurrentDictionary<string, Queue<DateTime>>(StringComparer.OrdinalIgnoreCase);
@@ -696,12 +696,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             return xmlContent;
         }
 
-        public void Handle(SeriesRefreshCompleteEvent message)
+        public void Handle(PlatformRefreshCompleteEvent message)
         {
             SyncAllPlatforms();
         }
 
-        public void Handle(EpisodeImportedEvent message)
+        public void Handle(GameImportedEvent message)
         {
             if (message?.EpisodeInfo?.Series != null)
             {

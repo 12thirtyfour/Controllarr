@@ -146,12 +146,12 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
         }
 
         [Test]
-        public void should_publish_EpisodeImportedEvent_for_new_downloads()
+        public void should_publish_GameImportedEvent_for_new_downloads()
         {
             Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
 
             Mocker.GetMock<IEventAggregator>()
-                .Verify(v => v.PublishEvent(It.IsAny<EpisodeImportedEvent>()), Times.Once());
+                .Verify(v => v.PublishEvent(It.IsAny<GameImportedEvent>()), Times.Once());
         }
 
         [Test]

@@ -167,12 +167,12 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                         }
                     }
 
-                    _eventAggregator.PublishEvent(new EpisodeImportedEvent(localEpisode, episodeFile, oldFiles, newDownload, downloadClientItem));
+                    _eventAggregator.PublishEvent(new GameImportedEvent(localEpisode, episodeFile, oldFiles, newDownload, downloadClientItem));
                 }
                 catch (RootFolderNotFoundException e)
                 {
                     _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    _eventAggregator.PublishEvent(new EpisodeImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
+                    _eventAggregator.PublishEvent(new GameImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
 
                     importResults.Add(new ImportResult(importDecision, "Failed to import episode, Root folder missing."));
                 }
@@ -186,7 +186,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 catch (RecycleBinException e)
                 {
                     _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    _eventAggregator.PublishEvent(new EpisodeImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
+                    _eventAggregator.PublishEvent(new GameImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
 
                     importResults.Add(new ImportResult(importDecision, "Failed to import episode, unable to move existing file to the Recycle Bin."));
                 }

@@ -1,12 +1,12 @@
-﻿using NzbDrone.Common.Messaging;
+using NzbDrone.Common.Messaging;
 
 namespace NzbDrone.Core.Tv.Events
 {
-    public class SeriesUpdatedEvent : IEvent
+    public class PlatformAddCompletedEvent : IEvent
     {
         public Series Series { get; private set; }
 
-        public SeriesUpdatedEvent(Series series)
+        public PlatformAddCompletedEvent(Series series)
         {
             Series = series;
         }

@@ -2,11 +2,11 @@
 
 namespace NzbDrone.Core.Tv.Events
 {
-    public class SeriesRefreshStartingEvent : IEvent
+    public class PlatformRefreshStartingEvent : IEvent
     {
         public bool ManualTrigger { get; set; }
 
-        public SeriesRefreshStartingEvent(bool manualTrigger)
+        public PlatformRefreshStartingEvent(bool manualTrigger)
         {
             ManualTrigger = manualTrigger;
         }

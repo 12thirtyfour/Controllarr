@@ -5,7 +5,7 @@ using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.Events
 {
-    public class EpisodeImportFailedEvent : IEvent
+    public class GameImportFailedEvent : IEvent
     {
         public Exception Exception { get; set; }
         public LocalEpisode EpisodeInfo { get; }
@@ -13,7 +13,7 @@ namespace NzbDrone.Core.MediaFiles.Events
         public DownloadClientItemClientInfo DownloadClientInfo { get;  }
         public string DownloadId { get; }
 
-        public EpisodeImportFailedEvent(Exception exception, LocalEpisode episodeInfo, bool newDownload, DownloadClientItem downloadClientItem)
+        public GameImportFailedEvent(Exception exception, LocalEpisode episodeInfo, bool newDownload, DownloadClientItem downloadClientItem)
         {
             Exception = exception;
             EpisodeInfo = episodeInfo;

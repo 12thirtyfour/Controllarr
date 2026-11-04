@@ -22,9 +22,9 @@ namespace NzbDrone.Core.DataAugmentation.Scene
     }
 
     public class SceneMappingService : ISceneMappingService,
-                                       IHandle<SeriesRefreshStartingEvent>,
-                                       IHandle<SeriesAddedEvent>,
-                                       IHandle<SeriesImportedEvent>,
+                                       IHandle<PlatformRefreshStartingEvent>,
+                                       IHandle<PlatformAddedEvent>,
+                                       IHandle<PlatformImportedEvent>,
                                        IExecute<UpdateSceneMappingCommand>
     {
         private readonly ISceneMappingRepository _repository;
@@ -308,7 +308,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             return normalCandidates;
         }
 
-        public void Handle(SeriesRefreshStartingEvent message)
+        public void Handle(PlatformRefreshStartingEvent message)
         {
             if (message.ManualTrigger && (_findByTvdbIdCache.IsExpired(TimeSpan.FromMinutes(1)) || !_updatedAfterStartup))
             {
@@ -316,7 +316,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             }
         }
 
-        public void Handle(SeriesAddedEvent message)
+        public void Handle(PlatformAddedEvent message)
         {
             if (!_updatedAfterStartup)
             {
@@ -324,7 +324,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             }
         }
 
-        public void Handle(SeriesImportedEvent message)
+        public void Handle(PlatformImportedEvent message)
         {
             if (!_updatedAfterStartup)
             {

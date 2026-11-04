@@ -10,7 +10,7 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.DataAugmentation.Xem
 {
-    public class XemService : ISceneMappingProvider, IHandle<SeriesUpdatedEvent>, IHandle<SeriesRefreshStartingEvent>
+    public class XemService : ISceneMappingProvider, IHandle<PlatformUpdatedEvent>, IHandle<PlatformRefreshStartingEvent>
     {
         private readonly IEpisodeService _episodeService;
         private readonly IXemProxy _xemProxy;
@@ -239,7 +239,7 @@ namespace NzbDrone.Core.DataAugmentation.Xem
             return mappings;
         }
 
-        public void Handle(SeriesUpdatedEvent message)
+        public void Handle(PlatformUpdatedEvent message)
         {
             if (_cache.IsExpired(TimeSpan.FromHours(3)))
             {
@@ -261,7 +261,7 @@ namespace NzbDrone.Core.DataAugmentation.Xem
             PerformUpdate(message.Series);
         }
 
-        public void Handle(SeriesRefreshStartingEvent message)
+        public void Handle(PlatformRefreshStartingEvent message)
         {
             if (message.ManualTrigger && _cache.IsExpired(TimeSpan.FromMinutes(1)))
             {

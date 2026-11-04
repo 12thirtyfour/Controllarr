@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Tv
         void Search(Series series);
     }
 
-    public class GameRefreshedService : IGameRefreshedService, IHandle<EpisodeInfoRefreshedEvent>
+    public class GameRefreshedService : IGameRefreshedService, IHandle<GameInfoRefreshedEvent>
     {
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IEpisodeService _episodeService;
@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Tv
             _searchCache.Remove(series.Id.ToString());
         }
 
-        public void Handle(EpisodeInfoRefreshedEvent message)
+        public void Handle(GameInfoRefreshedEvent message)
         {
             if (message.Series.AddOptions == null)
             {

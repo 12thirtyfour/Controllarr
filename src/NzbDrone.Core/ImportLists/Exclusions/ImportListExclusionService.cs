@@ -18,7 +18,7 @@ namespace NzbDrone.Core.ImportLists.Exclusions
         ImportListExclusion Update(ImportListExclusion importListExclusion);
     }
 
-    public class ImportListExclusionService : IImportListExclusionService, IHandleAsync<SeriesDeletedEvent>
+    public class ImportListExclusionService : IImportListExclusionService, IHandleAsync<PlatformDeletedEvent>
     {
         private readonly IImportListExclusionRepository _repo;
 
@@ -67,7 +67,7 @@ namespace NzbDrone.Core.ImportLists.Exclusions
             return _repo.GetPaged(pagingSpec);
         }
 
-        public void HandleAsync(SeriesDeletedEvent message)
+        public void HandleAsync(PlatformDeletedEvent message)
         {
             if (!message.AddImportListExclusion)
             {

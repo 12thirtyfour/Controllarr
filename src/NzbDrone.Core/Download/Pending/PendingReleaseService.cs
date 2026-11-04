@@ -40,9 +40,9 @@ namespace NzbDrone.Core.Download.Pending
     }
 
     public class PendingReleaseService : IPendingReleaseService,
-                                         IHandle<SeriesEditedEvent>,
-                                         IHandle<SeriesUpdatedEvent>,
-                                         IHandle<SeriesDeletedEvent>,
+                                         IHandle<PlatformEditedEvent>,
+                                         IHandle<PlatformUpdatedEvent>,
+                                         IHandle<PlatformDeletedEvent>,
                                          IHandle<EpisodeGrabbedEvent>,
                                          IHandle<RssSyncCompleteEvent>,
                                          IHandle<QualityProfileUpdatedEvent>,
@@ -646,17 +646,17 @@ namespace NzbDrone.Core.Download.Pending
             _pendingReleases = IncludeRemoteEpisodes(_repository.All().ToList());
         }
 
-        public void Handle(SeriesEditedEvent message)
+        public void Handle(PlatformEditedEvent message)
         {
             UpdatePendingReleases();
         }
 
-        public void Handle(SeriesUpdatedEvent message)
+        public void Handle(PlatformUpdatedEvent message)
         {
             UpdatePendingReleases();
         }
 
-        public void Handle(SeriesDeletedEvent message)
+        public void Handle(PlatformDeletedEvent message)
         {
             _repository.DeleteBySeriesIds(message.Series.Select(m => m.Id).ToList());
             UpdatePendingReleases();

@@ -30,10 +30,10 @@ namespace NzbDrone.Core.Test.PlatformTests
                   .Callback(() => calls.Add("search"));
 
             Mocker.GetMock<IEventAggregator>()
-                  .Setup(s => s.PublishEvent(It.IsAny<SeriesAddCompletedEvent>()))
+                  .Setup(s => s.PublishEvent(It.IsAny<PlatformAddCompletedEvent>()))
                   .Callback(() => calls.Add("addCompleted"));
 
-            Subject.Handle(new SeriesScannedEvent(series, new List<string>()));
+            Subject.Handle(new PlatformScannedEvent(series, new List<string>()));
 
             calls.Should().Equal("search", "addCompleted");
         }
