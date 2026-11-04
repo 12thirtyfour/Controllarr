@@ -293,6 +293,76 @@ namespace NzbDrone.Core.Test.PlatformTests.GameMonitoredServiceTests
             catalogSeries.Seasons.Single(s => s.SeasonNumber == 6).Monitored.Should().BeTrue();
         }
 
+        [Test]
+        public void should_monitor_all_discs_for_selected_version_when_adding_multi_disc_game_with_1g1r()
+        {
+            var catalogSeries = Builder<Series>.CreateNew()
+                .With(s => s.TvdbId = 90001)
+                .With(s => s.CollectionStrategy = CollectionStrategy.OneGamePerRegionPerConsole)
+                .With(s => s.RevisionPreference = RevisionPreference.LatestRevision)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 0, Monitored = false },
+                    new Season { SeasonNumber = 1, Monitored = true },
+                    new Season { SeasonNumber = 5, Monitored = false },
+                    new Season { SeasonNumber = 6, Monitored = false }
+                })
+                .Build();
+
+            var epDisc1 = new Episode { Id = 301, SeriesId = catalogSeries.Id, SeasonNumber = 1, Title = "Sewer Shark", FinaleType = "Disc 1", Monitored = false };
+            var epDisc2 = new Episode { Id = 302, SeriesId = catalogSeries.Id, SeasonNumber = 1, Title = "Sewer Shark", FinaleType = "Disc 2", Monitored = false };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(catalogSeries.Id))
+                  .Returns(new List<Episode> { epDisc1, epDisc2 });
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(It.IsAny<int>(), It.IsAny<MonitorTypes>(), It.IsAny<int>(), It.IsAny<int>()))
+                  .Returns(new List<int> { 1 });
+
+            Subject.SetEpisodeMonitoredStatus(catalogSeries, new MonitoringOptions { Monitor = MonitorTypes.All });
+
+            epDisc1.Monitored.Should().BeTrue();
+            epDisc2.Monitored.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_monitor_all_discs_of_preferred_version_and_unmonitor_older_version_discs_for_multi_disc_game()
+        {
+            var catalogSeries = Builder<Series>.CreateNew()
+                .With(s => s.TvdbId = 90001)
+                .With(s => s.CollectionStrategy = CollectionStrategy.OneGamePerRegionPerConsole)
+                .With(s => s.RevisionPreference = RevisionPreference.LatestRevision)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 0, Monitored = false },
+                    new Season { SeasonNumber = 1, Monitored = true },
+                    new Season { SeasonNumber = 5, Monitored = false },
+                    new Season { SeasonNumber = 6, Monitored = false }
+                })
+                .Build();
+
+            var v1Disc1 = new Episode { Id = 401, SeriesId = catalogSeries.Id, SeasonNumber = 1, Title = "Night Trap", FinaleType = "Disc 1", Monitored = true };
+            var v1Disc2 = new Episode { Id = 402, SeriesId = catalogSeries.Id, SeasonNumber = 1, Title = "Night Trap", FinaleType = "Disc 2", Monitored = true };
+            var v2Disc1 = new Episode { Id = 403, SeriesId = catalogSeries.Id, SeasonNumber = 1, Title = "Night Trap", FinaleType = "Disc 1 • v1.1", Monitored = false };
+            var v2Disc2 = new Episode { Id = 404, SeriesId = catalogSeries.Id, SeasonNumber = 1, Title = "Night Trap", FinaleType = "Disc 2 • v1.1", Monitored = false };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(catalogSeries.Id))
+                  .Returns(new List<Episode> { v1Disc1, v1Disc2, v2Disc1, v2Disc2 });
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(It.IsAny<int>(), It.IsAny<MonitorTypes>(), It.IsAny<int>(), It.IsAny<int>()))
+                  .Returns(new List<int> { 1 });
+
+            Subject.SetEpisodeMonitoredStatus(catalogSeries, new MonitoringOptions { Monitor = MonitorTypes.All });
+
+            v1Disc1.Monitored.Should().BeFalse();
+            v1Disc2.Monitored.Should().BeFalse();
+            v2Disc1.Monitored.Should().BeTrue();
+            v2Disc2.Monitored.Should().BeTrue();
+        }
+
         private void VerifySeasonMonitored(int seasonNumber)
         {
             Mocker.GetMock<ISeriesService>()

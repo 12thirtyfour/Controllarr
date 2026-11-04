@@ -172,9 +172,15 @@ namespace NzbDrone.Core.Tv
                     var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
                     var encryptionPref = series.EncryptionPreference;
 
-                    foreach (var group in allEpisodes
-                        .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
-                        .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant()}"))
+                    var groups = series.CollectionStrategy == CollectionStrategy.OneGameOneRom
+                        ? allEpisodes
+                            .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                            .GroupBy(e => ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant())
+                        : allEpisodes
+                            .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                            .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant()}");
+
+                    foreach (var group in groups)
                     {
                         var groupList = group.ToList();
 
@@ -212,16 +218,50 @@ namespace NzbDrone.Core.Tv
 
                         var preferredEpisodes = new HashSet<Episode>();
 
+                        void AddPreferredVersionEpisodes(List<Episode> candidates)
+                        {
+                            if (candidates.Count == 0)
+                            {
+                                return;
+                            }
+
+                            var regionCandidates = candidates;
+                            if (series.CollectionStrategy == CollectionStrategy.OneGameOneRom)
+                            {
+                                var bestRegion = candidates
+                                    .Select(c => c.SeasonNumber)
+                                    .OrderBy(GameCatalogProxy.GetRegionPriority)
+                                    .FirstOrDefault();
+                                regionCandidates = candidates.Where(c => c.SeasonNumber == bestRegion).ToList();
+                            }
+
+                            var versionGroups = regionCandidates
+                                .GroupBy(e => GameCatalogProxy.ExtractVersionOnly(e.FinaleType, e.Title))
+                                .OrderBy(vg => GameCatalogProxy.GetRevisionSortOrder(vg.Key))
+                                .ToList();
+
+                            if (versionGroups.Count == 0)
+                            {
+                                return;
+                            }
+
+                            var chosenVersionGroup = preferInitial ? versionGroups.First() : versionGroups.Last();
+                            foreach (var ep in chosenVersionGroup)
+                            {
+                                preferredEpisodes.Add(ep);
+                            }
+                        }
+
                         if (encryptionPref == EncryptionPreference.NotEncrypted ||
                             encryptionPref == EncryptionPreference.Both)
                         {
                             if (unencryptedRetail.Count > 0)
                             {
-                                preferredEpisodes.Add(preferInitial ? unencryptedRetail.First() : unencryptedRetail.Last());
+                                AddPreferredVersionEpisodes(unencryptedRetail);
                             }
                             else if (encryptionPref == EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
                             {
-                                preferredEpisodes.Add(preferInitial ? encryptedRetail.First() : encryptedRetail.Last());
+                                AddPreferredVersionEpisodes(encryptedRetail);
                             }
                         }
 
@@ -230,11 +270,11 @@ namespace NzbDrone.Core.Tv
                         {
                             if (encryptedRetail.Count > 0)
                             {
-                                preferredEpisodes.Add(preferInitial ? encryptedRetail.First() : encryptedRetail.Last());
+                                AddPreferredVersionEpisodes(encryptedRetail);
                             }
                             else if (encryptionPref == EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
                             {
-                                preferredEpisodes.Add(preferInitial ? unencryptedRetail.First() : unencryptedRetail.Last());
+                                AddPreferredVersionEpisodes(unencryptedRetail);
                             }
                         }
 
@@ -258,15 +298,22 @@ namespace NzbDrone.Core.Tv
                 return string.Empty;
             }
 
+            var clean = title;
             if (!string.IsNullOrWhiteSpace(finaleType) &&
                 !string.Equals(finaleType, "Retail (v1.0)", StringComparison.OrdinalIgnoreCase) &&
-                title.EndsWith($"({finaleType})", StringComparison.OrdinalIgnoreCase))
+                clean.EndsWith($"({finaleType})", StringComparison.OrdinalIgnoreCase))
             {
-                return title.Substring(0, title.Length - finaleType.Length - 2).Trim();
+                clean = clean.Substring(0, clean.Length - finaleType.Length - 2).Trim();
             }
 
-            var idx = title.IndexOf(" (", StringComparison.Ordinal);
-            return idx > 0 ? title.Substring(0, idx).Trim() : title.Trim();
+            var idx = clean.IndexOf(" (", StringComparison.Ordinal);
+            if (idx > 0)
+            {
+                clean = clean.Substring(0, idx).Trim();
+            }
+
+            clean = GameCatalogProxy.DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');
+            return clean;
         }
 
         private void LegacySetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions)

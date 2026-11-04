@@ -65,12 +65,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"(?:\s*[\(\[]\s*(?:Rev\.?\s*[0-9A-Za-z\.]+|v\d+(?:\.\d+)*[A-Za-z]?|Version\s*[\d\.]+|Alt\s*\d+|PRG\d+)\s*[\)\]]|\s+-\s+(?:Rev\.?\s*[0-9A-Za-z]+|v\d+(?:\.\d+)*[A-Za-z]?)$)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private static readonly Regex RevisionTagRegex = new Regex(
+        internal static readonly Regex RevisionTagRegex = new Regex(
             @"\((?<rev>Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Alt\s*\d*|Program\s*ROM\s*[^\)]+|PRG\d+)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private static readonly Regex DiscTagRegex = new Regex(
-            @"(?:\(|\[)?\b(?<disc>Disc\s*(?<num>\d+)[^\)\]]*|Disk\s*(?<num>[A-Z0-9]+)[^\)\]]*)\b(?:\)|\])?",
+        internal static readonly Regex DiscTagRegex = new Regex(
+            @"(?:\(|\[)?\b(?<disc>Disc\s*(?<num>\d+(?:\s*of\s*\d+)?)|Disk\s*(?<num>[A-Z0-9]+(?:\s*of\s*\d+)?))\b(?:\)|\])?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex PreReleaseTagRegex = new Regex(
@@ -1810,12 +1810,22 @@ namespace NzbDrone.Core.MetadataSource.Game
             return null;
         }
 
-        private static string ExtractVersionOnly(string revisionTag, string noIntroName)
+        internal static string ExtractVersionOnly(string revisionTag, string noIntroName = null)
         {
             var raw = revisionTag ?? string.Empty;
-            var withoutDisc = DiscTagRegex.Replace(raw, string.Empty).Trim(' ', ',', '-');
+            var withoutDisc = DiscTagRegex.Replace(raw, string.Empty).Trim(' ', ',', '-', '•');
             if (string.IsNullOrWhiteSpace(withoutDisc))
             {
+                if (!string.IsNullOrWhiteSpace(noIntroName))
+                {
+                    var cleanNoIntro = DiscTagRegex.Replace(noIntroName, string.Empty);
+                    var revMatch = RevisionTagRegex.Match(cleanNoIntro);
+                    if (revMatch.Success)
+                    {
+                        return revMatch.Groups["rev"].Value.Trim();
+                    }
+                }
+
                 return "Retail (v1.0)";
             }
 
@@ -1828,7 +1838,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             var monitoredIds = new HashSet<int>();
 
-            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{(g.BaseTitle ?? g.Title).ToLowerInvariant()}"))
+            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
             {
                 var retailItems = group
                     .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName))
@@ -1924,7 +1934,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static void MarkLatestAndInitialRevisions(List<GameCatalogEntry> games)
         {
-            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{(g.BaseTitle ?? g.Title).ToLowerInvariant()}"))
+            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
             {
                 var items = group.ToList();
 
@@ -1980,22 +1990,43 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
         }
 
-        private static int GetRevisionSortOrder(string revisionTag)
+        internal static int GetRevisionSortOrder(string revisionTag)
         {
-            if (string.IsNullOrWhiteSpace(revisionTag) || revisionTag == "Retail (v1.0)")
+            if (string.IsNullOrWhiteSpace(revisionTag))
             {
                 return 0;
             }
 
-            if (IsPreReleaseVersion(revisionTag))
+            var clean = DiscTagRegex.Replace(revisionTag, string.Empty).Trim(' ', ',', '-', '•');
+            if (string.IsNullOrWhiteSpace(clean) || clean == "Retail (v1.0)")
             {
-                return 1000;
+                return 0;
             }
 
-            if (revisionTag.StartsWith("Rev ", StringComparison.OrdinalIgnoreCase) ||
-                revisionTag.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            if (IsPreReleaseVersion(clean))
             {
-                return 10 + revisionTag.Length;
+                return 10000;
+            }
+
+            var match = Regex.Match(clean, @"(?:Rev\.?\s*([A-Za-z0-9.]+)|v([0-9.]+))", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                var val = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+                if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
+                {
+                    return 100 + (int)(num * 100);
+                }
+
+                if (val.Length == 1 && char.IsLetter(val[0]))
+                {
+                    return 200 + (char.ToUpperInvariant(val[0]) - 'A');
+                }
+            }
+
+            if (clean.StartsWith("Rev ", StringComparison.OrdinalIgnoreCase) ||
+                clean.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            {
+                return 10 + clean.Length;
             }
 
             return 1;
@@ -2780,6 +2811,18 @@ namespace NzbDrone.Core.MetadataSource.Game
                 RegionRomHacksSeason => "ROM Hacks & Translations",
                 RegionHomebrewSeason => "Homebrew & Aftermarket",
                 _ => $"Region {seasonNumber}"
+            };
+        }
+
+        public static int GetRegionPriority(int seasonNumber)
+        {
+            return seasonNumber switch
+            {
+                RegionUsaSeason => 1,
+                RegionEuropeSeason => 2,
+                RegionJapanSeason => 3,
+                RegionWorldSeason => 4,
+                _ => 10 + seasonNumber
             };
         }
 
