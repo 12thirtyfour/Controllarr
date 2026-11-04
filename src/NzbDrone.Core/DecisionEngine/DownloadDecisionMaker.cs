@@ -70,6 +70,7 @@ namespace NzbDrone.Core.DecisionEngine
             foreach (var report in reports)
             {
                 DownloadDecision decision = null;
+                ParsedEpisodeInfo parsedEpisodeInfo = null;
                 _logger.ProgressTrace("Processing release {0}/{1}", reportNumber, reports.Count);
                 _logger.Debug("Processing release '{0}' from '{1}'", report.Title, report.Indexer);
 
@@ -82,7 +83,7 @@ namespace NzbDrone.Core.DecisionEngine
                         continue;
                     }
 
-                    var parsedEpisodeInfo = Parser.Parser.ParseTitle(report.Title);
+                    parsedEpisodeInfo = Parser.Parser.ParseTitle(report.Title);
 
                     if (parsedEpisodeInfo == null || parsedEpisodeInfo.IsPossibleSpecialEpisode)
                     {
@@ -167,7 +168,22 @@ namespace NzbDrone.Core.DecisionEngine
                 {
                     _logger.Error(e, "Couldn't process release.");
 
-                    var remoteEpisode = new RemoteEpisode { Release = report, ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria) };
+                    var fallbackParsedInfo = parsedEpisodeInfo ?? new ParsedEpisodeInfo
+                    {
+                        ReleaseTitle = report.Title,
+                        SeriesTitle = searchCriteria?.Series?.Title ?? report.Title,
+                        Languages = LanguageParser.ParseLanguages(report.Title),
+                        Quality = QualityParser.ParseQuality(report.Title)
+                    };
+
+                    var remoteEpisode = new RemoteEpisode
+                    {
+                        Release = report,
+                        ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria),
+                        ParsedEpisodeInfo = fallbackParsedInfo,
+                        Languages = fallbackParsedInfo.Languages,
+                        Series = searchCriteria?.Series
+                    };
 
                     decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.Error, "Unexpected error processing release"));
                 }

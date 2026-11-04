@@ -314,7 +314,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 TvdbId = game.TvdbId,
                 SeasonNumber = game.RegionSeasonNumber,
                 EpisodeNumber = game.EpisodeNumber,
-                AbsoluteEpisodeNumber = game.EpisodeNumber,
+                AbsoluteEpisodeNumber = game.AbsoluteEpisodeNumber > 0 ? game.AbsoluteEpisodeNumber : game.EpisodeNumber,
                 Title = game.Title,
                 FinaleType = !string.IsNullOrWhiteSpace(game.RevisionTag) ? game.RevisionTag : "Retail (v1.0)",
                 Overview = game.Overview,
@@ -635,6 +635,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var defaultMonitoredGameIds = GetDefaultMonitoredGameIds(platformGames, encryptionPreference);
 
             var episodeCounters = new Dictionary<int, int>();
+            var absoluteGameCounter = 0;
 
             foreach (var game in platformGames
                 .OrderBy(g => StripArticle(g.BaseTitle ?? g.Title), StringComparer.OrdinalIgnoreCase)
@@ -647,6 +648,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 currentEpNum++;
                 episodeCounters[seasonNum] = currentEpNum;
                 game.EpisodeNumber = currentEpNum;
+
+                absoluteGameCounter++;
+                game.AbsoluteEpisodeNumber = absoluteGameCounter;
 
                 var isUnofficial = seasonNum == RegionUnlicensedSeason ||
                                    seasonNum == RegionHomebrewSeason ||

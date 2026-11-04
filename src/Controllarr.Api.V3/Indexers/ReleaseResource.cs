@@ -100,11 +100,12 @@ namespace Sonarr.Api.V3.Indexers
     {
         public static ReleaseResource ToResource(this DownloadDecision model)
         {
-            var releaseInfo = model.RemoteEpisode.Release;
-            var parsedEpisodeInfo = model.RemoteEpisode.ParsedEpisodeInfo;
-            var remoteEpisode = model.RemoteEpisode;
-            var torrentInfo = (model.RemoteEpisode.Release as TorrentInfo) ?? new TorrentInfo();
+            var releaseInfo = model.RemoteEpisode?.Release ?? new ReleaseInfo();
+            var parsedEpisodeInfo = model.RemoteEpisode?.ParsedEpisodeInfo ?? new ParsedEpisodeInfo();
+            var remoteEpisode = model.RemoteEpisode ?? new RemoteEpisode();
+            var torrentInfo = (releaseInfo as TorrentInfo) ?? new TorrentInfo();
             var indexerFlags = torrentInfo.IndexerFlags;
+            var episodes = remoteEpisode.Episodes ?? new List<Episode>();
 
             var format = releaseInfo.ParsedRomInfo?.Format ??
                          releaseInfo.Container ??
@@ -128,17 +129,17 @@ namespace Sonarr.Api.V3.Indexers
                 Title = releaseInfo.Title,
                 FullSeason = parsedEpisodeInfo.FullSeason,
                 SeasonNumber = parsedEpisodeInfo.SeasonNumber ?? -1,
-                SeasonNumbers = parsedEpisodeInfo.SeasonNumbers,
-                Languages = remoteEpisode.Languages,
+                SeasonNumbers = parsedEpisodeInfo.SeasonNumbers ?? new List<int>(),
+                Languages = remoteEpisode.Languages ?? new List<Language>(),
                 AirDate = parsedEpisodeInfo.AirDate,
                 SeriesTitle = parsedEpisodeInfo.SeriesTitle,
-                EpisodeNumbers = parsedEpisodeInfo.EpisodeNumbers,
-                AbsoluteEpisodeNumbers = parsedEpisodeInfo.AbsoluteEpisodeNumbers,
+                EpisodeNumbers = parsedEpisodeInfo.EpisodeNumbers ?? Array.Empty<int>(),
+                AbsoluteEpisodeNumbers = parsedEpisodeInfo.AbsoluteEpisodeNumbers ?? Array.Empty<int>(),
                 MappedSeriesId = remoteEpisode.Series?.Id,
-                MappedSeasonNumber = remoteEpisode.Episodes.FirstOrDefault()?.SeasonNumber,
-                MappedEpisodeNumbers = remoteEpisode.Episodes.Select(v => v.EpisodeNumber).ToArray(),
-                MappedAbsoluteEpisodeNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber.Value).ToArray(),
-                MappedEpisodeInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
+                MappedSeasonNumber = episodes.FirstOrDefault()?.SeasonNumber,
+                MappedEpisodeNumbers = episodes.Select(v => v.EpisodeNumber).ToArray(),
+                MappedAbsoluteEpisodeNumbers = episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber.Value).ToArray(),
+                MappedEpisodeInfo = episodes.Select(v => new ReleaseEpisodeResource(v)),
                 Approved = model.Approved,
                 TemporarilyRejected = model.TemporarilyRejected,
                 Rejected = model.Rejected,

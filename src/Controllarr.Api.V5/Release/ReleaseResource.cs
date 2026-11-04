@@ -33,31 +33,33 @@ public static class ReleaseResourceMapper
 {
     public static ReleaseResource ToResource(this DownloadDecision model)
     {
-        var releaseInfo = model.RemoteEpisode.Release;
-        var parsedEpisodeInfo = model.RemoteEpisode.ParsedEpisodeInfo;
+        var releaseInfo = model.RemoteEpisode?.Release;
+        var parsedEpisodeInfo = model.RemoteEpisode?.ParsedEpisodeInfo;
         var remoteEpisode = model.RemoteEpisode;
 
-        var format = releaseInfo.ParsedRomInfo?.Format ??
-                     releaseInfo.Container ??
-                     (!string.IsNullOrWhiteSpace(releaseInfo.Title) ? Path.GetExtension(releaseInfo.Title)?.TrimStart('.').ToUpperInvariant() : null);
+        var format = releaseInfo?.ParsedRomInfo?.Format ??
+                     releaseInfo?.Container ??
+                     (!string.IsNullOrWhiteSpace(releaseInfo?.Title) ? Path.GetExtension(releaseInfo.Title)?.TrimStart('.').ToUpperInvariant() : null);
+
+        var episodes = remoteEpisode?.Episodes ?? new List<Episode>();
 
         return new ReleaseResource
         {
             Format = format?.ToUpperInvariant(),
-            ParsedInfo = parsedEpisodeInfo.ToResource(),
-            Release = releaseInfo.ToResource(),
+            ParsedInfo = parsedEpisodeInfo?.ToResource(),
+            Release = releaseInfo?.ToResource(),
             Decision = new ReleaseDecisionResource(model),
 
-            Languages = remoteEpisode.Languages,
-            MappedSeriesId = remoteEpisode.Series?.Id,
-            MappedSeasonNumber = remoteEpisode.Episodes.FirstOrDefault()?.SeasonNumber,
-            MappedGameNumbers = remoteEpisode.Episodes.Select(v => v.EpisodeNumber).ToArray(),
-            MappedAbsoluteGameNumbers = remoteEpisode.Episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber!.Value).ToArray(),
-            MappedGameInfo = remoteEpisode.Episodes.Select(v => new ReleaseEpisodeResource(v)),
-            GameRequested = remoteEpisode.EpisodeRequested,
-            DownloadAllowed = remoteEpisode.DownloadAllowed && !releaseInfo.MissingCredentials,
-            CustomFormatScore = remoteEpisode.CustomFormatScore,
-            CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
+            Languages = remoteEpisode?.Languages ?? new List<Language>(),
+            MappedSeriesId = remoteEpisode?.Series?.Id,
+            MappedSeasonNumber = episodes.FirstOrDefault()?.SeasonNumber,
+            MappedGameNumbers = episodes.Select(v => v.EpisodeNumber).ToArray(),
+            MappedAbsoluteGameNumbers = episodes.Where(v => v.AbsoluteEpisodeNumber.HasValue).Select(v => v.AbsoluteEpisodeNumber!.Value).ToArray(),
+            MappedGameInfo = episodes.Select(v => new ReleaseEpisodeResource(v)),
+            GameRequested = remoteEpisode?.EpisodeRequested ?? false,
+            DownloadAllowed = (remoteEpisode?.DownloadAllowed ?? false) && (releaseInfo != null && !releaseInfo.MissingCredentials),
+            CustomFormatScore = remoteEpisode?.CustomFormatScore ?? 0,
+            CustomFormats = remoteEpisode?.CustomFormats?.ToResource(false),
         };
     }
 

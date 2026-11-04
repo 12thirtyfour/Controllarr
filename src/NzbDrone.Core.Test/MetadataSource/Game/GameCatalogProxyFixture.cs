@@ -162,6 +162,7 @@ game (
                 .Should().ContainSingle();
             tuple.Item2.Where(e => e.Title == "Terranigma" && e.SeasonNumber == GameCatalogProxy.RegionEuropeSeason)
                 .Should().ContainSingle();
+            tuple.Item2.Select(e => e.AbsoluteEpisodeNumber).Should().OnlyHaveUniqueItems();
         }
 
         [Test]

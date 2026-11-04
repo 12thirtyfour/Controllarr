@@ -59,13 +59,13 @@ namespace NzbDrone.Core.Tv
         public Episode Find(int seriesId, int season, int episodeNumber)
         {
             return Query(s => s.SeriesId == seriesId && s.SeasonNumber == season && s.EpisodeNumber == episodeNumber)
-                               .SingleOrDefault();
+                               .FirstOrDefault();
         }
 
         public Episode Find(int seriesId, int absoluteEpisodeNumber)
         {
             return Query(s => s.SeriesId == seriesId && s.AbsoluteEpisodeNumber == absoluteEpisodeNumber)
-                        .SingleOrDefault();
+                        .FirstOrDefault();
         }
 
         public List<Episode> Find(int seriesId, string date)

@@ -193,33 +193,37 @@ public class ReleaseController : RestController<ReleaseResource>
 
     [HttpGet]
     [Produces("application/json")]
-    public async Task<Results<Ok<List<ReleaseResource>>, BadRequest>> GetReleases(int? seriesId, int? gameId, int? seasonNumber)
+    public async Task<Results<Ok<List<ReleaseResource>>, BadRequest>> GetReleases(int? seriesId, int? gameId, int? seasonNumber, int? platformId = null, int? episodeId = null, int? regionNumber = null)
     {
-        if (gameId.HasValue)
+        var targetGameId = gameId ?? episodeId;
+        if (targetGameId.HasValue)
         {
-            return TypedResults.Ok(await GetEpisodeReleases(gameId.Value));
+            return TypedResults.Ok(await GetGameReleases(targetGameId.Value));
         }
 
-        if (seriesId.HasValue && seasonNumber.HasValue)
+        var targetPlatformId = platformId ?? seriesId;
+        var targetRegionNumber = regionNumber ?? seasonNumber;
+
+        if (targetPlatformId.HasValue && targetRegionNumber.HasValue)
         {
-            return TypedResults.Ok(await GetSeasonReleases(seriesId.Value, seasonNumber.Value));
+            return TypedResults.Ok(await GetRegionReleases(targetPlatformId.Value, targetRegionNumber.Value));
         }
 
-        if (seriesId.HasValue || seasonNumber.HasValue)
+        if (targetPlatformId.HasValue || targetRegionNumber.HasValue)
         {
-            throw new NzbDroneClientException(HttpStatusCode.BadRequest, "seriesId and seasonNumber must be provided together");
+            throw new NzbDroneClientException(HttpStatusCode.BadRequest, "platformId and regionNumber must be provided together");
         }
 
         return TypedResults.Ok(await GetRss());
     }
 
-    private async Task<List<ReleaseResource>> GetEpisodeReleases(int episodeId)
+    private async Task<List<ReleaseResource>> GetGameReleases(int gameId)
     {
         try
         {
-            var decisions = await _releaseSearchService.EpisodeSearch(episodeId, true, true);
+            var decisions = await _releaseSearchService.EpisodeSearch(gameId, true, true);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
-            var history = _historyService.FindByEpisodeId(episodeId);
+            var history = _historyService.FindByEpisodeId(gameId);
 
             return MapDecisions(prioritizedDecisions, history);
         }
@@ -229,18 +233,18 @@ public class ReleaseController : RestController<ReleaseResource>
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Episode search failed: " + ex.Message);
+            _logger.Error(ex, "Game search failed: " + ex.Message);
             throw new NzbDroneClientException(HttpStatusCode.InternalServerError, ex.Message);
         }
     }
 
-    private async Task<List<ReleaseResource>> GetSeasonReleases(int seriesId, int seasonNumber)
+    private async Task<List<ReleaseResource>> GetRegionReleases(int platformId, int regionNumber)
     {
         try
         {
-            var decisions = await _releaseSearchService.SeasonSearch(seriesId, seasonNumber, false, false, true, true);
+            var decisions = await _releaseSearchService.SeasonSearch(platformId, regionNumber, false, false, true, true);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
-            var history = _historyService.GetBySeason(seriesId, seasonNumber, null);
+            var history = _historyService.GetBySeason(platformId, regionNumber, null);
 
             return MapDecisions(prioritizedDecisions, history);
         }
@@ -250,7 +254,7 @@ public class ReleaseController : RestController<ReleaseResource>
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Season search failed: " + ex.Message);
+            _logger.Error(ex, "Region search failed: " + ex.Message);
             throw new NzbDroneClientException(HttpStatusCode.InternalServerError, ex.Message);
         }
     }

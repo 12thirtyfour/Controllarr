@@ -38,8 +38,13 @@ public class ParsedEpisodeInfoResource : ParsedGameInfoResource
 
 public static class ParsedGameInfoResourceMapper
 {
-    public static ParsedEpisodeInfoResource ToResource(this ParsedEpisodeInfo parsedEpisodeInfo)
+    public static ParsedEpisodeInfoResource? ToResource(this ParsedEpisodeInfo? parsedEpisodeInfo)
     {
+        if (parsedEpisodeInfo == null)
+        {
+            return null;
+        }
+
         return new ParsedEpisodeInfoResource
         {
             ReleaseTitle = parsedEpisodeInfo.ReleaseTitle,
