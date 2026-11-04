@@ -110,7 +110,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 terms.AddRange(titles);
             }
 
-            if (searchCriteria.Series != null && !searchCriteria.Series.Title.IsNullOrWhiteSpace())
+            if (terms.Empty() && searchCriteria.Series != null && !searchCriteria.Series.Title.IsNullOrWhiteSpace())
             {
                 var cleanSeriesTitle = CleanGameTitleForSearch(searchCriteria.Series.Title);
                 if (!terms.Contains(cleanSeriesTitle))

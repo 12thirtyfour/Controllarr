@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -313,6 +314,55 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             _settings = settings;
         }
 
+        private static bool MatchesSearchTerm(string fileNameOnly, string fullName, string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return true;
+            }
+
+            var cleanName = RomParser.CleanIndexPrefix(fileNameOnly);
+
+            if (fileNameOnly.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                fullName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                cleanName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var normalizedSearch = NormalizeForSearchMatching(searchTerm);
+            var normalizedFile = NormalizeForSearchMatching(cleanName);
+            var normalizedFull = NormalizeForSearchMatching(fullName);
+
+            if (normalizedFile.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                normalizedFull.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var searchWords = searchTerm.Split(new[] { ' ', '_', '-', '.', ':', '(', ')', '[', ']', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => w.Length > 1 && !string.Equals(w, "the", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (searchWords.Count > 0 && searchWords.All(w => cleanName.Contains(w, StringComparison.OrdinalIgnoreCase) || fullName.Contains(w, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string NormalizeForSearchMatching(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
+
+            var chars = input.Where(char.IsLetterOrDigit).ToArray();
+            return new string(chars).ToLowerInvariant();
+        }
+
         public IList<ReleaseInfo> ParseResponse(IndexerResponse indexerResponse)
         {
             var httpResponse = indexerResponse.HttpResponse;
@@ -340,7 +390,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             var platformIdx = requestUrl.IndexOf("_platform=", StringComparison.OrdinalIgnoreCase);
             if (platformIdx >= 0)
             {
-                var endIdx = requestUrl.IndexOf('&', platformIdx);
+                var endIdx = requestUrl.IndexOfAny(new[] { '&', '#' }, platformIdx + 10);
                 var rawSlug = endIdx >= 0
                     ? requestUrl.Substring(platformIdx + 10, endIdx - (platformIdx + 10))
                     : requestUrl.Substring(platformIdx + 10);
@@ -350,7 +400,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             var platformNameIdx = requestUrl.IndexOf("_platformName=", StringComparison.OrdinalIgnoreCase);
             if (platformNameIdx >= 0)
             {
-                var endIdx = requestUrl.IndexOf('&', platformNameIdx);
+                var endIdx = requestUrl.IndexOfAny(new[] { '&', '#' }, platformNameIdx + 14);
                 var rawName = endIdx >= 0
                     ? requestUrl.Substring(platformNameIdx + 14, endIdx - (platformNameIdx + 14))
                     : requestUrl.Substring(platformNameIdx + 14);
@@ -367,8 +417,8 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 if (queryIdx >= 0)
                 {
                     var searchSub = requestUrl[(queryIdx + 8)..];
-                    var nextParamIdx = searchSub.IndexOf('&');
-                    searchTerm = Uri.UnescapeDataString(nextParamIdx >= 0 ? searchSub[..nextParamIdx] : searchSub);
+                    var endIdx = searchSub.IndexOfAny(new[] { '&', '#' });
+                    searchTerm = Uri.UnescapeDataString(endIdx >= 0 ? searchSub[..endIdx] : searchSub);
                 }
 
                 InternetArchiveMetadataResponse metadataResponse;
@@ -408,10 +458,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     var fileNameOnly = Path.GetFileName(file.Name);
                     if (!string.IsNullOrWhiteSpace(searchTerm))
                     {
-                        var matchesName = fileNameOnly.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                                          file.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                                          RomParser.CleanIndexPrefix(fileNameOnly).Contains(searchTerm, StringComparison.OrdinalIgnoreCase);
-                        if (!matchesName)
+                        if (!MatchesSearchTerm(fileNameOnly, file.Name, searchTerm))
                         {
                             continue;
                         }
@@ -429,12 +476,14 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                         parsedRomInfo.Format = container.ToLowerInvariant();
                     }
 
+                    var escapedPath = string.Join("/", file.Name.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
+
                     var releaseInfo = new ReleaseInfo
                     {
                         Guid = $"IA-{archiveId}-{file.Name}",
                         Title = fileNameOnly,
                         Size = size,
-                        DownloadUrl = $"{baseUrl}/download/{archiveId}/{Uri.EscapeDataString(file.Name.TrimStart('/'))}",
+                        DownloadUrl = $"{baseUrl}/download/{archiveId}/{escapedPath}",
                         InfoUrl = $"{baseUrl}/details/{archiveId}",
                         DownloadProtocol = DownloadProtocol.Http,
                         PublishDate = publishDate,
@@ -466,9 +515,20 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 return new List<ReleaseInfo>();
             }
 
+            var primaryArchiveIds = _settings?.PrimaryArchiveUrls?
+                .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>();
+
             foreach (var doc in searchResponse.Response.Docs)
             {
-                if (doc.Identifier.IsNullOrWhiteSpace())
+                if (doc.Identifier.IsNullOrWhiteSpace() || primaryArchiveIds.Contains(doc.Identifier))
+                {
+                    continue;
+                }
+
+                // If this is an entire multi-game collection (e.g. 472GB archive pack), reject it during single-game search
+                if (doc.ItemSize.HasValue && doc.ItemSize.Value > 25_000_000_000L)
                 {
                     continue;
                 }

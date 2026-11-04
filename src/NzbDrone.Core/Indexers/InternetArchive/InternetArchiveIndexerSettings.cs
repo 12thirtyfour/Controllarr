@@ -47,16 +47,16 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             if (detailsIdx >= 0)
             {
                 var remainder = trimmed.Substring(detailsIdx + 9);
-                var slashIdx = remainder.IndexOf('/');
-                return slashIdx >= 0 ? remainder.Substring(0, slashIdx).Trim() : remainder.Trim();
+                var sepIdx = remainder.IndexOfAny(new[] { '/', '?', '#' });
+                return sepIdx >= 0 ? remainder.Substring(0, sepIdx).Trim() : remainder.Trim();
             }
 
             var downloadIdx = trimmed.IndexOf("/download/", StringComparison.OrdinalIgnoreCase);
             if (downloadIdx >= 0)
             {
                 var remainder = trimmed.Substring(downloadIdx + 10);
-                var slashIdx = remainder.IndexOf('/');
-                return slashIdx >= 0 ? remainder.Substring(0, slashIdx).Trim() : remainder.Trim();
+                var sepIdx = remainder.IndexOfAny(new[] { '/', '?', '#' });
+                return sepIdx >= 0 ? remainder.Substring(0, sepIdx).Trim() : remainder.Trim();
             }
 
             if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||

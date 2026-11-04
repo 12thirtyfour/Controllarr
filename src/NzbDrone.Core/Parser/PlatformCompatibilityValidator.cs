@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Dictionary<string, string[]> PlatformAliases = PlatformCatalogService.PlatformAliases;
 
         private static readonly Regex PlatformTagRegex = new Regex(
-            @"(?:\b|_|\[|\()(3DS|NDS|GBA|GBC|N64|SNES|NES|PS1|PS2|PS3|PSP|PSX|WIIU|WII|GAMECUBE|XBOX360|XBOX|VITA|SEGA|GENESIS|SATURN|DREAMCAST)(?:\b|_|\]|\))",
+            @"(?:\b|_|\[|\()(3DS|NDS|GBA|GBC|N64|SNES|NES|PS1|PS2|PS3|PSP|PSX|WIIU|WII|GAMECUBE|XBOX360|XBOX|VITA|SEGACD|SCD|MEGACD|32X|GENESIS|MEGADRIVE|SATURN|DREAMCAST|SMS|GG)(?:\b|_|\]|\))",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public static bool IsCompatible(string filePathOrName, string platformSlug, string platformName = null, string itemFormat = null, string archiveId = null)

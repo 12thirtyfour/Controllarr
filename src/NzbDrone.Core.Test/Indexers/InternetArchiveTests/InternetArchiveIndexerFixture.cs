@@ -357,5 +357,82 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             failures.Errors.Should().HaveCount(1);
             failures.Errors.First().ErrorMessage.Should().Contain("authentication failed");
         }
+
+        [Test]
+        public void should_parse_metadata_files_response_for_primary_archive_with_platform_hash_parameter()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/chd_segacd" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""@ = Sega CD Directory.txt"", ""size"": ""181"", ""format"": ""Text"" },
+                    { ""name"": ""Sonic CD (USA).chd"", ""size"": ""471859200"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Sonic The Hedgehog CD (USA).chd"", ""size"": ""471859200"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Sonic_CD_(Japan).chd"", ""size"": ""460000000"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Snatcher (USA).chd"", ""size"": ""524288000"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/chd_segacd/files?search=Sonic%20CD#_platform=segacd&_platformName=Sega%20CD");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(3);
+            releases.Should().Contain(r => r.Title == "Sonic CD (USA).chd" && r.DownloadUrl == "https://archive.org/download/chd_segacd/Sonic%20CD%20%28USA%29.chd");
+            releases.Should().Contain(r => r.Title == "Sonic The Hedgehog CD (USA).chd");
+            releases.Should().Contain(r => r.Title == "Sonic_CD_(Japan).chd");
+            releases.Should().NotContain(r => r.Title.Contains("Snatcher"));
+            releases.First().Size.Should().Be(471859200);
+        }
+
+        [Test]
+        public void should_exclude_primary_archive_collection_itself_and_huge_archives_from_search_results()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/chd_segacd" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var searchJson = @"{
+                ""response"": {
+                    ""numFound"": 2,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""chd_segacd"",
+                            ""title"": ""Sega CD Complete CHD Collection"",
+                            ""mediatype"": ""software"",
+                            ""item_size"": 506806149120
+                        },
+                        {
+                            ""identifier"": ""sonic_cd_standalone_release"",
+                            ""title"": ""Sonic CD (USA)"",
+                            ""mediatype"": ""software"",
+                            ""item_size"": 471859200
+                        }
+                    ]
+                }
+            }";
+
+            var request = new HttpRequest("https://archive.org/advancedsearch.php?q=Sonic%20CD#_platform=segacd");
+            var response = new HttpResponse(request, new HttpHeader(), searchJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            releases[0].Guid.Should().Be("IA-sonic_cd_standalone_release");
+            releases[0].Title.Should().Be("Sonic CD (USA)");
+            releases[0].Size.Should().Be(471859200);
+        }
     }
 }
