@@ -1472,7 +1472,7 @@
     "MonitorExistingEpisodesDescription": "Monitor games that have files",
     "MonitorExistingGames": "Existing ROMs",
     "MonitorExistingGamesDescription": "Monitor games that have files",
-    "MonitorFirstSeason": "USA (NTSC-U) Only",
+    "MonitorFirstSeason": "USA Only",
     "MonitorFirstSeasonDescription": "Monitor all games of the first region. All other regions will be ignored",
     "MonitorFutureEpisodes": "Future Releases",
     "MonitorFutureEpisodesDescription": "Monitor games that have not released yet",

@@ -285,8 +285,12 @@ namespace Sonarr.Api.V3.Platforms
             {
                 foreach (var season in resource.Seasons)
                 {
-                    season.Statistics = seriesStatistics.SeasonStatistics.SingleOrDefault(s => s.SeasonNumber == season.SeasonNumber).ToResource();
+                    season.Statistics = seriesStatistics.SeasonStatistics.SingleOrDefault(s => s.SeasonNumber == season.SeasonNumber)?.ToResource();
                 }
+
+                resource.Seasons = resource.Seasons
+                    .Where(s => s.Statistics == null || s.Statistics.TotalEpisodeCount > 0)
+                    .ToList();
             }
         }
 

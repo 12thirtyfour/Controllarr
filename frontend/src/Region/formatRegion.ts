@@ -17,6 +17,9 @@ const REGIONAL_CONSOLE_NAMES: Record<string, Record<number, string>> = {
   'sega-master-system': {
     3: 'Sega Mark III',
   },
+  sms: {
+    3: 'Sega Mark III',
+  },
   'sega-genesis': {
     2: 'Mega Drive',
     3: 'Mega Drive',
@@ -37,7 +40,14 @@ const REGIONAL_CONSOLE_NAMES: Record<string, Record<number, string>> = {
     2: 'TurboGrafx',
     3: 'PC Engine',
   },
+  tg16: {
+    2: 'TurboGrafx',
+    3: 'PC Engine',
+  },
   'turbografx-cd': {
+    3: 'PC Engine CD-ROM²',
+  },
+  tgcd: {
     3: 'PC Engine CD-ROM²',
   },
   'magnavox-odyssey-2': {
@@ -69,7 +79,6 @@ export function getRegionalConsoleName(
     normalized.includes('famicom') ||
     normalized === 'nes'
   ) {
-    if (seasonNumber === 1) return 'NES';
     if (seasonNumber === 3) return 'Famicom';
   }
 
@@ -78,12 +87,10 @@ export function getRegionalConsoleName(
     normalized.includes('super-famicom') ||
     normalized === 'snes'
   ) {
-    if (seasonNumber === 1) return 'Super Nintendo';
     if (seasonNumber === 3) return 'Super Famicom';
   }
 
   if (normalized.includes('genesis') || normalized.includes('mega-drive')) {
-    if (seasonNumber === 1) return 'Genesis';
     if (seasonNumber === 2 || seasonNumber === 3) return 'Mega Drive';
   }
 
@@ -92,7 +99,6 @@ export function getRegionalConsoleName(
     normalized.includes('mark-iii') ||
     normalized === 'sms'
   ) {
-    if (seasonNumber === 1 || seasonNumber === 2) return 'Master System';
     if (seasonNumber === 3) return 'Sega Mark III';
   }
 
@@ -101,7 +107,6 @@ export function getRegionalConsoleName(
     normalized.includes('pc-engine') ||
     normalized === 'tg16'
   ) {
-    if (seasonNumber === 1) return 'TurboGrafx-16';
     if (seasonNumber === 2) return 'TurboGrafx';
     if (seasonNumber === 3) return 'PC Engine';
   }
@@ -111,7 +116,6 @@ export function getRegionalConsoleName(
     normalized.includes('pc-engine-cd') ||
     normalized === 'tgcd'
   ) {
-    if (seasonNumber === 1 || seasonNumber === 2) return 'TurboGrafx-CD';
     if (seasonNumber === 3) return 'PC Engine CD-ROM²';
   }
 
@@ -136,9 +140,7 @@ export default function formatRegion(
       return 'USA';
     }
 
-    return regionalConsole
-      ? `USA (NTSC-U — ${regionalConsole})`
-      : 'USA (NTSC-U)';
+    return regionalConsole ? `USA (${regionalConsole})` : 'USA';
   }
 
   if (seasonNumber === 2) {
@@ -146,9 +148,7 @@ export default function formatRegion(
       return 'EUR';
     }
 
-    return regionalConsole
-      ? `Europe (PAL — ${regionalConsole})`
-      : 'Europe (PAL)';
+    return regionalConsole ? `Europe (${regionalConsole})` : 'Europe';
   }
 
   if (seasonNumber === 3) {
@@ -156,13 +156,11 @@ export default function formatRegion(
       return 'JPN';
     }
 
-    return regionalConsole
-      ? `Japan (NTSC-J — ${regionalConsole})`
-      : 'Japan (NTSC-J)';
+    return regionalConsole ? `Japan (${regionalConsole})` : 'Japan';
   }
 
   if (seasonNumber === 4) {
-    return shortFormat ? 'WLD' : 'World / Multi-Region';
+    return shortFormat ? 'WLD' : 'World';
   }
 
   if (seasonNumber === 5) {

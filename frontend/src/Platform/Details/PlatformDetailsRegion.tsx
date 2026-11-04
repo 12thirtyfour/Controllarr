@@ -616,6 +616,13 @@ function PlatformDetailsSeason({
     (col) => col.isVisible !== false
   ).length;
 
+  if (
+    (items && items.length === 0) ||
+    (statistics?.totalGameCount === 0 && (!items || items.length === 0))
+  ) {
+    return null;
+  }
+
   return (
     <div className={styles.season}>
       <div className={styles.header}>
@@ -630,7 +637,10 @@ function PlatformDetailsSeason({
 
           <div className={styles.seasonInfo}>
             <div className={styles.seasonNumber}>{seasonNumberTitle}</div>
-            {title ? (
+            {title &&
+            title.trim().toLowerCase() !== seasonNumberTitle.trim().toLowerCase() &&
+            !seasonNumberTitle.toLowerCase().includes(title.trim().toLowerCase()) &&
+            !title.trim().toLowerCase().includes(seasonNumberTitle.trim().toLowerCase()) ? (
               <div className={styles.seasonTitle} title={title}>
                 {title}
               </div>

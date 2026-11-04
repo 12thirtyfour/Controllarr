@@ -20,17 +20,17 @@ export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
   {
     id: 1,
     label: 'USA',
-    description: 'North America / NTSC-U retail releases',
+    description: 'North America / USA retail releases',
   },
   {
     id: 3,
     label: 'Japan',
-    description: 'Japan / NTSC-J retail releases (e.g. Famicom, Mega Drive)',
+    description: 'Japan retail releases (e.g. Famicom, Mega Drive)',
   },
   {
     id: 2,
     label: 'Europe',
-    description: 'Europe / PAL retail releases',
+    description: 'Europe retail releases',
   },
   {
     id: 4,

@@ -48,7 +48,8 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             var tuple = Subject.GetSeriesInfo(1011, Language.English, null);
 
             tuple.Item1.Title.Should().Be("Game Boy Advance");
-            tuple.Item1.Seasons.Should().HaveCount(7);
+            tuple.Item1.Seasons.Should().NotBeEmpty();
+            tuple.Item1.Seasons.Should().OnlyContain(s => tuple.Item2.Any(e => e.SeasonNumber == s.SeasonNumber));
             tuple.Item2.Should().NotBeEmpty();
             tuple.Item2.Should().Contain(e => e.Title.Contains("Pokemon - Emerald Version") && e.SeasonNumber == GameCatalogProxy.RegionUsaSeason);
         }

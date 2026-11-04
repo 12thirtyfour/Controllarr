@@ -1057,7 +1057,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                     (s) => s.seasonNumber === regionId
                   );
 
-                  if (!season) {
+                  if (!season || (season.statistics && season.statistics.totalGameCount === 0)) {
                     return null;
                   }
 
@@ -1072,7 +1072,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                   );
                 })}
                 {seasons
-                  .filter((s) => !orderedRegionIds.includes(s.seasonNumber))
+                  .filter((s) => !orderedRegionIds.includes(s.seasonNumber) && (!s.statistics || s.statistics.totalGameCount > 0))
                   .map((season) => (
                     <PlatformDetailsSeason
                       key={season.seasonNumber}

@@ -13,7 +13,9 @@ function RegionDetails(props: RegionDetailsProps) {
   const { seriesId, seasons } = props;
 
   const latestSeasons = useMemo(() => {
-    return seasons.slice(Math.max(seasons.length - 25, 0));
+    return seasons
+      .filter((s) => !s.statistics || s.statistics.totalGameCount > 0)
+      .slice(Math.max(seasons.length - 25, 0));
   }, [seasons]);
 
   return (

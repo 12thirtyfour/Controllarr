@@ -664,7 +664,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                 episodes.Add(CreateEpisodeForGame(game, 0, isMonitored));
             }
 
-            if (episodes.Count == 0)
+            if (episodes.Count > 0)
+            {
+                var presentSeasonNumbers = episodes.Select(e => e.SeasonNumber).Distinct().ToHashSet();
+                series.Seasons = series.Seasons.Where(s => presentSeasonNumbers.Contains(s.SeasonNumber)).ToList();
+            }
+            else
             {
                 episodes.Add(new Episode
                 {
@@ -673,15 +678,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                     SeasonNumber = RegionUsaSeason,
                     EpisodeNumber = 1,
                     AbsoluteEpisodeNumber = 1,
-                    Title = "The Troll Farmer",
+                    Title = $"{platform.Name} Launch Title",
                     FinaleType = "Retail (v1.0)",
                     Overview = platform.Overview,
-                    AirDate = "2015-10-02",
-                    AirDateUtc = new DateTime(2015, 10, 2, 0, 0, 0, DateTimeKind.Utc),
+                    AirDate = $"{platform.ReleaseYear}-01-01",
+                    AirDateUtc = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     Runtime = 0,
                     Monitored = true,
                     Ratings = new Ratings { Votes = 100, Value = 9.0m }
                 });
+
+                series.Seasons = series.Seasons.Where(s => s.SeasonNumber == RegionUsaSeason).ToList();
             }
 
             return new Tuple<Series, List<Episode>>(series, episodes);

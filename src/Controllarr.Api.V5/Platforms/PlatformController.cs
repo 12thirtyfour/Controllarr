@@ -316,6 +316,10 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
             {
                 season.Statistics = seriesStatistics.SeasonStatistics?.SingleOrDefault(s => s.SeasonNumber == season.SeasonNumber)?.ToResource();
             }
+
+            resource.Seasons = resource.Seasons
+                .Where(s => s.Statistics == null || s.Statistics.TotalGameCount > 0)
+                .ToList();
         }
     }
 
