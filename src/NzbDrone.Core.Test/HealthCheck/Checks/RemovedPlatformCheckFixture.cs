@@ -10,7 +10,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.HealthCheck.Checks
 {
     [TestFixture]
-    public class RemovedPlatformCheckFixture : CoreTest<RemovedSeriesCheck>
+    public class RemovedPlatformCheckFixture : CoreTest<RemovedPlatformCheck>
     {
         private void GivenSeries(int amount, int deleted)
         {

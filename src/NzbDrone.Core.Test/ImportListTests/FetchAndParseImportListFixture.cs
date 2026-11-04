@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.ImportListTests
             _listSeries = Builder<ImportListItemInfo>.CreateListOfSize(5)
                 .Build().ToList();
 
-            Mocker.GetMock<ISearchForNewSeries>()
+            Mocker.GetMock<ISearchForNewPlatforms>()
                 .Setup(v => v.SearchForNewSeriesByImdbId(It.IsAny<string>(), It.IsAny<Language>()))
                 .Returns((string value, Language _) => new List<Tv.Series>() { new Tv.Series() { ImdbId = value } });
         }

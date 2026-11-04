@@ -18,7 +18,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource.Game
 {
-    public class GameCatalogProxy : IGameCatalogService, IProvideSeriesInfo, ISearchForNewSeries
+    public class GameCatalogProxy : IGameCatalogService, IProvidePlatformInfo, ISearchForNewPlatforms
     {
         public const int RegionUnlicensedSeason = 0;
         public const int RegionPrototypesSeason = 0;

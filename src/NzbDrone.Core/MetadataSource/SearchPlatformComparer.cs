@@ -6,7 +6,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource
 {
-    public class SearchSeriesComparer : IComparer<Series>
+    public class SearchPlatformComparer : IComparer<Series>
     {
         private static readonly Regex RegexCleanPunctuation = new Regex("[-._:]", RegexOptions.Compiled);
         private static readonly Regex RegexCleanCountryYearPostfix = new Regex(@"(?<=.+)( \([A-Z]{2}\)| \(\d{4}\)| \([A-Z]{2}\) \(\d{4}\))$", RegexOptions.Compiled);
@@ -17,7 +17,7 @@ namespace NzbDrone.Core.MetadataSource
         private readonly string _searchQueryWithoutYear;
         private int? _year;
 
-        public SearchSeriesComparer(string searchQuery)
+        public SearchPlatformComparer(string searchQuery)
         {
             SearchQuery = searchQuery;
 

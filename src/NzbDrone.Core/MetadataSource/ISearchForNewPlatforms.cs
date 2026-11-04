@@ -4,7 +4,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource
 {
-    public interface ISearchForNewSeries
+    public interface ISearchForNewPlatforms
     {
         List<Series> SearchForNewSeries(string title, Language language);
         List<Series> SearchForNewSeriesByImdbId(string imdbId, Language language);

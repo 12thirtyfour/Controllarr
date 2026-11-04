@@ -13,7 +13,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 {
     [TestFixture]
-    public class CleanupOrphanedRomFilesFixture : DbTest<CleanupOrphanedEpisodeFiles, EpisodeFile>
+    public class CleanupOrphanedRomFilesFixture : DbTest<CleanupOrphanedRomFiles, EpisodeFile>
     {
         [Test]
         public void should_delete_orphaned_episode_files()

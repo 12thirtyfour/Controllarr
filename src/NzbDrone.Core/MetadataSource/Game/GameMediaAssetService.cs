@@ -133,7 +133,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         private readonly IDatParserService _datParserService;
         private readonly ISmdbParserService _smdbParserService;
         private readonly IGameCatalogService _gameCatalogService;
-        private readonly IProvideSeriesInfo _seriesInfo;
+        private readonly IProvidePlatformInfo _seriesInfo;
         private readonly Logger _logger;
 
         public GameMediaAssetService(
@@ -148,7 +148,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             IDatParserService datParserService = null,
             ISmdbParserService smdbParserService = null,
             IGameCatalogService gameCatalogService = null,
-            IProvideSeriesInfo seriesInfo = null,
+            IProvidePlatformInfo seriesInfo = null,
             Logger logger = null)
         {
             _configService = configService;

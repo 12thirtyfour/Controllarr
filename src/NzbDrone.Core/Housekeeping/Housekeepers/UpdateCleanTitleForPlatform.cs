@@ -4,11 +4,11 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers
 {
-    public class UpdateCleanTitleForSeries : IHousekeepingTask
+    public class UpdateCleanTitleForPlatform : IHousekeepingTask
     {
         private readonly ISeriesRepository _seriesRepository;
 
-        public UpdateCleanTitleForSeries(ISeriesRepository seriesRepository)
+        public UpdateCleanTitleForPlatform(ISeriesRepository seriesRepository)
         {
             _seriesRepository = seriesRepository;
         }

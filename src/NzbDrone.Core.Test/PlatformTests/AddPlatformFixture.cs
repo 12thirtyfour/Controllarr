@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Test.PlatformTests
 
         private void GivenValidSeries(int tvdbId)
         {
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(tvdbId, Language.English, It.IsAny<string>()))
                   .Returns(new Tuple<Series, List<Episode>>(_fakeSeries, new List<Episode>()));
         }
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Test.PlatformTests
                 Language = Language.English
             };
 
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(newSeries.TvdbId, Language.English, It.IsAny<string>()))
                   .Throws(new SeriesNotFoundException(newSeries.TvdbId));
 
@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Test.PlatformTests
                 Language = Language.Spanish
             };
 
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(newSeries.TvdbId, Language.Spanish, It.IsAny<string>()))
                   .Returns(new Tuple<Series, List<Episode>>(_fakeSeries, new List<Episode>()));
 
@@ -153,7 +153,7 @@ namespace NzbDrone.Core.Test.PlatformTests
 
             series.Language.Should().Be(Language.Spanish);
 
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Verify(s => s.GetSeriesInfo(newSeries.TvdbId, Language.Spanish, It.IsAny<string>()), Times.Once());
         }
 

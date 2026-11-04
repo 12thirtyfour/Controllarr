@@ -23,7 +23,7 @@ namespace NzbDrone.Core.ImportLists
         private readonly IImportListExclusionService _importListExclusionService;
         private readonly IImportListItemService _importListItemService;
         private readonly IFetchAndParseImportList _listFetcherAndParser;
-        private readonly ISearchForNewSeries _seriesSearchService;
+        private readonly ISearchForNewPlatforms _seriesSearchService;
         private readonly ISeriesService _seriesService;
         private readonly IAddPlatformService _addSeriesService;
         private readonly IConfigService _configService;
@@ -35,7 +35,7 @@ namespace NzbDrone.Core.ImportLists
             IImportListExclusionService importListExclusionService,
             IImportListItemService importListItemService,
             IFetchAndParseImportList listFetcherAndParser,
-            ISearchForNewSeries seriesSearchService,
+            ISearchForNewPlatforms seriesSearchService,
             ISeriesService seriesService,
             IAddPlatformService addSeriesService,
             IConfigService configService,

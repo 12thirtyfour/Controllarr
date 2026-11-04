@@ -8,7 +8,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 {
     [TestFixture]
-    public class CleanupOrphanedGamesFixture : DbTest<CleanupOrphanedEpisodes, Episode>
+    public class CleanupOrphanedGamesFixture : DbTest<CleanupOrphanedGames, Episode>
     {
         [Test]
         public void should_delete_orphaned_episodes()

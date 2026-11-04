@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Tv
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
-        private readonly IProvideSeriesInfo _seriesInfo;
+        private readonly IProvidePlatformInfo _seriesInfo;
         private readonly IGameMetadataProxy _gameMetadataProxy;
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IBuildFileNames _fileNameBuilder;
@@ -38,7 +38,7 @@ namespace NzbDrone.Core.Tv
 
         public AddPlatformService(ISeriesService seriesService,
                                 IEpisodeService episodeService,
-                                IProvideSeriesInfo seriesInfo,
+                                IProvidePlatformInfo seriesInfo,
                                 IGameMetadataProxy gameMetadataProxy,
                                 IGameCatalogService gameCatalogService,
                                 IBuildFileNames fileNameBuilder,

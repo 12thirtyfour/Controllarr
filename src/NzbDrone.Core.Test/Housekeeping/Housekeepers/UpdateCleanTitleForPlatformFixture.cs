@@ -8,7 +8,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 {
     [TestFixture]
-    public class UpdateCleanTitleForPlatformFixture : CoreTest<UpdateCleanTitleForSeries>
+    public class UpdateCleanTitleForPlatformFixture : CoreTest<UpdateCleanTitleForPlatform>
     {
         [Test]
         public void should_update_clean_title()

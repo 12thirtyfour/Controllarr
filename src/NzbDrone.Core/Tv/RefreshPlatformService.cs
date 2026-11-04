@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Tv
 {
     public class RefreshPlatformService : IExecute<RefreshPlatformCommand>
     {
-        private readonly IProvideSeriesInfo _seriesInfo;
+        private readonly IProvidePlatformInfo _seriesInfo;
         private readonly NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy _gameMetadataProxy;
         private readonly ISeriesService _seriesService;
         private readonly IPlatformTranslationService _seriesTranslationService;
@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Tv
         private readonly ICommandResultReporter _commandResultReporter;
         private readonly Logger _logger;
 
-        public RefreshPlatformService(IProvideSeriesInfo seriesInfo,
+        public RefreshPlatformService(IProvidePlatformInfo seriesInfo,
                                     NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy gameMetadataProxy,
                                     ISeriesService seriesService,
                                     IPlatformTranslationService seriesTranslationService,

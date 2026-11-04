@@ -18,13 +18,13 @@ namespace Sonarr.Api.V3.Platforms
     [Route("api/v3/series/lookup")]
     public class PlatformLookupController : Controller
     {
-        private readonly ISearchForNewSeries _searchProxy;
+        private readonly ISearchForNewPlatforms _searchProxy;
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IBuildFileNames _fileNameBuilder;
         private readonly IMapCoversToLocal _coverMapper;
 
         public PlatformLookupController(
-            ISearchForNewSeries searchProxy,
+            ISearchForNewPlatforms searchProxy,
             IGameCatalogService gameCatalogService,
             IBuildFileNames fileNameBuilder,
             IMapCoversToLocal coverMapper)

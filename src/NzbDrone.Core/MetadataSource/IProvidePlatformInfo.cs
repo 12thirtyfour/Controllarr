@@ -5,7 +5,7 @@ using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MetadataSource
 {
-    public interface IProvideSeriesInfo
+    public interface IProvidePlatformInfo
     {
         Tuple<Series, List<Episode>> GetSeriesInfo(int tvdbSeriesId, Language language, string seasonType);
     }

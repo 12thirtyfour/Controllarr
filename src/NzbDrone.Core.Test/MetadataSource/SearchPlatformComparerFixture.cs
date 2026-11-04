@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Test.MetadataSource
             WithSeries("Talking Dead");
             WithSeries("The Walking Dead");
 
-            _series.Sort(new SearchSeriesComparer("the walking dead"));
+            _series.Sort(new SearchPlatformComparer("the walking dead"));
 
             _series.First().Title.Should().Be("The Walking Dead");
         }
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Test.MetadataSource
             WithSeries("Talking Dead");
             WithSeries("The Walking Dead");
 
-            _series.Sort(new SearchSeriesComparer("walking dead"));
+            _series.Sort(new SearchPlatformComparer("walking dead"));
 
             _series.First().Title.Should().Be("The Walking Dead");
         }
@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Test.MetadataSource
             WithSeries("The Blacklist");
             WithSeries("Blacklist");
 
-            _series.Sort(new SearchSeriesComparer("blacklist"));
+            _series.Sort(new SearchPlatformComparer("blacklist"));
 
             _series.First().Title.Should().Be("Blacklist");
         }
@@ -63,7 +63,7 @@ namespace NzbDrone.Core.Test.MetadataSource
             WithSeries("Blacklist");
             WithSeries("The Blacklist");
 
-            _series.Sort(new SearchSeriesComparer("the blacklist"));
+            _series.Sort(new SearchPlatformComparer("the blacklist"));
 
             _series.First().Title.Should().Be("The Blacklist");
         }

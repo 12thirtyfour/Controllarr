@@ -107,11 +107,11 @@ namespace NzbDrone.Core.Test.ImportListTests
                 .Setup(v => v.GetAllSeries())
                 .Returns(_existingSeries);
 
-            Mocker.GetMock<ISearchForNewSeries>()
+            Mocker.GetMock<ISearchForNewPlatforms>()
                   .Setup(v => v.SearchForNewSeries(It.IsAny<string>(), It.IsAny<Language>()))
                   .Returns(new List<Series>());
 
-            Mocker.GetMock<ISearchForNewSeries>()
+            Mocker.GetMock<ISearchForNewPlatforms>()
                   .Setup(v => v.SearchForNewSeriesByImdbId(It.IsAny<string>(), It.IsAny<Language>()))
                   .Returns(new List<Series>());
 
@@ -153,7 +153,7 @@ namespace NzbDrone.Core.Test.ImportListTests
         {
             _list1Series.First().ImdbId = "tt0496424";
 
-            Mocker.GetMock<ISearchForNewSeries>()
+            Mocker.GetMock<ISearchForNewPlatforms>()
                 .Setup(s => s.SearchForNewSeriesByImdbId(_list1Series.First().ImdbId, It.IsAny<Language>()))
                 .Returns(
                     Builder<Series>
@@ -567,7 +567,7 @@ namespace NzbDrone.Core.Test.ImportListTests
             WithTvdbId();
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<ISearchForNewSeries>()
+            Mocker.GetMock<ISearchForNewPlatforms>()
                   .Verify(v => v.SearchForNewSeries(It.IsAny<string>(), It.IsAny<Language>()), Times.Never());
         }
 
@@ -581,7 +581,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<ISearchForNewSeries>()
+            Mocker.GetMock<ISearchForNewPlatforms>()
                   .Verify(v => v.SearchForNewSeriesByImdbId(It.IsAny<string>(), It.IsAny<Language>()), Times.Once());
 
             Mocker.GetMock<IAddPlatformService>()

@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Test.PlatformTests
                   .Setup(s => s.GetSeries(_series.Id))
                   .Returns(_series);
 
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(It.IsAny<int>(), It.IsAny<Language>(), It.IsAny<string>()))
                   .Callback<int, Language, string>((p, _, _) => { throw new SeriesNotFoundException(p); });
 
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.PlatformTests
 
         private void GivenNewSeriesInfo(Series series)
         {
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(_series.TvdbId, Language.English, SeasonType.Official))
                   .Returns(new Tuple<Series, List<Episode>>(series, new List<Episode>()));
         }
@@ -252,7 +252,7 @@ namespace NzbDrone.Core.Test.PlatformTests
         [Test]
         public void should_rescan_series_if_updating_fails()
         {
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(_series.Id, Language.English, SeasonType.Official))
                   .Throws(new IOException());
 
@@ -267,7 +267,7 @@ namespace NzbDrone.Core.Test.PlatformTests
         [Test]
         public void should_not_rescan_series_if_updating_fails_with_series_not_found()
         {
-            Mocker.GetMock<IProvideSeriesInfo>()
+            Mocker.GetMock<IProvidePlatformInfo>()
                   .Setup(s => s.GetSeriesInfo(_series.Id, Language.English, SeasonType.Official))
                   .Throws(new SeriesNotFoundException(_series.Id));
 
