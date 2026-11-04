@@ -9,6 +9,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Refactored
+- **Complete Elimination of TV Terminology & Folder Retirement (`Tv/` -> `Platforms/`)**:
+  - Successfully eliminated all TV terminology (`Episode`, `Series`, `Season`, `Tv`) in file names and domain entities across the entire codebase (excluding historical database migration files preserving schema version integrity):
+    - Completely retired directory `src/NzbDrone.Core/Tv/`, migrating all entities into `src/NzbDrone.Core/Platforms/`.
+    - Domain Entities & Repositories:
+      - `Episode.cs` -> `Game.cs` (`Game`, `Episode : Game`)
+      - `Series.cs` -> `Platform.cs` (`Platform`, `Series : Platform`)
+      - `Season.cs` -> `Region.cs` (`Region`, `Season : Region`)
+      - `SeasonType.cs` -> `RegionType.cs` (`RegionType`, `SeasonType : RegionType`)
+      - `SeriesTypes.cs` -> `PlatformTypes.cs` (`PlatformTypes`, `SeriesTypes`)
+      - `EpisodeRepository.cs` -> `GameRepository.cs` (`IGameRepository`, `GameRepository`)
+      - `SeriesRepository.cs` -> `PlatformRepository.cs` (`IPlatformRepository`, `PlatformRepository`)
+      - `EpisodeService.cs` -> `GameService.cs` (`IGameService`, `GameService`)
+      - `SeriesService.cs` -> `PlatformService.cs` (`IPlatformService`, `PlatformService`)
+    - MediaFiles & Rom Management:
+      - `DeletedEpisodeFile.cs` -> `DeletedRomFile.cs` (`DeletedRomFile`)
+      - `EpisodeFileMoveResult.cs` -> `RomFileMoveResult.cs` (`RomFileMoveResult`)
+      - `RenamedEpisodeFile.cs` -> `RenamedRomFile.cs` (`RenamedRomFile`)
+      - `EpisodeFileMovingService.cs` -> `RomFileMovingService.cs` (`IMoveRomFiles`, `RomFileMovingService`)
+      - `UpdateEpisodeFileService.cs` -> `UpdateRomFileService.cs` (`IUpdateRomFileService`, `UpdateRomFileService`)
+      - `EpisodeFile.cs` -> `RomFile.cs` (`RomFile`, `EpisodeFile : RomFile`)
+    - Parser & Parsing Models:
+      - `ValidateParsedEpisodeInfo.cs` -> `ValidateParsedGameInfo.cs` (`ValidateParsedGameInfo`)
+      - `FindSeriesResult.cs` -> `FindPlatformResult.cs` (`FindPlatformResult`, `PlatformMatchType`)
+      - `SeriesTitleInfo.cs` -> `PlatformTitleInfo.cs` (`PlatformTitleInfo`)
+      - `LocalEpisode.cs` -> `LocalGame.cs` (`LocalGame`, `LocalEpisode : LocalGame`)
+      - `ParsedEpisodeInfo.cs` -> `ParsedGameInfo.cs` (`ParsedGameInfo`, `ParsedEpisodeInfo : ParsedGameInfo`)
+      - `RemoteEpisode.cs` -> `RemoteGame.cs` (`RemoteGame`, `RemoteEpisode : RemoteGame`)
+    - Indexer Search & Criteria Definitions:
+      - `SingleEpisodeSearchCriteria.cs` -> `SingleGameSearchCriteria.cs` (`SingleGameSearchCriteria`)
+      - `SeasonSearchCriteria.cs` -> `RegionSearchCriteria.cs` (`RegionSearchCriteria`)
+      - `SceneEpisodeMapping.cs` -> `SceneGameMapping.cs` (`SceneGameMapping`)
+      - `SceneSeasonMapping.cs` -> `SceneRegionMapping.cs` (`SceneRegionMapping`)
+      - Removed obsolete TV search criteria files (`AnimeEpisodeSearchCriteria.cs`, `AnimeSeasonSearchCriteria.cs`, `DailyEpisodeSearchCriteria.cs`, `DailySeasonSearchCriteria.cs`, `SpecialEpisodeSearchCriteria.cs`), consolidating criteria models under `SingleGameSearchCriteria` and `RegionSearchCriteria`.
 - **Domain Renaming & TV Vocabulary Purge (Commands, Services, Notifications & Frontend)**:
   - Renamed commands, services, and file names across backend and frontend to game and platform domain concepts:
     - `DeleteSeriesFilesCommand` -> `DeletePlatformFilesCommand`

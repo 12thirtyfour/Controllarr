@@ -6,9 +6,9 @@ using NzbDrone.Core.MediaFiles;
 
 namespace NzbDrone.Core.Tv
 {
-    public class Episode : ModelBase, IComparable
+    public class Game : ModelBase, IComparable
     {
-        public Episode()
+        public Game()
         {
             Images = new List<MediaCover.MediaCover>();
         }
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Tv
 
         public int CompareTo(object obj)
         {
-            var other = (Episode)obj;
+            var other = (Game)obj;
 
             if (SeasonNumber > other.SeasonNumber)
             {
@@ -79,5 +79,9 @@ namespace NzbDrone.Core.Tv
 
             return 0;
         }
+    }
+
+    public class Episode : Game
+    {
     }
 }

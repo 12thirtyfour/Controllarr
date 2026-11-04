@@ -11,7 +11,11 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IEpisodeRepository : IBasicRepository<Episode>
+    public interface IGameRepository : IBasicRepository<Episode>
+    {
+    }
+
+    public interface IEpisodeRepository : IGameRepository
     {
         Episode Find(int seriesId, int season, int episodeNumber);
         Episode Find(int seriesId, int absoluteEpisodeNumber);
@@ -35,11 +39,11 @@ namespace NzbDrone.Core.Tv
         void ClearFileId(Episode episode, bool unmonitor);
     }
 
-    public class EpisodeRepository : BasicRepository<Episode>, IEpisodeRepository
+    public class GameRepository : BasicRepository<Episode>, IGameRepository, IEpisodeRepository
     {
         private readonly Logger _logger;
 
-        public EpisodeRepository(IMainDatabase database, IEventAggregator eventAggregator, Logger logger)
+        public GameRepository(IMainDatabase database, IEventAggregator eventAggregator, Logger logger)
             : base(database, eventAggregator)
         {
             _logger = logger;
@@ -434,6 +438,14 @@ namespace NzbDrone.Core.Tv
             }
 
             throw new InvalidOperationException("Multiple episodes with the same air date found");
+        }
+    }
+
+    public class EpisodeRepository : GameRepository
+    {
+        public EpisodeRepository(IMainDatabase database, IEventAggregator eventAggregator, Logger logger)
+            : base(database, eventAggregator, logger)
+        {
         }
     }
 }

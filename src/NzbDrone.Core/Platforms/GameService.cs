@@ -12,7 +12,11 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IEpisodeService
+    public interface IGameService
+    {
+    }
+
+    public interface IEpisodeService : IGameService
     {
         Episode GetEpisode(int id);
         List<Episode> GetEpisodes(IEnumerable<int> ids);
@@ -42,7 +46,7 @@ namespace NzbDrone.Core.Tv
         List<int> SetEpisodeMonitoredBySeries(int seriesId, MonitorTypes monitor, int firstSeason, int lastSeason);
     }
 
-    public class EpisodeService : IEpisodeService,
+    public class GameService : IGameService, IEpisodeService,
                                   IHandle<RomFileDeletedEvent>,
                                   IHandle<RomFileAddedEvent>,
                                   IHandleAsync<PlatformDeletedEvent>,
@@ -53,7 +57,7 @@ namespace NzbDrone.Core.Tv
         private readonly ICached<HashSet<int>> _cache;
         private readonly Logger _logger;
 
-        public EpisodeService(IEpisodeRepository episodeRepository, IConfigService configService, ICacheManager cacheManager, Logger logger)
+        public GameService(IEpisodeRepository episodeRepository, IConfigService configService, ICacheManager cacheManager, Logger logger)
         {
             _episodeRepository = episodeRepository;
             _configService = configService;
@@ -330,6 +334,14 @@ namespace NzbDrone.Core.Tv
 
                 _cache.Remove(message.Series.Id.ToString());
             }
+        }
+    }
+
+    public class EpisodeService : GameService
+    {
+        public EpisodeService(IEpisodeRepository episodeRepository, IConfigService configService, ICacheManager cacheManager, Logger logger)
+            : base(episodeRepository, configService, cacheManager, logger)
+        {
         }
     }
 }

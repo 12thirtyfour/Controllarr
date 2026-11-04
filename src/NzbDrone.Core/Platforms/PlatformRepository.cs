@@ -6,7 +6,11 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface ISeriesRepository : IBasicRepository<Series>
+    public interface IPlatformRepository : IBasicRepository<Series>
+    {
+    }
+
+    public interface ISeriesRepository : IPlatformRepository
     {
         bool SeriesPathExists(string path);
         Series FindByTitle(string cleanTitle);
@@ -22,9 +26,9 @@ namespace NzbDrone.Core.Tv
         Dictionary<int, int> AllSeriesQualityProfiles();
     }
 
-    public class SeriesRepository : BasicRepository<Series>, ISeriesRepository
+    public class PlatformRepository : BasicRepository<Series>, IPlatformRepository, ISeriesRepository
     {
-        public SeriesRepository(IMainDatabase database, IEventAggregator eventAggregator)
+        public PlatformRepository(IMainDatabase database, IEventAggregator eventAggregator)
             : base(database, eventAggregator)
         {
         }
@@ -147,6 +151,14 @@ namespace NzbDrone.Core.Tv
             }
 
             throw new MultipleSeriesFoundException(series, "Expected one series, but found {0}. Matching series: {1}", series.Count, string.Join(", ", series));
+        }
+    }
+
+    public class SeriesRepository : PlatformRepository
+    {
+        public SeriesRepository(IMainDatabase database, IEventAggregator eventAggregator)
+            : base(database, eventAggregator)
+        {
         }
     }
 }

@@ -17,7 +17,11 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface ISeriesService
+    public interface IPlatformService
+    {
+    }
+
+    public interface ISeriesService : IPlatformService
     {
         Series GetSeries(int seriesId);
         List<Series> GetSeries(IEnumerable<int> seriesIds);
@@ -47,7 +51,7 @@ namespace NzbDrone.Core.Tv
         void UpdateTags(List<Series> series);
     }
 
-    public class SeriesService : ISeriesService, IHandle<ApplicationStartedEvent>
+    public class PlatformService : IPlatformService, ISeriesService, IHandle<ApplicationStartedEvent>
     {
         private readonly ISeriesRepository _seriesRepository;
         private readonly IEventAggregator _eventAggregator;
@@ -59,7 +63,7 @@ namespace NzbDrone.Core.Tv
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
 
-        public SeriesService(ISeriesRepository seriesRepository,
+        public PlatformService(ISeriesRepository seriesRepository,
                              IEventAggregator eventAggregator,
                              IEpisodeService episodeService,
                              IBuildSeriesPaths seriesPathBuilder,
@@ -662,6 +666,20 @@ namespace NzbDrone.Core.Tv
 
             _seriesRepository.SetFields(series, s => s.Tags);
             _eventAggregator.PublishEvent(new PlatformBulkEditedEvent(series));
+        }
+    }
+
+    public class SeriesService : PlatformService
+    {
+        public SeriesService(ISeriesRepository seriesRepository,
+                             IEventAggregator eventAggregator,
+                             IEpisodeService episodeService,
+                             IBuildSeriesPaths seriesPathBuilder,
+                             IAutoTaggingService autoTaggingService,
+                             IManageCommandQueue commandQueueManager,
+                             Logger logger)
+            : base(seriesRepository, eventAggregator, episodeService, seriesPathBuilder, autoTaggingService, commandQueueManager, logger)
+        {
         }
     }
 }

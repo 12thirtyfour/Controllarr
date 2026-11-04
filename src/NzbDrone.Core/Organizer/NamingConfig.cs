@@ -24,9 +24,29 @@ namespace NzbDrone.Core.Organizer
         public ColonReplacementFormat ColonReplacementFormat { get; set; }
         public string CustomColonReplacementFormat { get; set; }
         public MultiEpisodeStyle MultiEpisodeStyle { get; set; }
-        public string StandardGameFormat { get; set; }
-        public string DailyGameFormat { get; set; }
-        public string AnimeGameFormat { get; set; }
+
+        public string StandardGameFormat
+        {
+            get => StandardEpisodeFormat;
+            set => StandardEpisodeFormat = value;
+        }
+
+        public string DailyGameFormat
+        {
+            get => DailyEpisodeFormat;
+            set => DailyEpisodeFormat = value;
+        }
+
+        public string AnimeGameFormat
+        {
+            get => AnimeEpisodeFormat;
+            set => AnimeEpisodeFormat = value;
+        }
+
+        public string StandardEpisodeFormat { get; set; }
+        public string DailyEpisodeFormat { get; set; }
+        public string AnimeEpisodeFormat { get; set; }
+
         public string SeriesFolderFormat { get; set; }
         public string SeasonFolderFormat { get; set; }
         public string SpecialsFolderFormat { get; set; }

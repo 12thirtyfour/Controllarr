@@ -3,9 +3,9 @@ using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.Tv
 {
-    public class Season : IEmbeddedDocument
+    public class Region : IEmbeddedDocument
     {
-        public Season()
+        public Region()
         {
             Images = new List<MediaCover.MediaCover>();
         }
@@ -14,5 +14,9 @@ namespace NzbDrone.Core.Tv
         public bool Monitored { get; set; }
         public string Title { get; set; }
         public List<MediaCover.MediaCover> Images { get; set; }
+    }
+
+    public class Season : Region
+    {
     }
 }

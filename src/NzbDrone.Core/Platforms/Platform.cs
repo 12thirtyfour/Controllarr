@@ -7,9 +7,9 @@ using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.Tv
 {
-    public class Series : ModelBase
+    public class Platform : ModelBase
     {
-        public Series()
+        public Platform()
         {
             Images = new List<MediaCover.MediaCover>();
             Genres = new List<string>();
@@ -174,5 +174,9 @@ namespace NzbDrone.Core.Tv
             Language = otherSeries.Language;
             SeasonType = otherSeries.SeasonType;
         }
+    }
+
+    public class Series : Platform
+    {
     }
 }

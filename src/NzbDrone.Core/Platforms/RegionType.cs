@@ -4,7 +4,7 @@ using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.Tv
 {
-    public class SeasonType : IEmbeddedDocument
+    public class RegionType : IEmbeddedDocument
     {
         public string Name { get; set; }
         public string Type { get; set; }
@@ -13,5 +13,9 @@ namespace NzbDrone.Core.Tv
 
         [JsonIgnore]
         public static string Official => "official";
+    }
+
+    public class SeasonType : RegionType
+    {
     }
 }
