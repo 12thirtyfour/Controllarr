@@ -11,7 +11,7 @@ using NzbDrone.Core.Tv;
 namespace NzbDrone.Core.Test.PlatformTests.GameMonitoredServiceTests
 {
     [TestFixture]
-    public class LegacySetGameMonitoredFixture : CoreTest<EpisodeMonitoredService>
+    public class LegacySetGameMonitoredFixture : CoreTest<GameMonitoredService>
     {
         private Series _series;
         private List<Episode> _episodes;

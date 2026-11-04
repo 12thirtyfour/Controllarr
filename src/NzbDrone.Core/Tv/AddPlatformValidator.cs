@@ -4,14 +4,14 @@ using NzbDrone.Core.Validation.Paths;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IAddSeriesValidator
+    public interface IAddPlatformValidator
     {
         ValidationResult Validate(Series instance);
     }
 
-    public class AddSeriesValidator : AbstractValidator<Series>, IAddSeriesValidator
+    public class AddPlatformValidator : AbstractValidator<Series>, IAddPlatformValidator
     {
-        public AddSeriesValidator(RootFolderValidator rootFolderValidator,
+        public AddPlatformValidator(RootFolderValidator rootFolderValidator,
                                   SeriesPathValidator seriesPathValidator,
                                   SeriesAncestorValidator seriesAncestorValidator,
                                   SeriesTitleSlugValidator seriesTitleSlugValidator)

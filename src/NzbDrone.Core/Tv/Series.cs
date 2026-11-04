@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Tv
             Images = new List<MediaCover.MediaCover>();
             Genres = new List<string>();
             SeasonTypes = new List<SeasonType>();
-            Translations = new List<SeriesTranslation>();
+            Translations = new List<PlatformTranslation>();
             Seasons = new List<Season>();
             Tags = new HashSet<int>();
             OriginalLanguage = Language.English;
@@ -135,10 +135,10 @@ namespace NzbDrone.Core.Tv
         public string CleanOriginalTitle { get; set; }
         public string SeasonType { get; set; }
         public List<SeasonType> SeasonTypes { get; set; }
-        public List<SeriesTranslation> Translations { get; set; }
+        public List<PlatformTranslation> Translations { get; set; }
         public List<Season> Seasons { get; set; }
         public HashSet<int> Tags { get; set; }
-        public AddSeriesOptions AddOptions { get; set; }
+        public AddPlatformOptions AddOptions { get; set; }
 
         public override string ToString()
         {

@@ -6,38 +6,38 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface ISeriesTranslationService
+    public interface IPlatformTranslationService
     {
-        List<SeriesTranslation> GetTranslations();
-        List<SeriesTranslation> GetTranslations(int seriesId);
-        List<SeriesTranslation> UpdateTranslations(int seriesId, List<SeriesTranslation> translations);
+        List<PlatformTranslation> GetTranslations();
+        List<PlatformTranslation> GetTranslations(int seriesId);
+        List<PlatformTranslation> UpdateTranslations(int seriesId, List<PlatformTranslation> translations);
     }
 
-    public class SeriesTranslationService : ISeriesTranslationService, IHandleAsync<SeriesDeletedEvent>
+    public class PlatformTranslationService : IPlatformTranslationService, IHandleAsync<SeriesDeletedEvent>
     {
-        private readonly ISeriesTranslationRepository _seriesTranslationRepository;
+        private readonly IPlatformTranslationRepository _seriesTranslationRepository;
         private readonly Logger _logger;
 
-        public SeriesTranslationService(ISeriesTranslationRepository seriesTranslationRepository, Logger logger)
+        public PlatformTranslationService(IPlatformTranslationRepository seriesTranslationRepository, Logger logger)
         {
             _seriesTranslationRepository = seriesTranslationRepository;
             _logger = logger;
         }
 
-        public List<SeriesTranslation> GetTranslations()
+        public List<PlatformTranslation> GetTranslations()
         {
             return _seriesTranslationRepository.All().ToList();
         }
 
-        public List<SeriesTranslation> GetTranslations(int seriesId)
+        public List<PlatformTranslation> GetTranslations(int seriesId)
         {
             return _seriesTranslationRepository.GetTranslations(seriesId);
         }
 
-        public List<SeriesTranslation> UpdateTranslations(int seriesId, List<SeriesTranslation> translations)
+        public List<PlatformTranslation> UpdateTranslations(int seriesId, List<PlatformTranslation> translations)
         {
-            var toAdd = new List<SeriesTranslation>();
-            var toUpdate = new List<SeriesTranslation>();
+            var toAdd = new List<PlatformTranslation>();
+            var toUpdate = new List<PlatformTranslation>();
             var existing = GetTranslations(seriesId);
 
             translations.ForEach(translation =>

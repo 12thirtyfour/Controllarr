@@ -10,9 +10,9 @@ namespace Sonarr.Api.V3.Platforms
     [Route("api/v3/series/import")]
     public class PlatformImportController : Controller
     {
-        private readonly IAddSeriesService _addSeriesService;
+        private readonly IAddPlatformService _addSeriesService;
 
-        public PlatformImportController(IAddSeriesService addSeriesService)
+        public PlatformImportController(IAddPlatformService addSeriesService)
         {
             _addSeriesService = addSeriesService;
         }

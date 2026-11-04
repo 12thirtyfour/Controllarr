@@ -15,10 +15,10 @@ namespace Sonarr.Api.V5.Platforms;
 public class PlatformFolderController : Controller
 {
     private readonly ISeriesService _seriesService;
-    private readonly ISeriesTranslationService _seriesTranslationService;
+    private readonly IPlatformTranslationService _seriesTranslationService;
     private readonly IBuildFileNames _fileNameBuilder;
 
-    public PlatformFolderController(ISeriesService seriesService, ISeriesTranslationService seriesTranslationService, IBuildFileNames fileNameBuilder)
+    public PlatformFolderController(ISeriesService seriesService, IPlatformTranslationService seriesTranslationService, IBuildFileNames fileNameBuilder)
     {
         _seriesService = seriesService;
         _seriesTranslationService = seriesTranslationService;

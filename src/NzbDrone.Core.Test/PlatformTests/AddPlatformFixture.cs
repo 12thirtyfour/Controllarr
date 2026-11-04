@@ -18,7 +18,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.PlatformTests
 {
     [TestFixture]
-    public class AddPlatformFixture : CoreTest<AddSeriesService>
+    public class AddPlatformFixture : CoreTest<AddPlatformService>
     {
         private Series _fakeSeries;
 
@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Test.PlatformTests
                   .Setup(s => s.GetSeriesFolder(It.IsAny<Series>(), null))
                   .Returns<Series, NamingConfig>((c, n) => c.Title);
 
-            Mocker.GetMock<IAddSeriesValidator>()
+            Mocker.GetMock<IAddPlatformValidator>()
                   .Setup(s => s.Validate(It.IsAny<Series>()))
                   .Returns(new ValidationResult());
         }
@@ -97,7 +97,7 @@ namespace NzbDrone.Core.Test.PlatformTests
 
             GivenValidSeries(newSeries.TvdbId);
 
-            Mocker.GetMock<IAddSeriesValidator>()
+            Mocker.GetMock<IAddPlatformValidator>()
                   .Setup(s => s.Validate(It.IsAny<Series>()))
                   .Returns(new ValidationResult(new List<ValidationFailure>
                                                 {
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Test.PlatformTests
                   .Setup(s => s.GetSeriesInfo(newSeries.TvdbId, Language.English, It.IsAny<string>()))
                   .Throws(new SeriesNotFoundException(newSeries.TvdbId));
 
-            Mocker.GetMock<IAddSeriesValidator>()
+            Mocker.GetMock<IAddPlatformValidator>()
                   .Setup(s => s.Validate(It.IsAny<Series>()))
                   .Returns(new ValidationResult(new List<ValidationFailure>
                                                 {

@@ -8,18 +8,18 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IRefreshEpisodeService
+    public interface IRefreshGameService
     {
         void RefreshEpisodeInfo(Series series, IEnumerable<Episode> remoteEpisodes);
     }
 
-    public class RefreshEpisodeService : IRefreshEpisodeService
+    public class RefreshGameService : IRefreshGameService
     {
         private readonly IEpisodeService _episodeService;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
-        public RefreshEpisodeService(IEpisodeService episodeService, IEventAggregator eventAggregator, Logger logger)
+        public RefreshGameService(IEpisodeService episodeService, IEventAggregator eventAggregator, Logger logger)
         {
             _episodeService = episodeService;
             _eventAggregator = eventAggregator;

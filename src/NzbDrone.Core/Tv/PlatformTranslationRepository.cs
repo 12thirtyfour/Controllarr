@@ -4,20 +4,20 @@ using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface ISeriesTranslationRepository : IBasicRepository<SeriesTranslation>
+    public interface IPlatformTranslationRepository : IBasicRepository<PlatformTranslation>
     {
-        List<SeriesTranslation> GetTranslations(int seriesId);
+        List<PlatformTranslation> GetTranslations(int seriesId);
         void DeleteTranslations(List<int> seriesIds);
     }
 
-    public class SeriesTranslationRepository : BasicRepository<SeriesTranslation>, ISeriesTranslationRepository
+    public class PlatformTranslationRepository : BasicRepository<PlatformTranslation>, IPlatformTranslationRepository
     {
-        public SeriesTranslationRepository(IMainDatabase database, IEventAggregator eventAggregator)
+        public PlatformTranslationRepository(IMainDatabase database, IEventAggregator eventAggregator)
             : base(database, eventAggregator)
         {
         }
 
-        public List<SeriesTranslation> GetTranslations(int seriesId)
+        public List<PlatformTranslation> GetTranslations(int seriesId)
         {
             return Query(c => c.SeriesId == seriesId);
         }

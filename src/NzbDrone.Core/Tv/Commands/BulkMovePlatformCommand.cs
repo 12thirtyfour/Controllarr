@@ -4,21 +4,21 @@ using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Tv.Commands
 {
-    public class BulkMoveSeriesCommand : Command
+    public class BulkMovePlatformCommand : Command
     {
-        public List<BulkMoveSeries> Series { get; set; }
+        public List<BulkMovePlatform> Series { get; set; }
         public string DestinationRootFolder { get; set; }
 
         public override bool SendUpdatesToClient => true;
         public override bool RequiresDiskAccess => true;
     }
 
-    public class BulkMoveSeries : IEquatable<BulkMoveSeries>
+    public class BulkMovePlatform : IEquatable<BulkMovePlatform>
     {
         public int SeriesId { get; set; }
         public string SourcePath { get; set; }
 
-        public bool Equals(BulkMoveSeries other)
+        public bool Equals(BulkMovePlatform other)
         {
             if (other == null)
             {
@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Tv.Commands
                 return false;
             }
 
-            return SeriesId.Equals(((BulkMoveSeries)obj).SeriesId);
+            return SeriesId.Equals(((BulkMovePlatform)obj).SeriesId);
         }
 
         public override int GetHashCode()

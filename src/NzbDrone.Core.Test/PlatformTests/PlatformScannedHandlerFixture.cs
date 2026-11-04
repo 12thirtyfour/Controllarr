@@ -14,13 +14,13 @@ using NzbDrone.Core.Tv.Events;
 namespace NzbDrone.Core.Test.PlatformTests
 {
     [TestFixture]
-    public class PlatformScannedHandlerFixture : CoreTest<SeriesScannedHandler>
+    public class PlatformScannedHandlerFixture : CoreTest<PlatformScannedHandler>
     {
         [Test]
         public void should_queue_search_before_publishing_series_add_completed()
         {
             var series = Builder<Series>.CreateNew()
-                                        .With(s => s.AddOptions = new AddSeriesOptions { SearchForMissingEpisodes = true })
+                                        .With(s => s.AddOptions = new AddPlatformOptions { SearchForMissingEpisodes = true })
                                         .Build();
 
             var calls = new List<string>();

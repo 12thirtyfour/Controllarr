@@ -14,11 +14,11 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.PlatformTests
 {
     [TestFixture]
-    public class MovePlatformServiceFixture : CoreTest<MoveSeriesService>
+    public class MovePlatformServiceFixture : CoreTest<MovePlatformService>
     {
         private Series _series;
         private MovePlatformCommand _command;
-        private BulkMoveSeriesCommand _bulkCommand;
+        private BulkMovePlatformCommand _bulkCommand;
 
         [SetUp]
         public void Setup()
@@ -34,11 +34,11 @@ namespace NzbDrone.Core.Test.PlatformTests
                            DestinationPath = @"C:\Test\TV2\Series".AsOsAgnostic()
                        };
 
-            _bulkCommand = new BulkMoveSeriesCommand
+            _bulkCommand = new BulkMovePlatformCommand
                        {
-                           Series = new List<BulkMoveSeries>
+                           Series = new List<BulkMovePlatform>
                                     {
-                                        new BulkMoveSeries
+                                        new BulkMovePlatform
                                         {
                                             SeriesId = 1,
                                             SourcePath = @"C:\Test\TV\Series".AsOsAgnostic()

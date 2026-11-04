@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Datastore
         private static readonly Dictionary<string, string> LegacyTableAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "Series", "Platforms" },
-            { "SeriesTranslations", "PlatformTranslations" },
+            { "PlatformTranslations", "PlatformTranslations" },
             { "Episodes", "Games" },
             { "EpisodeFiles", "RomFiles" },
             { "SceneMappings", "PlatformMappings" }

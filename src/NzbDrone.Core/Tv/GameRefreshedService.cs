@@ -11,19 +11,19 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IEpisodeRefreshedService
+    public interface IGameRefreshedService
     {
         void Search(Series series);
     }
 
-    public class EpisodeRefreshedService : IEpisodeRefreshedService, IHandle<EpisodeInfoRefreshedEvent>
+    public class GameRefreshedService : IGameRefreshedService, IHandle<EpisodeInfoRefreshedEvent>
     {
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IEpisodeService _episodeService;
         private readonly Logger _logger;
         private readonly ICached<List<int>> _searchCache;
 
-        public EpisodeRefreshedService(ICacheManager cacheManager,
+        public GameRefreshedService(ICacheManager cacheManager,
                                    IManageCommandQueue commandQueueManager,
                                    IEpisodeService episodeService,
                                    Logger logger)

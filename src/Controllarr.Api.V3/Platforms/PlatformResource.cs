@@ -38,7 +38,7 @@ namespace Sonarr.Api.V3.Platforms
         public string SeasonType { get; set; }
         public List<SeasonResource> Seasons { get; set; }
         public List<SeasonTypeResource> SeasonTypes { get; set; }
-        public List<SeriesTranslationResource> Translations { get; set; }
+        public List<PlatformTranslationResource> Translations { get; set; }
         public int Year { get; set; }
 
         // View & Edit
@@ -79,7 +79,7 @@ namespace Sonarr.Api.V3.Platforms
         public List<string> Genres { get; set; }
         public HashSet<int> Tags { get; set; }
         public DateTime Added { get; set; }
-        public AddSeriesOptions AddOptions { get; set; }
+        public AddPlatformOptions AddOptions { get; set; }
         public Ratings Ratings { get; set; }
 
         public SeriesStatisticsResource Statistics { get; set; }
@@ -159,7 +159,7 @@ namespace Sonarr.Api.V3.Platforms
                        CleanTitle = model.CleanTitle,
                        OriginalTitle = model.OriginalTitle,
                        CleanOriginalTitle = model.CleanOriginalTitle,
-                       Translations = model.Translations?.ToResource() ?? new List<SeriesTranslationResource>(),
+                       Translations = model.Translations?.ToResource() ?? new List<PlatformTranslationResource>(),
                        ImdbId = model.ImdbId,
                        TitleSlug = model.TitleSlug,
 
@@ -208,7 +208,7 @@ namespace Sonarr.Api.V3.Platforms
                        SeasonType = resource.SeasonType ?? SeasonType.Official,
                        Seasons = resource.Seasons?.ToModel() ?? new List<Season>(),
                        SeasonTypes = resource.SeasonTypes?.ToModel() ?? new List<SeasonType>(),
-                       Translations = resource.Translations?.ToModel() ?? new List<SeriesTranslation>(),
+                       Translations = resource.Translations?.ToModel() ?? new List<PlatformTranslation>(),
                        Year = resource.Year,
                        OriginalLanguage = resource.OriginalLanguage,
 

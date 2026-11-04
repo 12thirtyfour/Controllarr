@@ -7,12 +7,12 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class SeriesAddedHandler : IHandle<SeriesAddedEvent>,
+    public class PlatformAddedHandler : IHandle<SeriesAddedEvent>,
                                       IHandle<SeriesImportedEvent>
     {
         private readonly IManageCommandQueue _commandQueueManager;
 
-        public SeriesAddedHandler(IManageCommandQueue commandQueueManager)
+        public PlatformAddedHandler(IManageCommandQueue commandQueueManager)
         {
             _commandQueueManager = commandQueueManager;
         }

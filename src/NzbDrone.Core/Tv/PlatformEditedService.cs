@@ -5,11 +5,11 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class SeriesEditedService : IHandle<SeriesEditedEvent>
+    public class PlatformEditedService : IHandle<SeriesEditedEvent>
     {
         private readonly IManageCommandQueue _commandQueueManager;
 
-        public SeriesEditedService(IManageCommandQueue commandQueueManager)
+        public PlatformEditedService(IManageCommandQueue commandQueueManager)
         {
             _commandQueueManager = commandQueueManager;
         }

@@ -7,17 +7,17 @@ using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IEpisodeCutoffService
+    public interface IGameCutoffService
     {
         PagingSpec<Episode> EpisodesWhereCutoffUnmet(PagingSpec<Episode> pagingSpec, HashSet<int> seriesTags = null, List<int> quality = null);
     }
 
-    public class EpisodeCutoffService : IEpisodeCutoffService
+    public class GameCutoffService : IGameCutoffService
     {
         private readonly IEpisodeRepository _episodeRepository;
         private readonly IQualityProfileService _qualityProfileService;
 
-        public EpisodeCutoffService(IEpisodeRepository episodeRepository, IQualityProfileService qualityProfileService)
+        public GameCutoffService(IEpisodeRepository episodeRepository, IQualityProfileService qualityProfileService)
         {
             _episodeRepository = episodeRepository;
             _qualityProfileService = qualityProfileService;

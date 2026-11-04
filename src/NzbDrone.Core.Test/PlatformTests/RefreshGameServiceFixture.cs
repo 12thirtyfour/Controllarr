@@ -14,7 +14,7 @@ using NzbDrone.Test.Common;
 namespace NzbDrone.Core.Test.PlatformTests
 {
     [TestFixture]
-    public class RefreshGameServiceFixture : CoreTest<RefreshEpisodeService>
+    public class RefreshGameServiceFixture : CoreTest<RefreshGameService>
     {
         private List<Episode> _insertedEpisodes;
         private List<Episode> _updatedEpisodes;

@@ -233,7 +233,7 @@ namespace NzbDrone.Core.Tv
                                  .ToList();
         }
 
-        // updateEpisodesToMatchSeason is an override for EpisodeMonitoredService to use so a change via Season pass doesn't get nuked by the seasons loop.
+        // updateEpisodesToMatchSeason is an override for GameMonitoredService to use so a change via Season pass doesn't get nuked by the seasons loop.
         // TODO: Remove when seasons are split from series (or we come up with a better way to address this)
         public Series UpdateSeries(Series series, bool updateEpisodesToMatchSeason = true, bool publishUpdatedEvent = true)
         {
@@ -444,7 +444,7 @@ namespace NzbDrone.Core.Tv
             _logger.Debug("Updating {0} platforms", series.Count);
 
             var pendingMoveSeriesIds = GetSeriesIdsWithPendingMove();
-            var moveQueue = new List<BulkMoveSeries>();
+            var moveQueue = new List<BulkMovePlatform>();
             string destinationRootFolder = null;
 
             foreach (var s in series)
@@ -464,7 +464,7 @@ namespace NzbDrone.Core.Tv
                         if (moveFiles)
                         {
                             s.PendingPath = updatedPath;
-                            moveQueue.Add(new BulkMoveSeries { SeriesId = s.Id, SourcePath = s.Path });
+                            moveQueue.Add(new BulkMovePlatform { SeriesId = s.Id, SourcePath = s.Path });
                             destinationRootFolder = s.RootFolderPath;
 
                             _logger.Trace("Path for '{0}' will be updated from {1} to {2} after files are moved successfully", s.Title, s.Path, updatedPath);
@@ -492,7 +492,7 @@ namespace NzbDrone.Core.Tv
 
             if (moveQueue.Any())
             {
-                _commandQueueManager.Push(new BulkMoveSeriesCommand
+                _commandQueueManager.Push(new BulkMovePlatformCommand
                 {
                     DestinationRootFolder = destinationRootFolder,
                     Series = moveQueue
@@ -559,7 +559,7 @@ namespace NzbDrone.Core.Tv
                 {
                     seriesIds.Add(moveCommand.SeriesId);
                 }
-                else if (command.Body is BulkMoveSeriesCommand bulkCommand)
+                else if (command.Body is BulkMovePlatformCommand bulkCommand)
                 {
                     foreach (var m in bulkCommand.Series)
                     {

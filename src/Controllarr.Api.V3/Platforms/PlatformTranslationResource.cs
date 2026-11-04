@@ -12,20 +12,16 @@ namespace Sonarr.Api.V3.Platforms
         public string Overview { get; set; }
     }
 
-    public class SeriesTranslationResource : PlatformTranslationResource
-    {
-    }
-
     public static class PlatformTranslationResourceMapper
     {
-        public static SeriesTranslationResource ToResource(this SeriesTranslation model)
+        public static PlatformTranslationResource ToResource(this PlatformTranslation model)
         {
             if (model == null)
             {
                 return null;
             }
 
-            return new SeriesTranslationResource
+            return new PlatformTranslationResource
             {
                 Language = model.Language,
                 Title = model.Title,
@@ -33,14 +29,14 @@ namespace Sonarr.Api.V3.Platforms
             };
         }
 
-        public static SeriesTranslation ToModel(this SeriesTranslationResource resource)
+        public static PlatformTranslation ToModel(this PlatformTranslationResource resource)
         {
             if (resource == null)
             {
                 return null;
             }
 
-            return new SeriesTranslation
+            return new PlatformTranslation
             {
                 Language = resource.Language,
                 Title = resource.Title,
@@ -48,12 +44,12 @@ namespace Sonarr.Api.V3.Platforms
             };
         }
 
-        public static List<SeriesTranslationResource> ToResource(this IEnumerable<SeriesTranslation> models)
+        public static List<PlatformTranslationResource> ToResource(this IEnumerable<PlatformTranslation> models)
         {
             return models.Select(ToResource).ToList();
         }
 
-        public static List<SeriesTranslation> ToModel(this IEnumerable<SeriesTranslationResource> resources)
+        public static List<PlatformTranslation> ToModel(this IEnumerable<PlatformTranslationResource> resources)
         {
             return resources.Select(ToModel).ToList();
         }

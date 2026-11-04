@@ -17,13 +17,13 @@ using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IAddSeriesService
+    public interface IAddPlatformService
     {
         Series AddSeries(Series newSeries);
         List<Series> AddSeries(List<Series> newSeries, bool ignoreErrors = false);
     }
 
-    public class AddSeriesService : IAddSeriesService
+    public class AddPlatformService : IAddPlatformService
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
@@ -31,18 +31,18 @@ namespace NzbDrone.Core.Tv
         private readonly IGameMetadataProxy _gameMetadataProxy;
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IBuildFileNames _fileNameBuilder;
-        private readonly IAddSeriesValidator _addSeriesValidator;
+        private readonly IAddPlatformValidator _addSeriesValidator;
         private readonly IDiskProvider _diskProvider;
         private readonly IRootFolderService _rootFolderService;
         private readonly Logger _logger;
 
-        public AddSeriesService(ISeriesService seriesService,
+        public AddPlatformService(ISeriesService seriesService,
                                 IEpisodeService episodeService,
                                 IProvideSeriesInfo seriesInfo,
                                 IGameMetadataProxy gameMetadataProxy,
                                 IGameCatalogService gameCatalogService,
                                 IBuildFileNames fileNameBuilder,
-                                IAddSeriesValidator addSeriesValidator,
+                                IAddPlatformValidator addSeriesValidator,
                                 IDiskProvider diskProvider,
                                 IRootFolderService rootFolderService,
                                 Logger logger)

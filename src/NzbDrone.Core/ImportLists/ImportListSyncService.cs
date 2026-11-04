@@ -25,7 +25,7 @@ namespace NzbDrone.Core.ImportLists
         private readonly IFetchAndParseImportList _listFetcherAndParser;
         private readonly ISearchForNewSeries _seriesSearchService;
         private readonly ISeriesService _seriesService;
-        private readonly IAddSeriesService _addSeriesService;
+        private readonly IAddPlatformService _addSeriesService;
         private readonly IConfigService _configService;
         private readonly ITaskManager _taskManager;
         private readonly Logger _logger;
@@ -37,7 +37,7 @@ namespace NzbDrone.Core.ImportLists
             IFetchAndParseImportList listFetcherAndParser,
             ISearchForNewSeries seriesSearchService,
             ISeriesService seriesService,
-            IAddSeriesService addSeriesService,
+            IAddPlatformService addSeriesService,
             IConfigService configService,
             ITaskManager taskManager,
             Logger logger)
@@ -230,7 +230,7 @@ namespace NzbDrone.Core.ImportLists
                         SeasonFolder = importList.SeasonFolder,
                         Seasons = item.Seasons,
                         Tags = importList.Tags,
-                        AddOptions = new AddSeriesOptions
+                        AddOptions = new AddPlatformOptions
                         {
                             SearchForMissingEpisodes = importList.SearchForMissingEpisodes,
 

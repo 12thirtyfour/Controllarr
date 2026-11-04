@@ -10,15 +10,11 @@ namespace Sonarr.Api.V5.Platforms
         public string? Overview { get; set; }
     }
 
-    public class SeriesTranslationResource : PlatformTranslationResource
-    {
-    }
-
     public static class PlatformTranslationResourceMapper
     {
-        public static SeriesTranslationResource ToResource(this SeriesTranslation model)
+        public static PlatformTranslationResource ToResource(this PlatformTranslation model)
         {
-            return new SeriesTranslationResource
+            return new PlatformTranslationResource
             {
                 Language = model.Language,
                 Title = model.Title,
@@ -26,7 +22,7 @@ namespace Sonarr.Api.V5.Platforms
             };
         }
 
-        public static List<SeriesTranslationResource> ToResource(this IEnumerable<SeriesTranslation> models)
+        public static List<PlatformTranslationResource> ToResource(this IEnumerable<PlatformTranslation> models)
         {
             return models.Select(ToResource).ToList();
         }

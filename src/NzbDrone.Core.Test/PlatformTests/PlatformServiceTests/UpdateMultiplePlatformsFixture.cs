@@ -51,9 +51,9 @@ namespace NzbDrone.Core.Test.PlatformTests.PlatformServiceTests
                     new CommandModel
                     {
                         Status = CommandStatus.Queued,
-                        Body = new BulkMoveSeriesCommand
+                        Body = new BulkMovePlatformCommand
                         {
-                            Series = seriesIds.Select(id => new BulkMoveSeries { SeriesId = id }).ToList()
+                            Series = seriesIds.Select(id => new BulkMovePlatform { SeriesId = id }).ToList()
                         }
                     }
                 });
@@ -198,7 +198,7 @@ namespace NzbDrone.Core.Test.PlatformTests.PlatformServiceTests
             Subject.UpdateSeries(_series, true);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.Is<BulkMoveSeriesCommand>(c => c.Series.Select(m => m.SeriesId).ToList().SequenceEqual(_series.Select(s => s.Id).ToList())), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
+                .Verify(v => v.Push(It.Is<BulkMovePlatformCommand>(c => c.Series.Select(m => m.SeriesId).ToList().SequenceEqual(_series.Select(s => s.Id).ToList())), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
         }
 
         [Test]
@@ -218,7 +218,7 @@ namespace NzbDrone.Core.Test.PlatformTests.PlatformServiceTests
             ExceptionVerification.ExpectedWarns(_series.Count);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.IsAny<BulkMoveSeriesCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+                .Verify(v => v.Push(It.IsAny<BulkMovePlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
         }
 
         [Test]
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Test.PlatformTests.PlatformServiceTests
             Subject.UpdateSeries(_series, false);
 
             Mocker.GetMock<IManageCommandQueue>()
-                .Verify(v => v.Push(It.IsAny<BulkMoveSeriesCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+                .Verify(v => v.Push(It.IsAny<BulkMovePlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
         }
 
         [Test]

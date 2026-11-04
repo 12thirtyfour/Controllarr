@@ -11,9 +11,9 @@ namespace Sonarr.Api.V3.PlatformPass
     public class PlatformPassController : Controller
     {
         private readonly ISeriesService _seriesService;
-        private readonly IEpisodeMonitoredService _episodeMonitoredService;
+        private readonly IGameMonitoredService _episodeMonitoredService;
 
-        public PlatformPassController(ISeriesService seriesService, IEpisodeMonitoredService episodeMonitoredService)
+        public PlatformPassController(ISeriesService seriesService, IGameMonitoredService episodeMonitoredService)
         {
             _seriesService = seriesService;
             _episodeMonitoredService = episodeMonitoredService;

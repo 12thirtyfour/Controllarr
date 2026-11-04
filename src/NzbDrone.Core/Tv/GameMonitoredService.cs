@@ -8,19 +8,19 @@ using NzbDrone.Core.MetadataSource.Game;
 
 namespace NzbDrone.Core.Tv
 {
-    public interface IEpisodeMonitoredService
+    public interface IGameMonitoredService
     {
         void SetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions);
     }
 
-    public class EpisodeMonitoredService : IEpisodeMonitoredService
+    public class GameMonitoredService : IGameMonitoredService
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
         private readonly IGameCatalogService _gameCatalogService;
         private readonly Logger _logger;
 
-        public EpisodeMonitoredService(
+        public GameMonitoredService(
             ISeriesService seriesService,
             IEpisodeService episodeService,
             IGameCatalogService gameCatalogService,

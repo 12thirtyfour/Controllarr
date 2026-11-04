@@ -28,7 +28,7 @@ public class PlatformResource : RestResource
     public string? SeasonType { get; set; }
     public List<SeasonResource> Seasons { get; set; } = [];
     public List<SeasonTypeResource> SeasonTypes { get; set; } = [];
-    public List<SeriesTranslationResource> Translations { get; set; } = [];
+    public List<PlatformTranslationResource> Translations { get; set; } = [];
     public int Year { get; set; }
     public string? Path { get; set; }
     public string? PendingPath { get; set; }
@@ -86,7 +86,7 @@ public class AddPlatformOptionsResource : MonitoringOptions
 
 public static class AddPlatformOptionsResourceMapper
 {
-    public static AddPlatformOptionsResource? ToResource(this AddSeriesOptions? model)
+    public static AddPlatformOptionsResource? ToResource(this AddPlatformOptions? model)
     {
         if (model == null)
         {
@@ -101,14 +101,14 @@ public static class AddPlatformOptionsResourceMapper
         };
     }
 
-    public static AddSeriesOptions? ToModel(this AddPlatformOptionsResource? resource)
+    public static AddPlatformOptions? ToModel(this AddPlatformOptionsResource? resource)
     {
         if (resource == null)
         {
             return null;
         }
 
-        return new AddSeriesOptions
+        return new AddPlatformOptions
         {
             Monitor = resource.Monitor,
             SearchForMissingEpisodes = resource.SearchForMissingGames,

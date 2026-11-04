@@ -12,7 +12,7 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class MoveSeriesService : IExecute<MovePlatformCommand>, IExecute<BulkMoveSeriesCommand>
+    public class MovePlatformService : IExecute<MovePlatformCommand>, IExecute<BulkMovePlatformCommand>
     {
         private readonly ISeriesService _seriesService;
         private readonly IBuildFileNames _filenameBuilder;
@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Tv
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
-        public MoveSeriesService(ISeriesService seriesService,
+        public MovePlatformService(ISeriesService seriesService,
                                  IBuildFileNames filenameBuilder,
                                  IDiskProvider diskProvider,
                                  IDiskTransferService diskTransferService,
@@ -118,7 +118,7 @@ namespace NzbDrone.Core.Tv
             MoveSingleSeries(series, message.SourcePath, message.DestinationPath);
         }
 
-        public void Execute(BulkMoveSeriesCommand message)
+        public void Execute(BulkMovePlatformCommand message)
         {
             var seriesToMove = message.Series;
             var destinationRootFolder = message.DestinationRootFolder;

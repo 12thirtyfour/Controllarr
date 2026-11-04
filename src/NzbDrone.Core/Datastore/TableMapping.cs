@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(s => s.EncryptionPreference)
                   .HasOne(s => s.QualityProfile, s => s.QualityProfileId);
 
-            Mapper.Entity<SeriesTranslation>("PlatformTranslations").RegisterModel();
+            Mapper.Entity<PlatformTranslation>("PlatformTranslations").RegisterModel();
 
             Mapper.Entity<EpisodeFile>("RomFiles").RegisterModel()
                   .HasOne(f => f.Series, f => f.SeriesId)

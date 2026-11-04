@@ -498,7 +498,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(s => s.Count == 1), true), Times.Once());
         }
 
@@ -517,7 +517,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(s => s.Count == 4), true), Times.Once());
         }
 
@@ -536,7 +536,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(s => s.Count == 1), true), Times.Once());
         }
 
@@ -555,7 +555,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(s => s.Count == 3), true), Times.Once());
         }
 
@@ -584,7 +584,7 @@ namespace NzbDrone.Core.Test.ImportListTests
             Mocker.GetMock<ISearchForNewSeries>()
                   .Verify(v => v.SearchForNewSeriesByImdbId(It.IsAny<string>(), It.IsAny<Language>()), Times.Once());
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                 .Verify(v => v.AddSeries(It.Is<List<Series>>(t => t.Count == 1), It.IsAny<bool>()));
         }
 
@@ -598,7 +598,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(t => t.Count == 0), It.IsAny<bool>()));
         }
 
@@ -613,7 +613,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(t => t.Count == 1 && t.First().Monitored == expectedSeriesMonitored), It.IsAny<bool>()));
         }
 
@@ -627,7 +627,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                   .Verify(v => v.AddSeries(It.Is<List<Series>>(t => t.Count == 0), It.IsAny<bool>()));
         }
 
@@ -666,7 +666,7 @@ namespace NzbDrone.Core.Test.ImportListTests
 
             Subject.Execute(_commandAll);
 
-            Mocker.GetMock<IAddSeriesService>()
+            Mocker.GetMock<IAddPlatformService>()
                 .Verify(v => v.AddSeries(It.Is<List<Series>>(t => t.Count == 0), It.IsAny<bool>()));
         }
 

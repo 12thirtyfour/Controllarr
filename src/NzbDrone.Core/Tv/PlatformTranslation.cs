@@ -3,7 +3,7 @@ using NzbDrone.Core.Languages;
 
 namespace NzbDrone.Core.Tv
 {
-    public class SeriesTranslation : ModelBase
+    public class PlatformTranslation : ModelBase
     {
         public int SeriesId { get; set; }
         public Language Language { get; set; }

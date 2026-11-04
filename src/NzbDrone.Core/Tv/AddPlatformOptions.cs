@@ -1,6 +1,6 @@
 ﻿namespace NzbDrone.Core.Tv
 {
-    public class AddSeriesOptions : MonitoringOptions
+    public class AddPlatformOptions : MonitoringOptions
     {
         public bool SearchForMissingEpisodes { get; set; }
         public bool SearchForCutoffUnmetEpisodes { get; set; }

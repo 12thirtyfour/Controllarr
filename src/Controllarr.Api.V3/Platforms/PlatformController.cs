@@ -39,8 +39,8 @@ namespace Sonarr.Api.V3.Platforms
                                 IHandle<MediaCoversUpdatedEvent>
     {
         private readonly ISeriesService _seriesService;
-        private readonly ISeriesTranslationService _seriesTranslationService;
-        private readonly IAddSeriesService _addSeriesService;
+        private readonly IPlatformTranslationService _seriesTranslationService;
+        private readonly IAddPlatformService _addSeriesService;
         private readonly ISeriesStatisticsService _seriesStatisticsService;
         private readonly ISceneMappingService _sceneMappingService;
         private readonly IMapCoversToLocal _coverMapper;
@@ -48,8 +48,8 @@ namespace Sonarr.Api.V3.Platforms
 
         public PlatformController(IBroadcastSignalRMessage signalRBroadcaster,
                             ISeriesService seriesService,
-                            ISeriesTranslationService seriesTranslationService,
-                            IAddSeriesService addSeriesService,
+                            IPlatformTranslationService seriesTranslationService,
+                            IAddPlatformService addSeriesService,
                             ISeriesStatisticsService seriesStatisticsService,
                             ISceneMappingService sceneMappingService,
                             IMapCoversToLocal coverMapper,
@@ -112,7 +112,7 @@ namespace Sonarr.Api.V3.Platforms
         {
             var seriesStats = _seriesStatisticsService.SeriesStatistics();
             var seriesResources = new List<SeriesResource>();
-            var translations = new List<SeriesTranslation>();
+            var translations = new List<PlatformTranslation>();
 
             if (tvdbId.HasValue)
             {
@@ -321,7 +321,7 @@ namespace Sonarr.Api.V3.Platforms
             PopulateTranslations(resource, translations);
         }
 
-        private void PopulateTranslations(List<SeriesResource> resources, Dictionary<int, List<SeriesTranslation>> translations)
+        private void PopulateTranslations(List<SeriesResource> resources, Dictionary<int, List<PlatformTranslation>> translations)
         {
             foreach (var resource in resources)
             {
@@ -332,7 +332,7 @@ namespace Sonarr.Api.V3.Platforms
             }
         }
 
-        private void PopulateTranslations(SeriesResource resource, List<SeriesTranslation> translations)
+        private void PopulateTranslations(SeriesResource resource, List<PlatformTranslation> translations)
         {
             resource.Translations = translations.ToResource();
         }

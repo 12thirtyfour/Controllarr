@@ -39,10 +39,10 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                             IHandle<MediaCoversUpdatedEvent>
 {
     private readonly ISeriesService _seriesService;
-    private readonly IAddSeriesService _addSeriesService;
+    private readonly IAddPlatformService _addSeriesService;
     private readonly ISeriesStatisticsService _seriesStatisticsService;
     private readonly ISceneMappingService _sceneMappingService;
-    private readonly ISeriesTranslationService _seriesTranslationService;
+    private readonly IPlatformTranslationService _seriesTranslationService;
     private readonly IMapCoversToLocal _coverMapper;
     private readonly IRootFolderService _rootFolderService;
 
@@ -50,10 +50,10 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
 
     public PlatformController(IBroadcastSignalRMessage signalRBroadcaster,
                         ISeriesService seriesService,
-                        IAddSeriesService addSeriesService,
+                        IAddPlatformService addSeriesService,
                         ISeriesStatisticsService seriesStatisticsService,
                         ISceneMappingService sceneMappingService,
-                        ISeriesTranslationService seriesTranslationService,
+                        IPlatformTranslationService seriesTranslationService,
                         IMapCoversToLocal coverMapper,
                         IRootFolderService rootFolderService,
                         RootFolderValidator rootFolderValidator,
@@ -334,7 +334,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
             if (translations.TryGetValue(resource.Id, out var seriesTranslations))
             {
                 resource.Translations = seriesTranslations
-                    .Select(t => new SeriesTranslationResource
+                    .Select(t => new PlatformTranslationResource
                     {
                         Language = t.Language,
                         Title = t.Title

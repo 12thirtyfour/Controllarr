@@ -15,9 +15,9 @@ namespace Sonarr.Api.V5.Wanted;
 [V5ApiController("wanted/cutoff")]
 public class CutoffController : GameControllerWithSignalR
 {
-    private readonly IEpisodeCutoffService _episodeCutoffService;
+    private readonly IGameCutoffService _episodeCutoffService;
 
-    public CutoffController(IEpisodeCutoffService episodeCutoffService,
+    public CutoffController(IGameCutoffService episodeCutoffService,
                         IEpisodeService episodeService,
                         ISeriesService seriesService,
                         IUpgradableSpecification upgradableSpecification,

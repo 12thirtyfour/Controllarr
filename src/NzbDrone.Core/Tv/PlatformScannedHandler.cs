@@ -7,21 +7,21 @@ using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
 {
-    public class SeriesScannedHandler : IHandle<SeriesScannedEvent>,
+    public class PlatformScannedHandler : IHandle<SeriesScannedEvent>,
                                         IHandle<SeriesScanSkippedEvent>
     {
-        private readonly IEpisodeMonitoredService _episodeMonitoredService;
+        private readonly IGameMonitoredService _episodeMonitoredService;
         private readonly ISeriesService _seriesService;
         private readonly IManageCommandQueue _commandQueueManager;
-        private readonly IEpisodeRefreshedService _episodeRefreshedService;
+        private readonly IGameRefreshedService _episodeRefreshedService;
         private readonly IEventAggregator _eventAggregator;
 
         private readonly Logger _logger;
 
-        public SeriesScannedHandler(IEpisodeMonitoredService episodeMonitoredService,
+        public PlatformScannedHandler(IGameMonitoredService episodeMonitoredService,
                                     ISeriesService seriesService,
                                     IManageCommandQueue commandQueueManager,
-                                    IEpisodeRefreshedService episodeRefreshedService,
+                                    IGameRefreshedService episodeRefreshedService,
                                     IEventAggregator eventAggregator,
                                     Logger logger)
         {

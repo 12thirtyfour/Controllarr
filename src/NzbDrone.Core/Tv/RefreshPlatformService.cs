@@ -22,8 +22,8 @@ namespace NzbDrone.Core.Tv
         private readonly IProvideSeriesInfo _seriesInfo;
         private readonly NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy _gameMetadataProxy;
         private readonly ISeriesService _seriesService;
-        private readonly ISeriesTranslationService _seriesTranslationService;
-        private readonly IRefreshEpisodeService _refreshEpisodeService;
+        private readonly IPlatformTranslationService _seriesTranslationService;
+        private readonly IRefreshGameService _refreshEpisodeService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IDiskScanService _diskScanService;
         private readonly ICheckIfSeriesShouldBeRefreshed _checkIfSeriesShouldBeRefreshed;
@@ -34,8 +34,8 @@ namespace NzbDrone.Core.Tv
         public RefreshPlatformService(IProvideSeriesInfo seriesInfo,
                                     NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy gameMetadataProxy,
                                     ISeriesService seriesService,
-                                    ISeriesTranslationService seriesTranslationService,
-                                    IRefreshEpisodeService refreshEpisodeService,
+                                    IPlatformTranslationService seriesTranslationService,
+                                    IRefreshGameService refreshEpisodeService,
                                     IEventAggregator eventAggregator,
                                     IDiskScanService diskScanService,
                                     ICheckIfSeriesShouldBeRefreshed checkIfSeriesShouldBeRefreshed,

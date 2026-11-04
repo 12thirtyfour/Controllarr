@@ -248,7 +248,7 @@ namespace NzbDrone.Integration.Test
                 series.Path = Path.Combine(SeriesRootFolder, series.Title);
                 series.Monitored = true;
                 series.Seasons.ForEach(v => v.Monitored = true);
-                series.AddOptions = new Core.Tv.AddSeriesOptions();
+                series.AddOptions = new Core.Tv.AddPlatformOptions();
                 Directory.CreateDirectory(series.Path);
 
                 result = Series.Post(series);

@@ -21,14 +21,14 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly IEpisodeService _episodeService;
-        private readonly IEpisodeCutoffService _episodeCutoffService;
+        private readonly IGameCutoffService _episodeCutoffService;
         private readonly IQueueService _queueService;
         private readonly Logger _logger;
 
         public GameSearchService(ISearchForReleases releaseSearchService,
                                     IProcessDownloadDecisions processDownloadDecisions,
                                     IEpisodeService episodeService,
-                                    IEpisodeCutoffService episodeCutoffService,
+                                    IGameCutoffService episodeCutoffService,
                                     IQueueService queueService,
                                     Logger logger)
         {
