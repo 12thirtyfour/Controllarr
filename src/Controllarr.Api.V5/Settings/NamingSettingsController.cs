@@ -27,9 +27,9 @@ public class NamingSettingsController : RestController<NamingSettingsResource>
         _filenameValidationService = filenameValidationService;
 
         SharedValidator.RuleFor(c => c.MultiGameStyle).InclusiveBetween(0, 5);
-        SharedValidator.RuleFor(c => c.StandardGameFormat).ValidEpisodeFormat();
-        SharedValidator.RuleFor(c => c.DailyGameFormat).ValidDailyEpisodeFormat();
-        SharedValidator.RuleFor(c => c.AnimeGameFormat).ValidAnimeEpisodeFormat();
+        SharedValidator.RuleFor(c => c.StandardGameFormat).ValidGameFormat();
+        SharedValidator.RuleFor(c => c.DailyGameFormat).ValidDailyGameFormat();
+        SharedValidator.RuleFor(c => c.AnimeGameFormat).ValidAnimeGameFormat();
         SharedValidator.RuleFor(c => c.SeriesFolderFormat).ValidSeriesFolderFormat();
         SharedValidator.RuleFor(c => c.SeasonFolderFormat).ValidSeasonFolderFormat();
         SharedValidator.RuleFor(c => c.SpecialsFolderFormat).ValidSpecialsFolderFormat();
@@ -78,12 +78,12 @@ public class NamingSettingsController : RestController<NamingSettingsResource>
         var animeEpisodeSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
         var animeMultiEpisodeSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
 
-        var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardEpisodeFormat) &&
-                                       FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardEpisodeFormat);
-        var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyEpisodeFormat) &&
-                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyEpisodeFormat);
-        var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeEpisodeFormat) &&
-                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeEpisodeFormat);
+        var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardGameFormat) &&
+                                       FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardGameFormat);
+        var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyGameFormat) &&
+                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyGameFormat);
+        var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeGameFormat) &&
+                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeGameFormat);
 
         sampleResource.SingleGameExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult) != null
                 ? null
@@ -128,12 +128,12 @@ public class NamingSettingsController : RestController<NamingSettingsResource>
         var animeEpisodeSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
         var animeMultiEpisodeSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
 
-        var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardEpisodeFormat) &&
-                                       FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardEpisodeFormat);
-        var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyEpisodeFormat) &&
-                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyEpisodeFormat);
-        var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeEpisodeFormat) &&
-                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeEpisodeFormat);
+        var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardGameFormat) &&
+                                       FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardGameFormat);
+        var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyGameFormat) &&
+                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyGameFormat);
+        var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeGameFormat) &&
+                                    FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeGameFormat);
 
         var singleEpisodeValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult);
         var multiEpisodeValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult);

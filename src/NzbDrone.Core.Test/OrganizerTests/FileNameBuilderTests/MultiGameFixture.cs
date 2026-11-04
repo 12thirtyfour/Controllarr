@@ -77,7 +77,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_replace_Series_space_Title()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title}";
+            _namingConfig.StandardGameFormat = "{Series Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
                    .Should().Be("South Park");
@@ -86,7 +86,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_extend_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = 0;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_duplicate_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Duplicate;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
@@ -106,7 +106,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_repeat_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Repeat;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
@@ -116,7 +116,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_scene_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Scene;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_use_dash_as_separator_when_multi_episode_style_is_extend_for_anime()
         {
             _series.SeriesType = SeriesTypes.Anime;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
                    .Should().Be("South Park - 100-101 - City Sushi");
@@ -138,7 +138,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Duplicate;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
                    .Should().Be("South Park - 100 - 101 - 102 - City Sushi");
@@ -147,7 +147,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_get_proper_filename_when_multi_episode_is_duplicated_and_bracket_follows_pattern()
         {
-            _namingConfig.StandardEpisodeFormat =
+            _namingConfig.StandardGameFormat =
                 "{Series Title} - S{season:00}E{episode:00} - ({Quality Title}, {MediaInfo Full}, {Release Group}) - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Duplicate;
 
@@ -158,7 +158,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_range_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Range;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
@@ -170,7 +170,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Range;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
                    .Should().Be("South Park - 100-102 - City Sushi");
@@ -181,7 +181,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Repeat;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
                    .Should().Be("South Park - 100-101-102 - City Sushi");
@@ -190,7 +190,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_single_episode_with_range_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Range;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
@@ -202,7 +202,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Range;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
                    .Should().Be("South Park - 100 - City Sushi");
@@ -213,7 +213,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Duplicate;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {season}x{episode:00} - [{absolute:000}] - {Episode Title} - {Quality Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - [{absolute:000}] - {Episode Title} - {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
                    .Should().Be("South Park - 15x06 - 15x07 - [100-101] - City Sushi - HDTV-720p");
@@ -222,7 +222,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_prefixed_range_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
                    .Should().Be("South Park - 100-102 - City Sushi");
@@ -243,7 +243,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_single_episode_with_prefixed_range_multi_episode_properly()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
@@ -255,7 +255,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.SeriesType = SeriesTypes.Anime;
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange;
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:000} - {Episode Title}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:000} - {Episode Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
                    .Should().Be("South Park - 100 - City Sushi");
@@ -264,7 +264,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_prefixed_range_multi_episode_using_episode_separator()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - {season:0}x{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - {season:0}x{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)
@@ -274,7 +274,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_format_range_multi_episode_wrapped_in_brackets()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} (S{season:00}E{episode:00}) {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} (S{season:00}E{episode:00}) {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Range;
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2, _episode3 }, _series, _episodeFile)

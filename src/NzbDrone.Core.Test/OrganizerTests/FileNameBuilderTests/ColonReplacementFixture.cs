@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_replace_colon_followed_by_space_with_space_dash_space_by_default()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title}";
+            _namingConfig.StandardGameFormat = "{Series Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
                    .Should().Be("CSI - Vegas");
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_replace_colon_followed_by_space_with_expected_result(string seriesName, ColonReplacementFormat replacementFormat, string expected)
         {
             _series.Title = seriesName;
-            _namingConfig.StandardEpisodeFormat = "{Series Title}";
+            _namingConfig.StandardGameFormat = "{Series Title}";
             _namingConfig.ColonReplacementFormat = replacementFormat;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
@@ -84,7 +84,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_replace_colon_with_expected_result(string seriesName, ColonReplacementFormat replacementFormat, string expected)
         {
             _series.Title = seriesName;
-            _namingConfig.StandardEpisodeFormat = "{Series Title}";
+            _namingConfig.StandardGameFormat = "{Series Title}";
             _namingConfig.ColonReplacementFormat = replacementFormat;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_replace_colon_with_custom_format(string seriesName, ColonReplacementFormat replacementFormat, string customFormat, string expected)
         {
             _series.Title = seriesName;
-            _namingConfig.StandardEpisodeFormat = "{Series Title}";
+            _namingConfig.StandardGameFormat = "{Series Title}";
             _namingConfig.ColonReplacementFormat = replacementFormat;
             _namingConfig.CustomColonReplacementFormat = customFormat;
 

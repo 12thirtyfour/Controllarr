@@ -128,8 +128,8 @@ namespace NzbDrone.Core.Test.OrganizerTests
             _namingConfig.RenameEpisodes = true;
             _namingConfig.SeriesFolderFormat = "{Platform Short}";
             _namingConfig.SeasonFolderFormat = "{Region Code}";
-            _namingConfig.StandardEpisodeFormat = "{Game CleanTitle} ({Release Year}) ({Version}) ({Disc})";
-            _namingConfig.DailyEpisodeFormat = "{Game CleanTitle} ({Release Year}) ({Version}) ({Disc})";
+            _namingConfig.StandardGameFormat = "{Game CleanTitle} ({Release Year}) ({Version}) ({Disc})";
+            _namingConfig.DailyGameFormat = "{Game CleanTitle} ({Release Year}) ({Version}) ({Disc})";
 
             var series = new Series
             {

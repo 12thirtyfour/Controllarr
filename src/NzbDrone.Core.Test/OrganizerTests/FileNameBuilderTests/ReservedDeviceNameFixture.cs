@@ -78,7 +78,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_replace_reserved_device_name_in_file_name(string title, string expected)
         {
             _series.Title = title;
-            _namingConfig.StandardEpisodeFormat = "{Series.Title} - S{Season:00}E{Episode:00}";
+            _namingConfig.StandardGameFormat = "{Series.Title} - S{Season:00}E{Episode:00}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile).Should().Be($"{expected} - S15E06");
         }

@@ -97,8 +97,8 @@ namespace NzbDrone.Core.Test.OrganizerTests
 
             _namingConfig.RenameEpisodes = true;
             _namingConfig.SeasonFolderFormat = "USA";
-            _namingConfig.StandardEpisodeFormat = "{Game Title}";
-            _namingConfig.DailyEpisodeFormat = "{Game Title}/{Game Title}";
+            _namingConfig.StandardGameFormat = "{Game Title}";
+            _namingConfig.DailyGameFormat = "{Game Title}/{Game Title}";
 
             var singleDiscEpisode = Builder<Episode>.CreateListOfSize(1)
                 .All()

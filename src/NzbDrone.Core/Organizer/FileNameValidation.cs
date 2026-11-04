@@ -17,28 +17,28 @@ namespace NzbDrone.Core.Organizer
         public static readonly Regex OriginalTokenRegex = new Regex(@"(\{(?:original[- ._](?:title|filename)|game[- ._](?:clean)?title)\})",
                                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public static IRuleBuilderOptions<T, string> ValidEpisodeFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
+        public static IRuleBuilderOptions<T, string> ValidGameFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             ruleBuilder.SetValidator(new NotEmptyValidator(null));
             ruleBuilder.SetValidator(new IllegalCharactersValidator());
 
-            return ruleBuilder.SetValidator(new ValidStandardEpisodeFormatValidator());
+            return ruleBuilder.SetValidator(new ValidStandardGameFormatValidator());
         }
 
-        public static IRuleBuilderOptions<T, string> ValidDailyEpisodeFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
+        public static IRuleBuilderOptions<T, string> ValidDailyGameFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             ruleBuilder.SetValidator(new NotEmptyValidator(null));
             ruleBuilder.SetValidator(new IllegalCharactersValidator());
 
-            return ruleBuilder.SetValidator(new ValidDailyEpisodeFormatValidator());
+            return ruleBuilder.SetValidator(new ValidDailyGameFormatValidator());
         }
 
-        public static IRuleBuilderOptions<T, string> ValidAnimeEpisodeFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
+        public static IRuleBuilderOptions<T, string> ValidAnimeGameFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
         {
             ruleBuilder.SetValidator(new NotEmptyValidator(null));
             ruleBuilder.SetValidator(new IllegalCharactersValidator());
 
-            return ruleBuilder.SetValidator(new ValidAnimeEpisodeFormatValidator());
+            return ruleBuilder.SetValidator(new ValidAnimeGameFormatValidator());
         }
 
         public static IRuleBuilderOptions<T, string> ValidSeriesFolderFormat<T>(this IRuleBuilder<T, string> ruleBuilder)
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Organizer
         }
     }
 
-    public class ValidStandardEpisodeFormatValidator : PropertyValidator
+    public class ValidStandardGameFormatValidator : PropertyValidator
     {
         protected override string GetDefaultMessageTemplate() => "Must contain season and episode numbers OR Original Title";
 
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Organizer
         }
     }
 
-    public class ValidDailyEpisodeFormatValidator : PropertyValidator
+    public class ValidDailyGameFormatValidator : PropertyValidator
     {
         protected override string GetDefaultMessageTemplate() => "Must contain Air Date OR Season and Episode OR Original Title";
 
@@ -108,7 +108,7 @@ namespace NzbDrone.Core.Organizer
         }
     }
 
-    public class ValidAnimeEpisodeFormatValidator : PropertyValidator
+    public class ValidAnimeGameFormatValidator : PropertyValidator
     {
         protected override string GetDefaultMessageTemplate() =>
             "Must contain Absolute Episode number OR Season and Episode OR Original Title";

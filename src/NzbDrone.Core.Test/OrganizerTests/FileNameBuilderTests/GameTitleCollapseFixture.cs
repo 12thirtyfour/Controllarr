@@ -78,7 +78,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("Meet the Guys and Girls of Cycle 20 pt. 1", "Meet the Guys and Girls of Cycle 20 pt. 2", "Meet the Guys and Girls of Cycle 20")]
         public void should_collapse_episode_titles_when_episode_titles_are_the_same(string title1, string title2, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = "{Episode Title}";
+            _namingConfig.StandardGameFormat = "{Episode Title}";
 
             _episode1.Title = title1;
             _episode2.Title = title2;
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_not_collapse_episode_titles_when_episode_titles_are_not_the_same()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title}";
             _namingConfig.MultiEpisodeStyle = MultiEpisodeStyle.Scene;
 
             _episode1.Title = "Hello";
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_not_collaspe_when_result_is_empty()
         {
-            _namingConfig.StandardEpisodeFormat = "{Episode Title}";
+            _namingConfig.StandardGameFormat = "{Episode Title}";
 
             _episode1.Title = "Part 1";
             _episode2.Title = "Part 2";

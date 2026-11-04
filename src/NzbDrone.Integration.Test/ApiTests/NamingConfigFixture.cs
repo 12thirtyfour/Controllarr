@@ -25,15 +25,15 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = false;
-            config.StandardEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
-            config.DailyEpisodeFormat = "{Series Title} - {Air-Date} - {Episode Title}";
-            config.AnimeEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.StandardGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.DailyGameFormat = "{Series Title} - {Air-Date} - {Episode Title}";
+            config.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
 
             var result = NamingConfig.Put(config);
             result.RenameEpisodes.Should().BeFalse();
-            result.StandardEpisodeFormat.Should().Be(config.StandardEpisodeFormat);
-            result.DailyEpisodeFormat.Should().Be(config.DailyEpisodeFormat);
-            result.AnimeEpisodeFormat.Should().Be(config.AnimeEpisodeFormat);
+            result.StandardGameFormat.Should().Be(config.StandardGameFormat);
+            result.DailyGameFormat.Should().Be(config.DailyGameFormat);
+            result.AnimeGameFormat.Should().Be(config.AnimeGameFormat);
         }
 
         [Test]
@@ -41,9 +41,9 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = true;
-            config.StandardEpisodeFormat = "";
-            config.DailyEpisodeFormat = "{Series Title} - {Air-Date} - {Episode Title}";
-            config.AnimeEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.StandardGameFormat = "";
+            config.DailyGameFormat = "{Series Title} - {Air-Date} - {Episode Title}";
+            config.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -54,9 +54,9 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = true;
-            config.StandardEpisodeFormat = "{season}";
-            config.DailyEpisodeFormat = "{Series Title} - {Air-Date} - {Episode Title}";
-            config.AnimeEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.StandardGameFormat = "{season}";
+            config.DailyGameFormat = "{Series Title} - {Air-Date} - {Episode Title}";
+            config.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -67,9 +67,9 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = true;
-            config.StandardEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
-            config.DailyEpisodeFormat = "{Series Title} - {season} - {Episode Title}";
-            config.AnimeEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.StandardGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.DailyGameFormat = "{Series Title} - {season} - {Episode Title}";
+            config.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -80,9 +80,9 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = false;
-            config.StandardEpisodeFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
-            config.DailyEpisodeFormat = "{Series Title} - {Air-Date} - {Episode Title}";
-            config.AnimeEpisodeFormat = "{Series Title} - {season} - {Episode Title}";
+            config.StandardGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.DailyGameFormat = "{Series Title} - {Air-Date} - {Episode Title}";
+            config.AnimeGameFormat = "{Series Title} - {season} - {Episode Title}";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -93,8 +93,8 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = false;
-            config.StandardEpisodeFormat = "";
-            config.DailyEpisodeFormat = "";
+            config.StandardGameFormat = "";
+            config.DailyGameFormat = "";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -105,8 +105,8 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = true;
-            config.StandardEpisodeFormat = "";
-            config.DailyEpisodeFormat = "";
+            config.StandardGameFormat = "";
+            config.DailyGameFormat = "";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();

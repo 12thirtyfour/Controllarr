@@ -1,6 +1,6 @@
-﻿namespace NzbDrone.Core.Organizer
+namespace NzbDrone.Core.Organizer
 {
-    public class AbsoluteEpisodeFormat
+    public class AbsoluteGameFormat
     {
         public string Separator { get; set; }
         public string AbsoluteEpisodePattern { get; set; }

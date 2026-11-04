@@ -4,9 +4,9 @@ namespace Sonarr.Api.V3.Config
 {
     public class NamingConfigResource : RestResource
     {
-        private string _standardEpisodeFormat;
-        private string _dailyEpisodeFormat;
-        private string _animeEpisodeFormat;
+        private string _standardGameFormat;
+        private string _dailyGameFormat;
+        private string _animeGameFormat;
         private bool _renameEpisodes;
         private int _multiEpisodeStyle;
 
@@ -40,74 +40,38 @@ namespace Sonarr.Api.V3.Config
             set => _multiEpisodeStyle = value;
         }
 
-        public string StandardEpisodeFormat
-        {
-            get => _standardEpisodeFormat;
-            set
-            {
-                if (!string.IsNullOrEmpty(value) || _standardEpisodeFormat == null)
-                {
-                    _standardEpisodeFormat = value;
-                }
-            }
-        }
-
         public string StandardGameFormat
         {
-            get => _standardEpisodeFormat;
+            get => _standardGameFormat;
             set
             {
-                if (!string.IsNullOrEmpty(value) || _standardEpisodeFormat == null)
+                if (!string.IsNullOrEmpty(value) || _standardGameFormat == null)
                 {
-                    _standardEpisodeFormat = value;
-                }
-            }
-        }
-
-        public string DailyEpisodeFormat
-        {
-            get => _dailyEpisodeFormat;
-            set
-            {
-                if (!string.IsNullOrEmpty(value) || _dailyEpisodeFormat == null)
-                {
-                    _dailyEpisodeFormat = value;
+                    _standardGameFormat = value;
                 }
             }
         }
 
         public string DailyGameFormat
         {
-            get => _dailyEpisodeFormat;
+            get => _dailyGameFormat;
             set
             {
-                if (!string.IsNullOrEmpty(value) || _dailyEpisodeFormat == null)
+                if (!string.IsNullOrEmpty(value) || _dailyGameFormat == null)
                 {
-                    _dailyEpisodeFormat = value;
-                }
-            }
-        }
-
-        public string AnimeEpisodeFormat
-        {
-            get => _animeEpisodeFormat;
-            set
-            {
-                if (!string.IsNullOrEmpty(value) || _animeEpisodeFormat == null)
-                {
-                    _animeEpisodeFormat = value;
+                    _dailyGameFormat = value;
                 }
             }
         }
 
         public string AnimeGameFormat
         {
-            get => _animeEpisodeFormat;
+            get => _animeGameFormat;
             set
             {
-                if (!string.IsNullOrEmpty(value) || _animeEpisodeFormat == null)
+                if (!string.IsNullOrEmpty(value) || _animeGameFormat == null)
                 {
-                    _animeEpisodeFormat = value;
+                    _animeGameFormat = value;
                 }
             }
         }

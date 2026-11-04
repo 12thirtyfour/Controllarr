@@ -57,8 +57,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_use_standard_format_if_absolute_format_requires_absolute_episode_number_and_it_is_missing()
         {
             _episode.AbsoluteEpisodeNumber = null;
-            _namingConfig.StandardEpisodeFormat = "{Series Title} S{season:00}E{episode:00}";
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} {absolute:00} [{ReleaseGroup}]";
+            _namingConfig.StandardGameFormat = "{Series Title} S{season:00}E{episode:00}";
+            _namingConfig.AnimeGameFormat = "{Series Title} {absolute:00} [{ReleaseGroup}]";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("Anime Series S15E06");
@@ -67,8 +67,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_use_absolute_format_if_absolute_format_requires_absolute_episode_number_and_it_is_available()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} S{season:00}E{episode:00}";
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} {absolute:00} [{ReleaseGroup}]";
+            _namingConfig.StandardGameFormat = "{Series Title} S{season:00}E{episode:00}";
+            _namingConfig.AnimeGameFormat = "{Series Title} {absolute:00} [{ReleaseGroup}]";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("Anime Series 100 [SonarrTest]");
@@ -77,8 +77,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_use_absolute_format_if_absolute_format_does_not_require_absolute_episode_number_and_it_is_not_available()
         {
-            _namingConfig.StandardEpisodeFormat = "{Series Title} S{season:00}E{episode:00}";
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} S{season:00}E{episode:00} [{ReleaseGroup}]";
+            _namingConfig.StandardGameFormat = "{Series Title} S{season:00}E{episode:00}";
+            _namingConfig.AnimeGameFormat = "{Series Title} S{season:00}E{episode:00} [{ReleaseGroup}]";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("Anime Series S15E06 [SonarrTest]");
@@ -88,8 +88,8 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_use_standard_format_without_absolute_numbering_if_absolute_format_requires_absolute_episode_number_and_it_is_missing()
         {
             _episode.AbsoluteEpisodeNumber = null;
-            _namingConfig.StandardEpisodeFormat = "{Series Title} S{season:00}E{episode:00} - {absolute:00}";
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} {absolute:00} [{ReleaseGroup}]";
+            _namingConfig.StandardGameFormat = "{Series Title} S{season:00}E{episode:00} - {absolute:00}";
+            _namingConfig.AnimeGameFormat = "{Series Title} {absolute:00} [{ReleaseGroup}]";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                 .Should().Be("Anime Series S15E06");

@@ -40,14 +40,14 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [Test]
         public void should_return_false_when_absolute_episode_number_is_not_part_of_the_pattern()
         {
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} S{season:00}E{episode:00}";
+            _namingConfig.AnimeGameFormat = "{Series Title} S{season:00}E{episode:00}";
             Subject.RequiresAbsoluteEpisodeNumber().Should().BeFalse();
         }
 
         [Test]
         public void should_return_true_when_absolute_episode_number_is_part_of_the_pattern()
         {
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} {absolute:00}";
+            _namingConfig.AnimeGameFormat = "{Series Title} {absolute:00}";
             Subject.RequiresAbsoluteEpisodeNumber().Should().BeTrue();
         }
     }

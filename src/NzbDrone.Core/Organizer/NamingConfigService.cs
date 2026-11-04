@@ -33,9 +33,9 @@ namespace NzbDrone.Core.Organizer
                         defaultConfig.SeriesFolderFormat = "{Manufacturer}/{Platform}";
                         defaultConfig.SeasonFolderFormat = "{Region}";
                         defaultConfig.SpecialsFolderFormat = "Unlicensed";
-                        defaultConfig.StandardEpisodeFormat = "{Game Title}";
-                        defaultConfig.DailyEpisodeFormat = "{Game Title}/{Game Title}";
-                        defaultConfig.AnimeEpisodeFormat = "{Game Title}";
+                        defaultConfig.StandardGameFormat = "{Game Title}";
+                        defaultConfig.DailyGameFormat = "{Game Title}/{Game Title}";
+                        defaultConfig.AnimeGameFormat = "{Game Title}";
 
                         _repository.Insert(defaultConfig);
                         config = _repository.Single();
@@ -78,12 +78,12 @@ namespace NzbDrone.Core.Organizer
                 modified = true;
             }
 
-            if (string.IsNullOrWhiteSpace(config.StandardEpisodeFormat) ||
-                config.StandardEpisodeFormat.Contains("{Series Title}"))
+            if (string.IsNullOrWhiteSpace(config.StandardGameFormat) ||
+                config.StandardGameFormat.Contains("{Series Title}"))
             {
-                config.StandardEpisodeFormat = "{Game Title}";
-                config.DailyEpisodeFormat = "{Game Title}/{Game Title}";
-                config.AnimeEpisodeFormat = "{Game Title}";
+                config.StandardGameFormat = "{Game Title}";
+                config.DailyGameFormat = "{Game Title}/{Game Title}";
+                config.AnimeGameFormat = "{Game Title}";
                 modified = true;
             }
 

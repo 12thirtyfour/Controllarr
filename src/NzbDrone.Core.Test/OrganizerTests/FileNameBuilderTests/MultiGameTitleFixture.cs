@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _episode1.Title = firstTitle;
             _episode2.Title = secondTitle;
 
-            _namingConfig.StandardEpisodeFormat = "{Episode Title} {Quality Full}";
+            _namingConfig.StandardGameFormat = "{Episode Title} {Quality Full}";
 
             Subject.BuildFileName(new List<Episode> { _episode1, _episode2 }, _series, _episodeFile)
                    .Should().Be("Episode Title HDTV-720p");

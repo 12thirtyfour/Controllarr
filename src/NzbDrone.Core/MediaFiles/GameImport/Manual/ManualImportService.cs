@@ -44,7 +44,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
         private readonly IDownloadedGamesImportService _downloadedGamesImportService;
         private readonly IMediaFileService _mediaFileService;
         private readonly ICustomFormatCalculationService _formatCalculator;
-        private readonly ILocalEpisodeCustomFormatCalculationService _localEpisodeFormatCalculator;
+        private readonly ILocalEpisodeCustomFormatCalculationService _localGameFormatCalculator;
         private readonly IEventAggregator _eventAggregator;
         private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
         private readonly IBiosService _biosService;
@@ -61,7 +61,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                                    ITrackedDownloadService trackedDownloadService,
                                    IDownloadedGamesImportService downloadedGamesImportService,
                                    IMediaFileService mediaFileService,
-                                   ILocalEpisodeCustomFormatCalculationService localEpisodeFormatCalculator,
+                                   ILocalEpisodeCustomFormatCalculationService localGameFormatCalculator,
                                    ICustomFormatCalculationService formatCalculator,
                                    IEventAggregator eventAggregator,
                                    Logger logger,
@@ -79,7 +79,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             _trackedDownloadService = trackedDownloadService;
             _downloadedGamesImportService = downloadedGamesImportService;
             _mediaFileService = mediaFileService;
-            _localEpisodeFormatCalculator = localEpisodeFormatCalculator;
+            _localGameFormatCalculator = localGameFormatCalculator;
             _formatCalculator = formatCalculator;
             _eventAggregator = eventAggregator;
             _logger = logger;
@@ -239,7 +239,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                 localEpisode.IndexerFlags = (IndexerFlags)indexerFlags;
                 localEpisode.ReleaseType = releaseType;
 
-                _localEpisodeFormatCalculator.UpdateEpisodeCustomFormats(localEpisode);
+                _localGameFormatCalculator.UpdateEpisodeCustomFormats(localEpisode);
 
                 // Augment episode file so imported files have all additional information an automatic import would
                 localEpisode = _aggregationService.Augment(localEpisode, downloadClientItem);
@@ -523,7 +523,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                 if (item.SeasonNumber.HasValue)
                 {
-                    item.CustomFormats = _localEpisodeFormatCalculator.ParseEpisodeCustomFormats(decision.LocalEpisode);
+                    item.CustomFormats = _localGameFormatCalculator.ParseEpisodeCustomFormats(decision.LocalEpisode);
                     item.CustomFormatScore = item.Series.QualityProfile?.Value.CalculateCustomFormatScore(item.CustomFormats) ?? 0;
                 }
             }
@@ -679,7 +679,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     localEpisode.Languages = file.Languages;
                 }
 
-                _localEpisodeFormatCalculator.UpdateEpisodeCustomFormats(localEpisode);
+                _localGameFormatCalculator.UpdateEpisodeCustomFormats(localEpisode);
 
                 // TODO: Cleanup non-tracked downloads
 

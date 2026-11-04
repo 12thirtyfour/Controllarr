@@ -78,7 +78,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("{Custom Formats}", "INTERNAL AMZN NAME WITH SPACES")]
         public void should_replace_custom_formats(string format, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = format;
+            _namingConfig.StandardGameFormat = format;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile, customFormats: _customFormats)
                    .Should().Be(expected);
@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("{Custom Formats}", "")]
         public void should_replace_custom_formats_with_no_custom_formats(string format, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = format;
+            _namingConfig.StandardGameFormat = format;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile, customFormats: new List<CustomFormat>())
                    .Should().Be(expected);
@@ -101,7 +101,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("{Custom Formats:INTERNAL,NAME WITH SPACES}", "INTERNAL NAME WITH SPACES")]
         public void should_replace_custom_formats_with_filtered_names(string format, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = format;
+            _namingConfig.StandardGameFormat = format;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile, customFormats: _customFormats)
                    .Should().Be(expected);
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("{Custom Formats:}", "{Custom Formats:}")]
         public void should_not_replace_custom_formats_due_to_invalid_token(string format, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = format;
+            _namingConfig.StandardGameFormat = format;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile, customFormats: _customFormats)
                    .Should().Be(expected);
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("{Custom Format:AMZN} - {Custom Format:INTERNAL}", "AMZN - INTERNAL")]
         public void should_replace_custom_format(string format, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = format;
+            _namingConfig.StandardGameFormat = format;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile, customFormats: _customFormats)
                    .Should().Be(expected);
@@ -137,7 +137,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         [TestCase("{Custom Format:AMZN}", "")]
         public void should_replace_custom_format_with_no_custom_formats(string format, string expected)
         {
-            _namingConfig.StandardEpisodeFormat = format;
+            _namingConfig.StandardGameFormat = format;
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile, customFormats: new List<CustomFormat>())
                    .Should().Be(expected);

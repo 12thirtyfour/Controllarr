@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _episodeFile.SceneName = "my.series.s15e06";
             _episodeFile.RelativePath = "My Series - S15E06 - City Sushi";
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {[Original Title]}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - S15E06 - City Sushi [my.series.s15e06]");
@@ -77,7 +77,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_include_current_filename_if_not_including_season_and_episode_tokens_for_standard_series()
         {
             _episodeFile.RelativePath = "My Series - S15E06 - City Sushi";
-            _namingConfig.StandardEpisodeFormat = "{Original Title} {Quality Title}";
+            _namingConfig.StandardGameFormat = "{Original Title} {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - S15E06 - City Sushi HDTV-720p");
@@ -89,7 +89,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _series.SeriesType = SeriesTypes.Daily;
             _episode.AirDate = "2022-04-28";
             _episodeFile.RelativePath = "My Series - 2022-04-28 - City Sushi";
-            _namingConfig.DailyEpisodeFormat = "{Original Title} {Quality Title}";
+            _namingConfig.DailyGameFormat = "{Original Title} {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - 2022-04-28 - City Sushi HDTV-720p");
@@ -101,7 +101,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _series.SeriesType = SeriesTypes.Anime;
             _episode.AbsoluteEpisodeNumber = 123;
             _episodeFile.RelativePath = "My Series - 123 - City Sushi";
-            _namingConfig.AnimeEpisodeFormat = "{Original Title} {Quality Title}";
+            _namingConfig.AnimeGameFormat = "{Original Title} {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - 123 - City Sushi HDTV-720p");
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         public void should_not_include_current_filename_if_including_season_and_episode_tokens_for_standard_series()
         {
             _episodeFile.RelativePath = "My Series - S15E06 - City Sushi";
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} {[Original Title]}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - S15E06");
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _series.SeriesType = SeriesTypes.Daily;
             _episode.AirDate = "2022-04-28";
             _episodeFile.RelativePath = "My Series - 2022-04-28 - City Sushi";
-            _namingConfig.DailyEpisodeFormat = "{Series Title} - {Air-Date} {[Original Title]}";
+            _namingConfig.DailyGameFormat = "{Series Title} - {Air-Date} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - 2022-04-28");
@@ -135,7 +135,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _series.SeriesType = SeriesTypes.Anime;
             _episode.AbsoluteEpisodeNumber = 123;
             _episodeFile.RelativePath = "My Series - 123 - City Sushi";
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:00} {[Original Title]}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:00} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - 123");
@@ -146,7 +146,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _episodeFile.Id = 0;
             _episodeFile.RelativePath = "My Series - S15E06 - City Sushi";
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} {[Original Title]}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - S15E06 [My Series - S15E06 - City Sushi]");
@@ -159,7 +159,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _episode.AirDate = "2022-04-28";
             _episodeFile.Id = 0;
             _episodeFile.RelativePath = "My Series - 2022-04-28 - City Sushi";
-            _namingConfig.DailyEpisodeFormat = "{Series Title} - {Air-Date} {[Original Title]}";
+            _namingConfig.DailyGameFormat = "{Series Title} - {Air-Date} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - 2022-04-28 [My Series - 2022-04-28 - City Sushi]");
@@ -172,7 +172,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _episode.AbsoluteEpisodeNumber = 123;
             _episodeFile.Id = 0;
             _episodeFile.RelativePath = "My Series - 123 - City Sushi";
-            _namingConfig.AnimeEpisodeFormat = "{Series Title} - {absolute:00} {[Original Title]}";
+            _namingConfig.AnimeGameFormat = "{Series Title} - {absolute:00} {[Original Title]}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
                    .Should().Be("My Series - 123 [My Series - 123 - City Sushi]");

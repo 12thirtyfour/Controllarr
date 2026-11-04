@@ -44,8 +44,8 @@ namespace NzbDrone.Core.Organizer
         private readonly IQualityDefinitionService _qualityDefinitionService;
         private readonly IUpdateMediaInfo _mediaInfoUpdater;
         private readonly ICustomFormatCalculationService _formatCalculator;
-        private readonly ICached<EpisodeFormat[]> _episodeFormatCache;
-        private readonly ICached<AbsoluteEpisodeFormat[]> _absoluteEpisodeFormatCache;
+        private readonly ICached<GameFormat[]> _episodeFormatCache;
+        private readonly ICached<AbsoluteGameFormat[]> _absoluteGameFormatCache;
         private readonly ICached<bool> _requiresEpisodeTitleCache;
         private readonly ICached<bool> _requiresAbsoluteEpisodeNumberCache;
         private readonly ICached<bool> _patternHasEpisodeIdentifierCache;
@@ -133,8 +133,8 @@ namespace NzbDrone.Core.Organizer
             _qualityDefinitionService = qualityDefinitionService;
             _mediaInfoUpdater = mediaInfoUpdater;
             _formatCalculator = formatCalculator;
-            _episodeFormatCache = cacheManager.GetCache<EpisodeFormat[]>(GetType(), "episodeFormat");
-            _absoluteEpisodeFormatCache = cacheManager.GetCache<AbsoluteEpisodeFormat[]>(GetType(), "absoluteEpisodeFormat");
+            _episodeFormatCache = cacheManager.GetCache<GameFormat[]>(GetType(), "episodeFormat");
+            _absoluteGameFormatCache = cacheManager.GetCache<AbsoluteGameFormat[]>(GetType(), "absoluteGameFormat");
             _requiresEpisodeTitleCache = cacheManager.GetCache<bool>(GetType(), "requiresEpisodeTitle");
             _requiresAbsoluteEpisodeNumberCache = cacheManager.GetCache<bool>(GetType(), "requiresAbsoluteEpisodeNumber");
             _patternHasEpisodeIdentifierCache = cacheManager.GetCache<bool>(GetType(), "patternHasEpisodeIdentifier");
@@ -154,42 +154,42 @@ namespace NzbDrone.Core.Organizer
                 return GetOriginalTitle(episodeFile, true) + extension;
             }
 
-            if (namingConfig.StandardEpisodeFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Standard)
+            if (namingConfig.StandardGameFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Standard)
             {
                 throw new NamingFormatException("Standard episode format cannot be empty");
             }
 
-            if (namingConfig.DailyEpisodeFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Daily)
+            if (namingConfig.DailyGameFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Daily)
             {
                 throw new NamingFormatException("Daily episode format cannot be empty");
             }
 
-            if (namingConfig.AnimeEpisodeFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Anime)
+            if (namingConfig.AnimeGameFormat.IsNullOrWhiteSpace() && series.SeriesType == SeriesTypes.Anime)
             {
                 throw new NamingFormatException("Anime episode format cannot be empty");
             }
 
-            var pattern = namingConfig.StandardEpisodeFormat;
+            var pattern = namingConfig.StandardGameFormat;
 
             episodes = episodes.OrderBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber).ToList();
 
             if (series.SeriesType == SeriesTypes.Daily && episodes.First().SeasonNumber > 0)
             {
-                pattern = namingConfig.DailyEpisodeFormat;
+                pattern = namingConfig.DailyGameFormat;
             }
 
             if (series.SeriesType == SeriesTypes.Anime &&
                 (episodes.All(e => e.AbsoluteEpisodeNumber.HasValue) ||
                 !RequiresAbsoluteEpisodeNumber()))
             {
-                pattern = namingConfig.AnimeEpisodeFormat;
+                pattern = namingConfig.AnimeGameFormat;
             }
             else if (series.SeriesType == SeriesTypes.Standard &&
                      IsDiscBasedGame(series, extension, episodes.FirstOrDefault()?.Title) &&
-                     !namingConfig.DailyEpisodeFormat.IsNullOrWhiteSpace() &&
-                     !AirDateRegex.IsMatch(namingConfig.DailyEpisodeFormat))
+                     !namingConfig.DailyGameFormat.IsNullOrWhiteSpace() &&
+                     !AirDateRegex.IsMatch(namingConfig.DailyGameFormat))
             {
-                pattern = namingConfig.DailyEpisodeFormat;
+                pattern = namingConfig.DailyGameFormat;
             }
 
             var splitPatterns = pattern.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
@@ -600,7 +600,7 @@ namespace NzbDrone.Core.Organizer
         public bool RequiresEpisodeTitle(Series series, List<Episode> episodes)
         {
             var namingConfig = _namingConfigService.GetConfig();
-            var pattern = namingConfig.StandardEpisodeFormat;
+            var pattern = namingConfig.StandardGameFormat;
 
             if (!namingConfig.RenameEpisodes)
             {
@@ -609,12 +609,12 @@ namespace NzbDrone.Core.Organizer
 
             if (series.SeriesType == SeriesTypes.Daily)
             {
-                pattern = namingConfig.DailyEpisodeFormat;
+                pattern = namingConfig.DailyGameFormat;
             }
 
             if (series.SeriesType == SeriesTypes.Anime && episodes.All(e => e.AbsoluteEpisodeNumber.HasValue))
             {
-                pattern = namingConfig.AnimeEpisodeFormat;
+                pattern = namingConfig.AnimeGameFormat;
             }
 
             return _requiresEpisodeTitleCache.Get(pattern, () =>
@@ -641,7 +641,7 @@ namespace NzbDrone.Core.Organizer
         public bool RequiresAbsoluteEpisodeNumber()
         {
             var namingConfig = _namingConfigService.GetConfig();
-            var pattern = namingConfig.AnimeEpisodeFormat;
+            var pattern = namingConfig.AnimeGameFormat;
 
             return _requiresAbsoluteEpisodeNumberCache.Get(pattern, () =>
             {
@@ -704,7 +704,7 @@ namespace NzbDrone.Core.Organizer
 
         private string AddSeasonEpisodeNumberingTokens(string pattern, Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, NamingConfig namingConfig)
         {
-            var episodeFormats = GetEpisodeFormat(pattern).DistinctBy(v => v.SeasonEpisodePattern).ToList();
+            var episodeFormats = GetGameFormat(pattern).DistinctBy(v => v.SeasonEpisodePattern).ToList();
 
             var index = 1;
             foreach (var episodeFormat in episodeFormats)
@@ -767,42 +767,42 @@ namespace NzbDrone.Core.Organizer
 
         private string AddAbsoluteNumberingTokens(string pattern, Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Series series, List<Episode> episodes, NamingConfig namingConfig)
         {
-            var absoluteEpisodeFormats = GetAbsoluteFormat(pattern).DistinctBy(v => v.AbsoluteEpisodePattern).ToList();
+            var absoluteGameFormats = GetAbsoluteFormat(pattern).DistinctBy(v => v.AbsoluteEpisodePattern).ToList();
 
             var index = 1;
-            foreach (var absoluteEpisodeFormat in absoluteEpisodeFormats)
+            foreach (var absoluteGameFormat in absoluteGameFormats)
             {
                 if (series.SeriesType != SeriesTypes.Anime || episodes.Any(e => !e.AbsoluteEpisodeNumber.HasValue))
                 {
-                    pattern = pattern.Replace(absoluteEpisodeFormat.AbsoluteEpisodePattern, "");
+                    pattern = pattern.Replace(absoluteGameFormat.AbsoluteEpisodePattern, "");
                     continue;
                 }
 
-                var absoluteEpisodePattern = absoluteEpisodeFormat.AbsoluteEpisodePattern;
+                var absoluteEpisodePattern = absoluteGameFormat.AbsoluteEpisodePattern;
                 string formatPattern;
 
                 switch ((MultiEpisodeStyle)namingConfig.MultiEpisodeStyle)
                 {
                     case MultiEpisodeStyle.Duplicate:
-                        formatPattern = absoluteEpisodeFormat.Separator + absoluteEpisodeFormat.AbsoluteEpisodePattern;
+                        formatPattern = absoluteGameFormat.Separator + absoluteGameFormat.AbsoluteEpisodePattern;
                         absoluteEpisodePattern = FormatAbsoluteNumberTokens(absoluteEpisodePattern, formatPattern, episodes);
                         break;
 
                     case MultiEpisodeStyle.Repeat:
-                        var repeatSeparator = absoluteEpisodeFormat.Separator.Trim().IsNullOrWhiteSpace() ? " " : absoluteEpisodeFormat.Separator.Trim();
+                        var repeatSeparator = absoluteGameFormat.Separator.Trim().IsNullOrWhiteSpace() ? " " : absoluteGameFormat.Separator.Trim();
 
-                        formatPattern = repeatSeparator + absoluteEpisodeFormat.AbsoluteEpisodePattern;
+                        formatPattern = repeatSeparator + absoluteGameFormat.AbsoluteEpisodePattern;
                         absoluteEpisodePattern = FormatAbsoluteNumberTokens(absoluteEpisodePattern, formatPattern, episodes);
                         break;
 
                     case MultiEpisodeStyle.Scene:
-                        formatPattern = "-" + absoluteEpisodeFormat.AbsoluteEpisodePattern;
+                        formatPattern = "-" + absoluteGameFormat.AbsoluteEpisodePattern;
                         absoluteEpisodePattern = FormatAbsoluteNumberTokens(absoluteEpisodePattern, formatPattern, episodes);
                         break;
 
                     case MultiEpisodeStyle.Range:
                     case MultiEpisodeStyle.PrefixedRange:
-                        formatPattern = "-" + absoluteEpisodeFormat.AbsoluteEpisodePattern;
+                        formatPattern = "-" + absoluteGameFormat.AbsoluteEpisodePattern;
                         var eps = new List<Episode> { episodes.First() };
 
                         if (episodes.Count > 1)
@@ -815,13 +815,13 @@ namespace NzbDrone.Core.Organizer
 
                         // MultiEpisodeStyle.Extend
                     default:
-                        formatPattern = "-" + absoluteEpisodeFormat.AbsoluteEpisodePattern;
+                        formatPattern = "-" + absoluteGameFormat.AbsoluteEpisodePattern;
                         absoluteEpisodePattern = FormatAbsoluteNumberTokens(absoluteEpisodePattern, formatPattern, episodes);
                         break;
                 }
 
                 var token = string.Format("{{Absolute Pattern{0}}}", index++);
-                pattern = pattern.Replace(absoluteEpisodeFormat.AbsoluteEpisodePattern, token);
+                pattern = pattern.Replace(absoluteGameFormat.AbsoluteEpisodePattern, token);
                 tokenHandlers[token] = m => absoluteEpisodePattern;
             }
 
@@ -1260,10 +1260,10 @@ namespace NzbDrone.Core.Organizer
             return value.ToString(split[1]);
         }
 
-        private EpisodeFormat[] GetEpisodeFormat(string pattern)
+        private GameFormat[] GetGameFormat(string pattern)
         {
             return _episodeFormatCache.Get(pattern, () => SeasonEpisodePatternRegex.Matches(pattern).OfType<Match>()
-                .Select(match => new EpisodeFormat
+                .Select(match => new GameFormat
                 {
                     EpisodeSeparator = match.Groups["episodeSeparator"].Value,
                     Separator = match.Groups["separator"].Value,
@@ -1272,10 +1272,10 @@ namespace NzbDrone.Core.Organizer
                 }).ToArray());
         }
 
-        private AbsoluteEpisodeFormat[] GetAbsoluteFormat(string pattern)
+        private AbsoluteGameFormat[] GetAbsoluteFormat(string pattern)
         {
-            return _absoluteEpisodeFormatCache.Get(pattern, () => AbsoluteEpisodePatternRegex.Matches(pattern).OfType<Match>()
-                .Select(match => new AbsoluteEpisodeFormat
+            return _absoluteGameFormatCache.Get(pattern, () => AbsoluteEpisodePatternRegex.Matches(pattern).OfType<Match>()
+                .Select(match => new AbsoluteGameFormat
                 {
                     Separator = match.Groups["separator"].Value.IsNotNullOrWhiteSpace() ? match.Groups["separator"].Value : "-",
                     AbsoluteEpisodePattern = match.Groups["absolute"].Value

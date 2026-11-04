@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _episodeFile.Quality.Quality = Quality.Bluray1080p;
             _episodeFile.ReleaseGroup = "IWishIWasALittleBitTallerIWishIWasABallerIWishIHadAGirlWhoLookedGoodIWouldCallHerIWishIHadARabbitInAHatWithABatAndASixFourImpala";
             _episodes = _episodes.Take(1).ToList();
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}-{ReleaseGroup:12}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}-{ReleaseGroup:12}";
 
             var result = Subject.BuildFileName(_episodes, _series, _episodeFile, ".mkv");
             result.Length.Should().BeLessOrEqualTo(255);
@@ -84,7 +84,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _episodeFile.Quality.Quality = Quality.Bluray1080p;
             _episodeFile.ReleaseGroup = "IWishIWasALittleBitTallerIWishIWasABallerIWishIHadAGirlWhoLookedGoodIWouldCallHerIWishIHadARabbitInAHatWithABatAndASixFourImpala";
             _episodes = _episodes.Take(1).ToList();
-            _namingConfig.StandardEpisodeFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}-{ReleaseGroup:-17}";
+            _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}-{ReleaseGroup:-17}";
 
             var result = Subject.BuildFileName(_episodes, _series, _episodeFile, ".mkv");
             result.Length.Should().BeLessOrEqualTo(255);
