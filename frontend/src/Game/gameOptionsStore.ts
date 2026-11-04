@@ -63,46 +63,21 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         },
         {
           name: 'airDateUtc',
-          label: () => translate('AirDate'),
+          label: () => translate('ReleaseDate'),
           isVisible: true,
           isSortable: true,
         },
-        {
-          name: 'runtime',
-          label: () => translate('Runtime'),
-          isVisible: false,
-          isSortable: true,
-        },
+
         {
           name: 'languages',
           label: () => translate('Languages'),
           isVisible: false,
         },
-        {
-          name: 'audioInfo',
-          label: () => translate('AudioInfo'),
-          isVisible: false,
-        },
-        {
-          name: 'videoCodec',
-          label: () => translate('VideoCodec'),
-          isVisible: false,
-        },
-        {
-          name: 'videoDynamicRangeType',
-          label: () => translate('VideoDynamicRange'),
-          isVisible: false,
-        },
-        {
-          name: 'audioLanguages',
-          label: () => translate('AudioLanguages'),
-          isVisible: false,
-        },
-        {
-          name: 'subtitleLanguages',
-          label: () => translate('SubtitleLanguages'),
-          isVisible: false,
-        },
+
+
+
+
+
         {
           name: 'size',
           label: () => translate('Size'),

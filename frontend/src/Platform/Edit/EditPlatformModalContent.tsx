@@ -136,7 +136,6 @@ function EditPlatformModalContent({
     title,
     monitored,
     monitorNewItems,
-    seasonFolder,
     qualityProfileId,
     seriesType,
     seasonType,
@@ -166,8 +165,7 @@ function EditPlatformModalContent({
       {
         monitored,
         monitorNewItems,
-        seasonFolder,
-        qualityProfileId,
+            qualityProfileId,
         seriesType,
         seasonType,
         language,
@@ -218,7 +216,6 @@ function EditPlatformModalContent({
   }, [
     monitored,
     monitorNewItems,
-    seasonFolder,
     qualityProfileId,
     seriesType,
     seasonType,

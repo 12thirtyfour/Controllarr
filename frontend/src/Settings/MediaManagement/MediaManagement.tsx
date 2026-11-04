@@ -34,12 +34,7 @@ const gameTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
       return translate('Always');
     },
   },
-  {
-    key: 'bulkSeasonReleases',
-    get value() {
-      return translate('OnlyForBulkSeasonReleases');
-    },
-  },
+
   {
     key: 'never',
     get value() {
@@ -111,26 +106,6 @@ const fileDateOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
-const seasonPackUpgradeOptions: EnhancedSelectInputValue<string>[] = [
-  {
-    key: 'all',
-    get value() {
-      return translate('All');
-    },
-  },
-  {
-    key: 'threshold',
-    get value() {
-      return translate('Threshold');
-    },
-  },
-  {
-    key: 'any',
-    get value() {
-      return translate('Any');
-    },
-  },
-];
 
 function MediaManagement() {
   const showAdvancedSettings = useShowAdvancedSettings();
@@ -457,60 +432,9 @@ function MediaManagement() {
 
                   {showAdvancedSettings ? (
                     <>
-                      <FormRow
-                        advancedSettings={showAdvancedSettings}
-                        isAdvanced={true}
-                        size={sizes.MEDIUM}
-                      >
-                        <FormLabel>
-                          {translate('SeasonPackUpgradeAllowLabel')}
-                        </FormLabel>
-                        <FormInputHelpText
-                          text={translate('SeasonPackUpgradeAllowHelpText')}
-                        />
-                        <FormInputHelpText
-                          text={
-                            settings.seasonPackUpgrade?.value === 'any'
-                              ? translate('SeasonPackUpgradeAllowAnyWarning')
-                              : undefined
-                          }
-                          isWarning={true}
-                        />
-                        <FormInput
-                          type={inputTypes.SELECT}
-                          name="seasonPackUpgrade"
-                          values={seasonPackUpgradeOptions}
-                          onChange={handleInputChange}
-                          {...settings.seasonPackUpgrade}
-                        />
-                      </FormRow>
+                      
 
-                      {settings.seasonPackUpgrade?.value === 'threshold' ? (
-                        <FormRow
-                          advancedSettings={showAdvancedSettings}
-                          isAdvanced={true}
-                          size={sizes.MEDIUM}
-                        >
-                          <FormLabel>
-                            {translate('SeasonPackUpgradeThresholdLabel')}
-                          </FormLabel>
-                          <FormInputHelpText
-                            text={translate(
-                              'SeasonPackUpgradeThresholdHelpText'
-                            )}
-                          />
-                          <FormInput
-                            type={inputTypes.FLOAT}
-                            name="seasonPackUpgradeThreshold"
-                            unit="%"
-                            step={0.01}
-                            min={0}
-                            max={100}
-                            onChange={handleInputChange}
-                            {...settings.seasonPackUpgradeThreshold}
-                          />
-                        </FormRow>
-                      ) : null}
+                      
                     </>
                   ) : null}
                 </FieldSet>

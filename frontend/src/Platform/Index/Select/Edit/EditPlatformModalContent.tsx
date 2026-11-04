@@ -23,7 +23,6 @@ interface SavePayload {
   monitorNewItems?: string;
   qualityProfileId?: number;
   seriesType?: string;
-  seasonFolder?: boolean;
   rootFolderPath?: string;
   moveFiles?: boolean;
 }
@@ -57,27 +56,6 @@ const monitoredOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
-const seasonFolderOptions: EnhancedSelectInputValue<string>[] = [
-  {
-    key: NO_CHANGE,
-    get value() {
-      return translate('NoChange');
-    },
-    isDisabled: true,
-  },
-  {
-    key: 'yes',
-    get value() {
-      return translate('Yes');
-    },
-  },
-  {
-    key: 'no',
-    get value() {
-      return translate('No');
-    },
-  },
-];
 
 function EditPlatformModalContent(props: EditPlatformModalContentProps) {
   const { onSavePress, onModalClose } = props;
@@ -124,10 +102,6 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
         payload.seriesType = seriesType;
       }
 
-      if (seasonFolder !== NO_CHANGE) {
-        hasChanges = true;
-        payload.seasonFolder = seasonFolder === 'yes';
-      }
 
       if (rootFolderPath !== NO_CHANGE) {
         hasChanges = true;
@@ -276,17 +250,6 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
           />
         </FormRow>
 
-        <FormRow>
-          <FormLabel>{translate('SeasonFolder')}</FormLabel>
-
-          <FormInput
-            type={inputTypes.SELECT}
-            name="seasonFolder"
-            value={seasonFolder}
-            values={seasonFolderOptions}
-            onChange={onInputChange}
-          />
-        </FormRow>
 
         <FormRow>
           <FormLabel>{translate('RootFolder')}</FormLabel>

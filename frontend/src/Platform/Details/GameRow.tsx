@@ -17,7 +17,6 @@ import GameTitleLink from 'Game/GameTitleLink';
 import IndexerFlags from 'Game/IndexerFlags';
 import RomFileLanguages from 'RomFile/RomFileLanguages';
 import { useRomFile } from 'RomFile/RomFileProvider';
-import MediaInfo from 'RomFile/MediaInfo';
 import { icons, kinds } from 'Helpers/Props';
 import { useSingleSeries } from 'Platform/usePlatform';
 import { loadLocalLibretroConfig } from 'Settings/Libretro/LibretroSettings';
@@ -347,48 +346,10 @@ function GameRow({
           );
         }
 
-        if (name === 'audioInfo') {
-          return (
-            <TableRowCell key={name} className={styles.audio}>
-              <MediaInfo type="audio" romFileId={romFileId} />
-            </TableRowCell>
-          );
-        }
 
-        if (name === 'audioLanguages') {
-          return (
-            <TableRowCell key={name} className={styles.audioLanguages}>
-              <MediaInfo type="audioLanguages" romFileId={romFileId} />
-            </TableRowCell>
-          );
-        }
 
-        if (name === 'subtitleLanguages') {
-          return (
-            <TableRowCell key={name} className={styles.subtitles}>
-              <MediaInfo type="subtitles" romFileId={romFileId} />
-            </TableRowCell>
-          );
-        }
 
-        if (name === 'videoCodec') {
-          return (
-            <TableRowCell key={name} className={styles.video}>
-              <MediaInfo type="video" romFileId={romFileId} />
-            </TableRowCell>
-          );
-        }
 
-        if (name === 'videoDynamicRangeType') {
-          return (
-            <TableRowCell key={name} className={styles.videoDynamicRangeType}>
-              <MediaInfo
-                type="videoDynamicRangeType"
-                romFileId={romFileId}
-              />
-            </TableRowCell>
-          );
-        }
 
         if (name === 'size') {
           return (

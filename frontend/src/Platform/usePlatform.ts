@@ -418,46 +418,15 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     label: () => translate('Title'),
     type: filterBuilderTypes.STRING,
   },
-  {
-    name: 'network',
-    label: () => translate('Network'),
-    type: filterBuilderTypes.ARRAY,
-    optionsSelector: function (items: ReadonlyArray<Series>) {
-      const tagList = items.reduce<FilterBuilderTag<string, string>[]>(
-        (acc, series) => {
-          if (series.network) {
-            acc.push({
-              id: series.network,
-              name: series.network,
-            });
-          }
 
-          return acc;
-        },
-        []
-      );
-
-      return tagList.sort(sortByProp('name'));
-    },
-  },
   {
     name: 'qualityProfileId',
     label: () => translate('QualityProfile'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.QUALITY_PROFILE,
   },
-  {
-    name: 'nextAiring',
-    label: () => translate('NextAiring'),
-    type: filterBuilderTypes.DATE,
-    valueType: filterBuilderValueTypes.DATE,
-  },
-  {
-    name: 'previousAiring',
-    label: () => translate('PreviousAiring'),
-    type: filterBuilderTypes.DATE,
-    valueType: filterBuilderValueTypes.DATE,
-  },
+
+
   {
     name: 'added',
     label: () => translate('Added'),
@@ -567,29 +536,15 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     label: () => translate('RatingVotes'),
     type: filterBuilderTypes.NUMBER,
   },
-  {
-    name: 'certification',
-    label: () => translate('Certification'),
-    type: filterBuilderTypes.EXACT,
-  },
+
   {
     name: 'tags',
     label: () => translate('Tags'),
     type: filterBuilderTypes.ARRAY,
     valueType: filterBuilderValueTypes.TAG,
   },
-  {
-    name: 'hasMissingSeason',
-    label: () => translate('HasMissingSeason'),
-    type: filterBuilderTypes.EXACT,
-    valueType: filterBuilderValueTypes.BOOL,
-  },
-  {
-    name: 'seasonsMonitoredStatus',
-    label: () => translate('SeasonsMonitoredStatus'),
-    type: filterBuilderTypes.EXACT,
-    valueType: filterBuilderValueTypes.MONITORED_STATUS,
-  },
+
+
   {
     name: 'gamesMonitoredStatus',
     label: () => translate('GamesMonitoredStatus'),

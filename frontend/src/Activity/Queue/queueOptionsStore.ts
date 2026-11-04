@@ -52,7 +52,7 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         },
         {
           name: 'games.airDateUtc',
-          label: () => translate('GameAirDate'),
+          label: () => translate('ReleaseDate'),
           isSortable: true,
           isVisible: false,
         },

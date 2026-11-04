@@ -115,7 +115,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           name: 'network',
           label: () => translate('Network'),
           isSortable: true,
-          isVisible: true,
+          isVisible: false,
         },
         {
           name: 'qualityProfileId',
@@ -127,7 +127,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           name: 'nextAiring',
           label: () => translate('NextAiring'),
           isSortable: true,
-          isVisible: true,
+          isVisible: false,
         },
         {
           name: 'previousAiring',
@@ -155,7 +155,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         },
         {
           name: 'seasonCount',
-          label: () => translate('Seasons'),
+          label: () => translate('Regions'),
           isSortable: true,
           isVisible: true,
         },

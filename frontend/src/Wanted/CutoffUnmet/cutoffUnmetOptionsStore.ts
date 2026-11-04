@@ -9,7 +9,7 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
     return {
       pageSize: 20,
       selectedFilterKey: 'monitored',
-      sortKey: 'games.airDateUtc',
+      sortKey: 'series.sortTitle',
       sortDirection: 'descending',
       columns: [
         {
@@ -30,7 +30,7 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         },
         {
           name: 'games.airDateUtc',
-          label: () => translate('AirDate'),
+          label: () => translate('ReleaseDate'),
           isSortable: true,
           isVisible: true,
         },
