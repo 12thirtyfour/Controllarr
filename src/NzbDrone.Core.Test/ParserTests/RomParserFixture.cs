@@ -36,6 +36,9 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("2020 Super Baseball (USA).sfc", "2020 Super Baseball", "USA", null, "sfc")]
         [TestCase("3 Ninjas Kick Back (USA).sfc", "3 Ninjas Kick Back", "USA", null, "sfc")]
         [TestCase("7th Saga, The (USA).sfc", "7th Saga, The", "USA", null, "sfc")]
+        [TestCase("Pokemon Moon (USA) (Update v1.2).cia", "Pokemon Moon", "USA", "Update v1.2", "cia")]
+        [TestCase("The Legend of Zelda - Breath of the Wild (USA) (Update v1.6.0).nsp", "The Legend of Zelda - Breath of the Wild", "USA", "Update v1.6.0", "nsp")]
+        [TestCase("Mario Kart 8 (USA) (Update 4.1).wux", "Mario Kart 8", "USA", "Update 4.1", "wux")]
         public void Should_parse_real_world_roms(string title, string expectedTitle, string expectedRegion, string expectedRevision, string expectedFormat)
         {
             var result = RomParser.ParseRomName(title);

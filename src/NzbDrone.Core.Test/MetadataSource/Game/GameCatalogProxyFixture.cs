@@ -433,5 +433,37 @@ game (
             epDisc1.Monitored.Should().BeTrue();
             epDisc2.Monitored.Should().BeTrue();
         }
+
+        [Test]
+        public void should_identify_update_version_and_sort_order()
+        {
+            GameCatalogProxy.IsUpdateVersion("Update v1.2").Should().BeTrue();
+            GameCatalogProxy.IsUpdateVersion("Retail (v1.0)").Should().BeFalse();
+            GameCatalogProxy.GetRevisionSortOrder("Update v1.1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("Update v1.2"));
+            GameCatalogProxy.GetRevisionSortOrder("Update v1.2.0").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("Update v1.2.1"));
+        }
+
+        [Test]
+        public void should_pair_update_with_base_game_and_bundle_with_base_title()
+        {
+            Subject.TryGetPlatformEntry(1040, out var n3dsPlatform);
+            if (n3dsPlatform == null)
+            {
+                Subject.TryGetPlatformEntry(1011, out n3dsPlatform);
+            }
+
+            n3dsPlatform.Should().NotBeNull();
+
+            var baseEntry = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(n3dsPlatform, "Pokemon Moon (USA)", 2016, "Test");
+            var updateEntry = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(n3dsPlatform, "Pokemon Moon (USA) (Update v1.2)", 2017, "Test");
+
+            baseEntry.Should().NotBeNull();
+            updateEntry.Should().NotBeNull();
+
+            baseEntry.BaseTitle.Should().Be("Pokemon Moon");
+            updateEntry.BaseTitle.Should().Be("Pokemon Moon");
+            baseEntry.RevisionTag.Should().Be("Retail (v1.0)");
+            updateEntry.RevisionTag.Should().Be("Update v1.2");
+        }
     }
 }

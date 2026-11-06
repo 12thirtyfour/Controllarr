@@ -30,6 +30,12 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Console Game Update Bundling & Dual 1G1R Monitoring (3DS, Wii U, PS3, PS4, Switch)**: Fixed console game updates (e.g. `(Update v1.5)`, `[Update v1.1.7]`, `(Patch 1.02)`, `(DLC)`) listing as separate game entries or conflicting with base game monitoring under 1G1R:
+  - Updated `GameCatalogProxy.cs` and `RomParser.cs` with `UpdateTagRegex` and updated `ResidualRevisionRegex` to recognize and clean standalone update, patch, and DLC tags (`Update`, `UPD`, `Patch`, `DLC`), properly assigning them to the game's `RevisionTag` rather than defaulting to `"Retail (v1.0)"` or treating the update as an independent title.
+  - Implemented semantic versioning in `GameCatalogProxy.GetRevisionSortOrder` to correctly order multi-component update versions (e.g. `Update v1.2.0` < `Update v1.2.1`).
+  - Added dual candidate pool evaluation in `GameCatalogProxy.GetDefaultMonitoredGameIds`, `PlatformService.ApplyOneGameOneRomMonitoringIfNeeded`, and `GameMonitoredService.SetEpisodeMonitoredStatus`: under 1G1R mode, both the preferred base game ROM and the preferred latest update file are monitored simultaneously, preventing updates from displacing the base game or vice versa while filtering out older base revisions and older updates.
+  - Updated frontend `PlatformDetailsRegion.tsx` and `GameRow.tsx` to group update files under the base game title with an update toggle badge (`+X update(s)` / `Hide updates`, or `+X (updates & versions)`), ensuring the collapsed view always showcases the primary retail base game with individual monitoring controls and interactive search available for all bundled updates.
+  - Added unit test coverage across `RomParserFixture.cs`, `GameCatalogProxyFixture.cs`, and `SetGameMonitoredFixture.cs`.
 - **Dynamic Collection Strategy Adjustment (1G1R vs Completionist)**: Fixed library monitoring states not updating when editing a platform's strategy between Completionist (`Preservationist`) and 1G1R (`OneGameOneRom` or `OneGamePerRegionPerConsole`), or when initially adding a platform:
   - Removed artificial `isCatalogPlatform` guard in `PlatformService.ApplyOneGameOneRomMonitoringIfNeeded` and `GameMonitoredService.SetEpisodeMonitoredStatus` that previously required seasons 5 or 6 to exist, ensuring collection strategy monitoring rules apply across all console platforms and standard retail regions.
   - Switching to Completionist (`Preservationist`) automatically re-monitors all games across all active monitored regions.

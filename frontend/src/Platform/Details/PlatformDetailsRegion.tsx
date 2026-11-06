@@ -59,6 +59,11 @@ function isEncryptedLabel(label: string) {
   return /\bencrypted\b/i.test(label);
 }
 
+function isUpdateLabel(label?: string, title?: string): boolean {
+  const str = `${label || ''} ${title || ''}`;
+  return /\b(update|patch|dlc|upd)\b/i.test(str);
+}
+
 function parseDiscNumber(versionLabel: string, title?: string): number {
   const match = (versionLabel || '').match(/\bdisc\s*(\d+)\b/i) || (title || '').match(/\bdisc\s*(\d+)\b/i);
   return match ? parseInt(match[1], 10) : 1;
@@ -102,7 +107,7 @@ function parseBaseGameAndVersion(item: Game) {
   }
 
   const match = rawTitle.match(
-    /^(.*?)\s*[\(\[](Rev\.?\s*[A-Za-z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Alt\s*\d*|PRG\d+|Encrypted[^)\]]*|Beta[^)\]]*|Proto[^)\]]*|Prototype[^)\]]*|Demo[^)\]]*|Sample[^)\]]*|Virtual Console[^)\]]*|Re-Release|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack)[\)\]]$/i
+    /^(.*?)\s*[\(\[](Rev\.?\s*[A-Za-z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Alt\s*\d*|PRG\d+|Encrypted[^)\]]*|Beta[^)\]]*|Proto[^)\]]*|Prototype[^)\]]*|Demo[^)\]]*|Sample[^)\]]*|Virtual Console[^)\]]*|Re-Release|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack|(?:(?:Update|Patch|DLC)(?:\s*v?[\d.]+)?|v?[\d.]+\s*(?:Update|Patch)|UPD))[\)\]]$/i
   );
 
   if (match) {
@@ -268,7 +273,7 @@ function PlatformDetailsSeason({
       versionLabel: string;
       isAlternateGroup: boolean;
       alternateVersionCount: number;
-      alternateType: 'versions' | 'discs' | 'both';
+      alternateType: 'versions' | 'discs' | 'both' | 'updates';
       isGroupExpanded: boolean;
       groupKey: string;
     }[] = [];
@@ -348,12 +353,19 @@ function PlatformDetailsSeason({
       }
 
       const discCount = entries.filter((e) => hasDiscTag(e.versionLabel, e.item.title)).length;
-      const distinctVersionCount = new Set(entries.map((e) => parseCleanVersion(e.versionLabel))).size;
       const isMultiDisc = discCount > 1;
+      const updateEntries = entries.filter((e) => isUpdateLabel(e.versionLabel, e.item.title));
+      const baseEntries = entries.filter((e) => !isUpdateLabel(e.versionLabel, e.item.title));
+      const distinctVersionCount = new Set(baseEntries.map((e) => parseCleanVersion(e.versionLabel))).size;
+      const hasUpdates = updateEntries.length > 0;
       const isMultiVersion = distinctVersionCount > 1;
 
-      let alternateType: 'versions' | 'discs' | 'both' = 'versions';
-      if (isMultiDisc && isMultiVersion) {
+      let alternateType: 'versions' | 'discs' | 'both' | 'updates' = 'versions';
+      if (hasUpdates && !isMultiVersion && !isMultiDisc) {
+        alternateType = 'updates';
+      } else if (hasUpdates && (isMultiVersion || isMultiDisc)) {
+        alternateType = 'both';
+      } else if (isMultiDisc && isMultiVersion) {
         alternateType = 'both';
       } else if (isMultiDisc) {
         alternateType = 'discs';
@@ -381,7 +393,12 @@ function PlatformDetailsSeason({
         });
       } else {
         // Multi-disc entries must always use Disc 1 as primary
-        const disc1Entry = retailEntries.find(
+        const baseRetailEntries = retailEntries.filter(
+          (e) => !isUpdateLabel(e.versionLabel, e.item.title)
+        );
+        const baseEntriesPool = baseRetailEntries.length > 0 ? baseRetailEntries : retailEntries;
+
+        const disc1Entry = baseEntriesPool.find(
           (e) => parseDiscNumber(e.versionLabel, e.item.title) === 1
         );
 
@@ -389,18 +406,20 @@ function PlatformDetailsSeason({
         if (isMultiDisc && disc1Entry) {
           primaryEntry = disc1Entry;
         } else {
-          const monitoredRetailEntry = retailEntries.find(
+          const monitoredRetailEntry = baseEntriesPool.find(
             (e) => e.item.monitored
           );
           const monitoredEntry =
-            monitoredRetailEntry ?? entries.find((e) => e.item.monitored);
-          const unencryptedRetailEntries = retailEntries.filter(
+            monitoredRetailEntry ??
+            baseEntriesPool.find((e) => e.item.monitored) ??
+            entries.find((e) => e.item.monitored);
+          const unencryptedRetailEntries = baseEntriesPool.filter(
             (e) => !isEncryptedLabel(e.versionLabel)
           );
           const fallbackPool =
             unencryptedRetailEntries.length > 0
               ? unencryptedRetailEntries
-              : retailEntries;
+              : baseEntriesPool;
           const fallbackRetail =
             fallbackPool.length > 0
               ? preferOriginalRelease

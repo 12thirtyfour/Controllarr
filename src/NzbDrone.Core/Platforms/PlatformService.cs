@@ -382,13 +382,6 @@ namespace NzbDrone.Core.Tv
 
                 var candidateList = retailList.Count > 0 ? retailList : groupList;
 
-                var unencryptedRetail = candidateList
-                    .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
-                    .ToList();
-                var encryptedRetail = candidateList
-                    .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
-                    .ToList();
-
                 var preferredEpisodes = new HashSet<Episode>();
 
                 void AddPreferredVersionEpisodes(List<Episode> candidates)
@@ -425,30 +418,62 @@ namespace NzbDrone.Core.Tv
                     }
                 }
 
-                if (encryptionPref == EncryptionPreference.NotEncrypted ||
-                    encryptionPref == EncryptionPreference.Both)
+                void ProcessCandidatePool(List<Episode> pool)
                 {
-                    if (unencryptedRetail.Count > 0)
+                    if (pool.Count == 0)
                     {
-                        AddPreferredVersionEpisodes(unencryptedRetail);
+                        return;
                     }
-                    else if (encryptionPref == EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+
+                    var unencryptedRetail = pool
+                        .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                        .ToList();
+                    var encryptedRetail = pool
+                        .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                        .ToList();
+
+                    if (encryptionPref == EncryptionPreference.NotEncrypted ||
+                        encryptionPref == EncryptionPreference.Both)
                     {
-                        AddPreferredVersionEpisodes(encryptedRetail);
+                        if (unencryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(unencryptedRetail);
+                        }
+                        else if (encryptionPref == EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(encryptedRetail);
+                        }
+                    }
+
+                    if (encryptionPref == EncryptionPreference.Encrypted ||
+                        encryptionPref == EncryptionPreference.Both)
+                    {
+                        if (encryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(encryptedRetail);
+                        }
+                        else if (encryptionPref == EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(unencryptedRetail);
+                        }
                     }
                 }
 
-                if (encryptionPref == EncryptionPreference.Encrypted ||
-                    encryptionPref == EncryptionPreference.Both)
+                var baseGamePool = candidateList.Where(e => !GameCatalogProxy.IsUpdateVersion(e.FinaleType, e.Title)).ToList();
+                var updatePool = candidateList.Where(e => GameCatalogProxy.IsUpdateVersion(e.FinaleType, e.Title)).ToList();
+
+                if (baseGamePool.Count > 0)
                 {
-                    if (encryptedRetail.Count > 0)
-                    {
-                        AddPreferredVersionEpisodes(encryptedRetail);
-                    }
-                    else if (encryptionPref == EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
-                    {
-                        AddPreferredVersionEpisodes(unencryptedRetail);
-                    }
+                    ProcessCandidatePool(baseGamePool);
+                }
+                else if (updatePool.Count == 0)
+                {
+                    ProcessCandidatePool(candidateList);
+                }
+
+                if (updatePool.Count > 0)
+                {
+                    ProcessCandidatePool(updatePool);
                 }
 
                 foreach (var item in groupList)
@@ -476,10 +501,25 @@ namespace NzbDrone.Core.Tv
                 clean = clean.Substring(0, clean.Length - finaleType.Length - 2).Trim();
             }
 
-            var idx = clean.IndexOf(" (", StringComparison.Ordinal);
-            if (idx > 0)
+            var parenIdx = clean.IndexOf(" (", StringComparison.Ordinal);
+            var bracketIdx = clean.IndexOf(" [", StringComparison.Ordinal);
+            var cutIdx = -1;
+            if (parenIdx > 0 && bracketIdx > 0)
             {
-                clean = clean.Substring(0, idx).Trim();
+                cutIdx = Math.Min(parenIdx, bracketIdx);
+            }
+            else if (parenIdx > 0)
+            {
+                cutIdx = parenIdx;
+            }
+            else if (bracketIdx > 0)
+            {
+                cutIdx = bracketIdx;
+            }
+
+            if (cutIdx > 0)
+            {
+                clean = clean.Substring(0, cutIdx).Trim();
             }
 
             clean = GameCatalogProxy.DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');

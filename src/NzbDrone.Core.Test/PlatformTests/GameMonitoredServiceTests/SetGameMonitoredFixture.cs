@@ -400,6 +400,46 @@ namespace NzbDrone.Core.Test.PlatformTests.GameMonitoredServiceTests
                   .Verify(v => v.UpdateEpisodes(episodes), Times.Once());
         }
 
+        [Test]
+        public void should_monitor_both_preferred_base_game_and_preferred_update_in_1g1r()
+        {
+            var retailSeries = Builder<Series>.CreateNew()
+                .With(s => s.Id = 77)
+                .With(s => s.CollectionStrategy = CollectionStrategy.OneGameOneRom)
+                .With(s => s.RevisionPreference = RevisionPreference.LatestRevision)
+                .With(s => s.EncryptionPreference = EncryptionPreference.NotEncrypted)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 1, Monitored = true }
+                })
+                .Build();
+
+            var baseV1 = new Episode { Id = 601, SeriesId = retailSeries.Id, SeasonNumber = 1, Title = "Pokemon Moon (USA)", FinaleType = "Retail (v1.0)", Monitored = true };
+            var baseV2 = new Episode { Id = 602, SeriesId = retailSeries.Id, SeasonNumber = 1, Title = "Pokemon Moon (USA) (Rev 1)", FinaleType = "Rev 1", Monitored = false };
+            var updV1 = new Episode { Id = 603, SeriesId = retailSeries.Id, SeasonNumber = 1, Title = "Pokemon Moon (USA) (Update v1.1)", FinaleType = "Update v1.1", Monitored = false };
+            var updV2 = new Episode { Id = 604, SeriesId = retailSeries.Id, SeasonNumber = 1, Title = "Pokemon Moon (USA) (Update v1.2)", FinaleType = "Update v1.2", Monitored = false };
+
+            var episodes = new List<Episode> { baseV1, baseV2, updV1, updV2 };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(retailSeries.Id))
+                  .Returns(episodes);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(It.IsAny<int>(), It.IsAny<MonitorTypes>(), It.IsAny<int>(), It.IsAny<int>()))
+                  .Returns(new List<int> { 1 });
+
+            Subject.SetEpisodeMonitoredStatus(retailSeries, new MonitoringOptions { Monitor = MonitorTypes.All });
+
+            baseV1.Monitored.Should().BeFalse();
+            baseV2.Monitored.Should().BeTrue();
+            updV1.Monitored.Should().BeFalse();
+            updV2.Monitored.Should().BeTrue();
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.UpdateEpisodes(episodes), Times.Once());
+        }
+
         private void VerifySeasonMonitored(int seasonNumber)
         {
             Mocker.GetMock<ISeriesService>()
