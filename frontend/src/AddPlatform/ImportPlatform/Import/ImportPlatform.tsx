@@ -1,9 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router';
-import {
-  setAddPlatformOption,
-  useAddPlatformOption,
-} from 'AddPlatform/addPlatformOptionsStore';
 import { SelectProvider } from 'App/Select/SelectContext';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -12,7 +8,6 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import { kinds } from 'Helpers/Props';
 import useRootFolders, { useRootFolder } from 'RootFolder/useRootFolders';
-import { useQualityProfilesData } from 'Settings/Profiles/Quality/useQualityProfiles';
 import translate from 'Utilities/String/translate';
 import ImportPlatformFooter from './ImportPlatformFooter';
 import ImportPlatformList from './ImportPlatformList';
@@ -49,9 +44,6 @@ function ImportPlatform() {
     };
   }, [rootFolders, rootFolderId]);
 
-  const qualityProfiles = useQualityProfilesData();
-
-  const defaultQualityProfileId = useAddPlatformOption('qualityProfileId');
 
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -70,14 +62,6 @@ function ImportPlatform() {
     };
   }, [rootFolderId]);
 
-  useEffect(() => {
-    if (
-      !defaultQualityProfileId ||
-      !qualityProfiles.some((p) => p.id === defaultQualityProfileId)
-    ) {
-      setAddPlatformOption('qualityProfileId', qualityProfiles[0].id);
-    }
-  }, [defaultQualityProfileId, qualityProfiles]);
 
   return (
     <SelectProvider items={items}>
@@ -85,7 +69,7 @@ function ImportPlatform() {
         <PageContentBody ref={scrollerRef}>
           <div className={styles.content}>
             <PageHeading
-              scope={translate('Media')}
+              scope={translate('Platforms')}
               title={translate('ImportPlatform')}
             />
 

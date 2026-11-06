@@ -27,6 +27,13 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [2026-11-06]
+
+### Fixed
+- **Library Import Crash on Eliminated Quality Profiles**: Resolved `TypeError: Cannot read properties of undefined (reading 'id')` when navigating to `Library -> Import` and clicking an unmapped root folder path. Purged obsolete `qualityProfiles[0].id` assignment and quality profile hooks from `ImportPlatform.tsx` left over from prior video profile logic, allowing platform imports to load seamlessly with clean platform defaults. Updated page heading scope from legacy `Media` to `Platforms`.
+
+---
+
 ## [2026-11-04]
 
 ### Added
