@@ -230,6 +230,33 @@ game (
         }
 
         [Test]
+        public void should_not_duplicate_3ds_titles_when_cross_referencing_different_sources()
+        {
+            Subject.InvalidatePlatformCache();
+
+            var tuple = Subject.GetSeriesInfo(1013, Language.English, "notEncrypted");
+            tuple.Item1.Title.Should().Be("Nintendo 3DS");
+
+            var moonGames = tuple.Item2.Where(e => e.Title.Contains("Moon", System.StringComparison.OrdinalIgnoreCase)).ToList();
+            var unencryptedMoon = moonGames.Where(e => e.FinaleType != "Encrypted").ToList();
+            unencryptedMoon.Should().ContainSingle(e => e.Title == "Pokemon Moon");
+
+            var rubyGames = tuple.Item2.Where(e => e.Title.Contains("Omega Ruby", System.StringComparison.OrdinalIgnoreCase)).ToList();
+            var unencryptedRuby = rubyGames.Where(e => e.FinaleType != "Encrypted").ToList();
+            unencryptedRuby.Should().ContainSingle(e => e.Title == "Pokemon Omega Ruby");
+
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokémon Moon").Should().Be("pokemonmoon");
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokemon - Moon").Should().Be("pokemonmoon");
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokémon™ Moon").Should().Be("pokemonmoon");
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokemon Moon").Should().Be("pokemonmoon");
+
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokémon Omega Ruby").Should().Be("pokemonomegaruby");
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokemon - Omega Ruby").Should().Be("pokemonomegaruby");
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokémon™ Omega Ruby").Should().Be("pokemonomegaruby");
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Pokemon Omega Ruby").Should().Be("pokemonomegaruby");
+        }
+
+        [Test]
         public void should_parse_gametdb_xml_and_populate_games_and_dat_entries()
         {
             Subject.TryGetPlatformEntry(1014, out var switchPlatform).Should().BeTrue();

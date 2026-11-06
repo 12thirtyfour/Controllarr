@@ -76,6 +76,15 @@ function parseCleanVersion(versionLabel: string): string {
   return clean || 'Retail (v1.0)';
 }
 
+function normalizeGroupKey(title: string): string {
+  return (title || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s\-_:]+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 function parseBaseGameAndVersion(item: Game) {
   const rawTitle = item.title ?? '';
 
@@ -244,7 +253,7 @@ function PlatformDetailsSeason({
 
     items.forEach((item) => {
       const { baseTitle, versionLabel } = parseBaseGameAndVersion(item);
-      const key = baseTitle.toLowerCase();
+      const key = normalizeGroupKey(baseTitle);
       const existing = groupsMap.get(key);
 
       if (existing) {
@@ -269,8 +278,8 @@ function PlatformDetailsSeason({
       ([keyA, entriesA], [keyB, entriesB]) => {
         const titleA = entriesA[0]?.baseTitle || keyA;
         const titleB = entriesB[0]?.baseTitle || keyB;
-        const normA = titleA.replace(ARTICLE_REGEX, '').trim().toLowerCase();
-        const normB = titleB.replace(ARTICLE_REGEX, '').trim().toLowerCase();
+        const normA = normalizeGroupKey(titleA.replace(ARTICLE_REGEX, ''));
+        const normB = normalizeGroupKey(titleB.replace(ARTICLE_REGEX, ''));
         return normA.localeCompare(normB);
       }
     );
@@ -280,8 +289,28 @@ function PlatformDetailsSeason({
       const isAlternateGroup = groupIndex % 2 === 1;
       groupIndex++;
 
+      const uniqueEntries: typeof rawEntries = [];
+      const seenEntryKeys = new Set<string>();
+      rawEntries.forEach((entry) => {
+        const cleanVer = parseCleanVersion(entry.versionLabel);
+        const disc = parseDiscNumber(entry.versionLabel, entry.item.title);
+        const entryKey = `${cleanVer}:${disc}:${isEncryptedLabel(entry.versionLabel)}`;
+        if (seenEntryKeys.add(entryKey)) {
+          uniqueEntries.push(entry);
+        } else if (entry.item.monitored || entry.item.romFileId) {
+          const existingIdx = uniqueEntries.findIndex((e) => {
+            const eVer = parseCleanVersion(e.versionLabel);
+            const eDisc = parseDiscNumber(e.versionLabel, e.item.title);
+            return `${eVer}:${eDisc}:${isEncryptedLabel(e.versionLabel)}` === entryKey;
+          });
+          if (existingIdx >= 0) {
+            uniqueEntries[existingIdx] = entry;
+          }
+        }
+      });
+
       // Sort unencrypted retail releases first, then encrypted retail releases, then Prototype/Beta/Demo/Sample pre-releases
-      const entries = [...rawEntries].sort((a, b) => {
+      const entries = [...uniqueEntries].sort((a, b) => {
         const aBucket = isPreReleaseLabel(a.versionLabel)
           ? 2
           : isEncryptedLabel(a.versionLabel)

@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using NLog;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Dat;
 using NzbDrone.Core.Languages;
@@ -132,7 +133,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static readonly List<PlatformCatalogEntry> BuiltInPlatforms = BuildPlatforms();
         private static readonly List<GameCatalogEntry> BuiltInGames = BuildGames();
         private static readonly ConcurrentDictionary<int, GameCatalogEntry> DynamicGames = new ConcurrentDictionary<int, GameCatalogEntry>();
-        private static readonly ConcurrentDictionary<int, List<GameCatalogEntry>> SyncedPlatformGamesCache = new ConcurrentDictionary<int, List<GameCatalogEntry>>();
+        private static readonly ConcurrentDictionary<string, List<GameCatalogEntry>> SyncedPlatformGamesCache = new ConcurrentDictionary<string, List<GameCatalogEntry>>();
         private static readonly ConcurrentDictionary<int, HashSet<int>> PendingPlatformGameSelections = new ConcurrentDictionary<int, HashSet<int>>();
 
         private readonly IDatCacheService _datCacheService;
@@ -241,7 +242,12 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             if (platformTvdbId.HasValue)
             {
-                SyncedPlatformGamesCache.TryRemove(platformTvdbId.Value, out _);
+                var prefix = $"{platformTvdbId.Value}:";
+                foreach (var key in SyncedPlatformGamesCache.Keys.Where(k => k.StartsWith(prefix)).ToList())
+                {
+                    SyncedPlatformGamesCache.TryRemove(key, out _);
+                }
+
                 foreach (var kvp in DynamicGames.Where(kv => kv.Value.PlatformTvdbId == platformTvdbId.Value).ToList())
                 {
                     DynamicGames.TryRemove(kvp.Key, out _);
@@ -269,7 +275,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var encryptionPref = ParseEncryptionPreference(seasonType);
             var synced = SyncOnlineCatalogForPlatform(
                 platform,
-                encryptionPref == Games.EncryptionPreference.Encrypted,
+                encryptionPref,
                 forceRefresh);
 
             return synced?.Count ?? 0;
@@ -334,17 +340,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                 TryGetPlatformEntry(gameEntry.PlatformTvdbId, out var parentPlatform))
             {
                 RegisterGameSelection(gameEntry.TvdbId);
-                return BuildPlatformSeriesAndEpisodes(parentPlatform, encryptionPreference);
+                return BuildPlatformAndGames(parentPlatform, encryptionPreference);
             }
 
             if (TryGetPlatformEntry(tvdbSeriesId, out var platformEntry))
             {
-                return BuildPlatformSeriesAndEpisodes(platformEntry, encryptionPreference);
+                return BuildPlatformAndGames(platformEntry, encryptionPreference);
             }
 
             var fallbackPlatform = CreateFallbackPlatformEntry(tvdbSeriesId);
 
-            return BuildPlatformSeriesAndEpisodes(fallbackPlatform, encryptionPreference);
+            return BuildPlatformAndGames(fallbackPlatform, encryptionPreference);
         }
 
         public static Games.EncryptionPreference ParseEncryptionPreference(string seasonType)
@@ -507,7 +513,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             return SearchForNewSeries($"tvdb:{tmdbId}", language);
         }
 
-        private Tuple<Series, List<Episode>> BuildPlatformSeriesAndEpisodes(
+        private Tuple<Series, List<Episode>> BuildPlatformAndGames(
             PlatformCatalogEntry platform,
             Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted)
         {
@@ -528,15 +534,23 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 var canonicalTitle = NormalizeCanonicalCrossRefTitle(candidate.BaseTitle ?? candidate.Title);
-                var canonicalRev = (candidate.RevisionTag ?? "Retail (v1.0)").Trim();
+                var rawRev = candidate.RevisionTag ?? "Retail (v1.0)";
+                var canonicalRev = rawRev.Equals("v1.0", StringComparison.OrdinalIgnoreCase) ||
+                                   rawRev.Equals("Retail", StringComparison.OrdinalIgnoreCase)
+                    ? "Retail (v1.0)"
+                    : rawRev.Trim();
                 var canonicalKey = $"{candidate.RegionSeasonNumber}:{canonicalTitle}:{canonicalRev}";
 
-                if (!seenIds.Add(candidate.TvdbId) ||
-                    !seenNames.Add(candidate.NoIntroName ?? candidate.Title) ||
-                    !seenCanonicalReleases.Add(canonicalKey))
+                if (seenCanonicalReleases.Contains(canonicalKey) ||
+                    seenIds.Contains(candidate.TvdbId) ||
+                    seenNames.Contains(candidate.NoIntroName ?? candidate.Title))
                 {
                     return false;
                 }
+
+                seenCanonicalReleases.Add(canonicalKey);
+                seenIds.Add(candidate.TvdbId);
+                seenNames.Add(candidate.NoIntroName ?? candidate.Title);
 
                 return true;
             }
@@ -551,7 +565,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var syncedGames = SyncOnlineCatalogForPlatform(
                 platform,
-                encryptionPreference == Games.EncryptionPreference.Encrypted);
+                encryptionPreference);
             foreach (var synced in syncedGames)
             {
                 if (TryRegisterCrossReferencedGame(synced))
@@ -634,7 +648,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var hasExplicitSelection = selectedGameIds.Count > 0;
             var defaultMonitoredGameIds = GetDefaultMonitoredGameIds(platformGames, encryptionPreference);
 
-            var episodeCounters = new Dictionary<int, int>();
+            var gameCounters = new Dictionary<int, int>();
             var absoluteGameCounter = 0;
 
             foreach (var game in platformGames
@@ -644,10 +658,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                 .ThenBy(g => g.Title, StringComparer.OrdinalIgnoreCase))
             {
                 var seasonNum = game.RegionSeasonNumber;
-                episodeCounters.TryGetValue(seasonNum, out var currentEpNum);
-                currentEpNum++;
-                episodeCounters[seasonNum] = currentEpNum;
-                game.EpisodeNumber = currentEpNum;
+                gameCounters.TryGetValue(seasonNum, out var currentGameNum);
+                currentGameNum++;
+                gameCounters[seasonNum] = currentGameNum;
+                game.EpisodeNumber = currentGameNum;
 
                 absoluteGameCounter++;
                 game.AbsoluteEpisodeNumber = absoluteGameCounter;
@@ -696,7 +710,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private List<GameCatalogEntry> SyncOnlineCatalogForPlatform(
             PlatformCatalogEntry platform,
-            bool preferEncryptedRoms = false,
+            Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted,
             bool forceRefresh = false)
         {
             if (platform == null || string.IsNullOrWhiteSpace(platform.LibretroSystemName) || _httpClient == null)
@@ -704,7 +718,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return new List<GameCatalogEntry>();
             }
 
-            if (!forceRefresh && !preferEncryptedRoms && SyncedPlatformGamesCache.TryGetValue(platform.TvdbId, out var cached))
+            var cacheKey = $"{platform.TvdbId}:{(int)encryptionPreference}";
+            if (!forceRefresh && SyncedPlatformGamesCache.TryGetValue(cacheKey, out var cached))
             {
                 return cached;
             }
@@ -717,7 +732,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var escapedSystem = Uri.EscapeDataString(platform.LibretroSystemName);
                 var releaseYearLookup = FetchReleaseYearLookup(escapedSystem);
 
-                var datFeeds = BuildDatFeedsForPlatform(platform, escapedSystem, preferEncryptedRoms);
+                var datFeeds = BuildDatFeedsForPlatform(platform, escapedSystem, encryptionPreference);
 
                 foreach (var feed in datFeeds)
                 {
@@ -810,10 +825,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     DynamicGames[entry.TvdbId] = entry;
                 }
 
-                if (!preferEncryptedRoms)
-                {
-                    SyncedPlatformGamesCache[platform.TvdbId] = syncedList;
-                }
+                SyncedPlatformGamesCache[cacheKey] = syncedList;
             }
 
             return syncedList;
@@ -822,41 +834,43 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static List<(string Url, string SourceLabel)> BuildDatFeedsForPlatform(
             PlatformCatalogEntry platform,
             string escapedSystem,
-            bool preferEncryptedRoms)
+            Games.EncryptionPreference encryptionPreference)
         {
             var feeds = new List<(string Url, string SourceLabel)>();
             var slug = (platform?.Slug ?? string.Empty).ToLowerInvariant();
 
             if (slug == "nds")
             {
-                if (!preferEncryptedRoms)
+                if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
                 {
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi%20(Decrypted).dat", "No-Intro DSi (Decrypted)"));
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi%20(Digital).dat", "No-Intro DSiWare"));
-                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
                 }
-                else
+
+                if (encryptionPreference == Games.EncryptionPreference.Encrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
                 {
                     feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi.dat", "No-Intro DSi (Encrypted)"));
-                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
                 }
             }
             else if (slug == "3ds")
             {
-                if (!preferEncryptedRoms)
+                if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
                 {
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS%20(Decrypted).dat", "No-Intro New 3DS (Decrypted)"));
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Digital).dat", "No-Intro 3DS Digital"));
-                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
                 }
-                else
+
+                if (encryptionPreference == Games.EncryptionPreference.Encrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
                 {
                     feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
                     feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS.dat", "No-Intro New 3DS (Encrypted)"));
-                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
                 }
             }
             else if (slug == "neogeo")
@@ -2039,14 +2053,15 @@ namespace NzbDrone.Core.MetadataSource.Game
             return 1;
         }
 
-        private static string NormalizeCanonicalCrossRefTitle(string value)
+        internal static string NormalizeCanonicalCrossRefTitle(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
                 return string.Empty;
             }
 
-            var articleNormalized = NormalizeTitleArticle(StripParentheses(value));
+            var unaccented = value.RemoveDiacritics();
+            var articleNormalized = NormalizeTitleArticle(StripParentheses(unaccented));
             var sb = new System.Text.StringBuilder(articleNormalized.Length);
             foreach (var ch in articleNormalized)
             {
@@ -3036,6 +3051,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("3ds", "Pokemon Y (USA)", 2013, "Explore the Kalos region, master Mega Evolution, and encounter the Destruction Pokemon Yveltal.");
             Add("3ds", "Pokemon Omega Ruby (USA)", 2014, "3DS reimagining of Pokemon Ruby featuring Primal Groudon, Mega Evolution, and Soaring in the sky.");
             Add("3ds", "Pokemon Alpha Sapphire (USA)", 2014, "3DS reimagining of Pokemon Sapphire featuring Primal Kyogre, Mega Evolution, and the Delta Episode.");
+            Add("3ds", "Pokemon Sun (USA)", 2016, "Explore the tropical Alola region with legendary Solgaleo and regional Alolan variants.");
+            Add("3ds", "Pokemon Moon (USA)", 2016, "Explore the tropical Alola region with legendary Lunala and island challenge trials.");
             Add("3ds", "Pokemon Ultra Sun (USA)", 2017, "Expanded Alola adventure featuring Dusk Mane Necrozma, Ultra Wormholes, and Team Rainbow Rocket.");
             Add("3ds", "Pokemon Ultra Moon (USA)", 2017, "Expanded Alola adventure featuring Dawn Wings Necrozma, Ultra Wormholes, and Team Rainbow Rocket.");
             Add("switch", "Pokemon Legends - Arceus (World)", 2022, "Action-RPG set in the ancient Hisui region where you survey wild Pokemon to create the first Pokedex.");

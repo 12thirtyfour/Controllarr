@@ -30,6 +30,12 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Nintendo 3DS Duplicate Titles & Catalog Cross-Referencing**: Resolved issue where Nintendo 3DS games (such as *Pokémon Moon* and *Pokémon Omega Ruby*) appeared multiple times as separate entries in library and platform views.
+  - Added diacritic stripping (`RemoveDiacritics()`) and non-alphanumeric normalization to `GameCatalogProxy.NormalizeCanonicalCrossRefTitle`, ensuring GameTDB titles (e.g. `Pokémon Moon`) correctly match No-Intro and built-in titles (`Pokemon - Moon` / `Pokemon Moon`) and prevent duplicate catalog entry creation.
+  - Aligned `BuildDatFeedsForPlatform` and `SyncOnlineCatalogForPlatform` with 3-way `EncryptionPreference` so unencrypted (decrypted) preferences only sync decrypted feeds and encrypted preferences only sync encrypted feeds unless `Both` is selected.
+  - Renamed legacy TV method `BuildPlatformSeriesAndEpisodes` to `BuildPlatformAndGames`, replaced episode counter holdovers with game counters, and purged TV terminology.
+  - Implemented `normalizeGroupKey` in `PlatformDetailsRegion.tsx` removing diacritics, hyphens, and whitespace differences, and added automatic version deduplication in display rows so alternate dumps and versions cleanly group under a single row with 1G1R version management.
+  - Added unit test `should_not_duplicate_3ds_titles_when_cross_referencing_different_sources` in `GameCatalogProxyFixture.cs`.
 - **Platform & Region "Search Monitored" Item-by-Item Search**: Resolved issue where clicking "Search Monitored" in platform view attempted to search for every game in one bundled collection string (or sent empty request chains) rather than searching item by item.
   - Refactored `PlatformSearchService` to iterate through missing monitored games on the platform and dispatch individual `EpisodeSearch` requests game by game.
   - Refactored `RegionSearchService` to iterate through missing monitored games in the specified region and dispatch individual `EpisodeSearch` requests item by item.
