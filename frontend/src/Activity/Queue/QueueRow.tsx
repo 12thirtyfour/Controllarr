@@ -34,7 +34,6 @@ import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
 import translate from 'Utilities/String/translate';
-import GameCellContent from './GameCellContent';
 import GameTitleCellContent from './GameTitleCellContent';
 import QueueStatusCell from './QueueStatusCell';
 import RemoveQueueItemModal from './RemoveQueueItemModal';
@@ -212,19 +211,6 @@ function QueueRow(props: QueueRowProps) {
               ) : (
                 <span className={styles.unmatchedTitle}>{title}</span>
               )}
-            </TableRowCell>
-          );
-        }
-
-        if (name === 'game') {
-          return (
-            <TableRowCell key={name}>
-              <GameCellContent
-                games={games}
-                isFullSeason={isFullSeason}
-                seasonNumber={seasonNumbers[0]}
-                series={series}
-              />
             </TableRowCell>
           );
         }

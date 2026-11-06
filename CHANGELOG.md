@@ -30,6 +30,11 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Queue Table & TV Season/Episode Holdover Elimination**: Resolved user-reported issue where the Activity > Queue table displayed a redundant "Game(s)" column cataloged in TV season x episode format (e.g. `1x1348`) alongside "Game Title(s)".
+  - Removed the `game` ("Game(s)") column entirely from the Queue view in `queueOptionsStore.ts` and `QueueRow.tsx`.
+  - Bumped queue options store version to `queue_options_v3` so client browsers automatically discard the cached `game` column and default to the clean layout with "Game Title" (`games.title`).
+  - Deleted `GameCellContent.tsx` and purged `{seasonNumber}x{padNumber(gameNumber, 2)}` season-by-episode formatting from `GameNumber.tsx` and `RegionGameNumber.tsx`. Games are now consistently identified by their title and clean game number rather than TV episode codes (`1x1348`).
+  - Removed awkward `(s)` suffixes from game and platform localization strings in `en.json` (`GameMaybePlural`, `GameTitleMaybePlural`, `EpisodeMaybePlural`, `EpisodeTitleMaybePlural`, `GameNumbers`, `AbsoluteGameNumbers`, `SelectGames`, etc.).
 - **Recursive ROM Inspection & Collection Archive Library Import**: Resolved critical issues in `Library -> Import` and platform scanning where extracted folders were not inspected recursively for ROM files (causing child game folders to be erroneously detected as separate unmapped platforms) and collection zip archives were not recognized for multi-game extraction and analysis.
   - Refactored `RootFolderService.GetUnmappedFolders` to look at ROM files recursively rather than just top-level folders:
     - If a folder path resolves to a platform by name or contains ROMs belonging to a single platform, Controllarr identifies the folder itself as that platform without enumerating child game folders as separate platforms.

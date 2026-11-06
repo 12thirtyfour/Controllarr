@@ -17,7 +17,6 @@ function SeasonGameNumber(props: SeasonGameNumberProps) {
   return (
     <GameNumber
       seriesType={seriesType}
-      showSeasonNumber={true}
       {...otherProps}
     />
   );

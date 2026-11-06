@@ -3,7 +3,6 @@ import Icon from 'Components/Icon';
 import Popover from 'Components/Tooltip/Popover';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import { AlternateTitle, SeriesType } from 'Platform/Platform';
-import padNumber from 'Utilities/Number/padNumber';
 import filterAlternateTitles from 'Utilities/Platform/filterAlternateTitles';
 import translate from 'Utilities/String/translate';
 import SceneInfo from './SceneInfo';
@@ -45,7 +44,6 @@ function GameNumber(props: GameNumberProps) {
     sceneAbsoluteGameNumber,
     alternateTitles: seriesAlternateTitles = [],
     seriesType,
-    showSeasonNumber = false,
   } = props;
 
   const alternateTitles = filterAlternateTitles(
@@ -67,14 +65,7 @@ function GameNumber(props: GameNumberProps) {
         <Popover
           anchor={
             <span>
-              {showSeasonNumber && seasonNumber != null && (
-                <>
-                  {seasonNumber}
-                  <span className={styles.separator}>x</span>
-                </>
-              )}
-
-              {showSeasonNumber ? padNumber(gameNumber, 2) : gameNumber}
+              {gameNumber}
 
               {seriesType === 'anime' && !!absoluteGameNumber && (
                 <span className={styles.absoluteGameNumber}>
@@ -99,14 +90,7 @@ function GameNumber(props: GameNumberProps) {
         />
       ) : (
         <span>
-          {showSeasonNumber && seasonNumber != null && (
-            <>
-              {seasonNumber}
-              <span className={styles.separator}>x</span>
-            </>
-          )}
-
-          {showSeasonNumber ? padNumber(gameNumber, 2) : gameNumber}
+          {gameNumber}
 
           {seriesType === 'anime' && !!absoluteGameNumber && (
             <span className={styles.absoluteGameNumber}>
