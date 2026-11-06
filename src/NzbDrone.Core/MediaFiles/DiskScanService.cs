@@ -313,36 +313,47 @@ namespace NzbDrone.Core.MediaFiles
             {
                 using var archive = ZipFile.OpenRead(zipPath);
                 var validExtensions = MediaFileExtensions.RomExtensions;
-                var gameEntriesCount = 0;
-                var isMultiTrack = false;
-
-                foreach (var e in archive.Entries)
+                var gameEntries = archive.Entries.Where(e =>
                 {
                     if (e.FullName.EndsWith("/") || e.FullName.EndsWith("\\") ||
                         e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") ||
                         e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
                     {
-                        continue;
+                        return false;
                     }
 
                     var ext = Path.GetExtension(e.Name);
-                    if (ext.Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                        ext.Equals(".gdi", StringComparison.OrdinalIgnoreCase))
-                    {
-                        isMultiTrack = true;
-                    }
+                    return validExtensions.Contains(ext);
+                }).ToList();
 
-                    if (validExtensions.Contains(ext))
+                if (gameEntries.Count <= 1)
+                {
+                    return false;
+                }
+
+                var cueEntries = gameEntries.Where(e =>
+                    Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                    Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                    Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                if (cueEntries.Count <= 1)
+                {
+                    var hasNestedArchives = gameEntries.Any(e =>
+                        Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                        Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                    var distinctDirectories = gameEntries
+                        .Select(e => Path.GetDirectoryName(e.FullName) ?? string.Empty)
+                        .Distinct()
+                        .ToList();
+
+                    if (!hasNestedArchives && distinctDirectories.Count <= 1)
                     {
-                        gameEntriesCount++;
-                        if (gameEntriesCount > 1 && !isMultiTrack)
-                        {
-                            return true;
-                        }
+                        return false;
                     }
                 }
 
-                return gameEntriesCount > 1 && !isMultiTrack;
+                return true;
             }
             catch
             {
@@ -393,6 +404,7 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var trimmedPath = series.Path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var folderName = Path.GetFileName(trimmedPath);
             var candidateArchives = new List<string>
             {
                 trimmedPath + ".zip",
@@ -402,6 +414,8 @@ namespace NzbDrone.Core.MediaFiles
             var rootFolder = _rootFolderService.GetBestRootFolderPath(series.Path);
             if (!string.IsNullOrWhiteSpace(rootFolder) && _diskProvider.FolderExists(rootFolder))
             {
+                candidateArchives.Add(Path.Combine(rootFolder, folderName + ".zip"));
+                candidateArchives.Add(Path.Combine(rootFolder, folderName + ".7z"));
                 candidateArchives.Add(Path.Combine(rootFolder, series.CleanTitle + ".zip"));
                 candidateArchives.Add(Path.Combine(rootFolder, series.CleanTitle + ".7z"));
                 candidateArchives.Add(Path.Combine(rootFolder, series.Title + ".zip"));
@@ -428,6 +442,8 @@ namespace NzbDrone.Core.MediaFiles
                     archiveFiles.Add(cand);
                 }
             }
+
+            var newlyExtractedArchives = new List<string>();
 
             foreach (var archiveFile in archiveFiles)
             {
@@ -506,10 +522,21 @@ namespace NzbDrone.Core.MediaFiles
                             return validExtensions.Contains(ext);
                         }).ToList();
 
-                        var isMultiTrackDisc = gameEntries.Any(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                                                                    Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase));
+                        var cueEntries = gameEntries.Where(e =>
+                            Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                            Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                            Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
 
-                        if (gameEntries.Count > 1 && !isMultiTrackDisc)
+                        var hasNestedArchives = gameEntries.Any(e =>
+                            Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                            Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                        var isSingleMultiTrack = cueEntries.Count == 1 && !hasNestedArchives &&
+                            gameEntries.Select(e => Path.GetDirectoryName(e.FullName) ?? string.Empty).Distinct().Count() <= 1;
+
+                        var isMultiGame = gameEntries.Count > 1 && !isSingleMultiTrack;
+
+                        if (isMultiGame || isSingleMultiTrack)
                         {
                             _logger.ProgressInfo("Extracting {0} ROMs from collection archive: {1}", gameEntries.Count, Path.GetFileName(archiveFile));
 
@@ -539,6 +566,11 @@ namespace NzbDrone.Core.MediaFiles
                                     relativeTarget = string.Join(Path.DirectorySeparatorChar, segments.Skip(1));
                                 }
 
+                                if (isSingleMultiTrack && !relativeTarget.Contains(Path.DirectorySeparatorChar))
+                                {
+                                    relativeTarget = Path.Combine(archiveBaseName, relativeTarget);
+                                }
+
                                 var destinationPath = Path.GetFullPath(Path.Combine(targetDirectory, relativeTarget));
 
                                 if (!destinationPath.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase))
@@ -560,16 +592,95 @@ namespace NzbDrone.Core.MediaFiles
                                     {
                                         _diskProvider.SaveStream(entryStream, destinationPath);
                                     }
+
+                                    if (Path.GetExtension(destinationPath).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        newlyExtractedArchives.Add(destinationPath);
+                                    }
                                 }
                             }
 
                             _logger.Info("Extracted {0} ROMs from collection archive '{1}' (archive preserved)", gameEntries.Count, Path.GetFileName(archiveFile));
+
+                            if (isSingleMultiTrack && archiveFile.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase))
+                            {
+                                _diskProvider.DeleteFile(archiveFile);
+                            }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.Warn(ex, "Failed to extract collection archive '{0}' during disk scan for {1}", archiveFile, series.Title);
+                }
+            }
+
+            foreach (var innerZip in newlyExtractedArchives)
+            {
+                if (!_diskProvider.FileExists(innerZip))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    using var archive = ZipFile.OpenRead(innerZip);
+                    var validEntries = archive.Entries.Where(e =>
+                    {
+                        if (e.FullName.EndsWith("/") || e.FullName.EndsWith("\\"))
+                        {
+                            return false;
+                        }
+
+                        if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") ||
+                            e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
+
+                        var ext = Path.GetExtension(e.Name);
+                        return MediaFileExtensions.RomExtensions.Contains(ext);
+                    }).ToList();
+
+                    if (validEntries.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var cueEntries = validEntries.Where(e =>
+                        Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                        Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                        Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                    var zipDir = Path.GetDirectoryName(innerZip);
+                    var zipBaseName = Path.GetFileNameWithoutExtension(innerZip);
+
+                    if (cueEntries.Count > 0 || validEntries.Count > 1)
+                    {
+                        var extractTargetDir = Path.Combine(zipDir, zipBaseName);
+                        if (!_diskProvider.FolderExists(extractTargetDir))
+                        {
+                            _diskProvider.CreateFolder(extractTargetDir);
+                        }
+
+                        foreach (var entry in validEntries)
+                        {
+                            var targetFileName = Path.GetFileName(entry.FullName.Replace('/', Path.DirectorySeparatorChar));
+                            var dest = Path.Combine(extractTargetDir, targetFileName);
+                            if (!_diskProvider.FileExists(dest))
+                            {
+                                using var stream = entry.Open();
+                                _diskProvider.SaveStream(stream, dest);
+                            }
+                        }
+
+                        _logger.Info("Extracted {0} files from disc game archive '{1}' into '{2}'", validEntries.Count, Path.GetFileName(innerZip), extractTargetDir);
+                        _diskProvider.DeleteFile(innerZip);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Failed to inspect nested zip archive '{0}'", innerZip);
                 }
             }
         }

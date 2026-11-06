@@ -314,5 +314,53 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             results.First().Episodes.First().Title.Should().Be("Metroid");
             results.First().Hashes.Should().ContainKey("CRC32");
         }
+
+        [Test]
+        public void Scan_MultiDiscCollectionZip_ShouldImportEachGameDiscSeparately()
+        {
+            var collectionZipPath = Path.Combine(_tempPath, "Sega CD Collection.zip");
+            using (var archive = ZipFile.Open(collectionZipPath, ZipArchiveMode.Create))
+            {
+                var entry1 = archive.CreateEntry("Sonic CD (USA)/Sonic CD (USA).cue");
+                using (var s1 = entry1.Open())
+                {
+                    s1.Write(new byte[] { 1, 2, 3, 4 }, 0, 4);
+                }
+
+                var entry2 = archive.CreateEntry("Sonic CD (USA)/Sonic CD (USA) (Track 1).bin");
+                using (var s2 = entry2.Open())
+                {
+                    s2.Write(new byte[] { 5, 6, 7, 8 }, 0, 4);
+                }
+
+                var entry3 = archive.CreateEntry("Lunar (USA)/Lunar (USA).cue");
+                using (var s3 = entry3.Open())
+                {
+                    s3.Write(new byte[] { 9, 10, 11, 12 }, 0, 4);
+                }
+
+                var entry4 = archive.CreateEntry("Lunar (USA)/Lunar (USA) (Track 1).bin");
+                using (var s4 = entry4.Open())
+                {
+                    s4.Write(new byte[] { 13, 14, 15, 16 }, 0, 4);
+                }
+            }
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 20, Title = "Sega CD", CleanTitle = "segacd", TitleSlug = "sega-cd" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(20)).Returns(new List<Episode>
+            {
+                new Episode { Id = 201, Title = "Sonic CD", SeriesId = 20 },
+                new Episode { Id = 202, Title = "Lunar", SeriesId = 20 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().HaveCount(2);
+            results.Should().Contain(r => r.Name == "Sonic CD (USA)");
+            results.Should().Contain(r => r.Name == "Lunar (USA)");
+        }
     }
 }

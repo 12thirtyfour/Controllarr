@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using FizzWare.NBuilder;
 using Moq;
@@ -480,6 +482,65 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             Mocker.GetMock<IEventAggregator>()
                 .Verify(v => v.PublishEvent(It.Is<PlatformScannedEvent>(c => c.Series != null && c.PossibleExtraFiles.Count == 0)), Times.Once());
+        }
+
+        [Test]
+        public void should_extract_collection_archive_with_multiple_cue_discs()
+        {
+            GivenSeriesFolder();
+
+            var tempZip = Path.Combine(Path.GetTempPath(), "SegaCD_Collection_" + Guid.NewGuid() + ".zip");
+            try
+            {
+                using (var archive = ZipFile.Open(tempZip, ZipArchiveMode.Create))
+                {
+                    var e1 = archive.CreateEntry("Sonic CD (USA)/Sonic CD.cue");
+                    using (var s1 = e1.Open())
+                    {
+                        s1.Write(new byte[] { 1, 2, 3 }, 0, 3);
+                    }
+
+                    var e2 = archive.CreateEntry("Sonic CD (USA)/Sonic CD (Track 1).bin");
+                    using (var s2 = e2.Open())
+                    {
+                        s2.Write(new byte[] { 4, 5, 6 }, 0, 3);
+                    }
+
+                    var e3 = archive.CreateEntry("Lunar (USA)/Lunar.cue");
+                    using (var s3 = e3.Open())
+                    {
+                        s3.Write(new byte[] { 7, 8, 9 }, 0, 3);
+                    }
+
+                    var e4 = archive.CreateEntry("Lunar (USA)/Lunar (Track 1).bin");
+                    using (var s4 = e4.Open())
+                    {
+                        s4.Write(new byte[] { 10, 11, 12 }, 0, 3);
+                    }
+                }
+
+                _series.Title = "Sega CD";
+                _series.CleanTitle = "Sega CD";
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(s => s.GetFiles(_series.Path, true))
+                    .Returns(new[] { tempZip });
+
+                Subject.Scan(_series);
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Verify(s => s.SaveStream(It.IsAny<Stream>(), It.Is<string>(p => p.EndsWith("Sonic CD.cue"))), Times.Once());
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Verify(s => s.SaveStream(It.IsAny<Stream>(), It.Is<string>(p => p.EndsWith("Lunar.cue"))), Times.Once());
+            }
+            finally
+            {
+                if (File.Exists(tempZip))
+                {
+                    File.Delete(tempZip);
+                }
+            }
         }
     }
 }

@@ -261,6 +261,40 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
         }
 
+        private static bool IsSingleMultiTrackDisc(List<ZipArchiveEntry> entries)
+        {
+            if (entries == null || entries.Count == 0)
+            {
+                return false;
+            }
+
+            var cueEntries = entries.Where(e =>
+                Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (cueEntries.Count != 1)
+            {
+                return false;
+            }
+
+            var hasNestedArchives = entries.Any(e =>
+                Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+            if (hasNestedArchives)
+            {
+                return false;
+            }
+
+            var distinctDirectories = entries
+                .Select(e => Path.GetDirectoryName(e.FullName) ?? string.Empty)
+                .Distinct()
+                .ToList();
+
+            return distinctDirectories.Count <= 1;
+        }
+
         private static (string Name, string Crc32) GetInnerRomDetails(ZipArchiveEntry entry)
         {
             var crc32 = entry.Crc32.ToString("x8").ToLowerInvariant();
@@ -392,10 +426,9 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     return;
                 }
 
-                var isMultiTrackDisc = gameEntries.Any(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                                                            Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase));
+                var isSingleMultiTrack = IsSingleMultiTrackDisc(gameEntries);
 
-                if (gameEntries.Count == 1 || isMultiTrackDisc)
+                if (gameEntries.Count == 1 || isSingleMultiTrack)
                 {
                     var primaryEntry = gameEntries.FirstOrDefault(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
                                                                        Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase)) ?? gameEntries[0];
@@ -450,7 +483,14 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 }
                 else
                 {
-                    foreach (var entry in gameEntries)
+                    var cueEntries = gameEntries.Where(e =>
+                        Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                        Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                        Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                    var entriesToProcess = cueEntries.Count > 1 ? cueEntries : gameEntries;
+
+                    foreach (var entry in entriesToProcess)
                     {
                         var (entryName, crc32) = GetInnerRomDetails(entry);
                         var hashes = new Dictionary<string, string> { ["CRC32"] = crc32 };

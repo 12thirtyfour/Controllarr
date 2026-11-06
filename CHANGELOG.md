@@ -30,6 +30,18 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Recursive ROM Inspection & Collection Archive Library Import**: Resolved critical issues in `Library -> Import` and platform scanning where extracted folders were not inspected recursively for ROM files (causing child game folders to be erroneously detected as separate unmapped platforms) and collection zip archives were not recognized for multi-game extraction and analysis.
+  - Refactored `RootFolderService.GetUnmappedFolders` to look at ROM files recursively rather than just top-level folders:
+    - If a folder path resolves to a platform by name or contains ROMs belonging to a single platform, Controllarr identifies the folder itself as that platform without enumerating child game folders as separate platforms.
+    - Top-level platform subfolders in multi-platform root directories are identified as single platform entries without recursing into individual game directories.
+    - Exposed `ResolvePlatformFromArchive` on `IRootFolderService` to enable cross-service platform archive identification.
+  - Fixed collection archive extraction abortion in `DiskScanService.ExtractCollectionArchives` and `IsMultiGameCollectionArchive`:
+    - Replaced the flawed `isMultiTrackDisc` check (which previously aborted extraction on any archive containing `.cue` files) with `isSingleMultiTrack`: an archive is only considered a single disc image if it contains exactly one descriptor, no nested archives, and files in a single folder. Multi-game collection archives (such as Sega CD, Saturn, PS1 collections containing `.cue` files) are now properly recognized and extracted into `series.Path`.
+    - Added dynamic platform matching for collection archives in root directories via `ResolvePlatformFromArchive` and platform aliases.
+    - Recursively inspects newly extracted inner zip archives in `series.Path` to unpack multi-track discs (`.cue` + `.bin` tracks) into dedicated game subfolders and clean up wrapper archives for emulator readiness.
+  - Updated `UnmanagedDiskScanner`:
+    - Enhanced archive scanning to distinguish between single multi-track discs and multi-game collections, ensuring collection archives properly enumerate every game with CRC32 hashes and DAT cross-referencing.
+  - Added unit tests in `RootFolderServiceFixture` (`should_identify_extracted_folder_with_game_subfolders_as_single_platform`), `ScanFixture` (`should_extract_collection_archive_with_multiple_cue_discs`), and `UnmanagedDiskScannerFixture` (`Scan_MultiDiscCollectionZip_ShouldImportEachGameDiscSeparately`).
 - **Nintendo 3DS Duplicate Titles & Catalog Cross-Referencing**: Resolved issue where Nintendo 3DS games (such as *Pokémon Moon* and *Pokémon Omega Ruby*) appeared multiple times as separate entries in library and platform views.
   - Added diacritic stripping (`RemoveDiacritics()`) and non-alphanumeric normalization to `GameCatalogProxy.NormalizeCanonicalCrossRefTitle`, ensuring GameTDB titles (e.g. `Pokémon Moon`) correctly match No-Intro and built-in titles (`Pokemon - Moon` / `Pokemon Moon`) and prevent duplicate catalog entry creation.
   - Aligned `BuildDatFeedsForPlatform` and `SyncOnlineCatalogForPlatform` with 3-way `EncryptionPreference` so unencrypted (decrypted) preferences only sync decrypted feeds and encrypted preferences only sync encrypted feeds unless `Both` is selected.

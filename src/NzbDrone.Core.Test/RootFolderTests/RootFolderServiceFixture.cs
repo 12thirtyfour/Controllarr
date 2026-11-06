@@ -261,5 +261,47 @@ namespace NzbDrone.Core.Test.RootFolderTests
             unmappedFolders.First().Name.Should().Be("Nintendo Entertainment System");
             unmappedFolders.First().RelativePath.Should().Be("NES");
         }
+
+        [Test]
+        public void should_identify_extracted_folder_with_game_subfolders_as_single_platform()
+        {
+            var rootFolderPath = @"C:\Test\Sega CD".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var sonicFolder = Path.Combine(rootFolderPath, "Sonic CD (USA)");
+            var lunarFolder = Path.Combine(rootFolderPath, "Lunar (USA)");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { sonicFolder, lunarFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, true))
+                .Returns(new[]
+                {
+                    Path.Combine(sonicFolder, "Sonic CD (USA).cue"),
+                    Path.Combine(lunarFolder, "Lunar (USA).cue")
+                });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Name.Should().Be("Sega CD");
+            unmappedFolders.First().Path.Should().Be(rootFolderPath);
+        }
     }
 }
