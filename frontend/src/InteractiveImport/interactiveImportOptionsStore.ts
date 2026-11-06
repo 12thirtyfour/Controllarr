@@ -33,11 +33,6 @@ export const COLUMNS = [
     isVisible: true,
   },
   {
-    name: 'releaseGroup',
-    label: 'Release Group',
-    isVisible: true,
-  },
-  {
     name: 'quality',
     label: 'Quality',
     isSortable: true,
@@ -90,7 +85,7 @@ const {
   setOption,
   setSort,
 } = createOptionsStore<InteractiveImportOptions>(
-  'interactive_import_options',
+  'interactive_import_options_v2',
   () => {
     return {
       selectedFilterKey: 'all',

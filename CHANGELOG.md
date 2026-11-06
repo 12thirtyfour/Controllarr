@@ -30,6 +30,13 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Release Group Logic & Interactive Import Prompt Purge**: Eliminated TV-oriented scene "release group" requirements and prompts that blocked or burdened manual and completed download imports.
+  - Removed the `releaseGroup` column, placeholder buttons, and bulk action options from Interactive Import (`InteractiveImportRow.tsx`, `InteractiveImportModalContent.tsx`, `interactiveImportOptionsStore.ts`).
+  - Bumped interactive import options store version to `interactive_import_options_v2` so client browsers automatically adopt the clean layout without release group placeholders.
+  - Deleted obsolete modal components (`SelectReleaseGroupModal.tsx`, `SelectReleaseGroupModalContent.tsx`).
+  - Removed release group enforcement from download decision specifications (`RepackSpecification.cs`, `AnimeVersionUpgradeSpecification.cs`), preventing game revision/repack downloads and manual imports from being rejected due to missing scene release groups.
+  - Updated `{Release Group}` token handler default fallback in `FileNameBuilder.cs` from legacy `"Sonarr"` to empty string.
+  - Updated decision engine test fixtures (`RepackSpecificationFixture.cs`, `AnimeVersionUpgradeSpecificationFixture.cs`).
 - **Queue Table & TV Season/Episode Holdover Elimination**: Resolved user-reported issue where the Activity > Queue table displayed a redundant "Game(s)" column cataloged in TV season x episode format (e.g. `1x1348`) alongside "Game Title(s)".
   - Removed the `game` ("Game(s)") column entirely from the Queue view in `queueOptionsStore.ts` and `QueueRow.tsx`.
   - Bumped queue options store version to `queue_options_v3` so client browsers automatically discard the cached `game` column and default to the clean layout with "Game Title" (`games.title`).

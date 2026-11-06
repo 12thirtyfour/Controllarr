@@ -43,7 +43,6 @@ import {
 } from 'InteractiveImport/interactiveImportOptionsStore';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
 import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
-import SelectReleaseGroupModal from 'InteractiveImport/ReleaseGroup/SelectReleaseGroupModal';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
 import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
@@ -69,7 +68,6 @@ type SelectType =
   | 'series'
   | 'season'
   | 'game'
-  | 'releaseGroup'
   | 'quality'
   | 'language'
   | 'indexerFlags'
@@ -101,11 +99,6 @@ const COLUMNS = [
   {
     name: 'games',
     label: () => translate('Games'),
-    isVisible: true,
-  },
-  {
-    name: 'releaseGroup',
-    label: () => translate('ReleaseGroup'),
     isVisible: true,
   },
   {
@@ -369,10 +362,6 @@ function InteractiveImportModalContentInner(
       {
         key: 'quality',
         value: translate('SelectQuality'),
-      },
-      {
-        key: 'releaseGroup',
-        value: translate('SelectReleaseGroup'),
       },
       {
         key: 'language',
@@ -758,21 +747,6 @@ function InteractiveImportModalContentInner(
     [updateInteractiveImportItem, setSelectModalOpen, handleReprocessItems]
   );
 
-  const handleReleaseGroupSelect = useCallback(
-    (releaseGroup: string) => {
-      updateInteractiveImportItems(selectedIds, { releaseGroup });
-
-      handleReprocessItems(selectedIds);
-      setSelectModalOpen(null);
-    },
-    [
-      selectedIds,
-      updateInteractiveImportItems,
-      setSelectModalOpen,
-      handleReprocessItems,
-    ]
-  );
-
   const handleLanguagesSelect = useCallback(
     (newLanguages: Language[]) => {
       updateInteractiveImportItems(selectedIds, { languages: newLanguages });
@@ -1018,14 +992,6 @@ function InteractiveImportModalContentInner(
         isAnime={selectedItem?.series?.seriesType === 'anime'}
         modalTitle={modalTitle}
         onGamesSelect={handleGamesSelect}
-        onModalClose={handleSelectModalClose}
-      />
-
-      <SelectReleaseGroupModal
-        isOpen={selectModalOpen === 'releaseGroup'}
-        releaseGroup=""
-        modalTitle={modalTitle}
-        onReleaseGroupSelect={handleReleaseGroupSelect}
         onModalClose={handleSelectModalClose}
       />
 

@@ -21,7 +21,6 @@ import SelectIndexerFlagsModal from 'InteractiveImport/IndexerFlags/SelectIndexe
 import InteractiveImport from 'InteractiveImport/InteractiveImport';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
 import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
-import SelectReleaseGroupModal from 'InteractiveImport/ReleaseGroup/SelectReleaseGroupModal';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
 import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
@@ -43,7 +42,6 @@ type SelectType =
   | 'series'
   | 'season'
   | 'game'
-  | 'releaseGroup'
   | 'quality'
   | 'language'
   | 'indexerFlags'
@@ -265,27 +263,6 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     ]
   );
 
-  const onSelectReleaseGroupPress = useCallback(() => {
-    setSelectModalOpen('releaseGroup');
-  }, [setSelectModalOpen]);
-
-  const onReleaseGroupSelect = useCallback(
-    (releaseGroup: string) => {
-      updateInteractiveImportItem(id, { releaseGroup });
-      onReprocessItems([id]);
-
-      setSelectModalOpen(null);
-      selectRowAfterChange();
-    },
-    [
-      id,
-      updateInteractiveImportItem,
-      onReprocessItems,
-      setSelectModalOpen,
-      selectRowAfterChange,
-    ]
-  );
-
   const onSelectQualityPress = useCallback(() => {
     setSelectModalOpen('quality');
   }, [setSelectModalOpen]);
@@ -393,7 +370,6 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     isSelected && !!series && requiresSeasonNumber && !isReprocessing;
   const showGameNumbersPlaceholder =
     isSelected && Number.isInteger(seasonNumber) && !games.length;
-  const showReleaseGroupPlaceholder = isSelected && !releaseGroup;
   const showQualityPlaceholder = isSelected && !quality;
   const showLanguagePlaceholder = isSelected && !languages;
   const showIndexerFlagsPlaceholder = isSelected && !indexerFlags;
@@ -455,17 +431,6 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
           <InteractiveImportRowCellPlaceholder />
         ) : (
           gameInfo
-        )}
-      </TableRowCellButton>
-
-      <TableRowCellButton
-        title={translate('ClickToChangeReleaseGroup')}
-        onPress={onSelectReleaseGroupPress}
-      >
-        {showReleaseGroupPlaceholder ? (
-          <InteractiveImportRowCellPlaceholder isOptional={true} />
-        ) : (
-          releaseGroup
         )}
       </TableRowCellButton>
 
@@ -585,14 +550,6 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         selectedDetails={relativePath}
         modalTitle={modalTitle}
         onGamesSelect={onGamesSelect}
-        onModalClose={onSelectModalClose}
-      />
-
-      <SelectReleaseGroupModal
-        isOpen={selectModalOpen === 'releaseGroup'}
-        releaseGroup={releaseGroup ?? ''}
-        modalTitle={modalTitle}
-        onReleaseGroupSelect={onReleaseGroupSelect}
         onModalClose={onSelectModalClose}
       />
 
