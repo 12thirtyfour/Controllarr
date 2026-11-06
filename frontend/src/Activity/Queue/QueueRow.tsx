@@ -95,8 +95,6 @@ function QueueRow(props: QueueRowProps) {
     downloadClient,
     downloadClientHasPostImportCategory,
     estimatedCompletionTime,
-    isFullSeason,
-    seasonNumbers,
     added,
     timeLeft,
     size,

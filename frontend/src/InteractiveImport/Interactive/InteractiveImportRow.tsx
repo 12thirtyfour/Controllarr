@@ -86,7 +86,6 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
     games = [],
     quality,
     languages,
-    releaseGroup,
     size,
     releaseType,
     customFormats = [],

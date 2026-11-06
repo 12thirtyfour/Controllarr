@@ -638,6 +638,7 @@ export const useSaveSeries = (moveFiles?: boolean) => {
     method: 'PUT',
     mutationOptions: {
       onSuccess: (updatedSeries) => {
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
         queryClient.setQueryData<Series[]>(['/series'], (oldSeries) => {
           if (!oldSeries) {
             return oldSeries;
@@ -727,6 +728,7 @@ export const useToggleSeriesMonitored = (seriesId: number) => {
     method: 'PUT',
     mutationOptions: {
       onSuccess: (updatedSeries) => {
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
         queryClient.setQueryData<Series[]>(['/series'], (oldSeries) => {
           if (!oldSeries) {
             return oldSeries;
@@ -783,6 +785,7 @@ export const useToggleSeasonMonitored = (seriesId: number) => {
     method: 'PUT',
     mutationOptions: {
       onSuccess: (updatedSeries) => {
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
         queryClient.setQueryData<Series[]>(['/series'], (oldSeries) => {
           if (!oldSeries) {
             return oldSeries;
@@ -904,6 +907,7 @@ export const useSaveSeriesEditor = () => {
     method: 'PUT',
     mutationOptions: {
       onSuccess: (updatedSeries) => {
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
         queryClient.setQueryData<Series[]>(['/series'], (oldSeries) => {
           if (!oldSeries) {
             return oldSeries;

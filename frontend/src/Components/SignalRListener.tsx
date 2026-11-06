@@ -255,6 +255,13 @@ function SignalRListener() {
 
         updateQueryClientItem(queryClient, ['/series'], updatedItem, true);
 
+        if (
+          (updatedItem as any).episodesChanged ||
+          (updatedItem as any).gamesChanged
+        ) {
+          queryClient.invalidateQueries({ queryKey: ['/episode'] });
+        }
+
         repopulatePage('seriesUpdated');
       } else if (body.action === 'deleted') {
         removeQueryClientItem(queryClient, ['/series'], body.resource.id);

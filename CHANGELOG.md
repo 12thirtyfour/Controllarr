@@ -30,6 +30,13 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Dynamic Collection Strategy Adjustment (1G1R vs Completionist)**: Fixed library monitoring states not updating when editing a platform's strategy between Completionist (`Preservationist`) and 1G1R (`OneGameOneRom` or `OneGamePerRegionPerConsole`), or when initially adding a platform:
+  - Removed artificial `isCatalogPlatform` guard in `PlatformService.ApplyOneGameOneRomMonitoringIfNeeded` and `GameMonitoredService.SetEpisodeMonitoredStatus` that previously required seasons 5 or 6 to exist, ensuring collection strategy monitoring rules apply across all console platforms and standard retail regions.
+  - Switching to Completionist (`Preservationist`) automatically re-monitors all games across all active monitored regions.
+  - Switching to 1G1R (`OneGameOneRom` or `OneGamePerRegionPerConsole`) properly filters and monitors the single preferred release per title based on revision preference, region priority, and encryption preference, unmonitoring redundant versions.
+  - Fixed candidate pool fallback so homebrew, translation, or prototype games are not mistakenly unmonitored under 1G1R when retail releases are absent.
+  - Updated frontend React Query invalidation across `usePlatform.ts` hooks and `SignalRListener.tsx` so UI game lists, region badges, and monitoring toggles immediately reflect the updated strategy without requiring a manual refresh.
+  - Added unit test coverage in `UpdatePlatformFixture.cs` and `SetGameMonitoredFixture.cs`.
 - **Platform Collection Multi-Region Search & Full Romset Alignment**: Fixed collection search designating entire platform collections as single-region searches (previously scoping to Season 1 / North America only) and rejecting multi-region releases.
   - Updated `RegionSearchCriteria.ToString()` and `ReleaseSearchService.PlatformCollectionSearch` so platform collection searches log and execute as `[Platform : Platform Collection]` (`SeasonNumber = 0`, `IsPlatformCollectionSearch = true`) across all regions instead of defaulting to `[Platform : North America]`.
   - Updated `DownloadDecisionMaker.cs` so matched platform collections populate `SeasonNumbers` with all configured regions for the platform (`allSeriesSeasons`) and set `IsMultiSeason = true`, ensuring games across all regions in the collection are recognized, matched, and imported upon extraction.

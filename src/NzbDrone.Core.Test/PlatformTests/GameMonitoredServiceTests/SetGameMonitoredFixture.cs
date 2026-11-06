@@ -363,6 +363,43 @@ namespace NzbDrone.Core.Test.PlatformTests.GameMonitoredServiceTests
             v2Disc2.Monitored.Should().BeTrue();
         }
 
+        [Test]
+        public void should_apply_1g1r_monitoring_for_retail_only_platforms_on_add()
+        {
+            var retailSeries = Builder<Series>.CreateNew()
+                .With(s => s.TvdbId = 90002)
+                .With(s => s.CollectionStrategy = CollectionStrategy.OneGameOneRom)
+                .With(s => s.RevisionPreference = RevisionPreference.LatestRevision)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 1, Monitored = true },
+                    new Season { SeasonNumber = 2, Monitored = true }
+                })
+                .Build();
+
+            var usaV1 = new Episode { Id = 501, SeriesId = retailSeries.Id, SeasonNumber = 1, Title = "Sonic The Hedgehog (USA)", FinaleType = "Retail (v1.0)", Monitored = true };
+            var usaV2 = new Episode { Id = 502, SeriesId = retailSeries.Id, SeasonNumber = 1, Title = "Sonic The Hedgehog (USA) (Rev 1)", FinaleType = "Rev 1", Monitored = false };
+            var eurV1 = new Episode { Id = 503, SeriesId = retailSeries.Id, SeasonNumber = 2, Title = "Sonic The Hedgehog (Europe)", FinaleType = "Retail (v1.0)", Monitored = true };
+
+            var episodes = new List<Episode> { usaV1, usaV2, eurV1 };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(retailSeries.Id))
+                  .Returns(episodes);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(It.IsAny<int>(), It.IsAny<MonitorTypes>(), It.IsAny<int>(), It.IsAny<int>()))
+                  .Returns(new List<int> { 1, 2 });
+
+            Subject.SetEpisodeMonitoredStatus(retailSeries, new MonitoringOptions { Monitor = MonitorTypes.All });
+
+            usaV1.Monitored.Should().BeFalse();
+            usaV2.Monitored.Should().BeTrue();
+            eurV1.Monitored.Should().BeFalse();
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.UpdateEpisodes(episodes), Times.Once());
+        }
+
         private void VerifySeasonMonitored(int seasonNumber)
         {
             Mocker.GetMock<ISeriesService>()

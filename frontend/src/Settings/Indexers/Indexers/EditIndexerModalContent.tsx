@@ -66,7 +66,6 @@ function EditIndexerModalContent({
     fields,
     priority,
     seasonSearchMaximumSingleGameAge,
-    protocol,
   } = item;
   const providerName = name?.value || implementationName;
 

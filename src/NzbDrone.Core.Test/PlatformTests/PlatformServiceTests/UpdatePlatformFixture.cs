@@ -5,6 +5,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.AutoTagging;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -152,6 +153,60 @@ namespace NzbDrone.Core.Test.PlatformTests.PlatformServiceTests
 
             _fakeSeries.Seasons.All(s => !s.Monitored).Should().BeTrue();
             fakeEpisodes.All(e => !e.Monitored).Should().BeTrue();
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.UpdateEpisodes(fakeEpisodes), Times.Once());
+        }
+
+        [Test]
+        public void should_apply_1g1r_when_collection_strategy_changes_from_preservationist_to_1g1r()
+        {
+            _existingSeries.CollectionStrategy = CollectionStrategy.Preservationist;
+            _fakeSeries.CollectionStrategy = CollectionStrategy.OneGameOneRom;
+
+            var usaEpV1 = new Episode { Id = 1, SeriesId = _fakeSeries.Id, SeasonNumber = 1, Title = "Super Mario World (USA)", FinaleType = "Retail (v1.0)", Monitored = true };
+            var usaEpV2 = new Episode { Id = 2, SeriesId = _fakeSeries.Id, SeasonNumber = 1, Title = "Super Mario World (USA) (Rev 1)", FinaleType = "Rev 1", Monitored = true };
+            var eurEp = new Episode { Id = 3, SeriesId = _fakeSeries.Id, SeasonNumber = 2, Title = "Super Mario World (Europe)", FinaleType = "Retail (v1.0)", Monitored = true };
+
+            var fakeEpisodes = new List<Episode> { usaEpV1, usaEpV2, eurEp };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(_fakeSeries.Id))
+                  .Returns(fakeEpisodes);
+
+            GivenExistingSeries();
+
+            Subject.UpdateSeries(_fakeSeries);
+
+            usaEpV1.Monitored.Should().BeFalse();
+            usaEpV2.Monitored.Should().BeTrue();
+            eurEp.Monitored.Should().BeFalse();
+            Mocker.GetMock<IEpisodeService>()
+                  .Verify(v => v.UpdateEpisodes(fakeEpisodes), Times.Once());
+        }
+
+        [Test]
+        public void should_monitor_all_games_in_monitored_regions_when_collection_strategy_changes_from_1g1r_to_preservationist()
+        {
+            _existingSeries.CollectionStrategy = CollectionStrategy.OneGameOneRom;
+            _fakeSeries.CollectionStrategy = CollectionStrategy.Preservationist;
+
+            var usaEpV1 = new Episode { Id = 1, SeriesId = _fakeSeries.Id, SeasonNumber = 1, Title = "Super Mario World (USA)", FinaleType = "Retail (v1.0)", Monitored = false };
+            var usaEpV2 = new Episode { Id = 2, SeriesId = _fakeSeries.Id, SeasonNumber = 1, Title = "Super Mario World (USA) (Rev 1)", FinaleType = "Rev 1", Monitored = true };
+            var eurEp = new Episode { Id = 3, SeriesId = _fakeSeries.Id, SeasonNumber = 2, Title = "Super Mario World (Europe)", FinaleType = "Retail (v1.0)", Monitored = false };
+
+            var fakeEpisodes = new List<Episode> { usaEpV1, usaEpV2, eurEp };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodeBySeries(_fakeSeries.Id))
+                  .Returns(fakeEpisodes);
+
+            GivenExistingSeries();
+
+            Subject.UpdateSeries(_fakeSeries);
+
+            usaEpV1.Monitored.Should().BeTrue();
+            usaEpV2.Monitored.Should().BeTrue();
+            eurEp.Monitored.Should().BeTrue();
             Mocker.GetMock<IEpisodeService>()
                   .Verify(v => v.UpdateEpisodes(fakeEpisodes), Times.Once());
         }

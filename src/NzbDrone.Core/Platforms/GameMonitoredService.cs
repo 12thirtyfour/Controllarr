@@ -87,10 +87,6 @@ namespace NzbDrone.Core.Tv
                 return;
             }
 
-            var isCatalogPlatform = series.Seasons.Any(s =>
-                s.SeasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
-                s.SeasonNumber == GameCatalogProxy.RegionRomHacksSeason);
-
             var initialSeasonMonitored = series.Seasons.ToDictionary(s => s.SeasonNumber, s => s.Monitored);
 
             var firstSeason = series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
@@ -116,10 +112,9 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
-                if (isCatalogPlatform &&
-                    (seasonNumber == GameCatalogProxy.RegionUnlicensedSeason ||
-                     seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
-                     seasonNumber == GameCatalogProxy.RegionRomHacksSeason))
+                if (seasonNumber == GameCatalogProxy.RegionUnlicensedSeason ||
+                    seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
+                    seasonNumber == GameCatalogProxy.RegionRomHacksSeason)
                 {
                     season.Monitored = initialSeasonMonitored.TryGetValue(seasonNumber, out var wasMonitored) && wasMonitored;
                     continue;
@@ -155,12 +150,22 @@ namespace NzbDrone.Core.Tv
                 }
             }
 
-            if (isCatalogPlatform)
+            var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+            if (allEpisodes.Any())
             {
-                var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
-                if (allEpisodes.Any())
+                var monitoredSeasonSet = series.Seasons != null
+                    ? series.Seasons.Where(s => s.Monitored).Select(s => s.SeasonNumber).ToHashSet()
+                    : new HashSet<int>();
+
+                if (series.CollectionStrategy == CollectionStrategy.Preservationist)
                 {
-                    var monitoredSeasonSet = series.Seasons.Where(s => s.Monitored).Select(s => s.SeasonNumber).ToHashSet();
+                    foreach (var item in allEpisodes)
+                    {
+                        item.Monitored = monitoredSeasonSet.Contains(item.SeasonNumber);
+                    }
+                }
+                else
+                {
                     foreach (var ep in allEpisodes)
                     {
                         if (!monitoredSeasonSet.Contains(ep.SeasonNumber))
@@ -184,35 +189,17 @@ namespace NzbDrone.Core.Tv
                     {
                         var groupList = group.ToList();
 
-                        if (series.CollectionStrategy == CollectionStrategy.Preservationist)
-                        {
-                            foreach (var item in groupList)
-                            {
-                                item.Monitored = true;
-                            }
-
-                            continue;
-                        }
-
                         // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
                         var retailList = groupList
                             .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
                             .ToList();
 
-                        if (retailList.Count == 0)
-                        {
-                            foreach (var item in groupList)
-                            {
-                                item.Monitored = false;
-                            }
+                        var candidateList = retailList.Count > 0 ? retailList : groupList;
 
-                            continue;
-                        }
-
-                        var unencryptedRetail = retailList
+                        var unencryptedRetail = candidateList
                             .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
                             .ToList();
-                        var encryptedRetail = retailList
+                        var encryptedRetail = candidateList
                             .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
                             .ToList();
 
@@ -283,9 +270,9 @@ namespace NzbDrone.Core.Tv
                             item.Monitored = preferredEpisodes.Contains(item);
                         }
                     }
-
-                    _episodeService.UpdateEpisodes(allEpisodes);
                 }
+
+                _episodeService.UpdateEpisodes(allEpisodes);
             }
 
             _seriesService.UpdateSeries(series, false);
