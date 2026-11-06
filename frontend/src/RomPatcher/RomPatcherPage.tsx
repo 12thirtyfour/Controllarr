@@ -8,6 +8,7 @@ import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import Button from 'Components/Link/Button';
 import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
@@ -99,9 +100,10 @@ function RomPatcherPage() {
 
   return (
     <PageContent title="ROM Patcher">
-      <PageHeading scope={translate('Library')} title="ROM Patcher" />
+      <PageContentBody>
+        <PageHeading scope={translate('Library')} title="ROM Patcher" />
 
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '16px' }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '16px', paddingBottom: '48px' }}>
         <Alert kind={kinds.INFO}>
           Controllarr&apos;s Cryptographic Hash-Gated ROM Patcher applies .ips,
           .bps, and .xdelta / VCDIFF patches directly onto verified retail base
@@ -221,7 +223,8 @@ function RomPatcherPage() {
         </Form>
       </div>
     </div>
-    </PageContent>
+    </PageContentBody>
+  </PageContent>
   );
 }
 

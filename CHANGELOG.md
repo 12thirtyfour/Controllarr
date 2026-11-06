@@ -30,6 +30,9 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **ROM Patcher Page Scrolling & Bottom Viewport Clipping**: Fixed the ROM Patcher page (`/patcher`) cutting off the bottom of the "Apply Patch File" section:
+  - Wrapped page contents with `PageContentBody`, integrating the application's standard vertical `Scroller` and viewport flex constraints so the page can scroll completely to the bottom.
+  - Added bottom padding (`paddingBottom: '48px'`) to ensure the server path input, action button, and card rounded corners maintain clear visual breathing room above the viewport bottom.
 - **Console Game Update Bundling & Dual 1G1R Monitoring (3DS, Wii U, PS3, PS4, Switch)**: Fixed console game updates (e.g. `(Update v1.5)`, `[Update v1.1.7]`, `(Patch 1.02)`, `(DLC)`) listing as separate game entries or conflicting with base game monitoring under 1G1R:
   - Updated `GameCatalogProxy.cs` and `RomParser.cs` with `UpdateTagRegex` and updated `ResidualRevisionRegex` to recognize and clean standalone update, patch, and DLC tags (`Update`, `UPD`, `Patch`, `DLC`), properly assigning them to the game's `RevisionTag` rather than defaulting to `"Retail (v1.0)"` or treating the update as an independent title.
   - Implemented semantic versioning in `GameCatalogProxy.GetRevisionSortOrder` to correctly order multi-component update versions (e.g. `Update v1.2.0` < `Update v1.2.1`).
