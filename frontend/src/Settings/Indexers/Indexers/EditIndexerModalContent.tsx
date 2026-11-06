@@ -67,7 +67,6 @@ function EditIndexerModalContent({
     priority,
     seasonSearchMaximumSingleGameAge,
     protocol,
-    downloadClientId,
   } = item;
   const providerName = name?.value || implementationName;
 
@@ -238,23 +237,6 @@ function EditIndexerModalContent({
               min={0}
               unit="days"
               {...seasonSearchMaximumSingleGameAge}
-              onChange={handleInputChange}
-            />
-          </FormRow>
-
-          <FormRow advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('DownloadClient')}</FormLabel>
-
-            <FormInputHelpText
-              text={translate('IndexerDownloadClientHelpText')}
-            />
-
-            <FormInput
-              type={inputTypes.DOWNLOAD_CLIENT_SELECT}
-              name="downloadClientId"
-              {...downloadClientId}
-              includeAny={true}
-              protocol={protocol.value}
               onChange={handleInputChange}
             />
           </FormRow>

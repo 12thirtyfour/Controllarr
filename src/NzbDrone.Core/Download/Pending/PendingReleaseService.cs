@@ -475,6 +475,13 @@ namespace NzbDrone.Core.Download.Pending
                 downloadClientName = downloadClient?.Name;
             }
 
+            if (downloadClientName.IsNullOrWhiteSpace())
+            {
+                var downloadClients = _downloadClientFactory.GetAvailableProviders();
+                var client = downloadClients.FirstOrDefault(c => c.Protocol == pendingRelease.Release.DownloadProtocol);
+                downloadClientName = client?.Definition?.Name;
+            }
+
             var queue = new Queue.Queue
             {
                 Id = GetQueueId(pendingRelease),
@@ -526,6 +533,13 @@ namespace NzbDrone.Core.Download.Pending
                 var downloadClient = _downloadClientFactory.Find(indexer.DownloadClientId);
 
                 downloadClientName = downloadClient?.Name;
+            }
+
+            if (downloadClientName.IsNullOrWhiteSpace())
+            {
+                var downloadClients = _downloadClientFactory.GetAvailableProviders();
+                var client = downloadClients.FirstOrDefault(c => c.Protocol == pendingRelease.Release.DownloadProtocol);
+                downloadClientName = client?.Definition?.Name;
             }
 
             var queue = new Queue.Queue

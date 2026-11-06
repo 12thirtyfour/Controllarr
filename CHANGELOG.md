@@ -30,6 +30,11 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Indexer Download Client Assumption by Protocol**: Removed the downloader selection prompt from the Indexer configuration modal (`EditIndexerModalContent.tsx`). Indexers now automatically route to the configured download client matching their acquisition protocol:
+  - Usenet indexers automatically route to the configured Usenet downloader (e.g. SABnzbd, NZBGet).
+  - Torrent indexers automatically route to the configured BitTorrent downloader (e.g. qBittorrent, Transmission).
+  - Internet Archive and HTTP indexers automatically route to the configured HTTP downloader.
+  - Updated `PendingReleaseService.cs` to resolve and display the protocol-matched download client name for pending releases in the queue when no specific indexer client override is present.
 - **Release Group Logic & Interactive Import Prompt Purge**: Eliminated TV-oriented scene "release group" requirements and prompts that blocked or burdened manual and completed download imports.
   - Removed the `releaseGroup` column, placeholder buttons, and bulk action options from Interactive Import (`InteractiveImportRow.tsx`, `InteractiveImportModalContent.tsx`, `interactiveImportOptionsStore.ts`).
   - Bumped interactive import options store version to `interactive_import_options_v2` so client browsers automatically adopt the clean layout without release group placeholders.
