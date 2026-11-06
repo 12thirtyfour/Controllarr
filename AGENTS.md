@@ -1,7 +1,20 @@
 # Agent Directives: Controllarr
 
 ## Identity & Architecture
-- Lead engineering agent for Controllarr, an automated console ROM and game library manager for Usenet and BitTorrent users, forked from the Sonarr architecture pattern.
+- Lead engineering agent for Controllarr, an automated console ROM and game library manager for Usenet, BitTorrent, and Internet Archive users, forked from the Sonarr architecture pattern.
+- Lifecycle & Versioning Model:
+  - **Alpha (Current)**: Active core capability development. Changes are tracked chronologically by **Date** in `CHANGELOG.md` rather than version numbers.
+  - **Beta Readiness Gate**: Transition to Beta once baseline features work as desired across both full collections and single ROMs on all 3 acquisition protocols (**Usenet**, **BitTorrent**, and **Internet Archive**):
+    1. Library creation (platform definitions, root directories)
+    2. Library import (disk scanning, archive extraction, catalog identification)
+    3. Indexing (clean game/console categorization without TV/PC bleed)
+    4. Searching (automated & interactive search for single games and whole collections)
+    5. Downloading (reliable queue dispatch to clients & HTTP downloaders)
+    6. Verifying (cryptographic CRC32/MD5/SHA-1 hash-gating against DAT catalogs)
+    7. Importing to library (destination path layout and authentic game/disc rename).
+  - **Beta**: End-to-end multi-platform and physical hardware testing across all features once baseline works.
+  - **Release Candidate (RC)**: Pre-release stability verification once features work fully as expected.
+  - **Production Release**: `v1.0.0` published to `main`.
 - Branch Model: `develop` is the staging/testing branch (no automated CI/CD builds on push; dev users build from source); `main` is the production/stable branch that runs full multi-architecture builds, checks, packaging (all 10 OS/arch targets + multi-arch Docker), and publishes official `v1.0.0+` GitHub Releases.
 - Target Application Port: 7050.
 
@@ -42,12 +55,6 @@ Match local build/test verification to the scope of the changes made:
 
 ## Terminal Execution (Windows)
 - Always execute `git add`, `git commit`, `git push`, `gh`, `dotnet build`, and `dotnet test` directly without attempting a failing sandboxed run first (the Windows sandbox restricts `.git/index.lock` writes and `vstest.console` loopback sockets).
-
-## Jules Delegation & 5-Minute Check-In Protocol
-- **Proactive Task Splitting & Session Conservation**: For multi-part requests, evaluate whether independent, non-conflicting side tasks can be delegated to **Jules** via GitHub Issues (`gh issue create --label "jules"`). To conserve the 100/day session limit, bundle related side tasks into a single comprehensive issue rather than spawning multiple small issues, and **always reuse existing sessions** for follow-up changes or fixes by commenting on the existing Issue or PR thread instead of creating a new issue.
-- **Exact File & Symbol Verification**: Before creating a GitHub issue for Jules, verify that all file paths and class/method names referenced in the issue body exist in `origin/develop` and do not overlap with files being actively edited locally.
-- **Automatic 5-Minute Check-In Schedule**: Whenever one or more tasks are delegated to Jules, immediately set a recurring 5-minute schedule (`CronExpression: "*/5 * * * *"`) using the `schedule` tool to check `gh pr list --state open` and `gh issue view <id> --comments`.
-- **Review, Merge & Cleanup**: When Jules opens a PR, review the diff, verify it builds/tests cleanly, merge it into `develop` (`gh pr merge <PR> --merge --delete-branch`), pull `origin/develop`, and cancel the recurring schedule task via `manage_task` (`Action: "kill"`) once all delegated Jules tasks are complete.
 
 ## Documentation Synchronization Policy
 - **Mandatory Continuous Documentation Updates**: All documentation (`CHANGELOG.md`, `ROADMAP.md`, `README.md`, `THIRD_PARTY_NOTICES.md`, and the official GitHub Wiki at `https://github.com/12thirtyfour/Controllarr.wiki.git`) must be kept 100% up to date at all times.

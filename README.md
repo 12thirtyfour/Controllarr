@@ -259,5 +259,4 @@ We stand on the shoulders of incredible open-source projects, preservation datab
 >
 > * **Project Owner**: Human visionary, direction, functional requirements, and physical hardware verification.
 > * **Gemini**: Project manager, requirements evaluator, and system architect.
-> * **Jules**: Feature engineer and autonomous developer.
 > * **Antigravity**: Lead engineering agent, pair programmer, CI/CD triage specialist, and release steward.
