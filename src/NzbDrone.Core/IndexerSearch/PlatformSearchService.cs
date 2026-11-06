@@ -35,43 +35,53 @@ namespace NzbDrone.Core.IndexerSearch
             var series = _seriesService.GetSeries(message.SeriesId);
             var downloadedCount = 0;
             var userInvokedSearch = message.Trigger == CommandTrigger.Manual;
-            var profile = series.QualityProfile.Value;
 
-            if (series.Seasons.None(s => s.Monitored))
+            var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id);
+            var monitoredSeasons = series.Seasons
+                .Where(s => s.Monitored)
+                .Select(s => s.SeasonNumber)
+                .ToHashSet();
+
+            var episodes = allEpisodes.Where(e =>
             {
-                _logger.Debug("No regions of {0} are monitored, searching for all monitored games", series.Title);
+                if (!e.Monitored || e.HasFile)
+                {
+                    return false;
+                }
 
-                var episodes = _episodeService.GetEpisodeBySeries(series.Id)
-                    .Where(e => e.Monitored &&
-                                !e.HasFile &&
-                                e.AirDateUtc.HasValue &&
-                                e.AirDateUtc.Value.Before(DateTime.UtcNow))
-                    .ToList();
+                if (monitoredSeasons.Count > 0 && !monitoredSeasons.Contains(e.SeasonNumber))
+                {
+                    return false;
+                }
 
-                foreach (var episode in episodes)
+                if (e.AirDateUtc.HasValue && e.AirDateUtc.Value.After(DateTime.UtcNow))
+                {
+                    return false;
+                }
+
+                return true;
+            })
+            .OrderBy(e => e.SeasonNumber)
+            .ThenBy(e => e.EpisodeNumber)
+            .ToList();
+
+            _logger.ProgressInfo("Searching for {0} monitored games on {1}...", episodes.Count, series.Title);
+
+            foreach (var episode in episodes)
+            {
+                try
                 {
                     var decisions = _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false).GetAwaiter().GetResult();
                     var processDecisions = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
                     downloadedCount += processDecisions.Grabbed.Count;
                 }
-            }
-            else
-            {
-                foreach (var season in series.Seasons.OrderBy(s => s.SeasonNumber))
+                catch (Exception ex)
                 {
-                    if (!season.Monitored)
-                    {
-                        _logger.Debug("Region {0} of {1} is not monitored, skipping search", season.SeasonNumber, series.Title);
-                        continue;
-                    }
-
-                    var decisions = _releaseSearchService.SeasonSearch(message.SeriesId, season.SeasonNumber, !profile.UpgradeAllowed, true, userInvokedSearch, false).GetAwaiter().GetResult();
-                    var processDecisions = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
-                    downloadedCount += processDecisions.Grabbed.Count;
+                    _logger.Error(ex, "Unable to search for game: [{0}]", episode.Title);
                 }
             }
 
-            _logger.ProgressInfo("Series search completed. {0} reports downloaded.", downloadedCount);
+            _logger.ProgressInfo("Platform search completed. {0} reports downloaded.", downloadedCount);
         }
     }
 }

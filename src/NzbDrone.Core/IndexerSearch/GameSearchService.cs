@@ -6,7 +6,6 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Queue;
@@ -44,59 +43,20 @@ namespace NzbDrone.Core.IndexerSearch
         {
             _logger.ProgressInfo("Performing search for {0} games", episodes.Count);
             var downloadedCount = 0;
-            var groups = new List<GameSearchGroup>();
 
-            foreach (var series in episodes.GroupBy(e => e.SeriesId))
+            foreach (var episode in episodes.OrderBy(e => e.LastSearchTime ?? DateTime.MinValue))
             {
-                foreach (var season in series.Select(e => e).GroupBy(e => e.SeasonNumber))
+                try
                 {
-                    groups.Add(new GameSearchGroup
-                    {
-                        SeriesId = series.Key,
-                        SeasonNumber = season.Key,
-                        Episodes = season.ToList()
-                    });
+                    var decisions = await _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false);
+                    var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
+
+                    downloadedCount += processed.Grabbed.Count;
                 }
-            }
-
-            foreach (var group in groups.OrderBy(g => g.Episodes.Min(e => e.LastSearchTime ?? DateTime.MinValue)))
-            {
-                List<DownloadDecision> decisions;
-
-                var seriesId = group.SeriesId;
-                var seasonNumber = group.SeasonNumber;
-                var groupEpisodes = group.Episodes;
-
-                if (groupEpisodes.Count > 1)
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        decisions = await _releaseSearchService.SeasonSearch(seriesId, seasonNumber, groupEpisodes, monitoredOnly, userInvokedSearch, false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error(ex, "Unable to search for games in region {0} of [{1}]", seasonNumber, seriesId);
-                        continue;
-                    }
+                    _logger.Error(ex, "Unable to search for game: [{0}]", episode);
                 }
-                else
-                {
-                    var episode = groupEpisodes.First();
-
-                    try
-                    {
-                        decisions = await _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error(ex, "Unable to search for game: [{0}]", episode);
-                        continue;
-                    }
-                }
-
-                var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
-
-                downloadedCount += processed.Grabbed.Count;
             }
 
             _logger.ProgressInfo("Completed search for {0} games. {1} releases downloaded.", episodes.Count, downloadedCount);
@@ -128,8 +88,7 @@ namespace NzbDrone.Core.IndexerSearch
                 episodes = _episodeService.GetEpisodeBySeries(message.SeriesId.Value)
                                           .Where(e => e.Monitored == monitored &&
                                                  !e.HasFile &&
-                                                 e.AirDateUtc.HasValue &&
-                                                 e.AirDateUtc.Value.Before(DateTime.UtcNow))
+                                                 (!e.AirDateUtc.HasValue || e.AirDateUtc.Value.Before(DateTime.UtcNow)))
                                           .ToList();
             }
             else
