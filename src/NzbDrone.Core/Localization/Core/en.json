@@ -2232,6 +2232,7 @@
     "SearchForAllMissingGamesConfirmationCount": "Are you sure you want to search for all {totalRecords} missing games?",
     "SearchForCollection": "Search for Collection",
     "SearchForCollectionHelpText": "Search specifically for entire ROM collections and complete sets for this platform",
+    "InteractiveSearchForCollectionHelpText": "Interactively search for entire ROM collections and complete sets for this platform",
     "SearchForCutoffUnmetEpisodes": "Search for all Cutoff Unmet games",
     "SearchForCutoffUnmetEpisodesConfirmationCount": "Are you sure you want to search for all {totalRecords} Cutoff Unmet games?",
     "SearchForCutoffUnmetGames": "Search for all Cutoff Unmet games",

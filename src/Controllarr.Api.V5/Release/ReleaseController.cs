@@ -209,7 +209,12 @@ public class ReleaseController : RestController<ReleaseResource>
             return TypedResults.Ok(await GetRegionReleases(targetPlatformId.Value, targetRegionNumber.Value));
         }
 
-        if (targetPlatformId.HasValue || targetRegionNumber.HasValue)
+        if (targetPlatformId.HasValue)
+        {
+            return TypedResults.Ok(await GetPlatformCollectionReleases(targetPlatformId.Value));
+        }
+
+        if (targetRegionNumber.HasValue)
         {
             throw new NzbDroneClientException(HttpStatusCode.BadRequest, "platformId and regionNumber must be provided together");
         }
@@ -255,6 +260,27 @@ public class ReleaseController : RestController<ReleaseResource>
         catch (Exception ex)
         {
             _logger.Error(ex, "Region search failed: " + ex.Message);
+            throw new NzbDroneClientException(HttpStatusCode.InternalServerError, ex.Message);
+        }
+    }
+
+    private async Task<List<ReleaseResource>> GetPlatformCollectionReleases(int platformId)
+    {
+        try
+        {
+            var decisions = await _releaseSearchService.PlatformCollectionSearch(platformId, true, true);
+            var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
+            var history = _historyService.GetBySeries(platformId, null);
+
+            return MapDecisions(prioritizedDecisions, history);
+        }
+        catch (SearchFailedException ex)
+        {
+            throw new NzbDroneClientException(HttpStatusCode.BadRequest, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Platform collection search failed: " + ex.Message);
             throw new NzbDroneClientException(HttpStatusCode.InternalServerError, ex.Message);
         }
     }

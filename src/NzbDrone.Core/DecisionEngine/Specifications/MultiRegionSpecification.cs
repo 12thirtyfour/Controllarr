@@ -19,6 +19,11 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         {
             if (subject.ParsedEpisodeInfo.IsMultiSeason)
             {
+                if (information.SearchCriteria is IndexerSearch.Definitions.RegionSearchCriteria { IsPlatformCollectionSearch: true })
+                {
+                    return DownloadSpecDecision.Accept();
+                }
+
                 _logger.Debug("Multi-region release {0} rejected. Not supported", subject.Release.Title);
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.MultiSeason, "Multi-region releases are not supported");
             }

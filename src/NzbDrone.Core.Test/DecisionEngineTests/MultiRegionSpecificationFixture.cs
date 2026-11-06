@@ -3,6 +3,7 @@ using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -50,6 +51,17 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_return_false_if_is_a_multi_season_release()
         {
             Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_return_true_if_is_a_platform_collection_search()
+        {
+            var info = new ReleaseDecisionInformation(false, new IndexerSearch.Definitions.SeasonSearchCriteria
+            {
+                IsPlatformCollectionSearch = true
+            });
+
+            Subject.IsSatisfiedBy(_remoteEpisode, info).Accepted.Should().BeTrue();
         }
     }
 }

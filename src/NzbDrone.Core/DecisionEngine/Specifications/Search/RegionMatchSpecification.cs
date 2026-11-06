@@ -30,6 +30,11 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
                 return DownloadSpecDecision.Accept();
             }
 
+            if (singleEpisodeSpec.IsPlatformCollectionSearch || singleEpisodeSpec.SeasonNumber <= 0)
+            {
+                return DownloadSpecDecision.Accept();
+            }
+
             var seasonNumbers = remoteEpisode.ParsedEpisodeInfo.SeasonNumbers;
 
             var matches = seasonNumbers.Count > 0

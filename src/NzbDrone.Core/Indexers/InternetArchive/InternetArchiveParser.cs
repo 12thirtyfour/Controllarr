@@ -527,8 +527,10 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     continue;
                 }
 
+                var isCollectionSearch = requestUrl.IndexOf("_collection=true", StringComparison.OrdinalIgnoreCase) >= 0;
+
                 // If this is an entire multi-game collection (e.g. 472GB archive pack), reject it during single-game search
-                if (doc.ItemSize.HasValue && doc.ItemSize.Value > 25_000_000_000L)
+                if (!isCollectionSearch && doc.ItemSize.HasValue && doc.ItemSize.Value > 25_000_000_000L)
                 {
                     continue;
                 }

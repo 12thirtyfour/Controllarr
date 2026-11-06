@@ -4,7 +4,7 @@ interface GameSearchPayload {
 
 interface RegionSearchPayload {
   seriesId: number;
-  seasonNumber: number;
+  seasonNumber?: number;
 }
 
 type InteractiveSearchPayload = GameSearchPayload | RegionSearchPayload;

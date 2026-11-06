@@ -266,20 +266,37 @@ namespace NzbDrone.Core.DecisionEngine
                     // Check if this is a platform full set or season pack matching the platform
                     if (IsPlatformPackMatch(releaseTitle, cleanRomGameTitle, series))
                     {
-                        var targetSeason = searchCriteria is SeasonSearchCriteria ssc ? ssc.SeasonNumber : 1;
+                        var isCollectionSearch = searchCriteria is SeasonSearchCriteria { IsPlatformCollectionSearch: true };
+                        var romInfoIsFullSet = romInfo?.IsFullSetArchive == true;
+                        var isPlatformCollection = isCollectionSearch || romInfoIsFullSet;
+
+                        var allSeriesSeasons = series.Seasons?
+                            .Select(s => s.SeasonNumber)
+                            .Where(s => s > 0)
+                            .Distinct()
+                            .ToList() ?? new List<int>();
+
+                        var targetSeason = searchCriteria is SeasonSearchCriteria ssc && ssc.SeasonNumber > 0 ? ssc.SeasonNumber : 1;
+                        if (allSeriesSeasons.Count == 0)
+                        {
+                            allSeriesSeasons.Add(targetSeason);
+                        }
+
                         var romQuality = romInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
                         if (romQuality.Quality == Quality.Unknown)
                         {
                             romQuality = new QualityModel(Quality.VerifiedGoodDump);
                         }
 
+                        var seasonNumbers = isPlatformCollection ? allSeriesSeasons : new List<int> { targetSeason };
+
                         return new ParsedEpisodeInfo
                         {
                             SeriesTitle = series.Title,
                             SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
                             FullSeason = true,
-                            SeasonNumber = targetSeason,
-                            SeasonNumbers = new List<int> { targetSeason },
+                            SeasonNumber = seasonNumbers.First(),
+                            SeasonNumbers = seasonNumbers,
                             ReleaseTitle = releaseTitle,
                             Languages = LanguageParser.ParseLanguages(releaseTitle),
                             Quality = romQuality

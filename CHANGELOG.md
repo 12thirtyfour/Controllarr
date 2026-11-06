@@ -30,6 +30,12 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Platform Collection Multi-Region Search & Full Romset Alignment**: Fixed collection search designating entire platform collections as single-region searches (previously scoping to Season 1 / North America only) and rejecting multi-region releases.
+  - Updated `RegionSearchCriteria.ToString()` and `ReleaseSearchService.PlatformCollectionSearch` so platform collection searches log and execute as `[Platform : Platform Collection]` (`SeasonNumber = 0`, `IsPlatformCollectionSearch = true`) across all regions instead of defaulting to `[Platform : North America]`.
+  - Updated `DownloadDecisionMaker.cs` so matched platform collections populate `SeasonNumbers` with all configured regions for the platform (`allSeriesSeasons`) and set `IsMultiSeason = true`, ensuring games across all regions in the collection are recognized, matched, and imported upon extraction.
+  - Updated `RegionMatchSpecification.cs` and `MultiRegionSpecification.cs` to accept multi-region platform collections when `IsPlatformCollectionSearch` is active.
+  - Updated `InternetArchiveRequestGenerator.cs` to search for collection terms and archive collections rather than iterating individual games during collection searches, and enabled large collection archive downloads in `InternetArchiveParser.cs`.
+  - Added platform collection interactive search support to Api V3 and V5 `ReleaseController` and added an Interactive Search action to the platform toolbar in `PlatformDetails.tsx`.
 - **Indexer Download Client Assumption by Protocol**: Removed the downloader selection prompt from the Indexer configuration modal (`EditIndexerModalContent.tsx`). Indexers now automatically route to the configured download client matching their acquisition protocol:
   - Usenet indexers automatically route to the configured Usenet downloader (e.g. SABnzbd, NZBGet).
   - Torrent indexers automatically route to the configured BitTorrent downloader (e.g. qBittorrent, Transmission).

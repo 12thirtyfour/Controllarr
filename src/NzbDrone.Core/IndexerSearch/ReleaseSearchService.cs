@@ -145,18 +145,6 @@ namespace NzbDrone.Core.IndexerSearch
                     var searchSpec = Get<SeasonSearchCriteria>(series, mapping, monitoredOnly, userInvokedSearch, interactiveSearch);
                     searchSpec.SeasonNumber = mapping.SeasonNumber;
 
-                    if (interactiveSearch || seasonNumber == 1)
-                    {
-                        var collectionTerms = BuildPlatformCollectionSearchTerms(series);
-                        foreach (var term in collectionTerms)
-                        {
-                            if (!searchSpec.SceneTitles.Contains(term, StringComparer.OrdinalIgnoreCase))
-                            {
-                                searchSpec.SceneTitles.Add(term);
-                            }
-                        }
-                    }
-
                     var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
                     downloadDecisions.AddRange(decisions);
                 }
@@ -218,6 +206,9 @@ namespace NzbDrone.Core.IndexerSearch
             terms.Add($"{platformName} no-intro");
             terms.Add($"{platformName} redump");
             terms.Add($"{platformName} 1g1r");
+            terms.Add($"{platformName} collection");
+            terms.Add($"{platformName} rom set");
+            terms.Add(platformName);
 
             if (!string.IsNullOrWhiteSpace(shortName))
             {
@@ -225,6 +216,10 @@ namespace NzbDrone.Core.IndexerSearch
                 terms.Add($"{shortName} complete");
                 terms.Add($"{shortName} full set");
                 terms.Add($"{shortName} no-intro");
+                terms.Add($"{shortName} collection");
+                terms.Add($"{shortName} redump");
+                terms.Add($"{shortName} 1g1r");
+                terms.Add($"{shortName} rom set");
             }
 
             foreach (var alias in aliases.Take(3))
@@ -232,6 +227,10 @@ namespace NzbDrone.Core.IndexerSearch
                 if (!string.IsNullOrWhiteSpace(alias) && alias.Length > 2)
                 {
                     terms.Add($"{alias} romset");
+                    terms.Add($"{alias} collection");
+                    terms.Add($"{alias} full set");
+                    terms.Add($"{alias} complete");
+                    terms.Add($"{alias} no-intro");
                 }
             }
 
@@ -247,7 +246,7 @@ namespace NzbDrone.Core.IndexerSearch
             var searchSpec = new SeasonSearchCriteria
             {
                 Series = series,
-                SeasonNumber = 1,
+                SeasonNumber = 0,
                 IsPlatformCollectionSearch = true,
                 SceneTitles = terms.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 Episodes = episodes,

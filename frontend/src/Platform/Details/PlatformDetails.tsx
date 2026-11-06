@@ -54,6 +54,7 @@ import OrganizePreviewModal from 'Organize/OrganizePreviewModal';
 import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
 import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import SdCardExportModal from 'Platform/Export/SdCardExportModal';
+import RegionInteractiveSearchModal from 'Platform/Search/RegionInteractiveSearchModal';
 import PlatformHistoryModal from 'Platform/History/PlatformHistoryModal';
 import MonitoringOptionsModal from 'Platform/MonitoringOptions/MonitoringOptionsModal';
 import { Image, PlatformStatus, Statistics } from 'Platform/Platform';
@@ -277,6 +278,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   const [isEditPlatformModalOpen, setIsEditPlatformModalOpen] = useState(false);
   const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+  const [isCollectionInteractiveSearchModalOpen, setIsCollectionInteractiveSearchModalOpen] = useState(false);
 
   const handleToggleOverview = useCallback(() => {
     setIsOverviewExpanded((value) => !value);
@@ -451,6 +453,14 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     });
   }, [seriesId, executeCommand]);
 
+  const handleInteractiveSearchCollectionPress = useCallback(() => {
+    setIsCollectionInteractiveSearchModalOpen(true);
+  }, []);
+
+  const handleCollectionInteractiveSearchModalClose = useCallback(() => {
+    setIsCollectionInteractiveSearchModalOpen(false);
+  }, []);
+
   const populate = useCallback(() => {
     refetchGames();
     refetchRomFiles();
@@ -624,6 +634,18 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                     size={14}
                   />
                   {translate('SearchForCollection')}
+                </MenuItem>
+                <MenuItem
+                  isDisabled={!monitored || !hasGames}
+                  title={translate('InteractiveSearchForCollectionHelpText')}
+                  onPress={handleInteractiveSearchCollectionPress}
+                >
+                  <Icon
+                    className={styles.actionMenuIcon}
+                    name={icons.INTERACTIVE}
+                    size={14}
+                  />
+                  {translate('InteractiveSearch')}
                 </MenuItem>
               </MenuContent>
             </Menu>
@@ -1148,6 +1170,14 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
             gameTitle={title}
             platformTitle={title}
             onModalClose={handleRetroAchievementsModalClose}
+          />
+
+          <RegionInteractiveSearchModal
+            isOpen={isCollectionInteractiveSearchModalOpen}
+            gameCount={gameCount}
+            seriesId={seriesId}
+            seasonNumber={null}
+            onModalClose={handleCollectionInteractiveSearchModalClose}
           />
         </PageContentBody>
       </PageContent>

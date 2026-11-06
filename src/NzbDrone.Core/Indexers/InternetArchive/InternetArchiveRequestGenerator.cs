@@ -82,8 +82,9 @@ namespace NzbDrone.Core.Indexers.InternetArchive
         {
             var pageableRequests = new IndexerPageableRequestChain();
             var terms = new List<string>();
+            var isPlatformCollection = searchCriteria is SeasonSearchCriteria { IsPlatformCollectionSearch: true };
 
-            if (searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
+            if (!isPlatformCollection && searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
             {
                 foreach (var episode in searchCriteria.Episodes)
                 {
@@ -128,6 +129,11 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 if (!string.IsNullOrWhiteSpace(platformName))
                 {
                     platformParam += $"&_platformName={Uri.EscapeDataString(platformName)}";
+                }
+
+                if (isPlatformCollection)
+                {
+                    platformParam += "&_collection=true";
                 }
             }
 

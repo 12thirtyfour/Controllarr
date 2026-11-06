@@ -58,5 +58,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search.RegionMatchSpecification
 
             Subject.IsSatisfiedBy(_remoteEpisode, _information).Accepted.Should().BeFalse();
         }
+
+        [Test]
+        public void should_return_true_if_is_a_platform_collection_search()
+        {
+            _remoteEpisode.ParsedEpisodeInfo.SeasonNumbers = [3];
+            _searchCriteria.SeasonNumber = 0;
+            _searchCriteria.IsPlatformCollectionSearch = true;
+
+            Subject.IsSatisfiedBy(_remoteEpisode, _information).Accepted.Should().BeTrue();
+        }
     }
 }

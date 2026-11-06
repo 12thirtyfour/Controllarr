@@ -14,7 +14,7 @@ import styles from './RegionInteractiveSearchModalContent.module.css';
 export interface RegionInteractiveSearchModalContentProps {
   gameCount: number;
   seriesId: number;
-  seasonNumber: number;
+  seasonNumber?: number | null;
   onModalClose(): void;
 }
 
@@ -24,13 +24,15 @@ function RegionInteractiveSearchModalContent({
   seasonNumber,
   onModalClose,
 }: RegionInteractiveSearchModalContentProps) {
-  useClearReleasesOnUnmount({ seriesId, seasonNumber });
+  useClearReleasesOnUnmount(
+    seasonNumber == null ? { seriesId } : { seriesId, seasonNumber }
+  );
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        {seasonNumber === null
+        {seasonNumber == null
           ? translate('InteractiveSearchModalHeader')
           : translate('InteractiveSearchModalHeaderSeason', {
               season: formatSeason(seasonNumber) as string,
@@ -40,19 +42,22 @@ function RegionInteractiveSearchModalContent({
       <ModalBody ref={modalBodyRef} scrollDirection={scrollDirections.BOTH}>
         <InteractiveSearch
           type="season"
-          searchPayload={{
-            seriesId,
-            seasonNumber,
-          }}
+          searchPayload={
+            seasonNumber == null
+              ? { seriesId }
+              : { seriesId, seasonNumber }
+          }
           scrollerRef={modalBodyRef}
         />
       </ModalBody>
 
       <ModalFooter className={styles.modalFooter}>
         <div>
-          {translate('GamesInSeason', {
-            gameCount,
-          })}
+          {seasonNumber == null
+            ? `${gameCount} ${translate('Games')}`
+            : translate('GamesInSeason', {
+                gameCount,
+              })}
         </div>
 
         <Button onPress={onModalClose}>{translate('Close')}</Button>

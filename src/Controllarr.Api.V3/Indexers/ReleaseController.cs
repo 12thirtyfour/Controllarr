@@ -181,7 +181,12 @@ namespace Sonarr.Api.V3.Indexers
                 return await GetSeasonReleases(seriesId.Value, seasonNumber.Value);
             }
 
-            if (seriesId.HasValue || seasonNumber.HasValue)
+            if (seriesId.HasValue)
+            {
+                return await GetPlatformCollectionReleases(seriesId.Value);
+            }
+
+            if (seasonNumber.HasValue)
             {
                 throw new NzbDroneClientException(HttpStatusCode.BadRequest, "seriesId and seasonNumber must be provided together");
             }
@@ -225,6 +230,26 @@ namespace Sonarr.Api.V3.Indexers
             catch (Exception ex)
             {
                 _logger.Error(ex, "Season search failed: " + ex.Message);
+                throw new NzbDroneClientException(HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        private async Task<List<ReleaseResource>> GetPlatformCollectionReleases(int seriesId)
+        {
+            try
+            {
+                var decisions = await _releaseSearchService.PlatformCollectionSearch(seriesId, true, true);
+                var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
+
+                return MapDecisions(prioritizedDecisions);
+            }
+            catch (SearchFailedException ex)
+            {
+                throw new NzbDroneClientException(HttpStatusCode.BadRequest, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Platform collection search failed: " + ex.Message);
                 throw new NzbDroneClientException(HttpStatusCode.InternalServerError, ex.Message);
             }
         }

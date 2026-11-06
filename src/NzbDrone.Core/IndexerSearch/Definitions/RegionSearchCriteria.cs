@@ -12,6 +12,11 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
+            if (IsPlatformCollectionSearch || SeasonNumber <= 0)
+            {
+                return string.Format("[{0} : Platform Collection]", Series.Title);
+            }
+
             var region = RegionHelper.GetRegionName(SeasonNumber);
             return string.Format("[{0} : {1}]", Series.Title, region);
         }
