@@ -257,7 +257,8 @@ public class StatisticsRepository : IStatisticsRepository
         return new SqlBuilder(_database.DatabaseType)
             .Select($@"SUM(CASE WHEN (""Games"".""Monitored"" = {trueIndicator} AND ""Games"".""AirDateUtc"" <= @currentDate) OR ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS ""EpisodeCount"",
                          SUM(CASE WHEN ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS ""EpisodeFileCount""",
-                parameters);
+                parameters)
+            .Where(@"""Games"".""SeasonNumber"" != 99");
     }
 
     private SqlBuilder CompletedSeriesBuilder(DateTime currentDate, SeriesFilter seriesFilter)
@@ -336,7 +337,8 @@ public class StatisticsRepository : IStatisticsRepository
                          COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND ""Games"".""Monitored"" = {trueIndicator} AND ""Platforms"".""Monitored"" = {trueIndicator} AND ""Games"".""AirDateUtc"" <= @currentDate THEN 1 ELSE 0 END), 0) AS MissingEpisodeCount,
                          COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND (""Games"".""AirDateUtc"" IS NULL OR ""Games"".""AirDateUtc"" > @currentDate) THEN 1 ELSE 0 END), 0) AS UnairedEpisodeCount",
                 parameters)
-            .Join<Episode, Series>((e, s) => e.SeriesId == s.Id);
+            .Join<Episode, Series>((e, s) => e.SeriesId == s.Id)
+            .Where(@"""Games"".""SeasonNumber"" != 99");
 
         if (seriesFilter != null)
         {
@@ -350,7 +352,8 @@ public class StatisticsRepository : IStatisticsRepository
     {
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select(@"COUNT(*) AS EpisodeFileCount,
-                        COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk");
+                        COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
+            .Where(@"""RomFiles"".""SeasonNumber"" != 99");
 
         if (seriesFilter != null)
         {

@@ -174,7 +174,7 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
 
             var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
 
-            requests.Should().HaveCount(2);
+            requests.Should().HaveCount(3);
 
             // Tier 1: Query primary archive metadata directly for single ROM files
             requests[0].HttpRequest.Url.FullUri.Should().Contain("/metadata/htgdb-gamepacks/files?search=Super%20Mario%20World");
@@ -183,6 +183,11 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             requests[1].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
             requests[1].HttpRequest.Url.FullUri.Should().Contain("collection%3Ahtgdb-gamepacks");
             requests[1].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
+
+            // Tier 3: Broad search across Internet Archive software library
+            requests[2].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            requests[2].HttpRequest.Url.FullUri.Should().Contain("mediatype%3Asoftware");
+            requests[2].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
         }
 
         [Test]
@@ -433,6 +438,62 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             releases[0].Guid.Should().Be("IA-sonic_cd_standalone_release");
             releases[0].Title.Should().Be("Sonic CD (USA)");
             releases[0].Size.Should().Be(471859200);
+        }
+
+        [Test]
+        public void should_generate_single_collection_request_for_primary_archives_without_search_query()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/nointro.nes" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SeasonSearchCriteria
+            {
+                Series = new Series { Title = "Nintendo Entertainment System", TitleSlug = "nes" },
+                IsPlatformCollectionSearch = true,
+                SceneTitles = new List<string> { "NES", "Nintendo Entertainment System", "NES romset" }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+
+            // Tier 1 should have exactly one request for the primary archive without ?search= query
+            var tier1 = requests.First();
+            tier1.HttpRequest.Url.FullUri.Should().Be("https://archive.org/metadata/nointro.nes/files#_platform=nes&_platformName=Nintendo%20Entertainment%20System&_collection=true");
+        }
+
+        [Test]
+        public void should_parse_collection_zip_file_as_season_pack_from_primary_archive()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/nointro.nes" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""Nintendo - Nintendo Entertainment System.zip"", ""size"": ""123456789"", ""format"": ""ZIP"" },
+                    { ""name"": ""readme.txt"", ""size"": ""100"", ""format"": ""Text"" },
+                    { ""name"": ""Super Mario Bros (USA).nes"", ""size"": ""40960"", ""format"": ""ROM"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/nointro.nes/files#_platform=nes&_platformName=Nintendo%20Entertainment%20System&_collection=true");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            var release = releases.First();
+            release.Title.Should().Be("Nintendo - Nintendo Entertainment System.zip");
+            release.DownloadUrl.Should().Be("https://archive.org/download/nointro.nes/Nintendo%20-%20Nintendo%20Entertainment%20System.zip");
+            release.ParsedRomInfo.Should().NotBeNull();
+            release.ParsedRomInfo.IsFullSetArchive.Should().BeTrue();
         }
     }
 }

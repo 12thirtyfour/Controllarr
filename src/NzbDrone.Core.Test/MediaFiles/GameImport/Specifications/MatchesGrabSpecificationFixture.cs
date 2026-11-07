@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
@@ -118,6 +119,43 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             GivenHistoryForEpisodes(_episode2, _episode3);
 
             Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_be_accepted_if_release_type_is_season_pack()
+        {
+            GivenHistoryForEpisodes(_episode2);
+            _localEpisode.Release.ReleaseType = ReleaseType.SeasonPack;
+
+            Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_be_accepted_if_game_matches_by_title_on_same_series()
+        {
+            _episode1.Title = "Gran Turismo 6";
+            _episode1.SeriesId = 10;
+
+            _episode2.Title = "Gran Turismo 6";
+            _episode2.SeriesId = 10;
+
+            GivenHistoryForEpisodes(_episode2);
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(s => s.GetEpisodes(It.IsAny<IEnumerable<int>>()))
+                .Returns(new List<Episode> { _episode2 });
+
+            Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_with_game_title_in_message_not_episode()
+        {
+            _episode1.Title = "Gran Turismo 6";
+            GivenHistoryForEpisodes(_episode2);
+
+            var decision = Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem);
+            decision.Accepted.Should().BeFalse();
+            decision.Message.Should().Contain("Game 'Gran Turismo 6' was not found in the grabbed release");
         }
     }
 }

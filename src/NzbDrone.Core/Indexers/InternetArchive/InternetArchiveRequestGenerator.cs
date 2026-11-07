@@ -149,12 +149,23 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             if (primaryArchiveIds.Any())
             {
                 var primaryRequests = new List<IndexerRequest>();
-                foreach (var term in terms.Distinct())
+                if (isPlatformCollection)
                 {
                     foreach (var archiveId in primaryArchiveIds)
                     {
-                        var url = $"{baseUrl}/metadata/{archiveId}/files?search={Uri.EscapeDataString(term)}{platformParam}";
+                        var url = $"{baseUrl}/metadata/{archiveId}/files{platformParam}";
                         primaryRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
+                    }
+                }
+                else
+                {
+                    foreach (var term in terms.Distinct())
+                    {
+                        foreach (var archiveId in primaryArchiveIds)
+                        {
+                            var url = $"{baseUrl}/metadata/{archiveId}/files?search={Uri.EscapeDataString(term)}{platformParam}";
+                            primaryRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
+                        }
                     }
                 }
 
@@ -164,9 +175,31 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 }
             }
 
+            var primaryPagedRequests = new List<IndexerRequest>();
             foreach (var term in terms.Distinct())
             {
-                pageableRequests.Add(GetPagedRequests(term, platformParam));
+                primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam));
+            }
+
+            if (primaryPagedRequests.Any())
+            {
+                pageableRequests.Add(primaryPagedRequests);
+            }
+
+            // If primary archives were configured, also provide a broader search tier across Internet Archive software library
+            // so interactive search returns results even if not in the primary archive
+            if (primaryArchiveIds.Any())
+            {
+                var broadRequests = new List<IndexerRequest>();
+                foreach (var term in terms.Distinct())
+                {
+                    broadRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true));
+                }
+
+                if (broadRequests.Any())
+                {
+                    pageableRequests.Add(broadRequests);
+                }
             }
 
             return pageableRequests;
@@ -195,9 +228,9 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             return clean.Trim();
         }
 
-        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "")
+        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "", bool ignorePrimaryArchives = false)
         {
-            var query = BuildQuery(term);
+            var query = BuildQuery(term, ignorePrimaryArchives);
             var baseUrl = Settings.BaseUrl.TrimEnd('/');
 
             for (var page = 1; page <= MaxPages; page++)
@@ -207,13 +240,15 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             }
         }
 
-        private string BuildQuery(string term)
+        private string BuildQuery(string term, bool ignorePrimaryArchives = false)
         {
-            var collections = Settings?.PrimaryArchiveUrls?
-                .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
-                .Where(c => !c.IsNullOrWhiteSpace())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList() ?? new List<string>();
+            var collections = !ignorePrimaryArchives
+                ? Settings?.PrimaryArchiveUrls?
+                    .Select(InternetArchiveIndexerSettings.ExtractIdentifier)
+                    .Where(c => !c.IsNullOrWhiteSpace())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList() ?? new List<string>()
+                : new List<string>();
             string collectionQuery = null;
 
             if (collections.Any())
@@ -238,6 +273,13 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             if (collectionQuery != null)
             {
                 return $"{collectionQuery} AND (\"{escapedTerm}\" OR {term})";
+            }
+
+            var fallbackCollections = Settings?.Collections?.Where(c => !c.IsNullOrWhiteSpace()).ToList();
+            if (fallbackCollections != null && fallbackCollections.Any())
+            {
+                var collectionPart = string.Join(" OR ", fallbackCollections.Select(c => $"collection:{c}"));
+                return $"(mediatype:software OR {collectionPart}) AND (\"{escapedTerm}\" OR {term})";
             }
 
             return $"mediatype:software AND (\"{escapedTerm}\" OR {term})";

@@ -212,6 +212,7 @@ namespace NzbDrone.Core.IndexerSearch
 
             if (!string.IsNullOrWhiteSpace(shortName))
             {
+                terms.Add(shortName);
                 terms.Add($"{shortName} romset");
                 terms.Add($"{shortName} complete");
                 terms.Add($"{shortName} full set");
@@ -226,6 +227,7 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 if (!string.IsNullOrWhiteSpace(alias) && alias.Length > 2)
                 {
+                    terms.Add(alias);
                     terms.Add($"{alias} romset");
                     terms.Add($"{alias} collection");
                     terms.Add($"{alias} full set");

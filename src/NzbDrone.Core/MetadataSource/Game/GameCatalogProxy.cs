@@ -1068,7 +1068,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var smdbCategory = "SmokeMonster HTGDB / SMDB";
 
                 if (pathSegments.Any(s => s.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Hack", StringComparison.OrdinalIgnoreCase)))
+                                          s.Contains("Hack", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Color", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Patch", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Fix", StringComparison.OrdinalIgnoreCase)))
                 {
                     smdbCategory = "ROM Hacks & Translations";
                 }
@@ -2295,7 +2299,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 (!string.IsNullOrWhiteSpace(verificationSource) && (
                     verificationSource.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
                     verificationSource.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Hacks", StringComparison.OrdinalIgnoreCase))) ||
+                    verificationSource.Contains("Hacks", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
+                    verificationSource.Contains("Color Hack", StringComparison.OrdinalIgnoreCase))) ||
                 noIntroName.Contains("(Hack", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[Hack", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("Hack)", StringComparison.OrdinalIgnoreCase) ||
@@ -2327,6 +2333,30 @@ namespace NzbDrone.Core.MetadataSource.Game
                 noIntroName.Contains("(Uncensored)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[Uncensored]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(Colorized)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Colorized]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Colourized)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Colourized]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Color)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Color]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Color ", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Color Hack", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("Color Edition", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Enhancement)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Enhancement]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Enhancements)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Enhancements]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Enhanced)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Enhanced]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Fix)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Fix]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Fixes)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Fixes]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Patch)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Patch]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(Patches)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[Patches]", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("(SGB Enhanced)", StringComparison.OrdinalIgnoreCase) ||
+                noIntroName.Contains("[SGB Enhanced]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(DX)", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("[DX]", StringComparison.OrdinalIgnoreCase) ||
                 noIntroName.Contains("(FastROM)", StringComparison.OrdinalIgnoreCase) ||

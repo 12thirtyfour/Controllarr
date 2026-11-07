@@ -30,11 +30,23 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Added
+- **Internet Archive Interactive & Collection Search Pipeline**:
+  - Broadened Internet Archive search by providing a dedicated search tier across the Internet Archive software library (`mediatype:software` and configured collections), allowing single game interactive searches to find games on Internet Archive even when specific Primary Archive URLs are configured.
+  - Enhanced platform collection searching (`IsPlatformCollectionSearch`) for Internet Archive: generates clean metadata file queries without server-side search query string pollution, and automatically detects platform collection archives (`.zip`, `.7z`, `.rar`, e.g., `Nintendo - Nintendo Entertainment System.zip` or `NES.zip`), identifying them as full set platform packs (`IsFullSetArchive = true`, `ReleaseType.SeasonPack`) for automated download, archive extraction, and multi-game library import.
+  - Added platform collection search terms (`shortName`, `alias`) to `ReleaseSearchService.BuildPlatformCollectionSearchTerms`.
 - **Automatic Failed Download Handling & Release Re-Attempt for Ineligible Releases**:
   - Enhanced `CompletedDownloadService.Import` to invoke `IFailedDownloadService.MarkAsFailed` whenever a completed download contains no eligible files for import or when all candidate files are rejected (such as downloading a Wii `.wbfs` when Nintendo 3DS was requested, unverified dump, or mismatching title).
   - Automatically blocklists the failed release via `BlocklistService` to prevent repeat grabs, triggers `RedownloadFailedDownloadService` to immediately perform a fresh search (`GameSearchCommand`) for alternative candidate releases, and removes the failed download from the client and queue rather than stalling in `ImportBlocked`.
 
 ### Changed
+- **De-Televisonization of Grab Import Rejection Messaging (`MatchesGrabSpecification`)**:
+  - Replaced television rejection warnings referencing season and episode numbers (`Episode 1x1214 was not found in the grabbed release...`) with authentic game title messaging: `"Game '{0}' was not found in the grabbed release: {1}"` and `"Games '{0}' were not found in the grabbed release: {1}"`.
+  - Added clean game title matching on the same platform to accept grabbed releases when alternative revisions or catalog entries share the clean game title, and automatically accepted platform collection pack grabs (`ReleaseType.SeasonPack`).
+- **Exclusion of BIOS Files from ROM Counts**:
+  - Excluded BIOS season (`SeasonNumber == 99`) from platform statistics (`EpisodeFileCount`, `EpisodeCount`, `TotalEpisodeCount`, and `MonitoredEpisodeCount`) in `PlatformStatisticsService`.
+  - Excluded BIOS games from statistics aggregations in `StatisticsRepository` (`EpisodeProgressBuilder`, `EpisodesBuilder`, `EpisodeFilesBuilder`), guaranteeing that BIOS files are not included within ROM counts.
+- **Game Boy Library Sorting & ROM Hacks Classification**:
+  - Enhanced `GameCatalogProxy.ParseSmokeMonsterSmdbContent` and `ClassifyRegionAndCategory` to route Game Boy and other platform ROM hacks, colorizations, DX editions, enhancements, patches, fixes, and SGB enhancements (such as `(Color)`, `(DX)`, `(Enhancement)`, `(Patch)`, `(Fix)`, `(SGB Enhanced)`) into `RegionRomHacksSeason` (Season 6) rather than polluting official geographic release seasons (USA, Europe, Japan, World).
 - **De-Televisonization of Main Platform View Columns**:
   - Removed "Quality Profile" (`qualityProfileId`) and "Regions" (`seasonCount`) columns from the main platform view table (`platformOptionsStore`), overview cards, and poster views.
   - Bumped platform options store key to `platform_options_v2` to immediately refresh browser local storage and prevent legacy cached television column presets from rendering.

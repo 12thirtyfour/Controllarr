@@ -501,5 +501,34 @@ game (
             GameCatalogProxy.CleanSceneReleaseTitle("Lapis_x_Labyrinth_Limited_Edition_NSW-SUXXORS")
                 .Should().Be("Lapis x Labyrinth Limited Edition");
         }
+
+        [Test]
+        public void should_classify_gameboy_rom_hacks_and_enhancements_into_rom_hacks_season()
+        {
+            Subject.TryGetPlatformEntry(1009, out var gbPlatform);
+            gbPlatform.Should().NotBeNull();
+
+            var hack1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Super Mario Land (World) (DX)", 1989, "SmokeMonster HTGDB / SMDB");
+            var hack2 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Metroid II - Return of Samus (USA) (Color)", 1991, "SmokeMonster HTGDB / SMDB");
+            var hack3 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Red (USA) (Colorized)", 1996, "SmokeMonster HTGDB / SMDB");
+            var hack4 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "The Legend of Zelda - Link's Awakening (USA) (Enhancement)", 1993, "SmokeMonster HTGDB / SMDB");
+            var hack5 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Mega Man - Dr. Wily's Revenge (USA) (Patch)", 1991, "SmokeMonster HTGDB / SMDB");
+            var hack6 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Castlevania - The Adventure (USA) (Fix)", 1989, "SmokeMonster HTGDB / SMDB");
+            var hack7 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Donkey Kong Land (USA) (SGB Enhanced)", 1995, "SmokeMonster HTGDB / SMDB");
+
+            hack1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack3.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack4.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack5.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack6.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack7.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+
+            var official1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Super Mario Land (World)", 1989, "No-Intro");
+            var official2 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Metroid II - Return of Samus (USA)", 1991, "No-Intro");
+
+            official1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionWorldSeason);
+            official2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+        }
     }
 }

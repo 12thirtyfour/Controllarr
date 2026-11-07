@@ -456,7 +456,17 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     }
 
                     var fileNameOnly = Path.GetFileName(file.Name);
-                    if (!string.IsNullOrWhiteSpace(searchTerm))
+                    var isCollectionSearch = requestUrl.IndexOf("_collection=true", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    if (isCollectionSearch)
+                    {
+                        var isArchiveFile = ext is ".zip" or ".7z" or ".rar" or ".tar" or ".gz";
+                        if (!isArchiveFile)
+                        {
+                            continue;
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(searchTerm))
                     {
                         if (!MatchesSearchTerm(fileNameOnly, file.Name, searchTerm))
                         {
@@ -470,10 +480,15 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                         : DateTime.UtcNow;
                     var requiresCredentials = file.IsPrivate() || (_settings != null && _settings.RequireCredentials);
                     var container = !string.IsNullOrWhiteSpace(ext) ? ext.TrimStart('.').ToUpperInvariant() : null;
-                    var parsedRomInfo = RomParser.ParseRomName(file.Name);
-                    if (parsedRomInfo != null && !string.IsNullOrWhiteSpace(container))
+                    var parsedRomInfo = RomParser.ParseRomName(file.Name) ?? new ParsedRomInfo { ReleaseTitle = fileNameOnly };
+                    if (!string.IsNullOrWhiteSpace(container))
                     {
                         parsedRomInfo.Format = container.ToLowerInvariant();
+                    }
+
+                    if (isCollectionSearch)
+                    {
+                        parsedRomInfo.IsFullSetArchive = true;
                     }
 
                     var escapedPath = string.Join("/", file.Name.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
@@ -551,10 +566,15 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 var requiresCredentials = doc.IsAccessRestricted() || (_settings != null && _settings.RequireCredentials);
                 var docExt = Path.GetExtension(title);
                 var docContainer = !string.IsNullOrWhiteSpace(docExt) && docExt.Length <= 6 ? docExt.TrimStart('.').ToUpperInvariant() : null;
-                var docRomInfo = RomParser.ParseRomName(title);
-                if (docRomInfo != null && !string.IsNullOrWhiteSpace(docContainer))
+                var docRomInfo = RomParser.ParseRomName(title) ?? new ParsedRomInfo { ReleaseTitle = title };
+                if (!string.IsNullOrWhiteSpace(docContainer))
                 {
                     docRomInfo.Format = docContainer.ToLowerInvariant();
+                }
+
+                if (isCollectionSearch)
+                {
+                    docRomInfo.IsFullSetArchive = true;
                 }
 
                 var releaseInfo = new ReleaseInfo
