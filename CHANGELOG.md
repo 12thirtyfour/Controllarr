@@ -30,6 +30,13 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **1G1R Library Population & Exclusive Display Isolation (Multi-Version vs Multi-Disc)**: Fixed 1G1R (`OneGameOneRom` and `OneGamePerRegionPerConsole`) platforms populating all versions into the library database and displaying redundant older versions in the UI:
+  - Updated `RefreshGameService.cs` (`FilterEpisodesForCollectionStrategy`) to strictly enforce 1G1R filtering during platform catalog population and refresh. In 1G1R mode, only the preferred release (newest revision by default, or initial release when `RevisionPreference.InitialRelease`), all multi-disc entries for that preferred version (e.g. `Final Fantasy VII (USA) (v1.1) (Disc 1-3)`), and standalone update files are populated into the library database.
+  - Ensured safe retention of any existing releases with files already on disk (`EpisodeFileId > 0`), while pruning unmanaged older versions via `_episodeService.DeleteMany` when switching from Completionist to 1G1R.
+  - Updated `PlatformService.cs` to trigger a platform refresh command whenever the collection strategy changes, automatically pruning or expanding library entries to match the selected mode.
+  - Consolidated base title parsing into `GameCatalogProxy.ExtractBaseTitle(string title, string finaleType = null)` across all backend platform and game services.
+  - Updated `PlatformDetailsRegion.tsx` frontend view: in 1G1R mode (`!isCompletionist`), older versions are completely filtered out of view, ensuring only the preferred release, its multi-discs, and updates are visible. Multi-version toggle buttons (`+X versions`) are hidden in 1G1R, while multi-disc indicators (`+X discs`) and update badges (`+X update(s)`) remain functional. In Completionist mode (`Preservationist`), all versions continue to be displayed with full version toggles.
+  - Added unit test coverage in `RefreshGameServiceFixture.cs` verifying 1G1R multi-version pruning, multi-disc retention, and Completionist population.
 - **ROM Patcher Page Scrolling & Bottom Viewport Clipping**: Fixed the ROM Patcher page (`/patcher`) cutting off the bottom of the "Apply Patch File" section:
   - Wrapped page contents with `PageContentBody`, integrating the application's standard vertical `Scroller` and viewport flex constraints so the page can scroll completely to the bottom.
   - Added bottom padding (`paddingBottom: '48px'`) to ensure the server path input, action button, and card rounded corners maintain clear visual breathing room above the viewport bottom.

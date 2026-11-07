@@ -352,10 +352,72 @@ function PlatformDetailsSeason({
         return;
       }
 
-      const discCount = entries.filter((e) => hasDiscTag(e.versionLabel, e.item.title)).length;
+      let effectiveEntries = entries;
+
+      if (!isCompletionist) {
+        const updateEntries = entries.filter((e) =>
+          isUpdateLabel(e.versionLabel, e.item.title)
+        );
+        const baseEntries = entries.filter(
+          (e) => !isUpdateLabel(e.versionLabel, e.item.title)
+        );
+
+        let preferredBaseDiscs: typeof entries = [];
+        if (baseEntries.length > 0) {
+          const retailBase = baseEntries.filter(
+            (e) => !isPreReleaseLabel(e.versionLabel)
+          );
+          const basePool = retailBase.length > 0 ? retailBase : baseEntries;
+          const unencryptedBase = basePool.filter(
+            (e) => !isEncryptedLabel(e.versionLabel)
+          );
+          const activePool =
+            unencryptedBase.length > 0 ? unencryptedBase : basePool;
+
+          const versionMap = new Map<string, typeof entries>();
+          activePool.forEach((e) => {
+            const ver = parseCleanVersion(e.versionLabel);
+            const list = versionMap.get(ver) || [];
+            list.push(e);
+            versionMap.set(ver, list);
+          });
+
+          const sortedVersions = Array.from(versionMap.keys()).sort((a, b) =>
+            preferOriginalRelease ? a.localeCompare(b) : b.localeCompare(a)
+          );
+
+          const preferredVerKey = sortedVersions[0];
+          preferredBaseDiscs = preferredVerKey
+            ? (versionMap.get(preferredVerKey) || []).sort((a, b) => {
+                const aDisc = parseDiscNumber(a.versionLabel, a.item.title);
+                const bDisc = parseDiscNumber(b.versionLabel, b.item.title);
+                return aDisc - bDisc;
+              })
+            : [];
+        }
+
+        let preferredUpdates: typeof entries = [];
+        if (updateEntries.length > 0) {
+          const sortedUpdates = [...updateEntries].sort((a, b) => {
+            const aVer = parseCleanVersion(a.versionLabel);
+            const bVer = parseCleanVersion(b.versionLabel);
+            return preferOriginalRelease
+              ? aVer.localeCompare(bVer)
+              : bVer.localeCompare(aVer);
+          });
+          preferredUpdates = [sortedUpdates[0]];
+        }
+
+        effectiveEntries = [...preferredBaseDiscs, ...preferredUpdates];
+        if (effectiveEntries.length === 0 && entries.length > 0) {
+          effectiveEntries = [entries[0]];
+        }
+      }
+
+      const discCount = effectiveEntries.filter((e) => hasDiscTag(e.versionLabel, e.item.title)).length;
       const isMultiDisc = discCount > 1;
-      const updateEntries = entries.filter((e) => isUpdateLabel(e.versionLabel, e.item.title));
-      const baseEntries = entries.filter((e) => !isUpdateLabel(e.versionLabel, e.item.title));
+      const updateEntries = effectiveEntries.filter((e) => isUpdateLabel(e.versionLabel, e.item.title));
+      const baseEntries = effectiveEntries.filter((e) => !isUpdateLabel(e.versionLabel, e.item.title));
       const distinctVersionCount = new Set(baseEntries.map((e) => parseCleanVersion(e.versionLabel))).size;
       const hasUpdates = updateEntries.length > 0;
       const isMultiVersion = distinctVersionCount > 1;
@@ -374,10 +436,10 @@ function PlatformDetailsSeason({
       }
 
       const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
-      const alternateVersionCount = entries.length > 1 ? entries.length - 1 : 0;
+      const alternateVersionCount = effectiveEntries.length > 1 ? effectiveEntries.length - 1 : 0;
 
       if (isGroupExpanded) {
-        entries.forEach((entry, idx) => {
+        effectiveEntries.forEach((entry, idx) => {
           rows.push({
             item: {
               ...entry.item,
@@ -393,16 +455,16 @@ function PlatformDetailsSeason({
         });
       } else {
         // Multi-disc entries must always use Disc 1 as primary
-        const baseRetailEntries = retailEntries.filter(
+        const baseRetailEntries = effectiveEntries.filter(
           (e) => !isUpdateLabel(e.versionLabel, e.item.title)
         );
-        const baseEntriesPool = baseRetailEntries.length > 0 ? baseRetailEntries : retailEntries;
+        const baseEntriesPool = baseRetailEntries.length > 0 ? baseRetailEntries : effectiveEntries;
 
         const disc1Entry = baseEntriesPool.find(
           (e) => parseDiscNumber(e.versionLabel, e.item.title) === 1
         );
 
-        let primaryEntry: typeof entries[0];
+        let primaryEntry: typeof effectiveEntries[0];
         if (isMultiDisc && disc1Entry) {
           primaryEntry = disc1Entry;
         } else {
@@ -412,7 +474,7 @@ function PlatformDetailsSeason({
           const monitoredEntry =
             monitoredRetailEntry ??
             baseEntriesPool.find((e) => e.item.monitored) ??
-            entries.find((e) => e.item.monitored);
+            effectiveEntries.find((e) => e.item.monitored);
           const unencryptedRetailEntries = baseEntriesPool.filter(
             (e) => !isEncryptedLabel(e.versionLabel)
           );
@@ -425,7 +487,7 @@ function PlatformDetailsSeason({
               ? preferOriginalRelease
                 ? fallbackPool[0]
                 : fallbackPool[fallbackPool.length - 1]
-              : entries[0];
+              : effectiveEntries[0];
           primaryEntry = monitoredEntry ?? fallbackRetail;
         }
 

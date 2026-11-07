@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.Tv
@@ -45,7 +47,8 @@ namespace NzbDrone.Core.Tv
                 dupeFreeRemoteEpisodes = MapAbsoluteEpisodeNumbers(dupeFreeRemoteEpisodes);
             }
 
-            var orderedEpisodes = OrderEpisodes(series, dupeFreeRemoteEpisodes).ToList();
+            var filteredEpisodes = FilterEpisodesForCollectionStrategy(series, dupeFreeRemoteEpisodes, existingEpisodes);
+            var orderedEpisodes = OrderEpisodes(series, filteredEpisodes.ToList()).ToList();
             var episodesPerSeason = orderedEpisodes.GroupBy(s => s.SeasonNumber).ToDictionary(g => g.Key, g => g.Count());
             var latestSeason = seasons.MaxBy(s => s.SeasonNumber);
 
@@ -176,6 +179,124 @@ namespace NzbDrone.Core.Tv
                                  .DistinctBy(e => e.AbsoluteEpisodeNumber.Value)
                                  .Concat(remoteEpisodes.Where(e => !e.AbsoluteEpisodeNumber.HasValue))
                                  .ToList();
+        }
+
+        private IEnumerable<Episode> FilterEpisodesForCollectionStrategy(Series series, IEnumerable<Episode> episodes, List<Episode> existingEpisodes)
+        {
+            if (series.CollectionStrategy == CollectionStrategy.Preservationist)
+            {
+                return episodes;
+            }
+
+            var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
+            var encryptionPref = series.EncryptionPreference;
+
+            var groups = episodes.GroupBy(e => $"{e.SeasonNumber}:{GameCatalogProxy.ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant()}");
+            var filtered = new List<Episode>();
+
+            foreach (var group in groups)
+            {
+                var groupList = group.ToList();
+
+                var retailList = groupList
+                    .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
+                    .ToList();
+
+                var candidateList = retailList.Count > 0 ? retailList : groupList;
+
+                var baseGamePool = candidateList.Where(e => !GameCatalogProxy.IsUpdateVersion(e.FinaleType, e.Title)).ToList();
+                var updatePool = candidateList.Where(e => GameCatalogProxy.IsUpdateVersion(e.FinaleType, e.Title)).ToList();
+
+                void AddPreferredVersionEpisodes(List<Episode> candidates)
+                {
+                    if (candidates.Count == 0)
+                    {
+                        return;
+                    }
+
+                    var versionGroups = candidates
+                        .GroupBy(e => GameCatalogProxy.ExtractVersionOnly(e.FinaleType, e.Title))
+                        .OrderBy(vg => GameCatalogProxy.GetRevisionSortOrder(vg.Key))
+                        .ToList();
+
+                    if (versionGroups.Count == 0)
+                    {
+                        return;
+                    }
+
+                    var chosenVersionGroup = preferInitial ? versionGroups.First() : versionGroups.Last();
+                    filtered.AddRange(chosenVersionGroup);
+                }
+
+                void ProcessPool(List<Episode> pool)
+                {
+                    if (pool.Count == 0)
+                    {
+                        return;
+                    }
+
+                    var unencryptedRetail = pool
+                        .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                        .ToList();
+                    var encryptedRetail = pool
+                        .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                        .ToList();
+
+                    if (encryptionPref == Games.EncryptionPreference.NotEncrypted ||
+                        encryptionPref == Games.EncryptionPreference.Both)
+                    {
+                        if (unencryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(unencryptedRetail);
+                        }
+                        else if (encryptionPref == Games.EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(encryptedRetail);
+                        }
+                    }
+
+                    if (encryptionPref == Games.EncryptionPreference.Encrypted ||
+                        encryptionPref == Games.EncryptionPreference.Both)
+                    {
+                        if (encryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(encryptedRetail);
+                        }
+                        else if (encryptionPref == Games.EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                        {
+                            AddPreferredVersionEpisodes(unencryptedRetail);
+                        }
+                    }
+                }
+
+                if (baseGamePool.Count > 0)
+                {
+                    ProcessPool(baseGamePool);
+                }
+                else if (updatePool.Count == 0)
+                {
+                    ProcessPool(candidateList);
+                }
+
+                if (updatePool.Count > 0)
+                {
+                    ProcessPool(updatePool);
+                }
+            }
+
+            if (existingEpisodes != null)
+            {
+                var episodesWithFiles = existingEpisodes.Where(e => e.EpisodeFileId > 0).ToList();
+                foreach (var epWithFile in episodesWithFiles)
+                {
+                    if (!filtered.Any(f => f.SeasonNumber == epWithFile.SeasonNumber && f.EpisodeNumber == epWithFile.EpisodeNumber))
+                    {
+                        filtered.Add(epWithFile);
+                    }
+                }
+            }
+
+            return filtered;
         }
 
         private IEnumerable<Episode> OrderEpisodes(Series series, List<Episode> episodes)

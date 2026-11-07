@@ -6,6 +6,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -411,6 +412,115 @@ namespace NzbDrone.Core.Test.PlatformTests
             _updatedEpisodes.Should().HaveCount(1);
             _insertedEpisodes.Should().HaveCount(1);
             _insertedEpisodes.Should().OnlyContain(e => e.Monitored == false);
+        }
+        [Test]
+        public void should_only_insert_preferred_newest_version_and_keep_all_discs_in_1g1r_mode()
+        {
+            var series = GetSeries();
+            series.CollectionStrategy = CollectionStrategy.OneGameOneRom;
+
+            var episodes = new List<Episode>
+            {
+                new Episode { SeasonNumber = 1, EpisodeNumber = 1, Title = "Final Fantasy VII (USA) (Disc 1)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 2, Title = "Final Fantasy VII (USA) (Disc 2)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 3, Title = "Final Fantasy VII (USA) (Disc 3)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 4, Title = "Final Fantasy VII (USA) (v1.1) (Disc 1)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 5, Title = "Final Fantasy VII (USA) (v1.1) (Disc 2)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 6, Title = "Final Fantasy VII (USA) (v1.1) (Disc 3)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 7, Title = "Final Fantasy VII (USA) (Update v1.2)" }
+            };
+
+            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
+                .Returns(new List<Episode>());
+
+            Subject.RefreshEpisodeInfo(series, episodes);
+
+            _insertedEpisodes.Should().HaveCount(4);
+            _insertedEpisodes.Select(e => e.Title).Should().BeEquivalentTo(new[]
+            {
+                "Final Fantasy VII (USA) (v1.1) (Disc 1)",
+                "Final Fantasy VII (USA) (v1.1) (Disc 2)",
+                "Final Fantasy VII (USA) (v1.1) (Disc 3)",
+                "Final Fantasy VII (USA) (Update v1.2)"
+            });
+        }
+
+        [Test]
+        public void should_insert_all_versions_when_in_completionist_mode()
+        {
+            var series = GetSeries();
+            series.CollectionStrategy = CollectionStrategy.Preservationist;
+
+            var episodes = new List<Episode>
+            {
+                new Episode { SeasonNumber = 1, EpisodeNumber = 1, Title = "Final Fantasy VII (USA) (Disc 1)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 2, Title = "Final Fantasy VII (USA) (Disc 2)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 3, Title = "Final Fantasy VII (USA) (Disc 3)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 4, Title = "Final Fantasy VII (USA) (v1.1) (Disc 1)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 5, Title = "Final Fantasy VII (USA) (v1.1) (Disc 2)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 6, Title = "Final Fantasy VII (USA) (v1.1) (Disc 3)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 7, Title = "Final Fantasy VII (USA) (Update v1.2)" }
+            };
+
+            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
+                .Returns(new List<Episode>());
+
+            Subject.RefreshEpisodeInfo(series, episodes);
+
+            _insertedEpisodes.Should().HaveCount(7);
+        }
+
+        [Test]
+        public void should_delete_older_versions_when_switching_to_1g1r_mode_unless_file_on_disk()
+        {
+            var series = GetSeries();
+            series.CollectionStrategy = CollectionStrategy.OneGameOneRom;
+
+            var oldVersionWithoutFile = new Episode
+            {
+                Id = 1,
+                SeriesId = series.Id,
+                SeasonNumber = 1,
+                EpisodeNumber = 1,
+                Title = "Crash Bandicoot (USA) (v1.0)",
+                EpisodeFileId = 0
+            };
+
+            var oldVersionWithFile = new Episode
+            {
+                Id = 2,
+                SeriesId = series.Id,
+                SeasonNumber = 1,
+                EpisodeNumber = 2,
+                Title = "Crash Bandicoot (USA) (v1.1)",
+                EpisodeFileId = 99
+            };
+
+            var newestVersion = new Episode
+            {
+                Id = 3,
+                SeriesId = series.Id,
+                SeasonNumber = 1,
+                EpisodeNumber = 3,
+                Title = "Crash Bandicoot (USA) (v1.2)",
+                EpisodeFileId = 0
+            };
+
+            var existingEpisodes = new List<Episode> { oldVersionWithoutFile, oldVersionWithFile, newestVersion };
+            var remoteEpisodes = new List<Episode>
+            {
+                new Episode { SeasonNumber = 1, EpisodeNumber = 1, Title = "Crash Bandicoot (USA) (v1.0)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 2, Title = "Crash Bandicoot (USA) (v1.1)" },
+                new Episode { SeasonNumber = 1, EpisodeNumber = 3, Title = "Crash Bandicoot (USA) (v1.2)" }
+            };
+
+            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
+                .Returns(existingEpisodes);
+
+            Subject.RefreshEpisodeInfo(series, remoteEpisodes);
+
+            _deletedEpisodes.Should().ContainSingle(e => e.Id == 1 && e.Title == "Crash Bandicoot (USA) (v1.0)");
+            _updatedEpisodes.Select(e => e.Id).Should().Contain(new[] { 2, 3 });
         }
     }
 }

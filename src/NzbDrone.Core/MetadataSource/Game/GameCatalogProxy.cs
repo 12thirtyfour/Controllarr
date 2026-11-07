@@ -2590,6 +2590,46 @@ namespace NzbDrone.Core.MetadataSource.Game
             return idx > 0 ? name.Substring(0, idx).Trim() : name.Trim();
         }
 
+        public static string ExtractBaseTitle(string title, string finaleType = null)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var clean = title;
+            if (!string.IsNullOrWhiteSpace(finaleType) &&
+                !string.Equals(finaleType, "Retail (v1.0)", StringComparison.OrdinalIgnoreCase) &&
+                clean.EndsWith($"({finaleType})", StringComparison.OrdinalIgnoreCase))
+            {
+                clean = clean.Substring(0, clean.Length - finaleType.Length - 2).Trim();
+            }
+
+            var parenIdx = clean.IndexOf(" (", StringComparison.Ordinal);
+            var bracketIdx = clean.IndexOf(" [", StringComparison.Ordinal);
+            var cutIdx = -1;
+            if (parenIdx > 0 && bracketIdx > 0)
+            {
+                cutIdx = Math.Min(parenIdx, bracketIdx);
+            }
+            else if (parenIdx > 0)
+            {
+                cutIdx = parenIdx;
+            }
+            else if (bracketIdx > 0)
+            {
+                cutIdx = bracketIdx;
+            }
+
+            if (cutIdx > 0)
+            {
+                clean = clean.Substring(0, cutIdx).Trim();
+            }
+
+            clean = DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');
+            return clean;
+        }
+
         private static string CleanResidualRevisions(string title)
         {
             if (string.IsNullOrWhiteSpace(title))

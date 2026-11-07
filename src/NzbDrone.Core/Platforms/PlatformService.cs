@@ -327,6 +327,11 @@ namespace NzbDrone.Core.Tv
                                   series.RevisionPreference != storedSeries.RevisionPreference ||
                                   series.EncryptionPreference != storedSeries.EncryptionPreference;
 
+            if (strategyChanged && storedSeries != null)
+            {
+                _commandQueueManager.Push(new RefreshPlatformCommand(new List<int> { series.Id }, true));
+            }
+
             if (!episodeMonitoredChanged && !strategyChanged)
             {
                 return;
