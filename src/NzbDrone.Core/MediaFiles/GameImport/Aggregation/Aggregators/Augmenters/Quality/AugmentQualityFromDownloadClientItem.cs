@@ -18,11 +18,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
                 return null;
             }
 
-            var sourceConfidence = quality.SourceDetectionSource == QualityDetectionSource.Name
-                ? Confidence.Tag
-                : Confidence.Fallback;
-
-            var resolutionConfidence = quality.ResolutionDetectionSource == QualityDetectionSource.Name
+            var dumpTierConfidence = quality.SourceDetectionSource == QualityDetectionSource.Name
                 ? Confidence.Tag
                 : Confidence.Fallback;
 
@@ -30,16 +26,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
                 ? Confidence.Tag
                 : Confidence.Fallback;
 
-            return new AugmentQualityResult(quality.Quality.Source,
-                                            sourceConfidence,
-                                            quality.Quality.Resolution,
-                                            resolutionConfidence,
+            return new AugmentQualityResult(quality.Quality,
+                                            dumpTierConfidence,
                                             quality.Revision,
-                                            revisionConfidence)
-            {
-                Quality = quality.Quality,
-                QualityConfidence = sourceConfidence
-            };
+                                            revisionConfidence);
         }
     }
 }

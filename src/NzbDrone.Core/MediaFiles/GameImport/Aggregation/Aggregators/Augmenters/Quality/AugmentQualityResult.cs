@@ -5,14 +5,30 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
     public class AugmentQualityResult
     {
         public string Name { get; set; }
+        public Qualities.Quality Quality { get; set; }
+        public Confidence QualityConfidence { get; set; }
+        public Revision Revision { get; set; }
+        public Confidence RevisionConfidence { get; set; }
+
         public QualitySource Source { get; set; }
         public Confidence SourceConfidence { get; set; }
         public int Resolution { get; set; }
         public Confidence ResolutionConfidence { get; set; }
-        public Revision Revision { get; set; }
-        public Confidence RevisionConfidence { get; set; }
-        public Qualities.Quality Quality { get; set; }
-        public Confidence QualityConfidence { get; set; }
+
+        public AugmentQualityResult(Qualities.Quality quality,
+                                    Confidence qualityConfidence,
+                                    Revision revision,
+                                    Confidence revisionConfidence)
+        {
+            Quality = quality;
+            QualityConfidence = qualityConfidence;
+            Source = quality?.Source ?? QualitySource.Unknown;
+            SourceConfidence = qualityConfidence;
+            Resolution = quality?.Resolution ?? 0;
+            ResolutionConfidence = qualityConfidence;
+            Revision = revision;
+            RevisionConfidence = revisionConfidence;
+        }
 
         public AugmentQualityResult(QualitySource source,
                                     Confidence sourceConfidence,
@@ -27,6 +43,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
             ResolutionConfidence = resolutionConfidence;
             Revision = revision;
             RevisionConfidence = revisionConfidence;
+            QualityConfidence = sourceConfidence;
         }
 
         public static AugmentQualityResult SourceOnly(QualitySource source, Confidence sourceConfidence)

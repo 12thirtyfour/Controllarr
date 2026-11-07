@@ -227,6 +227,23 @@ namespace NzbDrone.Common.Disk
 
             RemoveReadOnly(path);
 
+            var attempts = 0;
+            while (attempts < 5)
+            {
+                try
+                {
+                    File.Delete(path);
+                    return;
+                }
+                catch (IOException ex) when (attempts < 4)
+                {
+                    Logger.Debug(ex, "File '{0}' is busy or locked, retrying delete ({1}/5)...", path, attempts + 1);
+                    Thread.Sleep(500 * (attempts + 1));
+                    RemoveReadOnly(path);
+                    attempts++;
+                }
+            }
+
             File.Delete(path);
         }
 
@@ -318,7 +335,7 @@ namespace NzbDrone.Common.Disk
 
             var attempts = 0;
 
-            while (attempts < 3 && Directory.Exists(path))
+            while (attempts < 5 && Directory.Exists(path))
             {
                 try
                 {
@@ -331,9 +348,10 @@ namespace NzbDrone.Common.Disk
                     Directory.Delete(path, recursive);
                     return;
                 }
-                catch (Exception) when (attempts < 2)
+                catch (Exception ex) when (attempts < 4)
                 {
-                    Thread.Sleep(500);
+                    Logger.Debug(ex, "Folder '{0}' is busy or locked, retrying delete ({1}/5)...", path, attempts + 1);
+                    Thread.Sleep(500 * (attempts + 1));
                     ClearReadOnlyAttributes(path, recursive);
                 }
 
@@ -511,7 +529,7 @@ namespace NzbDrone.Common.Disk
                 throw new FileNotFoundException("Unable to find file: " + path, path);
             }
 
-            return new FileStream(path, FileMode.Open, FileAccess.Read);
+            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         }
 
         public FileStream OpenWriteStream(string path)

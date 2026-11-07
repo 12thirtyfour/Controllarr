@@ -33,13 +33,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
                 return null;
             }
 
-            var historyQuality = QualityParser.ParseQuality(history.SourceTitle);
+            var parsedRom = RomParser.ParseRomName(history.SourceTitle);
+            var historyQuality = parsedRom?.Quality ?? QualityParser.ParseQuality(history.SourceTitle);
 
-            var sourceConfidence = historyQuality.SourceDetectionSource == QualityDetectionSource.Name
-                ? Confidence.Tag
-                : Confidence.Fallback;
-
-            var resolutionConfidence = historyQuality.ResolutionDetectionSource == QualityDetectionSource.Name
+            var dumpTierConfidence = historyQuality.SourceDetectionSource == QualityDetectionSource.Name
                 ? Confidence.Tag
                 : Confidence.Fallback;
 
@@ -47,11 +44,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
                 ? Confidence.Tag
                 : Confidence.Fallback;
 
-            return new AugmentQualityResult(historyQuality.Quality.Source, sourceConfidence, historyQuality.Quality.Resolution, resolutionConfidence, historyQuality.Revision, revisionConfidence)
-            {
-                Quality = historyQuality.Quality,
-                QualityConfidence = sourceConfidence
-            };
+            return new AugmentQualityResult(historyQuality.Quality,
+                                            dumpTierConfidence,
+                                            historyQuality.Revision,
+                                            revisionConfidence);
         }
     }
 }

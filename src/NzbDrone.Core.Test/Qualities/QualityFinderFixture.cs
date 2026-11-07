@@ -40,5 +40,19 @@ namespace NzbDrone.Core.Test.Qualities
         {
             QualityFinder.FindBySourceAndResolution(source, resolution).Should().Be(Quality.Unknown);
         }
+
+        [TestCase("!", "VerifiedGoodDump")]
+        [TestCase("[!]", "VerifiedGoodDump")]
+        [TestCase("b", "UnverifiedRaw")]
+        [TestCase("[b1]", "UnverifiedRaw")]
+        [TestCase("Beta", "BetaProto")]
+        [TestCase("(Proto)", "BetaProto")]
+        [TestCase("[T+Eng]", "TranslationPatch")]
+        [TestCase("HorribleSubs", "Unknown")]
+        [TestCase("House", "Unknown")]
+        public void should_find_dump_tier_by_tag(string tag, string expectedQualityName)
+        {
+            QualityFinder.FindByDumpTag(tag).Name.Should().Be(expectedQualityName);
+        }
     }
 }

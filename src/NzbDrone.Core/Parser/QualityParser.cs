@@ -594,6 +594,18 @@ namespace NzbDrone.Core.Parser
                 result.Quality = otherSourceMatch;
             }
 
+            if (result.Quality == Quality.Unknown)
+            {
+                var parsedRom = RomParser.ParseRomName(name);
+                if (parsedRom?.Quality != null && parsedRom.Quality.Quality != Quality.Unknown)
+                {
+                    result.Quality = parsedRom.Quality.Quality;
+                    result.SourceDetectionSource = QualityDetectionSource.Name;
+                    result.ResolutionDetectionSource = QualityDetectionSource.Unknown;
+                    return result;
+                }
+            }
+
             return result;
         }
 

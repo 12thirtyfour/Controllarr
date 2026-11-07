@@ -968,7 +968,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             {
                 try
                 {
-                    using var stream = File.OpenRead(filePath);
+                    using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
                     ComputeStreamHashes(stream, hashes, computeCrc32: true);
                 }
                 catch (Exception ex)
