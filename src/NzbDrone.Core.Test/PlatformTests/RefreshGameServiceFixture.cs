@@ -522,5 +522,43 @@ namespace NzbDrone.Core.Test.PlatformTests
             _deletedEpisodes.Should().ContainSingle(e => e.Id == 1 && e.Title == "Crash Bandicoot (USA) (v1.0)");
             _updatedEpisodes.Select(e => e.Id).Should().Contain(new[] { 2, 3 });
         }
+
+        [Test]
+        public void should_prune_invalid_game_titles_like_en_world_during_refresh()
+        {
+            var series = GetSeries();
+            var invalidGame = new Episode
+            {
+                Id = 999,
+                SeriesId = series.Id,
+                SeasonNumber = 4,
+                EpisodeNumber = 1,
+                Title = "(EN) (WORLD)",
+                EpisodeFileId = 0
+            };
+
+            var validGame = new Episode
+            {
+                Id = 1000,
+                SeriesId = series.Id,
+                SeasonNumber = 1,
+                EpisodeNumber = 1,
+                Title = "Super Mario World",
+                EpisodeFileId = 0
+            };
+
+            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
+                .Returns(new List<Episode> { invalidGame, validGame });
+
+            var remoteEpisodes = new List<Episode>
+            {
+                new Episode { SeasonNumber = 1, EpisodeNumber = 1, Title = "Super Mario World" }
+            };
+
+            Subject.RefreshEpisodeInfo(series, remoteEpisodes);
+
+            _deletedEpisodes.Should().Contain(e => e.Id == 999 && e.Title == "(EN) (WORLD)");
+            _updatedEpisodes.Should().Contain(e => e.Id == 1000 && e.Title == "Super Mario World");
+        }
     }
 }

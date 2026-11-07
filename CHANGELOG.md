@@ -30,6 +30,15 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Automatic Library Refresh on Verification / DAT Database Updates**: Added event-driven library synchronization whenever databases used for library population and verification (No-Intro, Redump, TOSEC, SmokeMonster SMDB, NSWDB, GameTDB, and custom user DATs) are updated or imported:
+  - Added `DatDatabaseUpdatedEvent` in `NzbDrone.Core.Dat.Events` published by `DatCacheService.Insert` upon completing any catalog database insert or update.
+  - Implemented `DatDatabaseUpdatedHandler` to automatically match affected platforms in the user's library (`Series`), invalidate catalog caches, and dispatch `RefreshPlatformCommand`.
+  - Updated `RefreshGameService.RefreshEpisodeInfo` to match existing games by `TvdbId` or regional `Title` rather than raw episode index, preventing catalog shifts when new games are added and reliably populating newly added games (`newList`) with appropriate monitoring rules and disk rescans.
+- **Switch Title Extraction & Tag-Only Pseudo-Title Filtering (`(EN) (WORLD)`)**: Fixed Nintendo Switch catalog ingestion (NSWDB XML and GameTDB) parsing standalone language/region tags as game titles:
+  - Added `CleanSceneReleaseTitle` in `GameCatalogProxy.cs` to extract and normalize legitimate game titles from `<releasename>`, `<filename>`, and `<rom name="...">` scene entries when the primary `<name>` or `<title>` is empty or contains only bracketed tags.
+  - Hardened `GameCatalogProxy.IsValidGameTitle` and `StripParentheses` to reject any string consisting solely of bracketed/parenthetical metadata tags or lacking letters/digits outside parentheses (e.g. `(EN) (WORLD)`, `(EN)`, `(WORLD)`).
+  - Updated `RefreshGameService` to filter out and prune any legacy or corrupted invalid title entries from existing platform records during library refresh.
+  - Added unit test coverage in `DatDatabaseUpdatedHandlerFixture.cs`, `GameCatalogProxyFixture.cs`, and `RefreshGameServiceFixture.cs`.
 - **1G1R Library Population & Exclusive Display Isolation (Multi-Version vs Multi-Disc)**: Fixed 1G1R (`OneGameOneRom` and `OneGamePerRegionPerConsole`) platforms populating all versions into the library database and displaying redundant older versions in the UI:
   - Updated `RefreshGameService.cs` (`FilterEpisodesForCollectionStrategy`) to strictly enforce 1G1R filtering during platform catalog population and refresh. In 1G1R mode, only the preferred release (newest revision by default, or initial release when `RevisionPreference.InitialRelease`), all multi-disc entries for that preferred version (e.g. `Final Fantasy VII (USA) (v1.1) (Disc 1-3)`), and standalone update files are populated into the library database.
   - Ensured safe retention of any existing releases with files already on disk (`EpisodeFileId > 0`), while pruning unmanaged older versions via `_episodeService.DeleteMany` when switching from Completionist to 1G1R.

@@ -1138,7 +1138,18 @@ namespace NzbDrone.Core.MetadataSource.Game
                 foreach (var releaseEl in doc.Descendants("release"))
                 {
                     var name = releaseEl.Element("name")?.Value?.Trim();
-                    if (string.IsNullOrWhiteSpace(name))
+                    var releaseName = releaseEl.Element("releasename")?.Value?.Trim() ?? releaseEl.Element("filename")?.Value?.Trim();
+
+                    if (string.IsNullOrWhiteSpace(name) || !IsValidGameTitle(name))
+                    {
+                        var resolvedTitle = CleanSceneReleaseTitle(releaseName);
+                        if (!string.IsNullOrWhiteSpace(resolvedTitle) && IsValidGameTitle(resolvedTitle))
+                        {
+                            name = resolvedTitle;
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(name) || !IsValidGameTitle(name))
                     {
                         continue;
                     }
@@ -1321,8 +1332,31 @@ namespace NzbDrone.Core.MetadataSource.Game
                         var region = gameEl.Element("region")?.Value?.Trim();
                         var languages = gameEl.Element("languages")?.Value?.Trim();
 
-                        var title = !string.IsNullOrWhiteSpace(localeTitle) ? localeTitle : rawName;
+                        var title = !string.IsNullOrWhiteSpace(localeTitle) && IsValidGameTitle(localeTitle)
+                            ? localeTitle
+                            : (!string.IsNullOrWhiteSpace(rawName) && IsValidGameTitle(rawName) ? rawName : null);
+
                         if (string.IsNullOrWhiteSpace(title))
+                        {
+                            var altLocale = gameEl.Elements("locale")
+                                .Select(l => l.Element("title")?.Value?.Trim())
+                                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t) && IsValidGameTitle(t));
+                            if (!string.IsNullOrWhiteSpace(altLocale))
+                            {
+                                title = altLocale;
+                            }
+                            else
+                            {
+                                var romName = (string)gameEl.Elements("rom").FirstOrDefault()?.Attribute("name");
+                                var cleanedRom = CleanSceneReleaseTitle(romName);
+                                if (!string.IsNullOrWhiteSpace(cleanedRom) && IsValidGameTitle(cleanedRom))
+                                {
+                                    title = cleanedRom;
+                                }
+                            }
+                        }
+
+                        if (string.IsNullOrWhiteSpace(title) || !IsValidGameTitle(title))
                         {
                             continue;
                         }
@@ -1693,6 +1727,17 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (trimmed.IndexOf("Pack Here", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 (trimmed.IndexOf("Place ", StringComparison.OrdinalIgnoreCase) >= 0 && trimmed.IndexOf(" Here", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return false;
+            }
+
+            var textOutsideBrackets = Regex.Replace(trimmed, @"\([^\)]*\)|\[[^\]]*\]", " ").Trim();
+            if (string.IsNullOrWhiteSpace(textOutsideBrackets) || !textOutsideBrackets.Any(char.IsLetterOrDigit))
+            {
+                return false;
+            }
+
+            if (Regex.IsMatch(trimmed, @"^[\(\[\s]*(?:EN|JA|FR|DE|ES|IT|ZH|KO|NL|RU|PT|USA|EUR|JPN|WORLD|ASIA|REV\s*\d+|V[\d.]+)+[\)\]\s]*$", RegexOptions.IgnoreCase))
             {
                 return false;
             }
@@ -2584,10 +2629,41 @@ namespace NzbDrone.Core.MetadataSource.Game
             return trimmed;
         }
 
+        public static string CleanSceneReleaseTitle(string releaseName)
+        {
+            if (string.IsNullOrWhiteSpace(releaseName))
+            {
+                return string.Empty;
+            }
+
+            var clean = releaseName.Trim();
+            var ext = Path.GetExtension(clean);
+            if (!string.IsNullOrWhiteSpace(ext) && Regex.IsMatch(ext, @"^\.[A-Za-z0-9]{1,5}$"))
+            {
+                clean = Path.GetFileNameWithoutExtension(clean);
+            }
+
+            clean = Regex.Replace(clean, @"-[A-Za-z0-9_]+$", string.Empty);
+            clean = Regex.Replace(clean, @"[._-](?:NSW|SWITCH|NINTENDO[._-]SWITCH|INTERNAL)(?=[._-]|$)", string.Empty, RegexOptions.IgnoreCase);
+            clean = clean.Replace('_', ' ').Replace('.', ' ');
+            clean = Regex.Replace(clean, @"\b(?:USA|EUR|JPN|JAP|ASIA|WORLD|NSW|GLOBAL|MULTI\d*)\b", string.Empty, RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"\bv?\d+(?:\.\d+)+\b", string.Empty, RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"\([^\)]*\)|\[[^\]]*\]", " ");
+            clean = Regex.Replace(clean, @"\s+", " ").Trim();
+
+            return clean;
+        }
+
         private static string StripParentheses(string name)
         {
-            var idx = name.IndexOf('(');
-            return idx > 0 ? name.Substring(0, idx).Trim() : name.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return string.Empty;
+            }
+
+            var stripped = Regex.Replace(name, @"\([^\)]*\)|\[[^\]]*\]", " ").Trim();
+            stripped = Regex.Replace(stripped, @"\s+", " ");
+            return stripped;
         }
 
         public static string ExtractBaseTitle(string title, string finaleType = null)

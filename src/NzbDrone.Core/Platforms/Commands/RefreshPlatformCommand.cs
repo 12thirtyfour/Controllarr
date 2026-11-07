@@ -34,6 +34,12 @@ namespace NzbDrone.Core.Tv.Commands
             IsNewSeries = isNewSeries;
         }
 
+        public RefreshPlatformCommand(int seriesId, bool isNewSeries = false)
+        {
+            SeriesIds = new List<int> { seriesId };
+            IsNewSeries = isNewSeries;
+        }
+
         public override bool SendUpdatesToClient => true;
 
         public override bool UpdateScheduledTask => SeriesIds.Empty();

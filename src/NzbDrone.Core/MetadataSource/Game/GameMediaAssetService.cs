@@ -14,7 +14,6 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Dat;
-using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
@@ -439,41 +438,6 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 var inserted = _datCacheService.Insert(datFile, entries);
                 _gameCatalogService?.InvalidatePlatformCache(matchedPlatform?.TvdbId);
-
-                if (matchedPlatform != null && _seriesService != null && _episodeService != null && _seriesInfo != null)
-                {
-                    try
-                    {
-                        var existingSeries = _seriesService.FindByTvdbId(matchedPlatform.TvdbId) ??
-                                             _seriesService.FindByTitle(matchedPlatform.Name);
-                        if (existingSeries != null)
-                        {
-                            var tuple = _seriesInfo.GetSeriesInfo(matchedPlatform.TvdbId, Language.English, null);
-                            if (tuple?.Item2 != null)
-                            {
-                                var currentEpisodes = _episodeService.GetEpisodeBySeries(existingSeries.Id) ?? new List<Episode>();
-                                var currentTvdbIds = new HashSet<int>(currentEpisodes.Select(e => e.TvdbId));
-                                var newEpisodes = tuple.Item2
-                                    .Where(e => !currentTvdbIds.Contains(e.TvdbId))
-                                    .Select(e =>
-                                    {
-                                        e.SeriesId = existingSeries.Id;
-                                        return e;
-                                    })
-                                    .ToList();
-
-                                if (newEpisodes.Count > 0)
-                                {
-                                    _episodeService.InsertMany(newEpisodes);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.Debug(ex, "Unable to sync imported DAT entries into platform Games table for {0}", matchedPlatform.Name);
-                    }
-                }
 
                 return new DatImportResultModel
                 {

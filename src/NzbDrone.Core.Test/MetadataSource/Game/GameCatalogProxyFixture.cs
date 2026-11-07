@@ -183,6 +183,19 @@ game (
     <imgcrc>12345678</imgcrc>
     <revision>0</revision>
   </release>
+  <release>
+    <name>(EN)</name>
+    <releasename>Lapis_x_Labyrinth_Limited_Edition_NSW-SUXXORS</releasename>
+    <region>WLD</region>
+    <imgcrc>87654321</imgcrc>
+    <revision>0</revision>
+  </release>
+  <release>
+    <name>(EN) (WORLD)</name>
+    <region>WLD</region>
+    <imgcrc>11223344</imgcrc>
+    <revision>0</revision>
+  </release>
 </releases>";
 
             var httpMock = Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>();
@@ -224,6 +237,9 @@ game (
             // 3. Nintendo Switch (1014) syncs NSWDB XML
             var switchTuple = Subject.GetSeriesInfo(1014, Language.English, null);
             switchTuple.Item2.Should().Contain(e => e.Title.Contains("Metroid Dread"));
+            switchTuple.Item2.Should().Contain(e => e.Title.Contains("Lapis x Labyrinth Limited Edition"));
+            switchTuple.Item2.Should().NotContain(e => e.Title == "(EN) (WORLD)");
+            switchTuple.Item2.Should().NotContain(e => e.Title == "(EN)");
 
             // 4. Standalone Arcade platform (1041) is not present
             Subject.TryGetPlatformEntry(1041, out _).Should().BeFalse();
@@ -464,6 +480,26 @@ game (
             updateEntry.BaseTitle.Should().Be("Pokemon Moon");
             baseEntry.RevisionTag.Should().Be("Retail (v1.0)");
             updateEntry.RevisionTag.Should().Be("Update v1.2");
+        }
+
+        [Test]
+        public void should_reject_invalid_game_titles_composed_only_of_language_and_region_tags()
+        {
+            GameCatalogProxy.IsValidGameTitle("(EN) (WORLD)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("(EN)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("(WORLD)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("(USA)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("[EUR]").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Super Mario Odyssey (World)").Should().BeTrue();
+        }
+
+        [Test]
+        public void should_clean_scene_release_titles_for_switch()
+        {
+            GameCatalogProxy.CleanSceneReleaseTitle("Taiko_no_Tatsujin_Gesshoku_no_Kishi_JAP_NSW-Caravan.xci")
+                .Should().Be("Taiko no Tatsujin Gesshoku no Kishi");
+            GameCatalogProxy.CleanSceneReleaseTitle("Lapis_x_Labyrinth_Limited_Edition_NSW-SUXXORS")
+                .Should().Be("Lapis x Labyrinth Limited Edition");
         }
     }
 }

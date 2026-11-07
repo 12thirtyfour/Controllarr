@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
+using NzbDrone.Core.Dat.Events;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Games;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Dat
@@ -10,10 +12,12 @@ namespace NzbDrone.Core.Dat
     public class DatCacheService : IDatCacheService
     {
         private readonly IMainDatabase _database;
+        private readonly IEventAggregator _eventAggregator;
 
-        public DatCacheService(IMainDatabase database)
+        public DatCacheService(IMainDatabase database, IEventAggregator eventAggregator = null)
         {
             _database = database;
+            _eventAggregator = eventAggregator;
         }
 
         public DatFile Insert(DatFile datFile, List<DatEntry> datEntries)
@@ -65,6 +69,8 @@ namespace NzbDrone.Core.Dat
                 connection.Execute(datEntrySql, datEntries, transaction);
                 transaction.Commit();
             }
+
+            _eventAggregator?.PublishEvent(new DatDatabaseUpdatedEvent(datFile, datEntries?.Count ?? 0));
 
             return datFile;
         }

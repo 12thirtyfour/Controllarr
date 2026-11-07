@@ -52,14 +52,20 @@ namespace NzbDrone.Core.Tv
             var episodesPerSeason = orderedEpisodes.GroupBy(s => s.SeasonNumber).ToDictionary(g => g.Key, g => g.Count());
             var latestSeason = seasons.MaxBy(s => s.SeasonNumber);
 
+            var validExisting = existingEpisodes.Where(e => string.IsNullOrWhiteSpace(e.Title) || GameCatalogProxy.IsValidGameTitle(e.Title)).ToList();
+
             foreach (var episode in orderedEpisodes)
             {
                 try
                 {
-                    var episodeToUpdate = existingEpisodes.FirstOrDefault(e => e.SeasonNumber == episode.SeasonNumber && e.EpisodeNumber == episode.EpisodeNumber);
+                    var episodeToUpdate = validExisting.FirstOrDefault(e => e.TvdbId > 0 && e.TvdbId == episode.TvdbId)
+                        ?? validExisting.FirstOrDefault(e => e.SeasonNumber == episode.SeasonNumber && string.Equals(e.Title, episode.Title, StringComparison.OrdinalIgnoreCase))
+                        ?? validExisting.FirstOrDefault(e => string.Equals(e.Title, episode.Title, StringComparison.OrdinalIgnoreCase))
+                        ?? validExisting.FirstOrDefault(e => e.SeasonNumber == episode.SeasonNumber && e.EpisodeNumber == episode.EpisodeNumber);
 
                     if (episodeToUpdate != null)
                     {
+                        validExisting.Remove(episodeToUpdate);
                         existingEpisodes.Remove(episodeToUpdate);
                         updateList.Add(episodeToUpdate);
 
