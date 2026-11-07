@@ -33,16 +33,16 @@ namespace NzbDrone.Core.PlatformStats
         public List<SeasonStatistics> SeriesStatistics()
         {
             var time = DateTime.UtcNow;
-            return MapResults(Query(EpisodesBuilder(time), _selectEpisodesTemplate),
-                Query(EpisodeFilesBuilder(), _selectEpisodeFilesTemplate));
+            return MapResults(Query(GamesBuilder(time), _selectEpisodesTemplate),
+                Query(RomFilesBuilder(), _selectEpisodeFilesTemplate));
         }
 
         public List<SeasonStatistics> SeriesStatistics(int seriesId)
         {
             var time = DateTime.UtcNow;
 
-            return MapResults(Query(EpisodesBuilder(time).Where<Episode>(x => x.SeriesId == seriesId), _selectEpisodesTemplate),
-                Query(EpisodeFilesBuilder().Where<EpisodeFile>(x => x.SeriesId == seriesId), _selectEpisodeFilesTemplate));
+            return MapResults(Query(GamesBuilder(time).Where<Episode>(x => x.SeriesId == seriesId), _selectEpisodesTemplate),
+                Query(RomFilesBuilder().Where<EpisodeFile>(x => x.SeriesId == seriesId), _selectEpisodeFilesTemplate));
         }
 
         private List<SeasonStatistics> MapResults(List<SeasonStatistics> episodesResult, List<SeasonStatistics> filesResult)
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.PlatformStats
             }
         }
 
-        private SqlBuilder EpisodesBuilder(DateTime currentDate)
+        private SqlBuilder GamesBuilder(DateTime currentDate)
         {
             var parameters = new DynamicParameters();
             parameters.Add("currentDate", currentDate, null);
@@ -94,7 +94,7 @@ namespace NzbDrone.Core.PlatformStats
             .GroupBy<Episode>(x => x.SeasonNumber);
         }
 
-        private SqlBuilder EpisodeFilesBuilder()
+        private SqlBuilder RomFilesBuilder()
         {
             if (_database.DatabaseType == DatabaseType.SQLite)
             {

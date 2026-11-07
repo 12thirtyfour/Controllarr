@@ -34,7 +34,7 @@ const options = [
   {
     key: 'seasonPack',
     get value() {
-      return translate('SeasonPack');
+      return translate('RegionPack');
     },
   },
 ];

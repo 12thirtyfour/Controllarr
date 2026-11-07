@@ -112,9 +112,9 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
-                if (seasonNumber == GameCatalogProxy.RegionUnlicensedSeason ||
-                    seasonNumber == GameCatalogProxy.RegionHomebrewSeason ||
-                    seasonNumber == GameCatalogProxy.RegionRomHacksSeason)
+                if (seasonNumber == GameCatalogProxy.RegionUnlicensed ||
+                    seasonNumber == GameCatalogProxy.RegionHomebrew ||
+                    seasonNumber == GameCatalogProxy.RegionRomHacks)
                 {
                     season.Monitored = initialSeasonMonitored.TryGetValue(seasonNumber, out var wasMonitored) && wasMonitored;
                     continue;

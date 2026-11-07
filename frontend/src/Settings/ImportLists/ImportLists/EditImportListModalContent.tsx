@@ -170,7 +170,7 @@ function EditImportListModalContent({
             />
           </FormRow>
 
-          <ModalSection title={translate('Series')}>
+          <ModalSection title={translate('Platforms')}>
             <FormRow>
               <FormLabel>
                 {translate('Monitor')}
@@ -255,13 +255,13 @@ function EditImportListModalContent({
 
             <FormRow>
               <FormLabel>
-                {translate('SeriesType')}
+                {translate('PlatformType')}
 
                 <Popover
                   anchor={
                     <Icon className={styles.labelIcon} name={icons.INFO} />
                   }
-                  title={translate('SeriesTypes')}
+                  title={translate('PlatformTypes')}
                   body={<PlatformTypePopoverContent />}
                   position={tooltipPositions.RIGHT}
                 />
@@ -276,7 +276,7 @@ function EditImportListModalContent({
             </FormRow>
 
             <FormRow>
-              <FormLabel>{translate('SeasonFolder')}</FormLabel>
+              <FormLabel>{translate('RegionFolder')}</FormLabel>
 
               <FormInput
                 type={inputTypes.CHECK}

@@ -234,7 +234,7 @@ function PlatformDetailsSeason({
 
   const seasonNumberTitle =
     formatSeason(seasonNumber, false, titleSlug) ??
-    translate('SeasonNumberToken', { seasonNumber });
+    translate('RegionNumberToken', { regionNumber: seasonNumber });
 
   const isCompletionist =
     String(collectionStrategy) === 'preservationist' ||
@@ -885,8 +885,8 @@ function PlatformDetailsSeason({
               name={icons.SEARCH}
               title={
                 hasMonitoredGames && seriesMonitored
-                  ? translate('SearchForMonitoredGamesSeason')
-                  : translate('NoMonitoredGamesSeason')
+                  ? translate('SearchForMonitoredGamesRegion')
+                  : translate('NoMonitoredGamesRegion')
               }
               size={20}
               isSpinning={isSearching}
@@ -899,8 +899,8 @@ function PlatformDetailsSeason({
             <IconButton
               className={styles.actionButton}
               name={icons.INTERACTIVE}
-              title={translate('InteractiveSearchSeason')}
-              aria-label={translate('InteractiveSearchSeason')}
+              title={translate('InteractiveSearchRegion')}
+              aria-label={translate('InteractiveSearchRegion')}
               size={20}
               isDisabled={!totalGameCount}
               onPress={handleInteractiveSearchPress}
@@ -909,8 +909,8 @@ function PlatformDetailsSeason({
             <IconButton
               className={styles.actionButton}
               name={icons.ORGANIZE}
-              title={translate('PreviewRenameSeason')}
-              aria-label={translate('PreviewRenameSeason')}
+              title={translate('PreviewRenameRegion')}
+              aria-label={translate('PreviewRenameRegion')}
               size={20}
               isDisabled={!romFileCount}
               onPress={handleOrganizePress}
@@ -919,8 +919,8 @@ function PlatformDetailsSeason({
             <IconButton
               className={styles.actionButton}
               name={icons.EPISODE_FILE}
-              title={translate('ManageGamesSeason')}
-              aria-label={translate('ManageGamesSeason')}
+              title={translate('ManageGamesRegion')}
+              aria-label={translate('ManageGamesRegion')}
               size={20}
               isDisabled={!romFileCount}
               onPress={handleManageGamesPress}
@@ -929,8 +929,8 @@ function PlatformDetailsSeason({
             <IconButton
               className={styles.actionButton}
               name={icons.HISTORY}
-              title={translate('HistorySeason')}
-              aria-label={translate('HistorySeason')}
+              title={translate('HistoryRegion')}
+              aria-label={translate('HistoryRegion')}
               size={20}
               isDisabled={!totalGameCount}
               onPress={handleHistoryPress}
@@ -1011,7 +1011,7 @@ function PlatformDetailsSeason({
               </Table>
             ) : (
               <div className={styles.noGames}>
-                {translate('NoGamesInThisSeason')}
+                {translate('NoGamesInThisRegion')}
               </div>
             )}
 

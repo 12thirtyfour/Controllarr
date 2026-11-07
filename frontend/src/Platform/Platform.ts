@@ -11,8 +11,11 @@ export type SeriesMonitor =
   | 'existing'
   | 'recent'
   | 'pilot'
+  | 'firstGame'
   | 'firstSeason'
+  | 'firstRegion'
   | 'lastSeason'
+  | 'lastRegion'
   | 'monitorSpecials'
   | 'unmonitorSpecials'
   | 'none';

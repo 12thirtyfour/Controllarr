@@ -10,7 +10,7 @@ export default function getReleaseTypeName(
     case 'multiGame':
       return translate('MultiGame');
     case 'seasonPack':
-      return translate('SeasonPack');
+      return translate('RegionPack');
     default:
       return translate('Unknown');
   }

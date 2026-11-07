@@ -16,11 +16,17 @@ namespace NzbDrone.Core.PlatformStats
         public int EpisodeCount { get; set; }
         public int TotalEpisodeCount { get; set; }
         public int MonitoredEpisodeCount { get; set; }
+        public int RomFileCount { get => EpisodeFileCount; set => EpisodeFileCount = value; }
+        public int GameCount { get => EpisodeCount; set => EpisodeCount = value; }
+        public int TotalGameCount { get => TotalEpisodeCount; set => TotalEpisodeCount = value; }
+        public int MonitoredGameCount { get => MonitoredEpisodeCount; set => MonitoredEpisodeCount = value; }
         public long SizeOnDisk { get; set; }
         public List<string> ReleaseGroups { get; set; }
         public List<ReleaseType> ReleaseTypes { get; set; }
         public List<Quality> EpisodeFileQualities { get; set; }
+        public List<Quality> RomFileQualities { get => EpisodeFileQualities; set => EpisodeFileQualities = value; }
         public List<SeasonStatistics> SeasonStatistics { get; set; }
+        public List<SeasonStatistics> RegionStatistics { get => SeasonStatistics; set => SeasonStatistics = value; }
     }
 
     public class SeriesStatistics : PlatformStatistics

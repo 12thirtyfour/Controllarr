@@ -6,7 +6,9 @@ namespace NzbDrone.Core.Tv
     public class MonitoringOptions : IEmbeddedDocument
     {
         public bool IgnoreEpisodesWithFiles { get; set; }
+        public bool IgnoreGamesWithFiles { get => IgnoreEpisodesWithFiles; set => IgnoreEpisodesWithFiles = value; }
         public bool IgnoreEpisodesWithoutFiles { get; set; }
+        public bool IgnoreGamesWithoutFiles { get => IgnoreEpisodesWithoutFiles; set => IgnoreEpisodesWithoutFiles = value; }
         public MonitorTypes Monitor { get; set; }
     }
 
@@ -18,12 +20,15 @@ namespace NzbDrone.Core.Tv
         Missing,
         Existing,
         FirstSeason,
+        FirstRegion = FirstSeason,
         LastSeason,
+        LastRegion = LastSeason,
 
         [Obsolete]
         LatestSeason,
 
         Pilot,
+        FirstGame = Pilot,
         Recent,
         MonitorSpecials,
         UnmonitorSpecials,

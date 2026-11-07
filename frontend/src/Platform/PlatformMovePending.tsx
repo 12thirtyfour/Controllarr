@@ -13,7 +13,7 @@ function SeriesMovePending({ className, pendingPath }: SeriesMovePendingProps) {
     <Icon
       className={className}
       name={icons.PENDING}
-      title={translate('SeriesMovePending', { path: pendingPath })}
+      title={translate('PlatformMovePending', { path: pendingPath })}
     />
   );
 }

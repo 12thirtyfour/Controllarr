@@ -44,7 +44,7 @@ function PlatformDetailsPage() {
   ]);
 
   if (!series) {
-    return <NotFound message={translate('SeriesCannotBeFound')} />;
+    return <NotFound message={translate('PlatformCannotBeFound')} />;
   }
 
   return <PlatformDetails seriesId={series.id} />;

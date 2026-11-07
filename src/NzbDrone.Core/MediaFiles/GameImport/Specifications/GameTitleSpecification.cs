@@ -40,19 +40,19 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             if (episodeTitleRequired == GameTitleRequiredType.Never)
             {
-                _logger.Debug("Episode titles are never required, skipping check");
+                _logger.Debug("Game titles are never required, skipping check");
                 return ImportSpecDecision.Accept();
             }
 
             if (!_buildFileNames.RequiresEpisodeTitle(localEpisode.Series, localEpisode.Episodes))
             {
-                _logger.Debug("File name format does not require episode title, skipping check");
+                _logger.Debug("File name format does not require game title, skipping check");
                 return ImportSpecDecision.Accept();
             }
 
             var episodes = localEpisode.Episodes;
             var firstEpisode = episodes.First();
-            var episodesInSeason = _episodeService.GetEpisodesBySeason(firstEpisode.SeriesId, firstEpisode.EpisodeNumber);
+            var episodesInSeason = _episodeService.GetEpisodesBySeason(firstEpisode.SeriesId, firstEpisode.SeasonNumber);
             var allEpisodesOnTheSameDay = firstEpisode.AirDateUtc.HasValue && episodes.All(e =>
                                               !e.AirDateUtc.HasValue ||
                                               e.AirDateUtc.Value == firstEpisode.AirDateUtc.Value);
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                 episodesInSeason.Count(e => !e.AirDateUtc.HasValue ||
                                             e.AirDateUtc.Value == firstEpisode.AirDateUtc.Value) < 4)
             {
-                _logger.Debug("Episode title only required for bulk season releases");
+                _logger.Debug("Game title only required for bulk collection releases");
                 return ImportSpecDecision.Accept();
             }
 
@@ -73,22 +73,22 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
                 if (airDateUtc.HasValue && airDateUtc.Value.Before(DateTime.UtcNow.AddHours(-48)))
                 {
-                    _logger.Debug("Episode aired more than 48 hours ago");
+                    _logger.Debug("Game released more than 48 hours ago");
                     continue;
                 }
 
                 if (title.IsNullOrWhiteSpace())
                 {
-                    _logger.Debug("Episode does not have a title and recently aired");
+                    _logger.Debug("Game does not have a title");
 
-                    return ImportSpecDecision.Reject(ImportRejectionReason.TitleMissing, "Episode does not have a title and recently aired");
+                    return ImportSpecDecision.Reject(ImportRejectionReason.TitleMissing, "Game does not have a title");
                 }
 
                 if (title.Equals("TBA"))
                 {
-                    _logger.Debug("Episode has a TBA title and recently aired");
+                    _logger.Debug("Game has a TBA title");
 
-                    return ImportSpecDecision.Reject(ImportRejectionReason.TitleTba, "Episode has a TBA title and recently aired");
+                    return ImportSpecDecision.Reject(ImportRejectionReason.TitleTba, "Game has a TBA title");
                 }
             }
 

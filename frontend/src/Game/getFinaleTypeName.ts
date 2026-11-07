@@ -1,14 +1,16 @@
 import translate from 'Utilities/String/translate';
 
 export default function getFinaleTypeName(finaleType?: string): string | null {
+  if (!finaleType) {
+    return null;
+  }
+
   switch (finaleType) {
     case 'series':
-      return translate('SeriesFinale');
     case 'season':
-      return translate('SeasonFinale');
     case 'midseason':
-      return translate('MidseasonFinale');
+      return translate('RetailRelease');
     default:
-      return null;
+      return finaleType;
   }
 }

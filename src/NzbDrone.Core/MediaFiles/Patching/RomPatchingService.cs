@@ -938,13 +938,13 @@ namespace NzbDrone.Core.MediaFiles.Patching
             {
                 var existingEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
                 var hackEpisode = existingEpisodes.FirstOrDefault(e =>
-                    e.SeasonNumber == GameCatalogProxy.RegionRomHacksSeason &&
+                    e.SeasonNumber == GameCatalogProxy.RegionRomHacks &&
                     string.Equals(e.Title, hackTitle, StringComparison.OrdinalIgnoreCase));
 
                 if (hackEpisode == null)
                 {
                     var nextEpNum = existingEpisodes
-                        .Where(e => e.SeasonNumber == GameCatalogProxy.RegionRomHacksSeason)
+                        .Where(e => e.SeasonNumber == GameCatalogProxy.RegionRomHacks)
                         .Select(e => e.EpisodeNumber)
                         .DefaultIfEmpty(0)
                         .Max() + 1;
@@ -953,7 +953,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     {
                         SeriesId = series.Id,
                         TvdbId = Math.Abs(HashCode.Combine(series.TvdbId, hackTitle.ToLowerInvariant())) + 500000,
-                        SeasonNumber = GameCatalogProxy.RegionRomHacksSeason,
+                        SeasonNumber = GameCatalogProxy.RegionRomHacks,
                         EpisodeNumber = nextEpNum,
                         AbsoluteEpisodeNumber = nextEpNum,
                         Title = hackTitle,
@@ -978,7 +978,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 var episodeFile = new EpisodeFile
                 {
                     SeriesId = series.Id,
-                    SeasonNumber = GameCatalogProxy.RegionRomHacksSeason,
+                    SeasonNumber = GameCatalogProxy.RegionRomHacks,
                     RelativePath = relativePath,
                     Size = byteSize,
                     DateAdded = DateTime.UtcNow,

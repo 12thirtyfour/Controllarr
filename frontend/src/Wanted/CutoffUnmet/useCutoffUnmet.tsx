@@ -45,7 +45,7 @@ export const FILTER_BUILDER: FilterBuilderProp<Game>[] = [
   },
   {
     name: 'seriesIds',
-    label: () => translate('Series'),
+    label: () => translate('Platform'),
     type: 'equal',
     valueType: filterBuilderValueTypes.SERIES,
   },
@@ -57,7 +57,7 @@ export const FILTER_BUILDER: FilterBuilderProp<Game>[] = [
   },
   {
     name: 'seriesType',
-    label: () => translate('SeriesType'),
+    label: () => translate('PlatformType'),
     type: 'equal',
     valueType: filterBuilderValueTypes.SERIES_TYPES,
   },

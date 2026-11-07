@@ -13,7 +13,9 @@ namespace NzbDrone.Core.MediaFiles
     public class RomFile : ModelBase
     {
         public int SeriesId { get; set; }
+        public int PlatformId { get => SeriesId; set => SeriesId = value; }
         public int SeasonNumber { get; set; }
+        public int RegionNumber { get => SeasonNumber; set => SeasonNumber = value; }
         public string RelativePath { get; set; }
         public string Path { get; set; }
         public long Size { get; set; }

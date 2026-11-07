@@ -839,7 +839,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                 if (_episodeService != null)
                 {
-                    var seasonNum = parsedRom?.RegionSeasonNumber ?? 1;
+                    var seasonNum = parsedRom?.RegionNumber ?? 1;
 
                     foreach (var cand in candidateTitles)
                     {

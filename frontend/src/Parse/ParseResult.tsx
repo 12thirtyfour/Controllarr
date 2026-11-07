@@ -2,6 +2,7 @@ import React from 'react';
 import FieldSet from 'Components/FieldSet';
 import GameFormats from 'Game/GameFormats';
 import PlatformTitleLink from 'Platform/PlatformTitleLink';
+import formatSeason from 'Region/formatRegion';
 import translate from 'Utilities/String/translate';
 import { ParseModel } from './ParseModel';
 import ParseResultItem from './ParseResultItem';
@@ -81,12 +82,12 @@ function ParseResult(props: ParseResultProps) {
         <div className={styles.container}>
           <div className={styles.column}>
             <ParseResultItem
-              title={translate('SeasonNumber')}
+              title={translate('Region')}
               data={
                 seasonNumber == null ||
                 (seasonNumber === 0 && absoluteGameNumbers.length)
                   ? '-'
-                  : seasonNumber
+                  : formatSeason(seasonNumber) ?? seasonNumber
               }
             />
 
@@ -122,17 +123,17 @@ function ParseResult(props: ParseResultProps) {
             />
 
             <ParseResultItem
-              title={translate('FullSeason')}
+              title={translate('FullRegion')}
               data={fullSeason ? translate('True') : translate('False')}
             />
 
             <ParseResultItem
-              title={translate('MultiSeason')}
+              title={translate('MultiRegion')}
               data={isMultiSeason ? translate('True') : translate('False')}
             />
 
             <ParseResultItem
-              title={translate('PartialSeason')}
+              title={translate('PartialRegion')}
               data={isPartialSeason ? translate('True') : translate('False')}
             />
           </div>
@@ -200,8 +201,12 @@ function ParseResult(props: ParseResultProps) {
         />
 
         <ParseResultItem
-          title={translate('MatchedToSeason')}
-          data={games.length ? games[0].seasonNumber : '-'}
+          title={translate('MatchedToRegion')}
+          data={
+            games.length
+              ? formatSeason(games[0].seasonNumber, false, series?.titleSlug) ?? games[0].seasonNumber
+              : '-'
+          }
         />
 
         <ParseResultItem
@@ -212,11 +217,7 @@ function ParseResult(props: ParseResultProps) {
                 {games.map((e) => {
                   return (
                     <div key={e.id}>
-                      {e.gameNumber}
-                      {series?.seriesType === 'anime' && e.absoluteGameNumber
-                        ? ` (${e.absoluteGameNumber})`
-                        : ''}{' '}
-                      {` - ${e.title}`}
+                      {e.title}
                     </div>
                   );
                 })}

@@ -11,6 +11,7 @@ namespace NzbDrone.Core.Tv
         }
 
         public int SeasonNumber { get; set; }
+        public int RegionNumber { get => SeasonNumber; set => SeasonNumber = value; }
         public bool Monitored { get; set; }
         public string Title { get; set; }
         public List<MediaCover.MediaCover> Images { get; set; }

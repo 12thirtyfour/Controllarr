@@ -86,15 +86,7 @@ namespace Sonarr.Api.V3.Calendar
                     occurrence.End = new CalDateTime(episode.AirDateUtc.Value.AddMinutes(series.Runtime), true);
                 }
 
-                switch (series.SeriesType)
-                {
-                    case SeriesTypes.Daily:
-                        occurrence.Summary = $"{series.Title} - {episode.Title}";
-                        break;
-                    default:
-                        occurrence.Summary = $"{series.Title} - {episode.SeasonNumber}x{episode.EpisodeNumber:00} - {episode.Title}";
-                        break;
-                }
+                occurrence.Summary = $"{series.Title} - {episode.Title}";
             }
 
             var serializer = new SerializerFactory().Build(calendar.GetType(), new SerializationContext()) as IStringSerializer;

@@ -13,18 +13,25 @@ namespace NzbDrone.Core.PlatformStats
     {
         public int SeriesId { get; set; }
         public int SeasonNumber { get; set; }
+        public int RegionNumber { get => SeasonNumber; set => SeasonNumber = value; }
         public string NextAiringString { get; set; }
         public string PreviousAiringString { get; set; }
         public string LastAiredString { get; set; }
         public int EpisodeFileCount { get; set; }
+        public int RomFileCount { get => EpisodeFileCount; set => EpisodeFileCount = value; }
         public int EpisodeCount { get; set; }
+        public int GameCount { get => EpisodeCount; set => EpisodeCount = value; }
         public int AvailableEpisodeCount { get; set; }
+        public int AvailableGameCount { get => AvailableEpisodeCount; set => AvailableEpisodeCount = value; }
         public int TotalEpisodeCount { get; set; }
+        public int TotalGameCount { get => TotalEpisodeCount; set => TotalEpisodeCount = value; }
         public int MonitoredEpisodeCount { get; set; }
+        public int MonitoredGameCount { get => MonitoredEpisodeCount; set => MonitoredEpisodeCount = value; }
         public long SizeOnDisk { get; set; }
         public string ReleaseGroupsString { get; set; }
         public string ReleaseTypesString { get; set; }
         public string EpisodeFileQualitiesString { get; set; }
+        public string RomFileQualitiesString { get => EpisodeFileQualitiesString; set => EpisodeFileQualitiesString = value; }
 
         public DateTime? NextAiring
         {

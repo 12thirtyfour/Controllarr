@@ -29,8 +29,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             if (localEpisode.FileEpisodeInfo.FullSeason)
             {
-                _logger.Debug("Single episode file detected as containing all episodes in the season due to no episode parsed from the file name.");
-                return ImportSpecDecision.Reject(ImportRejectionReason.FullSeason, "Single episode file contains all episodes in seasons. Review file name or manually import");
+                _logger.Debug("Single archive file detected as containing all games in the region.");
+                return ImportSpecDecision.Reject(ImportRejectionReason.FullRegion, "Single archive file contains all games in region. Review file name or manually import");
             }
 
             return ImportSpecDecision.Accept();

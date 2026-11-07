@@ -35,9 +35,9 @@ namespace NzbDrone.Core.Parser.Model
         public List<string> Regions { get; set; } = new List<string>();
 
         /// <summary>
-        /// Gets the region season number.
+        /// Gets the region number.
         /// </summary>
-        public int RegionSeasonNumber
+        public int RegionNumber
         {
             get
             {
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Parser.Model
 
                 if (Regions != null && Regions.Count > 0)
                 {
-                    return RegionHelper.GetSeasonNumber(Regions[0]);
+                    return RegionHelper.GetRegionNumber(Regions[0]);
                 }
 
                 return 1;

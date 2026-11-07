@@ -47,9 +47,9 @@ namespace NzbDrone.Core.Games
             "(DX)", "[DX]"
         };
 
-        public static string GetRegionName(int seasonNumber)
+        public static string GetRegionName(int regionNumber)
         {
-            return seasonNumber switch
+            return regionNumber switch
             {
                 0 => "Unlicensed",
                 1 => "USA",
@@ -58,11 +58,11 @@ namespace NzbDrone.Core.Games
                 4 => "World",
                 5 => "Homebrew",
                 6 => "ROM Hacks & Translations",
-                _ => $"Region {seasonNumber}"
+                _ => $"Region {regionNumber}"
             };
         }
 
-        public static int GetSeasonNumber(string region)
+        public static int GetRegionNumber(string region)
         {
             if (string.IsNullOrWhiteSpace(region))
             {

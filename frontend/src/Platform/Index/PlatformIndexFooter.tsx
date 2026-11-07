@@ -74,7 +74,7 @@ export default function PlatformIndexFooter() {
 
       <div className={styles.statistics}>
         <DescriptionList>
-          <DescriptionListItem title={translate('Series')} data={count} />
+          <DescriptionListItem title={translate('Platforms')} data={count} />
 
           <DescriptionListItem title={translate('Ended')} data={ended} />
 

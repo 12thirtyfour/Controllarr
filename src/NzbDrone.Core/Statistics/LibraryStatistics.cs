@@ -4,24 +4,24 @@ namespace NzbDrone.Core.Statistics;
 
 public class LibraryStatistics
 {
-    public int SeriesCount { get; set; }
-    public int MonitoredSeriesCount { get; set; }
-    public int CompletedSeriesCount { get; set; }
-    public int ContinuingSeriesCount { get; set; }
-    public int EndedSeriesCount { get; set; }
-    public int UpcomingSeriesCount { get; set; }
-    public int DeletedSeriesCount { get; set; }
-    public int StandardSeriesCount { get; set; }
-    public int DailySeriesCount { get; set; }
-    public int AnimeSeriesCount { get; set; }
-    public int SeasonCount { get; set; }
-    public int CompletedSeasonCount { get; set; }
-    public int TotalEpisodeCount { get; set; }
-    public int MonitoredEpisodeCount { get; set; }
-    public int DownloadedEpisodeCount { get; set; }
-    public int MissingEpisodeCount { get; set; }
-    public int UnairedEpisodeCount { get; set; }
-    public int EpisodeFileCount { get; set; }
+    public int PlatformCount { get; set; }
+    public int MonitoredPlatformCount { get; set; }
+    public int CompletedPlatformCount { get; set; }
+    public int ContinuingPlatformCount { get; set; }
+    public int EndedPlatformCount { get; set; }
+    public int UpcomingPlatformCount { get; set; }
+    public int DeletedPlatformCount { get; set; }
+    public int StandardPlatformCount { get; set; }
+    public int DailyPlatformCount { get; set; }
+    public int AnimePlatformCount { get; set; }
+    public int RegionCount { get; set; }
+    public int CompletedRegionCount { get; set; }
+    public int TotalGameCount { get; set; }
+    public int MonitoredGameCount { get; set; }
+    public int DownloadedGameCount { get; set; }
+    public int MissingGameCount { get; set; }
+    public int UnreleasedGameCount { get; set; }
+    public int RomFileCount { get; set; }
     public long SizeOnDisk { get; set; }
     public List<QualityProfileStatistics> QualityProfileStatistics { get; set; }
     public List<QualityStatistics> QualityStatistics { get; set; }

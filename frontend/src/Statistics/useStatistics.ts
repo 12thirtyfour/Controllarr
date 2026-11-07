@@ -14,7 +14,7 @@ import { useStatisticsOption } from './statisticsOptionsStore';
 export interface QualityProfileStatistics {
   qualityProfileId: number;
   name: string;
-  seriesCount: number;
+  platformCount: number;
   romFileCount: number;
   sizeOnDisk: number;
 }
@@ -28,29 +28,29 @@ export interface QualityStatistics {
 export interface TagStatistics {
   tagId: number;
   label: string;
-  seriesCount: number;
+  platformCount: number;
   romFileCount: number;
   sizeOnDisk: number;
 }
 
 export interface Statistics {
-  seriesCount: number;
-  monitoredSeriesCount: number;
-  completedSeriesCount: number;
-  continuingSeriesCount: number;
-  endedSeriesCount: number;
-  upcomingSeriesCount: number;
-  deletedSeriesCount: number;
-  standardSeriesCount: number;
-  dailySeriesCount: number;
-  animeSeriesCount: number;
-  seasonCount: number;
-  completedSeasonCount: number;
+  platformCount: number;
+  monitoredPlatformCount: number;
+  completedPlatformCount: number;
+  continuingPlatformCount: number;
+  endedPlatformCount: number;
+  upcomingPlatformCount: number;
+  deletedPlatformCount: number;
+  standardPlatformCount: number;
+  dailyPlatformCount: number;
+  animePlatformCount: number;
+  regionCount: number;
+  completedRegionCount: number;
   totalGameCount: number;
   monitoredGameCount: number;
   downloadedGameCount: number;
   missingGameCount: number;
-  unairedGameCount: number;
+  unreleasedGameCount: number;
   romFileCount: number;
   sizeOnDisk: number;
   qualityProfileStatistics: QualityProfileStatistics[];
@@ -86,7 +86,7 @@ export const FILTER_BUILDER: FilterBuilderProp<Statistics>[] = [
   },
   {
     name: 'seriesType',
-    label: () => translate('SeriesType'),
+    label: () => translate('PlatformType'),
     type: 'exact',
     valueType: filterBuilderValueTypes.SERIES_TYPES,
   },

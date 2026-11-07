@@ -65,22 +65,22 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             if (unexpected.Any())
             {
-                _logger.Debug("Unexpected episode(s) in file: {0}", FormatEpisode(unexpected));
+                _logger.Debug("Unexpected game(s) in file: {0}", FormatGame(unexpected));
 
                 if (unexpected.Count == 1)
                 {
-                    return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeUnexpected, "Episode {0} was unexpected considering the {1} folder name", FormatEpisode(unexpected), folderInfo.ReleaseTitle);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeUnexpected, "Game '{0}' was unexpected considering the '{1}' folder name", FormatGame(unexpected), folderInfo.ReleaseTitle);
                 }
 
-                return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeUnexpected, "Episodes {0} were unexpected considering the {1} folder name", FormatEpisode(unexpected), folderInfo.ReleaseTitle);
+                return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeUnexpected, "Games '{0}' were unexpected considering the '{1}' folder name", FormatGame(unexpected), folderInfo.ReleaseTitle);
             }
 
             return ImportSpecDecision.Accept();
         }
 
-        private string FormatEpisode(List<Episode> episodes)
+        private string FormatGame(List<Episode> episodes)
         {
-            return string.Join(", ", episodes.Select(e => $"{e.SeasonNumber}x{e.EpisodeNumber:00}"));
+            return string.Join(", ", episodes.Select(e => string.IsNullOrWhiteSpace(e.Title) ? $"#{e.Id}" : e.Title));
         }
     }
 }

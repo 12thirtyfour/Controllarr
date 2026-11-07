@@ -22,8 +22,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             if (localEpisode.FileEpisodeInfo.IsSplitEpisode)
             {
-                _logger.Debug("Single episode split into multiple files");
-                return ImportSpecDecision.Reject(ImportRejectionReason.SplitEpisode, "Single episode split into multiple files");
+                _logger.Debug("Single game split into multiple files");
+                return ImportSpecDecision.Reject(ImportRejectionReason.SplitGame, "Single game split into multiple files");
             }
 
             return ImportSpecDecision.Accept();

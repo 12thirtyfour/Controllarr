@@ -94,7 +94,7 @@ export const FILTER_BUILDER: FilterBuilderProp<History>[] = [
   },
   {
     name: 'seriesIds',
-    label: () => translate('Series'),
+    label: () => translate('Platform'),
     type: 'equal',
     valueType: filterBuilderValueTypes.SERIES,
   },

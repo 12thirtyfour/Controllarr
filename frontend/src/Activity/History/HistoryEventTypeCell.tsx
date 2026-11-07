@@ -51,7 +51,7 @@ function getTooltip(eventType: HistoryEventType, data: HistoryData) {
         downloadClient: (data as GrabbedHistoryData).downloadClient,
       });
     case 'seriesFolderImported':
-      return translate('SeriesFolderImportedTooltip');
+      return translate('PlatformFolderImportedTooltip');
     case 'downloadFolderImported':
       return translate('GameImportedTooltip');
     case 'downloadFailed':

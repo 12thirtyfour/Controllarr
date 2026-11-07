@@ -34,7 +34,7 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
         },
         {
           name: 'series.sortTitle',
-          label: () => translate('SeriesSingular'),
+          label: () => translate('Platform'),
           isSortable: true,
           isVisible: true,
         },

@@ -16,16 +16,21 @@ namespace NzbDrone.Core.Tv
         public const string AIR_DATE_FORMAT = "yyyy-MM-dd";
 
         public int SeriesId { get; set; }
+        public int PlatformId { get => SeriesId; set => SeriesId = value; }
         public int TvdbId { get; set; }
         public int EpisodeFileId { get; set; }
+        public int RomFileId { get => EpisodeFileId; set => EpisodeFileId = value; }
         public int SeasonNumber { get; set; }
+        public int RegionNumber { get => SeasonNumber; set => SeasonNumber = value; }
         public int EpisodeNumber { get; set; }
+        public int GameNumber { get => EpisodeNumber; set => EpisodeNumber = value; }
         public string Title { get; set; }
         public string AirDate { get; set; }
         public DateTime? AirDateUtc { get; set; }
         public string Overview { get; set; }
         public bool Monitored { get; set; }
         public int? AbsoluteEpisodeNumber { get; set; }
+        public int? AbsoluteGameNumber { get => AbsoluteEpisodeNumber; set => AbsoluteEpisodeNumber = value; }
         public int? SceneAbsoluteEpisodeNumber { get; set; }
         public int? SceneSeasonNumber { get; set; }
         public int? SceneEpisodeNumber { get; set; }

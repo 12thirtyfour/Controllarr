@@ -10,67 +10,67 @@ const monitorOptions: MonitorOption[] = [
   {
     key: 'all',
     get value() {
-      return translate('MonitorAllEpisodes');
+      return translate('MonitorAllGames');
     },
   },
   {
     key: 'future',
     get value() {
-      return translate('MonitorFutureEpisodes');
+      return translate('MonitorFutureGames');
     },
   },
   {
     key: 'missing',
     get value() {
-      return translate('MonitorMissingEpisodes');
+      return translate('MonitorMissingGames');
     },
   },
   {
     key: 'existing',
     get value() {
-      return translate('MonitorExistingEpisodes');
+      return translate('MonitorExistingGames');
     },
   },
   {
     key: 'recent',
     get value() {
-      return translate('MonitorRecentEpisodes');
+      return translate('MonitorRecentGames');
     },
   },
   {
     key: 'pilot',
     get value() {
-      return translate('MonitorPilotEpisode');
+      return translate('MonitorFirstGame');
     },
   },
   {
     key: 'firstSeason',
     get value() {
-      return translate('MonitorFirstSeason');
+      return translate('MonitorFirstRegion');
     },
   },
   {
     key: 'lastSeason',
     get value() {
-      return translate('MonitorLastSeason');
+      return translate('MonitorLastRegion');
     },
   },
   {
     key: 'monitorSpecials',
     get value() {
-      return translate('MonitorSpecialEpisodes');
+      return translate('MonitorSpecialGames');
     },
   },
   {
     key: 'unmonitorSpecials',
     get value() {
-      return translate('UnmonitorSpecialEpisodes');
+      return translate('UnmonitorSpecialGames');
     },
   },
   {
     key: 'none',
     get value() {
-      return translate('MonitorNoEpisodes');
+      return translate('MonitorNoGames');
     },
   },
 ];

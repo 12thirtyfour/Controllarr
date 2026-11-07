@@ -17,7 +17,7 @@ public static class QualityStatisticsResourceMapper
         return new QualityStatisticsResource
         {
             Quality = model.Quality,
-            RomFileCount = model.EpisodeFileCount,
+            RomFileCount = model.RomFileCount,
             SizeOnDisk = model.SizeOnDisk
         };
     }

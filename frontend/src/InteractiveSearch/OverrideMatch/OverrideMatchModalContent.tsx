@@ -23,6 +23,7 @@ import { QualityModel } from 'Quality/Quality';
 import Series from 'Platform/Platform';
 import { useSingleSeries } from 'Platform/usePlatform';
 import { useEnabledDownloadClients } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
+import formatSeason from 'Region/formatRegion';
 import translate from 'Utilities/String/translate';
 import SelectDownloadClientModal from './DownloadClient/SelectDownloadClientModal';
 import OverrideMatchData from './OverrideMatchData';
@@ -231,7 +232,7 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
         <DescriptionList>
           <DescriptionListItem
             className={styles.item}
-            title={translate('SeriesSingular')}
+            title={translate('Platform')}
             data={
               <OverrideMatchData
                 value={series?.title}
@@ -242,10 +243,10 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
 
           <DescriptionListItem
             className={styles.item}
-            title={translate('SeasonNumber')}
+            title={translate('Region')}
             data={
               <OverrideMatchData
-                value={seasonNumber}
+                value={seasonNumber != null ? (formatSeason(seasonNumber, false, series?.titleSlug) ?? undefined) : undefined}
                 isDisabled={!series}
                 onPress={onSelectSeasonPress}
               />

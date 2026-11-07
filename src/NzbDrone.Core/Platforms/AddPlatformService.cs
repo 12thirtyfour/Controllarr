@@ -221,17 +221,17 @@ namespace NzbDrone.Core.Tv
                 else if (_episodeService != null)
                 {
                     var nextEpisodeNum = existingEpisodes
-                        .Where(e => e.SeasonNumber == gameEntry.RegionSeasonNumber)
+                        .Where(e => e.SeasonNumber == gameEntry.RegionNumber)
                         .Select(e => e.EpisodeNumber)
                         .DefaultIfEmpty(0)
                         .Max() + 1;
 
-                    gameEntry.EpisodeNumber = nextEpisodeNum;
+                    gameEntry.GameNumber = nextEpisodeNum;
                     var newEpisode = _gameCatalogService.CreateEpisodeForGame(gameEntry, existingPlatform.Id, true);
                     _episodeService.InsertMany(new List<Episode> { newEpisode });
                 }
 
-                var regionSeason = existingPlatform.Seasons?.FirstOrDefault(s => s.SeasonNumber == gameEntry.RegionSeasonNumber);
+                var regionSeason = existingPlatform.Seasons?.FirstOrDefault(s => s.SeasonNumber == gameEntry.RegionNumber);
                 if (regionSeason != null && !regionSeason.Monitored)
                 {
                     regionSeason.Monitored = true;

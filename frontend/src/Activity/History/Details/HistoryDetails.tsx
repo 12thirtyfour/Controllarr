@@ -108,7 +108,7 @@ function HistoryDetails(props: HistoryDetailsProps) {
         {seriesMatchType ? (
           <DescriptionListItem
             descriptionClassName={styles.description}
-            title={translate('SeriesMatchType')}
+            title={translate('PlatformMatchType')}
             data={seriesMatchType}
           />
         ) : null}

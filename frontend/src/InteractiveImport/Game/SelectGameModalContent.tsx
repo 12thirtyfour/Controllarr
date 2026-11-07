@@ -222,7 +222,7 @@ function SelectGameModalContentInner(props: SelectGameModalContentProps) {
           ) : null}
 
           {isFetched && !data.length
-            ? translate('NoGamesFoundForSelectedSeason')
+            ? translate('NoGamesFoundForSelectedRegion')
             : null}
         </Scroller>
       </ModalBody>

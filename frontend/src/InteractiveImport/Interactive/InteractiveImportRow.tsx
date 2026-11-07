@@ -34,6 +34,7 @@ import { SelectStateInputProps } from 'typings/props';
 import Rejection from 'typings/Rejection';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
+import formatSeason from 'Region/formatRegion';
 import translate from 'Utilities/String/translate';
 import InteractiveImportRowCellPlaceholder from './InteractiveImportRowCellPlaceholder';
 import styles from './InteractiveImportRow.module.css';
@@ -361,7 +362,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
   const showSeriesPlaceholder = isSelected && !series;
   const showSeasonNumberPlaceholder =
     isSelected && !!series && requiresSeasonNumber && !isReprocessing;
-  const showGameNumbersPlaceholder =
+  const showGamesPlaceholder =
     isSelected && Number.isInteger(seasonNumber) && !games.length;
   const showQualityPlaceholder = isSelected && !quality;
   const showLanguagePlaceholder = isSelected && !languages;
@@ -383,7 +384,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         <TableRowCellButton
           isDisabled={!allowSeriesChange}
           title={
-            allowSeriesChange ? translate('ClickToChangeSeries') : undefined
+            allowSeriesChange ? translate('ClickToChangePlatform') : undefined
           }
           onPress={onSelectSeriesPress}
         >
@@ -397,13 +398,13 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
 
       <TableRowCellButton
         isDisabled={!series}
-        title={series ? translate('ClickToChangeSeason') : undefined}
+        title={series ? translate('ClickToChangeRegion') : undefined}
         onPress={onSelectSeasonPress}
       >
         {showSeasonNumberPlaceholder ? (
           <InteractiveImportRowCellPlaceholder />
         ) : (
-          seasonNumber
+          (seasonNumber != null ? formatSeason(seasonNumber, false, series?.titleSlug) : null) ?? seasonNumber
         )}
 
         {isReprocessing && seasonNumber == null ? (
@@ -420,7 +421,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         }
         onPress={onSelectGamePress}
       >
-        {showGameNumbersPlaceholder ? (
+        {showGamesPlaceholder ? (
           <InteractiveImportRowCellPlaceholder />
         ) : (
           gameInfo

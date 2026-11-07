@@ -125,13 +125,20 @@ namespace NzbDrone.Core.Datastore
                   .LazyLoad(x => x.Episodes,
                             (db, parent) => db.Query<Episode>(new SqlBuilder(db.DatabaseType).Where<Episode>(c => c.EpisodeFileId == parent.Id)).ToList(),
                             t => t.Id > 0)
-                  .Ignore(f => f.Path);
+                  .Ignore(f => f.Path)
+                  .Ignore(f => f.PlatformId)
+                  .Ignore(f => f.RegionNumber);
 
             Mapper.Entity<Episode>("Games").RegisterModel()
                   .Ignore(e => e.SeriesTitle)
                   .Ignore(e => e.Series)
                   .Ignore(e => e.HasFile)
                   .Ignore(e => e.AbsoluteEpisodeNumberAdded)
+                  .Ignore(e => e.PlatformId)
+                  .Ignore(e => e.RomFileId)
+                  .Ignore(e => e.RegionNumber)
+                  .Ignore(e => e.GameNumber)
+                  .Ignore(e => e.AbsoluteGameNumber)
                   .HasOne(s => s.EpisodeFile, s => s.EpisodeFileId);
 
             Mapper.Entity<QualityDefinition>("QualityDefinitions").RegisterModel()

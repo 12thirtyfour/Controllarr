@@ -26,7 +26,7 @@ const releaseTypeList = [
   {
     id: 'seasonPack',
     get name() {
-      return translate('SeasonPack');
+      return translate('RegionPack');
     },
   },
 ];

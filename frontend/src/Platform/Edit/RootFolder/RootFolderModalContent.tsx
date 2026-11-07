@@ -64,7 +64,7 @@ function RootFolderModalContent(props: RootFolderModalContentProps) {
       <ModalBody>
         <FormRow>
           <FormLabel>{translate('RootFolder')}</FormLabel>
-          <FormInputHelpText text={translate('SeriesEditRootFolderHelpText')} />
+          <FormInputHelpText text={translate('PlatformEditRootFolderHelpText')} />
           <FormInput
             type={inputTypes.ROOT_FOLDER_SELECT}
             name="rootFolderPath"

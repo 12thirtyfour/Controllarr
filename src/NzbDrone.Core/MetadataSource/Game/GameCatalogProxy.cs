@@ -22,14 +22,15 @@ namespace NzbDrone.Core.MetadataSource.Game
 {
     public class GameCatalogProxy : IGameCatalogService, IProvidePlatformInfo, ISearchForNewPlatforms
     {
-        public const int RegionUnlicensedSeason = 0;
-        public const int RegionPrototypesSeason = 0;
-        public const int RegionUsaSeason = 1;
-        public const int RegionEuropeSeason = 2;
-        public const int RegionJapanSeason = 3;
-        public const int RegionWorldSeason = 4;
-        public const int RegionHomebrewSeason = 5;
-        public const int RegionRomHacksSeason = 6;
+        public const int RegionUnlicensed = 0;
+        public const int RegionPrototypes = 0;
+        public const int RegionUsa = 1;
+        public const int RegionEurope = 2;
+        public const int RegionJapan = 3;
+        public const int RegionWorld = 4;
+        public const int RegionHomebrew = 5;
+        public const int RegionRomHacks = 6;
+        public const int RegionBios = 99;
 
         private static readonly Regex DatGameBlockRegex = new Regex(
             @"game\s*\(\s*name\s+""(?<name>[^""]+)""(?<body>.*?)\r?\n\)",
@@ -323,9 +324,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 SeriesId = seriesId,
                 TvdbId = game.TvdbId,
-                SeasonNumber = game.RegionSeasonNumber,
-                EpisodeNumber = game.EpisodeNumber,
-                AbsoluteEpisodeNumber = game.AbsoluteEpisodeNumber > 0 ? game.AbsoluteEpisodeNumber : game.EpisodeNumber,
+                SeasonNumber = game.RegionNumber,
+                EpisodeNumber = game.GameNumber,
+                AbsoluteEpisodeNumber = game.AbsoluteGameNumber > 0 ? game.AbsoluteGameNumber : game.GameNumber,
                 Title = game.Title,
                 FinaleType = !string.IsNullOrWhiteSpace(game.RevisionTag) ? game.RevisionTag : "Retail (v1.0)",
                 Overview = game.Overview,
@@ -544,7 +545,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                                    rawRev.Equals("Retail", StringComparison.OrdinalIgnoreCase)
                     ? "Retail (v1.0)"
                     : rawRev.Trim();
-                var canonicalKey = $"{candidate.RegionSeasonNumber}:{canonicalTitle}:{canonicalRev}";
+                var canonicalKey = $"{candidate.RegionNumber}:{canonicalTitle}:{canonicalRev}";
 
                 if (seenCanonicalReleases.Contains(canonicalKey) ||
                     seenIds.Contains(candidate.TvdbId) ||
@@ -694,18 +695,18 @@ namespace NzbDrone.Core.MetadataSource.Game
                 .ThenBy(g => GetRevisionSortOrder(g.RevisionTag))
                 .ThenBy(g => g.Title, StringComparer.OrdinalIgnoreCase))
             {
-                var seasonNum = game.RegionSeasonNumber;
+                var seasonNum = game.RegionNumber;
                 gameCounters.TryGetValue(seasonNum, out var currentGameNum);
                 currentGameNum++;
                 gameCounters[seasonNum] = currentGameNum;
-                game.EpisodeNumber = currentGameNum;
+                game.GameNumber = currentGameNum;
 
                 absoluteGameCounter++;
-                game.AbsoluteEpisodeNumber = absoluteGameCounter;
+                game.AbsoluteGameNumber = absoluteGameCounter;
 
-                var isUnofficial = seasonNum == RegionUnlicensedSeason ||
-                                   seasonNum == RegionHomebrewSeason ||
-                                   seasonNum == RegionRomHacksSeason ||
+                var isUnofficial = seasonNum == RegionUnlicensed ||
+                                   seasonNum == RegionHomebrew ||
+                                   seasonNum == RegionRomHacks ||
                                    IsPreReleaseVersion(game.RevisionTag, game.NoIntroName);
 
                 var isMonitored = hasExplicitSelection
@@ -726,7 +727,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     SeriesId = 0,
                     TvdbId = platform.TvdbId + 1,
-                    SeasonNumber = RegionUsaSeason,
+                    SeasonNumber = RegionUsa,
                     EpisodeNumber = 1,
                     AbsoluteEpisodeNumber = 1,
                     Title = $"{platform.Name} Launch Title",
@@ -739,7 +740,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     Ratings = new Ratings { Votes = 100, Value = 9.0m }
                 });
 
-                series.Seasons = series.Seasons.Where(s => s.SeasonNumber == RegionUsaSeason).ToList();
+                series.Seasons = series.Seasons.Where(s => s.SeasonNumber == RegionUsa).ToList();
             }
 
             return new Tuple<Series, List<Episode>>(series, episodes);
@@ -1822,11 +1823,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return null;
             }
 
-            var regionSeason = ClassifyRegionAndCategory(cleanNoIntroForParse, parsed, verificationSource);
-            var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionSeason, verificationSource);
+            var regionNumber = ClassifyRegionAndCategory(cleanNoIntroForParse, parsed, verificationSource);
+            var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionNumber, verificationSource);
 
             var tvdbId = ComputeDeterministicGameId(platform.Slug, noIntroName);
-            var regionName = GetRegionDisplayName(regionSeason);
+            var regionName = GetRegionDisplayName(regionNumber);
             var isPreRelease = IsPreReleaseVersion(revisionTag, noIntroName);
             var isEncrypted = IsEncryptedVersion(revisionTag, noIntroName);
             var isValidYear = year >= 1970 && year <= 2035;
@@ -1867,9 +1868,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 PlatformName = platform.Name,
                 PlatformShortName = platform.ShortName,
                 Manufacturer = platform.Manufacturer,
-                RegionSeasonNumber = regionSeason,
+                RegionNumber = regionNumber,
                 RegionName = regionName,
-                EpisodeNumber = 1,
+                GameNumber = 1,
                 ReleaseYear = effectiveYear,
                 ReleaseDateString = releaseDateString,
                 FirstAired = firstAired,
@@ -1974,7 +1975,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             var monitoredIds = new HashSet<int>();
 
-            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
+            foreach (var group in games.GroupBy(g => $"{g.RegionNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
             {
                 var retailItems = group
                     .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName))
@@ -2095,7 +2096,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static void MarkLatestAndInitialRevisions(List<GameCatalogEntry> games)
         {
-            foreach (var group in games.GroupBy(g => $"{g.RegionSeasonNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
+            foreach (var group in games.GroupBy(g => $"{g.RegionNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
             {
                 var items = group.ToList();
 
@@ -2233,7 +2234,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static string ExtractRevisionTag(
             string noIntroName,
             Parser.Model.ParsedRomInfo parsed,
-            int regionSeason,
+            int regionNumber,
             string verificationSource = null)
         {
             var parts = new List<string>();
@@ -2300,7 +2301,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (parts.Count > 0)
             {
-                if (regionSeason == RegionRomHacksSeason)
+                if (regionNumber == RegionRomHacks)
                 {
                     var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
                                         noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
@@ -2312,12 +2313,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return string.Join(" • ", parts.Distinct(StringComparer.OrdinalIgnoreCase));
             }
 
-            if (regionSeason == RegionHomebrewSeason)
+            if (regionNumber == RegionHomebrew)
             {
                 return "Homebrew";
             }
 
-            if (regionSeason == RegionRomHacksSeason)
+            if (regionNumber == RegionRomHacks)
             {
                 var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
                                     noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
@@ -2326,7 +2327,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return isTranslation ? "Translation" : "ROM Hack";
             }
 
-            if (regionSeason == RegionUnlicensedSeason)
+            if (regionNumber == RegionUnlicensed)
             {
                 return "Unlicensed";
             }
@@ -2338,17 +2339,17 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             if (RegionHelper.IsRomHackOrTranslation(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
-                return RegionRomHacksSeason;
+                return RegionRomHacks;
             }
 
             if (RegionHelper.IsHomebrewOrAftermarket(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
-                return RegionHomebrewSeason;
+                return RegionHomebrew;
             }
 
             if (RegionHelper.IsUnlicensed(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
-                return RegionUnlicensedSeason;
+                return RegionUnlicensed;
             }
 
             // Note: Prototypes, Betas, Demos, and Samples stay in their geographic region
@@ -2359,7 +2360,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (regionStr.Contains("World", StringComparison.OrdinalIgnoreCase))
             {
-                return RegionWorldSeason;
+                return RegionWorld;
             }
 
             if (regionStr.Contains("USA", StringComparison.OrdinalIgnoreCase) ||
@@ -2368,7 +2369,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("Canada", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Brazil", StringComparison.OrdinalIgnoreCase))
             {
-                return RegionUsaSeason;
+                return RegionUsa;
             }
 
             if (regionStr.Contains("Japan", StringComparison.OrdinalIgnoreCase) ||
@@ -2382,7 +2383,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("(JP", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(J)", StringComparison.OrdinalIgnoreCase))
             {
-                return RegionJapanSeason;
+                return RegionJapan;
             }
 
             if (regionStr.Contains("Europe", StringComparison.OrdinalIgnoreCase) ||
@@ -2407,7 +2408,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("(EU", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase))
             {
-                return RegionEuropeSeason;
+                return RegionEurope;
             }
 
             var langTokens = ExtractLanguageTokens(null, noIntroName);
@@ -2415,22 +2416,22 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 if (langTokens.All(l => AsianLanguageTokens.Contains(l)))
                 {
-                    return RegionJapanSeason;
+                    return RegionJapan;
                 }
 
                 if (!langTokens.Contains("EN", StringComparer.OrdinalIgnoreCase) &&
                     langTokens.All(l => EuropeanNonEnglishLanguageTokens.Contains(l)))
                 {
-                    return RegionEuropeSeason;
+                    return RegionEurope;
                 }
 
                 if (langTokens.Count >= 2)
                 {
-                    return RegionWorldSeason;
+                    return RegionWorld;
                 }
             }
 
-            return RegionUsaSeason;
+            return RegionUsa;
         }
 
         public static string ResolveCatalogRegionLabel(string region, string languages = null, string gameId = null, string rawName = null)
@@ -2849,7 +2850,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private Series MapPlatformToSeries(PlatformCatalogEntry platform)
         {
-            var seasons = BuildDefaultRegionSeasons();
+            var seasons = BuildDefaultRegions();
             var firstAired = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             var consoleImageUrl = $"/Content/Images/Consoles/{platform.Slug}.png";
             var images = new List<MediaCover.MediaCover>
@@ -2885,10 +2886,10 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private Series MapGameToLookupSeries(GameCatalogEntry game)
         {
-            var seasons = BuildDefaultRegionSeasons();
+            var seasons = BuildDefaultRegions();
             foreach (var season in seasons)
             {
-                season.Monitored = season.SeasonNumber == game.RegionSeasonNumber;
+                season.Monitored = season.SeasonNumber == game.RegionNumber;
             }
 
             var displayTitle = $"{game.Title} [{game.PlatformShortName}]";
@@ -2925,17 +2926,17 @@ namespace NzbDrone.Core.MetadataSource.Game
             };
         }
 
-        private static List<Season> BuildDefaultRegionSeasons()
+        private static List<Season> BuildDefaultRegions()
         {
             return new List<Season>
             {
-                new Season { SeasonNumber = RegionUnlicensedSeason, Title = "Unlicensed", Monitored = false },
-                new Season { SeasonNumber = RegionUsaSeason, Title = "USA", Monitored = true },
-                new Season { SeasonNumber = RegionEuropeSeason, Title = "Europe", Monitored = true },
-                new Season { SeasonNumber = RegionJapanSeason, Title = "Japan", Monitored = true },
-                new Season { SeasonNumber = RegionWorldSeason, Title = "World", Monitored = true },
-                new Season { SeasonNumber = RegionHomebrewSeason, Title = "Homebrew", Monitored = false },
-                new Season { SeasonNumber = RegionRomHacksSeason, Title = "ROM Hacks", Monitored = false }
+                new Season { SeasonNumber = RegionUnlicensed, Title = "Unlicensed", Monitored = false },
+                new Season { SeasonNumber = RegionUsa, Title = "USA", Monitored = true },
+                new Season { SeasonNumber = RegionEurope, Title = "Europe", Monitored = true },
+                new Season { SeasonNumber = RegionJapan, Title = "Japan", Monitored = true },
+                new Season { SeasonNumber = RegionWorld, Title = "World", Monitored = true },
+                new Season { SeasonNumber = RegionHomebrew, Title = "Homebrew", Monitored = false },
+                new Season { SeasonNumber = RegionRomHacks, Title = "ROM Hacks", Monitored = false }
             };
         }
 
@@ -3017,13 +3018,13 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             return seasonNumber switch
             {
-                RegionUsaSeason => "USA",
-                RegionEuropeSeason => "Europe",
-                RegionJapanSeason => "Japan",
-                RegionWorldSeason => "World",
-                RegionUnlicensedSeason => "Unlicensed",
-                RegionRomHacksSeason => "ROM Hacks & Translations",
-                RegionHomebrewSeason => "Homebrew & Aftermarket",
+                RegionUsa => "USA",
+                RegionEurope => "Europe",
+                RegionJapan => "Japan",
+                RegionWorld => "World",
+                RegionUnlicensed => "Unlicensed",
+                RegionRomHacks => "ROM Hacks & Translations",
+                RegionHomebrew => "Homebrew & Aftermarket",
                 _ => $"Region {seasonNumber}"
             };
         }
@@ -3032,10 +3033,10 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             return seasonNumber switch
             {
-                RegionUsaSeason => 1,
-                RegionEuropeSeason => 2,
-                RegionJapanSeason => 3,
-                RegionWorldSeason => 4,
+                RegionUsa => 1,
+                RegionEurope => 2,
+                RegionJapan => 3,
+                RegionWorld => 4,
                 _ => 10 + seasonNumber
             };
         }

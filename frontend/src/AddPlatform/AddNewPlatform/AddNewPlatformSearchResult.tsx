@@ -144,7 +144,7 @@ function AddNewPlatformSearchResult({ series }: AddNewPlatformSearchResultProps)
                   className={styles.excludedIcon}
                   name={icons.DANGER}
                   size={24}
-                  title={translate('SeriesInImportListExclusions')}
+                  title={translate('PlatformInImportListExclusions')}
                 />
               ) : null}
 

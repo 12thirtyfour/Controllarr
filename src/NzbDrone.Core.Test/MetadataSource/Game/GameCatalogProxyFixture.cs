@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             tuple.Item1.Seasons.Should().NotBeEmpty();
             tuple.Item1.Seasons.Should().OnlyContain(s => tuple.Item2.Any(e => e.SeasonNumber == s.SeasonNumber));
             tuple.Item2.Should().NotBeEmpty();
-            tuple.Item2.Should().Contain(e => e.Title.Contains("Pokemon - Emerald Version") && e.SeasonNumber == GameCatalogProxy.RegionUsaSeason);
+            tuple.Item2.Should().Contain(e => e.Title.Contains("Pokemon - Emerald Version") && e.SeasonNumber == GameCatalogProxy.RegionUsa);
         }
 
         [Test]
@@ -103,15 +103,15 @@ game (
             tuple.Item1.Title.Should().Be("Nintendo Entertainment System");
             tuple.Item1.Images.Should().Contain(i => i.RemoteUrl == "/Content/Images/Consoles/nes.png");
 
-            var usaEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUsaSeason).ToList();
+            var usaEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUsa).ToList();
             usaEpisodes.Should().Contain(e => e.Title == "Super Mario Bros.");
             usaEpisodes.Should().Contain(e => e.Title == "Super Mario Bros." && e.FinaleType == "Rev 1");
             usaEpisodes.Should().Contain(e => e.Title == "Super Mario Bros." && e.FinaleType == "Beta");
 
-            var unlicensedEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUnlicensedSeason).ToList();
+            var unlicensedEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUnlicensed).ToList();
             unlicensedEpisodes.Should().Contain(e => e.Title.Contains("Bible Adventures"));
 
-            var homebrewEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionHomebrewSeason).ToList();
+            var homebrewEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionHomebrew).ToList();
             homebrewEpisodes.Should().Contain(e => e.Title.Contains("Micro Mages"));
 
             GameCatalogProxy.IsPreReleaseVersion("Proto", "Star Fox 2 (USA) (Proto)").Should().BeTrue();
@@ -159,9 +159,9 @@ game (
             Subject.InvalidatePlatformCache(1003);
             var tuple = Subject.GetSeriesInfo(1003, Language.English, null);
 
-            tuple.Item2.Where(e => e.Title == "EarthBound" && e.SeasonNumber == GameCatalogProxy.RegionUsaSeason)
+            tuple.Item2.Where(e => e.Title == "EarthBound" && e.SeasonNumber == GameCatalogProxy.RegionUsa)
                 .Should().ContainSingle();
-            tuple.Item2.Where(e => e.Title == "Terranigma" && e.SeasonNumber == GameCatalogProxy.RegionEuropeSeason)
+            tuple.Item2.Where(e => e.Title == "Terranigma" && e.SeasonNumber == GameCatalogProxy.RegionEurope)
                 .Should().ContainSingle();
             tuple.Item2.Select(e => e.AbsoluteEpisodeNumber).Should().OnlyHaveUniqueItems();
         }
@@ -296,7 +296,7 @@ game (
             results.Should().NotBeEmpty();
             var game = results.First();
             game.Title.Should().Be("Super Mario Odyssey");
-            game.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            game.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
             game.ReleaseYear.Should().Be(2017);
             game.Overview.Should().Contain("Mushroom Kingdom");
             game.ExpectedCrc32.Should().Be("340DE7BC");
@@ -361,23 +361,23 @@ game (
             results.Should().NotBeEmpty();
 
             var monsterFruit = results.First(g => g.NoIntroName.Contains("Monster Fruit Academy"));
-            monsterFruit.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionWorldSeason);
+            monsterFruit.RegionNumber.Should().Be(GameCatalogProxy.RegionWorld);
             monsterFruit.Title.Should().Be("Monster Fruit Academy");
 
             var modelDebut = results.First(g => g.NoIntroName.Contains("MODEL Debut 2 #nicola"));
-            modelDebut.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionJapanSeason);
+            modelDebut.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
             modelDebut.Title.Should().Be("MODEL Debut 2 #nicola");
 
-            var pjMasksEur = results.First(g => g.NoIntroName.Contains("PJ MASKS") && g.RegionSeasonNumber == GameCatalogProxy.RegionEuropeSeason);
-            pjMasksEur.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionEuropeSeason);
+            var pjMasksEur = results.First(g => g.NoIntroName.Contains("PJ MASKS") && g.RegionNumber == GameCatalogProxy.RegionEurope);
+            pjMasksEur.RegionNumber.Should().Be(GameCatalogProxy.RegionEurope);
 
-            var pjMasksUsa = results.First(g => g.NoIntroName.Contains("PJ MASKS") && g.RegionSeasonNumber == GameCatalogProxy.RegionUsaSeason);
-            pjMasksUsa.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            var pjMasksUsa = results.First(g => g.NoIntroName.Contains("PJ MASKS") && g.RegionNumber == GameCatalogProxy.RegionUsa);
+            pjMasksUsa.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
 
             results.Where(g => g.Title == "PJ MASKS: HEROES OF THE NIGHT").Should().HaveCount(2);
 
             var romancingSaga = results.First(g => g.NoIntroName.Contains("Romancing SaGa Remastered"));
-            romancingSaga.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionJapanSeason);
+            romancingSaga.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
 
             GameCatalogProxy.ResolveCatalogRegionLabel("ALL", "JA", null, "Some Game (JA)").Should().Be("Japan");
             GameCatalogProxy.ResolveCatalogRegionLabel("PAL", "EN,FR,DE", null, null).Should().Be("Europe");
@@ -516,19 +516,19 @@ game (
             var hack6 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Castlevania - The Adventure (USA) (Fix)", 1989, "SmokeMonster HTGDB / SMDB");
             var hack7 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Donkey Kong Land (USA) (SGB Enhanced)", 1995, "SmokeMonster HTGDB / SMDB");
 
-            hack1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            hack2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            hack3.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            hack4.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            hack5.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            hack6.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            hack7.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            hack1.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack2.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack3.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack4.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack5.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack6.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack7.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
 
             var official1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Super Mario Land (World)", 1989, "No-Intro");
             var official2 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Metroid II - Return of Samus (USA)", 1991, "No-Intro");
 
-            official1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionWorldSeason);
-            official2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            official1.RegionNumber.Should().Be(GameCatalogProxy.RegionWorld);
+            official2.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
         }
 
         [Test]
@@ -548,30 +548,30 @@ game (
             var emeraldRogue = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Emerald Rogue (USA)", 2023, "Test");
             var dinoLand = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Super Mario World - Return to Dinosaur Land (USA)", 1995, "Test");
 
-            brown1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            brown2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            brown3.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            brown4.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            prism.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            ashGray.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            radicalRed.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            unbound.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            emeraldRogue.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
-            dinoLand.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            brown1.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            brown2.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            brown3.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            brown4.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            prism.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            ashGray.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            radicalRed.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            unbound.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            emeraldRogue.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            dinoLand.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
 
             // Official Pokémon releases must NOT be classified as ROM hacks
             var officialRed = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon - Red Version (USA, Europe)", 1998, "No-Intro");
             var officialEmerald = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon - Emerald Version (USA, Europe)", 2005, "No-Intro");
 
-            officialRed.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
-            officialEmerald.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            officialRed.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
+            officialEmerald.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
 
             // ParsedRomInfo should also report Season 6 for ROM hacks
             var parsedBrown = Parser.RomParser.ParseRomName("Pokemon Brown (USA).gb");
-            parsedBrown.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            parsedBrown.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
 
             var parsedOfficial = Parser.RomParser.ParseRomName("Pokemon - Red Version (USA, Europe).gb");
-            parsedOfficial.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            parsedOfficial.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
         }
     }
 }

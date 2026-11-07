@@ -268,7 +268,7 @@ function BiosSettings() {
     <PageContent title={translate('Bios')}>
       <PageContentBody>
         <div className={settingsStyles.section}>
-          <PageHeading scope={translate('Series')} title={translate('Bios')} />
+          <PageHeading scope={translate('Platforms')} title={translate('Bios')} />
 
           <div className={styles.filterContainer}>
             <div className={styles.filterGroup}>

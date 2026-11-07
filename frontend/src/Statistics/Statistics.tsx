@@ -59,18 +59,18 @@ function Statistics() {
 
     return [
       {
-        label: translate('Series'),
-        value: (data.seriesCount ?? 0).toLocaleString(),
-        secondary: `${(data.monitoredSeriesCount ?? 0).toLocaleString()} ${translate(
+        label: translate('Platforms'),
+        value: (data.platformCount ?? 0).toLocaleString(),
+        secondary: `${(data.monitoredPlatformCount ?? 0).toLocaleString()} ${translate(
           'Monitored'
-        )} · ${(data.completedSeriesCount ?? 0).toLocaleString()} ${translate(
+        )} · ${(data.completedPlatformCount ?? 0).toLocaleString()} ${translate(
           'Completed'
         )}`,
       },
       {
-        label: translate('Seasons'),
-        value: (data.seasonCount ?? 0).toLocaleString(),
-        secondary: `${(data.completedSeasonCount ?? 0).toLocaleString()} ${translate(
+        label: translate('Regions'),
+        value: (data.regionCount ?? 0).toLocaleString(),
+        secondary: `${(data.completedRegionCount ?? 0).toLocaleString()} ${translate(
           'Completed'
         )}`,
       },
@@ -109,22 +109,22 @@ function Statistics() {
     return [
       {
         label: translate('Continuing'),
-        value: data.continuingSeriesCount,
+        value: data.continuingPlatformCount,
         color: colors.successColor,
       },
       {
         label: translate('Ended'),
-        value: data.endedSeriesCount,
+        value: data.endedPlatformCount,
         color: colors.bar,
       },
       {
         label: translate('Upcoming'),
-        value: data.upcomingSeriesCount,
+        value: data.upcomingPlatformCount,
         color: colors.warningColor,
       },
       {
         label: translate('Deleted'),
-        value: data.deletedSeriesCount,
+        value: data.deletedPlatformCount,
         color: colors.dangerColor,
       },
     ];
@@ -138,15 +138,15 @@ function Statistics() {
     const items: DoughnutChartItem[] = [
       {
         label: translate('Standard'),
-        value: data.standardSeriesCount,
+        value: data.standardPlatformCount,
         color: colors.bar,
       },
     ];
 
-    if (data.animeSeriesCount > 0) {
+    if (data.animePlatformCount > 0) {
       items.push({
         label: translate('Anime'),
-        value: data.animeSeriesCount,
+        value: data.animePlatformCount,
         color: colors.palette[4],
       });
     }
@@ -164,7 +164,7 @@ function Statistics() {
       data.totalGameCount -
         data.downloadedGameCount -
         data.missingGameCount -
-        data.unairedGameCount
+        data.unreleasedGameCount
     );
 
     return [
@@ -179,8 +179,8 @@ function Statistics() {
         color: colors.dangerColor,
       },
       {
-        label: translate('Unaired'),
-        value: data.unairedGameCount,
+        label: translate('Unreleased'),
+        value: data.unreleasedGameCount,
         color: colors.palette[6],
       },
       {
@@ -215,7 +215,7 @@ function Statistics() {
     return data.tagStatistics.map((tag) => {
       return {
         label: tag.label,
-        value: tag.seriesCount ?? 0,
+        value: tag.platformCount ?? 0,
         tooltipLines: [
           `${translate(
             'RomFiles'
@@ -261,12 +261,12 @@ function Statistics() {
 
             <div className={styles.charts}>
               <DoughnutChart
-                title={translate('SeriesByStatus')}
+                title={translate('PlatformsByStatus')}
                 items={statusItems}
               />
 
               <DoughnutChart
-                title={translate('SeriesType')}
+                title={translate('PlatformType')}
                 items={typeItems}
               />
 
@@ -285,7 +285,7 @@ function Statistics() {
               />
 
               {tagItems.length ? (
-                <BarChart title={translate('SeriesTags')} items={tagItems} />
+                <BarChart title={translate('PlatformTags')} items={tagItems} />
               ) : null}
             </div>
           </div>

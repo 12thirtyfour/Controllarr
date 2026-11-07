@@ -118,7 +118,7 @@ export const FILTERS: Filter[] = [
   },
   {
     key: 'season-pack',
-    label: () => translate('SeasonPack'),
+    label: () => translate('RegionPack'),
     filters: [
       {
         key: 'fullSeason',
@@ -228,7 +228,7 @@ export const FILTER_BUILDER: FilterBuilderProp<Release>[] = [
   },
   {
     name: 'fullSeason',
-    label: () => translate('SeasonPack'),
+    label: () => translate('RegionPack'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.BOOL,
   },

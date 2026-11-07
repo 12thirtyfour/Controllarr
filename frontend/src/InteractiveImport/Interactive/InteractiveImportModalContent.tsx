@@ -87,13 +87,13 @@ const COLUMNS = [
   },
   {
     name: 'series',
-    label: () => translate('SeriesSingular'),
+    label: () => translate('Platform'),
     isSortable: true,
     isVisible: true,
   },
   {
     name: 'season',
-    label: () => translate('Season'),
+    label: () => translate('Region'),
     isVisible: true,
   },
   {

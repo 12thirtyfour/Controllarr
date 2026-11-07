@@ -315,7 +315,7 @@ namespace NzbDrone.Core.DecisionEngine
                 }
 
                 var seriesTitle = platformName;
-                var seasonNum = romInfo.RegionSeasonNumber;
+                var seasonNum = romInfo.RegionNumber;
                 var romQuality = romInfo.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
                 if (romQuality.Quality == Quality.Unknown)
                 {

@@ -33,13 +33,15 @@ namespace NzbDrone.Core.MetadataSource.Game
         public string PlatformName { get; set; }
         public string PlatformShortName { get; set; }
         public string Manufacturer { get; set; }
-        public int RegionSeasonNumber { get; set; }
+        public int RegionNumber { get; set; }
+        public int RegionId => RegionNumber;
         public string RegionName { get; set; }
-        public int EpisodeNumber { get; set; }
-        public int AbsoluteEpisodeNumber { get; set; }
+        public int GameNumber { get; set; }
+        public int AbsoluteGameNumber { get; set; }
         public int ReleaseYear { get; set; }
         public string ReleaseDateString { get; set; }
-        public DateTime FirstAired { get; set; }
+        public DateTime ReleaseDate { get; set; }
+        public DateTime FirstAired { get => ReleaseDate; set => ReleaseDate = value; }
         public string Overview { get; set; }
         public string PosterUrl { get; set; }
         public string VerificationSource { get; set; }

@@ -183,7 +183,7 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
         <FormRow>
           <FormLabel>{translate('Language')}</FormLabel>
 
-          <FormInputHelpText text={translate('SeriesLanguageHelpText')} />
+          <FormInputHelpText text={translate('PlatformLanguageHelpText')} />
           <FormInput
             type={inputTypes.LANGUAGE_SELECT}
             name="language"
@@ -233,8 +233,8 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
         </FormRow>
 
         <FormRow>
-          <FormLabel>{translate('SeriesType')}</FormLabel>
-          <FormInputHelpText text={translate('SeriesTypesHelpText')} />
+          <FormLabel>{translate('PlatformType')}</FormLabel>
+          <FormInputHelpText text={translate('PlatformTypesHelpText')} />
           <FormInput
             type={inputTypes.SERIES_TYPE_SELECT}
             name="seriesType"
@@ -248,7 +248,7 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
 
         <FormRow>
           <FormLabel>{translate('RootFolder')}</FormLabel>
-          <FormInputHelpText text={translate('SeriesEditRootFolderHelpText')} />
+          <FormInputHelpText text={translate('PlatformEditRootFolderHelpText')} />
           <FormInput
             type={inputTypes.ROOT_FOLDER_SELECT}
             name="rootFolderPath"

@@ -16,9 +16,9 @@ public interface IStatisticsRepository
 
 public class StatisticsRepository : IStatisticsRepository
 {
-    private const string _selectSeriesTemplate = "SELECT /**select**/ FROM \"Platforms\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
-    private const string _selectEpisodesTemplate = "SELECT /**select**/ FROM \"Games\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
-    private const string _selectEpisodeFilesTemplate = "SELECT /**select**/ FROM \"RomFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+    private const string _selectPlatformsTemplate = "SELECT /**select**/ FROM \"Platforms\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+    private const string _selectGamesTemplate = "SELECT /**select**/ FROM \"Games\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+    private const string _selectRomFilesTemplate = "SELECT /**select**/ FROM \"RomFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
     private const string _selectQualityProfilesTemplate = "SELECT /**select**/ FROM \"QualityProfiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
     private const string _selectTagsTemplate = "SELECT /**select**/ FROM \"Tags\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
 
@@ -32,53 +32,53 @@ public class StatisticsRepository : IStatisticsRepository
     public LibraryStatistics GetLibraryStatistics(StatisticsFilter filter = null)
     {
         var currentDate = DateTime.UtcNow;
-        var seriesFilter = BuildSeriesFilter(filter);
+        var platformFilter = BuildPlatformFilter(filter);
 
-        var seriesCounts = QuerySingle<SeriesCounts>(SeriesBuilder(seriesFilter), _selectSeriesTemplate);
-        var completedSeriesCounts = QueryGrouped<CompletedSeriesCounts>(
-            CompletedSeriesBuilder(currentDate, seriesFilter),
-            _selectEpisodesTemplate,
-            @"COALESCE(SUM(CASE WHEN ""EpisodeCount"" > 0 AND ""EpisodeCount"" = ""EpisodeFileCount"" THEN 1 ELSE 0 END), 0) AS CompletedSeriesCount");
-        var seasonCounts = QueryGrouped<SeasonCounts>(
-            SeasonsBuilder(currentDate, seriesFilter),
-            _selectEpisodesTemplate,
-            @"COUNT(*) AS SeasonCount, COALESCE(SUM(CASE WHEN ""EpisodeCount"" > 0 AND ""EpisodeCount"" = ""EpisodeFileCount"" THEN 1 ELSE 0 END), 0) AS CompletedSeasonCount");
-        var episodeCounts = QuerySingle<EpisodeCounts>(EpisodesBuilder(currentDate, seriesFilter), _selectEpisodesTemplate);
-        var episodeFileCounts = QuerySingle<EpisodeFileCounts>(EpisodeFilesBuilder(seriesFilter), _selectEpisodeFilesTemplate);
-        var qualityProfileCounts = Query<QualityProfileCounts>(QualityProfilesBuilder(seriesFilter), _selectQualityProfilesTemplate);
-        var qualityProfileFileCounts = Query<QualityProfileFileCounts>(EpisodeFilesPerProfileBuilder(seriesFilter), _selectEpisodeFilesTemplate);
-        var qualityCounts = Query<QualityCounts>(EpisodeFilesPerQualityBuilder(seriesFilter), _selectEpisodeFilesTemplate);
-        var tagCounts = Query<TagCounts>(TagsBuilder(seriesFilter), _selectTagsTemplate);
-        var tagFileCounts = Query<TagFileCounts>(EpisodeFilesPerTagBuilder(seriesFilter), _selectEpisodeFilesTemplate);
+        var platformCounts = QuerySingle<PlatformCounts>(PlatformsBuilder(platformFilter), _selectPlatformsTemplate);
+        var completedPlatformCounts = QueryGrouped<CompletedPlatformCounts>(
+            CompletedPlatformsBuilder(currentDate, platformFilter),
+            _selectGamesTemplate,
+            @"COALESCE(SUM(CASE WHEN ""EpisodeCount"" > 0 AND ""EpisodeCount"" = ""EpisodeFileCount"" THEN 1 ELSE 0 END), 0) AS CompletedPlatformCount");
+        var regionCounts = QueryGrouped<RegionCounts>(
+            RegionsBuilder(currentDate, platformFilter),
+            _selectGamesTemplate,
+            @"COUNT(*) AS RegionCount, COALESCE(SUM(CASE WHEN ""EpisodeCount"" > 0 AND ""EpisodeCount"" = ""EpisodeFileCount"" THEN 1 ELSE 0 END), 0) AS CompletedRegionCount");
+        var gameCounts = QuerySingle<GameCounts>(GamesBuilder(currentDate, platformFilter), _selectGamesTemplate);
+        var romFileCounts = QuerySingle<RomFileCounts>(RomFilesBuilder(platformFilter), _selectRomFilesTemplate);
+        var qualityProfileCounts = Query<QualityProfileCounts>(QualityProfilesBuilder(platformFilter), _selectQualityProfilesTemplate);
+        var qualityProfileFileCounts = Query<QualityProfileFileCounts>(RomFilesPerProfileBuilder(platformFilter), _selectRomFilesTemplate);
+        var qualityCounts = Query<QualityCounts>(RomFilesPerQualityBuilder(platformFilter), _selectRomFilesTemplate);
+        var tagCounts = Query<TagCounts>(TagsBuilder(platformFilter), _selectTagsTemplate);
+        var tagFileCounts = Query<TagFileCounts>(RomFilesPerTagBuilder(platformFilter), _selectRomFilesTemplate);
 
         return new LibraryStatistics
         {
-            SeriesCount = seriesCounts.SeriesCount,
-            MonitoredSeriesCount = seriesCounts.MonitoredSeriesCount,
-            CompletedSeriesCount = completedSeriesCounts.CompletedSeriesCount,
-            ContinuingSeriesCount = seriesCounts.ContinuingSeriesCount,
-            EndedSeriesCount = seriesCounts.EndedSeriesCount,
-            UpcomingSeriesCount = seriesCounts.UpcomingSeriesCount,
-            DeletedSeriesCount = seriesCounts.DeletedSeriesCount,
-            StandardSeriesCount = seriesCounts.StandardSeriesCount,
-            DailySeriesCount = seriesCounts.DailySeriesCount,
-            AnimeSeriesCount = seriesCounts.AnimeSeriesCount,
-            SeasonCount = seasonCounts.SeasonCount,
-            CompletedSeasonCount = seasonCounts.CompletedSeasonCount,
-            TotalEpisodeCount = episodeCounts.TotalEpisodeCount,
-            MonitoredEpisodeCount = episodeCounts.MonitoredEpisodeCount,
-            DownloadedEpisodeCount = episodeCounts.DownloadedEpisodeCount,
-            MissingEpisodeCount = episodeCounts.MissingEpisodeCount,
-            UnairedEpisodeCount = episodeCounts.UnairedEpisodeCount,
-            EpisodeFileCount = episodeFileCounts.EpisodeFileCount,
-            SizeOnDisk = episodeFileCounts.SizeOnDisk,
+            PlatformCount = platformCounts.PlatformCount,
+            MonitoredPlatformCount = platformCounts.MonitoredPlatformCount,
+            CompletedPlatformCount = completedPlatformCounts.CompletedPlatformCount,
+            ContinuingPlatformCount = platformCounts.ContinuingPlatformCount,
+            EndedPlatformCount = platformCounts.EndedPlatformCount,
+            UpcomingPlatformCount = platformCounts.UpcomingPlatformCount,
+            DeletedPlatformCount = platformCounts.DeletedPlatformCount,
+            StandardPlatformCount = platformCounts.StandardPlatformCount,
+            DailyPlatformCount = platformCounts.DailyPlatformCount,
+            AnimePlatformCount = platformCounts.AnimePlatformCount,
+            RegionCount = regionCounts.RegionCount,
+            CompletedRegionCount = regionCounts.CompletedRegionCount,
+            TotalGameCount = gameCounts.TotalGameCount,
+            MonitoredGameCount = gameCounts.MonitoredGameCount,
+            DownloadedGameCount = gameCounts.DownloadedGameCount,
+            MissingGameCount = gameCounts.MissingGameCount,
+            UnreleasedGameCount = gameCounts.UnreleasedGameCount,
+            RomFileCount = romFileCounts.RomFileCount,
+            SizeOnDisk = romFileCounts.SizeOnDisk,
             QualityProfileStatistics = MapQualityProfileStatistics(qualityProfileCounts, qualityProfileFileCounts),
             QualityStatistics = MapQualityStatistics(qualityCounts),
             TagStatistics = MapTagStatistics(tagCounts, tagFileCounts)
         };
     }
 
-    private SeriesFilter BuildSeriesFilter(StatisticsFilter filter)
+    private PlatformFilter BuildPlatformFilter(StatisticsFilter filter)
     {
         if (filter == null)
         {
@@ -94,7 +94,7 @@ public class StatisticsRepository : IStatisticsRepository
 
             for (var i = 0; i < filter.RootFolderPaths.Count; i++)
             {
-                // Ensure a trailing separator so '/tv' doesn't match series under '/tv2'
+                // Ensure a trailing separator so '/games' doesn't match platforms under '/games2'
                 var path = filter.RootFolderPaths[i];
                 var separator = path.Contains('\\') ? '\\' : '/';
                 var pathPrefix = path.TrimEnd('/', '\\') + separator;
@@ -114,7 +114,7 @@ public class StatisticsRepository : IStatisticsRepository
 
             for (var i = 0; i < filter.TagIds.Count; i++)
             {
-                tagConditions.Add(SeriesHasTagExpression($"@tagIdFilter{i}"));
+                tagConditions.Add(PlatformHasTagExpression($"@tagIdFilter{i}"));
                 parameters.Add($"tagIdFilter{i}", filter.TagIds[i], null);
             }
 
@@ -158,7 +158,7 @@ public class StatisticsRepository : IStatisticsRepository
             return null;
         }
 
-        return new SeriesFilter
+        return new PlatformFilter
         {
             Condition = string.Join(" AND ", conditions),
             Parameters = parameters
@@ -184,8 +184,8 @@ public class StatisticsRepository : IStatisticsRepository
             {
                 QualityProfileId = p.QualityProfileId,
                 Name = p.Name,
-                SeriesCount = p.SeriesCount,
-                EpisodeFileCount = files?.EpisodeFileCount ?? 0,
+                PlatformCount = p.PlatformCount,
+                RomFileCount = files?.RomFileCount ?? 0,
                 SizeOnDisk = files?.SizeOnDisk ?? 0
             };
         }).ToList();
@@ -203,8 +203,8 @@ public class StatisticsRepository : IStatisticsRepository
             {
                 TagId = t.TagId,
                 Label = t.Label,
-                SeriesCount = t.SeriesCount,
-                EpisodeFileCount = files?.EpisodeFileCount ?? 0,
+                PlatformCount = t.PlatformCount,
+                RomFileCount = files?.RomFileCount ?? 0,
                 SizeOnDisk = files?.SizeOnDisk ?? 0
             };
         }).ToList();
@@ -216,7 +216,7 @@ public class StatisticsRepository : IStatisticsRepository
                             .Select(q => new QualityStatistics
                             {
                                 Quality = Quality.FindById(q.QualityId),
-                                EpisodeFileCount = q.EpisodeFileCount,
+                                RomFileCount = q.RomFileCount,
                                 SizeOnDisk = q.SizeOnDisk
                             })
                             .ToList();
@@ -246,8 +246,8 @@ public class StatisticsRepository : IStatisticsRepository
         return conn.Query<T>(wrappedSql, sql.Parameters).Single();
     }
 
-    // Per-group sums matching the series statistics EpisodeCount semantics
-    private SqlBuilder EpisodeProgressBuilder(DateTime currentDate)
+    // Per-group sums matching the platform statistics GameCount semantics
+    private SqlBuilder GameProgressBuilder(DateTime currentDate)
     {
         var parameters = new DynamicParameters();
         parameters.Add("currentDate", currentDate, null);
@@ -261,36 +261,36 @@ public class StatisticsRepository : IStatisticsRepository
             .Where(@"""Games"".""SeasonNumber"" != 99");
     }
 
-    private SqlBuilder CompletedSeriesBuilder(DateTime currentDate, SeriesFilter seriesFilter)
+    private SqlBuilder CompletedPlatformsBuilder(DateTime currentDate, PlatformFilter platformFilter)
     {
-        var builder = EpisodeProgressBuilder(currentDate)
+        var builder = GameProgressBuilder(currentDate)
             .GroupBy(@"""Games"".""SeriesId""");
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
             builder.Join<Episode, Series>((e, s) => e.SeriesId == s.Id)
-                   .Where(seriesFilter.Condition, seriesFilter.Parameters);
+                   .Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private SqlBuilder SeasonsBuilder(DateTime currentDate, SeriesFilter seriesFilter)
+    private SqlBuilder RegionsBuilder(DateTime currentDate, PlatformFilter platformFilter)
     {
-        var builder = EpisodeProgressBuilder(currentDate)
+        var builder = GameProgressBuilder(currentDate)
             .Where(@"""Games"".""SeasonNumber"" > 0")
             .GroupBy(@"""Games"".""SeriesId"", ""Games"".""SeasonNumber""");
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
             builder.Join<Episode, Series>((e, s) => e.SeriesId == s.Id)
-                   .Where(seriesFilter.Condition, seriesFilter.Parameters);
+                   .Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private SqlBuilder SeriesBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder PlatformsBuilder(PlatformFilter platformFilter)
     {
         var parameters = new DynamicParameters();
         parameters.Add("continuing", (int)SeriesStatusType.Continuing, null);
@@ -304,26 +304,26 @@ public class StatisticsRepository : IStatisticsRepository
         var trueIndicator = _database.DatabaseType == DatabaseType.PostgreSQL ? "true" : "1";
 
         var builder = new SqlBuilder(_database.DatabaseType)
-            .Select($@"COUNT(*) AS SeriesCount,
-                         COALESCE(SUM(CASE WHEN ""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END), 0) AS MonitoredSeriesCount,
-                         COALESCE(SUM(CASE WHEN ""Status"" = @continuing THEN 1 ELSE 0 END), 0) AS ContinuingSeriesCount,
-                         COALESCE(SUM(CASE WHEN ""Status"" = @ended THEN 1 ELSE 0 END), 0) AS EndedSeriesCount,
-                         COALESCE(SUM(CASE WHEN ""Status"" = @upcoming THEN 1 ELSE 0 END), 0) AS UpcomingSeriesCount,
-                         COALESCE(SUM(CASE WHEN ""Status"" = @deleted THEN 1 ELSE 0 END), 0) AS DeletedSeriesCount,
-                         COALESCE(SUM(CASE WHEN ""SeriesType"" = @standard THEN 1 ELSE 0 END), 0) AS StandardSeriesCount,
-                         COALESCE(SUM(CASE WHEN ""SeriesType"" = @daily THEN 1 ELSE 0 END), 0) AS DailySeriesCount,
-                         COALESCE(SUM(CASE WHEN ""SeriesType"" = @anime THEN 1 ELSE 0 END), 0) AS AnimeSeriesCount",
+            .Select($@"COUNT(*) AS PlatformCount,
+                         COALESCE(SUM(CASE WHEN ""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END), 0) AS MonitoredPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""Status"" = @continuing THEN 1 ELSE 0 END), 0) AS ContinuingPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""Status"" = @ended THEN 1 ELSE 0 END), 0) AS EndedPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""Status"" = @upcoming THEN 1 ELSE 0 END), 0) AS UpcomingPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""Status"" = @deleted THEN 1 ELSE 0 END), 0) AS DeletedPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""SeriesType"" = @standard THEN 1 ELSE 0 END), 0) AS StandardPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""SeriesType"" = @daily THEN 1 ELSE 0 END), 0) AS DailyPlatformCount,
+                         COALESCE(SUM(CASE WHEN ""SeriesType"" = @anime THEN 1 ELSE 0 END), 0) AS AnimePlatformCount",
                 parameters);
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
-            builder.Where(seriesFilter.Condition, seriesFilter.Parameters);
+            builder.Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private SqlBuilder EpisodesBuilder(DateTime currentDate, SeriesFilter seriesFilter)
+    private SqlBuilder GamesBuilder(DateTime currentDate, PlatformFilter platformFilter)
     {
         var parameters = new DynamicParameters();
         parameters.Add("currentDate", currentDate, null);
@@ -331,120 +331,120 @@ public class StatisticsRepository : IStatisticsRepository
         var trueIndicator = _database.DatabaseType == DatabaseType.PostgreSQL ? "true" : "1";
 
         var builder = new SqlBuilder(_database.DatabaseType)
-            .Select($@"COUNT(*) AS TotalEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Games"".""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END), 0) AS MonitoredEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END), 0) AS DownloadedEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND ""Games"".""Monitored"" = {trueIndicator} AND ""Platforms"".""Monitored"" = {trueIndicator} AND ""Games"".""AirDateUtc"" <= @currentDate THEN 1 ELSE 0 END), 0) AS MissingEpisodeCount,
-                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND (""Games"".""AirDateUtc"" IS NULL OR ""Games"".""AirDateUtc"" > @currentDate) THEN 1 ELSE 0 END), 0) AS UnairedEpisodeCount",
+            .Select($@"COUNT(*) AS TotalGameCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END), 0) AS MonitoredGameCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" > 0 THEN 1 ELSE 0 END), 0) AS DownloadedGameCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND ""Games"".""Monitored"" = {trueIndicator} AND ""Platforms"".""Monitored"" = {trueIndicator} AND ""Games"".""AirDateUtc"" <= @currentDate THEN 1 ELSE 0 END), 0) AS MissingGameCount,
+                         COALESCE(SUM(CASE WHEN ""Games"".""EpisodeFileId"" = 0 AND (""Games"".""AirDateUtc"" IS NULL OR ""Games"".""AirDateUtc"" > @currentDate) THEN 1 ELSE 0 END), 0) AS UnreleasedGameCount",
                 parameters)
             .Join<Episode, Series>((e, s) => e.SeriesId == s.Id)
             .Where(@"""Games"".""SeasonNumber"" != 99");
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
-            builder.Where(seriesFilter.Condition, seriesFilter.Parameters);
+            builder.Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private SqlBuilder EpisodeFilesBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder RomFilesBuilder(PlatformFilter platformFilter)
     {
         var builder = new SqlBuilder(_database.DatabaseType)
-            .Select(@"COUNT(*) AS EpisodeFileCount,
+            .Select(@"COUNT(*) AS RomFileCount,
                         COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .Where(@"""RomFiles"".""SeasonNumber"" != 99");
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
             builder.Join<EpisodeFile, Series>((f, s) => f.SeriesId == s.Id)
-                   .Where(seriesFilter.Condition, seriesFilter.Parameters);
+                   .Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private SqlBuilder QualityProfilesBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder QualityProfilesBuilder(PlatformFilter platformFilter)
     {
-        // Filtering in the join keeps profiles without matching series in the results
+        // Filtering in the join keeps profiles without matching platforms in the results
         var seriesJoin = @"""Platforms"" ON ""Platforms"".""QualityProfileId"" = ""QualityProfiles"".""Id""";
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
-            seriesJoin += $" AND {seriesFilter.Condition}";
+            seriesJoin += $" AND {platformFilter.Condition}";
         }
 
         return new SqlBuilder(_database.DatabaseType)
             .Select(@"""QualityProfiles"".""Id"" AS QualityProfileId,
                         ""QualityProfiles"".""Name"" AS Name,
-                        COUNT(""Platforms"".""Id"") AS SeriesCount")
-            .LeftJoin(seriesJoin, seriesFilter?.Parameters)
+                        COUNT(""Platforms"".""Id"") AS PlatformCount")
+            .LeftJoin(seriesJoin, platformFilter?.Parameters)
             .GroupBy(@"""QualityProfiles"".""Id"", ""QualityProfiles"".""Name""")
             .OrderBy(@"""QualityProfiles"".""Name""");
     }
 
-    private SqlBuilder EpisodeFilesPerProfileBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder RomFilesPerProfileBuilder(PlatformFilter platformFilter)
     {
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select(@"""Platforms"".""QualityProfileId"" AS QualityProfileId,
-                        COUNT(*) AS EpisodeFileCount,
+                        COUNT(*) AS RomFileCount,
                         COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .Join<EpisodeFile, Series>((f, s) => f.SeriesId == s.Id)
             .GroupBy(@"""Platforms"".""QualityProfileId""");
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
-            builder.Where(seriesFilter.Condition, seriesFilter.Parameters);
+            builder.Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private string SeriesHasTagExpression(string tagId)
+    private string PlatformHasTagExpression(string tagId)
     {
         return _database.DatabaseType == DatabaseType.PostgreSQL
             ? $@"COALESCE(""Platforms"".""Tags"", '[]')::jsonb @> jsonb_build_array({tagId})"
             : $@"EXISTS (SELECT 1 FROM json_each(COALESCE(""Platforms"".""Tags"", '[]')) AS ""seriesTag"" WHERE ""seriesTag"".""value"" = {tagId})";
     }
 
-    private SqlBuilder TagsBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder TagsBuilder(PlatformFilter platformFilter)
     {
-        // Filtering in the join keeps tags without matching series in the results
-        var seriesJoin = $@"""Platforms"" ON {SeriesHasTagExpression(@"""Tags"".""Id""")}";
+        // Filtering in the join keeps tags without matching platforms in the results
+        var seriesJoin = $@"""Platforms"" ON {PlatformHasTagExpression(@"""Tags"".""Id""")}";
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
-            seriesJoin += $" AND {seriesFilter.Condition}";
+            seriesJoin += $" AND {platformFilter.Condition}";
         }
 
         return new SqlBuilder(_database.DatabaseType)
             .Select(@"""Tags"".""Id"" AS TagId,
                         ""Tags"".""Label"" AS Label,
-                        COUNT(""Platforms"".""Id"") AS SeriesCount")
-            .LeftJoin(seriesJoin, seriesFilter?.Parameters)
+                        COUNT(""Platforms"".""Id"") AS PlatformCount")
+            .LeftJoin(seriesJoin, platformFilter?.Parameters)
             .GroupBy(@"""Tags"".""Id"", ""Tags"".""Label""")
             .OrderBy(@"""Tags"".""Label""");
     }
 
-    private SqlBuilder EpisodeFilesPerTagBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder RomFilesPerTagBuilder(PlatformFilter platformFilter)
     {
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select(@"""Tags"".""Id"" AS TagId,
-                        COUNT(*) AS EpisodeFileCount,
+                        COUNT(*) AS RomFileCount,
                         COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .Join<EpisodeFile, Series>((f, s) => f.SeriesId == s.Id)
-            .Join($@"""Tags"" ON {SeriesHasTagExpression(@"""Tags"".""Id""")}")
+            .Join($@"""Tags"" ON {PlatformHasTagExpression(@"""Tags"".""Id""")}")
             .GroupBy(@"""Tags"".""Id""");
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
-            builder.Where(seriesFilter.Condition, seriesFilter.Parameters);
+            builder.Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private SqlBuilder EpisodeFilesPerQualityBuilder(SeriesFilter seriesFilter)
+    private SqlBuilder RomFilesPerQualityBuilder(PlatformFilter platformFilter)
     {
         var qualityExpression = _database.DatabaseType == DatabaseType.PostgreSQL
             ? @"(""RomFiles"".""Quality""::json->>'quality')::int"
@@ -452,61 +452,61 @@ public class StatisticsRepository : IStatisticsRepository
 
         var builder = new SqlBuilder(_database.DatabaseType)
             .Select($@"{qualityExpression} AS QualityId,
-                        COUNT(*) AS EpisodeFileCount,
+                        COUNT(*) AS RomFileCount,
                         COALESCE(SUM(COALESCE(""RomFiles"".""Size"", 0)), 0) AS SizeOnDisk")
             .GroupBy(qualityExpression);
 
-        if (seriesFilter != null)
+        if (platformFilter != null)
         {
             builder.Join<EpisodeFile, Series>((f, s) => f.SeriesId == s.Id)
-                   .Where(seriesFilter.Condition, seriesFilter.Parameters);
+                   .Where(platformFilter.Condition, platformFilter.Parameters);
         }
 
         return builder;
     }
 
-    private class SeriesFilter
+    private class PlatformFilter
     {
         public string Condition { get; set; }
         public DynamicParameters Parameters { get; set; }
     }
 
-    private class SeriesCounts
+    private class PlatformCounts
     {
-        public int SeriesCount { get; set; }
-        public int MonitoredSeriesCount { get; set; }
-        public int ContinuingSeriesCount { get; set; }
-        public int EndedSeriesCount { get; set; }
-        public int UpcomingSeriesCount { get; set; }
-        public int DeletedSeriesCount { get; set; }
-        public int StandardSeriesCount { get; set; }
-        public int DailySeriesCount { get; set; }
-        public int AnimeSeriesCount { get; set; }
+        public int PlatformCount { get; set; }
+        public int MonitoredPlatformCount { get; set; }
+        public int ContinuingPlatformCount { get; set; }
+        public int EndedPlatformCount { get; set; }
+        public int UpcomingPlatformCount { get; set; }
+        public int DeletedPlatformCount { get; set; }
+        public int StandardPlatformCount { get; set; }
+        public int DailyPlatformCount { get; set; }
+        public int AnimePlatformCount { get; set; }
     }
 
-    private class CompletedSeriesCounts
+    private class CompletedPlatformCounts
     {
-        public int CompletedSeriesCount { get; set; }
+        public int CompletedPlatformCount { get; set; }
     }
 
-    private class SeasonCounts
+    private class RegionCounts
     {
-        public int SeasonCount { get; set; }
-        public int CompletedSeasonCount { get; set; }
+        public int RegionCount { get; set; }
+        public int CompletedRegionCount { get; set; }
     }
 
-    private class EpisodeCounts
+    private class GameCounts
     {
-        public int TotalEpisodeCount { get; set; }
-        public int MonitoredEpisodeCount { get; set; }
-        public int DownloadedEpisodeCount { get; set; }
-        public int MissingEpisodeCount { get; set; }
-        public int UnairedEpisodeCount { get; set; }
+        public int TotalGameCount { get; set; }
+        public int MonitoredGameCount { get; set; }
+        public int DownloadedGameCount { get; set; }
+        public int MissingGameCount { get; set; }
+        public int UnreleasedGameCount { get; set; }
     }
 
-    private class EpisodeFileCounts
+    private class RomFileCounts
     {
-        public int EpisodeFileCount { get; set; }
+        public int RomFileCount { get; set; }
         public long SizeOnDisk { get; set; }
     }
 
@@ -514,20 +514,20 @@ public class StatisticsRepository : IStatisticsRepository
     {
         public int QualityProfileId { get; set; }
         public string Name { get; set; }
-        public int SeriesCount { get; set; }
+        public int PlatformCount { get; set; }
     }
 
     private class QualityProfileFileCounts
     {
         public int QualityProfileId { get; set; }
-        public int EpisodeFileCount { get; set; }
+        public int RomFileCount { get; set; }
         public long SizeOnDisk { get; set; }
     }
 
     private class QualityCounts
     {
         public int QualityId { get; set; }
-        public int EpisodeFileCount { get; set; }
+        public int RomFileCount { get; set; }
         public long SizeOnDisk { get; set; }
     }
 
@@ -535,13 +535,13 @@ public class StatisticsRepository : IStatisticsRepository
     {
         public int TagId { get; set; }
         public string Label { get; set; }
-        public int SeriesCount { get; set; }
+        public int PlatformCount { get; set; }
     }
 
     private class TagFileCounts
     {
         public int TagId { get; set; }
-        public int EpisodeFileCount { get; set; }
+        public int RomFileCount { get; set; }
         public long SizeOnDisk { get; set; }
     }
 }

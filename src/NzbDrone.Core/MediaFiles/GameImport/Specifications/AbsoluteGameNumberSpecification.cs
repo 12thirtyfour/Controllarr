@@ -40,15 +40,15 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
                 if (airDateUtc.HasValue && airDateUtc.Value.Before(DateTime.UtcNow.AddDays(-1)))
                 {
-                    _logger.Debug("Episode aired more than 1 day ago");
+                    _logger.Debug("Game released more than 1 day ago");
                     continue;
                 }
 
                 if (!absoluteEpisodeNumber.HasValue)
                 {
-                    _logger.Debug("Episode does not have an absolute episode number and recently aired");
+                    _logger.Debug("Game does not have an absolute game number");
 
-                    return ImportSpecDecision.Reject(ImportRejectionReason.MissingAbsoluteEpisodeNumber, "Episode does not have an absolute episode number and recently aired");
+                    return ImportSpecDecision.Reject(ImportRejectionReason.MissingAbsoluteGameNumber, "Game does not have an absolute game number");
                 }
             }
 

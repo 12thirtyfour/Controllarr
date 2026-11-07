@@ -205,7 +205,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         },
         {
           name: 'seasonType',
-          label: () => translate('SeasonType'),
+          label: () => translate('PlatformType'),
           isSortable: true,
           isVisible: false,
         },

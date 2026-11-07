@@ -64,16 +64,17 @@ namespace NzbDrone.Core.PlatformStats
 
         private SeriesStatistics MapSeriesStatistics(List<SeasonStatistics> seasonStatistics, QualityProfile profile)
         {
-            var romStatistics = seasonStatistics.Where(s => s.SeasonNumber != 99).ToList();
+            var romStatistics = seasonStatistics.Where(s => s.RegionNumber != 99).ToList();
 
             var seriesStatistics = new SeriesStatistics
             {
                 SeasonStatistics = seasonStatistics,
+                RegionStatistics = seasonStatistics,
                 SeriesId = seasonStatistics.First().SeriesId,
-                EpisodeFileCount = romStatistics.Sum(s => s.EpisodeFileCount),
-                EpisodeCount = romStatistics.Sum(s => s.EpisodeCount),
-                TotalEpisodeCount = romStatistics.Sum(s => s.TotalEpisodeCount),
-                MonitoredEpisodeCount = romStatistics.Sum(s => s.MonitoredEpisodeCount),
+                RomFileCount = romStatistics.Sum(s => s.RomFileCount),
+                GameCount = romStatistics.Sum(s => s.GameCount),
+                TotalGameCount = romStatistics.Sum(s => s.TotalGameCount),
+                MonitoredGameCount = romStatistics.Sum(s => s.MonitoredGameCount),
                 SizeOnDisk = seasonStatistics.Sum(s => s.SizeOnDisk),
                 ReleaseGroups = seasonStatistics.SelectMany(s => s.ReleaseGroups).Distinct().ToList(),
                 ReleaseTypes = seasonStatistics.SelectMany(s => s.ReleaseTypes).Distinct().OrderBy(s => s).ToList(),
@@ -82,7 +83,7 @@ namespace NzbDrone.Core.PlatformStats
 
             var nextAiring = seasonStatistics.Where(s => s.NextAiring != null).MinBy(s => s.NextAiring);
             var previousAiring = seasonStatistics.Where(s => s.PreviousAiring != null).MaxBy(s => s.PreviousAiring);
-            var lastAired = seasonStatistics.Where(s => s.SeasonNumber > 0 && s.LastAired != null).MaxBy(s => s.LastAired);
+            var lastAired = seasonStatistics.Where(s => s.RegionNumber > 0 && s.LastAired != null).MaxBy(s => s.LastAired);
 
             seriesStatistics.NextAiring = nextAiring?.NextAiring;
             seriesStatistics.PreviousAiring = previousAiring?.PreviousAiring;

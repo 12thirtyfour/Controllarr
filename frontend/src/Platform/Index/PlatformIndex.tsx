@@ -289,7 +289,7 @@ function PlatformIndexBody({ platformIndex }: PlatformIndexBodyProps) {
   const ViewComponent = useMemo(() => getViewComponent(view), [view]);
 
   return (
-    <PageContent title={translate('Series')}>
+    <PageContent title={translate('Platforms')}>
       <PageToolbar>
         <ToolbarItem
           id="refresh"
@@ -407,7 +407,7 @@ function PlatformIndexBody({ platformIndex }: PlatformIndexBodyProps) {
           {isFetching && !isFetched ? <LoadingIndicator /> : null}
 
           {!isFetching && !!error ? (
-            <Alert kind={kinds.DANGER}>{translate('SeriesLoadError')}</Alert>
+            <Alert kind={kinds.DANGER}>{translate('PlatformLoadError')}</Alert>
           ) : null}
 
           {isLoaded ? (

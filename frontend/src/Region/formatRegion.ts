@@ -174,7 +174,7 @@ export default function formatRegion(
   if (seasonNumber > 0) {
     return shortFormat
       ? `R${padNumber(seasonNumber, 2)}`
-      : translate('SeasonNumberToken', { seasonNumber });
+      : translate('RegionNumberToken', { regionNumber: seasonNumber }) ?? `Region ${seasonNumber}`;
   }
 
   return null;

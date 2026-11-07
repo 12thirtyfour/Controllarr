@@ -1,4 +1,4 @@
-﻿using NLog;
+using NLog;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download;
@@ -26,8 +26,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                 return ImportSpecDecision.Accept();
             }
 
-            _logger.Debug("Episode file on disk contains more episodes than this file contains");
-            return ImportSpecDecision.Reject(ImportRejectionReason.ExistingFileHasMoreEpisodes, "Episode file on disk contains more episodes than this file contains");
+            _logger.Debug("ROM file on disk contains more games than this file contains");
+            return ImportSpecDecision.Reject(ImportRejectionReason.ExistingFileHasMoreGames, "ROM file on disk contains more games than this file contains");
         }
     }
 }

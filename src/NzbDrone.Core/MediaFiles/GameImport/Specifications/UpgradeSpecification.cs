@@ -44,8 +44,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
                 if (qualityCompare < 0)
                 {
-                    _logger.Debug("This file isn't a quality upgrade for all episodes. Existing quality: {0}. New Quality {1}. Skipping {2}", episodeFile.Quality.Quality, localEpisode.Quality.Quality, localEpisode.Path);
-                    return ImportSpecDecision.Reject(ImportRejectionReason.NotQualityUpgrade, "Not an upgrade for existing episode file(s). Existing quality: {0}. New Quality {1}.", episodeFile.Quality.Quality, localEpisode.Quality.Quality);
+                    _logger.Debug("This file isn't a quality upgrade for all games. Existing quality: {0}. New Quality {1}. Skipping {2}", episodeFile.Quality.Quality, localEpisode.Quality.Quality, localEpisode.Path);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.NotQualityUpgrade, "Not an upgrade for existing ROM file(s). Existing quality: {0}. New Quality {1}.", episodeFile.Quality.Quality, localEpisode.Quality.Quality);
                 }
 
                 // Same quality, propers/repacks are preferred and it is not a revision update. Reject revision downgrade.
@@ -54,8 +54,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                     downloadPropersAndRepacks != ProperDownloadTypes.DoNotPrefer &&
                     localEpisode.Quality.Revision.CompareTo(episodeFile.Quality.Revision) < 0)
                 {
-                    _logger.Debug("This file isn't a quality revision upgrade for all episodes. Skipping {0}", localEpisode.Path);
-                    return ImportSpecDecision.Reject(ImportRejectionReason.NotRevisionUpgrade, "Not a quality revision upgrade for existing episode file(s)");
+                    _logger.Debug("This file isn't a quality revision upgrade for all games. Skipping {0}", localEpisode.Path);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.NotRevisionUpgrade, "Not a quality revision upgrade for existing ROM file(s)");
                 }
 
                 var currentFormats = _formatService.ParseCustomFormat(episodeFile);

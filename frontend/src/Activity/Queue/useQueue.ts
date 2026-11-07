@@ -38,7 +38,7 @@ export const FILTERS: Filter[] = [
 export const FILTER_BUILDER: FilterBuilderProp<Queue>[] = [
   {
     name: 'seriesIds',
-    label: () => translate('Series'),
+    label: () => translate('Platform'),
     type: 'equal',
     valueType: filterBuilderValueTypes.SERIES,
   },

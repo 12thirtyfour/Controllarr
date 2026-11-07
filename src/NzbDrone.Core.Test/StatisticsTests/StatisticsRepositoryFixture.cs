@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
@@ -103,24 +103,24 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
     {
         var stats = Subject.GetLibraryStatistics();
 
-        stats.SeriesCount.Should().Be(0);
-        stats.MonitoredSeriesCount.Should().Be(0);
-        stats.CompletedSeriesCount.Should().Be(0);
-        stats.SeasonCount.Should().Be(0);
-        stats.CompletedSeasonCount.Should().Be(0);
-        stats.ContinuingSeriesCount.Should().Be(0);
-        stats.EndedSeriesCount.Should().Be(0);
-        stats.UpcomingSeriesCount.Should().Be(0);
-        stats.DeletedSeriesCount.Should().Be(0);
-        stats.StandardSeriesCount.Should().Be(0);
-        stats.DailySeriesCount.Should().Be(0);
-        stats.AnimeSeriesCount.Should().Be(0);
-        stats.TotalEpisodeCount.Should().Be(0);
-        stats.MonitoredEpisodeCount.Should().Be(0);
-        stats.DownloadedEpisodeCount.Should().Be(0);
-        stats.MissingEpisodeCount.Should().Be(0);
-        stats.UnairedEpisodeCount.Should().Be(0);
-        stats.EpisodeFileCount.Should().Be(0);
+        stats.PlatformCount.Should().Be(0);
+        stats.MonitoredPlatformCount.Should().Be(0);
+        stats.CompletedPlatformCount.Should().Be(0);
+        stats.RegionCount.Should().Be(0);
+        stats.CompletedRegionCount.Should().Be(0);
+        stats.ContinuingPlatformCount.Should().Be(0);
+        stats.EndedPlatformCount.Should().Be(0);
+        stats.UpcomingPlatformCount.Should().Be(0);
+        stats.DeletedPlatformCount.Should().Be(0);
+        stats.StandardPlatformCount.Should().Be(0);
+        stats.DailyPlatformCount.Should().Be(0);
+        stats.AnimePlatformCount.Should().Be(0);
+        stats.TotalGameCount.Should().Be(0);
+        stats.MonitoredGameCount.Should().Be(0);
+        stats.DownloadedGameCount.Should().Be(0);
+        stats.MissingGameCount.Should().Be(0);
+        stats.UnreleasedGameCount.Should().Be(0);
+        stats.RomFileCount.Should().Be(0);
         stats.SizeOnDisk.Should().Be(0);
         stats.QualityProfileStatistics.Should().BeEmpty();
         stats.QualityStatistics.Should().BeEmpty();
@@ -137,12 +137,12 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.SeriesCount.Should().Be(4);
-        stats.MonitoredSeriesCount.Should().Be(2);
-        stats.ContinuingSeriesCount.Should().Be(1);
-        stats.EndedSeriesCount.Should().Be(1);
-        stats.UpcomingSeriesCount.Should().Be(1);
-        stats.DeletedSeriesCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(4);
+        stats.MonitoredPlatformCount.Should().Be(2);
+        stats.ContinuingPlatformCount.Should().Be(1);
+        stats.EndedPlatformCount.Should().Be(1);
+        stats.UpcomingPlatformCount.Should().Be(1);
+        stats.DeletedPlatformCount.Should().Be(1);
     }
 
     [Test]
@@ -155,9 +155,9 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.StandardSeriesCount.Should().Be(2);
-        stats.DailySeriesCount.Should().Be(1);
-        stats.AnimeSeriesCount.Should().Be(1);
+        stats.StandardPlatformCount.Should().Be(2);
+        stats.DailyPlatformCount.Should().Be(1);
+        stats.AnimePlatformCount.Should().Be(1);
     }
 
     [Test]
@@ -176,8 +176,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.SeriesCount.Should().Be(3);
-        stats.CompletedSeriesCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(3);
+        stats.CompletedPlatformCount.Should().Be(1);
     }
 
     [Test]
@@ -192,8 +192,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.SeasonCount.Should().Be(2);
-        stats.CompletedSeasonCount.Should().Be(1);
+        stats.RegionCount.Should().Be(2);
+        stats.CompletedRegionCount.Should().Be(1);
     }
 
     [Test]
@@ -211,11 +211,11 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.TotalEpisodeCount.Should().Be(5);
-        stats.MonitoredEpisodeCount.Should().Be(4);
-        stats.DownloadedEpisodeCount.Should().Be(1);
-        stats.MissingEpisodeCount.Should().Be(1);
-        stats.UnairedEpisodeCount.Should().Be(2);
+        stats.TotalGameCount.Should().Be(5);
+        stats.MonitoredGameCount.Should().Be(4);
+        stats.DownloadedGameCount.Should().Be(1);
+        stats.MissingGameCount.Should().Be(1);
+        stats.UnreleasedGameCount.Should().Be(2);
     }
 
     [Test]
@@ -227,8 +227,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.DownloadedEpisodeCount.Should().Be(1);
-        stats.UnairedEpisodeCount.Should().Be(0);
+        stats.DownloadedGameCount.Should().Be(1);
+        stats.UnreleasedGameCount.Should().Be(0);
     }
 
     [Test]
@@ -240,8 +240,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.TotalEpisodeCount.Should().Be(1);
-        stats.MissingEpisodeCount.Should().Be(0);
+        stats.TotalGameCount.Should().Be(1);
+        stats.MissingGameCount.Should().Be(0);
     }
 
     [Test]
@@ -253,7 +253,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.MissingEpisodeCount.Should().Be(0);
+        stats.MissingGameCount.Should().Be(0);
     }
 
     [Test]
@@ -266,7 +266,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics();
 
-        stats.EpisodeFileCount.Should().Be(2);
+        stats.RomFileCount.Should().Be(2);
         stats.SizeOnDisk.Should().Be(300);
     }
 
@@ -289,15 +289,15 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
         var profile1Stats = stats.QualityProfileStatistics[0];
         profile1Stats.QualityProfileId.Should().Be(profile1.Id);
         profile1Stats.Name.Should().Be(profile1.Name);
-        profile1Stats.SeriesCount.Should().Be(2);
-        profile1Stats.EpisodeFileCount.Should().Be(2);
+        profile1Stats.PlatformCount.Should().Be(2);
+        profile1Stats.RomFileCount.Should().Be(2);
         profile1Stats.SizeOnDisk.Should().Be(300);
 
         var profile2Stats = stats.QualityProfileStatistics[1];
         profile2Stats.QualityProfileId.Should().Be(profile2.Id);
         profile2Stats.Name.Should().Be(profile2.Name);
-        profile2Stats.SeriesCount.Should().Be(0);
-        profile2Stats.EpisodeFileCount.Should().Be(0);
+        profile2Stats.PlatformCount.Should().Be(0);
+        profile2Stats.RomFileCount.Should().Be(0);
         profile2Stats.SizeOnDisk.Should().Be(0);
     }
 
@@ -308,10 +308,10 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
         GivenSeries(path: "/tv2/Show 2".AsOsAgnostic());
         GivenSeries(path: "/films/Show 3".AsOsAgnostic());
 
-        Subject.GetLibraryStatistics().SeriesCount.Should().Be(3);
-        Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv".AsOsAgnostic() } }).SeriesCount.Should().Be(1);
-        Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv/".AsOsAgnostic() } }).SeriesCount.Should().Be(1);
-        Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/music".AsOsAgnostic() } }).SeriesCount.Should().Be(0);
+        Subject.GetLibraryStatistics().PlatformCount.Should().Be(3);
+        Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv".AsOsAgnostic() } }).PlatformCount.Should().Be(1);
+        Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv/".AsOsAgnostic() } }).PlatformCount.Should().Be(1);
+        Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/music".AsOsAgnostic() } }).PlatformCount.Should().Be(0);
     }
 
     [Test]
@@ -328,12 +328,12 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv".AsOsAgnostic() } });
 
-        stats.TotalEpisodeCount.Should().Be(1);
-        stats.MissingEpisodeCount.Should().Be(1);
-        stats.SeasonCount.Should().Be(1);
-        stats.CompletedSeriesCount.Should().Be(0);
-        stats.CompletedSeasonCount.Should().Be(0);
-        stats.EpisodeFileCount.Should().Be(1);
+        stats.TotalGameCount.Should().Be(1);
+        stats.MissingGameCount.Should().Be(1);
+        stats.RegionCount.Should().Be(1);
+        stats.CompletedPlatformCount.Should().Be(0);
+        stats.CompletedRegionCount.Should().Be(0);
+        stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(100);
         stats.QualityStatistics.Should().HaveCount(1);
         stats.QualityStatistics[0].Quality.Should().Be(Quality.HDTV720p);
@@ -356,13 +356,13 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
         stats.QualityProfileStatistics.Should().HaveCount(2);
 
         var profile1Stats = stats.QualityProfileStatistics[0];
-        profile1Stats.SeriesCount.Should().Be(1);
-        profile1Stats.EpisodeFileCount.Should().Be(1);
+        profile1Stats.PlatformCount.Should().Be(1);
+        profile1Stats.RomFileCount.Should().Be(1);
         profile1Stats.SizeOnDisk.Should().Be(100);
 
         var profile2Stats = stats.QualityProfileStatistics[1];
-        profile2Stats.SeriesCount.Should().Be(0);
-        profile2Stats.EpisodeFileCount.Should().Be(0);
+        profile2Stats.PlatformCount.Should().Be(0);
+        profile2Stats.RomFileCount.Should().Be(0);
         profile2Stats.SizeOnDisk.Should().Be(0);
     }
 
@@ -386,20 +386,20 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var animeStats = stats.TagStatistics[0];
         animeStats.Label.Should().Be("anime");
-        animeStats.SeriesCount.Should().Be(1);
-        animeStats.EpisodeFileCount.Should().Be(1);
+        animeStats.PlatformCount.Should().Be(1);
+        animeStats.RomFileCount.Should().Be(1);
         animeStats.SizeOnDisk.Should().Be(200);
 
         var hdStats = stats.TagStatistics[1];
         hdStats.Label.Should().Be("hd");
-        hdStats.SeriesCount.Should().Be(2);
-        hdStats.EpisodeFileCount.Should().Be(2);
+        hdStats.PlatformCount.Should().Be(2);
+        hdStats.RomFileCount.Should().Be(2);
         hdStats.SizeOnDisk.Should().Be(300);
 
         var unusedStats = stats.TagStatistics[2];
         unusedStats.Label.Should().Be("unused");
-        unusedStats.SeriesCount.Should().Be(0);
-        unusedStats.EpisodeFileCount.Should().Be(0);
+        unusedStats.PlatformCount.Should().Be(0);
+        unusedStats.RomFileCount.Should().Be(0);
         unusedStats.SizeOnDisk.Should().Be(0);
     }
 
@@ -417,8 +417,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv".AsOsAgnostic() } });
 
         stats.TagStatistics.Should().HaveCount(1);
-        stats.TagStatistics[0].SeriesCount.Should().Be(1);
-        stats.TagStatistics[0].EpisodeFileCount.Should().Be(1);
+        stats.TagStatistics[0].PlatformCount.Should().Be(1);
+        stats.TagStatistics[0].RomFileCount.Should().Be(1);
         stats.TagStatistics[0].SizeOnDisk.Should().Be(100);
     }
 
@@ -433,8 +433,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { Monitored = true });
 
-        stats.SeriesCount.Should().Be(1);
-        stats.EpisodeFileCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
+        stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(100);
     }
 
@@ -452,8 +452,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { QualityProfileIds = new List<int> { profile2.Id } });
 
-        stats.SeriesCount.Should().Be(1);
-        stats.EpisodeFileCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
+        stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(200);
     }
 
@@ -468,10 +468,10 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { SeriesTypes = new List<SeriesTypes> { SeriesTypes.Anime } });
 
-        stats.SeriesCount.Should().Be(1);
-        stats.AnimeSeriesCount.Should().Be(1);
-        stats.StandardSeriesCount.Should().Be(0);
-        stats.EpisodeFileCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
+        stats.AnimePlatformCount.Should().Be(1);
+        stats.StandardPlatformCount.Should().Be(0);
+        stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(100);
     }
 
@@ -490,15 +490,15 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { TagIds = new List<int> { tag.Id } });
 
-        stats.SeriesCount.Should().Be(1);
-        stats.EpisodeFileCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
+        stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(100);
 
         stats.TagStatistics.Should().HaveCount(2);
         stats.TagStatistics[0].Label.Should().Be("4k");
-        stats.TagStatistics[0].SeriesCount.Should().Be(1);
+        stats.TagStatistics[0].PlatformCount.Should().Be(1);
         stats.TagStatistics[1].Label.Should().Be("kids");
-        stats.TagStatistics[1].SeriesCount.Should().Be(0);
+        stats.TagStatistics[1].PlatformCount.Should().Be(0);
     }
 
     [Test]
@@ -516,8 +516,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             RootFolderPaths = new List<string> { "/tv".AsOsAgnostic(), "/films".AsOsAgnostic() }
         });
 
-        stats.SeriesCount.Should().Be(2);
-        stats.EpisodeFileCount.Should().Be(2);
+        stats.PlatformCount.Should().Be(2);
+        stats.RomFileCount.Should().Be(2);
         stats.SizeOnDisk.Should().Be(300);
     }
 
@@ -539,8 +539,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             TagIds = new List<int> { tag1.Id, tag2.Id }
         });
 
-        stats.SeriesCount.Should().Be(2);
-        stats.EpisodeFileCount.Should().Be(2);
+        stats.PlatformCount.Should().Be(2);
+        stats.RomFileCount.Should().Be(2);
         stats.SizeOnDisk.Should().Be(300);
     }
 
@@ -560,7 +560,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             QualityProfileIds = new List<int> { profile1.Id, profile3.Id }
         });
 
-        stats.SeriesCount.Should().Be(2);
+        stats.PlatformCount.Should().Be(2);
     }
 
     [Test]
@@ -575,10 +575,10 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             SeriesTypes = new List<SeriesTypes> { SeriesTypes.Daily, SeriesTypes.Anime }
         });
 
-        stats.SeriesCount.Should().Be(2);
-        stats.DailySeriesCount.Should().Be(1);
-        stats.AnimeSeriesCount.Should().Be(1);
-        stats.StandardSeriesCount.Should().Be(0);
+        stats.PlatformCount.Should().Be(2);
+        stats.DailyPlatformCount.Should().Be(1);
+        stats.AnimePlatformCount.Should().Be(1);
+        stats.StandardPlatformCount.Should().Be(0);
     }
 
     [Test]
@@ -594,7 +594,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             RootFolderPathsNot = true
         });
 
-        stats.SeriesCount.Should().Be(2);
+        stats.PlatformCount.Should().Be(2);
     }
 
     [Test]
@@ -613,7 +613,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             TagIdsNot = true
         });
 
-        stats.SeriesCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
     }
 
     [Test]
@@ -631,7 +631,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             QualityProfileIdsNot = true
         });
 
-        stats.SeriesCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
     }
 
     [Test]
@@ -647,8 +647,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
             SeriesTypesNot = true
         });
 
-        stats.SeriesCount.Should().Be(2);
-        stats.AnimeSeriesCount.Should().Be(0);
+        stats.PlatformCount.Should().Be(2);
+        stats.AnimePlatformCount.Should().Be(0);
     }
 
     [Test]
@@ -665,8 +665,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { TagIds = new List<int> { tag.Id }, Monitored = true });
 
-        stats.SeriesCount.Should().Be(1);
-        stats.EpisodeFileCount.Should().Be(1);
+        stats.PlatformCount.Should().Be(1);
+        stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(100);
     }
 
@@ -685,12 +685,12 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
 
         var hdtvStats = stats.QualityStatistics[0];
         hdtvStats.Quality.Should().Be(Quality.HDTV720p);
-        hdtvStats.EpisodeFileCount.Should().Be(2);
+        hdtvStats.RomFileCount.Should().Be(2);
         hdtvStats.SizeOnDisk.Should().Be(300);
 
         var blurayStats = stats.QualityStatistics[1];
         blurayStats.Quality.Should().Be(Quality.Bluray1080p);
-        blurayStats.EpisodeFileCount.Should().Be(1);
+        blurayStats.RomFileCount.Should().Be(1);
         blurayStats.SizeOnDisk.Should().Be(400);
     }
 }

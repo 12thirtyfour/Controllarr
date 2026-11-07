@@ -422,8 +422,8 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
           return (
             <VirtualTableRowCell key={name} className={styles[name]}>
               {monitorNewItems === 'all'
-                ? translate('SeasonsMonitoredAll')
-                : translate('SeasonsMonitoredNone')}
+                ? translate('RegionsMonitoredAll')
+                : translate('RegionsMonitoredNone')}
             </VirtualTableRowCell>
           );
         }

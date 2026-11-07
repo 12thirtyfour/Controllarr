@@ -29,6 +29,17 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-06]
 
+### Refactored
+- **Comprehensive TV De-Televisonization & Eradication of TV Terms (`Statistics`, `Regions`, `Catalog`, `GameImport`, UI)**:
+  - Systematically replaced TV terminology and translation mappings with native gaming equivalents across backend and frontend layers:
+    - In `LibraryStatistics`, `StatisticsRepository`, `StatisticsResource`, `QualityProfileStatistics`, `QualityStatistics`, and `TagStatistics`, eliminated TV property mappings (`SeriesCount`, `SeasonCount`, `TotalEpisodeCount`, `EpisodeFileCount`, `UnairedEpisodeCount`) in favor of native gaming models (`PlatformCount`, `RegionCount`, `TotalGameCount`, `RomFileCount`, `UnreleasedGameCount`).
+    - In `GameCatalogProxy`, replaced `Region*Season` constants (`RegionUsaSeason`, etc.) with authentic region identifiers (`RegionUsa`, `RegionEurope`, `RegionJapan`, `RegionWorld`, `RegionHomebrew`, `RegionRomHacks`, `RegionUnlicensed`, `RegionBios`), replaced `BuildDefaultRegionSeasons` with `BuildDefaultRegions`, and migrated internal logic to use `RegionNumber` and `GameNumber`.
+    - In `IGameCatalogService` and `ParsedRomInfo`, replaced `RegionSeasonNumber` with `RegionNumber` and eradicated TV property aliases (`EpisodeNumber`, `AbsoluteEpisodeNumber`).
+    - In `RegionHelper`, migrated `GetSeasonNumber` to `GetRegionNumber` and `GetRegionName`.
+    - In `MatchesGrabSpecification` and `MatchesFolderSpecification`, eliminated TV season/episode formatting (such as `{season}x{episode}` warnings like `Episode 1x1214 was not found in the grabbed release`) in favor of exact game titles and native gaming rejection reasons (`GameNotFoundInRelease`, `GameUnexpected`).
+    - In `ImportApprovedGames` and `DeletedRomFileSpecification`, updated rejection and log messages from episode to game terminology.
+    - In frontend UI (`PlatformDetailsRegion`, `Statistics`, `useStatistics`, `InteractiveImport`, `ParseResult`, `OverrideMatchModalContent`), transitioned headers, tooltips, and labels to `Platform`, `Region`, `Games`, and `Unreleased`, formatting region numbers into authentic region names rather than displaying raw season numbers or sequential episode numbers.
+
 ### Fixed
 - **Accurate ROM Hack Classification & Game Boy Library Population (`RegionHelper`, `GameCatalogProxy`, `ParsedRomInfo`)**:
   - Implemented centralized domain classification in `RegionHelper.IsRomHackOrTranslation` to accurately recognize unofficial ROM hacks and fan translations, including famous Pokémon hacks (e.g., *Pokemon Brown*, *Pokemon Prism*, *Pokemon Ash Gray*, *Pokemon Glazed*, *Pokemon Radical Red*, *Pokemon Unbound*, *Pokemon Emerald Rogue*, etc.) and iconic franchise hacks (*Super Mario World: Return to Dinosaur Land*, *Super Mario Land 2 DX*, *The Legend of Zelda: Ancient Stone Tablets*), even when tagged with geographic region tokens like `(USA)` or lacking tags.

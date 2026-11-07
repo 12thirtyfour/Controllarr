@@ -47,7 +47,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
                 if (lastImported == null)
                 {
-                    _logger.Trace("Episode file has not been imported");
+                    _logger.Trace("ROM file has not been imported");
                     continue;
                 }
 
@@ -56,21 +56,21 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                     // If the release was grabbed again after importing don't reject it
                     if (lastGrabbed.Date.After(lastImported.Date))
                     {
-                        _logger.Trace("Episode file was grabbed again after importing");
+                        _logger.Trace("ROM file was grabbed again after importing");
                         continue;
                     }
 
                     // If the release was imported after the last grab reject it
                     if (lastImported.Date.After(lastGrabbed.Date))
                     {
-                        _logger.Debug("Episode file previously imported at {0}", lastImported.Date);
-                        return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeAlreadyImported, "Episode file already imported at {0}", lastImported.Date.ToLocalTime());
+                        _logger.Debug("ROM file previously imported at {0}", lastImported.Date);
+                        return ImportSpecDecision.Reject(ImportRejectionReason.GameAlreadyImported, "ROM file already imported at {0}", lastImported.Date.ToLocalTime());
                     }
                 }
                 else
                 {
-                    _logger.Debug("Episode file previously imported at {0}", lastImported.Date);
-                    return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeAlreadyImported, "Episode file already imported at {0}", lastImported.Date.ToLocalTime());
+                    _logger.Debug("ROM file previously imported at {0}", lastImported.Date);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.GameAlreadyImported, "ROM file already imported at {0}", lastImported.Date.ToLocalTime());
                 }
             }
 

@@ -6,7 +6,7 @@ public class TagStatisticsResource
 {
     public int TagId { get; set; }
     public required string Label { get; set; }
-    public int SeriesCount { get; set; }
+    public int PlatformCount { get; set; }
     public int RomFileCount { get; set; }
     public long SizeOnDisk { get; set; }
 }
@@ -19,8 +19,8 @@ public static class TagStatisticsResourceMapper
         {
             TagId = model.TagId,
             Label = model.Label,
-            SeriesCount = model.SeriesCount,
-            RomFileCount = model.EpisodeFileCount,
+            PlatformCount = model.PlatformCount,
+            RomFileCount = model.RomFileCount,
             SizeOnDisk = model.SizeOnDisk
         };
     }
