@@ -30,6 +30,9 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Console Image Background Removal for Poster View (`/Content/Images/Consoles`)**:
+  - Removed opaque/white studio backgrounds and bounding box borders across all affected console images (`64dd.png`, `arcade.png`, `gbc.png`, `gg.png`, `jaguarcd.png`, `ps3.png`, `satellaview.png`, `tgcd.png`, `wonderswan.png`), performing connected flood-fill transparency and de-matting anti-aliasing so all 42 console hardware images blend seamlessly into the dark poster cards without white rectangles.
+  - Replaced `arcade.png` with an isolated, high-resolution CC0 transparent arcade cabinet cutout.
 - **Strict Cartridge Platform Optical Disc Rejection & Cross-Platform Pollution Prevention (`PlatformCompatibilityValidator`)**:
   - Enforced that cartridge platforms (e.g. Game Boy Advance, NES, SNES, N64, Genesis, Game Boy, Game Boy Color, Atari) strictly reject optical disc/image formats (`.iso`, `.chd`, `.cso`, `.cue`, `.gdi`, `.cdi`, `.rvz`, `.wbfs`, `.wua`, `.wux`, `.wud`, `.bin`) whether as file extensions or within release titles/item formats/archive identifiers.
   - Hardened detected platform validation in `PlatformCompatibilityValidator.IsCompatible`: when platforms are detected in release titles/files, if any detected platform conflicts with the target platform (`!IsPlatformMatch(detected, target)`), immediately reject the release, preventing cross-platform bleed (e.g. Xbox ISOs returning or matching for Game Boy Advance in single or collection searches).
