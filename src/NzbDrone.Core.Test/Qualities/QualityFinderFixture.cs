@@ -34,5 +34,11 @@ namespace NzbDrone.Core.Test.Qualities
         {
             QualityFinder.FindBySourceAndResolution(source, resolution).Should().Be(Quality.Bluray720p);
         }
+
+        [TestCase(QualitySource.Unknown, 0)]
+        public void should_return_Unknown_without_throwing_when_multiple_qualities_share_source_and_resolution(QualitySource source, int resolution)
+        {
+            QualityFinder.FindBySourceAndResolution(source, resolution).Should().Be(Quality.Unknown);
+        }
     }
 }

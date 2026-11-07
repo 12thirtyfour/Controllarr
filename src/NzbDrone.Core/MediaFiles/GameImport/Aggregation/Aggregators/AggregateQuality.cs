@@ -30,6 +30,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
             var resolutionConfidence = Confidence.Default;
             var revision = new Revision(1);
             var revisionConfidence = Confidence.Default;
+            Quality specificQuality = null;
+            var qualityConfidence = Confidence.Default;
 
             foreach (var augmentQuality in _augmentQualities)
             {
@@ -55,6 +57,15 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
                     resolutionConfidence = augmentedQuality.ResolutionConfidence;
                 }
 
+                if (augmentedQuality.Quality != null && augmentedQuality.Quality != Quality.Unknown)
+                {
+                    if (augmentedQuality.QualityConfidence > qualityConfidence || specificQuality == null)
+                    {
+                        specificQuality = augmentedQuality.Quality;
+                        qualityConfidence = augmentedQuality.QualityConfidence;
+                    }
+                }
+
                 if (augmentedQuality.Revision != null)
                 {
                     // Update the revision and confidence if it is higher than the current confidence,
@@ -78,7 +89,17 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators
 
             _logger.Trace("Selected Source {0} ({1}) Resolution {2} ({3}) Revision {4}", source, sourceConfidence, resolution, resolutionConfidence, revision);
 
-            var quality = new QualityModel(QualityFinder.FindBySourceAndResolution(source, resolution), revision);
+            Quality resolvedQuality;
+            if (specificQuality != null && (source == QualitySource.Unknown || specificQuality.Id >= 100))
+            {
+                resolvedQuality = specificQuality;
+            }
+            else
+            {
+                resolvedQuality = QualityFinder.FindBySourceAndResolution(source, resolution);
+            }
+
+            var quality = new QualityModel(resolvedQuality, revision);
 
             if (resolutionConfidence == Confidence.MediaInfo)
             {

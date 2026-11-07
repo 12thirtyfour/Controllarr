@@ -30,6 +30,12 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **QualityFinder Sequence Match & ROM Import Aggregation Exception**: Resolved `Sequence contains more than one matching element` in `QualityFinder.FindBySourceAndResolution` and import stalling for console ROM releases:
+  - Fixed `QualityFinder.FindBySourceAndResolution` throwing an `InvalidOperationException` when evaluating files with `source == QualitySource.Unknown` and `resolution == 0` (typical for console ROMs and disc images like `.3ds`, `.nds`, `.iso`), caused by multiple gaming dump qualities (`Quality.Unknown`, `Quality.VerifiedGoodDump`, `Quality.VerifiedRedump`, `Quality.NoIntroVerified`, `Quality.UnverifiedRaw`, `Quality.BetaProto`, `Quality.TranslationPatch`) sharing identical unknown source and zero resolution.
+  - Added fast-path returning `Quality.Unknown` for `(QualitySource.Unknown, 0)` and switched from `SingleOrDefault` to `FirstOrDefault` to ensure graceful fallback.
+  - Enhanced `AggregateQuality`, `AugmentQualityResult`, and quality augmenters (`AugmentQualityFromFileName`, `AugmentQualityFromFolder`, `AugmentQualityFromDownloadClientItem`, `AugmentQualityFromReleaseName`) to capture and preserve specific gaming dump qualities without loss or downgrade during metadata augmentation.
+  - Hardened `PlatformFormatSpecification` to reject auxiliary or incompatible non-platform files using `PlatformCompatibilityValidator.IsCompatible`, guaranteeing only authentic platform ROM formats are accepted.
+  - Added release SFV (Simple File Verification) parsing in `UnmanagedDiskScanner.TryGetCrcFromSfv` and `VerifiedRomHashSpecification`: release checksums from companion `.sfv` files are matched against computed CRC32 hashes, confirming dump authenticity and automatically promoting verified dumps to `Quality.VerifiedGoodDump`.
 - **Automatic Library Refresh on Verification / DAT Database Updates**: Added event-driven library synchronization whenever databases used for library population and verification (No-Intro, Redump, TOSEC, SmokeMonster SMDB, NSWDB, GameTDB, and custom user DATs) are updated or imported:
   - Added `DatDatabaseUpdatedEvent` in `NzbDrone.Core.Dat.Events` published by `DatCacheService.Insert` upon completing any catalog database insert or update.
   - Implemented `DatDatabaseUpdatedHandler` to automatically match affected platforms in the user's library (`Series`), invalidate catalog caches, and dispatch `RefreshPlatformCommand`.

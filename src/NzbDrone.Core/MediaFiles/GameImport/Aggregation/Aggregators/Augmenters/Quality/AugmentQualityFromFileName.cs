@@ -35,7 +35,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
                                             quality.Quality.Resolution,
                                             resolutionConfidence,
                                             quality.Revision,
-                                            revisionConfidence);
+                                            revisionConfidence)
+            {
+                Quality = quality.Quality,
+                QualityConfidence = sourceConfidence
+            };
         }
     }
 }

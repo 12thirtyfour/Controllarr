@@ -11,6 +11,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
         public Confidence ResolutionConfidence { get; set; }
         public Revision Revision { get; set; }
         public Confidence RevisionConfidence { get; set; }
+        public Qualities.Quality Quality { get; set; }
+        public Confidence QualityConfidence { get; set; }
 
         public AugmentQualityResult(QualitySource source,
                                     Confidence sourceConfidence,

@@ -47,7 +47,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Aggregation.Aggregators.Augmenters
                 ? Confidence.Tag
                 : Confidence.Fallback;
 
-            return new AugmentQualityResult(historyQuality.Quality.Source, sourceConfidence, historyQuality.Quality.Resolution, resolutionConfidence, historyQuality.Revision, revisionConfidence);
+            return new AugmentQualityResult(historyQuality.Quality.Source, sourceConfidence, historyQuality.Quality.Resolution, resolutionConfidence, historyQuality.Revision, revisionConfidence)
+            {
+                Quality = historyQuality.Quality,
+                QualityConfidence = sourceConfidence
+            };
         }
     }
 }

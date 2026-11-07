@@ -13,6 +13,7 @@ using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.GameImport.Manual;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles.LibraryImport
@@ -222,6 +223,10 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             }
 
                             localEpisode.RomHashVerified = highConfidence;
+                            if (localEpisode.RomHashVerified && (localEpisode.Quality == null || localEpisode.Quality.Quality == Quality.Unknown))
+                            {
+                                localEpisode.Quality = new QualityModel(Quality.VerifiedGoodDump);
+                            }
                         }
                     }
 
@@ -238,6 +243,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 {
                     localEpisode.RomHashes = processed.Hashes ?? new Dictionary<string, string>();
                     localEpisode.RomHashVerified = processed.IsHighConfidenceMatch;
+                    if (localEpisode.RomHashVerified && (localEpisode.Quality == null || localEpisode.Quality.Quality == Quality.Unknown))
+                    {
+                        localEpisode.Quality = new QualityModel(Quality.VerifiedGoodDump);
+                    }
+
                     localEpisode.Series ??= processed.Series;
                     if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0) && processed.Episodes != null && processed.Episodes.Count > 0)
                     {
@@ -901,6 +911,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         {
             var hashes = new Dictionary<string, string>();
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var sfvCrc = TryGetCrcFromSfv(filePath);
+            if (!string.IsNullOrWhiteSpace(sfvCrc))
+            {
+                hashes["SFV_CRC32"] = sfvCrc;
+            }
 
             if (ArchiveExtensions.Contains(extension))
             {
@@ -962,6 +977,25 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(sfvCrc))
+            {
+                if (hashes.TryGetValue("CRC32", out var computedCrc))
+                {
+                    if (string.Equals(computedCrc, sfvCrc, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.Debug("Checksum matched release SFV for {0}: {1}", filePath, computedCrc);
+                    }
+                    else
+                    {
+                        _logger.Warn("Checksum MISMATCH with release SFV for {0}! Computed: {1}, Expected SFV: {2}", filePath, computedCrc, sfvCrc);
+                    }
+                }
+                else
+                {
+                    hashes["CRC32"] = sfvCrc;
+                }
+            }
+
             return hashes;
         }
 
@@ -1009,6 +1043,52 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
+        }
+
+        public static string TryGetCrcFromSfv(string filePath)
+        {
+            try
+            {
+                var directory = Path.GetDirectoryName(filePath);
+                if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+                {
+                    return null;
+                }
+
+                var fileName = Path.GetFileName(filePath);
+                var sfvFiles = Directory.GetFiles(directory, "*.sfv");
+                foreach (var sfvFile in sfvFiles)
+                {
+                    var lines = File.ReadAllLines(sfvFile);
+                    foreach (var line in lines)
+                    {
+                        var trimmed = line.Trim();
+                        if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("#"))
+                        {
+                            continue;
+                        }
+
+                        var lastSpace = trimmed.LastIndexOfAny(new[] { ' ', '\t' });
+                        if (lastSpace > 0)
+                        {
+                            var filePart = trimmed.Substring(0, lastSpace).Trim();
+                            var crcPart = trimmed.Substring(lastSpace + 1).Trim();
+
+                            if (crcPart.Length == 8 &&
+                                (string.Equals(filePart, fileName, StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(Path.GetFileName(filePart), fileName, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                return crcPart.ToLowerInvariant();
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
         }
 
         private static uint[] InitializeCrc32Table()

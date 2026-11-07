@@ -71,5 +71,30 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             var decision = Subject.IsSatisfiedBy(localEpisode, null);
             decision.Accepted.Should().BeTrue();
         }
+
+        [Test]
+        public void should_accept_when_rom_hash_matches_sfv_checksum()
+        {
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Pokemon Y\Pokemon Y.3ds",
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "8b490e08" },
+                    { "SFV_CRC32", "8b490e08" }
+                }
+            };
+
+            var downloadItem = new DownloadClientItem
+            {
+                DownloadId = "dl-3",
+                Title = "Pokemon Y"
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, downloadItem);
+            decision.Accepted.Should().BeTrue();
+            localEpisode.RomHashVerified.Should().BeTrue();
+        }
     }
 }

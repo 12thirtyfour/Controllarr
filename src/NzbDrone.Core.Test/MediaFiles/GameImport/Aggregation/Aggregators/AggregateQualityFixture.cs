@@ -206,5 +206,38 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators
             result.Quality.ResolutionDetectionSource.Should().Be(QualityDetectionSource.MediaInfo);
             result.Quality.Quality.Should().Be(Quality.SDTV);
         }
+
+        [Test]
+        public void should_return_Unknown_for_rom_when_source_is_unknown_and_resolution_is_zero()
+        {
+            var romAugmenter = new Mock<IAugmentQuality>();
+            romAugmenter.Setup(s => s.AugmentQuality(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                        .Returns(new AugmentQualityResult(QualitySource.Unknown, Confidence.Fallback, 0, Confidence.Fallback, new Revision(), Confidence.Fallback));
+
+            GivenAugmenters(romAugmenter);
+
+            var result = Subject.Aggregate(new LocalEpisode(), null);
+
+            result.Quality.Quality.Should().Be(Quality.Unknown);
+        }
+
+        [Test]
+        public void should_preserve_gaming_quality_such_as_VerifiedGoodDump()
+        {
+            var romAugmenter = new Mock<IAugmentQuality>();
+            var augmentResult = new AugmentQualityResult(QualitySource.Unknown, Confidence.Tag, 0, Confidence.Tag, new Revision(), Confidence.Tag)
+            {
+                Quality = Quality.VerifiedGoodDump,
+                QualityConfidence = Confidence.Tag
+            };
+            romAugmenter.Setup(s => s.AugmentQuality(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                        .Returns(augmentResult);
+
+            GivenAugmenters(romAugmenter);
+
+            var result = Subject.Aggregate(new LocalEpisode(), null);
+
+            result.Quality.Quality.Should().Be(Quality.VerifiedGoodDump);
+        }
     }
 }

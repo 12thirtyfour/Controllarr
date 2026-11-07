@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Platforms;
 
@@ -32,6 +33,13 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
             }
 
             var extension = Path.GetExtension(localEpisode.Path).ToLowerInvariant();
+
+            if (localEpisode.Series != null &&
+                !PlatformCompatibilityValidator.IsCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
+            {
+                _logger.Debug("Rejecting file {0}: Extension/format is not compatible with platform {1}", localEpisode.Path, localEpisode.Series.Title);
+                return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"File format '{extension}' is not compatible with platform '{localEpisode.Series.Title}'");
+            }
 
             // Check profiles if available (mocked logic)
             var profile = _platformFormatSettings.Profiles.FirstOrDefault();
