@@ -530,5 +530,48 @@ game (
             official1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionWorldSeason);
             official2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
         }
+
+        [Test]
+        public void should_classify_pokemon_brown_and_famous_hacks_into_rom_hacks_season()
+        {
+            Subject.TryGetPlatformEntry(1009, out var gbPlatform);
+            gbPlatform.Should().NotBeNull();
+
+            var brown1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon - Brown Version (USA)", 1998, "No-Intro / Redump DAT");
+            var brown2 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Brown (USA)", 1998, "Cross-Referenced DAT / SMDB Catalog");
+            var brown3 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Brown", 1998, "Test");
+            var brown4 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Brown 2014 [Hack by Koolboyman]", 2014, "ROM Hacks & Translations");
+            var prism = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Prism (USA)", 2016, "SmokeMonster HTGDB / SMDB");
+            var ashGray = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Ash Gray (USA)", 2012, "Test");
+            var radicalRed = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Radical Red (USA)", 2020, "Test");
+            var unbound = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Unbound (USA)", 2022, "Test");
+            var emeraldRogue = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Emerald Rogue (USA)", 2023, "Test");
+            var dinoLand = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Super Mario World - Return to Dinosaur Land (USA)", 1995, "Test");
+
+            brown1.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            brown2.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            brown3.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            brown4.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            prism.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            ashGray.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            radicalRed.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            unbound.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            emeraldRogue.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+            dinoLand.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+
+            // Official Pokémon releases must NOT be classified as ROM hacks
+            var officialRed = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon - Red Version (USA, Europe)", 1998, "No-Intro");
+            var officialEmerald = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon - Emerald Version (USA, Europe)", 2005, "No-Intro");
+
+            officialRed.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+            officialEmerald.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+
+            // ParsedRomInfo should also report Season 6 for ROM hacks
+            var parsedBrown = Parser.RomParser.ParseRomName("Pokemon Brown (USA).gb");
+            parsedBrown.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionRomHacksSeason);
+
+            var parsedOfficial = Parser.RomParser.ParseRomName("Pokemon - Red Version (USA, Europe).gb");
+            parsedOfficial.RegionSeasonNumber.Should().Be(GameCatalogProxy.RegionUsaSeason);
+        }
     }
 }

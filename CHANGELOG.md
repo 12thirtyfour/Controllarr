@@ -30,6 +30,12 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-06]
 
 ### Fixed
+- **Accurate ROM Hack Classification & Game Boy Library Population (`RegionHelper`, `GameCatalogProxy`, `ParsedRomInfo`)**:
+  - Implemented centralized domain classification in `RegionHelper.IsRomHackOrTranslation` to accurately recognize unofficial ROM hacks and fan translations, including famous Pokémon hacks (e.g., *Pokemon Brown*, *Pokemon Prism*, *Pokemon Ash Gray*, *Pokemon Glazed*, *Pokemon Radical Red*, *Pokemon Unbound*, *Pokemon Emerald Rogue*, etc.) and iconic franchise hacks (*Super Mario World: Return to Dinosaur Land*, *Super Mario Land 2 DX*, *The Legend of Zelda: Ancient Stone Tablets*), even when tagged with geographic region tokens like `(USA)` or lacking tags.
+  - Classified all detected ROM hacks and translations into `RegionRomHacksSeason` (Season 6: "ROM Hacks & Translations"), ensuring they are never miscategorized into retail release regions (such as Season 1: USA) or auto-monitored as commercial releases.
+  - In `GameCatalogProxy.ParseLibretroDatContent`, ensured that hack and homebrew DAT feeds preserve the hack/homebrew release title (`blockName`) rather than overwriting it with the unpatched base commercial game's ROM filename.
+  - In `GameCatalogProxy` cross-referenced DAT/SMDB cache loading, preserved `DatFile.Category` and evaluated `SmdbPath` segments (`Hacks/`, `Translations/`, `Homebrew/`, `Unlicensed/`), resolving the issue where cached entries defaulted to generic labels and fell through to geographic retail regions.
+  - Added *Pokemon - Brown Version (USA) (Hack)* and *Super Mario Land 2 DX (USA) (Hack)* to built-in Game Boy catalog definitions with authentic metadata and ROM hack category mapping.
 - **Console Image Background Removal for Poster View (`/Content/Images/Consoles`)**:
   - Removed opaque/white studio backgrounds and bounding box borders across all affected console images (`64dd.png`, `arcade.png`, `gbc.png`, `gg.png`, `jaguarcd.png`, `ps3.png`, `satellaview.png`, `tgcd.png`, `wonderswan.png`), performing connected flood-fill transparency and de-matting anti-aliasing so all 42 console hardware images blend seamlessly into the dark poster cards without white rectangles.
   - Replaced `arcade.png` with an isolated, high-resolution CC0 transparent arcade cabinet cutout.

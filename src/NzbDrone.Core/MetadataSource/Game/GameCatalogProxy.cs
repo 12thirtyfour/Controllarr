@@ -12,6 +12,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Dat;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Parser;
@@ -591,6 +592,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var cachedDatEntries = _datCacheService?.GetEntriesForPlatform(platform.Slug, platform.Name, platform.LibretroSystemName);
                 if (cachedDatEntries != null)
                 {
+                    var datFileMap = _datCacheService?.GetAllDatFiles()?.ToDictionary(d => d.Id) ?? new Dictionary<int, DatFile>();
                     foreach (var datEntry in cachedDatEntries)
                     {
                         if (datEntry == null)
@@ -632,7 +634,38 @@ namespace NzbDrone.Core.MetadataSource.Game
                             continue;
                         }
 
-                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, "Cross-Referenced DAT / SMDB Catalog");
+                        var effectiveCategory = "Cross-Referenced DAT / SMDB Catalog";
+                        if (datFileMap.TryGetValue(datEntry.DatFileId, out var datFile))
+                        {
+                            effectiveCategory = !string.IsNullOrWhiteSpace(datFile.Category) ? datFile.Category : datFile.Name;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
+                        {
+                            var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                            if (smdbParts.Any(s => s.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Hack", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Color", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Patch", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Fix", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "ROM Hacks & Translations";
+                            }
+                            else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "Homebrew & Aftermarket";
+                            }
+                            else if (smdbParts.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "Unlicensed";
+                            }
+                        }
+
+                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, effectiveCategory);
                         if (converted != null && TryRegisterCrossReferencedGame(converted))
                         {
                             DynamicGames[converted.TvdbId] = converted;
@@ -1616,7 +1649,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var romMatch = DatRomNameRegex.Match(body);
                 var rawName = blockName;
 
-                if (romMatch.Success)
+                var isHackOrHomebrewFeed =
+                    sourceLabel != null &&
+                    (sourceLabel.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Hacks", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase));
+
+                if (romMatch.Success && !isHackOrHomebrewFeed)
                 {
                     var romFileName = romMatch.Groups["rom"].Value.Trim();
 
@@ -2295,118 +2336,17 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed, string verificationSource = null)
         {
-            var isRomHackOrTranslation =
-                (!string.IsNullOrWhiteSpace(verificationSource) && (
-                    verificationSource.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Hacks", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Color Hack", StringComparison.OrdinalIgnoreCase))) ||
-                noIntroName.Contains("(Hack", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Hack", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Hack)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Hack]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[h]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[h1]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[h2]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[h3]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[h4]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[h5]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(T+", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(T-", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Retranslation", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Kaizo", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Randomizer", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Redux", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Rebalance", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Romhack", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Mod)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Mod]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Improvement)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Improvement]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Restoration)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Restoration]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Uncensored)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Uncensored]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Colorized)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Colorized]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Colourized)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Colourized]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Color)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Color]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Color ", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Color Hack", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Color Edition", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Enhancement)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Enhancement]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Enhancements)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Enhancements]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Enhanced)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Enhanced]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Fix)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Fix]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Fixes)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Fixes]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Patch)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Patch]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Patches)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Patches]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(SGB Enhanced)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[SGB Enhanced]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(DX)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[DX]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(FastROM)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[FastROM]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(MSU-1)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[MSU-1]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(MSU1)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Bugfix)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(Patched)", StringComparison.OrdinalIgnoreCase) ||
-                (parsed?.DumpTags != null && parsed.DumpTags.Any(t =>
-                    t.StartsWith("T+", StringComparison.OrdinalIgnoreCase) ||
-                    t.StartsWith("T-", StringComparison.OrdinalIgnoreCase) ||
-                    t.Equals("h", StringComparison.OrdinalIgnoreCase) ||
-                    t.Equals("t", StringComparison.OrdinalIgnoreCase)));
-
-            if (isRomHackOrTranslation)
+            if (RegionHelper.IsRomHackOrTranslation(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
                 return RegionRomHacksSeason;
             }
 
-            var isHomebrewOrAftermarket =
-                (!string.IsNullOrWhiteSpace(verificationSource) && (
-                    verificationSource.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Public Domain", StringComparison.OrdinalIgnoreCase))) ||
-                noIntroName.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[PD]", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("(HB)", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[HB]", StringComparison.OrdinalIgnoreCase);
-
-            if (isHomebrewOrAftermarket)
+            if (RegionHelper.IsHomebrewOrAftermarket(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
                 return RegionHomebrewSeason;
             }
 
-            var isUnlicensed =
-                (!string.IsNullOrWhiteSpace(verificationSource) && (
-                    verificationSource.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
-                    verificationSource.Contains("Bootleg", StringComparison.OrdinalIgnoreCase))) ||
-                noIntroName.Contains("(Unl", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("[Unl", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Bootleg", StringComparison.OrdinalIgnoreCase) ||
-                noIntroName.Contains("Demake", StringComparison.OrdinalIgnoreCase);
-
-            if (isUnlicensed)
+            if (RegionHelper.IsUnlicensed(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
                 return RegionUnlicensedSeason;
             }
@@ -3013,7 +2953,33 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             var platform = InferPlatformFromText($"{datEntry.SmdbPath} {datEntry.RomName}") ?? BuiltInPlatforms.First(p => p.Slug == "snes");
-            var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, "No-Intro / Redump DAT");
+            var sourceLabel = "No-Intro / Redump DAT";
+            if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
+            {
+                var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (smdbParts.Any(s => s.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                       s.Contains("Hack", StringComparison.OrdinalIgnoreCase) ||
+                                       s.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
+                                       s.Contains("Color", StringComparison.OrdinalIgnoreCase) ||
+                                       s.Contains("Patch", StringComparison.OrdinalIgnoreCase) ||
+                                       s.Contains("Fix", StringComparison.OrdinalIgnoreCase)))
+                {
+                    sourceLabel = "ROM Hacks & Translations";
+                }
+                else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
+                {
+                    sourceLabel = "Homebrew & Aftermarket";
+                }
+                else if (smdbParts.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
+                {
+                    sourceLabel = "Unlicensed";
+                }
+            }
+
+            var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, sourceLabel);
             if (entry != null)
             {
                 entry.ExpectedCrc32 = datEntry.Crc32;
@@ -3234,6 +3200,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("gb", "Pocket Monsters - Aka (Japan)", 1996, "Original Japanese release of Pocket Monsters Red Version for Game Boy.");
             Add("gb", "Pocket Monsters - Aka (Japan) (Rev A)", 1996, "Revised Japanese release of Pocket Monsters Red Version for Game Boy.");
             Add("gb", "Pocket Monsters - Midori (Japan)", 1996, "Original Japanese release of Pocket Monsters Green Version for Game Boy.");
+            Add("gb", "Pokemon - Brown Version (USA) (Hack)", 2014, "Acclaimed full-scale Game Boy ROM hack by Koolboyman set in the Rijon region with new Pokemon, types, and Gym Badges.", "SmokeMonster HTGDB / SMDB");
             Add("gbc", "Pokemon - Gold Version (USA, Europe)", 2000, "Explore the Johto and Kanto regions, discover 100 new Pokemon, and encounter the legendary Ho-Oh.");
             Add("gbc", "Pokemon - Silver Version (USA, Europe)", 2000, "Journey through Johto with a real-time clock, day/night cycle, and the legendary Lugia.");
             Add("gbc", "Pokemon - Crystal Version (USA, Europe)", 2001, "Initial retail release of Pokemon Crystal featuring Suicune and the Battle Tower.");
@@ -3420,6 +3387,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             Add("gb", "Legend of Zelda, The - Link's Awakening (USA, Europe) (Rev B)", 1993, "Stranded on Koholint Island, Link must collect the eight Instruments of the Sirens to awaken the Wind Fish.");
             Add("gb", "Tetris (World) (Rev A)", 1989, "The iconic pack-in puzzle phenomenon with Type-A Korobeiniki music and two-player link battles.");
             Add("gb", "Super Mario Land 2 - 6 Golden Coins (USA, Europe) (Rev B)", 1992, "Reclaim Mario's castle from Wario across six themed zones.");
+            Add("gb", "Super Mario Land 2 DX (USA) (Hack)", 2017, "Full color DX hack by toruzz of Super Mario Land 2 with enhanced Luigi gameplay and color graphics.", "SmokeMonster HTGDB / SMDB");
             Add("gbc", "Legend of Zelda, The - Oracle of Ages (USA, Australia)", 2001, "Time-bending handheld Zelda adventure in Labrynna that links with Oracle of Seasons.");
             Add("gbc", "Legend of Zelda, The - Oracle of Seasons (USA, Australia)", 2001, "Change the four seasons with the Rod of Seasons in Holodrum and link with Oracle of Ages.");
             Add("gba", "Metroid Fusion (USA)", 2002, "Investigate the Biologic Space Labs station while hunted by the deadly SA-X parasite.");

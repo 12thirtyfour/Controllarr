@@ -41,6 +41,21 @@ namespace NzbDrone.Core.Parser.Model
         {
             get
             {
+                if (RegionHelper.IsRomHackOrTranslation(GameTitle, ReleaseTitle, DumpTags))
+                {
+                    return 6;
+                }
+
+                if (RegionHelper.IsHomebrewOrAftermarket(GameTitle, ReleaseTitle, DumpTags))
+                {
+                    return 5;
+                }
+
+                if (RegionHelper.IsUnlicensed(GameTitle, ReleaseTitle, DumpTags))
+                {
+                    return 0;
+                }
+
                 if (Regions != null && Regions.Count > 0)
                 {
                     return RegionHelper.GetSeasonNumber(Regions[0]);

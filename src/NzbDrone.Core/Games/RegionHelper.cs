@@ -1,7 +1,52 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace NzbDrone.Core.Games
 {
     public static class RegionHelper
     {
+        private static readonly string[] KnownPokemonHacks = new[]
+        {
+            "Brown", "Prism", "Ash Gray", "AshGray", "Glazed", "Light Platinum", "Flora Sky",
+            "Clover", "Gaia", "Radical Red", "Unbound", "Liquid Crystal", "Dark Rising",
+            "Orange Islands", "Crystal Clear", "Polished Crystal", "Red++", "Red ++", "Blue++",
+            "Blue ++", "PureRGB", "Shin Red", "Bronze", "Coral", "Silver Chronicles",
+            "Gold and Silver 97", "Spaceworld 97", "Adventure Red", "Vega", "Procyon", "Deneb",
+            "Snakewood", "Blasting Off", "Mirage", "Fuligin", "Quartz", "Victory Fire",
+            "Resolute", "Mega Power", "Nameless", "Emerald Rogue", "Inclement Emerald",
+            "Modern Emerald", "ROWE", "Odyssey", "Sovereign of the Skies", "Dreams", "Sors",
+            "Crown", "Vintage White", "Blaze Black", "Volt White", "Sacred Gold", "Storm Silver",
+            "Renegade Platinum", "Rising Sun", "Waning Moon", "Photonic Sun", "Prismatic Moon",
+            "Luminescent Platinum", "Theta Emerald", "Altered Emerald", "Blazing Emerald",
+            "Fire Gold", "Vietnamese Crystal", "Fool's Gold", "Rocket Edition", "Moemon"
+        };
+
+        private static readonly string[] KnownFranchiseHacks = new[]
+        {
+            "Return to Dinosaur Land", "Ancient Stone Tablets", "Parallel Worlds",
+            "Goddess of Wisdom", "Super Zero Mission", "Crimson Echoes", "Flames of Eternity",
+            "Brave New World", "Chorus of Mysteries", "In the Mushroom Kingdom",
+            "Star Road", "Super Mario 64 Land", "Super Mario 3Mix", "Super Mario Land DX",
+            "Super Mario Land 2 DX", "Conker's Pocket Tales (Color)", "Conker's Pocket Tales Color"
+        };
+
+        private static readonly string[] RomHackTokens = new[]
+        {
+            "(Hack", "[Hack", "Hack)", "Hack]", "Hack by", "[h]", "[h1]", "[h2]", "[h3]", "[h4]", "[h5]",
+            "[T+", "[T-", "(T+", "(T-", "Translation", "Translated", "Retranslation", "Fan Translation",
+            "Kaizo", "Randomizer", "Redux", "Rebalance", "Romhack", "ROM Hack",
+            "(Mod)", "[Mod]", "Modded", "(Improvement)", "[Improvement]", "(Restoration)", "[Restoration]",
+            "(Uncensored)", "[Uncensored]", "(Colorized)", "[Colorized]", "(Colourized)", "[Colourized]",
+            "(Color)", "[Color]", "(Color ", "Color Hack", "Color Edition",
+            "(Enhancement)", "[Enhancement]", "(Enhancements)", "[Enhancements]", "(Enhanced)", "[Enhanced]",
+            "(Fix)", "[Fix]", "(Fixes)", "[Fixes]", "(Bugfix)", "(Bug Fix)",
+            "(Patch)", "[Patch]", "(Patches)", "[Patches]", "(Patched)",
+            "(FastROM)", "[FastROM]", "(MSU-1)", "[MSU-1]", "(MSU1)",
+            "(SGB Enhanced)", "[SGB Enhanced]",
+            "(DX)", "[DX]"
+        };
+
         public static string GetRegionName(int seasonNumber)
         {
             return seasonNumber switch
@@ -36,6 +81,138 @@ namespace NzbDrone.Core.Games
                 "rom hacks" or "rom hack" or "translation" or "translations" => 6,
                 _ => 1
             };
+        }
+
+        public static bool IsRomHackOrTranslation(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            if (!string.IsNullOrWhiteSpace(verificationSource) && (
+                verificationSource.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Hacks", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Color Hack", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            if (dumpTags != null && dumpTags.Any(t =>
+                t.StartsWith("T+", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("T-", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("h", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("t", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var texts = new[] { title, releaseTitle };
+            foreach (var text in texts)
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (RomHackTokens.Any(token => text.Contains(token, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+
+                if (text.Contains("/Hacks/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Hacks\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Translations/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Translations\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Translations & Hacks/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Translations & Hacks\\", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                var isPokemon = text.Contains("Pokemon", StringComparison.OrdinalIgnoreCase) ||
+                                text.Contains("Pokémon", StringComparison.OrdinalIgnoreCase) ||
+                                text.Contains("Pocket Monsters", StringComparison.OrdinalIgnoreCase);
+
+                if (isPokemon && KnownPokemonHacks.Any(h => text.Contains(h, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+
+                if (KnownFranchiseHacks.Any(h => text.Contains(h, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool IsHomebrewOrAftermarket(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            if (!string.IsNullOrWhiteSpace(verificationSource) && (
+                verificationSource.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Public Domain", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var texts = new[] { title, releaseTitle };
+            foreach (var text in texts)
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (text.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("[PD]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("(HB)", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("[HB]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Homebrew/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Homebrew\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Aftermarket/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Aftermarket\\", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool IsUnlicensed(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            if (!string.IsNullOrWhiteSpace(verificationSource) && (
+                verificationSource.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var texts = new[] { title, releaseTitle };
+            foreach (var text in texts)
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (text.Contains("(Unl", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("[Unl", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Bootleg", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Demake", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Unlicensed/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Unlicensed\\", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
