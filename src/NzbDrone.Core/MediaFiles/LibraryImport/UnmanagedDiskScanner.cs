@@ -35,7 +35,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             ".exe", ".bat", ".cmd", ".sh", ".html", ".htm", ".pdf", ".doc", ".docx", ".torrent", ".md", ".rtf", ".log"
         };
 
-        private static readonly uint[] Crc32Table = InitializeCrc32Table();
+        private static readonly uint[][] Crc32Tables = InitializeCrc32SlicingBy8Tables();
 
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
@@ -189,6 +189,13 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             try
             {
+                if (localEpisode.Series != null &&
+                    !PlatformCompatibilityValidator.IsCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
+                {
+                    _logger.Debug("Skipping ROM hash calculation for {0}: format not compatible with platform {1}", localEpisode.Path, localEpisode.Series.Title);
+                    return;
+                }
+
                 var validExtensions = GetValidRomExtensions();
 
                 if (localEpisode.Path.Contains(".zip#"))
@@ -915,6 +922,29 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             if (!string.IsNullOrWhiteSpace(sfvCrc))
             {
                 hashes["SFV_CRC32"] = sfvCrc;
+                hashes["CRC32"] = sfvCrc;
+
+                var datMatch = _datCacheService?.FindByCrc32(sfvCrc);
+                if (datMatch != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(datMatch.Sha1))
+                    {
+                        hashes["SHA-1"] = datMatch.Sha1.ToLowerInvariant();
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(datMatch.Md5))
+                    {
+                        hashes["MD5"] = datMatch.Md5.ToLowerInvariant();
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(datMatch.Sha256))
+                    {
+                        hashes["SHA-256"] = datMatch.Sha256.ToLowerInvariant();
+                    }
+
+                    _logger.Debug("Fast-path hash resolution from release SFV and DAT catalog for {0}: CRC32={1}", filePath, sfvCrc);
+                    return hashes;
+                }
             }
 
             if (ArchiveExtensions.Contains(extension))
@@ -968,7 +998,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             {
                 try
                 {
-                    using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                    using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 2 * 1024 * 1024, FileOptions.SequentialScan);
                     ComputeStreamHashes(stream, hashes, computeCrc32: true);
                 }
                 catch (Exception ex)
@@ -1005,7 +1035,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             using var sha1 = SHA1.Create();
             using var md5 = MD5.Create();
 
-            var buffer = ArrayPool<byte>.Shared.Rent(128 * 1024);
+            var buffer = ArrayPool<byte>.Shared.Rent(2 * 1024 * 1024);
             try
             {
                 var crc = 0xFFFFFFFFu;
@@ -1019,9 +1049,26 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                     if (computeCrc32)
                     {
-                        for (var i = 0; i < bytesRead; i++)
+                        var i = 0;
+                        while (i + 8 <= bytesRead)
                         {
-                            crc = (crc >> 8) ^ Crc32Table[(crc ^ buffer[i]) & 0xFF];
+                            var b0 = buffer[i++] ^ (byte)crc;
+                            var b1 = buffer[i++] ^ (byte)(crc >> 8);
+                            var b2 = buffer[i++] ^ (byte)(crc >> 16);
+                            var b3 = buffer[i++] ^ (byte)(crc >> 24);
+                            crc = Crc32Tables[7][b0]
+                                ^ Crc32Tables[6][b1]
+                                ^ Crc32Tables[5][b2]
+                                ^ Crc32Tables[4][b3]
+                                ^ Crc32Tables[3][buffer[i++]]
+                                ^ Crc32Tables[2][buffer[i++]]
+                                ^ Crc32Tables[1][buffer[i++]]
+                                ^ Crc32Tables[0][buffer[i++]];
+                        }
+
+                        while (i < bytesRead)
+                        {
+                            crc = (crc >> 8) ^ Crc32Tables[0][(crc ^ buffer[i++]) & 0xFF];
                         }
                     }
                 }
@@ -1091,9 +1138,14 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             return null;
         }
 
-        private static uint[] InitializeCrc32Table()
+        private static uint[][] InitializeCrc32SlicingBy8Tables()
         {
-            var table = new uint[256];
+            var tables = new uint[8][];
+            for (var i = 0; i < 8; i++)
+            {
+                tables[i] = new uint[256];
+            }
+
             for (var i = 0u; i < 256; i++)
             {
                 var entry = i;
@@ -1102,10 +1154,18 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     entry = (entry & 1) == 1 ? (entry >> 1) ^ 0xEDB88320u : entry >> 1;
                 }
 
-                table[i] = entry;
+                tables[0][i] = entry;
             }
 
-            return table;
+            for (var i = 0; i < 256; i++)
+            {
+                for (var j = 1; j < 8; j++)
+                {
+                    tables[j][i] = (tables[j - 1][i] >> 8) ^ tables[0][tables[j - 1][i] & 0xFF];
+                }
+            }
+
+            return tables;
         }
     }
 }

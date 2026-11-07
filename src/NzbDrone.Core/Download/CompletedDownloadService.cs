@@ -38,6 +38,7 @@ namespace NzbDrone.Core.Download
         private readonly IRejectedImportService _rejectedImportService;
         private readonly IRejectedFileExtensionService _rejectedFileExtensionService;
         private readonly IProvideDownloadClient _downloadClientProvider;
+        private readonly IFailedDownloadService _failedDownloadService;
         private readonly Logger _logger;
 
         public CompletedDownloadService(IEventAggregator eventAggregator,
@@ -52,6 +53,7 @@ namespace NzbDrone.Core.Download
                                         IRejectedImportService rejectedImportService,
                                         IRejectedFileExtensionService rejectedFileExtensionService,
                                         IProvideDownloadClient downloadClientProvider,
+                                        IFailedDownloadService failedDownloadService,
                                         Logger logger)
         {
             _eventAggregator = eventAggregator;
@@ -66,6 +68,7 @@ namespace NzbDrone.Core.Download
             _rejectedImportService = rejectedImportService;
             _rejectedFileExtensionService = rejectedFileExtensionService;
             _downloadClientProvider = downloadClientProvider;
+            _failedDownloadService = failedDownloadService;
             _logger = logger;
         }
 
@@ -170,9 +173,22 @@ namespace NzbDrone.Core.Download
                     return;
                 }
 
-                trackedDownload.Warn("No files found are eligible for import in {0}", outputPath);
+                var msg = string.Format("No files found are eligible for import in {0}", outputPath);
+                trackedDownload.Warn(msg);
+                _failedDownloadService.MarkAsFailed(trackedDownload, msg, $"{BuildInfo.AppName} Failed Download Handling");
 
                 return;
+            }
+
+            if (importResults.All(c => c.Result != ImportResultType.Imported))
+            {
+                var errors = importResults.SelectMany(r => r.Errors).Distinct().ToList();
+                var failureMsg = errors.Any()
+                    ? string.Join("; ", errors)
+                    : "No files from release could be imported for target platform";
+
+                _logger.Warn("[{0}] Import failed: {1}. Marking download as failed and searching for alternative release.", trackedDownload.DownloadItem.Title, failureMsg);
+                _failedDownloadService.MarkAsFailed(trackedDownload, failureMsg, $"{BuildInfo.AppName} Failed Download Handling");
             }
 
             if (importResults.Count == 1)
