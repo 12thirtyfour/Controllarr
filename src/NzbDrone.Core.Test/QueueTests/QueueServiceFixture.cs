@@ -52,6 +52,19 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void null_download_client_info_should_not_throw()
+        {
+            _trackedDownloads[0].DownloadItem.DownloadClientInfo = null;
+
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+
+            var queue = Subject.GetQueue();
+            queue.Should().HaveCount(1);
+            queue[0].DownloadClient.Should().BeEmpty();
+            queue[0].DownloadClientHasPostImportCategory.Should().BeFalse();
+        }
+
+        [Test]
         public void queue_items_should_have_id()
         {
             Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));

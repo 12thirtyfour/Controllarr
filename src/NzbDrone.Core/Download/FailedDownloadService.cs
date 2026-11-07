@@ -5,8 +5,10 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Download
 {
@@ -67,7 +69,20 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            throw new InvalidOperationException("Unable to mark download as failed, no grabbed history available");
+            var fallback = new GameHistory
+            {
+                EventType = GameHistoryEventType.Grabbed,
+                Date = DateTime.UtcNow,
+                Quality = history.Quality,
+                SourceTitle = history.SourceTitle,
+                SeriesId = history.SeriesId,
+                EpisodeId = history.EpisodeId,
+                DownloadId = downloadId,
+                Languages = history.Languages,
+                Data = history.Data ?? new Dictionary<string, string>()
+            };
+
+            PublishDownloadFailedEvent(fallback, new List<int> { history.EpisodeId }, message, source);
         }
 
         public void MarkAsFailed(TrackedDownload trackedDownload, string message, string source = null, bool skipRedownload = false)
@@ -80,7 +95,26 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            throw new InvalidOperationException("Unable to mark download as failed, no grabbed history available");
+            var episodeIds = trackedDownload.RemoteEpisode?.Episodes?.Select(e => e.Id).ToList() ?? new List<int>();
+            var fallback = new GameHistory
+            {
+                EventType = GameHistoryEventType.Grabbed,
+                Date = DateTime.UtcNow,
+                Quality = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Quality ?? new QualityModel(Quality.Unknown),
+                SourceTitle = trackedDownload.DownloadItem.Title,
+                SeriesId = trackedDownload.RemoteEpisode?.Series?.Id ?? 0,
+                EpisodeId = episodeIds.FirstOrDefault(),
+                DownloadId = trackedDownload.DownloadItem.DownloadId,
+                Languages = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Languages ?? new List<Language> { Language.Unknown },
+                Data = new Dictionary<string, string>
+                {
+                    { GameHistory.DOWNLOAD_CLIENT, trackedDownload.DownloadItem.DownloadClientInfo?.Type },
+                    { "DownloadClientName", trackedDownload.DownloadItem.DownloadClientInfo?.Name }
+                }
+            };
+
+            trackedDownload.State = TrackedDownloadState.FailedPending;
+            PublishDownloadFailedEvent(fallback, episodeIds, message ?? "Manually marked as failed", source, trackedDownload, skipRedownload: skipRedownload);
         }
 
         public void Check(TrackedDownload trackedDownload)
@@ -98,7 +132,7 @@ namespace NzbDrone.Core.Download
 
                 if (grabbedItems.Empty())
                 {
-                    trackedDownload.Warn(trackedDownload.DownloadItem.IsEncrypted ? "Download is encrypted and wasn't grabbed by Sonarr, skipping automatic download handling" : "Download has failed wasn't grabbed by Sonarr, skipping automatic download handling");
+                    trackedDownload.Warn(trackedDownload.DownloadItem.IsEncrypted ? $"Download is encrypted and wasn't grabbed by {BuildInfo.AppName}, skipping automatic download handling" : $"Download has failed and wasn't grabbed by {BuildInfo.AppName}, skipping automatic download handling");
                     return;
                 }
 
@@ -115,9 +149,33 @@ namespace NzbDrone.Core.Download
 
             var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
 
-            if (grabbedItems.Empty())
+            GameHistory historyItem;
+            List<int> episodeIds;
+
+            if (grabbedItems.Any())
             {
-                return;
+                historyItem = grabbedItems.First();
+                episodeIds = GetEpisodeIds(grabbedItems);
+            }
+            else
+            {
+                episodeIds = trackedDownload.RemoteEpisode?.Episodes?.Select(e => e.Id).ToList() ?? new List<int>();
+                historyItem = new GameHistory
+                {
+                    EventType = GameHistoryEventType.Grabbed,
+                    Date = DateTime.UtcNow,
+                    Quality = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Quality ?? new QualityModel(Quality.Unknown),
+                    SourceTitle = trackedDownload.DownloadItem.Title,
+                    SeriesId = trackedDownload.RemoteEpisode?.Series?.Id ?? 0,
+                    EpisodeId = episodeIds.FirstOrDefault(),
+                    DownloadId = trackedDownload.DownloadItem.DownloadId,
+                    Languages = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Languages ?? new List<Language> { Language.Unknown },
+                    Data = new Dictionary<string, string>
+                    {
+                        { GameHistory.DOWNLOAD_CLIENT, trackedDownload.DownloadItem.DownloadClientInfo?.Type },
+                        { "DownloadClientName", trackedDownload.DownloadItem.DownloadClientInfo?.Name }
+                    }
+                };
             }
 
             var failure = "Failed download detected";
@@ -132,7 +190,7 @@ namespace NzbDrone.Core.Download
             }
 
             trackedDownload.State = TrackedDownloadState.Failed;
-            PublishDownloadFailedEvent(grabbedItems.First(), GetEpisodeIds(grabbedItems), failure, $"{BuildInfo.AppName} Failed Download Handling", trackedDownload);
+            PublishDownloadFailedEvent(historyItem, episodeIds, failure, $"{BuildInfo.AppName} Failed Download Handling", trackedDownload);
         }
 
         private void PublishDownloadFailedEvent(GameHistory historyItem, List<int> episodeIds, string message, string source, TrackedDownload trackedDownload = null, bool skipRedownload = false)

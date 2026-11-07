@@ -18,6 +18,10 @@ namespace NzbDrone.Core.Parser
             ".iso", ".chd", ".cso", ".cue", ".gdi", ".cdi", ".rvz", ".wbfs", ".wua", ".wux", ".wud"
         };
 
+        private static readonly Regex OpticalDiscIndicatorRegex = new Regex(
+            @"(?:\b|_|\[|\()(?:iso|chd|cso|cue|gdi|cdi|rvz|wbfs|wua|wux|wud)\b|\.(?:iso|chd|cso|cue|gdi|cdi|rvz|wbfs|wua|wux|wud)(?:\b|$)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private static readonly Dictionary<string, string[]> PlatformAliases = PlatformCatalogService.PlatformAliases;
 
         private static readonly Regex PlatformTagRegex = new Regex(
@@ -281,6 +285,25 @@ namespace NzbDrone.Core.Parser
                 }
             }
 
+            // Cartridge platforms cannot have disc/optical indicators in release title, format, or archive ID
+            if (isCartridge)
+            {
+                if (OpticalDiscIndicatorRegex.IsMatch(filePathOrName))
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrWhiteSpace(itemFormat) && OpticalDiscIndicatorRegex.IsMatch(itemFormat))
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrWhiteSpace(archiveId) && OpticalDiscIndicatorRegex.IsMatch(archiveId))
+                {
+                    return false;
+                }
+            }
+
             // Check item format if provided (e.g. from archive.org metadata "file.Format")
             if (!string.IsNullOrWhiteSpace(itemFormat))
             {
@@ -383,11 +406,11 @@ namespace NzbDrone.Core.Parser
                 }
             }
 
-            // If an incorrect platform is detected, ignore it. If no platform name is detected, allow it.
+            // If an incorrect platform is detected or conflicts with target platform, reject. If no platform name is detected, allow it.
             if (detected.Count > 0)
             {
                 var matchesTarget = detected.Any(p => IsPlatformMatch(p, targetSlug));
-                if (!matchesTarget)
+                if (!matchesTarget || detected.Any(p => !IsPlatformMatch(p, targetSlug)))
                 {
                     return false;
                 }

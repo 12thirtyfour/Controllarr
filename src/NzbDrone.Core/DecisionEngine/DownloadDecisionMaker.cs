@@ -344,12 +344,9 @@ namespace NzbDrone.Core.DecisionEngine
                 return false;
             }
 
-            var cleanSeriesTitle = CleanRomTitleForComparison(series.Title);
-            if (IsRomTitleMatch(cleanRomGameTitle, cleanSeriesTitle) ||
-                releaseTitle.Contains(series.Title, StringComparison.OrdinalIgnoreCase) ||
-                (!string.IsNullOrWhiteSpace(series.TitleSlug) && releaseTitle.Contains(series.TitleSlug, StringComparison.OrdinalIgnoreCase)))
+            if (!PlatformCompatibilityValidator.IsCompatible(releaseTitle, series.TitleSlug, series.Title))
             {
-                return true;
+                return false;
             }
 
             var isArchive = releaseTitle.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
@@ -372,10 +369,16 @@ namespace NzbDrone.Core.DecisionEngine
                 return false;
             }
 
-            var slug = series.TitleSlug?.ToLowerInvariant() ?? string.Empty;
-            var releaseLower = releaseTitle.ToLowerInvariant();
+            var cleanSeriesTitle = CleanRomTitleForComparison(series.Title);
+            if (IsRomTitleMatch(cleanRomGameTitle, cleanSeriesTitle) ||
+                releaseTitle.Contains(series.Title, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
 
-            if (!string.IsNullOrWhiteSpace(slug) && slug.Length >= 2 && releaseLower.Contains(slug))
+            var slug = series.TitleSlug?.ToLowerInvariant() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(slug) && slug.Length >= 2 &&
+                Regex.IsMatch(releaseTitle, $@"{Regex.Escape(slug)}", RegexOptions.IgnoreCase))
             {
                 return true;
             }
@@ -407,7 +410,7 @@ namespace NzbDrone.Core.DecisionEngine
                 _ => Array.Empty<string>()
             };
 
-            return aliases.Any(a => releaseLower.Contains(a));
+            return aliases.Any(a => Regex.IsMatch(releaseTitle, $@"{Regex.Escape(a)}", RegexOptions.IgnoreCase));
         }
 
         private static readonly Regex SceneTagsRegex = new(

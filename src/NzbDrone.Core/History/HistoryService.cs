@@ -143,6 +143,57 @@ namespace NzbDrone.Core.History
 
         public void Handle(GameGrabbedEvent message)
         {
+            var episodes = message.Episode.Episodes;
+            if (episodes == null || episodes.Count == 0)
+            {
+                var history = new GameHistory
+                {
+                    EventType = GameHistoryEventType.Grabbed,
+                    Date = DateTime.UtcNow,
+                    Quality = message.Episode.ParsedEpisodeInfo.Quality,
+                    SourceTitle = message.Episode.Release.Title,
+                    SeriesId = message.Episode.Series?.Id ?? 0,
+                    EpisodeId = 0,
+                    DownloadId = message.DownloadId,
+                    Languages = message.Episode.Languages,
+                };
+
+                history.Data.Add("Indexer", message.Episode.Release.Indexer);
+                history.Data.Add("NzbInfoUrl", message.Episode.Release.InfoUrl);
+                history.Data.Add("ReleaseGroup", message.Episode.ParsedEpisodeInfo.ReleaseGroup);
+                history.Data.Add("Age", message.Episode.Release.Age.ToString());
+                history.Data.Add("AgeHours", message.Episode.Release.AgeHours.ToString());
+                history.Data.Add("AgeMinutes", message.Episode.Release.AgeMinutes.ToString());
+                history.Data.Add("PublishedDate", message.Episode.Release.PublishDate.ToUniversalTime().ToString("s") + "Z");
+                history.Data.Add("DownloadClient", message.DownloadClient);
+                history.Data.Add("DownloadClientName", message.DownloadClientName);
+                history.Data.Add("Size", message.Episode.Release.Size.ToString());
+                history.Data.Add("DownloadUrl", message.Episode.Release.DownloadUrl);
+                history.Data.Add("Guid", message.Episode.Release.Guid);
+                history.Data.Add("TvdbId", message.Episode.Release.TvdbId.ToString());
+                history.Data.Add("TvRageId", message.Episode.Release.TvRageId.ToString());
+                history.Data.Add("ImdbId", message.Episode.Release.ImdbId);
+                history.Data.Add("Protocol", ((int)message.Episode.Release.DownloadProtocol).ToString());
+                history.Data.Add("CustomFormatScore", message.Episode.CustomFormatScore.ToString());
+                history.Data.Add("PlatformMatchType", message.Episode.PlatformMatchType.ToString());
+                history.Data.Add("ReleaseSource", message.Episode.ReleaseSource.ToString());
+                history.Data.Add("IndexerFlags", message.Episode.Release.IndexerFlags.ToString());
+                history.Data.Add("ReleaseType", message.Episode.ParsedEpisodeInfo.ReleaseType.ToString());
+
+                if (!message.Episode.ParsedEpisodeInfo.ReleaseHash.IsNullOrWhiteSpace())
+                {
+                    history.Data.Add("ReleaseHash", message.Episode.ParsedEpisodeInfo.ReleaseHash);
+                }
+
+                if (message.Episode.Release is TorrentInfo torrentRelease)
+                {
+                    history.Data.Add("TorrentInfoHash", torrentRelease.InfoHash);
+                }
+
+                _historyRepository.Insert(history);
+                return;
+            }
+
             foreach (var episode in message.Episode.Episodes)
             {
                 var history = new GameHistory
@@ -253,7 +304,7 @@ namespace NzbDrone.Core.History
                 };
 
                 history.Data.Add("DownloadClient", message.DownloadClient);
-                history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem.DownloadClientInfo.Name);
+                history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem?.DownloadClientInfo?.Name);
                 history.Data.Add("Message", message.Message);
                 history.Data.Add("Source", message.Source);
                 history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteEpisode?.ParsedEpisodeInfo?.ReleaseGroup ?? message.Data.GetValueOrDefault(GameHistory.RELEASE_GROUP));

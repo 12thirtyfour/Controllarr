@@ -189,6 +189,7 @@ namespace NzbDrone.Core.Download
 
                 _logger.Warn("[{0}] Import failed: {1}. Marking download as failed and searching for alternative release.", trackedDownload.DownloadItem.Title, failureMsg);
                 _failedDownloadService.MarkAsFailed(trackedDownload, failureMsg, $"{BuildInfo.AppName} Failed Download Handling");
+                return;
             }
 
             if (importResults.Count == 1)

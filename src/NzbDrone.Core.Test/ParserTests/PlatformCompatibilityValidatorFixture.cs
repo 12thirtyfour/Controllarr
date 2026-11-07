@@ -47,6 +47,13 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Sonic the Hedgehog (Genesis).zip", "sms", "Sega Master System", null, false)]
         [TestCase("Sonic the Hedgehog (SMS).zip", "sms", "Sega Master System", null, true)]
         [TestCase("Sonic the Hedgehog.zip", "sms", "Sega Master System", null, true)]
+        [TestCase("Halo 2 (Xbox).iso", "gba", "Game Boy Advance", null, false)]
+        [TestCase("Halo.2.Xbox.ISO-GROUP", "gba", "Game Boy Advance", null, false)]
+        [TestCase("Some.Xbox.Game.GBA.Emulator.iso", "gba", "Game Boy Advance", null, false)]
+        [TestCase("Pokemon - FireRed Version (USA).gba", "gba", "Game Boy Advance", null, true)]
+        [TestCase("Wii Sports (Wii).iso", "gba", "Game Boy Advance", null, false)]
+        [TestCase("Mario Kart 64 (USA).z64", "n64", "Nintendo 64", null, true)]
+        [TestCase("Mario Kart Double Dash.iso", "n64", "Nintendo 64", null, false)]
         public void should_validate_platform_compatibility(string candidatePath, string platformSlug, string platformName, string format, bool expected)
         {
             var result = PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName, format);

@@ -29,6 +29,21 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-06]
 
+### Fixed
+- **Strict Cartridge Platform Optical Disc Rejection & Cross-Platform Pollution Prevention (`PlatformCompatibilityValidator`)**:
+  - Enforced that cartridge platforms (e.g. Game Boy Advance, NES, SNES, N64, Genesis, Game Boy, Game Boy Color, Atari) strictly reject optical disc/image formats (`.iso`, `.chd`, `.cso`, `.cue`, `.gdi`, `.cdi`, `.rvz`, `.wbfs`, `.wua`, `.wux`, `.wud`, `.bin`) whether as file extensions or within release titles/item formats/archive identifiers.
+  - Hardened detected platform validation in `PlatformCompatibilityValidator.IsCompatible`: when platforms are detected in release titles/files, if any detected platform conflicts with the target platform (`!IsPlatformMatch(detected, target)`), immediately reject the release, preventing cross-platform bleed (e.g. Xbox ISOs returning or matching for Game Boy Advance in single or collection searches).
+- **Word-Boundary & Compatibility-Gated Platform Pack Matching (`DownloadDecisionMaker`)**:
+  - In `IsPlatformPackMatch`, strictly validated platform compatibility with `PlatformCompatibilityValidator.IsCompatible` before evaluating pack candidates.
+  - Enforced that candidate packs must be archives (`.zip`, `.7z`, `.rar`) or DAT/SMDB/HTGDB sets, and required word-boundary regex matching for slugs and aliases (`\b{slug}\b`) to eliminate false substring matches.
+- **Robust Failed Download Handling & Collection Pack Grab History (`FailedDownloadService`, `HistoryService`, `CompletedDownloadService`)**:
+  - In `HistoryService.Handle(GameGrabbedEvent)`, ensured grab history records are created even for collection pack grabs where pre-linked game lists are empty (`Episodes.Count == 0`).
+  - In `FailedDownloadService.MarkAsFailed` and `ProcessFailed`, added fallback history generation when prior grab history records are absent, preventing `InvalidOperationException: Unable to mark download as failed, no grabbed history available` from aborting failed download handling.
+  - In `CompletedDownloadService.Import`, added an explicit return after marking fully rejected downloads as failed to prevent falling through to `SetStateToImportBlocked`.
+- **Queue Loading Stalls & Null Reference Prevention (`QueueService`, `ObsoleteQueueService`, `QueueResource`)**:
+  - Added null-safe navigation for `DownloadClientInfo` in `QueueService` and `ObsoleteQueueService`, preventing unhandled null reference exceptions when mapping downloads with missing client info.
+  - In `QueueResourceMapper.ToResource`, omitted populating thousands of `GameIds` for collection packs (`IsFullSeason == true`), eliminating HTTP 414 / 431 URI length limit errors and `QueueLoadError` on the frontend Activity Queue page.
+
 ### Added
 - **Internet Archive Interactive & Collection Search Pipeline**:
   - Broadened Internet Archive search by providing a dedicated search tier across the Internet Archive software library (`mediatype:software` and configured collections), allowing single game interactive searches to find games on Internet Archive even when specific Primary Archive URLs are configured.

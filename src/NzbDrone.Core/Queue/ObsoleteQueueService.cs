@@ -78,11 +78,11 @@ namespace NzbDrone.Core.Queue
                 RemoteEpisode = trackedDownload.RemoteEpisode,
                 DownloadId = trackedDownload.DownloadItem.DownloadId,
                 Protocol = trackedDownload.Protocol,
-                DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo.Name,
+                DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo?.Name ?? string.Empty,
                 Indexer = trackedDownload.Indexer,
                 OutputPath = trackedDownload.DownloadItem.OutputPath.ToString(),
                 Added = trackedDownload.Added,
-                DownloadClientHasPostImportCategory = trackedDownload.DownloadItem.DownloadClientInfo.HasPostImportCategory
+                DownloadClientHasPostImportCategory = trackedDownload.DownloadItem.DownloadClientInfo?.HasPostImportCategory ?? false
             };
 
             queue.Id = HashConverter.GetHashInt31($"trackedDownload-{trackedDownload.DownloadClient}-{trackedDownload.DownloadItem.DownloadId}-ep{episode?.Id ?? 0}");

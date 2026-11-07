@@ -53,7 +53,7 @@ namespace Sonarr.Api.V5.Queue
             {
                 Id = model.Id,
                 SeriesId = model.Series?.Id,
-                GameIds = model.Episodes?.Select(e => e.Id).ToList() ?? [],
+                GameIds = (model.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason ?? false) ? [] : (model.Episodes?.Select(e => e.Id).ToList() ?? []),
                 SeasonNumbers = model.SeasonNumber.HasValue ? [model.SeasonNumber.Value] : [],
                 Series = includeSeries && model.Series != null ? model.Series.ToResource() : null,
                 Games = includeEpisodes ? model.Episodes?.ToResource() : null,
