@@ -5,7 +5,6 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import SeasonGameNumber from 'Game/RegionGameNumber';
 import Game from 'Game/Game';
 import GameSearchCell from 'Game/GameSearchCell';
 import GameStatus from 'Game/GameStatus';
@@ -37,14 +36,7 @@ interface CutoffUnmetRowProps {
 function CutoffUnmetRow({
   id,
   seriesId,
-  romFileId,
-  seasonNumber,
-  gameNumber,
-  absoluteGameNumber,
-  sceneSeasonNumber,
-  sceneGameNumber,
-  sceneAbsoluteGameNumber,
-  airDate,
+  romFileId,  airDate,
   airDateUtc,
   lastSearchTime,
   title,
@@ -96,20 +88,7 @@ function CutoffUnmetRow({
         }
 
         if (name === 'game') {
-          return (
-            <TableRowCell key={name} className={styles.game}>
-              <SeasonGameNumber
-                seasonNumber={seasonNumber}
-                gameNumber={gameNumber}
-                absoluteGameNumber={absoluteGameNumber}
-                seriesType={platform.seriesType}
-                alternateTitles={platform.alternateTitles}
-                sceneSeasonNumber={sceneSeasonNumber}
-                sceneGameNumber={sceneGameNumber}
-                sceneAbsoluteGameNumber={sceneAbsoluteGameNumber}
-              />
-            </TableRowCell>
-          );
+          return null;
         }
 
         if (name === 'games.title') {

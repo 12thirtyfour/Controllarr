@@ -46,9 +46,7 @@ export default function GameTitleCellContent({
           {games.map((game) => {
             return (
               <div key={game.id} className={styles.row}>
-                <div className={styles.gameNumber}>
-                  {game.gameNumber}
-                </div>
+                
 
                 <GameTitleLink
                   gameId={game.id}

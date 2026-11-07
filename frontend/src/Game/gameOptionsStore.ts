@@ -13,7 +13,7 @@ interface GameSelectOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<GameSelectOptions>('rom_game_options_v3', () => {
+  createOptionsStore<GameSelectOptions>('rom_game_options_v4', () => {
     return {
       sortKey: 'title',
       sortDirection: 'ascending',
@@ -24,12 +24,6 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           columnLabel: () => translate('Monitored'),
           isVisible: true,
           isModifiable: 'disabled',
-        },
-        {
-          name: 'gameNumber',
-          label: '#',
-          isVisible: false,
-          isSortable: true,
         },
         {
           name: 'title',

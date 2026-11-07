@@ -35,6 +35,13 @@ All notable changes to **Controllarr** are documented in this file.
   - Automatically blocklists the failed release via `BlocklistService` to prevent repeat grabs, triggers `RedownloadFailedDownloadService` to immediately perform a fresh search (`GameSearchCommand`) for alternative candidate releases, and removes the failed download from the client and queue rather than stalling in `ImportBlocked`.
 
 ### Changed
+- **De-Televisonization of Main Platform View Columns**:
+  - Removed "Quality Profile" (`qualityProfileId`) and "Regions" (`seasonCount`) columns from the main platform view table (`platformOptionsStore`), overview cards, and poster views.
+  - Bumped platform options store key to `platform_options_v2` to immediately refresh browser local storage and prevent legacy cached television column presets from rendering.
+- **De-Televisonization of Game Cataloging & Removal of Numeric Episode Counters**:
+  - Systematically purged TV episode numbering (`gameNumber`, `absoluteGameNumber`) from all user-facing gaming views across the frontend.
+  - Removed arbitrary numeric episode columns (`game`, `gameNumber`, `#`) from `Wanted/Missing` (`missingOptionsStore`), `Wanted/CutoffUnmet` (`cutoffUnmetOptionsStore`), `Activity/History` (`historyOptionsStore`), and `Platform/Details` (`gameOptionsStore`).
+  - Purged numeric prefixes from Interactive Import (`InteractiveImportRow`, `SelectGameRow`, `SelectGameModalContent`), Interactive Search match override (`OverrideMatchModalContent`), and Activity Queue popovers (`GameTitleCellContent`), ensuring games are cataloged and identified solely by their authentic title (e.g., `Pokemon Y` instead of `1 - Pokemon Y`).
 - **High-Throughput Fast-Path Cryptographic Hash Verification Pipeline**:
   - Upfront Platform Compatibility Validation: `UnmanagedDiskScanner.VerifyAndEnrichLocalEpisode` checks platform compatibility upfront via `PlatformCompatibilityValidator.IsCompatible`, immediately rejecting incompatible file formats without streaming or computing hashes over multi-gigabyte files.
   - Companion SFV Fast-Path: When a release includes a `.sfv` checksum that matches an authentic DAT catalog entry in `_datCacheService`, all catalog hashes (`CRC32`, `MD5`, `SHA-1`, `SHA-256`) and dump tiers resolve in <1ms without disk I/O bottlenecks.

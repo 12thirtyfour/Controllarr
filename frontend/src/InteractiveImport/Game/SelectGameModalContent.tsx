@@ -27,12 +27,6 @@ import styles from './SelectGameModalContent.module.css';
 
 const columns = [
   {
-    name: 'gameNumber',
-    label: '#',
-    isSortable: true,
-    isVisible: true,
-  },
-  {
     name: 'title',
     label: () => translate('Title'),
     isVisible: true,

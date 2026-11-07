@@ -6,7 +6,6 @@ import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import gameEntities from 'Game/gameEntities';
-import SeasonGameNumber from 'Game/RegionGameNumber';
 import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
 import GameQuality from 'Game/GameQuality';
@@ -110,20 +109,7 @@ function HistoryRow(props: HistoryRowProps) {
         }
 
         if (name === 'game') {
-          return (
-            <TableRowCell key={name}>
-              <SeasonGameNumber
-                seasonNumber={game.seasonNumber}
-                gameNumber={game.gameNumber}
-                absoluteGameNumber={game.absoluteGameNumber}
-                seriesType={platform.seriesType}
-                alternateTitles={platform.alternateTitles}
-                sceneSeasonNumber={game.sceneSeasonNumber}
-                sceneGameNumber={game.sceneGameNumber}
-                sceneAbsoluteGameNumber={game.sceneAbsoluteGameNumber}
-              />
-            </TableRowCell>
-          );
+          return null;
         }
 
         if (name === 'games.title') {

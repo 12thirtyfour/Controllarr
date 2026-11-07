@@ -11,7 +11,6 @@ import TableRow from 'Components/Table/TableRow';
 import Popover from 'Components/Tooltip/Popover';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import GameFormats from 'Game/GameFormats';
-import GameNumber from 'Game/GameNumber';
 import GameSearchCell from 'Game/GameSearchCell';
 import GameTitleLink from 'Game/GameTitleLink';
 import IndexerFlags from 'Game/IndexerFlags';
@@ -68,13 +67,7 @@ function GameRow({
   seriesId,
   romFileId,
   monitored,
-  seasonNumber,
-  gameNumber,
-  absoluteGameNumber,
-  sceneSeasonNumber,
-  sceneGameNumber,
-  sceneAbsoluteGameNumber,
-  airDate,
+  seasonNumber,  airDate,
   airDateUtc,
   runtime,
   finaleType,
@@ -91,13 +84,7 @@ function GameRow({
   onMonitorGamePress,
 }: GameRowProps) {
   const series = useSingleSeries(seriesId);
-  const platformTitle = series?.title;
-  const {
-    useSceneNumbering,
-    seriesType,
-    alternateTitles = [],
-  } = series!;
-  const romFile = useRomFile(romFileId);
+  const platformTitle = series?.title;  const romFile = useRomFile(romFileId);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
 
   const customFormats = romFile?.customFormats ?? [];
@@ -177,28 +164,7 @@ function GameRow({
         }
 
         if (name === 'gameNumber') {
-          return (
-            <TableRowCell
-              key={name}
-              className={
-                seriesType === 'anime'
-                  ? styles.gameNumberAnime
-                  : styles.gameNumber
-              }
-            >
-              <GameNumber
-                seasonNumber={seasonNumber}
-                gameNumber={gameNumber}
-                absoluteGameNumber={absoluteGameNumber}
-                useSceneNumbering={useSceneNumbering}
-                seriesType={seriesType}
-                sceneSeasonNumber={sceneSeasonNumber}
-                sceneGameNumber={sceneGameNumber}
-                sceneAbsoluteGameNumber={sceneAbsoluteGameNumber}
-                alternateTitles={alternateTitles}
-              />
-            </TableRowCell>
-          );
+          return null;
         }
 
         if (name === 'title') {

@@ -10,7 +10,7 @@ import translate from 'Utilities/String/translate';
 export type HistoryOptions = PageableOptions;
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<HistoryOptions>('history_options_v2', () => {
+  createOptionsStore<HistoryOptions>('history_options_v3', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
@@ -28,11 +28,6 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           name: 'series.sortTitle',
           label: () => translate('SeriesSingular'),
           isSortable: true,
-          isVisible: true,
-        },
-        {
-          name: 'game',
-          label: () => translate('Game'),
           isVisible: true,
         },
         {

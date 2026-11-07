@@ -87,18 +87,11 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
     return games.map((game) => {
       return (
         <div key={game.id}>
-          {game.gameNumber}
-
-          {series?.seriesType === 'anime' &&
-          game.absoluteGameNumber != null
-            ? ` (${game.absoluteGameNumber})`
-            : ''}
-
-          {` - ${game.title}`}
+          {game.title}
         </div>
       );
     });
-  }, [series, games]);
+  }, [games]);
 
   const onSelectModalClose = useCallback(() => {
     setSelectModalOpen(null);

@@ -42,7 +42,7 @@ export interface SeriesOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
-  createOptionsStore<SeriesOptions>('series_options', () => {
+  createOptionsStore<SeriesOptions>('platform_options_v2', () => {
     return {
       selectedFilterKey: 'all',
       sortKey: 'sortTitle',
@@ -55,7 +55,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         size: 'large',
         showTitle: false,
         showMonitored: true,
-        showQualityProfile: true,
+        showQualityProfile: false,
         showTags: false,
         showSearchAction: false,
         showStatuses: ['deleted'],
@@ -64,9 +64,9 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         detailedProgressBar: false,
         size: 'medium',
         showMonitored: true,
-        showQualityProfile: true,
+        showQualityProfile: false,
         showAdded: false,
-        showSeasonCount: true,
+        showSeasonCount: false,
         showPath: false,
         showSizeOnDisk: false,
         showTags: false,
@@ -108,12 +108,6 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           isVisible: false,
         },
         {
-          name: 'qualityProfileId',
-          label: () => translate('QualityProfile'),
-          isSortable: true,
-          isVisible: true,
-        },
-        {
           name: 'originalLanguage',
           label: () => translate('OriginalLanguage'),
           isSortable: true,
@@ -124,12 +118,6 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
           label: () => translate('Added'),
           isSortable: true,
           isVisible: false,
-        },
-        {
-          name: 'seasonCount',
-          label: () => translate('Regions'),
-          isSortable: true,
-          isVisible: true,
         },
         {
           name: 'gameProgress',

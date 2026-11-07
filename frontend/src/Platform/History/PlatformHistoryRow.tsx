@@ -11,9 +11,7 @@ import TableRow from 'Components/Table/TableRow';
 import Popover from 'Components/Tooltip/Popover';
 import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
-import GameNumber from 'Game/GameNumber';
 import GameQuality from 'Game/GameQuality';
-import SeasonGameNumber from 'Game/RegionGameNumber';
 import useGame from 'Game/useGame';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Language from 'Language/Language';
@@ -55,16 +53,13 @@ function PlatformHistoryRow({
   date,
   data,
   downloadId,
-  fullSeries,
+
   customFormatScore,
 }: PlatformHistoryRowProps) {
   const series = useSingleSeries(seriesId);
   const game = useGame(gameId, 'games');
   const { markAsFailed } = useMarkAsFailed(id, 'series');
   const [isMarkAsFailedModalOpen, setIsMarkAsFailedModalOpen] = useState(false);
-
-  const GameComponent = fullSeries ? SeasonGameNumber : GameNumber;
-
   const title = useMemo(() => {
     switch (eventType) {
       case 'grabbed':
@@ -106,16 +101,7 @@ function PlatformHistoryRow({
       <HistoryEventTypeCell eventType={eventType} data={data} />
 
       <TableRowCell>
-        <GameComponent
-          seasonNumber={game.seasonNumber}
-          gameNumber={game.gameNumber}
-          absoluteGameNumber={game.absoluteGameNumber}
-          seriesType={series.seriesType}
-          alternateTitles={series.alternateTitles}
-          sceneSeasonNumber={game.sceneSeasonNumber}
-          sceneGameNumber={game.sceneGameNumber}
-          sceneAbsoluteGameNumber={game.sceneAbsoluteGameNumber}
-        />
+        {game.title}
       </TableRowCell>
 
       <TableRowCell className={styles.sourceTitle}>{sourceTitle}</TableRowCell>

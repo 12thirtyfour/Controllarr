@@ -5,7 +5,7 @@ import {
 import translate from 'Utilities/String/translate';
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<PageableOptions>('missing_options', () => {
+  createOptionsStore<PageableOptions>('missing_options_v2', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'monitored',
@@ -16,11 +16,6 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           name: 'series.sortTitle',
           label: () => translate('PlatformTitle'),
           isSortable: true,
-          isVisible: true,
-        },
-        {
-          name: 'game',
-          label: () => translate('Game'),
           isVisible: true,
         },
         {

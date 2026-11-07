@@ -352,13 +352,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
   const gameInfo = games.map((game) => {
     return (
       <div key={game.id}>
-        {game.gameNumber}
-
-        {isAnime && game.absoluteGameNumber != null
-          ? ` (${game.absoluteGameNumber})`
-          : ''}
-
-        {` - ${game.title}`}
+        {game.title}
       </div>
     );
   });
