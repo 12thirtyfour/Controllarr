@@ -452,6 +452,8 @@ namespace NzbDrone.Core.MediaFiles
                     continue;
                 }
 
+                var deleteArchiveAfterExtract = false;
+
                 try
                 {
                     using (var archive = ZipFile.OpenRead(archiveFile))
@@ -638,13 +640,19 @@ namespace NzbDrone.Core.MediaFiles
                                 }
                             }
 
-                            _logger.Info("Extracted {0} ROMs from collection archive '{1}' (archive preserved)", gameEntries.Count, Path.GetFileName(archiveFile));
+                            _logger.Info("Extracted {0} ROMs from collection archive '{1}'", gameEntries.Count, Path.GetFileName(archiveFile));
 
-                            if (isSingleMultiTrack && archiveFile.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase))
+                            if ((isSingleMultiTrack && archiveFile.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase)) ||
+                                (_configService == null || _configService.DeleteOriginalAfterConversion))
                             {
-                                _diskProvider.DeleteFile(archiveFile);
+                                deleteArchiveAfterExtract = true;
                             }
                         }
+                    }
+
+                    if (deleteArchiveAfterExtract && _diskProvider.FileExists(archiveFile))
+                    {
+                        _diskProvider.DeleteFile(archiveFile);
                     }
                 }
                 catch (Exception ex)

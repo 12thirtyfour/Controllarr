@@ -152,43 +152,31 @@ namespace NzbDrone.Core.RootFolders
             try
             {
                 var directFiles = _diskProvider.GetFiles(path, false);
-                if (directFiles.Any(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f))))
+                var hasArchiveFiles = directFiles.Any(f =>
                 {
-                    return true;
+                    var ext = Path.GetExtension(f);
+                    return ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                           ext.Equals(".7z", StringComparison.OrdinalIgnoreCase);
+                });
+
+                var subDirs = _diskProvider.GetDirectories(path)
+                    .Where(d => !SpecialFolders.Contains(new DirectoryInfo(d).Name.ToLowerInvariant()))
+                    .ToList();
+
+                // Only return true when there are JUST loose ROM files directly in the root folder given
+                // (no zip/7z archives and no subfolders).
+                if (hasArchiveFiles || subDirs.Count > 0)
+                {
+                    return false;
                 }
 
-                var archiveFiles = directFiles.Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase)).Take(10).ToList();
-                foreach (var archive in archiveFiles)
+                return directFiles.Any(f =>
                 {
-                    try
-                    {
-                        using var zip = ZipFile.OpenRead(archive);
-                        var romEntries = zip.Entries.Where(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
-                            MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name))).ToList();
-                        if (romEntries.Count == 1)
-                        {
-                            return true;
-                        }
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                var subDirs = _diskProvider.GetDirectories(path);
-                var subPlatforms = subDirs.Where(d =>
-                {
-                    var name = new DirectoryInfo(d).Name;
-                    return !PlatformCompatibilityValidator.IsRegionOrBucketFolder(name) &&
-                           !SpecialFolders.Contains(name.ToLowerInvariant()) &&
-                           !string.IsNullOrWhiteSpace(PlatformCompatibilityValidator.ResolvePlatformName(name));
-                }).ToList();
-
-                if (subPlatforms.Count == 0)
-                {
-                    return _diskProvider.GetFiles(path, true)
-                        .Any(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)));
-                }
+                    var ext = Path.GetExtension(f);
+                    return MediaFileExtensions.RomExtensions.Contains(ext) &&
+                           !ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                           !ext.Equals(".7z", StringComparison.OrdinalIgnoreCase);
+                });
             }
             catch (Exception ex)
             {
@@ -235,24 +223,17 @@ namespace NzbDrone.Core.RootFolders
                 return results;
             }
 
-            var currentDir = new DirectoryInfo(path.Normalize());
-
-            // Check if path itself is a recognized platform folder
-            var currentPathPlatform = PlatformCompatibilityValidator.ResolvePlatformName(currentDir.Name);
-            if (!string.IsNullOrWhiteSpace(currentPathPlatform))
+            // If there are just loose ROM files directly inside the root folder (no zip archives and no subfolders),
+            // do not list a platform folder; let the UI present the loose ROM files themselves for per-ROM platform assignment.
+            if (CheckContainsRomFiles(path))
             {
-                results.Add(new UnmappedFolder
-                {
-                    Name = currentPathPlatform,
-                    Path = currentDir.FullName,
-                    RelativePath = currentDir.Name
-                });
-
-                _logger.Debug("Path itself is recognized platform: {0}", currentPathPlatform);
                 return results;
             }
 
-            // Detect collection archives (.zip, .7z) in the root folder as unmapped platforms
+            var currentDir = new DirectoryInfo(path.Normalize());
+            var currentPathPlatform = PlatformCompatibilityValidator.ResolvePlatformName(currentDir.Name);
+
+            // Detect archives (.zip, .7z) in the root folder as importable items
             var archiveFiles = _diskProvider.GetFiles(path, false)
                 .Where(f => Path.GetExtension(f).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
                             Path.GetExtension(f).Equals(".7z", StringComparison.OrdinalIgnoreCase))
@@ -261,12 +242,11 @@ namespace NzbDrone.Core.RootFolders
             foreach (var archiveFile in archiveFiles)
             {
                 var resolvedPlatform = ResolvePlatformFromArchive(archiveFile);
+                var folderName = Path.GetFileNameWithoutExtension(archiveFile);
+                var targetPlatformPath = Path.Combine(path, folderName);
 
                 if (!string.IsNullOrWhiteSpace(resolvedPlatform))
                 {
-                    var folderName = Path.GetFileNameWithoutExtension(archiveFile);
-                    var targetPlatformPath = Path.Combine(path, folderName);
-
                     if (string.Equals(currentPathPlatform, resolvedPlatform, StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(currentDir.Name, folderName, StringComparison.OrdinalIgnoreCase))
                     {
@@ -286,8 +266,6 @@ namespace NzbDrone.Core.RootFolders
                 }
                 else
                 {
-                    var folderName = Path.GetFileNameWithoutExtension(archiveFile);
-                    var targetPlatformPath = Path.Combine(path, folderName);
                     if (!results.Any(r => r.Path.PathEquals(targetPlatformPath)))
                     {
                         results.Add(new UnmappedFolder
@@ -313,34 +291,58 @@ namespace NzbDrone.Core.RootFolders
 
             var unmappedFolders = possibleSeriesFolders.ToList();
 
-            // Check if unmapped subfolders represent individual platforms or if the root folder is an extracted single platform
-            var detectedSubPlatforms = new List<(string Folder, string Platform)>();
-            foreach (var unmappedFolder in unmappedFolders)
+            // Check if path itself is a recognized platform folder and has no separate platform subfolders or archives
+            if (!string.IsNullOrWhiteSpace(currentPathPlatform) && archiveFiles.Count == 0)
             {
-                var di = new DirectoryInfo(unmappedFolder.Normalize());
-                if (PlatformCompatibilityValidator.IsRegionOrBucketFolder(di.Name) || SpecialFolders.Contains(di.Name.ToLowerInvariant()))
+                var hasDistinctPlatformSubfolders = unmappedFolders.Any(f =>
                 {
-                    continue;
-                }
+                    var di = new DirectoryInfo(f.Normalize());
+                    if (PlatformCompatibilityValidator.IsRegionOrBucketFolder(di.Name) || SpecialFolders.Contains(di.Name.ToLowerInvariant()))
+                    {
+                        return false;
+                    }
 
-                var platName = PlatformCompatibilityValidator.ResolvePlatformName(di.Name);
-                if (!string.IsNullOrWhiteSpace(platName))
+                    var subPlat = PlatformCompatibilityValidator.ResolvePlatformName(di.Name);
+                    return !string.IsNullOrWhiteSpace(subPlat) && !string.Equals(subPlat, currentPathPlatform, StringComparison.OrdinalIgnoreCase);
+                });
+
+                if (!hasDistinctPlatformSubfolders)
                 {
-                    detectedSubPlatforms.Add((unmappedFolder, platName));
+                    results.Add(new UnmappedFolder
+                    {
+                        Name = currentPathPlatform,
+                        Path = currentDir.FullName,
+                        RelativePath = currentDir.Name
+                    });
+
+                    _logger.Debug("Path itself is recognized platform: {0}", currentPathPlatform);
+                    return results;
                 }
             }
 
+            var nonRegionSubfolders = unmappedFolders
+                .Select(f => (Folder: f, DirInfo: new DirectoryInfo(f.Normalize())))
+                .Where(x => !PlatformCompatibilityValidator.IsRegionOrBucketFolder(x.DirInfo.Name) &&
+                            !SpecialFolders.Contains(x.DirInfo.Name.ToLowerInvariant()))
+                .ToList();
+
+            var detectedSubPlatforms = nonRegionSubfolders
+                .Select(x => (x.Folder, x.DirInfo, Platform: PlatformCompatibilityValidator.ResolvePlatformName(x.DirInfo.Name)))
+                .Where(x => !string.IsNullOrWhiteSpace(x.Platform))
+                .ToList();
+
             if (detectedSubPlatforms.Count > 0)
             {
-                // Subdirectories directly define distinct platforms
-                foreach (var (folder, plat) in detectedSubPlatforms)
+                foreach (var (folder, di, plat) in nonRegionSubfolders.Select(x => (
+                    x.Folder,
+                    x.DirInfo,
+                    Plat: PlatformCompatibilityValidator.ResolvePlatformName(x.DirInfo.Name) ?? ResolvePlatformFromDirectory(x.Folder))))
                 {
-                    var di = new DirectoryInfo(folder.Normalize());
                     if (!results.Any(r => r.Path.PathEquals(di.FullName)))
                     {
                         results.Add(new UnmappedFolder
                         {
-                            Name = plat,
+                            Name = !string.IsNullOrWhiteSpace(plat) ? plat : di.Name,
                             Path = di.FullName,
                             RelativePath = path.GetRelativePath(di.FullName)
                         });
@@ -365,21 +367,18 @@ namespace NzbDrone.Core.RootFolders
                 else
                 {
                     // Fall back to evaluating each unmapped subfolder individually
-                    foreach (var unmappedFolder in unmappedFolders)
+                    foreach (var (folder, di) in nonRegionSubfolders)
                     {
-                        var di = new DirectoryInfo(unmappedFolder.Normalize());
-                        if (PlatformCompatibilityValidator.IsRegionOrBucketFolder(di.Name) || SpecialFolders.Contains(di.Name.ToLowerInvariant()))
+                        var plat = ResolvePlatformFromDirectory(folder);
+                        if (!results.Any(r => r.Path.PathEquals(di.FullName)))
                         {
-                            continue;
+                            results.Add(new UnmappedFolder
+                            {
+                                Name = !string.IsNullOrWhiteSpace(plat) ? plat : di.Name,
+                                Path = di.FullName,
+                                RelativePath = path.GetRelativePath(di.FullName)
+                            });
                         }
-
-                        var plat = ResolvePlatformFromDirectory(unmappedFolder);
-                        results.Add(new UnmappedFolder
-                        {
-                            Name = !string.IsNullOrWhiteSpace(plat) ? plat : di.Name,
-                            Path = di.FullName,
-                            RelativePath = path.GetRelativePath(di.FullName)
-                        });
                     }
                 }
             }

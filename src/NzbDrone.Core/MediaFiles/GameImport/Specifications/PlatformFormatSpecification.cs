@@ -35,7 +35,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
             var extension = Path.GetExtension(localEpisode.Path).ToLowerInvariant();
 
             if (localEpisode.Series != null &&
-                !PlatformCompatibilityValidator.IsCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
+                !PlatformCompatibilityValidator.IsLocalFileCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
             {
                 _logger.Debug("Rejecting file {0}: Extension/format is not compatible with platform {1}", localEpisode.Path, localEpisode.Series.Title);
                 return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"File format '{extension}' is not compatible with platform '{localEpisode.Series.Title}'");

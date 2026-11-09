@@ -220,7 +220,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             try
             {
                 if (localEpisode.Series != null &&
-                    !PlatformCompatibilityValidator.IsCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
+                    !PlatformCompatibilityValidator.IsLocalFileCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
                 {
                     _logger.Debug("Skipping ROM hash calculation for {0}: format not compatible with platform {1}", localEpisode.Path, localEpisode.Series.Title);
                     return;
@@ -245,15 +245,19 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                             var (series, episode, highConfidence) = ResolvePlatformAndGame(crc32, resolvedName, zipPath, preferredSeries: localEpisode.Series);
                             localEpisode.Series ??= series;
-                            if (episode != null && (localEpisode.Episodes == null || localEpisode.Episodes.Count == 0))
+                            if (episode != null && (localEpisode.Episodes == null || localEpisode.Episodes.Count == 0 || highConfidence))
                             {
                                 localEpisode.Episodes = new List<Episode> { episode };
                             }
 
                             if (localEpisode.FileEpisodeInfo != null && episode != null)
                             {
-                                localEpisode.FileEpisodeInfo.SeasonNumber ??= episode.SeasonNumber;
-                                if (localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
+                                if (highConfidence || localEpisode.FileEpisodeInfo.SeasonNumber == null)
+                                {
+                                    localEpisode.FileEpisodeInfo.SeasonNumber = episode.SeasonNumber;
+                                }
+
+                                if (highConfidence || localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
                                 {
                                     localEpisode.FileEpisodeInfo.EpisodeNumbers = new[] { episode.EpisodeNumber };
                                 }
@@ -286,7 +290,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     }
 
                     localEpisode.Series ??= processed.Series;
-                    if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0) && processed.Episodes != null && processed.Episodes.Count > 0)
+                    if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0 || processed.IsHighConfidenceMatch) &&
+                        processed.Episodes != null && processed.Episodes.Count > 0)
                     {
                         localEpisode.Episodes = processed.Episodes;
                     }
@@ -294,8 +299,12 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     if (localEpisode.FileEpisodeInfo != null && processed.Episodes != null && processed.Episodes.Count > 0)
                     {
                         var firstEp = processed.Episodes[0];
-                        localEpisode.FileEpisodeInfo.SeasonNumber ??= firstEp.SeasonNumber;
-                        if (localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
+                        if (processed.IsHighConfidenceMatch || localEpisode.FileEpisodeInfo.SeasonNumber == null)
+                        {
+                            localEpisode.FileEpisodeInfo.SeasonNumber = firstEp.SeasonNumber;
+                        }
+
+                        if (processed.IsHighConfidenceMatch || localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
                         {
                             localEpisode.FileEpisodeInfo.EpisodeNumbers = new[] { firstEp.EpisodeNumber };
                         }

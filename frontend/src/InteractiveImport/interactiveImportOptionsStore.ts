@@ -18,13 +18,13 @@ export const COLUMNS = [
   },
   {
     name: 'series',
-    label: 'Series',
+    label: 'Platform',
     isSortable: true,
     isVisible: true,
   },
   {
     name: 'season',
-    label: 'Season',
+    label: 'Region',
     isVisible: true,
   },
   {
@@ -85,13 +85,13 @@ const {
   setOption,
   setSort,
 } = createOptionsStore<InteractiveImportOptions>(
-  'interactive_import_options_v2',
+  'interactive_import_options_v3',
   () => {
     return {
       selectedFilterKey: 'all',
       sortKey: 'relativePath',
       sortDirection: 'ascending',
-      importMode: 'chooseImportMode',
+      importMode: 'move',
       columns: COLUMNS,
     };
   }

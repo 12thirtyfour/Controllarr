@@ -8,6 +8,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Bios;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
@@ -48,6 +49,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
         private readonly IEventAggregator _eventAggregator;
         private readonly IUnmanagedDiskScanner _unmanagedDiskScanner;
         private readonly IBiosService _biosService;
+        private readonly IConfigService _configService;
         private readonly Logger _logger;
 
         public ManualImportService(IDiskProvider diskProvider,
@@ -66,7 +68,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                                    IEventAggregator eventAggregator,
                                    Logger logger,
                                    IUnmanagedDiskScanner unmanagedDiskScanner,
-                                   IBiosService biosService = null)
+                                   IBiosService biosService = null,
+                                   IConfigService configService = null)
         {
             _diskProvider = diskProvider;
             _parsingService = parsingService;
@@ -85,6 +88,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             _logger = logger;
             _unmanagedDiskScanner = unmanagedDiskScanner;
             _biosService = biosService;
+            _configService = configService;
         }
 
         public List<ManualImportItem> GetMediaFiles(int seriesId, int? seasonNumber)
@@ -591,6 +595,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             var imported = new List<ImportResult>();
             var importedTrackedDownload = new List<ManuallyImportedFile>();
             var importedUntrackedDownload = new List<ImportResult>();
+            var importedZipArchives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var importedSourceDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             for (var i = 0; i < message.Files.Count; i++)
             {
@@ -614,7 +620,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     var needsZipCompression = RomFileMovingService.IsPlatformCompressionEnabled(platform) &&
                                               RomFileMovingService.IsZipCompressibleRom(Path.GetExtension(file.Path), platform, file.Path);
 
-                    if (needsRegionFolder || needsZipCompression)
+                    if (needsRegionFolder || needsZipCompression || message.ImportMode == ImportMode.Move || message.ImportMode == ImportMode.Auto)
                     {
                         existingFile = false;
                     }
@@ -631,6 +637,13 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                     if (File.Exists(zipPath))
                     {
+                        importedZipArchives.Add(zipPath);
+                        var zipDir = Path.GetDirectoryName(zipPath);
+                        if (!string.IsNullOrWhiteSpace(zipDir))
+                        {
+                            importedSourceDirs.Add(zipDir);
+                        }
+
                         tempExtractDir = Path.Combine(Path.GetTempPath(), "ControllarrImport", Guid.NewGuid().ToString("N"));
                         Directory.CreateDirectory(tempExtractDir);
                         actualPath = Path.Combine(tempExtractDir, Path.GetFileName(entryName));
@@ -669,6 +682,14 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     }
 
                     existingFile = false;
+                }
+                else
+                {
+                    var sourceDir = Path.GetDirectoryName(file.Path);
+                    if (!string.IsNullOrWhiteSpace(sourceDir) && (platform == null || !platform.Path.IsParentPath(sourceDir)))
+                    {
+                        importedSourceDirs.Add(sourceDir);
+                    }
                 }
 
                 if (_biosService != null && platform != null &&
@@ -788,6 +809,45 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             if (imported.Any())
             {
                 _logger.ProgressTrace("Manually imported {0} files", imported.Count);
+
+                if (message.ImportMode != ImportMode.Copy &&
+                    (_configService == null || _configService.DeleteOriginalAfterConversion))
+                {
+                    foreach (var zipArchive in importedZipArchives)
+                    {
+                        if (_diskProvider.FileExists(zipArchive))
+                        {
+                            try
+                            {
+                                _diskProvider.DeleteFile(zipArchive);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Debug(ex, "Unable to delete imported source archive '{0}'", zipArchive);
+                            }
+                        }
+                    }
+                }
+
+                if (message.ImportMode != ImportMode.Copy &&
+                    _configService != null &&
+                    _configService.DeleteEmptyFolders)
+                {
+                    foreach (var sourceDir in importedSourceDirs)
+                    {
+                        if (_diskProvider.FolderExists(sourceDir) && _diskProvider.GetFiles(sourceDir, true).Empty())
+                        {
+                            try
+                            {
+                                _diskProvider.DeleteFolder(sourceDir, true);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Debug(ex, "Unable to delete empty source folder '{0}'", sourceDir);
+                            }
+                        }
+                    }
+                }
             }
 
             var untrackedImports = importedUntrackedDownload.Where(i => i.Result == ImportResultType.Imported).ToList();

@@ -48,13 +48,14 @@ function ImportPlatform() {
     };
   }, [rootFolders, rootFolderId]);
 
+  const hasLooseRomsOnly = containsRomFiles && unmappedFolders.length === 0;
   const [isInteractiveImportOpen, setIsInteractiveImportOpen] = useState(false);
 
   useEffect(() => {
-    if (containsRomFiles) {
+    if (hasLooseRomsOnly) {
       setIsInteractiveImportOpen(true);
     }
-  }, [containsRomFiles]);
+  }, [hasLooseRomsOnly]);
 
   const handleInteractiveImportClose = useCallback(() => {
     setIsInteractiveImportOpen(false);
@@ -97,10 +98,10 @@ function ImportPlatform() {
               </Alert>
             ) : null}
 
-            {containsRomFiles ? (
+            {hasLooseRomsOnly ? (
               <div style={{ marginBottom: 16 }}>
                 <Alert kind={kinds.INFO}>
-                  ROM files detected in {path}. Use Interactive Import to match and import individual ROMs into your library.
+                  Loose ROM files detected in {path}. Use Interactive Import to specify a platform per ROM and import them into your library.
                 </Alert>
                 <div style={{ marginTop: 8 }}>
                   <Button
@@ -118,7 +119,7 @@ function ImportPlatform() {
             !rootFoldersFetching &&
             rootFoldersFetched &&
             !unmappedFolders.length &&
-            !containsRomFiles ? (
+            !hasLooseRomsOnly ? (
               <div>
                 <Alert kind={kinds.INFO}>
                   {translate('AllSeriesInRootFolderHaveBeenImported', { path })}
@@ -134,20 +135,6 @@ function ImportPlatform() {
                 </div>
               </div>
             ) : null}
-
-            {!rootFoldersError &&
-            rootFoldersFetched &&
-            !!unmappedFolders.length && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                <Button
-                  kind={kinds.DEFAULT}
-                  onPress={() => setIsInteractiveImportOpen(true)}
-                >
-                  <Icon name={icons.INTERACTIVE} />
-                  {translate('InteractiveImport')}
-                </Button>
-              </div>
-            )}
 
             {!rootFoldersError &&
             rootFoldersFetched &&

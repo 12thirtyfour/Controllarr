@@ -12,6 +12,7 @@ using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
@@ -32,6 +33,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
         private readonly IHistoryService _historyService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly IBuildFileNames _fileNameBuilder;
         private readonly Logger _logger;
 
         public ImportApprovedGames(IUpgradeMediaFiles romFileUpgrader,
@@ -42,7 +44,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                                       IHistoryService historyService,
                                       IEventAggregator eventAggregator,
                                       IManageCommandQueue commandQueueManager,
-                                      Logger logger)
+                                      Logger logger,
+                                      IBuildFileNames fileNameBuilder = null)
         {
             _romFileUpgrader = romFileUpgrader;
             _mediaFileService = mediaFileService;
@@ -53,6 +56,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
             _eventAggregator = eventAggregator;
             _commandQueueManager = commandQueueManager;
             _logger = logger;
+            _fileNameBuilder = fileNameBuilder;
         }
 
         public List<ImportResult> Import(List<ImportDecision> decisions, bool newDownload, DownloadClientItem downloadClientItem = null, ImportMode importMode = ImportMode.Auto)
@@ -238,10 +242,38 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 return true;
             }
 
-            if (RomFileMovingService.IsPlatformCompressionEnabled(localGame.Series) &&
-                RomFileMovingService.IsZipCompressibleRom(ext, localGame.Series, localGame.Path))
+            var shouldCompress = RomFileMovingService.IsPlatformCompressionEnabled(localGame.Series);
+            if (shouldCompress && RomFileMovingService.IsZipCompressibleRom(ext, localGame.Series, localGame.Path))
             {
                 return true;
+            }
+
+            if (!shouldCompress && ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (_fileNameBuilder != null && localGame.Episodes != null && localGame.Episodes.Any())
+            {
+                try
+                {
+                    localGame.Series.SeasonFolder = true;
+                    var expectedFilePath = _fileNameBuilder.BuildFilePath(
+                        localGame.Episodes,
+                        localGame.Series,
+                        romFile,
+                        ext,
+                        null,
+                        localGame.CustomFormats);
+
+                    if (!string.IsNullOrWhiteSpace(expectedFilePath) && !localGame.Path.PathEquals(expectedFilePath))
+                    {
+                        return true;
+                    }
+                }
+                catch
+                {
+                }
             }
 
             return false;

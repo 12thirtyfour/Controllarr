@@ -428,6 +428,50 @@ namespace NzbDrone.Core.Parser
             return true;
         }
 
+        public static bool IsLocalFileCompatible(string filePathOrName, string platformSlug, string platformName = null)
+        {
+            if (string.IsNullOrWhiteSpace(platformSlug) || string.IsNullOrWhiteSpace(filePathOrName))
+            {
+                return true;
+            }
+
+            var targetSlug = NormalizePlatformSlug(platformSlug, platformName);
+            var isCartridge = CartridgePlatforms.Contains(targetSlug);
+
+            var ext = Path.GetExtension(filePathOrName);
+            if (!string.IsNullOrWhiteSpace(ext))
+            {
+                ext = ext.ToLowerInvariant();
+
+                if (ext is ".exe" or ".msi" or ".bat" or ".cmd" or ".com" or ".appimage" or ".dmg")
+                {
+                    return false;
+                }
+
+                if (isCartridge && DiscExclusiveExtensions.Contains(ext))
+                {
+                    return false;
+                }
+
+                foreach (var (platform, extensions) in ExclusiveExtensionsByPlatform)
+                {
+                    if (!string.Equals(platform, targetSlug, StringComparison.OrdinalIgnoreCase) &&
+                        extensions.Contains(ext))
+                    {
+                        if (ExclusiveExtensionsByPlatform.TryGetValue(targetSlug, out var targetExts) &&
+                            targetExts.Contains(ext))
+                        {
+                            continue;
+                        }
+
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
         public static readonly HashSet<string> IgnoredRegionOrBucketFolders = new(StringComparer.OrdinalIgnoreCase)
         {
             "usa", "europe", "japan", "world", "asia", "australia", "germany", "france", "spain", "italy",
