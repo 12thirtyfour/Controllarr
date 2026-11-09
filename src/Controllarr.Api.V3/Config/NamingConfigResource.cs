@@ -5,21 +5,24 @@ namespace Sonarr.Api.V3.Config
     public class NamingConfigResource : RestResource
     {
         private string _standardGameFormat;
-        private string _dailyGameFormat;
+        private string _discGameFormat;
         private string _animeGameFormat;
-        private bool _renameEpisodes;
-        private int _multiEpisodeStyle;
+        private string _platformFolderFormat;
+        private string _regionFolderFormat;
+        private string _unlicensedFolderFormat;
+        private bool _renameGames;
+        private int _multiGameStyle;
 
         public bool RenameEpisodes
         {
-            get => _renameEpisodes;
-            set => _renameEpisodes = value;
+            get => _renameGames;
+            set => _renameGames = value;
         }
 
         public bool RenameGames
         {
-            get => _renameEpisodes;
-            set => _renameEpisodes = value;
+            get => _renameGames;
+            set => _renameGames = value;
         }
 
         public bool ReplaceIllegalCharacters { get; set; }
@@ -30,14 +33,14 @@ namespace Sonarr.Api.V3.Config
 
         public int MultiEpisodeStyle
         {
-            get => _multiEpisodeStyle;
-            set => _multiEpisodeStyle = value;
+            get => _multiGameStyle;
+            set => _multiGameStyle = value;
         }
 
         public int MultiGameStyle
         {
-            get => _multiEpisodeStyle;
-            set => _multiEpisodeStyle = value;
+            get => _multiGameStyle;
+            set => _multiGameStyle = value;
         }
 
         public string StandardGameFormat
@@ -52,14 +55,26 @@ namespace Sonarr.Api.V3.Config
             }
         }
 
-        public string DailyGameFormat
+        public string DiscGameFormat
         {
-            get => _dailyGameFormat;
+            get => _discGameFormat;
             set
             {
-                if (!string.IsNullOrEmpty(value) || _dailyGameFormat == null)
+                if (!string.IsNullOrEmpty(value) || _discGameFormat == null)
                 {
-                    _dailyGameFormat = value;
+                    _discGameFormat = value;
+                }
+            }
+        }
+
+        public string DailyGameFormat
+        {
+            get => _discGameFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _discGameFormat == null)
+                {
+                    _discGameFormat = value;
                 }
             }
         }
@@ -76,10 +91,76 @@ namespace Sonarr.Api.V3.Config
             }
         }
 
-        public string SeriesFolderFormat { get; set; }
+        public string PlatformFolderFormat
+        {
+            get => _platformFolderFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _platformFolderFormat == null)
+                {
+                    _platformFolderFormat = value;
+                }
+            }
+        }
 
-        public string SeasonFolderFormat { get; set; }
+        public string SeriesFolderFormat
+        {
+            get => _platformFolderFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _platformFolderFormat == null)
+                {
+                    _platformFolderFormat = value;
+                }
+            }
+        }
 
-        public string SpecialsFolderFormat { get; set; }
+        public string RegionFolderFormat
+        {
+            get => _regionFolderFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _regionFolderFormat == null)
+                {
+                    _regionFolderFormat = value;
+                }
+            }
+        }
+
+        public string SeasonFolderFormat
+        {
+            get => _regionFolderFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _regionFolderFormat == null)
+                {
+                    _regionFolderFormat = value;
+                }
+            }
+        }
+
+        public string UnlicensedFolderFormat
+        {
+            get => _unlicensedFolderFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _unlicensedFolderFormat == null)
+                {
+                    _unlicensedFolderFormat = value;
+                }
+            }
+        }
+
+        public string SpecialsFolderFormat
+        {
+            get => _unlicensedFolderFormat;
+            set
+            {
+                if (!string.IsNullOrEmpty(value) || _unlicensedFolderFormat == null)
+                {
+                    _unlicensedFolderFormat = value;
+                }
+            }
+        }
     }
 }

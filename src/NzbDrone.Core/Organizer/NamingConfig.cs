@@ -12,11 +12,11 @@ namespace NzbDrone.Core.Organizer
             CustomColonReplacementFormat = string.Empty,
             MultiEpisodeStyle = MultiEpisodeStyle.PrefixedRange,
             StandardGameFormat = "{Game Title}",
-            DailyGameFormat = "{Game Title}/{Game Title}",
+            DiscGameFormat = "{Game Title}/{Game Title}",
             AnimeGameFormat = "{Game Title}",
-            SeriesFolderFormat = "{Manufacturer}/{Platform}",
-            SeasonFolderFormat = "{Region}",
-            SpecialsFolderFormat = "Unlicensed"
+            PlatformFolderFormat = "{Manufacturer}/{Platform}",
+            RegionFolderFormat = "{Region}",
+            UnlicensedFolderFormat = "Unlicensed"
         };
 
         public bool RenameEpisodes { get; set; }
@@ -31,6 +31,12 @@ namespace NzbDrone.Core.Organizer
             set => StandardEpisodeFormat = value;
         }
 
+        public string DiscGameFormat
+        {
+            get => DailyEpisodeFormat;
+            set => DailyEpisodeFormat = value;
+        }
+
         public string DailyGameFormat
         {
             get => DailyEpisodeFormat;
@@ -41,6 +47,24 @@ namespace NzbDrone.Core.Organizer
         {
             get => AnimeEpisodeFormat;
             set => AnimeEpisodeFormat = value;
+        }
+
+        public string PlatformFolderFormat
+        {
+            get => SeriesFolderFormat;
+            set => SeriesFolderFormat = value;
+        }
+
+        public string RegionFolderFormat
+        {
+            get => SeasonFolderFormat;
+            set => SeasonFolderFormat = value;
+        }
+
+        public string UnlicensedFolderFormat
+        {
+            get => SpecialsFolderFormat;
+            set => SpecialsFolderFormat = value;
         }
 
         public string StandardEpisodeFormat { get; set; }

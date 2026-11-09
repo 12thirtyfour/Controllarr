@@ -31,11 +31,11 @@ namespace Sonarr.Api.V3.Config
 
             SharedValidator.RuleFor(c => c.MultiEpisodeStyle).InclusiveBetween(0, 5);
             SharedValidator.RuleFor(c => c.StandardGameFormat).ValidGameFormat();
-            SharedValidator.RuleFor(c => c.DailyGameFormat).ValidDailyGameFormat();
+            SharedValidator.RuleFor(c => c.DiscGameFormat).ValidDailyGameFormat();
             SharedValidator.RuleFor(c => c.AnimeGameFormat).ValidAnimeGameFormat();
-            SharedValidator.RuleFor(c => c.SeriesFolderFormat).ValidSeriesFolderFormat();
-            SharedValidator.RuleFor(c => c.SeasonFolderFormat).ValidSeasonFolderFormat();
-            SharedValidator.RuleFor(c => c.SpecialsFolderFormat).ValidSpecialsFolderFormat();
+            SharedValidator.RuleFor(c => c.PlatformFolderFormat).ValidSeriesFolderFormat();
+            SharedValidator.RuleFor(c => c.RegionFolderFormat).ValidSeasonFolderFormat();
+            SharedValidator.RuleFor(c => c.UnlicensedFolderFormat).ValidSpecialsFolderFormat();
             SharedValidator.RuleFor(c => c.CustomColonReplacementFormat).ValidCustomColonReplacement().When(c => c.ColonReplacementFormat == (int)ColonReplacementFormat.Custom);
         }
 
@@ -75,48 +75,48 @@ namespace Sonarr.Api.V3.Config
             var nameSpec = settings.ToModel();
             var sampleResource = new NamingExampleResource();
 
-            var singleEpisodeSampleResult = _filenameSampleService.GetStandardSample(nameSpec);
-            var multiEpisodeSampleResult = _filenameSampleService.GetMultiEpisodeSample(nameSpec);
-            var dailyEpisodeSampleResult = _filenameSampleService.GetDailySample(nameSpec);
-            var animeEpisodeSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
-            var animeMultiEpisodeSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
+            var singleGameSampleResult = _filenameSampleService.GetStandardSample(nameSpec);
+            var multiGameSampleResult = _filenameSampleService.GetMultiEpisodeSample(nameSpec);
+            var discGameSampleResult = _filenameSampleService.GetDailySample(nameSpec);
+            var animeGameSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
+            var animeMultiGameSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
 
             var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardGameFormat) &&
                                            FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardGameFormat);
-            var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyGameFormat) &&
-                                        FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyGameFormat);
+            var hasOriginalDiscToken = !string.IsNullOrWhiteSpace(nameSpec.DiscGameFormat) &&
+                                       FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DiscGameFormat);
             var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeGameFormat) &&
                                         FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeGameFormat);
 
-            sampleResource.SingleEpisodeExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult) != null
+            sampleResource.SingleGameExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(singleGameSampleResult) != null
                     ? null
-                    : singleEpisodeSampleResult.FileName;
+                    : singleGameSampleResult.FileName;
 
-            sampleResource.MultiEpisodeExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult) != null
+            sampleResource.MultiGameExample = !hasOriginalStandardToken && _filenameValidationService.ValidateStandardFilename(multiGameSampleResult) != null
                     ? null
-                    : multiEpisodeSampleResult.FileName;
+                    : multiGameSampleResult.FileName;
 
-            sampleResource.DailyEpisodeExample = !hasOriginalDailyToken && _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult) != null
+            sampleResource.DiscGameExample = !hasOriginalDiscToken && _filenameValidationService.ValidateDailyFilename(discGameSampleResult) != null
                     ? null
-                    : dailyEpisodeSampleResult.FileName;
+                    : discGameSampleResult.FileName;
 
-            sampleResource.AnimeEpisodeExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult) != null
+            sampleResource.AnimeGameExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeGameSampleResult) != null
                     ? null
-                    : animeEpisodeSampleResult.FileName;
+                    : animeGameSampleResult.FileName;
 
-            sampleResource.AnimeMultiEpisodeExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult) != null
+            sampleResource.AnimeMultiGameExample = !hasOriginalAnimeToken && _filenameValidationService.ValidateAnimeFilename(animeMultiGameSampleResult) != null
                     ? null
-                    : animeMultiEpisodeSampleResult.FileName;
+                    : animeMultiGameSampleResult.FileName;
 
-            sampleResource.SeriesFolderExample = nameSpec.SeriesFolderFormat.IsNullOrWhiteSpace()
+            sampleResource.PlatformFolderExample = nameSpec.PlatformFolderFormat.IsNullOrWhiteSpace()
                 ? null
                 : _filenameSampleService.GetSeriesFolderSample(nameSpec);
 
-            sampleResource.SeasonFolderExample = nameSpec.SeasonFolderFormat.IsNullOrWhiteSpace()
+            sampleResource.RegionFolderExample = nameSpec.RegionFolderFormat.IsNullOrWhiteSpace()
                 ? null
                 : _filenameSampleService.GetSeasonFolderSample(nameSpec);
 
-            sampleResource.SpecialsFolderExample = nameSpec.SpecialsFolderFormat.IsNullOrWhiteSpace()
+            sampleResource.UnlicensedFolderExample = nameSpec.UnlicensedFolderFormat.IsNullOrWhiteSpace()
                 ? null
                 : _filenameSampleService.GetSpecialsFolderSample(nameSpec);
 
@@ -125,32 +125,32 @@ namespace Sonarr.Api.V3.Config
 
         private void ValidateFormatResult(NamingConfig nameSpec)
         {
-            var singleEpisodeSampleResult = _filenameSampleService.GetStandardSample(nameSpec);
-            var multiEpisodeSampleResult = _filenameSampleService.GetMultiEpisodeSample(nameSpec);
-            var dailyEpisodeSampleResult = _filenameSampleService.GetDailySample(nameSpec);
-            var animeEpisodeSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
-            var animeMultiEpisodeSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
+            var singleGameSampleResult = _filenameSampleService.GetStandardSample(nameSpec);
+            var multiGameSampleResult = _filenameSampleService.GetMultiEpisodeSample(nameSpec);
+            var discGameSampleResult = _filenameSampleService.GetDailySample(nameSpec);
+            var animeGameSampleResult = _filenameSampleService.GetAnimeSample(nameSpec);
+            var animeMultiGameSampleResult = _filenameSampleService.GetAnimeMultiEpisodeSample(nameSpec);
 
             var hasOriginalStandardToken = !string.IsNullOrWhiteSpace(nameSpec.StandardGameFormat) &&
                                            FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.StandardGameFormat);
-            var hasOriginalDailyToken = !string.IsNullOrWhiteSpace(nameSpec.DailyGameFormat) &&
-                                        FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DailyGameFormat);
+            var hasOriginalDiscToken = !string.IsNullOrWhiteSpace(nameSpec.DiscGameFormat) &&
+                                       FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.DiscGameFormat);
             var hasOriginalAnimeToken = !string.IsNullOrWhiteSpace(nameSpec.AnimeGameFormat) &&
                                         FileNameValidation.OriginalTokenRegex.IsMatch(nameSpec.AnimeGameFormat);
 
-            var singleEpisodeValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(singleEpisodeSampleResult);
-            var multiEpisodeValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(multiEpisodeSampleResult);
-            var dailyEpisodeValidationResult = hasOriginalDailyToken ? null : _filenameValidationService.ValidateDailyFilename(dailyEpisodeSampleResult);
-            var animeEpisodeValidationResult = hasOriginalAnimeToken ? null : _filenameValidationService.ValidateAnimeFilename(animeEpisodeSampleResult);
-            var animeMultiEpisodeValidationResult = hasOriginalAnimeToken ? null : _filenameValidationService.ValidateAnimeFilename(animeMultiEpisodeSampleResult);
+            var singleGameValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(singleGameSampleResult);
+            var multiGameValidationResult = hasOriginalStandardToken ? null : _filenameValidationService.ValidateStandardFilename(multiGameSampleResult);
+            var discGameValidationResult = hasOriginalDiscToken ? null : _filenameValidationService.ValidateDailyFilename(discGameSampleResult);
+            var animeGameValidationResult = hasOriginalAnimeToken ? null : _filenameValidationService.ValidateAnimeFilename(animeGameSampleResult);
+            var animeMultiGameValidationResult = hasOriginalAnimeToken ? null : _filenameValidationService.ValidateAnimeFilename(animeMultiGameSampleResult);
 
             var validationFailures = new List<ValidationFailure>();
 
-            validationFailures.AddIfNotNull(singleEpisodeValidationResult);
-            validationFailures.AddIfNotNull(multiEpisodeValidationResult);
-            validationFailures.AddIfNotNull(dailyEpisodeValidationResult);
-            validationFailures.AddIfNotNull(animeEpisodeValidationResult);
-            validationFailures.AddIfNotNull(animeMultiEpisodeValidationResult);
+            validationFailures.AddIfNotNull(singleGameValidationResult);
+            validationFailures.AddIfNotNull(multiGameValidationResult);
+            validationFailures.AddIfNotNull(discGameValidationResult);
+            validationFailures.AddIfNotNull(animeGameValidationResult);
+            validationFailures.AddIfNotNull(animeMultiGameValidationResult);
 
             if (validationFailures.Any())
             {

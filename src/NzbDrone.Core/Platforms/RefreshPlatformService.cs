@@ -136,6 +136,11 @@ namespace NzbDrone.Core.Tv
             series.OriginalTitle = seriesInfo.OriginalTitle;
             series.CleanOriginalTitle = seriesInfo.CleanOriginalTitle;
             series.SeasonTypes = seriesInfo.SeasonTypes;
+            series.SeasonFolder = true;
+            if (string.IsNullOrWhiteSpace(series.PreferredArchiveFormat))
+            {
+                series.PreferredArchiveFormat = "auto";
+            }
 
             try
             {

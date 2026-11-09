@@ -12,8 +12,8 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
-import formatSeason from 'Region/formatRegion';
 import { useSingleSeries } from 'Platform/usePlatform';
+import formatRegion from 'Region/formatRegion';
 import { useNamingSettings } from 'Settings/MediaManagement/Naming/useNamingSettings';
 import { CheckInputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
@@ -57,7 +57,7 @@ function OrganizePreviewModalContentInner({
     data: naming,
   } = useNamingSettings();
 
-  const series = useSingleSeries(seriesId)!;
+  const platform = useSingleSeries(seriesId)!;
 
   const { allSelected, allUnselected, getSelectedIds, selectAll, unselectAll } =
     useSelect<OrganizePreviewModel>();
@@ -66,8 +66,7 @@ function OrganizePreviewModalContentInner({
   const isPopulated = isPreviewFetched && isNamingFetched;
   const error = previewError || namingError;
   const { renameGames } = naming;
-  const gameFormat =
-    naming[`${series.seriesType}GameFormat`] ?? naming.standardGameFormat ?? '';
+  const gameFormat = naming.standardGameFormat ?? '';
 
   const selectAllValue = getValue(allSelected, allUnselected);
 
@@ -100,7 +99,7 @@ function OrganizePreviewModalContentInner({
         {seasonNumber == null
           ? translate('OrganizeModalHeader')
           : translate('OrganizeModalHeaderSeason', {
-              season: formatSeason(seasonNumber) ?? '',
+              season: formatRegion(seasonNumber) ?? '',
             })}
       </ModalHeader>
 
@@ -127,7 +126,7 @@ function OrganizePreviewModalContentInner({
               <div>
                 <InlineMarkdown
                   data={translate('OrganizeRelativePaths', {
-                    path: series.path,
+                    path: platform.path,
                   })}
                   blockClassName={styles.path}
                 />

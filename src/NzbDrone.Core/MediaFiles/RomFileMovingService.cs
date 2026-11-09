@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -22,15 +23,15 @@ namespace NzbDrone.Core.MediaFiles
 {
     public interface IMoveRomFiles
     {
-        EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series);
-        EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode);
-        EpisodeFile CopyEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode);
+        EpisodeFile MoveEpisodeFile(EpisodeFile romFile, Series platform);
+        EpisodeFile MoveEpisodeFile(EpisodeFile romFile, LocalEpisode localGame);
+        EpisodeFile CopyEpisodeFile(EpisodeFile romFile, LocalEpisode localGame);
     }
 
     public class RomFileMovingService : IMoveRomFiles
     {
-        private readonly IEpisodeService _episodeService;
-        private readonly IUpdateRomFileService _updateEpisodeFileService;
+        private readonly IEpisodeService _gameService;
+        private readonly IUpdateRomFileService _updateRomFileService;
         private readonly IBuildFileNames _buildFileNames;
         private readonly IDiskTransferService _diskTransferService;
         private readonly IDiskProvider _diskProvider;
@@ -45,8 +46,8 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IArchiveExtractionService _archiveExtractionService;
         private readonly Logger _logger;
 
-        public RomFileMovingService(IEpisodeService episodeService,
-                                IUpdateRomFileService updateEpisodeFileService,
+        public RomFileMovingService(IEpisodeService gameService,
+                                IUpdateRomFileService updateRomFileService,
                                 IBuildFileNames buildFileNames,
                                 IDiskTransferService diskTransferService,
                                 IDiskProvider diskProvider,
@@ -61,8 +62,8 @@ namespace NzbDrone.Core.MediaFiles
                                 IArchiveRepackService archiveRepackService = null,
                                 IArchiveExtractionService archiveExtractionService = null)
         {
-            _episodeService = episodeService;
-            _updateEpisodeFileService = updateEpisodeFileService;
+            _gameService = gameService;
+            _updateRomFileService = updateRomFileService;
             _buildFileNames = buildFileNames;
             _diskTransferService = diskTransferService;
             _diskProvider = diskProvider;
@@ -78,82 +79,88 @@ namespace NzbDrone.Core.MediaFiles
             _archiveExtractionService = archiveExtractionService;
         }
 
-        public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series)
+        public EpisodeFile MoveEpisodeFile(EpisodeFile romFile, Series platform)
         {
-            var episodes = _episodeService.GetEpisodesByFileId(episodeFile.Id);
-            return MoveEpisodeFile(episodeFile, series, episodes);
+            var games = _gameService.GetEpisodesByFileId(romFile.Id);
+            return MoveRomFile(romFile, platform, games);
         }
 
-        private EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, Series series, List<Episode> episodes)
+        private EpisodeFile MoveRomFile(EpisodeFile romFile, Series platform, List<Episode> games)
         {
-            var filePath = _buildFileNames.BuildFilePath(episodes, series, episodeFile, Path.GetExtension(episodeFile.RelativePath));
+            var filePath = _buildFileNames.BuildFilePath(games, platform, romFile, Path.GetExtension(romFile.RelativePath));
 
-            EnsureEpisodeFolder(episodeFile, series, episodes.Select(v => v.SeasonNumber).First(), filePath);
+            EnsureGameFolder(romFile, platform, games.Select(v => v.SeasonNumber).First(), filePath);
 
-            _logger.Debug("Renaming episode file: {0} to {1}", episodeFile, filePath);
+            _logger.Debug("Renaming ROM file: {0} to {1}", romFile, filePath);
 
-            return TransferFile(episodeFile, series, episodes, filePath, TransferMode.Move);
+            return TransferFile(romFile, platform, games, filePath, TransferMode.Move);
         }
 
-        public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode)
+        public EpisodeFile MoveEpisodeFile(EpisodeFile romFile, LocalEpisode localGame)
         {
-            var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.CustomFormats);
+            var filePath = _buildFileNames.BuildFilePath(localGame.Episodes, localGame.Series, romFile, Path.GetExtension(localGame.Path), null, localGame.CustomFormats);
 
-            EnsureEpisodeFolder(episodeFile, localEpisode, filePath);
+            EnsureGameFolder(romFile, localGame, filePath);
 
-            _logger.Debug("Moving episode file: {0} to {1}", episodeFile.Path, filePath);
+            _logger.Debug("Moving ROM file: {0} to {1}", romFile.Path, filePath);
 
-            return TransferFile(episodeFile, localEpisode.Series, localEpisode.Episodes, filePath, TransferMode.Move, localEpisode);
+            return TransferFile(romFile, localGame.Series, localGame.Episodes, filePath, TransferMode.Move, localGame);
         }
 
-        public EpisodeFile CopyEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode)
+        public EpisodeFile CopyEpisodeFile(EpisodeFile romFile, LocalEpisode localGame)
         {
-            var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.CustomFormats);
+            var filePath = _buildFileNames.BuildFilePath(localGame.Episodes, localGame.Series, romFile, Path.GetExtension(localGame.Path), null, localGame.CustomFormats);
 
-            EnsureEpisodeFolder(episodeFile, localEpisode, filePath);
+            EnsureGameFolder(romFile, localGame, filePath);
 
             if (_configService.CopyUsingHardlinks)
             {
-                _logger.Debug("Attempting to hardlink episode file: {0} to {1}", episodeFile.Path, filePath);
-                return TransferFile(episodeFile, localEpisode.Series, localEpisode.Episodes, filePath, TransferMode.HardLinkOrCopy, localEpisode);
+                _logger.Debug("Attempting to hardlink ROM file: {0} to {1}", romFile.Path, filePath);
+                return TransferFile(romFile, localGame.Series, localGame.Episodes, filePath, TransferMode.HardLinkOrCopy, localGame);
             }
 
-            _logger.Debug("Copying episode file: {0} to {1}", episodeFile.Path, filePath);
-            return TransferFile(episodeFile, localEpisode.Series, localEpisode.Episodes, filePath, TransferMode.Copy, localEpisode);
+            _logger.Debug("Copying ROM file: {0} to {1}", romFile.Path, filePath);
+            return TransferFile(romFile, localGame.Series, localGame.Episodes, filePath, TransferMode.Copy, localGame);
         }
 
-        private EpisodeFile TransferFile(EpisodeFile episodeFile, Series series, List<Episode> episodes, string destinationFilePath, TransferMode mode, LocalEpisode localEpisode = null)
+        private EpisodeFile TransferFile(EpisodeFile romFile, Series platform, List<Episode> games, string destinationFilePath, TransferMode mode, LocalEpisode localGame = null)
         {
-            Ensure.That(episodeFile, () => episodeFile).IsNotNull();
-            Ensure.That(series, () => series).IsNotNull();
+            Ensure.That(romFile, () => romFile).IsNotNull();
+            Ensure.That(platform, () => platform).IsNotNull();
             Ensure.That(destinationFilePath, () => destinationFilePath).IsValidPath(PathValidationType.CurrentOs);
 
-            var episodeFilePath = episodeFile.Path ?? Path.Combine(series.Path, episodeFile.RelativePath);
+            var romFilePath = romFile.Path ?? Path.Combine(platform.Path, romFile.RelativePath);
 
-            if (!_diskProvider.FileExists(episodeFilePath))
+            if (!_diskProvider.FileExists(romFilePath))
             {
-                throw new FileNotFoundException("Episode file path does not exist", episodeFilePath);
+                throw new FileNotFoundException("ROM file path does not exist", romFilePath);
             }
 
-            if (episodeFilePath == destinationFilePath)
+            if (romFilePath == destinationFilePath)
             {
-                throw new SameFilenameException("File not moved, source and destination are the same", episodeFilePath);
+                if (File.Exists(destinationFilePath) && ShouldPostProcessInPlace(destinationFilePath, platform))
+                {
+                    PostProcessRomFile(ref destinationFilePath, romFile, platform);
+                    return romFile;
+                }
+
+                throw new SameFilenameException("File not moved, source and destination are the same", romFilePath);
             }
 
-            episodeFile.RelativePath = series.Path.GetRelativePath(destinationFilePath);
+            romFile.RelativePath = platform.Path.GetRelativePath(destinationFilePath);
 
-            if (localEpisode is not null)
+            if (localGame is not null)
             {
-                localEpisode.FileNameBeforeRename = episodeFile.RelativePath;
+                localGame.FileNameBeforeRename = romFile.RelativePath;
             }
 
-            if (localEpisode is not null && _scriptImportDecider.TryImport(episodeFilePath, destinationFilePath, localEpisode, episodeFile, mode) is var scriptImportDecision && scriptImportDecision != ScriptImportDecision.DeferMove)
+            if (localGame is not null && _scriptImportDecider.TryImport(romFilePath, destinationFilePath, localGame, romFile, mode) is var scriptImportDecision && scriptImportDecision != ScriptImportDecision.DeferMove)
             {
                 if (scriptImportDecision == ScriptImportDecision.RenameRequested)
                 {
                     try
                     {
-                        MoveEpisodeFile(episodeFile, series, episodeFile.Episodes);
+                        MoveRomFile(romFile, platform, romFile.Episodes);
                     }
                     catch (SameFilenameException)
                     {
@@ -163,27 +170,27 @@ namespace NzbDrone.Core.MediaFiles
             }
             else
             {
-                _diskTransferService.TransferFile(episodeFilePath, destinationFilePath, mode);
+                _diskTransferService.TransferFile(romFilePath, destinationFilePath, mode);
             }
 
             var sidecarMode = (mode == TransferMode.Copy || mode == TransferMode.HardLinkOrCopy)
                 ? ImportMode.Copy
                 : ImportMode.Move;
-            _sidecarSaveService?.RenameAdjacentSaves(episodeFilePath, destinationFilePath, sidecarMode);
+            _sidecarSaveService?.RenameAdjacentSaves(romFilePath, destinationFilePath, sidecarMode);
 
-            PostProcessRomFile(ref destinationFilePath, episodeFile, series);
+            PostProcessRomFile(ref destinationFilePath, romFile, platform);
 
-            _updateEpisodeFileService.ChangeFileDateForFile(episodeFile, series, episodes);
+            _updateRomFileService.ChangeFileDateForFile(romFile, platform, games);
 
             try
             {
-                _mediaFileAttributeService.SetFolderLastWriteTime(series.Path, episodeFile.DateAdded);
+                _mediaFileAttributeService.SetFolderLastWriteTime(platform.Path, romFile.DateAdded);
 
-                if (series.SeasonFolder)
+                if (platform.SeasonFolder)
                 {
-                    var seasonFolder = Path.GetDirectoryName(destinationFilePath);
+                    var regionFolder = Path.GetDirectoryName(destinationFilePath);
 
-                    _mediaFileAttributeService.SetFolderLastWriteTime(seasonFolder, episodeFile.DateAdded);
+                    _mediaFileAttributeService.SetFolderLastWriteTime(regionFolder, romFile.DateAdded);
                 }
             }
             catch (Exception ex)
@@ -193,12 +200,12 @@ namespace NzbDrone.Core.MediaFiles
 
             _mediaFileAttributeService.SetFilePermissions(destinationFilePath);
 
-            return episodeFile;
+            return romFile;
         }
 
-        private bool ResolvePlatformCompressionEnabled(Series series)
+        public static bool IsPlatformCompressionEnabled(Series platform)
         {
-            var format = series?.PreferredArchiveFormat?.Trim();
+            var format = platform?.PreferredArchiveFormat?.Trim();
             if (!string.IsNullOrWhiteSpace(format))
             {
                 if (format.Equals("none", StringComparison.OrdinalIgnoreCase) ||
@@ -221,10 +228,75 @@ namespace NzbDrone.Core.MediaFiles
                 }
             }
 
-            return _configService != null && _configService.AutoCompressDiscsToChd;
+            return true;
         }
 
-        private void PostProcessRomFile(ref string destinationFilePath, EpisodeFile episodeFile, Series series)
+        public static bool IsZipCompressibleRom(string ext, Series platform = null, string filePath = null)
+        {
+            if (string.IsNullOrWhiteSpace(ext))
+            {
+                return false;
+            }
+
+            if (MediaFileExtensions.ZipCompressibleRomExtensions.Contains(ext))
+            {
+                return true;
+            }
+
+            if (ext.Equals(".bin", StringComparison.OrdinalIgnoreCase))
+            {
+                var slug = platform?.TitleSlug ?? string.Empty;
+                if (slug.Equals("genesis", StringComparison.OrdinalIgnoreCase) ||
+                    slug.Equals("atari2600", StringComparison.OrdinalIgnoreCase) ||
+                    slug.Equals("atari7800", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(filePath))
+                {
+                    var dir = Path.GetDirectoryName(filePath);
+                    if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+                    {
+                        var hasCueOrGdi = Directory.GetFiles(dir)
+                            .Any(f =>
+                            {
+                                var e = Path.GetExtension(f);
+                                return e.Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                                       e.Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                                       e.Equals(".ccd", StringComparison.OrdinalIgnoreCase);
+                            });
+
+                        if (!hasCueOrGdi)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ShouldPostProcessInPlace(string filePath, Series platform)
+        {
+            var ext = Path.GetExtension(filePath)?.ToLowerInvariant() ?? string.Empty;
+            var shouldCompress = IsPlatformCompressionEnabled(platform);
+
+            if (shouldCompress && IsZipCompressibleRom(ext, platform, filePath))
+            {
+                return true;
+            }
+
+            if (!shouldCompress && ext == ".zip")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private void PostProcessRomFile(ref string destinationFilePath, EpisodeFile romFile, Series platform)
         {
             if (string.IsNullOrWhiteSpace(destinationFilePath))
             {
@@ -232,10 +304,20 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var ext = Path.GetExtension(destinationFilePath)?.ToLowerInvariant() ?? string.Empty;
-            var shouldCompress = ResolvePlatformCompressionEnabled(series);
+            var shouldCompress = IsPlatformCompressionEnabled(platform);
 
             try
             {
+                if (ext == ".nes" && _archiveRepackService != null && File.Exists(destinationFilePath))
+                {
+                    var romBytes = File.ReadAllBytes(destinationFilePath);
+                    var modernized = _archiveRepackService.ModernizeINesHeader(romBytes);
+                    if (modernized != null && !ReferenceEquals(romBytes, modernized))
+                    {
+                        File.WriteAllBytes(destinationFilePath, modernized);
+                    }
+                }
+
                 if (ext == ".zip")
                 {
                     if (!shouldCompress && _archiveExtractionService != null && File.Exists(destinationFilePath))
@@ -251,26 +333,43 @@ namespace NzbDrone.Core.MediaFiles
                         _archiveRepackService.RepackArchive(destinationFilePath);
                     }
                 }
-                else if (ext == ".nes" && _archiveRepackService != null && File.Exists(destinationFilePath))
+                else if (shouldCompress && File.Exists(destinationFilePath) && IsZipCompressibleRom(ext, platform, destinationFilePath))
                 {
-                    var romBytes = File.ReadAllBytes(destinationFilePath);
-                    var modernized = _archiveRepackService.ModernizeINesHeader(romBytes);
-                    if (modernized != null && !ReferenceEquals(romBytes, modernized))
+                    var zipPath = Path.ChangeExtension(destinationFilePath, ".zip");
+                    if (File.Exists(zipPath))
                     {
-                        File.WriteAllBytes(destinationFilePath, modernized);
+                        File.Delete(zipPath);
+                    }
+
+                    using (var zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                    {
+                        zipArchive.CreateEntryFromFile(destinationFilePath, Path.GetFileName(destinationFilePath), CompressionLevel.Optimal);
+                    }
+
+                    if (File.Exists(zipPath))
+                    {
+                        File.Delete(destinationFilePath);
+                        destinationFilePath = zipPath;
+                        ext = ".zip";
+                        if (!string.IsNullOrWhiteSpace(platform?.Path))
+                        {
+                            romFile.RelativePath = platform.Path.GetRelativePath(destinationFilePath);
+                        }
+
+                        romFile.Size = new FileInfo(destinationFilePath).Length;
                     }
                 }
                 else if (shouldCompress && _discCompressionService != null && (ext == ".cue" || ext == ".iso" || ext == ".gdi"))
                 {
-                    var platformSlug = series?.TitleSlug ?? series?.Title ?? string.Empty;
+                    var platformSlug = platform?.TitleSlug ?? platform?.Title ?? string.Empty;
                     if (_discCompressionService.CompressDisc(destinationFilePath, platformSlug, out var compressedDiscPath) &&
                         !string.IsNullOrWhiteSpace(compressedDiscPath))
                     {
                         destinationFilePath = compressedDiscPath;
                         ext = Path.GetExtension(destinationFilePath)?.ToLowerInvariant() ?? ext;
-                        if (!string.IsNullOrWhiteSpace(series?.Path))
+                        if (!string.IsNullOrWhiteSpace(platform?.Path))
                         {
-                            episodeFile.RelativePath = series.Path.GetRelativePath(destinationFilePath);
+                            romFile.RelativePath = platform.Path.GetRelativePath(destinationFilePath);
                         }
                     }
                 }
@@ -307,21 +406,21 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        private void EnsureEpisodeFolder(EpisodeFile episodeFile, LocalEpisode localEpisode, string filePath)
+        private void EnsureGameFolder(EpisodeFile romFile, LocalEpisode localGame, string filePath)
         {
-            EnsureEpisodeFolder(episodeFile, localEpisode.Series, localEpisode.SeasonNumber, filePath);
+            EnsureGameFolder(romFile, localGame.Series, localGame.SeasonNumber, filePath);
         }
 
-        private void EnsureEpisodeFolder(EpisodeFile episodeFile, Series series, int seasonNumber, string filePath)
+        private void EnsureGameFolder(EpisodeFile romFile, Series platform, int regionNumber, string filePath)
         {
-            var episodeFolder = Path.GetDirectoryName(filePath);
-            var seasonFolder = _buildFileNames.BuildSeasonPath(series, seasonNumber);
-            var seriesFolder = series.Path;
-            var rootFolder = _rootFolderService.GetBestRootFolderPath(seriesFolder);
+            var gameFolder = Path.GetDirectoryName(filePath);
+            var regionFolder = _buildFileNames.BuildSeasonPath(platform, regionNumber);
+            var platformFolder = platform.Path;
+            var rootFolder = _rootFolderService.GetBestRootFolderPath(platformFolder);
 
             if (rootFolder.IsNullOrWhiteSpace())
             {
-                throw new RootFolderNotFoundException($"Root folder was not found, '{seriesFolder}' is not a subdirectory of a defined root folder.");
+                throw new RootFolderNotFoundException($"Root folder was not found, '{platformFolder}' is not a subdirectory of a defined root folder.");
             }
 
             if (!_diskProvider.FolderExists(rootFolder))
@@ -330,26 +429,26 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var changed = false;
-            var newEvent = new GameFolderCreatedEvent(series, episodeFile);
+            var newEvent = new GameFolderCreatedEvent(platform, romFile);
 
-            if (!_diskProvider.FolderExists(seriesFolder))
+            if (!_diskProvider.FolderExists(platformFolder))
             {
-                CreateFolder(seriesFolder);
-                newEvent.SeriesFolder = seriesFolder;
+                CreateFolder(platformFolder);
+                newEvent.SeriesFolder = platformFolder;
                 changed = true;
             }
 
-            if (seriesFolder != seasonFolder && !_diskProvider.FolderExists(seasonFolder))
+            if (platformFolder != regionFolder && !_diskProvider.FolderExists(regionFolder))
             {
-                CreateFolder(seasonFolder);
-                newEvent.SeasonFolder = seasonFolder;
+                CreateFolder(regionFolder);
+                newEvent.SeasonFolder = regionFolder;
                 changed = true;
             }
 
-            if (seasonFolder != episodeFolder && !_diskProvider.FolderExists(episodeFolder))
+            if (regionFolder != gameFolder && !_diskProvider.FolderExists(gameFolder))
             {
-                CreateFolder(episodeFolder);
-                newEvent.EpisodeFolder = episodeFolder;
+                CreateFolder(gameFolder);
+                newEvent.EpisodeFolder = gameFolder;
                 changed = true;
             }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -23,7 +24,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
 
     public class ImportApprovedGames : IImportApprovedGames
     {
-        private readonly IUpgradeMediaFiles _episodeFileUpgrader;
+        private readonly IUpgradeMediaFiles _romFileUpgrader;
         private readonly IMediaFileService _mediaFileService;
         private readonly IExtraService _extraService;
         private readonly IExistingExtraFiles _existingExtraFiles;
@@ -33,7 +34,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
 
-        public ImportApprovedGames(IUpgradeMediaFiles episodeFileUpgrader,
+        public ImportApprovedGames(IUpgradeMediaFiles romFileUpgrader,
                                       IMediaFileService mediaFileService,
                                       IExtraService extraService,
                                       IExistingExtraFiles existingExtraFiles,
@@ -43,7 +44,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                                       IManageCommandQueue commandQueueManager,
                                       Logger logger)
         {
-            _episodeFileUpgrader = episodeFileUpgrader;
+            _romFileUpgrader = romFileUpgrader;
             _mediaFileService = mediaFileService;
             _extraService = extraService;
             _existingExtraFiles = existingExtraFiles;
@@ -66,10 +67,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport
 
             var importResults = new List<ImportResult>();
 
-            foreach (var importDecision in qualifiedImports.OrderBy(e => e.LocalEpisode.Episodes.Select(episode => episode.EpisodeNumber).MinOrDefault())
+            foreach (var importDecision in qualifiedImports.OrderBy(e => e.LocalEpisode.Episodes.Select(game => game.EpisodeNumber).MinOrDefault())
                                                            .ThenByDescending(e => e.LocalEpisode.Size))
             {
-                var localEpisode = importDecision.LocalEpisode;
+                var localGame = importDecision.LocalEpisode;
                 var oldFiles = new List<DeletedRomFile>();
 
                 try
@@ -77,15 +78,15 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                     // check if already imported
                     if (importResults.SelectMany(r => r.ImportDecision.LocalEpisode.Episodes)
                                          .Select(e => e.Id)
-                                         .Intersect(localEpisode.Episodes.Select(e => e.Id))
+                                         .Intersect(localGame.Episodes.Select(e => e.Id))
                                          .Any())
                     {
-                        importResults.Add(new ImportResult(importDecision, "Episode has already been imported"));
+                        importResults.Add(new ImportResult(importDecision, "Game has already been imported"));
                         continue;
                     }
 
-                    var episodeFile = localEpisode.ToEpisodeFile();
-                    episodeFile.Size = _diskProvider.GetFileSize(localEpisode.Path);
+                    var romFile = localGame.ToEpisodeFile();
+                    romFile.Size = _diskProvider.GetFileSize(localGame.Path);
 
                     if (downloadClientItem?.DownloadId.IsNotNullOrWhiteSpace() == true)
                     {
@@ -95,14 +96,14 @@ namespace NzbDrone.Core.MediaFiles.GameImport
 
                         if (Enum.TryParse(grabHistory?.Data.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags))
                         {
-                            episodeFile.IndexerFlags = flags;
+                            romFile.IndexerFlags = flags;
                         }
 
                         // Prefer the release type from the grabbed history
                         if (Enum.TryParse(grabHistory?.Data.GetValueOrDefault("releaseType"), true, out ReleaseType releaseType) &&
                             releaseType != ReleaseType.Unknown)
                         {
-                            episodeFile.ReleaseType = releaseType;
+                            romFile.ReleaseType = releaseType;
                         }
                     }
 
@@ -121,24 +122,31 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                             break;
                     }
 
-                    if (newDownload)
+                    var requiresInPlaceOrganization = !newDownload && ShouldOrganizeExistingRomFile(localGame, romFile);
+
+                    if (newDownload || requiresInPlaceOrganization)
                     {
+                        if (requiresInPlaceOrganization && localGame.Series != null)
+                        {
+                            localGame.Series.SeasonFolder = true;
+                        }
+
                         if (downloadClientItem is { OutputPath.IsEmpty: false })
                         {
                             var outputDirectory = downloadClientItem.OutputPath.Directory.ToString();
 
-                            if (outputDirectory.IsParentPath(localEpisode.Path))
+                            if (outputDirectory.IsParentPath(localGame.Path))
                             {
-                                episodeFile.OriginalFilePath = outputDirectory.GetRelativePath(localEpisode.Path);
+                                romFile.OriginalFilePath = outputDirectory.GetRelativePath(localGame.Path);
                             }
                         }
 
-                        oldFiles = _episodeFileUpgrader.UpgradeEpisodeFile(episodeFile, localEpisode, copyOnly).OldFiles;
+                        oldFiles = _romFileUpgrader.UpgradeEpisodeFile(romFile, localGame, copyOnly).OldFiles;
                     }
                     else
                     {
                         // Delete existing files from the DB mapped to this path
-                        var previousFiles = _mediaFileService.GetFilesWithRelativePath(localEpisode.Series.Id, episodeFile.RelativePath);
+                        var previousFiles = _mediaFileService.GetFilesWithRelativePath(localGame.Series.Id, romFile.RelativePath);
 
                         foreach (var previousFile in previousFiles)
                         {
@@ -146,54 +154,54 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                         }
                     }
 
-                    episodeFile = _mediaFileService.Add(episodeFile);
-                    importResults.Add(new ImportResult(importDecision, episodeFile));
+                    romFile = _mediaFileService.Add(romFile);
+                    importResults.Add(new ImportResult(importDecision, romFile));
 
                     if (newDownload)
                     {
-                        if (localEpisode.ScriptImported)
+                        if (localGame.ScriptImported)
                         {
-                            _existingExtraFiles.ImportExtraFiles(localEpisode.Series, localEpisode.PossibleExtraFiles, localEpisode.FileNameBeforeRename);
+                            _existingExtraFiles.ImportExtraFiles(localGame.Series, localGame.PossibleExtraFiles, localGame.FileNameBeforeRename);
 
-                            if (localEpisode.FileNameBeforeRename != episodeFile.RelativePath)
+                            if (localGame.FileNameBeforeRename != romFile.RelativePath)
                             {
-                                _extraService.MoveFilesAfterRename(localEpisode.Series, episodeFile);
+                                _extraService.MoveFilesAfterRename(localGame.Series, romFile);
                             }
                         }
 
-                        if (!localEpisode.ScriptImported || localEpisode.ShouldImportExtras)
+                        if (!localGame.ScriptImported || localGame.ShouldImportExtras)
                         {
-                            _extraService.ImportEpisode(localEpisode, episodeFile, copyOnly);
+                            _extraService.ImportEpisode(localGame, romFile, copyOnly);
                         }
                     }
 
-                    _eventAggregator.PublishEvent(new GameImportedEvent(localEpisode, episodeFile, oldFiles, newDownload, downloadClientItem));
+                    _eventAggregator.PublishEvent(new GameImportedEvent(localGame, romFile, oldFiles, newDownload, downloadClientItem));
                 }
                 catch (RootFolderNotFoundException e)
                 {
-                    _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    _eventAggregator.PublishEvent(new GameImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
+                    _logger.Warn(e, "Couldn't import game " + localGame);
+                    _eventAggregator.PublishEvent(new GameImportFailedEvent(e, localGame, newDownload, downloadClientItem));
 
-                    importResults.Add(new ImportResult(importDecision, "Failed to import episode, Root folder missing."));
+                    importResults.Add(new ImportResult(importDecision, "Failed to import game, Root folder missing."));
                 }
                 catch (DestinationAlreadyExistsException e)
                 {
-                    _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    importResults.Add(new ImportResult(importDecision, "Failed to import episode, Destination already exists."));
+                    _logger.Warn(e, "Couldn't import game " + localGame);
+                    importResults.Add(new ImportResult(importDecision, "Failed to import game, Destination already exists."));
 
-                    _commandQueueManager.Push(new RescanPlatformCommand(localEpisode.Series.Id));
+                    _commandQueueManager.Push(new RescanPlatformCommand(localGame.Series.Id));
                 }
                 catch (RecycleBinException e)
                 {
-                    _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    _eventAggregator.PublishEvent(new GameImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
+                    _logger.Warn(e, "Couldn't import game " + localGame);
+                    _eventAggregator.PublishEvent(new GameImportFailedEvent(e, localGame, newDownload, downloadClientItem));
 
-                    importResults.Add(new ImportResult(importDecision, "Failed to import episode, unable to move existing file to the Recycle Bin."));
+                    importResults.Add(new ImportResult(importDecision, "Failed to import game, unable to move existing file to the Recycle Bin."));
                 }
                 catch (Exception e)
                 {
-                    _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    importResults.Add(new ImportResult(importDecision, "Failed to import episode"));
+                    _logger.Warn(e, "Couldn't import game " + localGame);
+                    importResults.Add(new ImportResult(importDecision, "Failed to import game"));
                 }
             }
 
@@ -202,6 +210,41 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                                             .Select(d => new ImportResult(d, d.Rejections.Select(r => r.Message).ToArray())));
 
             return importResults;
+        }
+
+        private bool ShouldOrganizeExistingRomFile(LocalEpisode localGame, EpisodeFile romFile)
+        {
+            if (localGame?.Series == null ||
+                string.IsNullOrWhiteSpace(localGame.Path) ||
+                string.IsNullOrWhiteSpace(romFile?.RelativePath))
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(localGame.Path);
+            if (string.IsNullOrWhiteSpace(ext) || !MediaFileExtensions.RomExtensions.Contains(ext))
+            {
+                return false;
+            }
+
+            if (!_diskProvider.FileExists(localGame.Path))
+            {
+                return false;
+            }
+
+            var relativeDir = Path.GetDirectoryName(romFile.RelativePath);
+            if (string.IsNullOrWhiteSpace(relativeDir))
+            {
+                return true;
+            }
+
+            if (RomFileMovingService.IsPlatformCompressionEnabled(localGame.Series) &&
+                RomFileMovingService.IsZipCompressibleRom(ext, localGame.Series, localGame.Path))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

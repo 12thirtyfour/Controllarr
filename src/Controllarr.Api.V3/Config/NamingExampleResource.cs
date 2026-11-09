@@ -4,77 +4,101 @@ namespace Sonarr.Api.V3.Config
 {
     public class NamingExampleResource
     {
-        private string _singleEpisodeExample;
-        private string _multiEpisodeExample;
-        private string _dailyEpisodeExample;
-        private string _animeEpisodeExample;
-        private string _animeMultiEpisodeExample;
+        private string _singleGameExample;
+        private string _multiGameExample;
+        private string _discGameExample;
+        private string _animeGameExample;
+        private string _animeMultiGameExample;
 
         public string SingleEpisodeExample
         {
-            get => _singleEpisodeExample;
-            set => _singleEpisodeExample = value;
+            get => _singleGameExample;
+            set => _singleGameExample = value;
         }
 
         public string SingleGameExample
         {
-            get => _singleEpisodeExample;
-            set => _singleEpisodeExample = value;
+            get => _singleGameExample;
+            set => _singleGameExample = value;
         }
 
         public string MultiEpisodeExample
         {
-            get => _multiEpisodeExample;
-            set => _multiEpisodeExample = value;
+            get => _multiGameExample;
+            set => _multiGameExample = value;
         }
 
         public string MultiGameExample
         {
-            get => _multiEpisodeExample;
-            set => _multiEpisodeExample = value;
+            get => _multiGameExample;
+            set => _multiGameExample = value;
         }
 
         public string DailyEpisodeExample
         {
-            get => _dailyEpisodeExample;
-            set => _dailyEpisodeExample = value;
+            get => _discGameExample;
+            set => _discGameExample = value;
         }
 
         public string DailyGameExample
         {
-            get => _dailyEpisodeExample;
-            set => _dailyEpisodeExample = value;
+            get => _discGameExample;
+            set => _discGameExample = value;
+        }
+
+        public string DiscGameExample
+        {
+            get => _discGameExample;
+            set => _discGameExample = value;
         }
 
         public string AnimeEpisodeExample
         {
-            get => _animeEpisodeExample;
-            set => _animeEpisodeExample = value;
+            get => _animeGameExample;
+            set => _animeGameExample = value;
         }
 
         public string AnimeGameExample
         {
-            get => _animeEpisodeExample;
-            set => _animeEpisodeExample = value;
+            get => _animeGameExample;
+            set => _animeGameExample = value;
         }
 
         public string AnimeMultiEpisodeExample
         {
-            get => _animeMultiEpisodeExample;
-            set => _animeMultiEpisodeExample = value;
+            get => _animeMultiGameExample;
+            set => _animeMultiGameExample = value;
         }
 
         public string AnimeMultiGameExample
         {
-            get => _animeMultiEpisodeExample;
-            set => _animeMultiEpisodeExample = value;
+            get => _animeMultiGameExample;
+            set => _animeMultiGameExample = value;
         }
 
-        public string SeriesFolderExample { get; set; }
+        public string PlatformFolderExample { get; set; }
 
-        public string SeasonFolderExample { get; set; }
+        public string RegionFolderExample { get; set; }
 
-        public string SpecialsFolderExample { get; set; }
+        public string UnlicensedFolderExample { get; set; }
+
+        public string SeriesFolderExample
+        {
+            get => PlatformFolderExample;
+            set => PlatformFolderExample = value;
+        }
+
+        public string SeasonFolderExample
+        {
+            get => RegionFolderExample;
+            set => RegionFolderExample = value;
+        }
+
+        public string SpecialsFolderExample
+        {
+            get => UnlicensedFolderExample;
+            set => UnlicensedFolderExample = value;
+        }
     }
 
     public static class NamingConfigResourceMapper
@@ -93,11 +117,12 @@ namespace Sonarr.Api.V3.Config
                 MultiEpisodeStyle = (int)model.MultiEpisodeStyle,
                 MultiGameStyle = (int)model.MultiEpisodeStyle,
                 StandardGameFormat = model.StandardGameFormat,
-                DailyGameFormat = model.DailyGameFormat,
+                DiscGameFormat = model.DiscGameFormat,
+                DailyGameFormat = model.DiscGameFormat,
                 AnimeGameFormat = model.AnimeGameFormat,
-                SeriesFolderFormat = model.SeriesFolderFormat,
-                SeasonFolderFormat = model.SeasonFolderFormat,
-                SpecialsFolderFormat = model.SpecialsFolderFormat
+                PlatformFolderFormat = model.PlatformFolderFormat,
+                RegionFolderFormat = model.RegionFolderFormat,
+                UnlicensedFolderFormat = model.UnlicensedFolderFormat
             };
         }
 
@@ -112,12 +137,12 @@ namespace Sonarr.Api.V3.Config
                 MultiEpisodeStyle = (MultiEpisodeStyle)(resource.MultiGameStyle != 0 ? resource.MultiGameStyle : resource.MultiEpisodeStyle),
                 ColonReplacementFormat = (ColonReplacementFormat)resource.ColonReplacementFormat,
                 CustomColonReplacementFormat = resource.CustomColonReplacementFormat ?? "",
-                StandardGameFormat = resource.StandardGameFormat ?? resource.StandardGameFormat,
-                DailyGameFormat = resource.DailyGameFormat ?? resource.DailyGameFormat,
-                AnimeGameFormat = resource.AnimeGameFormat ?? resource.AnimeGameFormat,
-                SeriesFolderFormat = resource.SeriesFolderFormat,
-                SeasonFolderFormat = resource.SeasonFolderFormat,
-                SpecialsFolderFormat = resource.SpecialsFolderFormat
+                StandardGameFormat = resource.StandardGameFormat,
+                DiscGameFormat = resource.DiscGameFormat,
+                AnimeGameFormat = resource.AnimeGameFormat,
+                PlatformFolderFormat = resource.PlatformFolderFormat,
+                RegionFolderFormat = resource.RegionFolderFormat,
+                UnlicensedFolderFormat = resource.UnlicensedFolderFormat
             };
         }
     }

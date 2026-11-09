@@ -15,22 +15,22 @@ export interface NamingSettingsModel {
   customColonReplacementFormat: string;
   multiGameStyle: number;
   standardGameFormat: string;
-  dailyGameFormat: string;
+  discGameFormat: string;
   animeGameFormat: string;
-  seriesFolderFormat: string;
-  seasonFolderFormat: string;
-  specialsFolderFormat: string;
+  platformFolderFormat: string;
+  regionFolderFormat: string;
+  unlicensedFolderFormat: string;
 }
 
 export interface NamingExamples {
   singleGameExample: string;
   multiGameExample: string;
-  dailyGameExample: string;
+  discGameExample: string;
   animeGameExample: string;
   animeMultiGameExample: string;
-  seriesFolderExample: string;
-  seasonFolderExample: string;
-  specialsFolderExample: string;
+  platformFolderExample: string;
+  regionFolderExample: string;
+  unlicensedFolderExample: string;
 }
 
 export const useNamingSettings = () => {

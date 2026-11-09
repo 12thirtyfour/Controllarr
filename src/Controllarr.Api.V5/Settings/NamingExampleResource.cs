@@ -8,17 +8,41 @@ public class NamingExampleResource
 
     public string? MultiGameExample { get; set; }
 
-    public string? DailyGameExample { get; set; }
+    public string? DiscGameExample { get; set; }
+
+    public string? DailyGameExample
+    {
+        get => DiscGameExample;
+        set => DiscGameExample = value;
+    }
 
     public string? AnimeGameExample { get; set; }
 
     public string? AnimeMultiGameExample { get; set; }
 
-    public string? SeriesFolderExample { get; set; }
+    public string? PlatformFolderExample { get; set; }
 
-    public string? SeasonFolderExample { get; set; }
+    public string? RegionFolderExample { get; set; }
 
-    public string? SpecialsFolderExample { get; set; }
+    public string? UnlicensedFolderExample { get; set; }
+
+    public string? SeriesFolderExample
+    {
+        get => PlatformFolderExample;
+        set => PlatformFolderExample = value;
+    }
+
+    public string? SeasonFolderExample
+    {
+        get => RegionFolderExample;
+        set => RegionFolderExample = value;
+    }
+
+    public string? SpecialsFolderExample
+    {
+        get => UnlicensedFolderExample;
+        set => UnlicensedFolderExample = value;
+    }
 }
 
 public static class NamingConfigResourceMapper
@@ -34,11 +58,12 @@ public static class NamingConfigResourceMapper
             CustomColonReplacementFormat = model.CustomColonReplacementFormat,
             MultiGameStyle = (int)model.MultiEpisodeStyle,
             StandardGameFormat = model.StandardGameFormat,
-            DailyGameFormat = model.DailyGameFormat,
+            DiscGameFormat = model.DiscGameFormat,
+            DailyGameFormat = model.DiscGameFormat,
             AnimeGameFormat = model.AnimeGameFormat,
-            SeriesFolderFormat = model.SeriesFolderFormat,
-            SeasonFolderFormat = model.SeasonFolderFormat,
-            SpecialsFolderFormat = model.SpecialsFolderFormat
+            PlatformFolderFormat = model.PlatformFolderFormat,
+            RegionFolderFormat = model.RegionFolderFormat,
+            UnlicensedFolderFormat = model.UnlicensedFolderFormat
         };
     }
 
@@ -53,11 +78,11 @@ public static class NamingConfigResourceMapper
             ColonReplacementFormat = (ColonReplacementFormat)resource.ColonReplacementFormat,
             CustomColonReplacementFormat = resource.CustomColonReplacementFormat ?? "",
             StandardGameFormat = resource.StandardGameFormat,
-            DailyGameFormat = resource.DailyGameFormat,
+            DiscGameFormat = resource.DiscGameFormat,
             AnimeGameFormat = resource.AnimeGameFormat,
-            SeriesFolderFormat = resource.SeriesFolderFormat,
-            SeasonFolderFormat = resource.SeasonFolderFormat,
-            SpecialsFolderFormat = resource.SpecialsFolderFormat
+            PlatformFolderFormat = resource.PlatformFolderFormat,
+            RegionFolderFormat = resource.RegionFolderFormat,
+            UnlicensedFolderFormat = resource.UnlicensedFolderFormat
         };
     }
 }

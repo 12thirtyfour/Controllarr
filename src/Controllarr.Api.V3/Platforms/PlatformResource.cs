@@ -116,7 +116,9 @@ namespace Sonarr.Api.V3.Platforms
                        // EpisodeFileCount
                        // SizeOnDisk
                        Status = model.Status,
-                       Overview = model.Overview,
+                       Overview = string.IsNullOrWhiteSpace(model.Overview) || model.Overview.Contains(" hardware platform (", StringComparison.OrdinalIgnoreCase)
+                           ? (NzbDrone.Core.MetadataSource.Game.GameCatalogProxy.GetPlatformOverview(model.TitleSlug, model.TvdbId) ?? model.Overview)
+                           : model.Overview,
 
                        // NextAiring
                        // PreviousAiring
@@ -240,7 +242,7 @@ namespace Sonarr.Api.V3.Platforms
                        ImdbId = resource.ImdbId,
                        TitleSlug = resource.TitleSlug,
                        RootFolderPath = resource.RootFolderPath,
-                       Certification = resource.Certification,
+                       Certification = resource.PreferredArchiveFormat ?? resource.Certification,
                        Genres = resource.Genres,
                        Tags = resource.Tags,
                        Added = resource.Added,

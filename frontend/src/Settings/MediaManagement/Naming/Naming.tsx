@@ -79,8 +79,8 @@ function normalizeSegmentToConsoleVariables(
 }
 
 function splitUnifiedPathIntoBackendFields(rawPath: string): {
-  seriesFolderFormat: string;
-  seasonFolderFormat: string;
+  platformFolderFormat: string;
+  regionFolderFormat: string;
   standardGameFormat: string;
 } {
   const segments = rawPath
@@ -90,24 +90,24 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
 
   if (segments.length === 0) {
     return {
-      seriesFolderFormat: '{Manufacturer}/{Platform}',
-      seasonFolderFormat: '{Region}',
+      platformFolderFormat: '{Manufacturer}/{Platform}',
+      regionFolderFormat: '{Region}',
       standardGameFormat: '{Game Title}',
     };
   }
 
   if (segments.length === 1) {
     return {
-      seriesFolderFormat: '{Manufacturer}/{Platform}',
-      seasonFolderFormat: '{Region}',
+      platformFolderFormat: '{Manufacturer}/{Platform}',
+      regionFolderFormat: '{Region}',
       standardGameFormat: segments[0],
     };
   }
 
   if (segments.length === 2) {
     return {
-      seriesFolderFormat: segments[0],
-      seasonFolderFormat: '{Region}',
+      platformFolderFormat: segments[0],
+      regionFolderFormat: '{Region}',
       standardGameFormat: segments[1],
     };
   }
@@ -116,20 +116,20 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
     (s, idx) =>
       idx >= 1 &&
       idx < segments.length - 1 &&
-      (/\{Region/i.test(s) || /\{Season/i.test(s))
+      /\{Region/i.test(s)
   );
 
   if (regionIdx >= 1) {
     return {
-      seriesFolderFormat: segments.slice(0, regionIdx).join('/'),
-      seasonFolderFormat: segments[regionIdx],
+      platformFolderFormat: segments.slice(0, regionIdx).join('/'),
+      regionFolderFormat: segments[regionIdx],
       standardGameFormat: segments.slice(regionIdx + 1).join('/'),
     };
   }
 
   return {
-    seriesFolderFormat: segments[0],
-    seasonFolderFormat: segments[1],
+    platformFolderFormat: segments[0],
+    regionFolderFormat: segments[1],
     standardGameFormat: segments.slice(2).join('/'),
   };
 }
@@ -166,17 +166,17 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       return;
     }
 
-    const seriesValue = settings.seriesFolderFormat?.value ?? '';
-    const seasonValue = settings.seasonFolderFormat?.value ?? '';
+    const platformValue = settings.platformFolderFormat?.value ?? '';
+    const regionValue = settings.regionFolderFormat?.value ?? '';
     const gameValue = settings.standardGameFormat?.value ?? '';
-    const rawDaily = settings.dailyGameFormat?.value ?? '';
+    const rawDisc = settings.discGameFormat?.value ?? '';
 
-    const normalizedSeries = normalizeSegmentToConsoleVariables(
-      seriesValue,
+    const normalizedPlatform = normalizeSegmentToConsoleVariables(
+      platformValue,
       '{Manufacturer}/{Platform}'
     );
-    const normalizedSeason = normalizeSegmentToConsoleVariables(
-      seasonValue,
+    const normalizedRegion = normalizeSegmentToConsoleVariables(
+      regionValue,
       '{Region}'
     );
     const normalizedGame = normalizeSegmentToConsoleVariables(
@@ -184,22 +184,28 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
       '{Game Title}'
     );
     const normalizedDiscGame =
-      !rawDaily ||
-      rawDaily === '{Game Title}' ||
-      rawDaily.includes('Air-Date') ||
-      rawDaily.includes('air-date')
+      !rawDisc ||
+      rawDisc === '{Game Title}' ||
+      rawDisc.includes('Air-Date') ||
+      rawDisc.includes('air-date')
         ? '{Game Title}/{Game Title}'
         : normalizeSegmentToConsoleVariables(
-            rawDaily,
+            rawDisc,
             '{Game Title}/{Game Title}'
           );
 
-    if (settings.seriesFolderFormat && settings.seriesFolderFormat.value !== normalizedSeries) {
-      updateSetting('seriesFolderFormat', normalizedSeries);
+    if (
+      settings.platformFolderFormat &&
+      settings.platformFolderFormat.value !== normalizedPlatform
+    ) {
+      updateSetting('platformFolderFormat', normalizedPlatform);
     }
 
-    if (settings.seasonFolderFormat && settings.seasonFolderFormat.value !== normalizedSeason) {
-      updateSetting('seasonFolderFormat', normalizedSeason);
+    if (
+      settings.regionFolderFormat &&
+      settings.regionFolderFormat.value !== normalizedRegion
+    ) {
+      updateSetting('regionFolderFormat', normalizedRegion);
     }
 
     if (
@@ -210,17 +216,17 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
     }
 
     if (
-      settings.dailyGameFormat &&
-      settings.dailyGameFormat.value !== normalizedDiscGame
+      settings.discGameFormat &&
+      settings.discGameFormat.value !== normalizedDiscGame
     ) {
-      updateSetting('dailyGameFormat', normalizedDiscGame);
+      updateSetting('discGameFormat', normalizedDiscGame);
     }
 
     setUnifiedPathFormat(
-      `${normalizedSeries}/${normalizedSeason}/${normalizedGame}`
+      `${normalizedPlatform}/${normalizedRegion}/${normalizedGame}`
     );
     setDiscPathFormat(
-      `${normalizedSeries}/${normalizedSeason}/${normalizedDiscGame}`
+      `${normalizedPlatform}/${normalizedRegion}/${normalizedDiscGame}`
     );
     setInitializedFromSettings(true);
   }, [hasSettings, initializedFromSettings, settings, updateSetting]);
@@ -232,13 +238,13 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         setUnifiedPathFormat(nextPath);
 
         const {
-          seriesFolderFormat,
-          seasonFolderFormat,
+          platformFolderFormat,
+          regionFolderFormat,
           standardGameFormat,
         } = splitUnifiedPathIntoBackendFields(nextPath);
 
-        updateSetting('seriesFolderFormat', seriesFolderFormat);
-        updateSetting('seasonFolderFormat', seasonFolderFormat);
+        updateSetting('platformFolderFormat', platformFolderFormat);
+        updateSetting('regionFolderFormat', regionFolderFormat);
         updateSetting('standardGameFormat', standardGameFormat);
         return;
       }
@@ -250,7 +256,7 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         const { standardGameFormat: discGameFormat } =
           splitUnifiedPathIntoBackendFields(nextDiscPath);
 
-        updateSetting('dailyGameFormat', discGameFormat);
+        updateSetting('discGameFormat', discGameFormat);
         return;
       }
 
@@ -304,14 +310,14 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   }, [setChildSave, saveSettings]);
 
   const formatErrors = [
-    ...(settings.seriesFolderFormat?.errors ?? []),
-    ...(settings.seasonFolderFormat?.errors ?? []),
+    ...(settings.platformFolderFormat?.errors ?? []),
+    ...(settings.regionFolderFormat?.errors ?? []),
     ...(settings.standardGameFormat?.errors ?? []),
   ];
 
   const formatWarnings = [
-    ...(settings.seriesFolderFormat?.warnings ?? []),
-    ...(settings.seasonFolderFormat?.warnings ?? []),
+    ...(settings.platformFolderFormat?.warnings ?? []),
+    ...(settings.regionFolderFormat?.warnings ?? []),
     ...(settings.standardGameFormat?.warnings ?? []),
   ];
 
@@ -415,8 +421,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               type={inputTypes.TEXT}
               name="discPathFormat"
               value={discPathFormat}
-              errors={settings.dailyGameFormat?.errors ?? []}
-              warnings={settings.dailyGameFormat?.warnings ?? []}
+              errors={settings.discGameFormat?.errors ?? []}
+              warnings={settings.discGameFormat?.warnings ?? []}
               buttons={
                 <FormInputButton onPress={handleDiscNamingModalOpenClick}>
                   ?

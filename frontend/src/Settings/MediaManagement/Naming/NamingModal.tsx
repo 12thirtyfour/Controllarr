@@ -217,18 +217,18 @@ export interface NamingModalOptions {
     | keyof Pick<
         NamingSettingsModel,
         | 'standardGameFormat'
-        | 'dailyGameFormat'
+        | 'discGameFormat'
         | 'animeGameFormat'
-        | 'seriesFolderFormat'
-        | 'seasonFolderFormat'
-        | 'specialsFolderFormat'
+        | 'platformFolderFormat'
+        | 'regionFolderFormat'
+        | 'unlicensedFolderFormat'
       >
     | 'unifiedPathFormat'
     | 'discPathFormat';
-  season?: boolean;
-  seasonTitle?: boolean;
+  region?: boolean;
+  regionTitle?: boolean;
   game?: boolean;
-  daily?: boolean;
+  disc?: boolean;
   anime?: boolean;
   additional?: boolean;
 }

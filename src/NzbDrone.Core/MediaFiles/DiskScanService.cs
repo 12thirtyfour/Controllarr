@@ -553,6 +553,8 @@ namespace NzbDrone.Core.MediaFiles
                                 _diskProvider.CreateFolder(targetDirectory);
                             }
 
+                            var shouldCompress = RomFileMovingService.IsPlatformCompressionEnabled(series);
+
                             foreach (var entry in gameEntries)
                             {
                                 var relativeTarget = entry.FullName.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
@@ -571,6 +573,12 @@ namespace NzbDrone.Core.MediaFiles
                                 if (isSingleMultiTrack && !relativeTarget.Contains(Path.DirectorySeparatorChar))
                                 {
                                     relativeTarget = Path.Combine(archiveBaseName, relativeTarget);
+                                }
+                                else if (isMultiGame && cueEntries.Count == 0)
+                                {
+                                    var entryFileName = Path.GetFileName(relativeTarget);
+                                    var regionFolder = MetadataSource.Game.GameCatalogProxy.ResolveCanonicalRegionFolderForRom(entry.FullName, entryFileName);
+                                    relativeTarget = Path.Combine(regionFolder, entryFileName);
                                 }
 
                                 var destinationPath = Path.GetFullPath(Path.Combine(targetDirectory, relativeTarget));
@@ -595,9 +603,37 @@ namespace NzbDrone.Core.MediaFiles
                                         _diskProvider.SaveStream(entryStream, destinationPath);
                                     }
 
-                                    if (Path.GetExtension(destinationPath).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                                    var destExt = Path.GetExtension(destinationPath);
+                                    if (destExt.Equals(".zip", StringComparison.OrdinalIgnoreCase))
                                     {
                                         newlyExtractedArchives.Add(destinationPath);
+                                    }
+                                    else if (shouldCompress &&
+                                             RomFileMovingService.IsZipCompressibleRom(destExt, series, destinationPath) &&
+                                             File.Exists(destinationPath))
+                                    {
+                                        try
+                                        {
+                                            var zipDest = Path.ChangeExtension(destinationPath, ".zip");
+                                            if (File.Exists(zipDest))
+                                            {
+                                                File.Delete(zipDest);
+                                            }
+
+                                            using (var zipArchive = ZipFile.Open(zipDest, ZipArchiveMode.Create))
+                                            {
+                                                zipArchive.CreateEntryFromFile(destinationPath, Path.GetFileName(destinationPath), CompressionLevel.Optimal);
+                                            }
+
+                                            if (File.Exists(zipDest))
+                                            {
+                                                File.Delete(destinationPath);
+                                            }
+                                        }
+                                        catch (Exception zipEx)
+                                        {
+                                            _logger.Debug(zipEx, "Unable to compress extracted ROM '{0}' to zip", destinationPath);
+                                        }
                                     }
                                 }
                             }
@@ -679,7 +715,7 @@ namespace NzbDrone.Core.MediaFiles
                         _logger.Info("Extracted {0} files from disc game archive '{1}' into '{2}'", validEntries.Count, Path.GetFileName(innerZip), extractTargetDir);
                         _diskProvider.DeleteFile(innerZip);
                     }
-                    else if (validEntries.Count == 1)
+                    else if (validEntries.Count == 1 && !RomFileMovingService.IsPlatformCompressionEnabled(series))
                     {
                         var singleEntry = validEntries[0];
                         var dest = Path.Combine(zipDir, singleEntry.Name);

@@ -101,6 +101,15 @@ namespace NzbDrone.Core.MediaFiles
         ],
         StringComparer.OrdinalIgnoreCase);
 
+        public static HashSet<string> ZipCompressibleRomExtensions => new(
+        [
+            ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd",
+            ".gb", ".gbc", ".gba", ".nds", ".dsi", ".vb", ".sg", ".sms", ".md", ".smd",
+            ".gen", ".32x", ".gg", ".pce", ".sgx", ".neo", ".ngp", ".ngc", ".a26", ".a52",
+            ".a78", ".j64", ".jag", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec"
+        ],
+        StringComparer.OrdinalIgnoreCase);
+
         public static HashSet<string> PatchExtensions => new([".ips", ".bps", ".xdelta", ".vcdiff"], StringComparer.OrdinalIgnoreCase);
 
         public static Quality GetQualityForExtension(string extension)

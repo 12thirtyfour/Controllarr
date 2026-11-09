@@ -16,9 +16,33 @@ public class NamingSettingsResource : RestResource
 
     public string? StandardGameFormat { get; set; }
 
+    public string? DiscGameFormat
+    {
+        get => DailyGameFormat;
+        set => DailyGameFormat = value;
+    }
+
     public string? DailyGameFormat { get; set; }
 
     public string? AnimeGameFormat { get; set; }
+
+    public string? PlatformFolderFormat
+    {
+        get => SeriesFolderFormat;
+        set => SeriesFolderFormat = value;
+    }
+
+    public string? RegionFolderFormat
+    {
+        get => SeasonFolderFormat;
+        set => SeasonFolderFormat = value;
+    }
+
+    public string? UnlicensedFolderFormat
+    {
+        get => SpecialsFolderFormat;
+        set => SpecialsFolderFormat = value;
+    }
 
     public string? SeriesFolderFormat { get; set; }
 

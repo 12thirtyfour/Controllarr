@@ -29,7 +29,16 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-09]
 
+### Added
+- **Rich Platform Overviews (`GameCatalogProxy`, `PlatformResource`)**:
+  - Replaced generic `"${manufacturer} hardware platform (${year})."` placeholders in `GameCatalogProxy` with detailed historical and technical overviews across all 40 built-in consoles and handhelds.
+  - Added automatic upgrade fallback in `PlatformResourceMapper.ToResource` (V3 & V5) so existing platforms in the database immediately display rich historical blurbs.
+
 ### Fixed
+- **Region Folder Organization & Default ZIP Compression on Import (`AddPlatformService`, `DiskScanService`, `ImportApprovedGames`, `ManualImportService`, `RomFileMovingService`, `PlatformResource`)**:
+  - **Region Folder Routing**: Updated `AddPlatformService` (`ExtractArchiveToDirectory` and `CopyFolderContent`), `DiskScanService` (`ExtractCollectionArchives`), `ImportApprovedGames`, and `ManualImportService` so imported and scanned ROMs are placed directly inside their canonical region folders (`USA`, `Europe`, `Japan`, `World`, `ROM Hacks`, `Homebrew`, `Unlicensed`, or `BIOS`) rather than left in the root of the platform folder.
+  - **ZIP Compression by Default**: Fixed a mapping bug in `PlatformResource.ToModel` (V3 & V5) where `Certification = resource.Certification` overwrote `PreferredArchiveFormat` to `null`. Added automatic `.zip` compression (`CompressionLevel.Optimal`) in `RomFileMovingService.PostProcessRomFile`, `AddPlatformService`, and `DiskScanService` for raw cartridge/handheld ROMs when compression is enabled (the default), and preserved single-ROM `.zip` archives during import instead of unpacking them into raw files.
+  - **De-Televisionization in Naming & File Import Services (`NamingConfig`, `NamingConfigResource`, `NamingSettingsResource`, `NamingConfigController`, `NamingSettingsController`, `useNamingSettings`, `Naming`, `NamingModal`, `RomFileMovingService`, `ImportApprovedGames`, `ManualImportService`)**: Replaced remaining TV holdover properties and identifiers (`episodeFilePath`, `seasonFolderFormat`, `specialsFolderFormat`, `seriesFolderFormat`, `dailyGameFormat`) with gaming terminology (`romFilePath`, `regionFolderFormat`, `unlicensedFolderFormat`, `platformFolderFormat`, `discGameFormat`).
 - **Library Import UX & Direct ROM File Ingestion (`RootFolderService`, `ImportPlatform`, `ImportPlatformList`, `RootFolderRow`)**:
   - **Direct ROM Presentation for Folders with ROMs**: When selecting a folder containing ROM files, Controllarr now presents the list of individual ROM files directly via Interactive Import with automated game matching, region detection, and hash verification, rather than listing the folder as a platform option or listing intermediate folders within it.
   - **Unblocked Existing Platform Merging**: Fixed selection logic in `ImportPlatformList` where platforms already in the library were marked disabled and unselected; existing platforms are now enabled, selectable, and automatically merge incoming ROM files into the existing library platform.
