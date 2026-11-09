@@ -30,23 +30,35 @@ function ImportPlatform() {
     data: rootFolders,
   } = useRootFolders();
 
-  useRootFolder(rootFolderId, false);
+  const {
+    isFetching: rootFolderFetching,
+    isFetched: rootFolderFetched,
+    error: rootFolderError,
+    data: detailedRootFolder,
+  } = useRootFolder(rootFolderId, false);
+
+  const isLoading =
+    (rootFoldersFetching && !rootFoldersFetched && !detailedRootFolder) ||
+    (rootFolderFetching && !rootFolderFetched && !detailedRootFolder);
+  const isReady = rootFoldersFetched || rootFolderFetched;
+  const loadError = rootFolderError ?? rootFoldersError;
 
   const { path, unmappedFolders, containsRomFiles } = useMemo(() => {
-    const rootFolder = rootFolders.find((r) => r.id === rootFolderId);
+    const fallbackRootFolder = rootFolders.find((r) => r.id === rootFolderId);
+    const rootFolder = detailedRootFolder ?? fallbackRootFolder;
 
     return {
       path: rootFolder?.path ?? '',
       containsRomFiles: rootFolder?.containsRomFiles ?? false,
       unmappedFolders:
-        rootFolder?.unmappedFolders.map((unmappedFolders) => {
+        rootFolder?.unmappedFolders.map((unmappedFolder) => {
           return {
-            ...unmappedFolders,
-            id: unmappedFolders.name,
+            ...unmappedFolder,
+            id: unmappedFolder.path || unmappedFolder.name,
           };
         }) ?? [],
     };
-  }, [rootFolders, rootFolderId]);
+  }, [detailedRootFolder, rootFolders, rootFolderId]);
 
   const hasLooseRomsOnly = containsRomFiles && unmappedFolders.length === 0;
   const [isInteractiveImportOpen, setIsInteractiveImportOpen] = useState(false);
@@ -67,7 +79,7 @@ function ImportPlatform() {
     return unmappedFolders.map((unmappedFolder) => {
       return {
         ...unmappedFolder,
-        id: unmappedFolder.name,
+        id: unmappedFolder.path || unmappedFolder.name,
       };
     });
   }, [unmappedFolders]);
@@ -88,11 +100,9 @@ function ImportPlatform() {
               title={translate('ImportPlatform')}
             />
 
-            {rootFoldersFetching && !rootFoldersFetched ? (
-              <LoadingIndicator />
-            ) : null}
+            {isLoading ? <LoadingIndicator /> : null}
 
-            {!rootFoldersFetching && !!rootFoldersError ? (
+            {!isLoading && !!loadError ? (
               <Alert kind={kinds.DANGER}>
                 {translate('RootFoldersLoadError')}
               </Alert>
@@ -115,9 +125,9 @@ function ImportPlatform() {
               </div>
             ) : null}
 
-            {!rootFoldersError &&
-            !rootFoldersFetching &&
-            rootFoldersFetched &&
+            {!loadError &&
+            !isLoading &&
+            isReady &&
             !unmappedFolders.length &&
             !hasLooseRomsOnly ? (
               <div>
@@ -136,8 +146,8 @@ function ImportPlatform() {
               </div>
             ) : null}
 
-            {!rootFoldersError &&
-            rootFoldersFetched &&
+            {!loadError &&
+            isReady &&
             !!unmappedFolders.length &&
             scrollerRef.current ? (
               <ImportPlatformList items={items} scrollerRef={scrollerRef} />
@@ -145,7 +155,7 @@ function ImportPlatform() {
           </div>
         </PageContentBody>
 
-        {!rootFoldersError && rootFoldersFetched && !!unmappedFolders.length ? (
+        {!loadError && isReady && !!unmappedFolders.length ? (
           <ImportPlatformFooter />
         ) : null}
       </PageContent>

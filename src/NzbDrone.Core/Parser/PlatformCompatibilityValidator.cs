@@ -476,9 +476,13 @@ namespace NzbDrone.Core.Parser
         {
             "usa", "europe", "japan", "world", "asia", "australia", "germany", "france", "spain", "italy",
             "korea", "china", "brazil", "netherlands", "sweden", "norway", "denmark", "finland", "poland", "russia",
-            "en", "ja", "fr", "de", "es", "it", "no-intro", "redump", "tosec", "htgdb", "smdb", "1g1r",
-            "packs", "roms", "games", "rom", "game", "a-z", "0-9", "a-m", "n-z", "bios", "translations", "hacks"
+            "en", "ja", "fr", "de", "es", "it", "a-z", "0-9", "a-m", "n-z", "bios", "translations", "hacks",
+            "unlicensed", "homebrew", "rom hacks"
         };
+
+        private static readonly Regex SmdbCategoryBucketRegex = new(
+            @"^\d+[\.\)]?\s+(game\s*boy|super\s+game\s*boy|emulation\s+extras|bad\s+dumps|hacks|homebrew|bios|translations|unlicensed|usa|europe|japan|world)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static string GetPlatformByExtension(string extension)
         {
@@ -508,6 +512,11 @@ namespace NzbDrone.Core.Parser
 
             var name = folderName.Trim().ToLowerInvariant();
             if (name.Length == 1)
+            {
+                return true;
+            }
+
+            if (SmdbCategoryBucketRegex.IsMatch(name))
             {
                 return true;
             }
@@ -573,6 +582,12 @@ namespace NzbDrone.Core.Parser
                 {
                     if (item.Alias.Length >= 3 && (lowerName.Contains(item.Alias) || lowerNameDehyphenated.Contains(item.Alias)))
                     {
+                        if (item.Alias.Length <= 4 &&
+                            !Regex.IsMatch(lowerNameDehyphenated, $@"(?<![a-z]){Regex.Escape(item.Alias)}(?![a-z])"))
+                        {
+                            continue;
+                        }
+
                         return item.Slug;
                     }
                 }
@@ -590,8 +605,18 @@ namespace NzbDrone.Core.Parser
                 return null;
             }
 
+            var fileExt = !string.IsNullOrWhiteSpace(nameOrSlugOrFilename)
+                ? Path.GetExtension(nameOrSlugOrFilename)
+                : string.Empty;
+
+            var isKnownRomOrArchiveExt = !string.IsNullOrWhiteSpace(fileExt) &&
+                                         (fileExt.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                                          fileExt.Equals(".7z", StringComparison.OrdinalIgnoreCase) ||
+                                          GetPlatformByExtension(fileExt) != null ||
+                                          DiscExclusiveExtensions.Contains(fileExt));
+
             var clean = !string.IsNullOrWhiteSpace(nameOrSlugOrFilename)
-                ? Path.GetFileNameWithoutExtension(nameOrSlugOrFilename).Trim()
+                ? (isKnownRomOrArchiveExt ? Path.GetFileNameWithoutExtension(nameOrSlugOrFilename).Trim() : nameOrSlugOrFilename.Trim())
                 : string.Empty;
 
             var slug = NormalizePlatformSlug(null, clean);

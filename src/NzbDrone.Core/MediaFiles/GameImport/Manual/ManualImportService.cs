@@ -217,13 +217,14 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     {
                         scannedItems = scannedItems.Where(item =>
                         {
-                            if (item.Series == null || item.Episodes == null || item.Episodes.Count == 0)
+                            if (item.Series == null || string.IsNullOrWhiteSpace(item.Series.Path) || string.IsNullOrWhiteSpace(item.Path))
                             {
                                 return true;
                             }
 
                             var existingFiles = _mediaFileService.GetFilesBySeries(item.Series.Id);
-                            return !existingFiles.Any(f => item.Episodes.Any(e => e.EpisodeFileId == f.Id));
+                            return !existingFiles.Any(f => !string.IsNullOrWhiteSpace(f.RelativePath) &&
+                                                           Path.Combine(item.Series.Path, f.RelativePath).PathEquals(item.Path));
                         }).ToList();
                     }
 

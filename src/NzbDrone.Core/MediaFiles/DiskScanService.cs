@@ -211,6 +211,9 @@ namespace NzbDrone.Core.MediaFiles
             _logger.Trace("Import decisions complete for: {0} [{1}]", series, decisionsStopwatch.Elapsed);
             _importApprovedEpisodes.Import(decisions, false);
 
+            // Refresh existing files after import in case any files were moved or upgraded
+            seriesFiles = _mediaFileService.GetFilesBySeries(series.Id);
+
             // Update existing files that have a different file size
 
             var fileInfoStopwatch = Stopwatch.StartNew();
@@ -219,7 +222,16 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var file in seriesFiles)
             {
                 var path = Path.Combine(series.Path, file.RelativePath);
-                var fileSize = _diskProvider.GetFileSize(path);
+                long fileSize;
+
+                try
+                {
+                    fileSize = _diskProvider.GetFileSize(path);
+                }
+                catch (FileNotFoundException)
+                {
+                    continue;
+                }
 
                 if (file.Size == fileSize)
                 {

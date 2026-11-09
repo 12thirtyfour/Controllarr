@@ -22,29 +22,10 @@ export interface ImportPlatformSelectionResult {
 }
 
 export function getImportPlatformSelection(
-  { eligibilityById, duplicateIdsByTvdbId }: ImportPlatformEligibilityResult,
+  { eligibilityById }: ImportPlatformEligibilityResult,
   selectedIds: string[]
 ): ImportPlatformSelectionResult {
-  const selectedIdSet = new Set(selectedIds);
-  const chosenDuplicateIds = new Set<string>();
   const duplicateIdsToDeselect = new Set<string>();
-
-  duplicateIdsByTvdbId.forEach((duplicateIds) => {
-    let hasChosenId = false;
-
-    duplicateIds.forEach((duplicateId) => {
-      if (!selectedIdSet.has(duplicateId)) {
-        return;
-      }
-
-      if (hasChosenId) {
-        duplicateIdsToDeselect.add(duplicateId);
-      } else {
-        chosenDuplicateIds.add(duplicateId);
-        hasChosenId = true;
-      }
-    });
-  });
 
   const importableIds = selectedIds.filter((id) => {
     const status = eligibilityById.get(id);
@@ -52,7 +33,7 @@ export function getImportPlatformSelection(
     return (
       status === 'ready' ||
       status === 'existing' ||
-      chosenDuplicateIds.has(id)
+      status === 'duplicate'
     );
   });
 
@@ -63,22 +44,6 @@ export function getImportPlatformEligibility(
   items: ImportPlatformEligibilityItem[],
   existingTvdbIds: Set<number>
 ): ImportPlatformEligibilityResult {
-  const idsByTvdbId = items.reduce<Map<number, string[]>>((ids, item) => {
-    const tvdbId = item.selectedSeries?.tvdbId;
-
-    if (tvdbId != null) {
-      const existingIds = ids.get(tvdbId);
-
-      if (existingIds) {
-        existingIds.push(item.id);
-      } else {
-        ids.set(tvdbId, [item.id]);
-      }
-    }
-
-    return ids;
-  }, new Map());
-
   const eligibilityById = items.reduce<Map<string, ImportPlatformEligibility>>(
     (eligibility, item) => {
       const tvdbId = item.selectedSeries?.tvdbId;
@@ -86,8 +51,6 @@ export function getImportPlatformEligibility(
 
       if (tvdbId != null && existingTvdbIds.has(tvdbId)) {
         status = 'existing';
-      } else if (tvdbId != null && (idsByTvdbId.get(tvdbId)?.length ?? 0) > 1) {
-        status = 'duplicate';
       } else if (tvdbId != null) {
         status = 'ready';
       }
@@ -100,12 +63,6 @@ export function getImportPlatformEligibility(
   );
 
   const duplicateIdsByTvdbId = new Map<number, string[]>();
-
-  idsByTvdbId.forEach((ids, tvdbId) => {
-    if (ids.length > 1 && !existingTvdbIds.has(tvdbId)) {
-      duplicateIdsByTvdbId.set(tvdbId, ids);
-    }
-  });
 
   return {
     eligibilityById,

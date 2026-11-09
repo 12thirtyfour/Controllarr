@@ -41,11 +41,7 @@ export const useImportPlatform = () => {
         const item = items.find((i) => i.id === id);
         const selectedSeries = item?.selectedSeries;
 
-        // Make sure we have a selected series and the same series hasn't been added yet.
-        if (
-          selectedSeries &&
-          !acc.some((a) => a.tvdbId === selectedSeries.tvdbId)
-        ) {
+        if (selectedSeries && item) {
           const newSeries: Series = {
             ...selectedSeries,
             monitored: item.monitor !== 'none',

@@ -170,7 +170,7 @@ namespace NzbDrone.Core.MediaFiles
             }
             else
             {
-                _diskTransferService.TransferFile(romFilePath, destinationFilePath, mode);
+                _diskTransferService.TransferFile(romFilePath, destinationFilePath, mode, File.Exists(destinationFilePath));
             }
 
             var sidecarMode = (mode == TransferMode.Copy || mode == TransferMode.HardLinkOrCopy)

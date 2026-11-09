@@ -183,12 +183,20 @@ namespace NzbDrone.Core.Tv
                     series = SetPropertiesAndValidate(series, incomingSourcePath);
                     series.Added = added;
 
-                    if (seriesToAdd.Any(f => f.TvdbId == series.TvdbId ||
-                                             string.Equals(f.Title, series.Title, StringComparison.OrdinalIgnoreCase) ||
-                                             (!string.IsNullOrWhiteSpace(f.TitleSlug) && string.Equals(f.TitleSlug, series.TitleSlug, StringComparison.OrdinalIgnoreCase)) ||
-                                             (!string.IsNullOrWhiteSpace(f.Path) && string.Equals(f.Path, series.Path, StringComparison.OrdinalIgnoreCase))))
+                    var queuedSeries = seriesToAdd.FirstOrDefault(f =>
+                        f.TvdbId == series.TvdbId ||
+                        string.Equals(f.Title, series.Title, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrWhiteSpace(f.TitleSlug) && string.Equals(f.TitleSlug, series.TitleSlug, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(f.Path) && string.Equals(f.Path, series.Path, StringComparison.OrdinalIgnoreCase)));
+
+                    if (queuedSeries != null)
                     {
-                        _logger.Trace("Platform ID {0} ({1}) was already queued for addition, not adding platform again", s.TvdbId, s.Title);
+                        _logger.Trace("Platform ID {0} ({1}) was already queued for addition; queueing incoming source path [{2}]", s.TvdbId, s.Title, incomingSourcePath);
+                        if (!string.IsNullOrWhiteSpace(incomingSourcePath))
+                        {
+                            incomingSourcePaths.Add((queuedSeries, incomingSourcePath));
+                        }
+
                         continue;
                     }
 
@@ -410,6 +418,11 @@ namespace NzbDrone.Core.Tv
                  path.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)))
             {
                 return path;
+            }
+
+            if (_diskProvider.FolderExists(path))
+            {
+                return string.Empty;
             }
 
             if (_diskProvider.FileExists(path + ".zip"))
@@ -933,7 +946,8 @@ namespace NzbDrone.Core.Tv
                 newSeries.Path = Path.Combine(newSeries.RootFolderPath, folderName);
             }
             else if (newSeries.Path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                     newSeries.Path.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
+                     newSeries.Path.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
+                     !string.IsNullOrWhiteSpace(ResolveCandidateArchive(incomingSourcePath ?? newSeries.Path)))
             {
                 var targetRoot = ResolveTargetLibraryRootFolder(newSeries, incomingSourcePath ?? newSeries.Path);
                 var folderName = _fileNameBuilder?.GetSeriesFolder(newSeries);

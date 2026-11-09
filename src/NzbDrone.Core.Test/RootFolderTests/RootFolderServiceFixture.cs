@@ -303,5 +303,76 @@ namespace NzbDrone.Core.Test.RootFolderTests
             unmappedFolders.First().Name.Should().Be("Sega CD");
             unmappedFolders.First().Path.Should().Be(rootFolderPath);
         }
+
+        [Test]
+        public void should_list_both_zip_archive_and_already_extracted_folder_in_same_root_folder()
+        {
+            var rootFolderPath = @"C:\Test\Import".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var extractedFolder = Path.Combine(rootFolderPath, "Game Boy Pack");
+            var zipArchive = Path.Combine(rootFolderPath, "Game Boy Pack.zip");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { extractedFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(new[] { zipArchive });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(2);
+            unmappedFolders.Should().Contain(u => u.Path == zipArchive && u.Name == "Nintendo Game Boy");
+            unmappedFolders.Should().Contain(u => u.Path == extractedFolder && u.Name == "Nintendo Game Boy");
+        }
+
+        [Test]
+        public void should_list_already_extracted_subfolder_containing_roms_even_when_folder_name_has_no_platform_keyword()
+        {
+            var rootFolderPath = @"C:\Test\Import".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var extractedFolder = Path.Combine(rootFolderPath, "MyExtractedCollection");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { extractedFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(extractedFolder, true))
+                .Returns(new[] { Path.Combine(extractedFolder, "Tetris (World).gb") });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Path.Should().Be(extractedFolder);
+            unmappedFolders.First().Name.Should().Be("Nintendo Game Boy");
+        }
     }
 }
