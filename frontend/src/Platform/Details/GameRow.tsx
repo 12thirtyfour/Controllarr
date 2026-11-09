@@ -84,7 +84,8 @@ function GameRow({
   onMonitorGamePress,
 }: GameRowProps) {
   const series = useSingleSeries(seriesId);
-  const platformTitle = series?.title;  const romFile = useRomFile(romFileId);
+  const platformTitle = series?.titleSlug || series?.title;
+  const romFile = useRomFile(romFileId);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState(false);
 
   const customFormats = romFile?.customFormats ?? [];
@@ -220,7 +221,10 @@ function GameRow({
         }
 
         if (name === 'achievements') {
-          if (achievementSummary.tier === 'none') {
+          if (
+            achievementSummary.tier === 'none' ||
+            achievementSummary.total <= 0
+          ) {
             return <TableRowCell key={name} className={styles.achievements} />;
           }
 
@@ -229,7 +233,7 @@ function GameRow({
           let badgeText =
             achievementSummary.total > 0
               ? `${achievementSummary.unlocked}/${achievementSummary.total}`
-              : '0';
+              : '';
           let badgeTooltip =
             achievementSummary.total > 0
               ? `Achievements available (0/${achievementSummary.total} earned) — Click to view`

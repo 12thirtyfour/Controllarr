@@ -76,6 +76,7 @@ import translate from 'Utilities/String/translate';
 import toggleSelected from 'Utilities/Table/toggleSelected';
 import PlatformBiosSection from './PlatformBiosSection';
 import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
+import { isPlatformRetroAchievementsSupported } from './gameAchievementsHelper';
 import SeriesAlternateTitles from './PlatformAlternateTitles';
 import PlatformDetailsLinks from './PlatformDetailsLinks';
 import PlatformDetailsPath from './PlatformDetailsPath';
@@ -158,6 +159,9 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   }, [series?.titleSlug, series?.title]);
 
   const monitored = series?.monitored ?? false;
+  const isRaSupported = isPlatformRetroAchievementsSupported(
+    series?.titleSlug || series?.title
+  );
 
   const {
     isFetching: isGamesFetching,
@@ -887,6 +891,9 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                       tooltip={
                         <PlatformDetailsLinks
                           tvdbId={tvdbId}
+                          platformTitleOrSlug={
+                            series?.titleSlug || series?.title
+                          }
                         />
                       }
                       kind={kinds.DEFAULT}
@@ -943,7 +950,8 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
 
 
-                    <Link onPress={handleRetroAchievementsPress}>
+                    {isRaSupported ? (
+                      <Link onPress={handleRetroAchievementsPress}>
                       <Label
                         className={styles.detailsLabel}
                         title={translate('RetroAchievements')}
@@ -954,6 +962,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                         <span>RA Ready</span>
                       </Label>
                     </Link>
+                  ) : null}
 
                     <Label
                       className={styles.detailsLabel}

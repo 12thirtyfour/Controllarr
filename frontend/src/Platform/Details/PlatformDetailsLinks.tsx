@@ -4,12 +4,12 @@ import Link from 'Components/Link/Link';
 import { kinds, sizes } from 'Helpers/Props';
 import Series from 'Platform/Platform';
 import translate from 'Utilities/String/translate';
+import { isPlatformRetroAchievementsSupported } from './gameAchievementsHelper';
 import styles from './PlatformDetailsLinks.module.css';
 
-type PlatformDetailsLinksProps = Pick<
-  Series,
-  'tvdbId'
->;
+type PlatformDetailsLinksProps = Pick<Series, 'tvdbId'> & {
+  platformTitleOrSlug?: string;
+};
 
 interface PlatformDetailsLink {
   externalId?: string | number;
@@ -18,7 +18,7 @@ interface PlatformDetailsLink {
 }
 
 function PlatformDetailsLinks(props: PlatformDetailsLinksProps) {
-  const { tvdbId } = props;
+  const { tvdbId, platformTitleOrSlug } = props;
 
   const links = useMemo(() => {
     const validLinks: PlatformDetailsLink[] = [];
@@ -37,18 +37,21 @@ function PlatformDetailsLinks(props: PlatformDetailsLinksProps) {
         {
           name: 'Redump',
           url: 'http://redump.org/',
-        },
-        {
-          name: 'RetroAchievements',
-          url: 'https://retroachievements.org/',
         }
       );
+
+      if (isPlatformRetroAchievementsSupported(platformTitleOrSlug)) {
+        validLinks.push({
+          name: 'RetroAchievements',
+          url: 'https://retroachievements.org/',
+        });
+      }
     }
 
     return validLinks.sort(
       (a, b) => Number(!a.externalId) - Number(!b.externalId)
     );
-  }, [tvdbId]);
+  }, [tvdbId, platformTitleOrSlug]);
 
   return (
     <div className={styles.links}>

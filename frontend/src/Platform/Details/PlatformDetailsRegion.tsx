@@ -46,6 +46,7 @@ import isBefore from 'Utilities/Date/isBefore';
 import formatBytes from 'Utilities/Number/formatBytes';
 import translate from 'Utilities/String/translate';
 import getToggledRange from 'Utilities/Table/getToggledRange';
+import { isPlatformRetroAchievementsSupported } from './gameAchievementsHelper';
 import GameRow from './GameRow';
 import RegionInfo from './RegionInfo';
 import RegionProgressLabel from './RegionProgressLabel';
@@ -188,16 +189,30 @@ function PlatformDetailsSeason({
   onExpandPress,
 }: PlatformDetailsSeasonProps) {
   const executeCommand = useExecuteCommand();
+  const series = useSingleSeries(seriesId)!;
   const {
     monitored: seriesMonitored,
     path,
     titleSlug,
     collectionStrategy = 0,
     revisionPreference = 0,
-  } = useSingleSeries(seriesId)!;
+  } = series;
+  const platformTitle = series?.title;
   const { data: items } = useRegionGames(seriesId, seasonNumber);
 
   const { columns, sortKey, sortDirection } = useGameOptions();
+
+  const isRaSupported = isPlatformRetroAchievementsSupported(
+    titleSlug || platformTitle
+  );
+
+  const effectiveColumns = useMemo(() => {
+    if (!isRaSupported) {
+      return columns.filter((col) => col.name !== 'achievements');
+    }
+
+    return columns;
+  }, [columns, isRaSupported]);
 
   const isSmallScreen = useAppDimension('isSmallScreen');
   const isSearching = useIsSearching(seriesId, seasonNumber);
@@ -722,7 +737,7 @@ function PlatformDetailsSeason({
     : displayRows;
   const topSpacerHeight = isVirtual ? startIndex * 42 : 0;
   const bottomSpacerHeight = isVirtual ? (displayRows.length - endIndex) * 42 : 0;
-  const visibleColumnCount = columns.filter(
+  const visibleColumnCount = effectiveColumns.filter(
     (col) => col.isVisible !== false
   ).length;
 
@@ -944,7 +959,7 @@ function PlatformDetailsSeason({
           <div ref={gamesContainerRef} className={styles.games}>
             {displayRows.length ? (
               <Table
-                columns={columns}
+                columns={effectiveColumns}
                 sortKey={sortKey}
                 sortDirection={sortDirection}
                 onSortPress={handleSortPress}
@@ -978,7 +993,7 @@ function PlatformDetailsSeason({
                     return (
                       <GameRow
                         key={item.id}
-                        columns={columns}
+                        columns={effectiveColumns}
                         {...item}
                         romVersionLabel={versionLabel}
                         isAlternateGroup={isAlternateGroup}

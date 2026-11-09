@@ -32,7 +32,32 @@ export function resolveConsoleKey(consoleName?: string): string {
     return '';
   }
 
-  const c = consoleName.toLowerCase();
+  const c = consoleName.toLowerCase().trim();
+
+  // Explicitly unsupported modern and non-RA consoles
+  if (
+    c.includes('switch') ||
+    c.includes('gamecube') ||
+    c === 'gc' ||
+    c.includes('wii u') ||
+    c === 'wiiu' ||
+    c === 'wii' ||
+    c.includes('3ds') ||
+    c.includes('playstation 3') ||
+    c === 'ps3' ||
+    c.includes('playstation 4') ||
+    c === 'ps4' ||
+    c.includes('playstation 5') ||
+    c === 'ps5' ||
+    c.includes('playstation vita') ||
+    c.includes('psvita') ||
+    c === 'vita' ||
+    c.includes('xbox')
+  ) {
+    return '';
+  }
+
+  // Nintendo
   if (
     c.includes('super nintendo') ||
     c.includes('super famicom') ||
@@ -44,14 +69,20 @@ export function resolveConsoleKey(consoleName?: string): string {
 
   if (
     c.includes('nintendo entertainment system') ||
+    c.includes('famicom disk') ||
     c.includes('famicom') ||
+    c === 'fds' ||
     c === 'fc' ||
     c.includes('nes')
   ) {
     return 'nes';
   }
 
-  if (c.includes('nintendo 64') || c.includes('n64')) {
+  if (c.includes('satellaview')) {
+    return 'snes';
+  }
+
+  if (c.includes('nintendo 64') || c.includes('n64') || c.includes('64dd')) {
     return 'n64';
   }
 
@@ -67,10 +98,24 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'gb';
   }
 
-  if (c.includes('nintendo ds') || c.includes('nds')) {
+  if (
+    c.includes('nintendo ds') ||
+    c.includes('nds') ||
+    c === 'ds' ||
+    c === 'dsi'
+  ) {
     return 'nds';
   }
 
+  if (c.includes('virtual boy') || c === 'vb' || c.includes('virtualboy')) {
+    return 'vb';
+  }
+
+  if (c.includes('pokemon mini') || c.includes('pokémon mini')) {
+    return 'pokemonmini';
+  }
+
+  // Sony (Supported Retro)
   if (c.includes('playstation 2') || c.includes('ps2')) {
     return 'ps2';
   }
@@ -83,8 +128,18 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'ps1';
   }
 
-  if (c.includes('sega cd') || c.includes('mega cd') || c.includes('segacd')) {
+  // Sega
+  if (
+    c.includes('sega cd') ||
+    c.includes('mega cd') ||
+    c.includes('segacd') ||
+    c.includes('megacd')
+  ) {
     return 'segacd';
+  }
+
+  if (c.includes('32x')) {
+    return '32x';
   }
 
   if (c.includes('saturn')) {
@@ -95,18 +150,44 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'dreamcast';
   }
 
-  if (c.includes('master system') || c === 'sms') {
+  if (
+    c.includes('master system') ||
+    c === 'sms' ||
+    c.includes('sg-1000') ||
+    c.includes('sg1000')
+  ) {
     return 'sms';
+  }
+
+  if (c.includes('game gear') || c === 'gg' || c.includes('gamegear')) {
+    return 'gg';
   }
 
   if (c.includes('genesis') || c.includes('mega drive') || c === 'md') {
     return 'genesis';
   }
 
-  if (c.includes('pc engine') || c.includes('turbografx')) {
+  // NEC
+  if (
+    c.includes('turbografx-cd') ||
+    c.includes('turbografx cd') ||
+    c.includes('pc engine cd') ||
+    c === 'tgcd'
+  ) {
+    return 'tgcd';
+  }
+
+  if (
+    c.includes('turbografx') ||
+    c.includes('pc engine') ||
+    c.includes('tg16') ||
+    c.includes('supergrafx') ||
+    c.includes('pcfx')
+  ) {
     return 'tg16';
   }
 
+  // Atari
   if (c.includes('2600')) {
     return 'atari2600';
   }
@@ -119,11 +200,77 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'lynx';
   }
 
+  if (c.includes('jaguar cd') || c === 'jaguarcd') {
+    return 'jaguarcd';
+  }
+
   if (c.includes('jaguar')) {
     return 'jaguar';
   }
 
-  return c.replace(/[^a-z0-9]/g, '');
+  // SNK
+  if (
+    c.includes('neo geo pocket') ||
+    c.includes('neogeo pocket') ||
+    c === 'ngpc' ||
+    c === 'ngp'
+  ) {
+    return 'ngpc';
+  }
+
+  if (c.includes('neo geo') || c.includes('neogeo')) {
+    return 'neogeo';
+  }
+
+  // Bandai
+  if (c.includes('wonderswan') || c === 'wsc' || c === 'ws') {
+    return 'wonderswan';
+  }
+
+  // Other classic systems supported on RetroAchievements
+  if (c.includes('arcade') || c.includes('mame') || c.includes('fbneo')) {
+    return 'arcade';
+  }
+
+  if (c.includes('3do')) {
+    return '3do';
+  }
+
+  if (c.includes('colecovision') || c.includes('coleco')) {
+    return 'colecovision';
+  }
+
+  if (c.includes('intellivision')) {
+    return 'intellivision';
+  }
+
+  if (c.includes('vectrex')) {
+    return 'vectrex';
+  }
+
+  if (c.includes('odyssey')) {
+    return 'odyssey2';
+  }
+
+  if (c.includes('msx')) {
+    return 'msx';
+  }
+
+  if (c.includes('commodore') || c === 'c64' || c.includes('amiga')) {
+    return 'c64';
+  }
+
+  return '';
+}
+
+export function isPlatformRetroAchievementsSupported(
+  platformNameOrSlug?: string
+): boolean {
+  if (!platformNameOrSlug) {
+    return false;
+  }
+
+  return resolveConsoleKey(platformNameOrSlug) !== '';
 }
 
 export function normalizeGameTitle(title: string): string {
@@ -158,19 +305,17 @@ export function findMatchingGameProgress(
     return undefined;
   }
 
-  const targetConsoleKey = resolveConsoleKey(consoleName);
+  if (consoleName) {
+    const targetConsoleKey = resolveConsoleKey(consoleName);
+    if (!targetConsoleKey) {
+      return undefined;
+    }
 
-  if (targetConsoleKey) {
-    const exactMatch = libraryItems.find(
+    return libraryItems.find(
       (item) =>
         normalizeGameTitle(item.gameTitle) === normTitle &&
         resolveConsoleKey(item.consoleName) === targetConsoleKey
     );
-    if (exactMatch) {
-      return exactMatch;
-    }
-
-    return undefined;
   }
 
   return libraryItems.find(
@@ -269,11 +414,23 @@ export function buildBadgesForGame(
 
 export function getGameAchievementSummary(
   gameTitle: string,
-  seasonNumber = 1,
+  regionNumber = 1,
   _cacheVersion = 0,
   consoleName?: string
 ): GameAchievementSummary {
-  if (seasonNumber === 0 || seasonNumber === 99) {
+  if (regionNumber === 0 || regionNumber === 99) {
+    return {
+      tier: 'none',
+      total: 0,
+      unlocked: 0,
+      hardcoreUnlocked: 0,
+      masteryPercentage: 0,
+      isMastered: false,
+      badges: [],
+    };
+  }
+
+  if (consoleName && !isPlatformRetroAchievementsSupported(consoleName)) {
     return {
       tier: 'none',
       total: 0,
@@ -290,7 +447,7 @@ export function getGameAchievementSummary(
 
   if (!matched || matched.totalAchievements <= 0) {
     return {
-      tier: 'outline',
+      tier: 'none',
       total: 0,
       unlocked: 0,
       hardcoreUnlocked: 0,
