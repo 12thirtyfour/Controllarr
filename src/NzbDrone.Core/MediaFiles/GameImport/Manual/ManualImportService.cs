@@ -147,6 +147,39 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     return new List<ManualImportItem>();
                 }
 
+                var ext = Path.GetExtension(path);
+                if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) || ext.Equals(".7z", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (_unmanagedDiskScanner != null)
+                    {
+                        var scanned = _unmanagedDiskScanner.Scan(path);
+                        if (scanned != null && scanned.Count > 0)
+                        {
+                            if (seriesId.HasValue)
+                            {
+                                var targetSeries = _seriesService.GetSeries(seriesId.Value);
+                                foreach (var item in scanned)
+                                {
+                                    if (item.Series == null)
+                                    {
+                                        item.Series = targetSeries;
+                                        _unmanagedDiskScanner.EnrichItem(item);
+                                    }
+                                }
+
+                                scanned = scanned.Where(i => i.Series?.Id == seriesId.Value).ToList();
+                            }
+
+                            if (downloadId.IsNotNullOrWhiteSpace())
+                            {
+                                scanned.ForEach(i => i.DownloadId = downloadId);
+                            }
+
+                            return scanned;
+                        }
+                    }
+                }
+
                 var rootFolder = Path.GetDirectoryName(path);
                 return new List<ManualImportItem> { ProcessFile(rootFolder, rootFolder, path, downloadId) };
             }
@@ -597,6 +630,30 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                         if (entry != null)
                         {
                             entry.ExtractToFile(actualPath, true);
+
+                            if (Path.GetExtension(actualPath).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                try
+                                {
+                                    using var innerArchive = ZipFile.OpenRead(actualPath);
+                                    var innerEntry = innerArchive.Entries.FirstOrDefault(e =>
+                                        !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                                        MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)) &&
+                                        !Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                                        !Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                                    if (innerEntry != null)
+                                    {
+                                        var innerDest = Path.Combine(tempExtractDir, innerEntry.Name);
+                                        innerEntry.ExtractToFile(innerDest, true);
+                                        actualPath = innerDest;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Debug(ex, "Failed to extract nested inner ROM archive '{0}'", actualPath);
+                                }
+                            }
                         }
                     }
 

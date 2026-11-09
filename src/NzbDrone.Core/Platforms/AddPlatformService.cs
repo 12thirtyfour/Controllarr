@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using FluentValidation;
 using FluentValidation.Results;
@@ -9,11 +10,14 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Tv.Commands;
 
 namespace NzbDrone.Core.Tv
 {
@@ -34,6 +38,7 @@ namespace NzbDrone.Core.Tv
         private readonly IAddPlatformValidator _addSeriesValidator;
         private readonly IDiskProvider _diskProvider;
         private readonly IRootFolderService _rootFolderService;
+        private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
 
         public AddPlatformService(ISeriesService seriesService,
@@ -45,6 +50,7 @@ namespace NzbDrone.Core.Tv
                                 IAddPlatformValidator addSeriesValidator,
                                 IDiskProvider diskProvider,
                                 IRootFolderService rootFolderService,
+                                IManageCommandQueue commandQueueManager,
                                 Logger logger)
         {
             _seriesService = seriesService;
@@ -56,6 +62,7 @@ namespace NzbDrone.Core.Tv
             _addSeriesValidator = addSeriesValidator;
             _diskProvider = diskProvider;
             _rootFolderService = rootFolderService;
+            _commandQueueManager = commandQueueManager;
             _logger = logger;
         }
 
@@ -88,7 +95,8 @@ namespace NzbDrone.Core.Tv
 
             if (existingPlatform != null)
             {
-                _logger.Info("Platform {0} already exists in library (ID {1}); returning existing platform", existingPlatform.Title, existingPlatform.Id);
+                _logger.Info("Platform {0} already exists in library (ID {1}); importing incoming content into library", existingPlatform.Title, existingPlatform.Id);
+                ImportIncomingContentToExistingPlatform(newSeries, existingPlatform);
                 return existingPlatform;
             }
 
@@ -106,6 +114,7 @@ namespace NzbDrone.Core.Tv
         {
             var added = DateTime.UtcNow;
             var seriesToAdd = new List<Series>();
+            var existingSeriesToReturn = new List<Series>();
             var existingSeriesTvdbIds = _seriesService.AllSeriesTvdbIds();
 
             foreach (var s in newSeries)
@@ -132,31 +141,38 @@ namespace NzbDrone.Core.Tv
                         s.Seasons = null;
                     }
 
-                    var series = AddSkyhookData(s);
-                    series = SetPropertiesAndValidate(series);
-                    series.Added = added;
-                    var existing = _seriesService.FindByTvdbId(series.TvdbId);
-                    if (existing == null && !string.IsNullOrWhiteSpace(series.Title))
+                    var existing = _seriesService.FindByTvdbId(s.TvdbId);
+                    if (existing == null && !string.IsNullOrWhiteSpace(s.Title))
                     {
-                        existing = _seriesService.FindByTitle(series.Title);
+                        existing = _seriesService.FindByTitle(s.Title);
                     }
 
-                    if (existing == null && !string.IsNullOrWhiteSpace(series.Path))
+                    if (existing == null && !string.IsNullOrWhiteSpace(s.Path))
                     {
-                        existing = _seriesService.FindByPath(series.Path);
+                        existing = _seriesService.FindByPath(s.Path);
                     }
 
-                    if (existing == null && !string.IsNullOrWhiteSpace(series.TitleSlug))
+                    if (existing == null && !string.IsNullOrWhiteSpace(s.TitleSlug))
                     {
                         existing = _seriesService.GetAllSeries()
-                            .FirstOrDefault(p => string.Equals(p.TitleSlug, series.TitleSlug, StringComparison.OrdinalIgnoreCase));
+                            .FirstOrDefault(p => string.Equals(p.TitleSlug, s.TitleSlug, StringComparison.OrdinalIgnoreCase));
                     }
 
                     if (existing != null)
                     {
-                        _logger.Debug("Platform ID {0} was not added: Platform {1} already exists in database as {2} (ID {3})", s.TvdbId, s.Title, existing.Title, existing.Id);
+                        _logger.Info("Platform ID {0} was already present: Platform {1} exists in database as {2} (ID {3}); importing incoming files into existing library", s.TvdbId, s.Title, existing.Title, existing.Id);
+                        ImportIncomingContentToExistingPlatform(s, existing);
+                        if (!existingSeriesToReturn.Any(e => e.Id == existing.Id))
+                        {
+                            existingSeriesToReturn.Add(existing);
+                        }
+
                         continue;
                     }
+
+                    var series = AddSkyhookData(s);
+                    series = SetPropertiesAndValidate(series);
+                    series.Added = added;
 
                     if (seriesToAdd.Any(f => f.TvdbId == series.TvdbId ||
                                              string.Equals(f.Title, series.Title, StringComparison.OrdinalIgnoreCase) ||
@@ -180,12 +196,20 @@ namespace NzbDrone.Core.Tv
                 }
             }
 
-            return SaveAddedSeries(seriesToAdd);
+            var addedSeries = SaveAddedSeries(seriesToAdd);
+            addedSeries.AddRange(existingSeriesToReturn);
+
+            return addedSeries;
         }
 
         private List<Series> SaveAddedSeries(List<Series> seriesToAdd)
         {
-            var addedSeries = _seriesService.AddSeries(seriesToAdd);
+            if (seriesToAdd.Empty())
+            {
+                return new List<Series>();
+            }
+
+            var addedSeries = _seriesService.AddSeries(seriesToAdd) ?? new List<Series>();
 
             foreach (var series in addedSeries)
             {
@@ -305,6 +329,27 @@ namespace NzbDrone.Core.Tv
                     _diskProvider.CreateFolder(series.Path);
                 }
 
+                var candidateArchive = string.Empty;
+                if (_diskProvider.FileExists(series.Path) &&
+                    (series.Path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                     series.Path.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)))
+                {
+                    candidateArchive = series.Path;
+                }
+                else if (_diskProvider.FileExists(series.Path + ".zip"))
+                {
+                    candidateArchive = series.Path + ".zip";
+                }
+                else if (_diskProvider.FileExists(series.Path + ".7z"))
+                {
+                    candidateArchive = series.Path + ".7z";
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidateArchive) && _diskProvider.FileExists(candidateArchive))
+                {
+                    ExtractArchiveToDirectory(candidateArchive, series.Path, series);
+                }
+
                 var biosPath = Path.Combine(series.Path, "BIOS");
                 if (!_diskProvider.FolderExists(biosPath))
                 {
@@ -339,6 +384,180 @@ namespace NzbDrone.Core.Tv
             catch (Exception ex)
             {
                 _logger.Warn(ex, "Unable to automatically create platform folder structure for {0} at {1}", series.Title, series.Path);
+            }
+        }
+
+        private void ImportIncomingContentToExistingPlatform(Series incoming, Series existing)
+        {
+            try
+            {
+                if (!_diskProvider.FolderExists(existing.Path))
+                {
+                    _diskProvider.CreateFolder(existing.Path);
+                }
+
+                var candidateArchive = string.Empty;
+                if (!string.IsNullOrWhiteSpace(incoming.Path))
+                {
+                    if (_diskProvider.FileExists(incoming.Path) &&
+                        (incoming.Path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                         incoming.Path.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        candidateArchive = incoming.Path;
+                    }
+                    else if (_diskProvider.FileExists(incoming.Path + ".zip"))
+                    {
+                        candidateArchive = incoming.Path + ".zip";
+                    }
+                    else if (_diskProvider.FileExists(incoming.Path + ".7z"))
+                    {
+                        candidateArchive = incoming.Path + ".7z";
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidateArchive) && _diskProvider.FileExists(candidateArchive))
+                {
+                    ExtractArchiveToDirectory(candidateArchive, existing.Path, existing);
+                }
+                else if (!string.IsNullOrWhiteSpace(incoming.Path) &&
+                         _diskProvider.FolderExists(incoming.Path) &&
+                         !incoming.Path.PathEquals(existing.Path))
+                {
+                    CopyFolderContent(incoming.Path, existing.Path);
+                }
+
+                _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { existing.Id }, true));
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to import incoming content for existing platform {0}", existing.Title);
+            }
+        }
+
+        private void ExtractArchiveToDirectory(string archivePath, string destinationDirectory, Series series)
+        {
+            if (!_diskProvider.FolderExists(destinationDirectory))
+            {
+                _diskProvider.CreateFolder(destinationDirectory);
+            }
+
+            if (!Path.GetExtension(archivePath).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            try
+            {
+                using var archive = ZipFile.OpenRead(archivePath);
+                var validExtensions = MediaFileExtensions.RomExtensions;
+                var newlyExtractedZips = new List<string>();
+
+                foreach (var entry in archive.Entries)
+                {
+                    if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\") ||
+                        entry.FullName.Contains("__MACOSX") || entry.Name.StartsWith(".") ||
+                        entry.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var ext = Path.GetExtension(entry.Name);
+                    if (!validExtensions.Contains(ext))
+                    {
+                        continue;
+                    }
+
+                    var destFile = Path.Combine(destinationDirectory, Path.GetFileName(entry.FullName.Replace('/', Path.DirectorySeparatorChar)));
+                    if (!_diskProvider.FileExists(destFile))
+                    {
+                        using var stream = entry.Open();
+                        _diskProvider.SaveStream(stream, destFile);
+                    }
+
+                    if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        newlyExtractedZips.Add(destFile);
+                    }
+                }
+
+                foreach (var innerZip in newlyExtractedZips)
+                {
+                    if (!_diskProvider.FileExists(innerZip))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        using var innerArchive = ZipFile.OpenRead(innerZip);
+                        var innerRom = innerArchive.Entries.FirstOrDefault(e =>
+                            !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
+                            validExtensions.Contains(Path.GetExtension(e.Name)) &&
+                            !Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                            !Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                        if (innerRom != null)
+                        {
+                            var innerDest = Path.Combine(destinationDirectory, innerRom.Name);
+                            if (!_diskProvider.FileExists(innerDest))
+                            {
+                                using var stream = innerRom.Open();
+                                _diskProvider.SaveStream(stream, innerDest);
+                            }
+
+                            _diskProvider.DeleteFile(innerZip);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Failed to unpack nested zip '{0}'", innerZip);
+                    }
+                }
+
+                _logger.Info("Extracted archive '{0}' into platform directory '{1}'", Path.GetFileName(archivePath), destinationDirectory);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to extract archive '{0}' to '{1}'", archivePath, destinationDirectory);
+            }
+        }
+
+        private void CopyFolderContent(string sourceDirectory, string destinationDirectory)
+        {
+            try
+            {
+                if (!_diskProvider.FolderExists(destinationDirectory))
+                {
+                    _diskProvider.CreateFolder(destinationDirectory);
+                }
+
+                var files = _diskProvider.GetFiles(sourceDirectory, true);
+                var validExtensions = MediaFileExtensions.RomExtensions;
+
+                foreach (var file in files)
+                {
+                    var ext = Path.GetExtension(file);
+                    if (!validExtensions.Contains(ext))
+                    {
+                        continue;
+                    }
+
+                    var fileName = Path.GetFileName(file);
+                    var destFile = Path.Combine(destinationDirectory, fileName);
+                    if (!_diskProvider.FileExists(destFile))
+                    {
+                        _diskProvider.CopyFile(file, destFile);
+                    }
+
+                    if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ExtractArchiveToDirectory(destFile, destinationDirectory, null);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to copy folder contents from '{0}' to '{1}'", sourceDirectory, destinationDirectory);
             }
         }
 

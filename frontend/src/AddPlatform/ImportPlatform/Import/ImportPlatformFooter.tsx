@@ -72,7 +72,7 @@ function ImportPlatformFooter() {
     let count = eligibility.duplicateIdsByTvdbId.size;
 
     eligibility.eligibilityById.forEach((status) => {
-      if (status === 'ready') {
+      if (status === 'ready' || status === 'existing') {
         count++;
       }
     });
@@ -100,6 +100,7 @@ function ImportPlatformFooter() {
 
       if (status === 'existing') {
         existingCount++;
+        readyCount++;
       } else if (
         status === 'ready' ||
         (status === 'duplicate' && importableIdSet.has(item.id))
@@ -112,7 +113,7 @@ function ImportPlatformFooter() {
       existingCount,
       hasUnsearchedItems: !isLookingUpSeries && unsearchedCount > 0,
       lookupCount: unsearchedCount,
-      needsAttentionCount: items.length - readyCount - existingCount,
+      needsAttentionCount: items.length - readyCount,
       readyCount,
     };
   }, [items, isLookingUpSeries, eligibility, importableIdSet]);
@@ -147,7 +148,10 @@ function ImportPlatformFooter() {
 
             return {
               id: item.id,
-              isSelected: status === 'ready' || duplicateChoiceIds.has(item.id),
+              isSelected:
+                status === 'ready' ||
+                status === 'existing' ||
+                duplicateChoiceIds.has(item.id),
             };
           })
         );

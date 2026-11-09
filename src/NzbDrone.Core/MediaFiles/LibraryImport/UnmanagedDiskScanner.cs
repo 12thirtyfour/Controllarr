@@ -64,13 +64,43 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         {
             var results = new List<ManualImportItem>();
 
-            if (string.IsNullOrWhiteSpace(rootFolder) || !Directory.Exists(rootFolder))
+            if (string.IsNullOrWhiteSpace(rootFolder))
+            {
+                return results;
+            }
+
+            var validExtensions = GetValidRomExtensions();
+
+            if (File.Exists(rootFolder))
+            {
+                var ext = Path.GetExtension(rootFolder).ToLowerInvariant();
+                var baseFolder = Path.GetDirectoryName(rootFolder);
+                if (ArchiveExtensions.Contains(ext))
+                {
+                    ProcessZipArchive(rootFolder, baseFolder, validExtensions, results);
+                    return results;
+                }
+
+                if (validExtensions.Count == 0 || validExtensions.Contains(ext))
+                {
+                    var item = ProcessSingleFile(rootFolder, baseFolder, validExtensions);
+                    if (item != null)
+                    {
+                        results.Add(item);
+                    }
+
+                    return results;
+                }
+
+                return results;
+            }
+
+            if (!Directory.Exists(rootFolder))
             {
                 _logger.Warn("Root folder does not exist: {0}", rootFolder);
                 return results;
             }
 
-            var validExtensions = GetValidRomExtensions();
             var files = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
 
             foreach (var file in files)

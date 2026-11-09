@@ -49,7 +49,11 @@ export function getImportPlatformSelection(
   const importableIds = selectedIds.filter((id) => {
     const status = eligibilityById.get(id);
 
-    return status === 'ready' || chosenDuplicateIds.has(id);
+    return (
+      status === 'ready' ||
+      status === 'existing' ||
+      chosenDuplicateIds.has(id)
+    );
   });
 
   return { importableIds, duplicateIdsToDeselect };

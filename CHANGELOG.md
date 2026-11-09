@@ -27,6 +27,27 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [2026-11-08]
+
+### Added
+- **Seamless Library Import for Existing Platforms (`AddPlatformService`, `RootFolderService`, `importPlatformEligibility`, `ImportPlatformCard`, `ImportPlatformFooter`)**:
+  - Removed artificial blocking checks preventing users from selecting or importing files into platforms that are already present in their library.
+  - In `importPlatformEligibility`, permitted items with `status === 'existing'` in `importableIds`.
+  - In `ImportPlatformCard`, changed `isBlocked` to only block `eligibility === 'unmatched'`, enabling checkboxes and card selection for existing platforms while rendering an informative `Already In Library` badge.
+  - In `ImportPlatformFooter`, included existing platforms in `readyCount`, `selectableCount`, and Select All selections so users can easily import newly added files or archives for already configured consoles.
+  - In `AddPlatformService`, when adding or importing platforms that already exist, automatically extract collection archives (or copy incoming folder content) into the platform's destination library directory, queue an automated rescan (`RefreshPlatformCommand`), and return the platform in the API response.
+  - In `RootFolderService`, ensured collection archives in the root folder are never suppressed from unmapped platform detection when their target destination path matches an existing library platform.
+
+### Fixed
+- **Collection Archive Extraction & Direct ROM Matching (`DiskScanService`, `ManualImportService`, `UnmanagedDiskScanner`, `PlatformCompatibilityValidator`)**:
+  - In `DiskScanService.ExtractCollectionArchives`, widened extraction criteria (`shouldExtract`) so archives containing ROM files or BIOS entries are extracted into the platform directory.
+  - Added automatic nested archive unpacking in `DiskScanService`: single-ROM nested archives (such as `Game (USA).zip` containing `Game (USA).gb`) are unpacked into their native ROM format on disk and the inner archive is cleaned up, allowing instant cryptographic hash verification against DAT catalogs.
+  - In `ManualImportService.GetMediaFiles`, when an archive file (`.zip` / `.7z`) is targeted for Interactive Import, passes it directly to `_unmanagedDiskScanner.Scan(path)` to enumerate individual ROM entries auto-matched to games in the platform rather than showing the zip file container or listing intermediate folders/regions.
+  - In `UnmanagedDiskScanner.Scan`, enabled direct scanning of archive files and single ROM files.
+  - In `PlatformCompatibilityValidator.IsRegionOrBucketFolder`, treated single-character directory names (e.g., 'A', 'B', '1') as bucket folders, preventing intermediate letter or region folders within collections from being listed as separate platforms to match.
+
+---
+
 ## [2026-11-06]
 
 ### Refactored

@@ -536,7 +536,9 @@ namespace NzbDrone.Core.MediaFiles
 
                         var isMultiGame = gameEntries.Count > 1 && !isSingleMultiTrack;
 
-                        if (isMultiGame || isSingleMultiTrack)
+                        var shouldExtract = isMultiGame || isSingleMultiTrack || gameEntries.Count > 0 || biosEntries.Count > 0;
+
+                        if (shouldExtract)
                         {
                             _logger.ProgressInfo("Extracting {0} ROMs from collection archive: {1}", gameEntries.Count, Path.GetFileName(archiveFile));
 
@@ -675,6 +677,19 @@ namespace NzbDrone.Core.MediaFiles
                         }
 
                         _logger.Info("Extracted {0} files from disc game archive '{1}' into '{2}'", validEntries.Count, Path.GetFileName(innerZip), extractTargetDir);
+                        _diskProvider.DeleteFile(innerZip);
+                    }
+                    else if (validEntries.Count == 1)
+                    {
+                        var singleEntry = validEntries[0];
+                        var dest = Path.Combine(zipDir, singleEntry.Name);
+                        if (!_diskProvider.FileExists(dest))
+                        {
+                            using var stream = singleEntry.Open();
+                            _diskProvider.SaveStream(stream, dest);
+                        }
+
+                        _logger.Info("Extracted single ROM '{0}' from archive '{1}'", singleEntry.Name, Path.GetFileName(innerZip));
                         _diskProvider.DeleteFile(innerZip);
                     }
                 }

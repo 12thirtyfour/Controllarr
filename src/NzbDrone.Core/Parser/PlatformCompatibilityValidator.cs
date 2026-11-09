@@ -463,6 +463,11 @@ namespace NzbDrone.Core.Parser
             }
 
             var name = folderName.Trim().ToLowerInvariant();
+            if (name.Length == 1)
+            {
+                return true;
+            }
+
             return IgnoredRegionOrBucketFolders.Contains(name);
         }
 

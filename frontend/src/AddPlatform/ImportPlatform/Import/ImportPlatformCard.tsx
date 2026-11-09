@@ -71,7 +71,7 @@ function ImportPlatformCard({
   const { setItemStates, toggleSelected, useIsSelected } =
     useSelect<ImportPlatformItem>();
   const isSelected = useIsSelected(id);
-  const isBlocked = eligibility === 'unmatched' || eligibility === 'existing';
+  const isBlocked = eligibility === 'unmatched';
   const needsAttention =
     isBlocked || (eligibility === 'duplicate' && !isSelected);
   const matchStatusLabel = getMatchStatusLabel(eligibility);
@@ -172,6 +172,14 @@ function ImportPlatformCard({
               <div className={styles.source}>
                 <span className={styles.folder}>{relativePath}</span>
                 {selectedSeries.network ? ` · ${selectedSeries.network}` : null}
+                {eligibility === 'existing' ? (
+                  <>
+                    {' · '}
+                    <Label kind={kinds.INFO}>
+                      {translate('AlreadyInLibrary')}
+                    </Label>
+                  </>
+                ) : null}
               </div>
             </>
           ) : (

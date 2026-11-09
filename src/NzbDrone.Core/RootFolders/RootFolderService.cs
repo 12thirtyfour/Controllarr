@@ -199,8 +199,7 @@ namespace NzbDrone.Core.RootFolders
                         folderName = currentDir.Name;
                     }
 
-                    if (!seriesPaths.Values.Contains(targetPlatformPath, PathEqualityComparer.Instance) &&
-                        !results.Any(r => r.Path.PathEquals(targetPlatformPath)))
+                    if (!results.Any(r => r.Path.PathEquals(targetPlatformPath)))
                     {
                         results.Add(new UnmappedFolder
                         {

@@ -9,10 +9,12 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.PlatformTests
@@ -177,6 +179,35 @@ namespace NzbDrone.Core.Test.PlatformTests
             result.Should().BeSameAs(existing);
             Mocker.GetMock<ISeriesService>()
                   .Verify(s => s.AddSeries(It.IsAny<Series>()), Times.Never());
+        }
+
+        [Test]
+        public void should_refresh_existing_platform_and_queue_command_when_importing_list_containing_existing_platform()
+        {
+            var existing = new Series { Id = 42, Title = "Nintendo Game Boy", TvdbId = 1007, TitleSlug = "gb", Path = @"C:\Games\Game Boy" };
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.AllSeriesTvdbIds())
+                  .Returns(new Dictionary<int, int> { { 42, 1007 } });
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.FindByTvdbId(1007))
+                  .Returns(existing);
+
+            var incoming = new Series
+            {
+                TvdbId = 1007,
+                Title = "Nintendo Game Boy",
+                TitleSlug = "gb",
+                Path = @"C:\Games\Game Boy.zip"
+            };
+
+            var results = Subject.AddSeries(new List<Series> { incoming });
+
+            results.Should().ContainSingle();
+            results[0].Should().BeSameAs(existing);
+
+            Mocker.GetMock<IManageCommandQueue>()
+                  .Verify(q => q.Push(It.Is<RefreshPlatformCommand>(c => c.SeriesIds.Contains(42))), Times.Once());
         }
 
         [Test]
