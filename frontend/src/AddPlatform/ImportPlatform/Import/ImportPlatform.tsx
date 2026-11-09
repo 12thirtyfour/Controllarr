@@ -1,12 +1,15 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { SelectProvider } from 'App/Select/SelectContext';
 import Alert from 'Components/Alert';
+import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
-import { kinds } from 'Helpers/Props';
+import { icons, kinds } from 'Helpers/Props';
+import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import useRootFolders, { useRootFolder } from 'RootFolder/useRootFolders';
 import translate from 'Utilities/String/translate';
 import ImportPlatformFooter from './ImportPlatformFooter';
@@ -29,11 +32,12 @@ function ImportPlatform() {
 
   useRootFolder(rootFolderId, false);
 
-  const { path, unmappedFolders } = useMemo(() => {
+  const { path, unmappedFolders, containsRomFiles } = useMemo(() => {
     const rootFolder = rootFolders.find((r) => r.id === rootFolderId);
 
     return {
       path: rootFolder?.path ?? '',
+      containsRomFiles: rootFolder?.containsRomFiles ?? false,
       unmappedFolders:
         rootFolder?.unmappedFolders.map((unmappedFolders) => {
           return {
@@ -44,6 +48,17 @@ function ImportPlatform() {
     };
   }, [rootFolders, rootFolderId]);
 
+  const [isInteractiveImportOpen, setIsInteractiveImportOpen] = useState(false);
+
+  useEffect(() => {
+    if (containsRomFiles) {
+      setIsInteractiveImportOpen(true);
+    }
+  }, [containsRomFiles]);
+
+  const handleInteractiveImportClose = useCallback(() => {
+    setIsInteractiveImportOpen(false);
+  }, []);
 
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +76,6 @@ function ImportPlatform() {
       clearImportPlatform();
     };
   }, [rootFolderId]);
-
 
   return (
     <SelectProvider items={items}>
@@ -83,14 +97,57 @@ function ImportPlatform() {
               </Alert>
             ) : null}
 
+            {containsRomFiles ? (
+              <div style={{ marginBottom: 16 }}>
+                <Alert kind={kinds.INFO}>
+                  ROM files detected in {path}. Use Interactive Import to match and import individual ROMs into your library.
+                </Alert>
+                <div style={{ marginTop: 8 }}>
+                  <Button
+                    kind={kinds.PRIMARY}
+                    onPress={() => setIsInteractiveImportOpen(true)}
+                  >
+                    <Icon name={icons.INTERACTIVE} />
+                    {translate('InteractiveImport')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             {!rootFoldersError &&
             !rootFoldersFetching &&
             rootFoldersFetched &&
-            !unmappedFolders.length ? (
-              <Alert kind={kinds.INFO}>
-                {translate('AllSeriesInRootFolderHaveBeenImported', { path })}
-              </Alert>
+            !unmappedFolders.length &&
+            !containsRomFiles ? (
+              <div>
+                <Alert kind={kinds.INFO}>
+                  {translate('AllSeriesInRootFolderHaveBeenImported', { path })}
+                </Alert>
+                <div style={{ marginTop: 12 }}>
+                  <Button
+                    kind={kinds.PRIMARY}
+                    onPress={() => setIsInteractiveImportOpen(true)}
+                  >
+                    <Icon name={icons.INTERACTIVE} />
+                    {translate('InteractiveImport')}
+                  </Button>
+                </div>
+              </div>
             ) : null}
+
+            {!rootFoldersError &&
+            rootFoldersFetched &&
+            !!unmappedFolders.length && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                <Button
+                  kind={kinds.DEFAULT}
+                  onPress={() => setIsInteractiveImportOpen(true)}
+                >
+                  <Icon name={icons.INTERACTIVE} />
+                  {translate('InteractiveImport')}
+                </Button>
+              </div>
+            )}
 
             {!rootFoldersError &&
             rootFoldersFetched &&
@@ -105,6 +162,13 @@ function ImportPlatform() {
           <ImportPlatformFooter />
         ) : null}
       </PageContent>
+
+      <InteractiveImportModal
+        isOpen={isInteractiveImportOpen}
+        folder={path}
+        modalTitle={translate('InteractiveImport')}
+        onModalClose={handleInteractiveImportClose}
+      />
     </SelectProvider>
   );
 }

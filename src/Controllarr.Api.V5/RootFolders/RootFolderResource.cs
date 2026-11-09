@@ -11,6 +11,7 @@ public class RootFolderResource : RestResource
     public bool IsEmpty { get; set; }
     public long? FreeSpace { get; set; }
     public long? TotalSpace { get; set; }
+    public bool ContainsRomFiles { get; set; }
 
     public List<UnmappedFolder> UnmappedFolders { get; set; } = [];
 }
@@ -27,6 +28,7 @@ public static class RootFolderResourceMapper
             IsEmpty = model.IsEmpty,
             FreeSpace = model.FreeSpace,
             TotalSpace = model.TotalSpace,
+            ContainsRomFiles = model.ContainsRomFiles,
             UnmappedFolders = model.UnmappedFolders
         };
     }

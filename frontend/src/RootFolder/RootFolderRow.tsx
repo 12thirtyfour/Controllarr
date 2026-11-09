@@ -48,6 +48,7 @@ function RootFolderRow(props: RootFolderRowProps) {
     isEmpty,
     freeSpace,
     isSelectable,
+    containsRomFiles,
     unmappedFolders = [],
   } = props;
 
@@ -105,7 +106,9 @@ function RootFolderRow(props: RootFolderRowProps) {
             ) : (
               <>
                 <span className={styles.importable}>
-                  {importableCount > 0
+                  {containsRomFiles
+                    ? 'Contains ROM Files'
+                    : importableCount > 0
                     ? translate('RootFolderFoldersToImport', {
                         count: importableCount,
                       })

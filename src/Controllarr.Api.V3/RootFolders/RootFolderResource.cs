@@ -12,6 +12,7 @@ namespace Sonarr.Api.V3.RootFolders
         public bool Accessible { get; set; }
         public long? FreeSpace { get; set; }
         public long? TotalSpace { get; set; }
+        public bool ContainsRomFiles { get; set; }
 
         public List<UnmappedFolder> UnmappedFolders { get; set; }
     }
@@ -33,6 +34,7 @@ namespace Sonarr.Api.V3.RootFolders
                 Accessible = model.Accessible,
                 FreeSpace = model.FreeSpace,
                 TotalSpace = model.TotalSpace,
+                ContainsRomFiles = model.ContainsRomFiles,
                 UnmappedFolders = model.UnmappedFolders
             };
         }

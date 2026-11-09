@@ -27,6 +27,17 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [2026-11-09]
+
+### Fixed
+- **Library Import UX & Direct ROM File Ingestion (`RootFolderService`, `ImportPlatform`, `ImportPlatformList`, `RootFolderRow`)**:
+  - **Direct ROM Presentation for Folders with ROMs**: When selecting a folder containing ROM files, Controllarr now presents the list of individual ROM files directly via Interactive Import with automated game matching, region detection, and hash verification, rather than listing the folder as a platform option or listing intermediate folders within it.
+  - **Unblocked Existing Platform Merging**: Fixed selection logic in `ImportPlatformList` where platforms already in the library were marked disabled and unselected; existing platforms are now enabled, selectable, and automatically merge incoming ROM files into the existing library platform.
+  - **Collection Folder Identification**: Only directory structures containing multi-platform collections or collection archives are presented as importable platform options, where users can declare what platform a zip file is for and import it via DAT cryptographic verification.
+  - **Root Folder Model & Status (`ContainsRomFiles`)**: Added `ContainsRomFiles` detection to backend `RootFolder` and API resources (`RootFolderResource` V3 & V5), displaying clear indicators on root folder rows and automatically triggering interactive ROM import when viewing folders with ROM files.
+
+---
+
 ## [2026-11-08]
 
 ### Added

@@ -21,7 +21,8 @@ export const useImportPlatform = () => {
             return data;
           }
 
-          return [...oldSeries, ...data];
+          const existingIds = new Set(data.map((d) => d.id));
+          return [...oldSeries.filter((s) => !existingIds.has(s.id)), ...data];
         });
 
         newSeries.forEach((series) => {

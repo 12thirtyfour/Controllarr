@@ -128,6 +128,7 @@ function ImportPlatformList({ items, scrollerRef }: ImportPlatformListProps) {
         eligibility: status,
         isReady:
           status === 'ready' ||
+          status === 'existing' ||
           (status === 'duplicate' && selectedIdSet.has(item.id)),
       };
     });
@@ -141,7 +142,7 @@ function ImportPlatformList({ items, scrollerRef }: ImportPlatformListProps) {
     );
 
     const updates = rows.map(({ item, eligibility }) => {
-      if (eligibility === 'ready') {
+      if (eligibility === 'ready' || eligibility === 'existing') {
         nextReadyIds.add(item.id);
 
         return {
