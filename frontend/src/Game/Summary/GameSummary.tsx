@@ -124,7 +124,7 @@ function GameSummary({
     }
   }, [romFileId, path, queryClient]);
 
-  const raLibraryVersion = useRetroAchievementsLibraryVersion();
+  const raLibraryVersion = useRetroAchievementsLibraryVersion(platformTitle);
 
   const achievementSummary = useMemo(
     () =>

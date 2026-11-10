@@ -531,6 +531,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var seenIds = new HashSet<int>();
             var seenCanonicalReleases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var seenHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenSpecialCategoryTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             bool TryRegisterCrossReferencedGame(GameCatalogEntry candidate)
             {
@@ -547,6 +548,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                     : rawRev.Trim();
                 var canonicalKey = $"{candidate.RegionNumber}:{canonicalTitle}:{canonicalRev}";
 
+                if ((candidate.RegionNumber == RegionUsa || candidate.RegionNumber == RegionWorld || candidate.RegionNumber == RegionEurope) &&
+                    seenSpecialCategoryTitles.Contains(canonicalTitle))
+                {
+                    return false;
+                }
+
                 if (seenCanonicalReleases.Contains(canonicalKey) ||
                     seenIds.Contains(candidate.TvdbId) ||
                     seenNames.Contains(candidate.NoIntroName ?? candidate.Title))
@@ -554,9 +561,36 @@ namespace NzbDrone.Core.MetadataSource.Game
                     return false;
                 }
 
+                if (candidate.RegionNumber == RegionHomebrew ||
+                    candidate.RegionNumber == RegionUnlicensed ||
+                    candidate.RegionNumber == RegionRomHacks)
+                {
+                    seenSpecialCategoryTitles.Add(canonicalTitle);
+                }
+
                 seenCanonicalReleases.Add(canonicalKey);
                 seenIds.Add(candidate.TvdbId);
                 seenNames.Add(candidate.NoIntroName ?? candidate.Title);
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha256))
+                {
+                    seenHashes.Add($"sha256:{candidate.ExpectedSha256.ToLowerInvariant()}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha1))
+                {
+                    seenHashes.Add($"sha1:{candidate.ExpectedSha1.ToLowerInvariant()}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedMd5))
+                {
+                    seenHashes.Add($"md5:{candidate.ExpectedMd5.ToLowerInvariant()}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedCrc32))
+                {
+                    seenHashes.Add($"crc:{candidate.ExpectedCrc32.ToLowerInvariant()}");
+                }
 
                 return true;
             }
@@ -612,9 +646,27 @@ namespace NzbDrone.Core.MetadataSource.Game
                             continue;
                         }
 
-                        var rawName = !string.IsNullOrWhiteSpace(datEntry.GameName)
-                            ? datEntry.GameName
-                            : datEntry.RomName;
+                        if (!string.IsNullOrWhiteSpace(datEntry.RomName) &&
+                            datEntry.RomName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var rawName = datEntry.GameName;
+                        if (!string.IsNullOrWhiteSpace(datEntry.RomName))
+                        {
+                            var romClean = StripKnownRomExtension(Path.GetFileName(datEntry.RomName.Replace('\\', '/')));
+                            if (string.IsNullOrWhiteSpace(rawName) ||
+                                (!rawName.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) &&
+                                 (romClean.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) ||
+                                  romClean.Contains("(Unl)", StringComparison.OrdinalIgnoreCase) ||
+                                  romClean.Contains("(Pirate)", StringComparison.OrdinalIgnoreCase) ||
+                                  romClean.Contains("(Homebrew)", StringComparison.OrdinalIgnoreCase))))
+                            {
+                                rawName = romClean;
+                            }
+                        }
+
                         if (!string.IsNullOrWhiteSpace(rawName))
                         {
                             rawName = StripKnownRomExtension(Path.GetFileName(rawName.Replace('\\', '/')));
@@ -964,36 +1016,37 @@ namespace NzbDrone.Core.MetadataSource.Game
             switch (platformSlug.ToLowerInvariant())
             {
                 case "nes":
-                    return baseUrl + "EverDrive%20N8%20SMDB.txt";
+                    return baseUrl + "EverDrive%20N8%20%26%20PowerPak%20SMDB.txt";
                 case "fds":
                     return baseUrl + "Famicom%20Disk%20System%20SMDB.txt";
                 case "snes":
                     return baseUrl + "Super%20EverDrive%20%26%20SD2SNES%20SMDB.txt";
                 case "n64":
-                    return baseUrl + "EverDrive%2064%20SMDB.txt";
+                    return baseUrl + "EverDrive%2064%20%26%2064drive%20SMDB.txt";
                 case "gb":
-                case "gbc":
                     return baseUrl + "EverDrive%20GB%20SMDB.txt";
+                case "gbc":
+                    return baseUrl + "Game%20Boy%20Color%20SMDB.txt";
                 case "gba":
                     return baseUrl + "EverDrive%20GBA%20SMDB.txt";
                 case "genesis":
                     return baseUrl + "Mega%20EverDrive%20SMDB.txt";
                 case "segacd":
-                    return baseUrl + "Mega-CD%20SMDB.txt";
+                    return baseUrl + "MegaSD%20SMDB.txt";
                 case "32x":
-                    return baseUrl + "Mega%20EverDrive%2032X%20SMDB.txt";
+                    return baseUrl + "Sega%2032X%20SMDB.txt";
                 case "sms":
                     return baseUrl + "Master%20EverDrive%20SMDB.txt";
                 case "gg":
                     return baseUrl + "EverDrive%20GG%20SMDB.txt";
                 case "tg16":
-                    return baseUrl + "Turbo%20EverDrive%20SMDB.txt";
+                    return baseUrl + "Turbo%20EverDrive%20%26%20Super%20SD%20System%203%20SMDB.txt";
                 case "tgcd":
-                    return baseUrl + "PC%20Engine%20CD%20SMDB.txt";
+                    return baseUrl + "PC%20Engine%20CD%20Redump%20Supplement.txt";
                 case "neogeo":
-                    return baseUrl + "NeoSD%20SMDB.txt";
+                    return baseUrl + "Darksoft%20Neo%20Geo%20SMDB.txt";
                 case "atari2600":
-                    return baseUrl + "Harmony%20SMDB.txt";
+                    return baseUrl + "Atari%202600%20SMDB.txt";
                 case "atari7800":
                     return baseUrl + "Atari%207800%20SMDB.txt";
                 case "lynx":
@@ -1001,11 +1054,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 case "jaguar":
                     return baseUrl + "Atari%20Jaguar%20SMDB.txt";
                 case "vb":
-                    return baseUrl + "HyperBoy%20%26%20FlashBoy%20SMDB.txt";
+                    return baseUrl + "Virtual%20Boy%20SMDB.txt";
                 case "ngpc":
-                    return baseUrl + "Neo%20Pocket%20Flash%20Masta%20SMDB.txt";
+                    return baseUrl + "NGPC%20RetroHQ%20SMDB.txt";
                 case "wonderswan":
-                    return baseUrl + "WonderSwan%20SMDB.txt";
+                    return baseUrl + "Wonderswan%20SMDB.txt";
                 default:
                     return null;
             }
@@ -1733,6 +1786,24 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, sourceLabel, customReleaseDate: releaseDate);
                 if (entry != null)
                 {
+                    var crcMatch = DatCrcRegex.Match(body);
+                    if (crcMatch.Success)
+                    {
+                        entry.ExpectedCrc32 = crcMatch.Groups[1].Value.ToLowerInvariant();
+                    }
+
+                    var md5Match = Regex.Match(body, @"\bmd5\s+([0-9a-fA-F]{32})", RegexOptions.IgnoreCase);
+                    if (md5Match.Success)
+                    {
+                        entry.ExpectedMd5 = md5Match.Groups[1].Value.ToLowerInvariant();
+                    }
+
+                    var sha1Match = Regex.Match(body, @"\bsha1\s+([0-9a-fA-F]{40})", RegexOptions.IgnoreCase);
+                    if (sha1Match.Success)
+                    {
+                        entry.ExpectedSha1 = sha1Match.Groups[1].Value.ToLowerInvariant();
+                    }
+
                     results.Add(entry);
                 }
             }
@@ -2576,28 +2647,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static string NormalizeTitleArticle(string title)
         {
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                return string.Empty;
-            }
-
-            var trimmed = title.Trim();
-            if (trimmed.EndsWith(", The", StringComparison.OrdinalIgnoreCase))
-            {
-                return "The " + trimmed.Substring(0, trimmed.Length - 5).Trim();
-            }
-
-            if (trimmed.EndsWith(", A", StringComparison.OrdinalIgnoreCase))
-            {
-                return "A " + trimmed.Substring(0, trimmed.Length - 3).Trim();
-            }
-
-            if (trimmed.EndsWith(", An", StringComparison.OrdinalIgnoreCase))
-            {
-                return "An " + trimmed.Substring(0, trimmed.Length - 4).Trim();
-            }
-
-            return trimmed;
+            return RomParser.NormalizeTitleArticle(title);
         }
 
         public static string CleanSceneReleaseTitle(string releaseName)

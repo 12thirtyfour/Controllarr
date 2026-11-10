@@ -55,5 +55,31 @@ namespace NzbDrone.Core.Test.GamesTests
         {
             RetroAchievementsService.MatchesConsole(raConsole, targetConsole).Should().Be(expectedMatch);
         }
+
+        [TestCase("nes", 7)]
+        [TestCase("Nintendo Entertainment System", 7)]
+        [TestCase("snes", 3)]
+        [TestCase("Super Nintendo Entertainment System", 3)]
+        [TestCase("genesis", 1)]
+        [TestCase("Sega Genesis / Mega Drive", 1)]
+        [TestCase("gb", 4)]
+        [TestCase("gba", 5)]
+        [TestCase("gbc", 6)]
+        [TestCase("n64", 2)]
+        [TestCase("ps1", 12)]
+        public void should_resolve_console_id_accurately(string console, int expectedId)
+        {
+            RetroAchievementsService.ResolveConsoleId(console).Should().Be(expectedId);
+        }
+
+        [TestCase("The Adventures of Bayou Billy", "adventuresofbayoubilly")]
+        [TestCase("Adventures of Bayou Billy, The", "adventuresofbayoubilly")]
+        [TestCase("Adventures of Bayou Billy, The (USA)", "adventuresofbayoubilly")]
+        [TestCase("The Legend of Zelda", "legendofzelda")]
+        [TestCase("Legend of Zelda, The", "legendofzelda")]
+        public void should_normalize_game_titles_identically_with_leading_or_trailing_articles(string rawTitle, string expectedNorm)
+        {
+            RetroAchievementsService.NormalizeGameTitle(rawTitle).Should().Be(expectedNorm);
+        }
     }
 }

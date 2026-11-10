@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Dat
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex ClrRomBlockRegex = new Regex(
-            @"rom\s*\((?<rombody>[^\)]*)\)",
+            @"rom\s*\((?<rombody>(?:""[^""]*""|[^""\)])*)\)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly Logger _logger = NzbDroneLogger.GetLogger(typeof(DatParserService));
@@ -137,6 +137,11 @@ namespace NzbDrone.Core.Dat
                         continue;
                     }
 
+                    if (!string.IsNullOrWhiteSpace(romName) && romName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     var sizeStr = ExtractClrToken(romBody, "size");
                     var crc = ExtractClrToken(romBody, "crc")?.ToLowerInvariant();
                     var md5 = ExtractClrToken(romBody, "md5")?.ToLowerInvariant();
@@ -144,9 +149,21 @@ namespace NzbDrone.Core.Dat
                     var sha256 = ExtractClrToken(romBody, "sha256")?.ToLowerInvariant();
                     var status = ExtractClrToken(romBody, "status");
 
+                    var baseRomName = !string.IsNullOrWhiteSpace(romName) ? Path.GetFileNameWithoutExtension(romName) : null;
+                    var effectiveGameName = !string.IsNullOrWhiteSpace(gameName) ? gameName : baseRomName;
+
+                    if (!string.IsNullOrWhiteSpace(baseRomName) &&
+                        (baseRomName.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) ||
+                         baseRomName.Contains("(Unl)", StringComparison.OrdinalIgnoreCase) ||
+                         baseRomName.Contains("(Pirate)", StringComparison.OrdinalIgnoreCase) ||
+                         baseRomName.Contains("(Homebrew)", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        effectiveGameName = baseRomName;
+                    }
+
                     datEntries.Add(new DatEntry
                     {
-                        GameName = !string.IsNullOrWhiteSpace(gameName) ? gameName : Path.GetFileNameWithoutExtension(romName),
+                        GameName = effectiveGameName,
                         RomName = !string.IsNullOrWhiteSpace(romName) ? romName : gameName,
                         Size = long.TryParse(sizeStr, out var size) ? size : 0L,
                         Crc32 = crc,

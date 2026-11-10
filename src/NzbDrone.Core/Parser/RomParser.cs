@@ -200,5 +200,40 @@ namespace NzbDrone.Core.Parser
 
             return result;
         }
+
+        public static string NormalizeTitleArticle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = title.Trim();
+            if (trimmed.EndsWith(", The", StringComparison.OrdinalIgnoreCase))
+            {
+                return "The " + trimmed.Substring(0, trimmed.Length - 5).Trim();
+            }
+
+            if (trimmed.EndsWith(", A", StringComparison.OrdinalIgnoreCase))
+            {
+                return "A " + trimmed.Substring(0, trimmed.Length - 3).Trim();
+            }
+
+            if (trimmed.EndsWith(", An", StringComparison.OrdinalIgnoreCase))
+            {
+                return "An " + trimmed.Substring(0, trimmed.Length - 4).Trim();
+            }
+
+            var subtitleMatch = Regex.Match(trimmed, @"^(?<main>.*?),\s*(?<art>The|A|An)\s*-\s*(?<sub>.*)$", RegexOptions.IgnoreCase);
+            if (subtitleMatch.Success)
+            {
+                var art = subtitleMatch.Groups["art"].Value;
+                var main = subtitleMatch.Groups["main"].Value.Trim();
+                var sub = subtitleMatch.Groups["sub"].Value.Trim();
+                return $"{art} {main} - {sub}";
+            }
+
+            return trimmed;
+        }
     }
 }

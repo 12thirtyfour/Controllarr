@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Games.RetroAchievements
             string romMd5Hash,
             IReadOnlyCollection<RetroAchievementBadge> badges,
             string consoleName = null);
-        List<RetroAchievementsGameProgress> GetUserLibraryProgress(string username = null, string webApiKey = null);
+        List<RetroAchievementsGameProgress> GetUserLibraryProgress(string username = null, string webApiKey = null, string console = null);
     }
 
     public class RetroAchievementsService : IRetroAchievementsService
@@ -64,6 +64,9 @@ namespace NzbDrone.Core.Games.RetroAchievements
 
         private static readonly ConcurrentDictionary<string, (DateTime FetchedAtUtc, List<RetroAchievementsGameProgress> Items)> LibraryCache =
             new ConcurrentDictionary<string, (DateTime, List<RetroAchievementsGameProgress>)>(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly ConcurrentDictionary<int, (DateTime FetchedAtUtc, List<RetroAchievementsGameProgress> Items)> ConsoleGamesCache =
+            new ConcurrentDictionary<int, (DateTime, List<RetroAchievementsGameProgress>)>();
 
         private readonly IHttpClient _httpClient;
         private readonly IAppFolderInfo _appFolderInfo;
@@ -101,10 +104,10 @@ namespace NzbDrone.Core.Games.RetroAchievements
             return true;
         }
 
-        public List<RetroAchievementsGameProgress> GetUserLibraryProgress(string username = null, string webApiKey = null)
+        public List<RetroAchievementsGameProgress> GetUserLibraryProgress(string username = null, string webApiKey = null, string console = null)
         {
             var resolvedCredentials = ResolveCredentials(username, webApiKey);
-            if (resolvedCredentials == null || _httpClient == null)
+            if (resolvedCredentials == null)
             {
                 return new List<RetroAchievementsGameProgress>();
             }
@@ -112,15 +115,107 @@ namespace NzbDrone.Core.Games.RetroAchievements
             var user = resolvedCredentials.Username;
             var key = resolvedCredentials.WebApiKey;
 
+            List<RetroAchievementsGameProgress> userCompletion;
             if (LibraryCache.TryGetValue(user, out var cached) &&
                 (DateTime.UtcNow - cached.FetchedAtUtc) < TimeSpan.FromMinutes(5))
             {
-                return cached.Items;
+                userCompletion = cached.Items;
+            }
+            else
+            {
+                userCompletion = FetchCompletionProgressFromApi(user, key);
+                LibraryCache[user] = (DateTime.UtcNow, userCompletion);
             }
 
-            var results = FetchCompletionProgressFromApi(user, key);
-            LibraryCache[user] = (DateTime.UtcNow, results);
-            return results;
+            if (string.IsNullOrWhiteSpace(console))
+            {
+                return userCompletion;
+            }
+
+            var consoleId = ResolveConsoleId(console);
+            if (consoleId <= 0)
+            {
+                return userCompletion;
+            }
+
+            var consoleGames = FetchConsoleGameList(key, consoleId, console);
+            if (consoleGames.Count == 0)
+            {
+                return userCompletion;
+            }
+
+            var userProgressByGameId = new Dictionary<int, RetroAchievementsGameProgress>();
+            var userProgressByNormTitle = new Dictionary<string, RetroAchievementsGameProgress>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var prog in userCompletion)
+            {
+                if (prog.GameId > 0 && !userProgressByGameId.ContainsKey(prog.GameId))
+                {
+                    userProgressByGameId[prog.GameId] = prog;
+                }
+
+                var norm = NormalizeGameTitle(prog.GameTitle);
+                if (!string.IsNullOrEmpty(norm) && !userProgressByNormTitle.ContainsKey(norm))
+                {
+                    userProgressByNormTitle[norm] = prog;
+                }
+            }
+
+            var combined = new List<RetroAchievementsGameProgress>(consoleGames.Count);
+            var seenIds = new HashSet<int>();
+
+            foreach (var game in consoleGames)
+            {
+                if (!seenIds.Add(game.GameId))
+                {
+                    continue;
+                }
+
+                if (userProgressByGameId.TryGetValue(game.GameId, out var userProg) ||
+                    userProgressByNormTitle.TryGetValue(NormalizeGameTitle(game.GameTitle), out userProg))
+                {
+                    combined.Add(new RetroAchievementsGameProgress
+                    {
+                        GameId = game.GameId,
+                        Username = user,
+                        GameTitle = game.GameTitle,
+                        ConsoleName = game.ConsoleName,
+                        TotalAchievements = userProg.TotalAchievements > 0 ? userProg.TotalAchievements : game.TotalAchievements,
+                        UnlockedAchievements = userProg.UnlockedAchievements,
+                        HardcoreUnlockedAchievements = userProg.HardcoreUnlockedAchievements,
+                        MasteryPercentage = userProg.MasteryPercentage,
+                        IsMastered = userProg.IsMastered,
+                        RomMd5Hash = !string.IsNullOrWhiteSpace(userProg.RomMd5Hash) ? userProg.RomMd5Hash : game.RomMd5Hash,
+                        Badges = userProg.Badges
+                    });
+                }
+                else
+                {
+                    combined.Add(new RetroAchievementsGameProgress
+                    {
+                        GameId = game.GameId,
+                        Username = user,
+                        GameTitle = game.GameTitle,
+                        ConsoleName = game.ConsoleName,
+                        TotalAchievements = game.TotalAchievements,
+                        UnlockedAchievements = 0,
+                        HardcoreUnlockedAchievements = 0,
+                        MasteryPercentage = 0m,
+                        IsMastered = false,
+                        RomMd5Hash = game.RomMd5Hash
+                    });
+                }
+            }
+
+            foreach (var prog in userCompletion)
+            {
+                if (prog.GameId > 0 && seenIds.Add(prog.GameId) && MatchesConsole(prog.ConsoleName, console))
+                {
+                    combined.Add(prog);
+                }
+            }
+
+            return combined;
         }
 
         public RetroAchievementsGameProgress CalculateMasteryProgress(
@@ -188,8 +283,223 @@ namespace NzbDrone.Core.Games.RetroAchievements
                 return string.Empty;
             }
 
-            var withoutRegions = RegionTagRegex.Replace(title, " ").Trim().ToLowerInvariant();
+            var withoutRegions = RegionTagRegex.Replace(title, " ").Trim();
+            withoutRegions = Regex.Replace(withoutRegions, @"^(?:the|a|an)\s+", string.Empty, RegexOptions.IgnoreCase);
+            withoutRegions = Regex.Replace(withoutRegions, @",\s*(?:the|a|an)$", string.Empty, RegexOptions.IgnoreCase);
+            withoutRegions = withoutRegions.ToLowerInvariant();
             return NonAlphanumericRegex.Replace(withoutRegions, string.Empty);
+        }
+
+        public static int ResolveConsoleId(string console)
+        {
+            var key = ResolveConsoleKey(console);
+            return key switch
+            {
+                "genesis" => 1,
+                "n64" => 2,
+                "snes" => 3,
+                "gb" => 4,
+                "gba" => 5,
+                "gbc" => 6,
+                "nes" => 7,
+                "tg16" => 8,
+                "segacd" => 9,
+                "32x" => 10,
+                "sms" => 11,
+                "ps1" => 12,
+                "lynx" => 13,
+                "ngpc" => 14,
+                "gg" => 15,
+                "jaguar" => 17,
+                "nds" => 18,
+                "ps2" => 21,
+                "odyssey2" => 23,
+                "pokemonmini" => 24,
+                "atari2600" => 25,
+                "arcade" => 27,
+                "neogeo" => 27,
+                "vb" => 28,
+                "msx" => 29,
+                "c64" => 30,
+                "sg1000" => 33,
+                "wonderswan" => 38,
+                "saturn" => 39,
+                "dreamcast" => 40,
+                "psp" => 41,
+                "3do" => 43,
+                "colecovision" => 44,
+                "intellivision" => 45,
+                "vectrex" => 46,
+                "tgcd" => 47,
+                "atari7800" => 49,
+                "jaguarcd" => 51,
+                "neogeocd" => 56,
+                _ => 0
+            };
+        }
+
+        public List<RetroAchievementsGameProgress> FetchConsoleGameList(string webApiKey, int consoleId, string consoleName = null)
+        {
+            if (consoleId <= 0)
+            {
+                return new List<RetroAchievementsGameProgress>();
+            }
+
+            if (ConsoleGamesCache.TryGetValue(consoleId, out var cached) &&
+                (DateTime.UtcNow - cached.FetchedAtUtc) < TimeSpan.FromHours(24))
+            {
+                return cached.Items;
+            }
+
+            var cacheDir = _appFolderInfo != null && _appFolderInfo.AppDataFolder.IsNotNullOrWhiteSpace()
+                ? Path.Combine(_appFolderInfo.AppDataFolder, "ra_cache")
+                : null;
+            var cacheFile = cacheDir != null ? Path.Combine(cacheDir, $"console_{consoleId}.json") : null;
+
+            if (cacheFile != null && File.Exists(cacheFile))
+            {
+                try
+                {
+                    var writeTime = File.GetLastWriteTimeUtc(cacheFile);
+                    if ((DateTime.UtcNow - writeTime) < TimeSpan.FromHours(24))
+                    {
+                        var json = File.ReadAllText(cacheFile);
+                        var loaded = JsonSerializer.Deserialize<List<RetroAchievementsGameProgress>>(json);
+                        if (loaded != null && loaded.Count > 0)
+                        {
+                            ConsoleGamesCache[consoleId] = (writeTime, loaded);
+                            return loaded;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Debug(ex, "Failed to read cached RetroAchievements console games for console {0}", consoleId);
+                }
+            }
+
+            if (_httpClient == null || string.IsNullOrWhiteSpace(webApiKey))
+            {
+                if (cacheFile != null && File.Exists(cacheFile))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(cacheFile);
+                        var loaded = JsonSerializer.Deserialize<List<RetroAchievementsGameProgress>>(json);
+                        if (loaded != null && loaded.Count > 0)
+                        {
+                            return loaded;
+                        }
+                    }
+                    catch
+                    {
+                        // Stale cache fallback failed
+                    }
+                }
+
+                return new List<RetroAchievementsGameProgress>();
+            }
+
+            try
+            {
+                var url = $"https://retroachievements.org/API/API_GetGameList.php?y={Uri.EscapeDataString(webApiKey)}&i={consoleId}&f=1&h=1";
+                var request = new HttpRequest(url)
+                {
+                    RequestTimeout = TimeSpan.FromSeconds(20),
+                    SuppressHttpError = true
+                };
+
+                var response = _httpClient.Get(request);
+                if (response != null && !response.HasHttpError && response.Content.IsNotNullOrWhiteSpace())
+                {
+                    using var doc = JsonDocument.Parse(response.Content);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        var list = new List<RetroAchievementsGameProgress>();
+                        foreach (var item in doc.RootElement.EnumerateArray())
+                        {
+                            var id = item.TryGetProperty("ID", out var idEl) && idEl.TryGetInt32(out var parsedId) ? parsedId : 0;
+                            var title = item.TryGetProperty("Title", out var tEl) ? tEl.GetString() : null;
+                            var numAch = item.TryGetProperty("NumAchievements", out var naEl) && naEl.TryGetInt32(out var na) ? na : 0;
+                            var cName = item.TryGetProperty("ConsoleName", out var cnEl) ? cnEl.GetString() : consoleName;
+
+                            if (id <= 0 || string.IsNullOrWhiteSpace(title) || numAch <= 0)
+                            {
+                                continue;
+                            }
+
+                            var firstHash = string.Empty;
+                            if (item.TryGetProperty("Hashes", out var hEl) && hEl.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var hVal in hEl.EnumerateArray())
+                                {
+                                    var str = hVal.GetString();
+                                    if (!string.IsNullOrWhiteSpace(str))
+                                    {
+                                        firstHash = str.Trim().ToLowerInvariant();
+                                        break;
+                                    }
+                                }
+                            }
+
+                            list.Add(new RetroAchievementsGameProgress
+                            {
+                                GameId = id,
+                                GameTitle = title.Trim(),
+                                ConsoleName = cName ?? consoleName ?? string.Empty,
+                                TotalAchievements = numAch,
+                                UnlockedAchievements = 0,
+                                HardcoreUnlockedAchievements = 0,
+                                MasteryPercentage = 0m,
+                                IsMastered = false,
+                                RomMd5Hash = firstHash
+                            });
+                        }
+
+                        if (list.Count > 0)
+                        {
+                            ConsoleGamesCache[consoleId] = (DateTime.UtcNow, list);
+                            if (cacheDir != null && cacheFile != null)
+                            {
+                                try
+                                {
+                                    Directory.CreateDirectory(cacheDir);
+                                    File.WriteAllText(cacheFile, JsonSerializer.Serialize(list));
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger?.Debug(ex, "Failed to persist RetroAchievements console game cache for console {0}", consoleId);
+                                }
+                            }
+
+                            return list;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Failed to fetch RetroAchievements console game list for console {0}", consoleId);
+            }
+
+            if (cacheFile != null && File.Exists(cacheFile))
+            {
+                try
+                {
+                    var json = File.ReadAllText(cacheFile);
+                    var loaded = JsonSerializer.Deserialize<List<RetroAchievementsGameProgress>>(json);
+                    if (loaded != null && loaded.Count > 0)
+                    {
+                        return loaded;
+                    }
+                }
+                catch
+                {
+                    // Stale fallback
+                }
+            }
+
+            return new List<RetroAchievementsGameProgress>();
         }
 
         public static string ResolveConsoleKey(string console)
@@ -205,7 +515,12 @@ namespace NzbDrone.Core.Games.RetroAchievements
                 return "snes";
             }
 
-            if (c.Contains("nintendo entertainment system") || c.Contains("famicom") || c == "fc" || c.Contains("nes"))
+            if (c.Contains("genesis") || c.Contains("mega drive") || c == "md")
+            {
+                return "genesis";
+            }
+
+            if (c.Contains("nintendo entertainment system") || c.Contains("famicom") || c == "fc" || c == "nes" || c.StartsWith("nes ") || c.EndsWith(" nes") || c.Contains(" nes ") || c.Contains("-nes") || c.Contains("nes-") || c.Contains("nes/"))
             {
                 return "nes";
             }
@@ -321,9 +636,15 @@ namespace NzbDrone.Core.Games.RetroAchievements
                     return null;
                 }
 
-                var library = GetUserLibraryProgress(creds.Username, creds.WebApiKey);
+                var library = GetUserLibraryProgress(creds.Username, creds.WebApiKey, consoleName);
                 var normalizedTarget = NormalizeGameTitle(gameTitle);
                 var candidates = library.Where(g => NormalizeGameTitle(g.GameTitle) == normalizedTarget).ToList();
+
+                if (candidates.Count == 0 && !string.IsNullOrWhiteSpace(romMd5Hash))
+                {
+                    var cleanHash = romMd5Hash.Trim().ToLowerInvariant();
+                    candidates = library.Where(g => string.Equals(g.RomMd5Hash, cleanHash, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
 
                 if (candidates.Count == 0)
                 {

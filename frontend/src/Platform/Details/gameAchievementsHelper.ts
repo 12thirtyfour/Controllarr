@@ -24,6 +24,8 @@ export interface GameAchievementSummary {
 const libraryItems: RetroAchievementsGameProgress[] = [];
 let loadedUserKey = '';
 let inFlightPromise: Promise<void> | null = null;
+const loadedConsoles = new Set<string>();
+const inFlightConsoles = new Map<string, Promise<void>>();
 let cacheVersion = 0;
 const listeners = new Set<() => void>();
 
@@ -67,13 +69,24 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'snes';
   }
 
+  // Sega Genesis / Mega Drive (checked before NES to avoid substring matching 'nes')
+  if (c.includes('genesis') || c.includes('mega drive') || c === 'md') {
+    return 'genesis';
+  }
+
   if (
     c.includes('nintendo entertainment system') ||
     c.includes('famicom disk') ||
     c.includes('famicom') ||
     c === 'fds' ||
     c === 'fc' ||
-    c.includes('nes')
+    c === 'nes' ||
+    c.startsWith('nes ') ||
+    c.endsWith(' nes') ||
+    c.includes(' nes ') ||
+    c.includes('-nes') ||
+    c.includes('nes-') ||
+    c.includes('nes/')
   ) {
     return 'nes';
   }
@@ -278,10 +291,11 @@ export function normalizeGameTitle(title: string): string {
     return '';
   }
 
-  return title
-    .replace(/\s*\([^)]*\)|\s*\[[^\]]*\]/g, ' ')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
+  let clean = title.replace(/\s*\([^)]*\)|\s*\[[^\]]*\]/g, ' ').trim();
+  clean = clean.replace(/^(?:the|a|an)\s+/i, '');
+  clean = clean.replace(/,\s*(?:the|a|an)$/i, '');
+  clean = clean.toLowerCase();
+  return clean.replace(/[^a-z0-9]+/g, '');
 }
 
 function notifyListeners() {
@@ -292,6 +306,8 @@ function notifyListeners() {
 export function invalidateRetroAchievementsCache(): void {
   loadedUserKey = '';
   inFlightPromise = null;
+  loadedConsoles.clear();
+  inFlightConsoles.clear();
   libraryItems.length = 0;
   notifyListeners();
 }
@@ -323,7 +339,7 @@ export function findMatchingGameProgress(
   );
 }
 
-function ensureLibraryLoaded(): void {
+function ensureLibraryLoaded(consoleName?: string): void {
   if (typeof window === 'undefined') {
     return;
   }
@@ -339,6 +355,8 @@ function ensureLibraryLoaded(): void {
   if (!username) {
     if (loadedUserKey !== '') {
       loadedUserKey = '';
+      loadedConsoles.clear();
+      inFlightConsoles.clear();
       libraryItems.length = 0;
       notifyListeners();
     }
@@ -346,11 +364,13 @@ function ensureLibraryLoaded(): void {
     return;
   }
 
-  if (loadedUserKey === currentKey || inFlightPromise) {
-    return;
+  if (loadedUserKey !== currentKey) {
+    loadedUserKey = currentKey;
+    loadedConsoles.clear();
+    inFlightConsoles.clear();
+    libraryItems.length = 0;
   }
 
-  loadedUserKey = currentKey;
   const apiRoot = window.Controllarr?.apiRoot ?? '/api/v5';
   const appApiKey = window.Controllarr?.apiKey ?? '';
   const query = new URLSearchParams({
@@ -358,46 +378,115 @@ function ensureLibraryLoaded(): void {
     webApiKey: apiKey,
   });
 
-  inFlightPromise = fetch(
-    `${apiRoot}/retroachievements/library?${query.toString()}`,
-    {
-      headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
+  if (!inFlightPromise && libraryItems.length === 0) {
+    inFlightPromise = fetch(
+      `${apiRoot}/retroachievements/library?${query.toString()}`,
+      {
+        headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
+      }
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          return;
+        }
+
+        const items = (await response.json()) as RetroAchievementsGameProgress[];
+        if (Array.isArray(items)) {
+          items.forEach((item) => {
+            const norm = normalizeGameTitle(item.gameTitle);
+            const cKey = resolveConsoleKey(item.consoleName);
+            const existingIdx = libraryItems.findIndex(
+              (i) =>
+                normalizeGameTitle(i.gameTitle) === norm &&
+                resolveConsoleKey(i.consoleName) === cKey
+            );
+            if (existingIdx >= 0) {
+              libraryItems[existingIdx] = item;
+            } else {
+              libraryItems.push(item);
+            }
+          });
+        }
+
+        notifyListeners();
+      })
+      .catch(() => {
+        // Keep empty array on network error so fake badges are never shown
+      })
+      .finally(() => {
+        inFlightPromise = null;
+      });
+  }
+
+  if (consoleName) {
+    const targetConsoleKey = resolveConsoleKey(consoleName);
+    if (
+      targetConsoleKey &&
+      !loadedConsoles.has(targetConsoleKey) &&
+      !inFlightConsoles.has(targetConsoleKey)
+    ) {
+      const consoleQuery = new URLSearchParams({
+        username,
+        webApiKey: apiKey,
+        console: targetConsoleKey,
+      });
+
+      const consolePromise = fetch(
+        `${apiRoot}/retroachievements/library?${consoleQuery.toString()}`,
+        {
+          headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
+        }
+      )
+        .then(async (response) => {
+          if (!response.ok) {
+            return;
+          }
+
+          const items = (await response.json()) as RetroAchievementsGameProgress[];
+          if (Array.isArray(items)) {
+            items.forEach((newItem) => {
+              const normNew = normalizeGameTitle(newItem.gameTitle);
+              const cKey = resolveConsoleKey(newItem.consoleName);
+              const existingIdx = libraryItems.findIndex(
+                (i) =>
+                  normalizeGameTitle(i.gameTitle) === normNew &&
+                  resolveConsoleKey(i.consoleName) === cKey
+              );
+              if (existingIdx >= 0) {
+                libraryItems[existingIdx] = newItem;
+              } else {
+                libraryItems.push(newItem);
+              }
+            });
+          }
+
+          loadedConsoles.add(targetConsoleKey);
+          notifyListeners();
+        })
+        .catch(() => {
+          // Ignore network error
+        })
+        .finally(() => {
+          inFlightConsoles.delete(targetConsoleKey);
+        });
+
+      inFlightConsoles.set(targetConsoleKey, consolePromise);
     }
-  )
-    .then(async (response) => {
-      if (!response.ok) {
-        return;
-      }
-
-      const items = (await response.json()) as RetroAchievementsGameProgress[];
-      libraryItems.length = 0;
-
-      if (Array.isArray(items)) {
-        libraryItems.push(...items);
-      }
-
-      notifyListeners();
-    })
-    .catch(() => {
-      // Keep empty array on network error so fake badges are never shown
-    })
-    .finally(() => {
-      inFlightPromise = null;
-    });
+  }
 }
 
-export function useRetroAchievementsLibraryVersion(): number {
+export function useRetroAchievementsLibraryVersion(consoleName?: string): number {
   const [version, setVersion] = useState(cacheVersion);
 
   useEffect(() => {
     const listener = () => setVersion(cacheVersion);
     listeners.add(listener);
-    ensureLibraryLoaded();
+    ensureLibraryLoaded(consoleName);
 
     return () => {
       listeners.delete(listener);
     };
-  }, []);
+  }, [consoleName]);
 
   return version;
 }
@@ -406,7 +495,7 @@ export function buildBadgesForGame(
   gameTitle: string,
   consoleName?: string
 ): RetroAchievementBadge[] {
-  ensureLibraryLoaded();
+  ensureLibraryLoaded(consoleName);
   const matched = findMatchingGameProgress(gameTitle, consoleName);
 
   return matched?.badges ?? [];
@@ -442,7 +531,7 @@ export function getGameAchievementSummary(
     };
   }
 
-  ensureLibraryLoaded();
+  ensureLibraryLoaded(consoleName);
   const matched = findMatchingGameProgress(gameTitle, consoleName);
 
   if (!matched || matched.totalAchievements <= 0) {

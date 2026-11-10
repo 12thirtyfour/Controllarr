@@ -165,12 +165,19 @@ namespace NzbDrone.Core.Games
 
                 if (text.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("RetroUSB", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("8-Bit Xmas", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("8 BIT XMAS", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Byte-Off", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("NESDev", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[PD]", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(HB)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[HB]", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Homebrew/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\Homebrew\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/4 Homebrew/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\4 Homebrew\\", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Aftermarket/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\Aftermarket\\", StringComparison.OrdinalIgnoreCase))
                 {

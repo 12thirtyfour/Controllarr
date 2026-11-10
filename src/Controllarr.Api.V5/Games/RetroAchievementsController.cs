@@ -48,9 +48,10 @@ namespace Sonarr.Api.V5.Games
         [Produces("application/json")]
         public ActionResult<List<RetroAchievementsGameProgress>> GetLibraryProgress(
             [FromQuery] string? username = null,
-            [FromQuery] string? webApiKey = null)
+            [FromQuery] string? webApiKey = null,
+            [FromQuery] string? console = null)
         {
-            var results = _retroAchievementsService.GetUserLibraryProgress(username, webApiKey);
+            var results = _retroAchievementsService.GetUserLibraryProgress(username, webApiKey, console);
             return Ok(results);
         }
 

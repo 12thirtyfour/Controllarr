@@ -93,7 +93,7 @@ function GameRow({
   const customFormatScore = romFile?.customFormatScore ?? 0;
   const effectiveVersion = romVersionLabel || finaleType || 'Retail (v1.0)';
 
-  const raLibraryVersion = useRetroAchievementsLibraryVersion();
+  const raLibraryVersion = useRetroAchievementsLibraryVersion(platformTitle);
 
   const achievementSummary = useMemo(
     () =>

@@ -832,15 +832,31 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             if (!string.IsNullOrWhiteSpace(parsedRom?.GameTitle))
             {
                 candidateTitles.Add(parsedRom.GameTitle);
+                var normalizedArticle = RomParser.NormalizeTitleArticle(parsedRom.GameTitle);
+                if (!string.IsNullOrWhiteSpace(normalizedArticle))
+                {
+                    candidateTitles.Add(normalizedArticle);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName))
             {
                 candidateTitles.Add(matchedDatEntry.GameName);
+                var normalizedDatArticle = RomParser.NormalizeTitleArticle(matchedDatEntry.GameName);
+                if (!string.IsNullOrWhiteSpace(normalizedDatArticle))
+                {
+                    candidateTitles.Add(normalizedDatArticle);
+                }
+
                 var parsedDatTitle = RomParser.ParseRomName(matchedDatEntry.GameName)?.GameTitle;
                 if (!string.IsNullOrWhiteSpace(parsedDatTitle))
                 {
                     candidateTitles.Add(parsedDatTitle);
+                    var normalizedParsedDat = RomParser.NormalizeTitleArticle(parsedDatTitle);
+                    if (!string.IsNullOrWhiteSpace(normalizedParsedDat))
+                    {
+                        candidateTitles.Add(normalizedParsedDat);
+                    }
                 }
             }
 
@@ -850,12 +866,22 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 if (!string.IsNullOrWhiteSpace(datRomNoExt))
                 {
                     candidateTitles.Add(datRomNoExt);
+                    var normalizedRomArticle = RomParser.NormalizeTitleArticle(datRomNoExt);
+                    if (!string.IsNullOrWhiteSpace(normalizedRomArticle))
+                    {
+                        candidateTitles.Add(normalizedRomArticle);
+                    }
                 }
 
                 var parsedDatRom = RomParser.ParseRomName(matchedDatEntry.RomName)?.GameTitle;
                 if (!string.IsNullOrWhiteSpace(parsedDatRom))
                 {
                     candidateTitles.Add(parsedDatRom);
+                    var normalizedParsedRom = RomParser.NormalizeTitleArticle(parsedDatRom);
+                    if (!string.IsNullOrWhiteSpace(normalizedParsedRom))
+                    {
+                        candidateTitles.Add(normalizedParsedRom);
+                    }
                 }
             }
 
@@ -882,8 +908,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                     foreach (var cand in candidateTitles)
                     {
-                        var ep = _episodeService.FindEpisodeByTitle(series.Id, seasonNum, cand) ??
-                                 _episodeService.FindEpisodeByTitle(series.Id, 1, cand);
+                        var ep = _episodeService.FindEpisodeByTitle(series.Id, seasonNum, cand);
                         if (ep != null)
                         {
                             return ep;
@@ -891,8 +916,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     }
 
                     var fuzzyMatched = games.FirstOrDefault(g => g.Title != null &&
+                        g.SeasonNumber == seasonNum &&
                         cleanCandidates.Any(c => !string.IsNullOrWhiteSpace(c) && c.Length >= 4 &&
-                            (g.Title.CleanSeriesTitle().StartsWith(c) || c.StartsWith(g.Title.CleanSeriesTitle()))));
+                            (string.Equals(g.Title.CleanSeriesTitle(), c, StringComparison.OrdinalIgnoreCase) ||
+                             (Math.Abs(g.Title.CleanSeriesTitle().Length - c.Length) <= 3 &&
+                              (g.Title.CleanSeriesTitle().StartsWith(c) || c.StartsWith(g.Title.CleanSeriesTitle()))))));
                     if (fuzzyMatched != null)
                     {
                         return fuzzyMatched;
