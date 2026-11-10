@@ -65,6 +65,9 @@ function WebPlayerPage() {
   );
 
   const gameIdParam = Number(searchParams.get('gameId') || '0');
+  const romFileIdParam = Number(searchParams.get('romFileId') || '0');
+  const romQueryParam = searchParams.get('rom') || '';
+  const platformQueryParam = searchParams.get('platform') || '';
   const coreQueryParam = searchParams.get('core') || '';
   const localConfig = useMemo(() => loadLocalLibretroConfig(), []);
 
@@ -76,10 +79,25 @@ function WebPlayerPage() {
     string | null
   >(null);
 
+  const descriptorQueryParams = useMemo(() => {
+    const params: Record<string, string | number> = {};
+    if (romFileIdParam > 0) {
+      params.romFileId = romFileIdParam;
+    }
+    if (platformQueryParam) {
+      params.platformFolder = platformQueryParam;
+    }
+    if (romQueryParam) {
+      params.romPath = romQueryParam;
+    }
+    return params;
+  }, [platformQueryParam, romFileIdParam, romQueryParam]);
+
   const { data: descriptor, isLoading } = useApiQuery<GameLaunchDescriptor>({
     path: `/gamelauncher/${gameIdParam}`,
+    queryParams: descriptorQueryParams,
     queryOptions: {
-      enabled: gameIdParam > 0,
+      enabled: gameIdParam > 0 || romFileIdParam > 0 || Boolean(romQueryParam),
     },
   });
 
@@ -141,10 +159,20 @@ function WebPlayerPage() {
       descriptor.romStreamUrl ||
       `/api/v5/gamelauncher/${descriptor.gameId}/rom`;
     const separator = baseStream.includes('?') ? '&' : '?';
-
-    return `${urlBase}${baseStream}${
+    const relativeUrl = `${urlBase}${baseStream}${
       apiKey ? `${separator}apikey=${encodeURIComponent(apiKey)}` : ''
     }`;
+
+    if (/^https?:\/\//i.test(relativeUrl)) {
+      return relativeUrl;
+    }
+
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : '';
+
+    return `${origin}${relativeUrl.startsWith('/') ? '' : '/'}${relativeUrl}`;
   }, [apiKey, descriptor, urlBase]);
 
   const playerSrcDoc = useMemo(() => {
@@ -152,21 +180,27 @@ function WebPlayerPage() {
       return '';
     }
 
-    const dataPath =
+    const rawDataPath =
       effectiveConfig.emulatorJsDataPath ||
       descriptor.emulatorJsDataPath ||
       'https://cdn.emulatorjs.org/stable/data/';
+    const dataPath = rawDataPath.replace(/\/?$/, '/');
     const ejsCore = descriptor.emulatorJsCore || selectedCore || 'snes';
     const safeTitle = (descriptor.gameTitle || 'ROM').replace(/["<>]/g, '');
     const shaderValue = selectedShader === 'none' ? '' : selectedShader;
     const shaderLine = shaderValue
       ? `window.EJS_shader = ${JSON.stringify(shaderValue)};`
       : '';
+    const originHref =
+      typeof window !== 'undefined' && window.location?.origin
+        ? `${window.location.origin}/`
+        : '/';
 
     return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
+  <base href="${originHref}" />
   <title>${safeTitle} - Controllarr Libretro Player</title>
   <style>
     html, body {
@@ -195,7 +229,7 @@ function WebPlayerPage() {
     window.EJS_startOnLoaded = true;
     ${shaderLine}
   </script>
-  <script src="${dataPath.replace(/\/?$/, '/')}loader.js"></script>
+  <script src="${dataPath}loader.js"></script>
 </body>
 </html>`;
   }, [
@@ -255,7 +289,7 @@ function WebPlayerPage() {
     bodyContent = (
       <div className={styles.playerFrameWrapper}>
         <iframe
-          key={`${descriptor.gameId}-${selectedCore}-${selectedShader}`}
+          key={`${descriptor.gameId}-${descriptor.romFileName}-${selectedCore}-${selectedShader}`}
           title={`${descriptor.gameTitle} Libretro WebPlayer`}
           className={styles.playerIframe}
           srcDoc={playerSrcDoc}

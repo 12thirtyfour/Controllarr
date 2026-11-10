@@ -67,7 +67,8 @@ function GameRow({
   seriesId,
   romFileId,
   monitored,
-  seasonNumber,  airDate,
+  seasonNumber,
+  airDate,
   airDateUtc,
   runtime,
   finaleType,
@@ -128,14 +129,36 @@ function GameRow({
 
   const handlePlayPress = useCallback(() => {
     const config = loadLocalLibretroConfig();
+    const romPathValue = romFile?.path || romFile?.relativePath || '';
 
     if (config.preferredLaunchMode === 'protocol') {
-      window.location.href = `controllarr://play/${id}`;
+      const protocolParams = new URLSearchParams();
+      if (romPathValue) {
+        protocolParams.set('rom', romPathValue);
+      }
+      const query = protocolParams.toString();
+      window.location.href = `controllarr://play/${id}${query ? `?${query}` : ''}`;
       return;
     }
 
-    navigate(`/webplayer?gameId=${id}`);
-  }, [id, navigate]);
+    const params = new URLSearchParams({
+      gameId: String(id),
+    });
+
+    if (romFileId) {
+      params.set('romFileId', String(romFileId));
+    }
+
+    if (platformTitle) {
+      params.set('platform', platformTitle);
+    }
+
+    if (romPathValue) {
+      params.set('rom', romPathValue);
+    }
+
+    navigate(`/webplayer?${params.toString()}`);
+  }, [id, navigate, platformTitle, romFile, romFileId]);
 
   return (
     <TableRow
@@ -331,11 +354,6 @@ function GameRow({
             </TableRowCell>
           );
         }
-
-
-
-
-
 
         if (name === 'size') {
           return (

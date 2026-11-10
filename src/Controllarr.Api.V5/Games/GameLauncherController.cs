@@ -47,22 +47,33 @@ namespace Sonarr.Api.V5.Games
         public ActionResult<GameLaunchDescriptor> GetLaunchDescriptor(
             [FromRoute] int gameId,
             [FromQuery] string platformFolder = "",
-            [FromQuery] string romPath = "")
+            [FromQuery] string romPath = "",
+            [FromQuery] int romFileId = 0)
         {
-            var descriptor = _gameLauncherService.BuildLaunchDescriptor(gameId, platformFolder, romPath);
+            var descriptor = _gameLauncherService.BuildLaunchDescriptor(gameId, platformFolder, romPath, romFileId);
             return Ok(descriptor);
         }
 
         [HttpGet("{gameId:int}/rom")]
-        public IActionResult StreamRomFile([FromRoute] int gameId)
+        [HttpGet("{gameId:int}/rom/{fileName}")]
+        public IActionResult StreamRomFile(
+            [FromRoute] int gameId,
+            [FromRoute] string? fileName = null,
+            [FromQuery] string platformFolder = "",
+            [FromQuery] string romPath = "",
+            [FromQuery] int romFileId = 0)
         {
-            var stream = _gameLauncherService.OpenRomStream(gameId, out var fileName);
+            var stream = _gameLauncherService.OpenRomStream(gameId, out var resolvedFileName, platformFolder, romPath, romFileId);
             if (stream == null)
             {
                 return NotFound(new { message = "ROM file not found on disk." });
             }
 
-            return File(stream, "application/octet-stream", fileName, enableRangeProcessing: true);
+            var downloadFileName = !string.IsNullOrWhiteSpace(resolvedFileName)
+                ? resolvedFileName
+                : (fileName ?? "game.rom");
+
+            return File(stream, "application/octet-stream", downloadFileName, enableRangeProcessing: true);
         }
 
         [HttpPost("{gameId:int}/launch")]
@@ -70,9 +81,10 @@ namespace Sonarr.Api.V5.Games
         public ActionResult<DesktopLaunchResult> LaunchDesktopGame(
             [FromRoute] int gameId,
             [FromQuery] string platformFolder = "",
-            [FromQuery] string romPath = "")
+            [FromQuery] string romPath = "",
+            [FromQuery] int romFileId = 0)
         {
-            var result = _gameLauncherService.LaunchDesktopGame(gameId, platformFolder, romPath);
+            var result = _gameLauncherService.LaunchDesktopGame(gameId, platformFolder, romPath, romFileId);
             return Ok(result);
         }
     }

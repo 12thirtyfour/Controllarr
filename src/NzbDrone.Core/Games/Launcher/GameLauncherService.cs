@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using NLog;
@@ -75,9 +76,9 @@ namespace NzbDrone.Core.Games.Launcher
         LibretroLauncherConfig SaveConfig(LibretroLauncherConfig config);
         List<LibretroPlatformCoreOption> GetPlatformCoreOptions();
         string ResolveLibretroCore(string platformFolder);
-        GameLaunchDescriptor BuildLaunchDescriptor(int gameId, string platformFolder = "", string romPath = "");
-        DesktopLaunchResult LaunchDesktopGame(int gameId, string platformFolder = "", string romPath = "");
-        Stream OpenRomStream(int gameId, out string fileName);
+        GameLaunchDescriptor BuildLaunchDescriptor(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0);
+        DesktopLaunchResult LaunchDesktopGame(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0);
+        Stream OpenRomStream(int gameId, out string fileName, string platformFolder = "", string romPath = "", int romFileId = 0);
     }
 
     public class GameLauncherService : IGameLauncherService
@@ -99,7 +100,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "NES",
                 PlatformName = "Nintendo Entertainment System / Famicom",
-                Aliases = new[] { "NES", "Nintendo Entertainment System", "Famicom", "Famicom Disk System", "fds" },
+                Aliases = new[] { "NES", "Nintendo Entertainment System", "Nintendo - Nintendo Entertainment System", "Famicom", "Famicom Disk System", "fds" },
                 DefaultCore = "nestopia",
                 AvailableCores = new[] { "nestopia", "fceumm", "mesen", "quicknes" },
                 SupportsWasm = true,
@@ -109,7 +110,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "SNES",
                 PlatformName = "Super Nintendo / Super Famicom",
-                Aliases = new[] { "SNES", "Super Nintendo Entertainment System", "Super Nintendo", "Super Famicom", "sfc" },
+                Aliases = new[] { "SNES", "Super Nintendo Entertainment System", "Nintendo - Super Nintendo Entertainment System", "Super Nintendo", "Super Famicom", "sfc", "Satellaview", "satellaview" },
                 DefaultCore = "snes9x",
                 AvailableCores = new[] { "snes9x", "snes9x2010", "bsnes", "mesen-s" },
                 SupportsWasm = true,
@@ -119,7 +120,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "Game Boy",
                 PlatformName = "Nintendo Game Boy",
-                Aliases = new[] { "Game Boy", "GB", "Nintendo Game Boy" },
+                Aliases = new[] { "Game Boy", "GB", "Nintendo Game Boy", "Nintendo - Game Boy", "gameboy" },
                 DefaultCore = "sameboy",
                 AvailableCores = new[] { "sameboy", "gambatte", "mgba", "gearboy" },
                 SupportsWasm = true,
@@ -129,7 +130,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "Game Boy Color",
                 PlatformName = "Nintendo Game Boy Color",
-                Aliases = new[] { "Game Boy Color", "GBC", "Nintendo Game Boy Color" },
+                Aliases = new[] { "Game Boy Color", "GBC", "Nintendo Game Boy Color", "Nintendo - Game Boy Color", "gameboy color" },
                 DefaultCore = "sameboy",
                 AvailableCores = new[] { "sameboy", "gambatte", "mgba", "gearboy" },
                 SupportsWasm = true,
@@ -139,7 +140,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "Game Boy Advance",
                 PlatformName = "Nintendo Game Boy Advance",
-                Aliases = new[] { "Game Boy Advance", "GBA", "Nintendo Game Boy Advance" },
+                Aliases = new[] { "Game Boy Advance", "GBA", "Nintendo Game Boy Advance", "Nintendo - Game Boy Advance", "gameboy advance" },
                 DefaultCore = "mgba",
                 AvailableCores = new[] { "mgba", "vba_next", "gpsp", "beetle_gba" },
                 SupportsWasm = true,
@@ -147,9 +148,19 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Virtual Boy",
+                PlatformName = "Nintendo Virtual Boy",
+                Aliases = new[] { "Virtual Boy", "VB", "Nintendo Virtual Boy", "Nintendo - Virtual Boy" },
+                DefaultCore = "beetle_vb",
+                AvailableCores = new[] { "beetle_vb", "mednafen_vb" },
+                SupportsWasm = true,
+                EmulatorJsCore = "vb"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Nintendo 64",
                 PlatformName = "Nintendo 64",
-                Aliases = new[] { "Nintendo 64", "N64" },
+                Aliases = new[] { "Nintendo 64", "N64", "Nintendo - Nintendo 64", "64DD", "64dd" },
                 DefaultCore = "mupen64plus_next",
                 AvailableCores = new[] { "mupen64plus_next", "parallel_n64" },
                 SupportsWasm = true,
@@ -159,7 +170,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "Nintendo DS",
                 PlatformName = "Nintendo DS",
-                Aliases = new[] { "Nintendo DS", "NDS" },
+                Aliases = new[] { "Nintendo DS", "NDS", "Nintendo - Nintendo DS" },
                 DefaultCore = "melonds",
                 AvailableCores = new[] { "melonds", "desmume", "desmume2015" },
                 SupportsWasm = true,
@@ -169,7 +180,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "Genesis",
                 PlatformName = "Sega Genesis / Mega Drive",
-                Aliases = new[] { "Genesis", "Sega Genesis", "Mega Drive", "Sega Mega Drive", "md" },
+                Aliases = new[] { "Genesis", "Sega Genesis", "Sega - Mega Drive - Genesis", "Mega Drive", "Sega Mega Drive", "md" },
                 DefaultCore = "genesis_plus_gx",
                 AvailableCores = new[] { "genesis_plus_gx", "picodrive", "blastem" },
                 SupportsWasm = true,
@@ -178,8 +189,8 @@ namespace NzbDrone.Core.Games.Launcher
             new PlatformCoreDef
             {
                 PlatformKey = "Master System",
-                PlatformName = "Sega Master System / Game Gear",
-                Aliases = new[] { "Master System", "Sega Master System", "SMS", "Game Gear", "Sega Game Gear", "GG" },
+                PlatformName = "Sega Master System",
+                Aliases = new[] { "Master System", "Sega Master System", "Sega - Master System - Mark III", "SMS" },
                 DefaultCore = "genesis_plus_gx",
                 AvailableCores = new[] { "genesis_plus_gx", "picodrive", "gearsystem" },
                 SupportsWasm = true,
@@ -187,9 +198,19 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Game Gear",
+                PlatformName = "Sega Game Gear",
+                Aliases = new[] { "Game Gear", "Sega Game Gear", "Sega - Game Gear", "GG" },
+                DefaultCore = "genesis_plus_gx",
+                AvailableCores = new[] { "genesis_plus_gx", "gearsystem", "picodrive" },
+                SupportsWasm = true,
+                EmulatorJsCore = "segaGG"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Sega CD",
-                PlatformName = "Sega CD / Mega-CD & 32X",
-                Aliases = new[] { "Sega CD", "Mega-CD", "Sega 32X", "32X", "segacd", "sega32x" },
+                PlatformName = "Sega CD / Mega-CD",
+                Aliases = new[] { "Sega CD", "Mega-CD", "Sega - Mega-CD - Sega CD", "segacd" },
                 DefaultCore = "genesis_plus_gx",
                 AvailableCores = new[] { "genesis_plus_gx", "picodrive" },
                 SupportsWasm = true,
@@ -197,9 +218,19 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Sega 32X",
+                PlatformName = "Sega 32X",
+                Aliases = new[] { "Sega 32X", "32X", "Sega - 32X", "sega32x" },
+                DefaultCore = "picodrive",
+                AvailableCores = new[] { "picodrive" },
+                SupportsWasm = true,
+                EmulatorJsCore = "sega32x"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Sega Saturn",
                 PlatformName = "Sega Saturn",
-                Aliases = new[] { "Sega Saturn", "Saturn", "saturn" },
+                Aliases = new[] { "Sega Saturn", "Saturn", "Sega - Saturn", "saturn" },
                 DefaultCore = "yabause",
                 AvailableCores = new[] { "yabause", "beetle_saturn", "kronos" },
                 SupportsWasm = true,
@@ -209,7 +240,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "PlayStation",
                 PlatformName = "Sony PlayStation (PS1)",
-                Aliases = new[] { "PlayStation", "Sony PlayStation", "PS1", "PSX", "psx" },
+                Aliases = new[] { "PlayStation", "Sony PlayStation", "Sony - PlayStation", "PS1", "PSX", "psx" },
                 DefaultCore = "mednafen_psx_hw",
                 AvailableCores = new[] { "mednafen_psx_hw", "pcsx_rearmed", "swanstation", "mednafen_psx" },
                 SupportsWasm = true,
@@ -219,7 +250,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "PSP",
                 PlatformName = "Sony PlayStation Portable (PSP)",
-                Aliases = new[] { "PlayStation Portable", "Sony PlayStation Portable", "PSP", "psp" },
+                Aliases = new[] { "PlayStation Portable", "Sony PlayStation Portable", "Sony - PlayStation Portable", "PSP", "psp" },
                 DefaultCore = "ppsspp",
                 AvailableCores = new[] { "ppsspp" },
                 SupportsWasm = true,
@@ -229,7 +260,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "TurboGrafx-16",
                 PlatformName = "NEC TurboGrafx-16 / PC Engine",
-                Aliases = new[] { "TurboGrafx-16", "PC Engine", "TurboGrafx-CD", "PCE", "tg16", "pce" },
+                Aliases = new[] { "TurboGrafx-16", "PC Engine", "NEC - PC Engine - TurboGrafx 16", "TurboGrafx-CD", "PCE", "tg16", "tgcd", "pce" },
                 DefaultCore = "mednafen_pce_fast",
                 AvailableCores = new[] { "mednafen_pce_fast", "mednafen_supergrafx" },
                 SupportsWasm = true,
@@ -247,19 +278,69 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Neo Geo Pocket",
+                PlatformName = "SNK Neo Geo Pocket Color",
+                Aliases = new[] { "Neo Geo Pocket Color", "Neo Geo Pocket", "SNK - Neo Geo Pocket Color", "ngpc", "ngp" },
+                DefaultCore = "mednafen_ngp",
+                AvailableCores = new[] { "mednafen_ngp", "race" },
+                SupportsWasm = true,
+                EmulatorJsCore = "ngp"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "WonderSwan",
+                PlatformName = "Bandai WonderSwan / Color",
+                Aliases = new[] { "WonderSwan Color", "WonderSwan", "Bandai - WonderSwan Color", "Bandai - WonderSwan", "wonderswan", "wsc", "ws" },
+                DefaultCore = "mednafen_wswan",
+                AvailableCores = new[] { "mednafen_wswan" },
+                SupportsWasm = true,
+                EmulatorJsCore = "ws"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Atari 2600",
-                PlatformName = "Atari 2600 / 7800 / Lynx / Jaguar",
-                Aliases = new[] { "Atari 2600", "Atari 7800", "Atari Lynx", "Atari Jaguar", "atari2600", "jaguar" },
+                PlatformName = "Atari 2600",
+                Aliases = new[] { "Atari 2600", "Atari - 2600", "atari2600" },
                 DefaultCore = "stella",
-                AvailableCores = new[] { "stella", "prosystem", "handy", "virtualjaguar" },
+                AvailableCores = new[] { "stella", "stella2014" },
                 SupportsWasm = true,
                 EmulatorJsCore = "atari2600"
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Atari 7800",
+                PlatformName = "Atari 7800",
+                Aliases = new[] { "Atari 7800", "Atari - 7800", "atari7800" },
+                DefaultCore = "prosystem",
+                AvailableCores = new[] { "prosystem" },
+                SupportsWasm = true,
+                EmulatorJsCore = "atari7800"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Atari Lynx",
+                PlatformName = "Atari Lynx",
+                Aliases = new[] { "Atari Lynx", "Atari - Lynx", "lynx" },
+                DefaultCore = "handy",
+                AvailableCores = new[] { "handy", "mednafen_lynx" },
+                SupportsWasm = true,
+                EmulatorJsCore = "lynx"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Atari Jaguar",
+                PlatformName = "Atari Jaguar",
+                Aliases = new[] { "Atari Jaguar", "Atari - Jaguar", "Jaguar CD", "jaguar", "jaguarcd" },
+                DefaultCore = "virtualjaguar",
+                AvailableCores = new[] { "virtualjaguar" },
+                SupportsWasm = true,
+                EmulatorJsCore = "jaguar"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "PlayStation 2",
                 PlatformName = "Sony PlayStation 2 (PS2)",
-                Aliases = new[] { "PlayStation 2", "Sony PlayStation 2", "PS2", "ps2" },
+                Aliases = new[] { "PlayStation 2", "Sony PlayStation 2", "Sony - PlayStation 2", "PS2", "ps2" },
                 DefaultCore = "pcsx2",
                 AvailableCores = new[] { "pcsx2", "play" },
                 SupportsWasm = false,
@@ -269,12 +350,20 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "GameCube",
                 PlatformName = "Nintendo GameCube / Wii",
-                Aliases = new[] { "GameCube", "Nintendo GameCube", "Wii", "Nintendo Wii", "ngc", "wii" },
+                Aliases = new[] { "GameCube", "Nintendo GameCube", "Wii", "Nintendo Wii", "gamecube", "ngc", "wii" },
                 DefaultCore = "dolphin",
                 AvailableCores = new[] { "dolphin" },
                 SupportsWasm = false,
                 EmulatorJsCore = "dolphin"
             }
+        };
+
+        private static readonly string[] PreferredRomEntryExtensions = new[]
+        {
+            ".cue", ".gb", ".gbc", ".gba", ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs",
+            ".z64", ".n64", ".v64", ".ndd", ".nds", ".dsi", ".md", ".gen", ".smd", ".32x",
+            ".sms", ".gg", ".pce", ".sgx", ".vb", ".ws", ".wsc", ".ngp", ".ngc", ".lnx",
+            ".a26", ".a52", ".a78", ".j64", ".jag", ".neo", ".iso", ".chd", ".pbp", ".cso", ".bin"
         };
 
         private readonly IAppFolderInfo _appFolderInfo;
@@ -392,7 +481,7 @@ namespace NzbDrone.Core.Games.Launcher
             return "retroarch_auto";
         }
 
-        public GameLaunchDescriptor BuildLaunchDescriptor(int gameId, string platformFolder = "", string romPath = "")
+        public GameLaunchDescriptor BuildLaunchDescriptor(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0)
         {
             var config = GetConfig();
             var safePlatform = platformFolder?.Trim() ?? string.Empty;
@@ -401,6 +490,8 @@ namespace NzbDrone.Core.Games.Launcher
             var platformTitle = safePlatform;
             var seriesId = 0;
             var resolvedGameId = gameId;
+            var resolvedRomFileId = romFileId;
+            Series series = null;
 
             if (_episodeService != null && gameId > 0)
             {
@@ -423,6 +514,7 @@ namespace NzbDrone.Core.Games.Launcher
                             var asSeries = _seriesService.GetSeries(gameId);
                             if (asSeries != null)
                             {
+                                series = asSeries;
                                 seriesId = asSeries.Id;
                                 platformTitle = asSeries.Title ?? string.Empty;
                                 if (string.IsNullOrWhiteSpace(safePlatform))
@@ -448,9 +540,12 @@ namespace NzbDrone.Core.Games.Launcher
                     {
                         gameTitle = episode.Title ?? string.Empty;
                         seriesId = episode.SeriesId;
+                        if (resolvedRomFileId <= 0 && episode.EpisodeFileId > 0)
+                        {
+                            resolvedRomFileId = episode.EpisodeFileId;
+                        }
 
-                        Series series = null;
-                        if (_seriesService != null && episode.SeriesId > 0)
+                        if (series == null && _seriesService != null && episode.SeriesId > 0)
                         {
                             try
                             {
@@ -470,33 +565,6 @@ namespace NzbDrone.Core.Games.Launcher
                                 safePlatform = series.Title ?? series.TitleSlug ?? string.Empty;
                             }
                         }
-
-                        if (string.IsNullOrWhiteSpace(safeRomPath) && episode.EpisodeFileId > 0 && _mediaFileService != null)
-                        {
-                            try
-                            {
-                                var romFile = _mediaFileService.Get(episode.EpisodeFileId);
-                                if (romFile != null)
-                                {
-                                    if (!string.IsNullOrWhiteSpace(romFile.Path))
-                                    {
-                                        safeRomPath = romFile.Path;
-                                    }
-                                    else if (series != null && !string.IsNullOrWhiteSpace(series.Path) && !string.IsNullOrWhiteSpace(romFile.RelativePath))
-                                    {
-                                        safeRomPath = Path.Combine(series.Path, romFile.RelativePath);
-                                    }
-                                    else
-                                    {
-                                        safeRomPath = romFile.RelativePath ?? string.Empty;
-                                    }
-                                }
-                            }
-                            catch
-                            {
-                                // Ignore media file lookup failure
-                            }
-                        }
                     }
                 }
                 catch (Exception ex)
@@ -505,8 +573,38 @@ namespace NzbDrone.Core.Games.Launcher
                 }
             }
 
+            if (string.IsNullOrWhiteSpace(safeRomPath) && resolvedRomFileId > 0 && _mediaFileService != null)
+            {
+                safeRomPath = ResolveRomFilePath(resolvedRomFileId, ref series, ref seriesId, ref safePlatform, ref platformTitle);
+            }
+
+            if (!string.IsNullOrWhiteSpace(safeRomPath) && !Path.IsPathRooted(safeRomPath) && series != null && !string.IsNullOrWhiteSpace(series.Path))
+            {
+                var candidatePath = Path.Combine(series.Path, safeRomPath);
+                if (File.Exists(candidatePath))
+                {
+                    safeRomPath = candidatePath;
+                }
+            }
+
             var matchedDef = MatchPlatformDef(safePlatform);
-            var core = ResolveLibretroCore(safePlatform);
+            if (matchedDef == null && series != null && !string.IsNullOrWhiteSpace(series.TitleSlug))
+            {
+                matchedDef = MatchPlatformDef(series.TitleSlug);
+            }
+
+            if (matchedDef == null && !string.IsNullOrWhiteSpace(safeRomPath))
+            {
+                matchedDef = InferPlatformDefFromRomFile(safeRomPath);
+                if (matchedDef != null && string.IsNullOrWhiteSpace(safePlatform))
+                {
+                    safePlatform = matchedDef.PlatformKey;
+                }
+            }
+
+            var core = matchedDef != null
+                ? ResolveLibretroCore(matchedDef.PlatformKey)
+                : ResolveLibretroCore(safePlatform);
             var supportsWasm = matchedDef != null && matchedDef.SupportsWasm;
             var emulatorJsCore = matchedDef?.EmulatorJsCore ?? core;
 
@@ -517,6 +615,42 @@ namespace NzbDrone.Core.Games.Launcher
                 : string.Empty;
             var hasRomFile = !string.IsNullOrWhiteSpace(safeRomPath) &&
                              (File.Exists(safeRomPath) || romPath.IsNotNullOrWhiteSpace());
+
+            var streamFileName = romFileName;
+            if (!string.IsNullOrWhiteSpace(safeRomPath) &&
+                File.Exists(safeRomPath) &&
+                ShouldExtractZipForWebPlayer(safeRomPath, emulatorJsCore))
+            {
+                var innerEntryName = PeekZipRomEntryFileName(safeRomPath);
+                if (!string.IsNullOrWhiteSpace(innerEntryName))
+                {
+                    streamFileName = innerEntryName;
+                }
+            }
+
+            var streamRoute = !string.IsNullOrWhiteSpace(streamFileName)
+                ? $"/api/v5/gamelauncher/{resolvedGameId}/rom/{Uri.EscapeDataString(streamFileName)}"
+                : $"/api/v5/gamelauncher/{resolvedGameId}/rom";
+
+            var streamQueryParts = new List<string>();
+            if (resolvedRomFileId > 0)
+            {
+                streamQueryParts.Add($"romFileId={resolvedRomFileId}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(safePlatform))
+            {
+                streamQueryParts.Add($"platformFolder={Uri.EscapeDataString(safePlatform)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(safeRomPath))
+            {
+                streamQueryParts.Add($"romPath={encodedRom}");
+            }
+
+            var romStreamUrl = streamQueryParts.Count > 0
+                ? $"{streamRoute}?{string.Join("&", streamQueryParts)}"
+                : streamRoute;
 
             return new GameLaunchDescriptor
             {
@@ -536,15 +670,15 @@ namespace NzbDrone.Core.Games.Launcher
                 PreferredLaunchMode = config.PreferredLaunchMode ?? "web",
                 Shader = config.DefaultShader ?? "none",
                 EmulatorJsDataPath = config.EmulatorJsDataPath ?? "https://cdn.emulatorjs.org/stable/data/",
-                RomStreamUrl = $"/api/v5/gamelauncher/{resolvedGameId}/rom",
+                RomStreamUrl = romStreamUrl,
                 DesktopProtocolUri = $"controllarr://play/{resolvedGameId}?core={encodedCore}&rom={encodedRom}",
                 WebPlayerUrl = $"/webplayer?gameId={resolvedGameId}&core={encodedCore}&rom={encodedRom}"
             };
         }
 
-        public DesktopLaunchResult LaunchDesktopGame(int gameId, string platformFolder = "", string romPath = "")
+        public DesktopLaunchResult LaunchDesktopGame(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0)
         {
-            var descriptor = BuildLaunchDescriptor(gameId, platformFolder, romPath);
+            var descriptor = BuildLaunchDescriptor(gameId, platformFolder, romPath, romFileId);
             var config = GetConfig();
 
             if (!string.IsNullOrWhiteSpace(config.RetroArchExecutablePath) && File.Exists(config.RetroArchExecutablePath))
@@ -618,17 +752,245 @@ namespace NzbDrone.Core.Games.Launcher
             };
         }
 
-        public Stream OpenRomStream(int gameId, out string fileName)
+        public Stream OpenRomStream(int gameId, out string fileName, string platformFolder = "", string romPath = "", int romFileId = 0)
         {
             fileName = string.Empty;
-            var descriptor = BuildLaunchDescriptor(gameId);
+            var descriptor = BuildLaunchDescriptor(gameId, platformFolder, romPath, romFileId);
             if (string.IsNullOrWhiteSpace(descriptor.RomPath) || !File.Exists(descriptor.RomPath))
             {
                 return null;
             }
 
+            if (ShouldExtractZipForWebPlayer(descriptor.RomPath, descriptor.EmulatorJsCore))
+            {
+                var extracted = TryExtractZipRomToMemoryStream(descriptor.RomPath, out var innerFileName);
+                if (extracted != null)
+                {
+                    fileName = innerFileName;
+                    return extracted;
+                }
+            }
+
             fileName = Path.GetFileName(descriptor.RomPath);
             return new FileStream(descriptor.RomPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        private string ResolveRomFilePath(
+            int romFileId,
+            ref Series series,
+            ref int seriesId,
+            ref string safePlatform,
+            ref string platformTitle)
+        {
+            try
+            {
+                var romFile = _mediaFileService.Get(romFileId);
+                if (romFile == null)
+                {
+                    return string.Empty;
+                }
+
+                if (series == null && _seriesService != null && romFile.SeriesId > 0)
+                {
+                    try
+                    {
+                        series = _seriesService.GetSeries(romFile.SeriesId);
+                    }
+                    catch
+                    {
+                        series = null;
+                    }
+                }
+
+                if (series != null)
+                {
+                    if (seriesId <= 0)
+                    {
+                        seriesId = series.Id;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(platformTitle))
+                    {
+                        platformTitle = series.Title ?? string.Empty;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(safePlatform))
+                    {
+                        safePlatform = series.Title ?? series.TitleSlug ?? string.Empty;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(romFile.Path) && File.Exists(romFile.Path))
+                {
+                    return romFile.Path;
+                }
+
+                if (series != null && !string.IsNullOrWhiteSpace(series.Path) && !string.IsNullOrWhiteSpace(romFile.RelativePath))
+                {
+                    return Path.Combine(series.Path, romFile.RelativePath);
+                }
+
+                if (!string.IsNullOrWhiteSpace(romFile.Path))
+                {
+                    return romFile.Path;
+                }
+
+                return romFile.RelativePath ?? string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static bool ShouldExtractZipForWebPlayer(string romPath, string emulatorJsCore)
+        {
+            if (string.IsNullOrWhiteSpace(romPath))
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(romPath);
+            if (!ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(emulatorJsCore) &&
+                (emulatorJsCore.Equals("arcade", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("fbneo", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("mame2003_plus", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("neocd", StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static ZipArchiveEntry SelectBestRomZipEntry(ZipArchive archive)
+        {
+            var validEntries = archive.Entries
+                .Where(e => !string.IsNullOrWhiteSpace(e.Name) && e.Length > 0)
+                .ToList();
+
+            if (validEntries.Count == 0)
+            {
+                return null;
+            }
+
+            foreach (var preferredExt in PreferredRomEntryExtensions)
+            {
+                var match = validEntries.FirstOrDefault(e =>
+                    Path.GetExtension(e.Name).Equals(preferredExt, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            var romExtMatch = validEntries.FirstOrDefault(e =>
+            {
+                var ext = Path.GetExtension(e.Name);
+                return !string.IsNullOrWhiteSpace(ext) &&
+                       !ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                       !ext.Equals(".7z", StringComparison.OrdinalIgnoreCase) &&
+                       MediaFileExtensions.RomExtensions.Contains(ext);
+            });
+
+            return romExtMatch ?? validEntries.OrderByDescending(e => e.Length).FirstOrDefault();
+        }
+
+        private static string PeekZipRomEntryFileName(string zipPath)
+        {
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipPath);
+                var best = SelectBestRomZipEntry(archive);
+                return best?.Name ?? string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static Stream TryExtractZipRomToMemoryStream(string zipPath, out string innerFileName)
+        {
+            innerFileName = string.Empty;
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipPath);
+                var best = SelectBestRomZipEntry(archive);
+                if (best == null)
+                {
+                    return null;
+                }
+
+                // Avoid buffering excessively large multi-hundred-MB disc images into memory
+                if (best.Length > 256L * 1024L * 1024L)
+                {
+                    return null;
+                }
+
+                var memoryStream = new MemoryStream((int)Math.Min(best.Length, int.MaxValue));
+                using (var entryStream = best.Open())
+                {
+                    entryStream.CopyTo(memoryStream);
+                }
+
+                memoryStream.Position = 0;
+                innerFileName = best.Name;
+                return memoryStream;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static PlatformCoreDef InferPlatformDefFromRomFile(string romPath)
+        {
+            var ext = Path.GetExtension(romPath);
+            if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) && File.Exists(romPath))
+            {
+                var innerName = PeekZipRomEntryFileName(romPath);
+                if (!string.IsNullOrWhiteSpace(innerName))
+                {
+                    ext = Path.GetExtension(innerName);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(ext))
+            {
+                return null;
+            }
+
+            return ext.ToLowerInvariant() switch
+            {
+                ".gb" => MatchPlatformDef("Game Boy"),
+                ".gbc" => MatchPlatformDef("Game Boy Color"),
+                ".gba" => MatchPlatformDef("Game Boy Advance"),
+                ".nes" or ".unf" or ".fds" => MatchPlatformDef("NES"),
+                ".sfc" or ".smc" or ".bs" => MatchPlatformDef("SNES"),
+                ".z64" or ".n64" or ".v64" or ".ndd" => MatchPlatformDef("Nintendo 64"),
+                ".nds" or ".dsi" => MatchPlatformDef("Nintendo DS"),
+                ".md" or ".gen" or ".smd" => MatchPlatformDef("Genesis"),
+                ".sms" or ".sg" => MatchPlatformDef("Master System"),
+                ".gg" => MatchPlatformDef("Game Gear"),
+                ".32x" => MatchPlatformDef("Sega 32X"),
+                ".pce" or ".sgx" => MatchPlatformDef("TurboGrafx-16"),
+                ".vb" => MatchPlatformDef("Virtual Boy"),
+                ".ws" or ".wsc" => MatchPlatformDef("WonderSwan"),
+                ".ngp" or ".ngc" => MatchPlatformDef("Neo Geo Pocket"),
+                ".a26" => MatchPlatformDef("Atari 2600"),
+                ".a78" => MatchPlatformDef("Atari 7800"),
+                ".lnx" => MatchPlatformDef("Atari Lynx"),
+                ".j64" or ".jag" => MatchPlatformDef("Atari Jaguar"),
+                ".pbp" => MatchPlatformDef("PlayStation"),
+                ".cso" => MatchPlatformDef("PSP"),
+                _ => null
+            };
         }
 
         private static PlatformCoreDef MatchPlatformDef(string platformFolder)
