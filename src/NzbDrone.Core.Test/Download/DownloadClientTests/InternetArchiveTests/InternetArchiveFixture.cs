@@ -293,5 +293,38 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
             capturedRequest.Headers.GetValues("Authorization").Should().ContainSingle();
             capturedRequest.Headers.GetValues("Authorization").First().Should().Be("LOW indexer_access_key:indexer_secret_key");
         }
+
+        [Test]
+        public void should_ensure_download_folder_exists_on_test()
+        {
+            var folder = Subject.GetWorkingFolder();
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(folder)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderWritable(folder)).Returns(true);
+
+            var result = Subject.Test();
+
+            result.IsValid.Should().BeTrue();
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.EnsureFolder(folder), Times.Once());
+        }
+
+        [Test]
+        public async Task should_handle_special_characters_in_title_without_empty_filename()
+        {
+            var folder = Subject.GetWorkingFolder();
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(folder)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderWritable(folder)).Returns(true);
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(new HttpResponse(new HttpRequest("https://archive.org"), new HttpHeader(), new byte[0]));
+
+            var release = new ReleaseInfo { DownloadUrl = "https://archive.org/download/test/___", Title = "!!!" };
+            var remoteEpisode = new RemoteEpisode { Release = release };
+
+            var downloadId = await Subject.Download(remoteEpisode, null);
+
+            downloadId.Should().NotBeNullOrWhiteSpace();
+            downloadId.Should().StartWith(folder);
+        }
     }
 }

@@ -136,8 +136,26 @@ namespace NzbDrone.Core.Download
             // Limit grabs to 2 per second.
             if (remoteEpisode.Release.DownloadUrl.IsNotNullOrWhiteSpace() && !remoteEpisode.Release.DownloadUrl.StartsWith("magnet:"))
             {
-                var url = new HttpUri(remoteEpisode.Release.DownloadUrl);
-                await _rateLimitService.WaitAndPulseAsync(url.Host, TimeSpan.FromSeconds(2));
+                try
+                {
+                    if (Uri.TryCreate(remoteEpisode.Release.DownloadUrl, UriKind.Absolute, out var parsedUri) &&
+                        parsedUri.Host.IsNotNullOrWhiteSpace())
+                    {
+                        await _rateLimitService.WaitAndPulseAsync(parsedUri.Host, TimeSpan.FromSeconds(2));
+                    }
+                    else
+                    {
+                        var url = new HttpUri(remoteEpisode.Release.DownloadUrl);
+                        if (url.Host.IsNotNullOrWhiteSpace())
+                        {
+                            await _rateLimitService.WaitAndPulseAsync(url.Host, TimeSpan.FromSeconds(2));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Trace(ex, "Could not determine host for rate limiting: {0}", remoteEpisode.Release.DownloadUrl);
+                }
             }
 
             IIndexer indexer = null;

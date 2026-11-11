@@ -30,6 +30,11 @@ namespace Sonarr.Api.V3.Queue
                 throw new NotFoundException();
             }
 
+            if (pendingRelease.RemoteEpisode?.Release != null)
+            {
+                pendingRelease.RemoteEpisode.Release.PendingReleaseReason = null;
+            }
+
             await _downloadService.DownloadReport(pendingRelease.RemoteEpisode, null);
 
             return new { };
@@ -46,6 +51,11 @@ namespace Sonarr.Api.V3.Queue
                 if (pendingRelease == null)
                 {
                     throw new NotFoundException();
+                }
+
+                if (pendingRelease.RemoteEpisode?.Release != null)
+                {
+                    pendingRelease.RemoteEpisode.Release.PendingReleaseReason = null;
                 }
 
                 await _downloadService.DownloadReport(pendingRelease.RemoteEpisode, null);

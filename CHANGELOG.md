@@ -43,6 +43,13 @@ All notable changes to **Controllarr** are documented in this file.
   - Precompiled static regexes for title article normalization (`SubtitleArticleRegex`) and extension verification (`ValidExtensionRegex`) in `RomParser`.
 
 ### Fixed
+- **Internet Archive Download Client Queue Availability & Resilience (`InternetArchive`, `DownloadService`, `ProcessDownloadDecisions`, `QueueActionController`, `DownloadClientBase`)**:
+  - **Self-Healing Folder Validation (`InternetArchive.Test`)**: Automatically ensures the default working folder (`AppData/downloads`) or configured directory exists before verifying permissions in `TestFolder`, preventing new installations and initial saves from failing validation and prematurely locking the client in a blocked backoff state.
+  - **Safe Host Rate Limiting (`DownloadService`)**: Added safe host extraction and fallback handling for relative or non-standard release URIs before rate limiting grabs, preventing unhandled `ArgumentException` from aborting the download process and erroneously marking the client as unavailable.
+  - **HTTP Protocol Tracking in Decision Processing (`ProcessDownloadDecisions`)**: Added `httpFailed` protocol tracking alongside `usenetFailed` and `torrentFailed`, ensuring accurate protocol-level decision dispatching across all three acquisition protocols.
+  - **Zip Slip Validation & Path Sanitization (`InternetArchive.Download`)**: Standardized directory traversal validation against trailing-separator-normalized working folders and safeguarded empty title fallbacks against hidden dot-only filenames.
+  - **Manual Queue Grab Unblocking (`QueueActionController`)**: Cleared stale `PendingReleaseReason.DownloadClientUnavailable` markers when manually clicking "Grab" in both V3 and V5 queue APIs, allowing instant user retries without waiting for backoff timers.
+  - **Strict Zero-TV Tolerance in Client Validation (`DownloadClientBase`)**: Replaced leftover "Sonarr" application references in validation messages with "Controllarr".
 - **Repository-Wide Television De-Televisonization & Media Link Modernization**:
   - **Dead TV Services Purge**: Removed dead `SkyHookTvdb` request builder from `ControllarrCloudRequestBuilder`.
   - **Notification Metadata Links (`MetadataLinkType`, `NotificationMetadataLinkGenerator`, `Discord`, `Gotify`)**: Replaced deprecated TV links (`TVMaze`, `Trakt`) with `GameCatalog` (IGDB) and `TheGamesDb` links, removing obsolete `trakt.tv/search/tvdb` references while maintaining backwards compatibility for existing notification configurations.

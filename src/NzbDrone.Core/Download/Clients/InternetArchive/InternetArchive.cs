@@ -212,14 +212,21 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             }
 
             var baseRawTitle = Path.HasExtension(rawTitle) ? Path.GetFileNameWithoutExtension(rawTitle) : rawTitle;
-            var filename = Parser.Parser.CleanSeriesTitle(baseRawTitle) + extension;
+            var cleanTitle = Parser.Parser.CleanSeriesTitle(baseRawTitle);
+            if (string.IsNullOrWhiteSpace(cleanTitle))
+            {
+                cleanTitle = "rom_" + Guid.NewGuid().ToString("N")[..8];
+            }
+
+            var filename = cleanTitle + extension;
             var workingFolder = GetWorkingFolder();
             _diskProvider.EnsureFolder(workingFolder);
 
             var downloadPath = Path.Combine(workingFolder, filename);
+            var normalizedWorkingFolder = Path.GetFullPath(workingFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
             var fullDestinationPath = Path.GetFullPath(downloadPath);
 
-            if (!fullDestinationPath.StartsWith(Path.GetFullPath(workingFolder) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            if (!fullDestinationPath.StartsWith(normalizedWorkingFolder, StringComparison.OrdinalIgnoreCase))
             {
                 throw new System.Security.SecurityException("Zip Slip / Path Traversal detected in download destination.");
             }
@@ -550,6 +557,15 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         protected override void Test(List<ValidationFailure> failures)
         {
             var folder = GetWorkingFolder();
+            try
+            {
+                _diskProvider.EnsureFolder(folder);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to ensure folder '{0}' exists", folder);
+            }
+
             failures.AddIfNotNull(TestFolder(folder, "DownloadPath"));
         }
 
