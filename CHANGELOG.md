@@ -44,6 +44,7 @@ All notable changes to **Controllarr** are documented in this file.
 
 ### Fixed
 - **Internet Archive Download Client Queue Availability & Resilience (`InternetArchive`, `DownloadService`, `ProcessDownloadDecisions`, `QueueActionController`, `DownloadClientBase`)**:
+  - **SSL/TLS Revocation Resilience (`InternetArchive.StreamDownloadToDiskAsync`)**: Migrated stream downloading to `SocketsHttpHandler` with `SslClientAuthenticationOptions` and tolerant revocation verification, preventing `AuthenticationException: RevocationStatusUnknown` from aborting HTTPS downloads when certificate revocation (CRL/OCSP) servers are unreachable or timing out on macOS / Linux.
   - **Self-Healing Folder Validation (`InternetArchive.Test`)**: Automatically ensures the default working folder (`AppData/downloads`) or configured directory exists before verifying permissions in `TestFolder`, preventing new installations and initial saves from failing validation and prematurely locking the client in a blocked backoff state.
   - **Safe Host Rate Limiting (`DownloadService`)**: Added safe host extraction and fallback handling for relative or non-standard release URIs before rate limiting grabs, preventing unhandled `ArgumentException` from aborting the download process and erroneously marking the client as unavailable.
   - **HTTP Protocol Tracking in Decision Processing (`ProcessDownloadDecisions`)**: Added `httpFailed` protocol tracking alongside `usenetFailed` and `torrentFailed`, ensuring accurate protocol-level decision dispatching across all three acquisition protocols.

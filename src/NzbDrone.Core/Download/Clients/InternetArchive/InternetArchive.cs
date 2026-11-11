@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation.Results;
@@ -270,11 +272,32 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 state.Status = DownloadItemStatus.Downloading;
                 var stopwatch = Stopwatch.StartNew();
 
-                using var handler = new System.Net.Http.HttpClientHandler
+                using var handler = new System.Net.Http.SocketsHttpHandler
                 {
                     AllowAutoRedirect = true,
-                    CheckCertificateRevocationList = true,
-                    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+                    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+                    PooledConnectionLifetime = TimeSpan.FromMinutes(30),
+                    SslOptions = new SslClientAuthenticationOptions
+                    {
+                        CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+                        RemoteCertificateValidationCallback = static (sender, cert, chain, errors) =>
+                        {
+                            if (errors == SslPolicyErrors.None)
+                            {
+                                return true;
+                            }
+
+                            if (errors == SslPolicyErrors.RemoteCertificateChainErrors && chain?.ChainStatus != null)
+                            {
+                                return chain.ChainStatus.All(s =>
+                                    s.Status == X509ChainStatusFlags.NoError ||
+                                    s.Status == X509ChainStatusFlags.RevocationStatusUnknown ||
+                                    s.Status == X509ChainStatusFlags.OfflineRevocation);
+                            }
+
+                            return false;
+                        }
+                    }
                 };
                 using var client = new System.Net.Http.HttpClient(handler)
                 {
