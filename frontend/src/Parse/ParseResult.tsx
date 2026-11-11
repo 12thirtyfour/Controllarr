@@ -111,7 +111,7 @@ function ParseResult(props: ParseResultProps) {
             />
 
             <ParseResultItem
-              title={translate('AirDate')}
+              title={translate('ReleaseDate')}
               data={airDate ?? '-'}
             />
           </div>

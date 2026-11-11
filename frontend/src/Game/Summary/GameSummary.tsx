@@ -170,7 +170,7 @@ function GameSummary({
     <div>
       <div className={styles.meta}>
         <div className={styles.metaItem}>
-          <span className={styles.metaLabel}>{translate('Airs')}</span>
+          <span className={styles.metaLabel}>{translate('ReleaseDate')}</span>
 
           <div className={styles.metaValue}>
             {airDateUtc && parseInt(airDateUtc.slice(0, 4), 10) >= 1970

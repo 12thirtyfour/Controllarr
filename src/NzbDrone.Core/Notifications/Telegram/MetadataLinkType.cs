@@ -12,14 +12,15 @@ namespace NzbDrone.Core.Notifications.Telegram
         [FieldOption(Label = "IMDb")]
         Imdb = 0,
 
-        // No preview data is supported for TheTVDB at this time
-        // [FieldOption(Label = "TVDb")]
-        // Tvdb = 1,
+        [FieldOption(Label = "Game Catalog")]
+        GameCatalog = 1,
 
-        [FieldOption(Label = "TVMaze")]
+        [FieldOption(Label = "TheGamesDb")]
+        TheGamesDb = 2,
+
+        // Legacy compatibility aliases
+        Tvdb = 1,
         Tvmaze = 2,
-
-        [FieldOption(Label = "Trakt")]
         Trakt = 3
     }
 }

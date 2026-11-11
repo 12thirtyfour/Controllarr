@@ -171,23 +171,15 @@ namespace NzbDrone.Core.Notifications.Gotify
                             linkText = "IMDb";
                             linkUrl = $"https://www.imdb.com/title/{series.ImdbId}";
                         }
-
-                        if (linkType == MetadataLinkType.Tvdb && series.TvdbId > 0)
+                        else if ((linkType == MetadataLinkType.GameCatalog || linkType == MetadataLinkType.Tvdb) && (series.TvdbId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
                         {
-                            linkText = "IGDB";
+                            linkText = "Game Catalog";
                             linkUrl = "https://www.igdb.com/";
                         }
-
-                        if (linkType == MetadataLinkType.Trakt && series.TvdbId > 0)
+                        else if ((linkType == MetadataLinkType.TheGamesDb || linkType == MetadataLinkType.Tvmaze) && (series.TvMazeId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
                         {
-                            linkText = "Trakt";
-                            linkUrl = $"http://trakt.tv/search/tvdb/{series.TvdbId}?id_type=show";
-                        }
-
-                        if (linkType == MetadataLinkType.Tvmaze && series.TvMazeId > 0)
-                        {
-                            linkText = "TVMaze";
-                            linkUrl = $"http://www.tvmaze.com/shows/{series.TvMazeId}/_";
+                            linkText = "TheGamesDB";
+                            linkUrl = "https://thegamesdb.net/";
                         }
 
                         sb.AppendLine($"[{linkText}]({linkUrl})");

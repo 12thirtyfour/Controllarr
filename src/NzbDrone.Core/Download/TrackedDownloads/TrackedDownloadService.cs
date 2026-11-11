@@ -339,7 +339,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             var cachedItems = _cache.Values
                 .Where(t =>
                     t.RemoteEpisode?.Series == null ||
-                    message.Series?.TvdbId == t.RemoteEpisode.Series.TvdbId)
+                    (message.Series != null && (t.RemoteEpisode.Series.Id == message.Series.Id || (!string.IsNullOrEmpty(message.Series.TitleSlug) && t.RemoteEpisode.Series.TitleSlug == message.Series.TitleSlug) || (message.Series.TvdbId > 0 && message.Series.TvdbId == t.RemoteEpisode.Series.TvdbId))))
                 .ToList();
 
             if (cachedItems.Any())
@@ -355,7 +355,10 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             var cachedItems = _cache.Values
                 .Where(t =>
                     t.RemoteEpisode?.Series != null &&
-                    (t.RemoteEpisode.Series.Id == message.Series?.Id || t.RemoteEpisode.Series.TvdbId == message.Series?.TvdbId))
+                    message.Series != null &&
+                    (t.RemoteEpisode.Series.Id == message.Series.Id ||
+                     (!string.IsNullOrEmpty(message.Series.TitleSlug) && t.RemoteEpisode.Series.TitleSlug == message.Series.TitleSlug) ||
+                     (message.Series.TvdbId > 0 && message.Series.TvdbId == t.RemoteEpisode.Series.TvdbId)))
                 .ToList();
 
             if (cachedItems.Any())
@@ -371,7 +374,9 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             var cachedItems = _cache.Values
                 .Where(t =>
                     t.RemoteEpisode?.Series != null &&
-                    message.Series.Any(s => s.Id == t.RemoteEpisode.Series.Id || s.TvdbId == t.RemoteEpisode.Series.TvdbId))
+                    message.Series.Any(s => s.Id == t.RemoteEpisode.Series.Id ||
+                                            (!string.IsNullOrEmpty(s.TitleSlug) && s.TitleSlug == t.RemoteEpisode.Series.TitleSlug) ||
+                                            (s.TvdbId > 0 && s.TvdbId == t.RemoteEpisode.Series.TvdbId)))
                 .ToList();
 
             if (cachedItems.Any())
@@ -387,7 +392,9 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             var cachedItems = _cache.Values
                 .Where(t =>
                     t.RemoteEpisode?.Series != null &&
-                    message.Series.Any(s => s.Id == t.RemoteEpisode.Series.Id || s.TvdbId == t.RemoteEpisode.Series.TvdbId))
+                    message.Series.Any(s => s.Id == t.RemoteEpisode.Series.Id ||
+                                            (!string.IsNullOrEmpty(s.TitleSlug) && s.TitleSlug == t.RemoteEpisode.Series.TitleSlug) ||
+                                            (s.TvdbId > 0 && s.TvdbId == t.RemoteEpisode.Series.TvdbId)))
                 .ToList();
 
             if (cachedItems.Any())

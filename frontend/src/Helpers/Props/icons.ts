@@ -76,7 +76,6 @@ import {
   Menu,
   Minus,
   Monitor,
-  Network,
   Pause,
   Pin,
   Play,
@@ -209,7 +208,6 @@ export const ROOT_FOLDER = FolderTree;
 export const RSS = Rss;
 export const SAVE = Save;
 export const SEASON_TYPE = ListOrdered;
-export const SCENE_MAPPING = Network;
 export const SCHEDULED = Clock;
 export const SCORE = UserPlus;
 export const SEARCH = Search;

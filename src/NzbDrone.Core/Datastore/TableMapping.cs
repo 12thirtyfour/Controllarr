@@ -116,6 +116,9 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(s => s.PreferredArchiveFormat)
                   .Ignore(s => s.PreferEncryptedRoms)
                   .Ignore(s => s.EncryptionPreference)
+                  .Ignore(s => s.RegionFolder)
+                  .Ignore(s => s.FirstReleased)
+                  .Ignore(s => s.LastReleased)
                   .HasOne(s => s.QualityProfile, s => s.QualityProfileId);
 
             Mapper.Entity<PlatformTranslation>("PlatformTranslations").RegisterModel();
@@ -139,6 +142,8 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(e => e.RegionNumber)
                   .Ignore(e => e.GameNumber)
                   .Ignore(e => e.AbsoluteGameNumber)
+                  .Ignore(e => e.ReleaseDate)
+                  .Ignore(e => e.ReleaseDateUtc)
                   .HasOne(s => s.EpisodeFile, s => s.EpisodeFileId);
 
             Mapper.Entity<QualityDefinition>("QualityDefinitions").RegisterModel()

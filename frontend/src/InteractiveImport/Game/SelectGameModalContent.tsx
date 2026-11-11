@@ -33,7 +33,7 @@ const columns = [
   },
   {
     name: 'airDate',
-    label: () => translate('AirDate'),
+    label: () => translate('ReleaseDate'),
     isVisible: true,
   },
 ];

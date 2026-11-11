@@ -109,6 +109,7 @@ namespace NzbDrone.Core.Tv
         public NewItemMonitorTypes MonitorNewItems { get; set; }
         public int QualityProfileId { get; set; }
         public bool SeasonFolder { get; set; }
+        public bool RegionFolder { get => SeasonFolder; set => SeasonFolder = value; }
         public DateTime? LastInfoSync { get; set; }
         public int Runtime { get; set; }
         public List<MediaCover.MediaCover> Images { get; set; }
@@ -125,7 +126,9 @@ namespace NzbDrone.Core.Tv
         public string RootFolderPath { get; set; }
         public DateTime Added { get; set; }
         public DateTime? FirstAired { get; set; }
+        public DateTime? FirstReleased { get => FirstAired; set => FirstAired = value; }
         public DateTime? LastAired { get; set; }
+        public DateTime? LastReleased { get => LastAired; set => LastAired = value; }
         public LazyLoaded<QualityProfile> QualityProfile { get; set; }
         public Language Language { get; set; }
         public Language OriginalLanguage { get; set; }

@@ -14,6 +14,7 @@ namespace NzbDrone.Core.Tv
         }
 
         public const string AIR_DATE_FORMAT = "yyyy-MM-dd";
+        public const string RELEASE_DATE_FORMAT = "yyyy-MM-dd";
 
         public int SeriesId { get; set; }
         public int PlatformId { get => SeriesId; set => SeriesId = value; }
@@ -26,7 +27,9 @@ namespace NzbDrone.Core.Tv
         public int GameNumber { get => EpisodeNumber; set => EpisodeNumber = value; }
         public string Title { get; set; }
         public string AirDate { get; set; }
+        public string ReleaseDate { get => AirDate; set => AirDate = value; }
         public DateTime? AirDateUtc { get; set; }
+        public DateTime? ReleaseDateUtc { get => AirDateUtc; set => AirDateUtc = value; }
         public string Overview { get; set; }
         public bool Monitored { get; set; }
         public int? AbsoluteEpisodeNumber { get; set; }

@@ -24,19 +24,14 @@ public static class NotificationMetadataLinkGenerator
                 links.Add(new NotificationMetadataLink(MetadataLinkType.Imdb, "IMDb", $"https://www.imdb.com/title/{series.ImdbId}"));
             }
 
-            if (linkType == MetadataLinkType.Tvdb && series.TvdbId > 0)
+            if ((linkType == MetadataLinkType.GameCatalog || linkType == MetadataLinkType.Tvdb) && (series.TvdbId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
             {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Tvdb, "IGDB", "https://www.igdb.com/"));
+                links.Add(new NotificationMetadataLink(MetadataLinkType.GameCatalog, "Game Catalog", "https://www.igdb.com/"));
             }
 
-            if (linkType == MetadataLinkType.Trakt && series.TvdbId > 0)
+            if ((linkType == MetadataLinkType.TheGamesDb || linkType == MetadataLinkType.Tvmaze) && (series.TvMazeId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
             {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Trakt, "Trakt", $"http://trakt.tv/search/tvdb/{series.TvdbId}?id_type=show"));
-            }
-
-            if (linkType == MetadataLinkType.Tvmaze && series.TvMazeId > 0)
-            {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Tvmaze, "TVMaze", $"http://www.tvmaze.com/shows/{series.TvMazeId}/_"));
+                links.Add(new NotificationMetadataLink(MetadataLinkType.TheGamesDb, "TheGamesDB", "https://thegamesdb.net/"));
             }
         }
 

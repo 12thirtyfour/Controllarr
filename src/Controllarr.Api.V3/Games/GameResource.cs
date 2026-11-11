@@ -18,9 +18,16 @@ namespace Sonarr.Api.V3.Games
         public int EpisodeFileId { get; set; }
         public int SeasonNumber { get; set; }
         public int EpisodeNumber { get; set; }
+        public int PlatformId { get => SeriesId; set => SeriesId = value; }
+        public int RomFileId { get => EpisodeFileId; set => EpisodeFileId = value; }
+        public int RegionNumber { get => SeasonNumber; set => SeasonNumber = value; }
+        public int GameNumber { get => EpisodeNumber; set => EpisodeNumber = value; }
         public string Title { get; set; }
         public string AirDate { get; set; }
+        public string ReleaseDate { get => AirDate; set => AirDate = value; }
         public DateTime? AirDateUtc { get; set; }
+        public DateTime? ReleaseDateUtc { get => AirDateUtc; set => AirDateUtc = value; }
+        public int? AbsoluteGameNumber { get => AbsoluteEpisodeNumber; set => AbsoluteEpisodeNumber = value; }
         public DateTime? LastSearchTime { get; set; }
         public int Runtime { get; set; }
         public string FinaleType { get; set; }

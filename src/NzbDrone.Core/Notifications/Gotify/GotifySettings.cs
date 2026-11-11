@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Notifications.Gotify
         {
             Priority = 5;
             MetadataLinks = Enumerable.Empty<int>();
-            PreferredMetadataLink = (int)MetadataLinkType.Tvdb;
+            PreferredMetadataLink = (int)MetadataLinkType.GameCatalog;
         }
 
         [FieldDefinition(0, Label = "NotificationsGotifySettingsServer", HelpText = "NotificationsGotifySettingsServerHelpText")]

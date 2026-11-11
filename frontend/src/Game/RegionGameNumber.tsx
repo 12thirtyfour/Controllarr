@@ -2,12 +2,12 @@ import React from 'react';
 import { SeriesType } from 'Platform/Platform';
 import GameNumber, { GameNumberProps } from './GameNumber';
 
-interface SeasonGameNumberProps extends GameNumberProps {
+interface RegionGameNumberProps extends GameNumberProps {
   airDate?: string;
   seriesType?: SeriesType;
 }
 
-function SeasonGameNumber(props: SeasonGameNumberProps) {
+function RegionGameNumber(props: RegionGameNumberProps) {
   const { airDate, seriesType, ...otherProps } = props;
 
   if (seriesType === 'daily' && airDate) {
@@ -22,4 +22,4 @@ function SeasonGameNumber(props: SeasonGameNumberProps) {
   );
 }
 
-export default SeasonGameNumber;
+export default RegionGameNumber;

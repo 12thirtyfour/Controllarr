@@ -7,13 +7,15 @@ namespace NzbDrone.Core.Notifications
         [FieldOption(Label = "IMDb")]
         Imdb = 0,
 
-        [FieldOption(Label = "TVDb")]
+        [FieldOption(Label = "Game Catalog")]
+        GameCatalog = 1,
+
+        [FieldOption(Label = "TheGamesDb")]
+        TheGamesDb = 2,
+
+        // Legacy compatibility aliases
         Tvdb = 1,
-
-        [FieldOption(Label = "TVMaze")]
         Tvmaze = 2,
-
-        [FieldOption(Label = "Trakt")]
         Trakt = 3
     }
 }

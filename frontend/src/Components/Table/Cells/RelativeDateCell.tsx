@@ -10,6 +10,7 @@ interface RelativeDateCellProps {
   className?: string;
   date?: string;
   airDate?: string;
+  releaseDate?: string;
   includeSeconds?: boolean;
   includeTime?: boolean;
   component?: React.ElementType;
@@ -20,6 +21,7 @@ function RelativeDateCell(props: RelativeDateCellProps) {
     className = styles.cell,
     date,
     airDate,
+    releaseDate,
     includeSeconds = false,
     includeTime = false,
     component: Component = TableRowCell,
@@ -29,7 +31,7 @@ function RelativeDateCell(props: RelativeDateCellProps) {
   const { showRelativeDates, shortDateFormat, longDateFormat, timeFormat } =
     useUiSettingsValues();
 
-  const effectiveDate = airDate || date;
+  const effectiveDate = releaseDate || airDate || date;
 
   if (effectiveDate) {
     const trimmed = effectiveDate.trim();

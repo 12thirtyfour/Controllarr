@@ -30,6 +30,12 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-11]
 
 ### Fixed
+- **Repository-Wide Television De-Televisonization & Media Link Modernization**:
+  - **Dead TV Services Purge**: Removed dead `SkyHookTvdb` request builder from `ControllarrCloudRequestBuilder`.
+  - **Notification Metadata Links (`MetadataLinkType`, `NotificationMetadataLinkGenerator`, `Discord`, `Gotify`)**: Replaced deprecated TV links (`TVMaze`, `Trakt`) with `GameCatalog` (IGDB) and `TheGamesDb` links, removing obsolete `trakt.tv/search/tvdb` references while maintaining backwards compatibility for existing notification configurations.
+  - **Tracked Download Platform Matching (`TrackedDownloadService`)**: Resolved an issue where unpopulated `TvdbId = 0` caused false-positive cross-platform download matching, upgrading platform event handlers to match by `Id`, `TitleSlug`, and positive `TvdbId`.
+  - **Domain Model & DTO Gaming Aliases (`Game`, `Platform`, `ParsedGameInfo`, `GameResource`)**: Added `ReleaseDate`, `ReleaseDateUtc`, `PlatformId`, `RegionNumber`, `GameNumber`, `RomFileId`, `RegionFolder`, `FirstReleased`, and `LastReleased` aliases to ensure clean gaming semantics across backend models and REST API resources without breaking database schema or serialization compatibility.
+  - **Frontend UI De-Televisonization**: Updated Game Summary, interactive modals, parse inspection, and table date cells to display "Release Date" and gaming labels rather than TV broadcast "Airs" / "Air Date". Removed legacy scene mapping icons and CSS.
 - **Database Entity Mapping for Naming Configuration (`TableMapping`)**:
   - Registered `.Ignore(...)` on `NamingConfig` mapping for gaming folder format alias properties (`DiscGameFormat`, `PlatformFolderFormat`, `RegionFolderFormat`, and `UnlicensedFolderFormat`) to prevent `table NamingConfig has no column named DiscGameFormat` exceptions during persistence.
 - **Tracked Download Import Lifecycle & Rejection Handling (`CompletedDownloadService`)**:

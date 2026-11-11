@@ -696,8 +696,7 @@ namespace NzbDrone.Core.Notifications.Discord
 
             var links = new List<string>
             {
-                "[Game Catalog](https://www.igdb.com/)",
-                $"[Trakt](https://trakt.tv/search/tvdb/{series.TvdbId}?id_type=show)"
+                "[Game Catalog](https://www.igdb.com/)"
             };
 
             if (series.ImdbId.IsNotNullOrWhiteSpace())

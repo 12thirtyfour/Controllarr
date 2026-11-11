@@ -69,6 +69,8 @@
     "AgeWhenGrabbed": "Age (when grabbed)",
     "Agenda": "Agenda",
     "AirDate": "Release Date",
+    "ReleaseDate": "Release Date",
+    "Released": "Released",
     "AirDateGracePeriod": "Release Date Grace Period",
     "AirDateGracePeriodHelpText": "Negative values allow grabbing before the release date, positive values prevent grabbing after the release date.",
     "AirDateRestriction": "Reject Unreleased Releases",
