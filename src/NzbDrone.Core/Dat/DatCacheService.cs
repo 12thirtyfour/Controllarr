@@ -126,6 +126,46 @@ namespace NzbDrone.Core.Dat
             }
         }
 
+        public bool HasEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null)
+        {
+            var slug = (platformSlug ?? string.Empty).Trim().ToLowerInvariant();
+            var name = (platformName ?? slug).Trim().ToLowerInvariant();
+            var sys = (libretroSystemName ?? name).Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(slug) && string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(sys))
+            {
+                return false;
+            }
+
+            using (var connection = _database.OpenConnection())
+            {
+                var datFiles = connection.Query<DatFile>(@"SELECT ""Id"", ""Name"", ""Description"" FROM ""DatFiles""").ToList();
+                var matchedFileIds = new List<int>();
+
+                foreach (var file in datFiles)
+                {
+                    if (IsDatFilePlatformMatch(file, slug, name, sys))
+                    {
+                        matchedFileIds.Add(file.Id);
+                    }
+                }
+
+                if (matchedFileIds.Count == 0)
+                {
+                    return false;
+                }
+
+                var idList = string.Join(",", matchedFileIds);
+                var sql = $@"
+                    SELECT 1
+                    FROM ""DatEntries""
+                    WHERE ""DatFileId"" IN ({idList})
+                    LIMIT 1";
+
+                return connection.ExecuteScalar<int?>(sql).HasValue;
+            }
+        }
+
         private static bool IsDatFilePlatformMatch(DatFile file, string slug, string name, string sys)
         {
             var desc = (file.Description ?? string.Empty).Trim().ToLowerInvariant();

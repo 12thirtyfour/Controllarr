@@ -324,6 +324,11 @@ namespace NzbDrone.Core.MediaFiles
             try
             {
                 using var archive = ZipFile.OpenRead(zipPath);
+                if (archive.Entries.Count <= 1)
+                {
+                    return false;
+                }
+
                 var validExtensions = MediaFileExtensions.RomExtensions;
                 var gameEntries = archive.Entries.Where(e =>
                 {

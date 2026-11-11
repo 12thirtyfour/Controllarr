@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -6,20 +7,46 @@ namespace NzbDrone.Common.Crypto
 {
     public static class HashConverter
     {
-        private static readonly SHA1 Sha1 = SHA1.Create();
-
         public static int GetHashInt31(string target)
         {
-            var hash = GetHash(target);
-            return BitConverter.ToInt32(hash, 0) & 0x7fffffff;
+            if (string.IsNullOrEmpty(target))
+            {
+                return 0;
+            }
+
+            Span<byte> hash = stackalloc byte[20];
+            var maxByteCount = Encoding.Default.GetMaxByteCount(target.Length);
+            if (maxByteCount <= 512)
+            {
+                Span<byte> bytes = stackalloc byte[maxByteCount];
+                var written = Encoding.Default.GetBytes(target, bytes);
+                SHA1.HashData(bytes.Slice(0, written), hash);
+            }
+            else
+            {
+                var bytes = Encoding.Default.GetBytes(target);
+                SHA1.HashData(bytes, hash);
+            }
+
+            return BinaryPrimitives.ReadInt32LittleEndian(hash) & 0x7fffffff;
         }
 
         public static byte[] GetHash(string target)
         {
-            lock (Sha1)
+            if (string.IsNullOrEmpty(target))
             {
-                return Sha1.ComputeHash(Encoding.Default.GetBytes(target));
+                return Array.Empty<byte>();
             }
+
+            var maxByteCount = Encoding.Default.GetMaxByteCount(target.Length);
+            if (maxByteCount <= 512)
+            {
+                Span<byte> bytes = stackalloc byte[maxByteCount];
+                var written = Encoding.Default.GetBytes(target, bytes);
+                return SHA1.HashData(bytes.Slice(0, written));
+            }
+
+            return SHA1.HashData(Encoding.Default.GetBytes(target));
         }
     }
 }

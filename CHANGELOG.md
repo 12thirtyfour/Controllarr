@@ -29,6 +29,19 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-11]
 
+### Optimized
+- **High-Performance Streaming DAT & XML Parsing (`DatParserService`)**:
+  - Eliminated full-file `StreamReader.ReadToEnd()` string buffering on XML DAT parsing, streaming directly through `XmlReader.Create(StreamReader, XmlReaderSettings)` with `TrimExcess()` cleanup. Eliminates 50MB–200MB Large Object Heap (LOH) allocations and GC pressure per catalog file.
+- **Span-Based SMDB Tab Parser (`SmdbParserService`)**:
+  - Replaced per-line `line.Split('\t')` allocations with zero-allocation span slicing (`AsSpan()`, `IndexOf('\t')`) and in-place lowercase validation, eliminating tens of thousands of array and string allocations across 50,000+ line SMDB catalogs.
+- **Queue & Import Decision DAT Query Optimization (`DatCacheService`, `VerifiedRomHashSpecification`)**:
+  - Implemented `HasEntriesForPlatform` using lightweight `SELECT 1 ... LIMIT 1` queries, replacing full `GetEntriesForPlatform` in `VerifiedRomHashSpecification`. Completely avoids loading, mapping, and constructing thousands of `DatEntry` objects during queue evaluation and import decision runs.
+- **Lock-Free Zero-Allocation Cryptographic Hashing (`HashConverter`)**:
+  - Modernized `HashConverter.GetHashInt31` and `GetHash` using static `SHA1.HashData` with `stackalloc` byte buffers and `BinaryPrimitives.ReadInt32LittleEndian`, eliminating lock contention and heap allocations across tracked download, manual import, and queue hash calculations.
+- **Collection Archive Early-Exit & Regex Compilation (`DiskScanService`, `RomParser`)**:
+  - Added O(1) entry count check (`archive.Entries.Count <= 1`) in `DiskScanService.IsMultiGameCollectionArchive`, bypassing LINQ queries and list allocations on single-game archive scans across entire libraries.
+  - Precompiled static regexes for title article normalization (`SubtitleArticleRegex`) and extension verification (`ValidExtensionRegex`) in `RomParser`.
+
 ### Fixed
 - **Repository-Wide Television De-Televisonization & Media Link Modernization**:
   - **Dead TV Services Purge**: Removed dead `SkyHookTvdb` request builder from `ControllarrCloudRequestBuilder`.

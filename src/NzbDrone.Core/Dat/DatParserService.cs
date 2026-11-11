@@ -35,21 +35,25 @@ namespace NzbDrone.Core.Dat
                 return (datFile, datEntries);
             }
 
-            string content;
-            using (var streamReader = new StreamReader(stream, leaveOpen: true))
+            var streamReader = new StreamReader(stream, leaveOpen: true);
+
+            // Skip leading whitespace to determine if content is XML
+            int next;
+            while ((next = streamReader.Peek()) != -1 && char.IsWhiteSpace((char)next))
             {
-                content = streamReader.ReadToEnd();
+                streamReader.Read();
             }
 
-            if (string.IsNullOrWhiteSpace(content))
+            if (next == -1)
             {
                 return (datFile, datEntries);
             }
 
-            var trimmed = content.TrimStart();
-            if (!trimmed.StartsWith("<", StringComparison.Ordinal))
+            if (next != '<')
             {
+                var content = streamReader.ReadToEnd();
                 ParseClrMamePro(content, datFile, datEntries);
+                datEntries.TrimExcess();
                 return (datFile, datEntries);
             }
 
@@ -57,11 +61,11 @@ namespace NzbDrone.Core.Dat
             {
                 DtdProcessing = DtdProcessing.Ignore,
                 IgnoreWhitespace = true,
-                IgnoreComments = true
+                IgnoreComments = true,
+                CloseInput = false
             };
 
-            using (var stringReader = new StringReader(content))
-            using (var reader = XmlReader.Create(stringReader, settings))
+            using (var reader = XmlReader.Create(streamReader, settings))
             {
                 reader.ReadToFollowing("datafile");
 
@@ -107,6 +111,7 @@ namespace NzbDrone.Core.Dat
                 }
             }
 
+            datEntries.TrimExcess();
             return (datFile, datEntries);
         }
 

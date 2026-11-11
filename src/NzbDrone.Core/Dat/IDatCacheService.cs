@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Dat
         List<DatFile> GetAllDatFiles();
         DatFile GetDatFileById(int id);
         List<DatEntry> GetEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null);
+        bool HasEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null);
 
         DatEntry FindByCrc32(string crc32);
         DatEntry FindBySha1(string sha1);

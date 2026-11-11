@@ -21,6 +21,8 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex FormatTokenRegex = new Regex(@"\b(3ds|cia|cci|nds|dsi|gba|gbc|gb|nes|snes|sfc|smc|n64|z64|v64|iso|ciso|chd|rvz|gcm|wbfs|wux|wud|wua|nsp|nsz|xci|pbp|cso|vpk|pkg|bin|cue|gdi|cdi|zip|7z)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BracketCleanupRegex = new Regex(@"\[.*?\]|\(.*?\)", RegexOptions.Compiled);
         private static readonly Regex IndexPrefixRegex = new Regex(@"^(?:\[#?\d+\]|\(#?\d+\)|#\d+|(?!007\b)0\d{1,4})(?:\s*[-_.)]\s*|\s+)", RegexOptions.Compiled);
+        private static readonly Regex ValidExtensionRegex = new Regex(@"^\.[A-Za-z0-9]{1,6}$", RegexOptions.Compiled);
+        private static readonly Regex SubtitleArticleRegex = new Regex(@"^(?<main>.*?),\s*(?<art>The|A|An)\s*-\s*(?<sub>.*)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly string[] IgnoredPrefixes = { "_Top", "A-F", "G-K", "1 USA", "2 Japan", "Translations" };
 
@@ -72,7 +74,7 @@ namespace NzbDrone.Core.Parser
 
             // Strip extension only if it is an actual file extension at the end of the string (no spaces or parentheses)
             var ext = Path.GetExtension(normalizedTitle);
-            if (!string.IsNullOrEmpty(ext) && Regex.IsMatch(ext, @"^\.[A-Za-z0-9]{1,6}$"))
+            if (!string.IsNullOrEmpty(ext) && ValidExtensionRegex.IsMatch(ext))
             {
                 result.Format = ext.TrimStart('.');
                 normalizedTitle = Path.GetFileNameWithoutExtension(normalizedTitle);
@@ -224,7 +226,7 @@ namespace NzbDrone.Core.Parser
                 return "An " + trimmed.Substring(0, trimmed.Length - 4).Trim();
             }
 
-            var subtitleMatch = Regex.Match(trimmed, @"^(?<main>.*?),\s*(?<art>The|A|An)\s*-\s*(?<sub>.*)$", RegexOptions.IgnoreCase);
+            var subtitleMatch = SubtitleArticleRegex.Match(trimmed);
             if (subtitleMatch.Success)
             {
                 var art = subtitleMatch.Groups["art"].Value;

@@ -51,11 +51,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                 }
             }
 
-            var platformEntries = localEpisode.Series != null
-                ? _datCacheService.GetEntriesForPlatform(localEpisode.Series.TitleSlug, localEpisode.Series.Title)
-                : null;
+            var hasPlatformEntries = localEpisode.Series != null &&
+                _datCacheService.HasEntriesForPlatform(localEpisode.Series.TitleSlug, localEpisode.Series.Title);
 
-            if (hasComputedRomHashes || (platformEntries != null && platformEntries.Count > 0))
+            if (hasComputedRomHashes || hasPlatformEntries)
             {
                 _logger.Warn("Holding unverified ROM download in Activity Queue for manual review: {0}", localEpisode.Path);
                 return ImportSpecDecision.Reject(
