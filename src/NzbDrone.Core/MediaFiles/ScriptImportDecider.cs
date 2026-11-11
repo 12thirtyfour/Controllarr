@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
@@ -195,6 +196,34 @@ namespace NzbDrone.Core.MediaFiles
                 environmentVariables.Add("Sonarr_DeletedPaths", string.Join("|", oldFiles.Select(e => Path.Combine(series.Path, e.EpisodeFile.RelativePath))));
                 environmentVariables.Add("Sonarr_DeletedDateAdded", string.Join("|", oldFiles.Select(e => e.EpisodeFile.DateAdded)));
                 environmentVariables.Add("Sonarr_DeletedRecycleBinPaths", string.Join("|", oldFiles.Select(e => e.RecycleBinPath ?? string.Empty)));
+            }
+
+            var controllarrVariables = new Dictionary<string, string>();
+            foreach (string key in environmentVariables.Keys)
+            {
+                if (key.StartsWith("Sonarr_", StringComparison.OrdinalIgnoreCase))
+                {
+                    var val = environmentVariables[key];
+                    var suffix = key.AsSpan(7);
+                    controllarrVariables[$"Controllarr_{suffix}"] = val;
+
+                    if (suffix.StartsWith("EpisodeFile_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        controllarrVariables[$"Controllarr_RomFile_{suffix.Slice(12)}"] = val;
+                    }
+                    else if (suffix.StartsWith("Series_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        controllarrVariables[$"Controllarr_Platform_{suffix.Slice(7)}"] = val;
+                    }
+                }
+            }
+
+            foreach (var kvp in controllarrVariables)
+            {
+                if (!environmentVariables.ContainsKey(kvp.Key))
+                {
+                    environmentVariables.Add(kvp.Key, kvp.Value);
+                }
             }
 
             _logger.Debug("Executing external script: {0}", _configService.ScriptImportPath);

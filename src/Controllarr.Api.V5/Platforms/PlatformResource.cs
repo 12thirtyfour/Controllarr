@@ -33,6 +33,12 @@ public class PlatformResource : RestResource
     public string? PendingPath { get; set; }
     public int QualityProfileId { get; set; }
     public bool SeasonFolder { get; set; }
+    public bool RegionFolder { get => SeasonFolder; set => SeasonFolder = value; }
+    public DateTime? NextRelease { get => NextAiring; set => NextAiring = value; }
+    public DateTime? PreviousRelease { get => PreviousAiring; set => PreviousAiring = value; }
+    public List<SeasonResource> Regions { get => Seasons; set => Seasons = value; }
+    public DateTime? FirstReleased { get => FirstAired; set => FirstAired = value; }
+    public DateTime? LastReleased { get => LastAired; set => LastAired = value; }
     public bool Monitored { get; set; }
     public NewItemMonitorTypes MonitorNewItems { get; set; }
     public NzbDrone.Core.Games.CollectionStrategy CollectionStrategy { get; set; }

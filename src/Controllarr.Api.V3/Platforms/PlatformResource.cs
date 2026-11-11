@@ -47,6 +47,10 @@ namespace Sonarr.Api.V3.Platforms
 
         // Editing Only
         public bool SeasonFolder { get; set; }
+        public bool RegionFolder { get => SeasonFolder; set => SeasonFolder = value; }
+        public DateTime? NextRelease { get => NextAiring; set => NextAiring = value; }
+        public DateTime? PreviousRelease { get => PreviousAiring; set => PreviousAiring = value; }
+        public List<SeasonResource> Regions { get => Seasons; set => Seasons = value; }
         public bool Monitored { get; set; }
         public NewItemMonitorTypes MonitorNewItems { get; set; }
 
