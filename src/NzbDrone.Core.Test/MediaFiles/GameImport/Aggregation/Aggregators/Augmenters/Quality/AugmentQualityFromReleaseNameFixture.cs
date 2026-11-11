@@ -16,22 +16,10 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
     {
         private LocalEpisode _localEpisode;
         private DownloadClientItem _downloadClientItem;
-        private ParsedEpisodeInfo _hdtvParsedEpisodeInfo;
-        private ParsedEpisodeInfo _webdlParsedEpisodeInfo;
 
         [SetUp]
         public void Setup()
         {
-            _hdtvParsedEpisodeInfo = Builder<ParsedEpisodeInfo>.CreateNew()
-                                                               .With(p => p.Quality =
-                                                                   new QualityModel(Core.Qualities.Quality.HDTV720p))
-                                                               .Build();
-
-            _webdlParsedEpisodeInfo = Builder<ParsedEpisodeInfo>.CreateNew()
-                                                                .With(p => p.Quality =
-                                                                    new QualityModel(Core.Qualities.Quality.WEBDL720p))
-                                                                .Build();
-
             _localEpisode = Builder<LocalEpisode>.CreateNew()
                                                  .Build();
 
@@ -55,10 +43,10 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
             Subject.AugmentQuality(_localEpisode, _downloadClientItem).Should().BeNull();
         }
 
-        [TestCase("Series.Title.S01E01.1080p.WEB.x264", QualitySource.Web, Confidence.Tag, 1080, Confidence.Tag)]
-        [TestCase("Series.Title.S01E01.WEB.x264", QualitySource.Web, Confidence.Tag, 480, Confidence.Fallback)]
-        [TestCase("Series.Title.S01E01.720p.x264", QualitySource.Television, Confidence.Fallback, 720, Confidence.Tag)]
-        public void should_return_augmented_quality(string title, QualitySource source, Confidence sourceConfidence, int resolution, Confidence resolutionConfidence)
+        [TestCase("Super Mario World (USA) [!].sfc", "VerifiedGoodDump")]
+        [TestCase("Castlevania (USA) (Rev 1).nes", "Unknown")]
+        [TestCase("Bad Game [b].nes", "UnverifiedRaw")]
+        public void should_return_augmented_quality_for_game_rom(string title, string expectedQualityName)
         {
             Mocker.GetMock<IDownloadHistoryService>()
                   .Setup(s => s.GetLatestGrab(It.IsAny<string>()))
@@ -68,11 +56,8 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
 
             var result = Subject.AugmentQuality(_localEpisode, _downloadClientItem);
 
-            result.Should().NotBe(null);
-            result.Source.Should().Be(source);
-            result.SourceConfidence.Should().Be(sourceConfidence);
-            result.Resolution.Should().Be(resolution);
-            result.ResolutionConfidence.Should().Be(resolutionConfidence);
+            result.Should().NotBeNull();
+            result.Quality.Name.Should().Be(expectedQualityName);
         }
     }
 }

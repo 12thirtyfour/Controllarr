@@ -180,18 +180,6 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            if (importResults.All(c => c.Result != ImportResultType.Imported))
-            {
-                var errors = importResults.SelectMany(r => r.Errors).Distinct().ToList();
-                var failureMsg = errors.Any()
-                    ? string.Join("; ", errors)
-                    : "No files from release could be imported for target platform";
-
-                _logger.Warn("[{0}] Import failed: {1}. Marking download as failed and searching for alternative release.", trackedDownload.DownloadItem.Title, failureMsg);
-                _failedDownloadService.MarkAsFailed(trackedDownload, failureMsg, $"{BuildInfo.AppName} Failed Download Handling");
-                return;
-            }
-
             if (importResults.Count == 1)
             {
                 var firstResult = importResults.First();

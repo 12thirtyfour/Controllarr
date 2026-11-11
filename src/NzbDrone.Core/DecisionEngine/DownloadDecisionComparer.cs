@@ -188,6 +188,22 @@ namespace NzbDrone.Core.DecisionEngine
 
         private int CompareQuality(DownloadDecision x, DownloadDecision y)
         {
+            var xProfile = x.RemoteEpisode?.Series?.QualityProfile?.Value;
+            var yProfile = y.RemoteEpisode?.Series?.QualityProfile?.Value;
+
+            if (xProfile?.Items != null && xProfile.Items.Count > 0 &&
+                yProfile?.Items != null && yProfile.Items.Count > 0)
+            {
+                if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
+                {
+                    return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality));
+                }
+
+                return CompareAll(
+                    CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality)),
+                    CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.ParsedEpisodeInfo.Quality.Revision));
+            }
+
             var xQuality = x.RemoteEpisode?.ParsedEpisodeInfo?.Quality;
             var yQuality = y.RemoteEpisode?.ParsedEpisodeInfo?.Quality;
 

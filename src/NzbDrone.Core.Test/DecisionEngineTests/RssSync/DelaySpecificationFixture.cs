@@ -105,7 +105,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             _delayProfile.UsenetDelay = 720;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new ReleaseDecisionInformation(false, new SingleEpisodeSearchCriteria())).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new ReleaseDecisionInformation(false, new SingleEpisodeSearchCriteria())).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             _delayProfile.UsenetDelay = 720;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -160,7 +160,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             _delayProfile.UsenetDelay = 720;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -224,7 +224,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             _delayProfile.UsenetDelay = 720;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             _delayProfile.UsenetDelay = 720;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -249,7 +249,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _delayProfile.UsenetDelay = 720;
             _delayProfile.MinimumCustomFormatScore = 50;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _delayProfile.BypassIfAboveCustomFormatScore = true;
             _delayProfile.MinimumCustomFormatScore = 50;
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]

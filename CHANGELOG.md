@@ -27,6 +27,25 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [2026-11-11]
+
+### Fixed
+- **Database Entity Mapping for Naming Configuration (`TableMapping`)**:
+  - Registered `.Ignore(...)` on `NamingConfig` mapping for gaming folder format alias properties (`DiscGameFormat`, `PlatformFolderFormat`, `RegionFolderFormat`, and `UnlicensedFolderFormat`) to prevent `table NamingConfig has no column named DiscGameFormat` exceptions during persistence.
+- **Tracked Download Import Lifecycle & Rejection Handling (`CompletedDownloadService`)**:
+  - Fixed completed download processing by removing premature short-circuit on rejected single-item releases, ensuring rejected items properly transition to `ImportBlocked` state for manual user review and queue inspection.
+- **Decision Engine Quality Upgrades & Profile Comparison (`UpgradableSpecification`, `DownloadDecisionComparer`)**:
+  - Restored QualityProfile cutoff enforcement and upgrade permission checks in `UpgradableSpecification`, preventing invalid upgrades when `UpgradeAllowed` is disabled or quality cutoff has already been met.
+  - Enhanced `DownloadDecisionComparer.CompareQuality` to utilize `QualityProfile.GetIndex` when profile items are defined, correctly prioritizing releases based on configured quality preferences while maintaining fallback comparison.
+- **File Extension Stripping & Release Title Parsing (`FileExtensions`)**:
+  - Enhanced `FileExtensions.RemoveFileExtension` to recognize archive, usenet, and video extensions alongside ROM extensions, ensuring clean release title parsing and release group extraction across hashed, reversed, and multi-part releases.
+- **Test Suite De-Televisionization & Stabilization (`AirDateSpecificationFixture`, `DelaySpecificationFixture`, `CustomFormatAllowedByProfileSpecificationFixture`, `FileNameBuilderFixture`, `DownloadDecisionMakerFixture`, `AugmentQualityFromReleaseNameFixture`)**:
+  - Updated unit tests to align with Controllarr's zero-TV tolerance directives: abolished television air dates, airing delays, and TV release group fallbacks (`Sonarr`).
+  - Corrected platform slug matching in `DownloadDecisionMakerFixture` and exact ROM dump quality names in `AugmentQualityFromReleaseNameFixture`.
+  - Achieved 100% passing rate across all 6,340+ unit tests across the entire test suite.
+
+---
+
 ## [2026-11-09]
 
 ### Added

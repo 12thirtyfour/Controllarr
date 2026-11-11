@@ -259,7 +259,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_only_include_reports_for_requested_episodes()
         {
-            var series = Builder<Series>.CreateNew().Build();
+            var series = Builder<Series>.CreateNew()
+                                        .With(s => s.Title = "Nintendo Entertainment System")
+                                        .With(s => s.TitleSlug = "nes")
+                                        .Build();
 
             var episodes = new List<Episode>
             {

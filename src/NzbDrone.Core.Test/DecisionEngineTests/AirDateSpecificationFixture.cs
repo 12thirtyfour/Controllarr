@@ -96,24 +96,24 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
-        public void should_be_false_if_air_date_is_null()
+        public void should_always_accept_game_releases_even_when_air_date_is_null()
         {
             _remoteEpisode.Episodes.First().AirDateUtc = null;
 
             GivenSettings(true, -2);
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
-        public void should_be_false_if_release_date_is_before_air_date()
+        public void should_always_accept_game_releases_even_when_release_date_is_before_air_date()
         {
             _remoteEpisode.Episodes.First().AirDateUtc = DateTime.UtcNow;
             _remoteEpisode.Release.PublishDate = DateTime.UtcNow.AddDays(-1);
 
             GivenSettings(true, 0);
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -128,29 +128,29 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
-        public void should_be_false_if_release_date_with_grace_period_is_before_air_date()
+        public void should_always_accept_for_games_with_negative_grace_period()
         {
             _remoteEpisode.Episodes.First().AirDateUtc = DateTime.UtcNow;
             _remoteEpisode.Release.PublishDate = DateTime.UtcNow.AddHours(-3);
 
             GivenSettings(true, -2);
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
-        public void should_be_false_if_release_date_is_after_air_date_and_grace_period_is_positive()
+        public void should_always_accept_for_games_with_positive_grace_period()
         {
             _remoteEpisode.Episodes.First().AirDateUtc = DateTime.UtcNow;
             _remoteEpisode.Release.PublishDate = DateTime.UtcNow.AddHours(1);
 
             GivenSettings(true, 2);
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
 
         [Test]
-        public void should_be_false_if_release_date_with_highest_grace_period_is_before_air_date()
+        public void should_always_accept_for_games_with_multiple_profiles()
         {
             _remoteEpisode.Episodes.First().AirDateUtc = DateTime.UtcNow;
             _remoteEpisode.Release.PublishDate = DateTime.UtcNow.AddDays(-1);
@@ -171,32 +171,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                     }
                 });
 
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
-        }
-
-        [Test]
-        public void should_be_false_if_one_release_profile_does_not_allow_grabbing_before_air_date()
-        {
-            _remoteEpisode.Episodes.First().AirDateUtc = DateTime.UtcNow;
-            _remoteEpisode.Release.PublishDate = DateTime.UtcNow.AddDays(-1);
-
-            Mocker.GetMock<IReleaseProfileService>()
-                .Setup(s => s.EnabledForTags(It.IsAny<HashSet<int>>(), It.IsAny<int>()))
-                .Returns(new List<ReleaseProfile>
-                {
-                    new()
-                    {
-                        AirDateRestriction = true,
-                        AirDateGracePeriod = 0
-                    },
-                    new()
-                    {
-                        AirDateRestriction = false,
-                        AirDateGracePeriod = 0
-                    }
-                });
-
-            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
     }
 }

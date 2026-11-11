@@ -155,8 +155,12 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<Log>("Logs").RegisterModel();
             Mapper.Entity<NamingConfig>("NamingConfig").RegisterModel()
                   .Ignore(c => c.StandardGameFormat)
+                  .Ignore(c => c.DiscGameFormat)
                   .Ignore(c => c.DailyGameFormat)
-                  .Ignore(c => c.AnimeGameFormat);
+                  .Ignore(c => c.AnimeGameFormat)
+                  .Ignore(c => c.PlatformFolderFormat)
+                  .Ignore(c => c.RegionFolderFormat)
+                  .Ignore(c => c.UnlicensedFolderFormat);
             Mapper.Entity<Blocklist>("Blocklist").RegisterModel();
             Mapper.Entity<MetadataFile>("MetadataFiles").RegisterModel();
             Mapper.Entity<OtherExtraFile>("ExtraFiles").RegisterModel();

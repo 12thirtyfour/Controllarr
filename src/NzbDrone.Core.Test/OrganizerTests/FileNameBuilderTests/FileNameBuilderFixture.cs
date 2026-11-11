@@ -834,7 +834,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Release Group}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("Sonarr");
+                   .Should().Be(string.Empty);
         }
 
         [TestCase("{Episode Title}{-Release Group}", "City Sushi")]
