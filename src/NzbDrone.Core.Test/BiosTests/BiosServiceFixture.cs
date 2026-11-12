@@ -335,13 +335,20 @@ namespace NzbDrone.Core.Test.BiosTests
         public void Should_include_switch_3ds_ps3_psvita_and_psp_firmware_entries()
         {
             var switchCatalog = Subject.GetCatalog("switch");
+            switchCatalog.Count.Should().BeGreaterThan(100);
+            switchCatalog[0].FileName.Should().Be("Firmware 23.0.1.zip");
+            switchCatalog[1].FileName.Should().Be("Firmware 23.0.0.zip");
             switchCatalog.Should().Contain(b => b.FileName == "Firmware 23.0.1.zip" && b.ExpectedMd5 == "910bd0b523553c2a97254b654392976d");
-            switchCatalog.Should().Contain(b => b.FileName == "Firmware 22.0.0.zip");
+            switchCatalog.Should().Contain(b => b.FileName == "Firmware 1.0.0-7 (Pre-Release).zip");
+            switchCatalog.Should().Contain(b => b.FileName == "Firmware 19.0.2 (China).zip");
 
             var threeDsCatalog = Subject.GetCatalog("3ds");
+            threeDsCatalog.Count.Should().BeGreaterThan(100);
+            threeDsCatalog[0].FileName.Should().Be("11.17.0-50U.zip");
             threeDsCatalog.Should().Contain(b => b.FileName == "11.17.0-50U.zip" && b.ExpectedMd5 == "e2f4d95f4fd8009d6785808f0e7a1749");
             threeDsCatalog.Should().Contain(b => b.FileName == "11.17.0-50E.zip" && b.ExpectedMd5 == "d5357f47ead9fb98fb7d2522327693f8");
             threeDsCatalog.Should().Contain(b => b.FileName == "11.17.0-50J.zip" && b.ExpectedMd5 == "b2fb9eed4fb1fdf82c60ff507afa9fe2");
+            threeDsCatalog.Should().Contain(b => b.FileName == "1.0.0-0U.zip");
 
             var ps3Catalog = Subject.GetCatalog("ps3");
             ps3Catalog.Should().Contain(b => b.FileName == "PS3UPDAT.PUP" && b.ExpectedMd5 == "a2b60b6ac1d2e49e230144345616927c");
@@ -353,6 +360,9 @@ namespace NzbDrone.Core.Test.BiosTests
             vitaFirmware.DownloadUrl.Should().StartWith("https://archive.org/download/PSVita-Official-Firmwares/");
 
             var pspCatalog = Subject.GetCatalog("psp");
+            pspCatalog.Count.Should().BeGreaterThan(60);
+            pspCatalog[0].FileName.Should().Be("661.PBP");
+            pspCatalog[1].FileName.Should().Be("660.PBP");
             pspCatalog.Should().Contain(b => b.FileName == "661.PBP" && b.DownloadUrl.StartsWith("https://archive.org/download/psp_ofw_firmwares/"));
             pspCatalog.Should().Contain(b => b.FileName == "660.PBP" && b.DownloadUrl.StartsWith("https://archive.org/download/psp_ofw_firmwares/"));
         }
