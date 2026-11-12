@@ -38,6 +38,9 @@ All notable changes to **Controllarr** are documented in this file.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
 ### Changed
+- **Defer Further Grabs While Full Collection Is Queued (`ProcessDownloadDecisions`, `QueueSpecification`)**:
+  - Updated `ProcessDownloadDecisions.IsEpisodeProcessed` so once a full collection (`FullSeason` / `IsFullSetArchive`) is grabbed for a platform, further releases for that platform in the same decision batch are skipped.
+  - Updated `QueueSpecification` to reject further automated grabs for a platform while an active (non-`FailedPending`) full collection for that platform is still in the download/import queue.
 - **Archive Inner ROM Naming Uniformity (`ArchiveRepackService`, `RomFileMovingService`)**:
   - Added `SyncSingleRomEntryName` in `ArchiveRepackService` and invoked it during `RomFileMovingService.PostProcessRomFile` so that single-ROM `.zip` archives also rename their inner ROM entry to match the renamed archive filename (ensuring both the compressed archive and inner ROM follow configured naming rules).
 - **Queue View Source Column (`queueOptionsStore`, `QueueRow`, `ProtocolLabel`)**:

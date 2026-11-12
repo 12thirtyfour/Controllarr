@@ -476,5 +476,49 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
         }
+
+        [Test]
+        public void should_reject_if_full_collection_for_same_platform_is_in_queue()
+        {
+            var otherGame = new Episode { Id = 999, SeasonNumber = 1, EpisodeNumber = 99 };
+            var queuedCollection = Builder<RemoteEpisode>.CreateNew()
+                .With(r => r.Series = _series)
+                .With(r => r.Episodes = new List<Episode> { otherGame })
+                .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
+                {
+                    FullSeason = true,
+                    Quality = new QualityModel(Quality.VerifiedGoodDump),
+                    Languages = new List<Language> { Language.English }
+                })
+                .With(r => r.Release = _releaseInfo)
+                .With(r => r.CustomFormats = new List<CustomFormat>())
+                .Build();
+
+            GivenQueue(new List<RemoteEpisode> { queuedCollection });
+
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_accept_if_full_collection_for_same_platform_in_queue_is_failed_pending()
+        {
+            var otherGame = new Episode { Id = 999, SeasonNumber = 1, EpisodeNumber = 99 };
+            var queuedCollection = Builder<RemoteEpisode>.CreateNew()
+                .With(r => r.Series = _series)
+                .With(r => r.Episodes = new List<Episode> { otherGame })
+                .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
+                {
+                    FullSeason = true,
+                    Quality = new QualityModel(Quality.VerifiedGoodDump),
+                    Languages = new List<Language> { Language.English }
+                })
+                .With(r => r.Release = _releaseInfo)
+                .With(r => r.CustomFormats = new List<CustomFormat>())
+                .Build();
+
+            GivenQueue(new List<RemoteEpisode> { queuedCollection }, TrackedDownloadState.FailedPending);
+
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
+        }
     }
 }

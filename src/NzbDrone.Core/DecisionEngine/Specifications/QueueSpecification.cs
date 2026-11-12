@@ -36,6 +36,22 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)
         {
             var queue = _queueService.GetQueue();
+
+            var activeFullCollection = queue.FirstOrDefault(q =>
+                q.TrackedDownloadState != TrackedDownloadState.FailedPending &&
+                q.RemoteEpisode?.Series != null &&
+                q.RemoteEpisode.Series.Id == subject.Series.Id &&
+                ((q.RemoteEpisode.ParsedEpisodeInfo?.FullSeason ?? false) ||
+                 (q.RemoteEpisode.ParsedRomInfo?.IsFullSetArchive ?? false) ||
+                 (q.RemoteEpisode.Release?.ParsedRomInfo?.IsFullSetArchive ?? false) ||
+                 (q.Episodes?.Count ?? 0) > 50));
+
+            if (activeFullCollection != null)
+            {
+                _logger.Debug("Full collection '{0}' is currently queued/importing for platform '{1}'; deferring further grabs until it finishes importing.", activeFullCollection.Title, subject.Series.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.QueueHigherPreference, "Full collection '{0}' is currently in queue for {1}; waiting for it to finish importing", activeFullCollection.Title, subject.Series.Title);
+            }
+
             var matchingEpisode = queue.Where(q => q.RemoteEpisode?.Series != null &&
                                                    q.RemoteEpisode.Series.Id == subject.Series.Id &&
                                                    q.RemoteEpisode.Episodes.Select(e => e.Id).Intersect(subject.Episodes.Select(e => e.Id)).Any())

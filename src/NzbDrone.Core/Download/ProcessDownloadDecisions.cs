@@ -172,6 +172,12 @@ namespace NzbDrone.Core.Download
 
         private bool IsEpisodeProcessed(List<DownloadDecision> decisions, DownloadDecision report)
         {
+            if (report?.RemoteEpisode?.Series != null &&
+                decisions.Any(d => d?.RemoteEpisode?.Series?.Id == report.RemoteEpisode.Series.Id && IsFullCollectionDecision(d)))
+            {
+                return true;
+            }
+
             var episodeIds = report.RemoteEpisode.Episodes.Select(e => e.Id).ToList();
 
             return decisions.SelectMany(r => r.RemoteEpisode.Episodes)
@@ -179,6 +185,13 @@ namespace NzbDrone.Core.Download
                             .ToList()
                             .Intersect(episodeIds)
                             .Any();
+        }
+
+        private static bool IsFullCollectionDecision(DownloadDecision decision)
+        {
+            return (decision?.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason ?? false) ||
+                   (decision?.RemoteEpisode?.ParsedRomInfo?.IsFullSetArchive ?? false) ||
+                   (decision?.RemoteEpisode?.Release?.ParsedRomInfo?.IsFullSetArchive ?? false);
         }
 
         private void PreparePending(List<Tuple<DownloadDecision, PendingReleaseReason>> queue, List<DownloadDecision> grabbed, List<DownloadDecision> pending, DownloadDecision report, PendingReleaseReason reason)
