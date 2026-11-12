@@ -304,6 +304,7 @@ namespace NzbDrone.Common.Disk
             {
                 if (mode.HasFlag(TransferMode.Move))
                 {
+                    ClearTargetPath(sourcePath, targetPath, overwrite);
                     TryMoveFileVerified(sourcePath, targetPath, originalSize);
                     return TransferMode.Move;
                 }

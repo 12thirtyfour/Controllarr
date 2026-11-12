@@ -45,6 +45,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **Same-Folder Move Overwrite (`DiskTransferService`)**:
+  - Updated `DiskTransferService.TransferFile` to invoke `ClearTargetPath(sourcePath, targetPath, overwrite)` before `TryMoveFileVerified` when moving a file within the same parent directory (`sourcePath.GetParentPath() == targetPath.GetParentPath()`). Prevents `FileAlreadyExistsException` during in-place ROM organization/import when an existing target file should be overwritten (or cleanly throws `DestinationAlreadyExistsException` when `overwrite` is `false`).
 - **Duplicate ROM Import & Japanese Region Misclassification (`RomParser`, `RegionHelper`, `GameCatalogProxy`, `UnmanagedDiskScanner`, `ManualImportService`)**:
   - Updated `RomParser.RegionRegex` and `RegionHelper.GetRegionNumber` to recognize short GoodTools/No-Intro region tags (`(J)`, `(JP)`, `(JPN)`, `(U)`, `(US)`, `(E)`, `(EU)`, `(EUR)`, `(W)`, `(JU)`, `(JUE)`), preventing Japanese/European Game Boy and console ROMs from defaulting to Region 1 (`USA`) or retaining unstripped region tags in created titles.
   - Updated `GameCatalogProxy.ParseSmokeMonsterSmdbContent` to pass `smdbPath` as `verificationSource` and updated `ClassifyRegionAndCategory` to inspect `verificationSource` path segments (such as `2 Japan/`), preventing Japanese SMDB catalog entries without explicit `(Japan)` filename tags from falling back to `USA`.

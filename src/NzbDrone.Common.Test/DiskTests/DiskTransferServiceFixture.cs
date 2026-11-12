@@ -271,6 +271,36 @@ namespace NzbDrone.Common.Test.DiskTests
         }
 
         [Test]
+        public void should_delete_existing_target_when_overwriting_in_same_folder()
+        {
+            var sameFolderTarget = @"C:\source\renamed.rom.zip".AsOsAgnostic();
+            WithExistingFile(sameFolderTarget);
+
+            Subject.TransferFile(_sourcePath, sameFolderTarget, TransferMode.Move, true);
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(v => v.DeleteFile(sameFolderTarget), Times.Once());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(v => v.MoveFile(_sourcePath, sameFolderTarget, false), Times.Once());
+        }
+
+        [Test]
+        public void should_throw_destination_already_exists_when_not_overwriting_in_same_folder()
+        {
+            var sameFolderTarget = @"C:\source\renamed.rom.zip".AsOsAgnostic();
+            WithExistingFile(sameFolderTarget);
+
+            Assert.Throws<DestinationAlreadyExistsException>(() => Subject.TransferFile(_sourcePath, sameFolderTarget, TransferMode.Move, false));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(v => v.DeleteFile(sameFolderTarget), Times.Never());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(v => v.MoveFile(_sourcePath, sameFolderTarget, false), Times.Never());
+        }
+
+        [Test]
         public void should_verify_copy()
         {
             Subject.TransferFile(_sourcePath, _targetPath, TransferMode.Copy);
