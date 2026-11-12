@@ -92,6 +92,30 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"\((?<langs>(?:En|Fr|De|Es|It|Nl|Pt|Sv|Se|No|Da|Dk|Fi|Ja|Jp|Ko|Kr|Zh|Zhcn|Zhtw|Zhhk|Ru|Pl|Ar|Tr|Cs|Hu|El|Ro|Th|Id|Ms|Vi|Hi|He)(?:\s*[,+]\s*(?:En|Fr|De|Es|It|Nl|Pt|Sv|Se|No|Da|Dk|Fi|Ja|Jp|Ko|Kr|Zh|Zhcn|Zhtw|Zhhk|Ru|Pl|Ar|Tr|Cs|Hu|El|Ro|Th|Id|Ms|Vi|Hi|He))*)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex SecondaryTrackRegex = new Regex(
+            @"(?:(?:^|[\s_\(\[-])Track[-\s_]*(?:0*[2-9]\d*|[1-9]\d+)(?:[\s_\)\]\.-]|$)|[\(\[]\s*Track\s*(?:0*[2-9]\d*|[1-9]\d+)\s*[\)\]])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex TrackOneRegex = new Regex(
+            @"\s*[\(\[]\s*Track\s*0*1\s*[\)\]]|\s*Track-0*1",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex StandaloneTrackRegex = new Regex(
+            @"^(?:Track|Audio\s*Track|Data\s*Track)\s*\d+$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AudioStemRegex = new Regex(
+            @"^(?:(?:\d{1,3}(?:,\s*\d{1,3})*\).+)|(?:0\d[A-Za-z].+))$",
+            RegexOptions.Compiled);
+
+        private static readonly HashSet<string> NonRomOrAudioExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".wav", ".mp3", ".ogg", ".flac", ".ape", ".aac", ".m4a", ".wma",
+            ".mid", ".midi", ".mod", ".s3m", ".xm", ".it",
+            ".cue", ".sub", ".ccd", ".mds", ".m3u", ".m3u8", ".toc",
+            ".txt", ".nfo", ".xml", ".json", ".sfv", ".sha"
+        };
+
         private static readonly HashSet<string> UsaRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "USA", "US", "NTSC-U", "NTSC", "CAN", "CANADA", "BRA", "BRAZIL", "MEX", "MEXICO", "LATIN AMERICA"
@@ -670,6 +694,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (!string.IsNullOrWhiteSpace(rawName))
                         {
                             rawName = StripKnownRomExtension(Path.GetFileName(rawName.Replace('\\', '/')));
+                            rawName = StripTrackOne(rawName);
                             rawName = RomParser.CleanIndexPrefix(rawName);
                             if (!string.IsNullOrWhiteSpace(datEntry.Region))
                             {
@@ -681,8 +706,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (string.IsNullOrWhiteSpace(rawName) ||
                             rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
                             !IsValidGameTitle(rawName) ||
-                            !IsValidGameTitle(datEntry.GameName) ||
-                            !IsValidGameTitle(datEntry.RomName))
+                            (!string.IsNullOrWhiteSpace(datEntry.GameName) && !IsValidGameTitle(datEntry.GameName)) ||
+                            (!string.IsNullOrWhiteSpace(datEntry.RomName) && !IsValidGameTitle(StripTrackOne(StripKnownRomExtension(datEntry.RomName)))))
                         {
                             continue;
                         }
@@ -1032,7 +1057,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 case "genesis":
                     return baseUrl + "Mega%20EverDrive%20SMDB.txt";
                 case "segacd":
-                    return baseUrl + "MegaSD%20SMDB.txt";
+                    return baseUrl + "SegaCD.txt";
                 case "32x":
                     return baseUrl + "Sega%2032X%20SMDB.txt";
                 case "sms":
@@ -1099,15 +1124,33 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
                 // Skip EverDrive duplicate playlist / collection sets (Best-Of, Top 100, Franchise, Genre, etc.)
+                // and subfolder audio/asset packs (FMVDATA, AUDIO, DATA, MD+, MSU-1)
                 if (pathSegments.Any(s => s.Contains("Game Series Collections", StringComparison.OrdinalIgnoreCase) ||
                                           s.Contains("Best-Of", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Top 100", StringComparison.OrdinalIgnoreCase)))
+                                          s.Contains("Top 100", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("FMVDATA", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("AUDIO", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Equals("DATA", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("MD+", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
                 }
 
                 var fileName = Path.GetFileName(normalizedSmdbPath);
+                var ext = Path.GetExtension(fileName);
+                if (!string.IsNullOrWhiteSpace(ext) && NonRomOrAudioExtensions.Contains(ext))
+                {
+                    continue;
+                }
+
+                if (SecondaryTrackRegex.IsMatch(fileName))
+                {
+                    continue;
+                }
+
                 var rawName = StripKnownRomExtension(fileName);
+                rawName = StripTrackOne(rawName);
                 rawName = RomParser.CleanIndexPrefix(rawName);
 
                 if (string.IsNullOrWhiteSpace(rawName) ||
@@ -1722,12 +1765,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                     }
 
                     var strippedRomName = StripKnownRomExtension(romFileName);
-                    if (!string.IsNullOrWhiteSpace(strippedRomName) && strippedRomName.Length >= blockName.Length)
+                    if (!string.IsNullOrWhiteSpace(strippedRomName) &&
+                        strippedRomName.Length >= blockName.Length &&
+                        !strippedRomName.Contains("(Track", StringComparison.OrdinalIgnoreCase) &&
+                        !strippedRomName.Contains("[Track", StringComparison.OrdinalIgnoreCase))
                     {
                         rawName = strippedRomName;
                     }
                 }
 
+                rawName = StripTrackOne(rawName);
+                blockName = StripTrackOne(blockName);
                 rawName = RomParser.CleanIndexPrefix(rawName);
 
                 if (string.IsNullOrWhiteSpace(rawName) ||
@@ -1827,6 +1875,26 @@ namespace NzbDrone.Core.MetadataSource.Game
             return fileName.Trim();
         }
 
+        public static bool IsNonRomOrAudioExtension(string ext)
+        {
+            return !string.IsNullOrWhiteSpace(ext) && NonRomOrAudioExtensions.Contains(ext);
+        }
+
+        public static bool IsSecondaryDiscTrack(string title)
+        {
+            return !string.IsNullOrWhiteSpace(title) && SecondaryTrackRegex.IsMatch(title);
+        }
+
+        public static string StripTrackOne(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            return TrackOneRegex.Replace(title, string.Empty).Trim();
+        }
+
         public static bool IsValidGameTitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -1844,6 +1912,34 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (trimmed.IndexOf("Pack Here", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 (trimmed.IndexOf("Place ", StringComparison.OrdinalIgnoreCase) >= 0 && trimmed.IndexOf(" Here", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return false;
+            }
+
+            if (trimmed.IndexOf("(loop)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("(noloopneeded)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("(loopneeded)", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(trimmed);
+            if (!string.IsNullOrWhiteSpace(ext) && NonRomOrAudioExtensions.Contains(ext))
+            {
+                return false;
+            }
+
+            if (SecondaryTrackRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            if (StandaloneTrackRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            if (AudioStemRegex.IsMatch(trimmed))
             {
                 return false;
             }

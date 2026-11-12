@@ -494,6 +494,60 @@ game (
         }
 
         [Test]
+        public void should_reject_audio_files_soundtracks_and_secondary_tracks()
+        {
+            GameCatalogProxy.IsValidGameTitle("03,04)MJ'sMoonwalker-SmoothCriminal").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("03TurtleVillage2").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("04FiendsPath").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("01Wilderness").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("05DeathAdder").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("05)SmoothCriminal-Solo(loop)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("02TurtleVillage1.wav").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Track 01").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Track 02").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Audio Track 2").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Data Track 1").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Sonic CD (USA) (Track 02)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Sonic CD (USA) (Track 2)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Sonic CD (USA) (Track 10)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Sonic CD (USA) [Track 03]").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("MD+ Moonwalker (Thriller).cue").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Golden Axe (loop)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Battle (noloopneeded)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Lords of Thunder (USA) (Track 08).wav").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("HideTheBaby_JAP 2.mp3").Should().BeFalse();
+        }
+
+        [Test]
+        public void should_accept_valid_game_titles_with_numbers_and_hyphens()
+        {
+            GameCatalogProxy.IsValidGameTitle("007 - GoldenEye (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("007: The World Is Not Enough (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("10-Yard Fight (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("1942 (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("240p Test Suite (World)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("24K 4-in-1 (Asia)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("16t (Japan)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("3-D Tetris (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("7th Saga, The (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Sonic CD (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Final Fantasy VII (USA) (Disc 1)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Final Fantasy VII (USA) (Disc 2)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Resident Evil 2 (USA) (Disc 1) (Leon)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Resident Evil 2 (USA) (Disc 2) (Claire)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("R4 - Ridge Racer Type 4 (USA)").Should().BeTrue();
+        }
+
+        [Test]
+        public void should_strip_track_one_from_game_and_rom_titles()
+        {
+            GameCatalogProxy.StripTrackOne("Sonic CD (USA) (Track 01)").Should().Be("Sonic CD (USA)");
+            GameCatalogProxy.StripTrackOne("Sonic CD (USA) (Track 1)").Should().Be("Sonic CD (USA)");
+            GameCatalogProxy.StripTrackOne("Sonic CD (USA) [Track 01]").Should().Be("Sonic CD (USA)");
+            GameCatalogProxy.StripTrackOne("3x3 Eyes - Sanjiyan Henjou (Japan) (Rev 1) (Track 1)").Should().Be("3x3 Eyes - Sanjiyan Henjou (Japan) (Rev 1)");
+        }
+
+        [Test]
         public void should_clean_scene_release_titles_for_switch()
         {
             GameCatalogProxy.CleanSceneReleaseTitle("Taiko_no_Tatsujin_Gesshoku_no_Kishi_JAP_NSW-Caravan.xci")

@@ -47,5 +47,26 @@ namespace NzbDrone.Core.Test.DatTests
                 mario.Size.Should().Be(0);
             }
         }
+
+        [Test]
+        public void Should_exclude_audio_files_and_secondary_tracks_and_clean_track_one()
+        {
+            var content =
+                "1111111111111111111111111111111111111111111111111111111111111111\tSega CD/1 Releases/Sonic CD (USA)/Sonic CD (USA) (Track 1).bin\t1111111111111111111111111111111111111111\taaaaaaaa\t11111111\t100000\n" +
+                "2222222222222222222222222222222222222222222222222222222222222222\tSega CD/1 Releases/Sonic CD (USA)/Sonic CD (USA) (Track 2).bin\t2222222222222222222222222222222222222222\tbbbbbbbb\t22222222\t200000\n" +
+                "3333333333333333333333333333333333333333333333333333333333333333\tSega CD/1 Releases/Sonic CD (USA)/Sonic CD (USA).cue\t3333333333333333333333333333333333333333\tcccccccc\t33333333\t300\n" +
+                "4444444444444444444444444444444444444444444444444444444444444444\tMegaSD/3 MegaSD MD+/Golden Axe Symphony MD+/03TurtleVillage2.wav\t4444444444444444444444444444444444444444\tdddddddd\t44444444\t400000\n";
+
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(content)))
+            {
+                var (datFile, datEntries) = Subject.Parse(stream, "Sega CD SMDB");
+
+                datEntries.Should().HaveCount(1);
+                var entry = datEntries.Single();
+                entry.GameName.Should().Be("Sonic CD (USA)");
+                entry.RomName.Should().Be("Sonic CD (USA).bin");
+                entry.Crc32.Should().Be("11111111");
+            }
+        }
     }
 }

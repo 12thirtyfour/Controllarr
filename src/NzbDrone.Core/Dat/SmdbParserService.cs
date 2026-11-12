@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Dat
@@ -61,9 +62,22 @@ namespace NzbDrone.Core.Dat
 
                     var normalizedRelativePath = smdbPath.Replace('\\', '/');
                     var romName = Path.GetFileName(normalizedRelativePath);
+                    var ext = Path.GetExtension(romName);
+                    if (GameCatalogProxy.IsNonRomOrAudioExtension(ext))
+                    {
+                        continue;
+                    }
+
+                    if (GameCatalogProxy.IsSecondaryDiscTrack(romName))
+                    {
+                        continue;
+                    }
+
                     var cleanRomName = RomParser.CleanIndexPrefix(romName);
+                    cleanRomName = GameCatalogProxy.StripTrackOne(cleanRomName);
                     var gameName = Path.GetFileNameWithoutExtension(cleanRomName);
                     var cleanGameName = RomParser.CleanIndexPrefix(gameName);
+                    cleanGameName = GameCatalogProxy.StripTrackOne(cleanGameName);
 
                     if (!IsValidGameName(cleanGameName) || !IsValidGameName(cleanRomName) || !IsValidGameName(romName))
                     {
@@ -128,21 +142,7 @@ namespace NzbDrone.Core.Dat
                 return false;
             }
 
-            var trimmed = name.Trim();
-            if (trimmed.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.StartsWith("_", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            if (trimmed.IndexOf("Pack Here", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                (trimmed.IndexOf("Place ", StringComparison.OrdinalIgnoreCase) >= 0 && trimmed.IndexOf(" Here", StringComparison.OrdinalIgnoreCase) >= 0))
-            {
-                return false;
-            }
-
-            return true;
+            return GameCatalogProxy.IsValidGameTitle(name);
         }
 
         private static string NormalizeHash(ReadOnlySpan<char> span)
