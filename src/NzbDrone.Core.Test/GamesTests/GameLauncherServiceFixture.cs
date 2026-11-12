@@ -106,5 +106,89 @@ namespace NzbDrone.Core.Test.GamesTests
                 }
             }
         }
+
+        [TestCase("NES", "nes")]
+        [TestCase("SNES", "snes")]
+        [TestCase("Game Boy", "gb")]
+        [TestCase("Game Boy Color", "gbc")]
+        [TestCase("Game Boy Advance", "gba")]
+        [TestCase("Virtual Boy", "vb")]
+        [TestCase("Nintendo 64", "n64")]
+        [TestCase("Nintendo DS", "nds")]
+        [TestCase("Genesis", "segaMD")]
+        [TestCase("Master System", "segaMS")]
+        [TestCase("Game Gear", "segaGG")]
+        [TestCase("segacd", "segaCD")]
+        [TestCase("sega32x", "sega32x")]
+        [TestCase("saturn", "segaSaturn")]
+        [TestCase("psx", "psx")]
+        [TestCase("psp", "psp")]
+        [TestCase("tg16", "pce")]
+        [TestCase("tgcd", "pce")]
+        [TestCase("neogeo", "arcade")]
+        [TestCase("ngp", "ngp")]
+        [TestCase("ws", "ws")]
+        [TestCase("atari2600", "atari2600")]
+        [TestCase("atari5200", "atari5200")]
+        [TestCase("atari7800", "atari7800")]
+        [TestCase("lynx", "lynx")]
+        [TestCase("jaguar", "jaguar")]
+        [TestCase("coleco", "coleco")]
+        [TestCase("3do", "3do")]
+        public void should_map_all_supported_wasm_consoles_to_emulatorjs_cores(string platform, string expectedEjsCore)
+        {
+            var descriptor = _subject.BuildLaunchDescriptor(100, platform, $"/roms/{platform}/Game.bin");
+
+            descriptor.SupportsWebAssembly.Should().BeTrue();
+            descriptor.EmulatorJsCore.Should().Be(expectedEjsCore);
+        }
+
+        [Test]
+        public void should_resolve_segacd_bios_and_keep_cue_bin_zip_intact()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_segacd_test_" + Guid.NewGuid().ToString("N"));
+            var biosDir = Path.Combine(tempDir, "BIOS");
+            Directory.CreateDirectory(biosDir);
+
+            try
+            {
+                var biosPath = Path.Combine(biosDir, "bios_CD_U.bin");
+                File.WriteAllBytes(biosPath, new byte[] { 1, 2, 3, 4 });
+
+                var zipPath = Path.Combine(tempDir, "Sonic CD (USA).zip");
+                using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    var cueEntry = archive.CreateEntry("Sonic CD (USA).cue");
+                    using (var s = cueEntry.Open())
+                    {
+                        var bytes = Encoding.ASCII.GetBytes("FILE \"Sonic CD (USA) (Track 01).bin\" BINARY\n");
+                        s.Write(bytes, 0, bytes.Length);
+                    }
+
+                    var binEntry = archive.CreateEntry("Sonic CD (USA) (Track 01).bin");
+                    using (var s = binEntry.Open())
+                    {
+                        s.Write(new byte[] { 0xAA, 0xBB }, 0, 2);
+                    }
+                }
+
+                var descriptor = _subject.BuildLaunchDescriptor(55, "segacd", zipPath);
+                descriptor.EmulatorJsCore.Should().Be("segaCD");
+                descriptor.SupportsWebAssembly.Should().BeTrue();
+                descriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/55/bios/bios_CD_U.bin");
+                descriptor.RomStreamUrl.Should().StartWith("/api/v5/gamelauncher/55/rom/Sonic%20CD%20%28USA%29.zip");
+
+                using var biosStream = _subject.OpenBiosStream(55, out var biosFileName, "segacd", zipPath);
+                biosStream.Should().NotBeNull();
+                biosFileName.Should().Be("bios_CD_U.bin");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
     }
 }

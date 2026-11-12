@@ -339,6 +339,46 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Atari 5200",
+                PlatformName = "Atari 5200",
+                Aliases = new[] { "Atari 5200", "Atari - 5200", "atari5200", "5200" },
+                DefaultCore = "a5200",
+                AvailableCores = new[] { "a5200", "atari800" },
+                SupportsWasm = true,
+                EmulatorJsCore = "atari5200"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "ColecoVision",
+                PlatformName = "ColecoVision",
+                Aliases = new[] { "ColecoVision", "Coleco - ColecoVision", "coleco", "colecovision" },
+                DefaultCore = "gearcoleco",
+                AvailableCores = new[] { "gearcoleco", "bluemsx" },
+                SupportsWasm = true,
+                EmulatorJsCore = "coleco"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "3DO",
+                PlatformName = "3DO Interactive Multiplayer",
+                Aliases = new[] { "3DO", "3DO Interactive Multiplayer", "The 3DO Company - 3DO", "3do" },
+                DefaultCore = "opera",
+                AvailableCores = new[] { "opera" },
+                SupportsWasm = true,
+                EmulatorJsCore = "3do"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Dreamcast",
+                PlatformName = "Sega Dreamcast",
+                Aliases = new[] { "Dreamcast", "Sega Dreamcast", "Sega - Dreamcast", "dreamcast", "dc" },
+                DefaultCore = "flycast",
+                AvailableCores = new[] { "flycast" },
+                SupportsWasm = false,
+                EmulatorJsCore = "dreamcast"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "PlayStation 2",
                 PlatformName = "Sony PlayStation 2 (PS2)",
                 Aliases = new[] { "PlayStation 2", "Sony PlayStation 2", "Sony - PlayStation 2", "PS2", "ps2" },
@@ -921,14 +961,36 @@ namespace NzbDrone.Core.Games.Launcher
                 return new List<string> { "lynxboot.img" };
             }
 
-            if (emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase))
+            if (emulatorJsCore.Equals("pce", StringComparison.OrdinalIgnoreCase) ||
+                emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase))
             {
                 return new List<string> { "syscard3.pce" };
+            }
+
+            if (emulatorJsCore.Equals("nes", StringComparison.OrdinalIgnoreCase) &&
+                (romFileName ?? string.Empty).EndsWith(".fds", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "disksys.rom" };
+            }
+
+            if (emulatorJsCore.Equals("atari5200", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "5200.rom" };
+            }
+
+            if (emulatorJsCore.Equals("coleco", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "colecovision.rom", "coleco.rom" };
             }
 
             if (emulatorJsCore.Equals("3do", StringComparison.OrdinalIgnoreCase))
             {
                 return new List<string> { "panafz10.bin", "panafz1.bin", "goldstar.bin" };
+            }
+
+            if (emulatorJsCore.Equals("arcade", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "neogeo.zip" };
             }
 
             return new List<string>();
@@ -1029,7 +1091,9 @@ namespace NzbDrone.Core.Games.Launcher
                  emulatorJsCore.Equals("psx", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("segaSaturn", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("3do", StringComparison.OrdinalIgnoreCase) ||
-                 emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase)) &&
+                 emulatorJsCore.Equals("pce", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("jaguar", StringComparison.OrdinalIgnoreCase)) &&
                 File.Exists(romPath))
             {
                 try
