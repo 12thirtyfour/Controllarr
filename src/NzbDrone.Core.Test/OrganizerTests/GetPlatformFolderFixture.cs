@@ -161,5 +161,51 @@ namespace NzbDrone.Core.Test.OrganizerTests
             Subject.BuildFileName(new List<Episode> { episode }, series, episodeFile, ".chd", _namingConfig, new List<NzbDrone.Core.CustomFormats.CustomFormat>())
                    .Should().Be("Final Fantasy VII USA Rev 1 Disc 1 (1997) (Rev 1) (Disc 1).chd");
         }
+
+        [Test]
+        public void should_resolve_tosec_and_smokemonster_database_naming_tokens()
+        {
+            Mocker.GetMock<IPlatformCatalogService>()
+                  .Setup(c => c.GetAll())
+                  .Returns(new PlatformCatalogService().GetAll());
+
+            Mocker.GetMock<NzbDrone.Core.Qualities.IQualityDefinitionService>()
+                  .Setup(c => c.Get(Moq.It.IsAny<NzbDrone.Core.Qualities.Quality>()))
+                  .Returns(new NzbDrone.Core.Qualities.QualityDefinition { Title = "Verified" });
+
+            _namingConfig.RenameEpisodes = true;
+            _namingConfig.SeriesFolderFormat = "{Publisher} {Platform}";
+            _namingConfig.SeasonFolderFormat = "{Region}";
+            _namingConfig.StandardGameFormat = "{Game FirstLetter} - {Game Title} ({Release Year}) ({Language}) {Dump Tags}";
+            _namingConfig.DailyGameFormat = "{Game FirstLetter} - {Game Title} ({Release Year}) ({Language}) {Dump Tags}";
+
+            var series = new Series
+            {
+                Title = "Super Nintendo Entertainment System",
+                TitleSlug = "snes",
+                Network = "Nintendo",
+                Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 1, Title = "USA" }
+                }
+            };
+
+            var episode = new Episode
+            {
+                Title = "Chrono Trigger",
+                AirDate = "1995-03-11",
+                SeasonNumber = 1
+            };
+
+            var episodeFile = new NzbDrone.Core.MediaFiles.EpisodeFile
+            {
+                Quality = new NzbDrone.Core.Qualities.QualityModel(NzbDrone.Core.Qualities.Quality.Unknown),
+                SceneName = "Chrono Trigger (USA) [!]"
+            };
+
+            Subject.GetSeriesFolder(series, _namingConfig).Should().Be("Nintendo Super Nintendo");
+            Subject.BuildFileName(new List<Episode> { episode }, series, episodeFile, ".sfc", _namingConfig, new List<NzbDrone.Core.CustomFormats.CustomFormat>())
+                   .Should().Be("C - Chrono Trigger (1995) (en) [!].sfc");
+        }
     }
 }

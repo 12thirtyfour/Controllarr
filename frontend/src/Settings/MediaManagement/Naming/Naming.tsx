@@ -33,6 +33,60 @@ const DEFAULT_UNIFIED_PATH_FORMAT =
 const DEFAULT_DISC_PATH_FORMAT =
   '{Manufacturer}/{Platform}/{Region}/{Game Title}/{Game Title}';
 
+interface DatabaseNamingTemplate {
+  key: string;
+  label: string;
+  format: string;
+  hint: string;
+}
+
+const DATABASE_NAMING_TEMPLATES: DatabaseNamingTemplate[] = [
+  {
+    key: 'controllarr-default',
+    label: 'Controllarr Default',
+    format: '{Manufacturer}/{Platform}/{Region}/{Game Title}',
+    hint: 'Nintendo/Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes',
+  },
+  {
+    key: 'no-intro',
+    label: 'No-Intro',
+    format: '{Platform}/{Region}/{Game Title}',
+    hint: 'Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1).nes',
+  },
+  {
+    key: 'smokemonster',
+    label: 'SmokeMonster / EverDrive (SMDB)',
+    format: '{Platform}/{Region}/{Game FirstLetter}/{Game Title}',
+    hint: 'Nintendo Entertainment System/USA/S/Super Mario Bros. (USA) (Rev 1).nes',
+  },
+  {
+    key: 'tosec',
+    label: 'TOSEC',
+    format:
+      '{Platform}/{Region}/{Game CleanTitle} ({Release Year})({Publisher})({Region Code})({Language}){Dump Tags}',
+    hint: 'Nintendo Entertainment System/USA/Super Mario Bros (1985)(Nintendo)(US)(en)[!].nes',
+  },
+  {
+    key: 'redump',
+    label: 'Redump',
+    format: '{Platform}/{Region}/{Game Title}/{Game Title}',
+    hint: 'PlayStation/USA/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1).chd',
+  },
+  {
+    key: 'goodtools',
+    label: 'GoodTools',
+    format:
+      '{Platform}/{Region}/{Game CleanTitle} ({Region Code}) {Dump Tags}',
+    hint: 'Nintendo Entertainment System/USA/Super Mario Bros (US) [!].nes',
+  },
+  {
+    key: 'htgdb',
+    label: 'HTGDB / Flash-Cart Compact',
+    format: '{Platform Short}/{Region}/{Game Title}',
+    hint: 'NES/USA/Super Mario Bros. (USA) (Rev 1).nes',
+  },
+];
+
 function normalizeSegmentToConsoleVariables(
   segment: string,
   fallback: string
@@ -233,6 +287,30 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
+      if (change.name === 'unifiedNamingTemplate') {
+        const templateKey = String(change.value ?? '');
+        const matchedTemplate = DATABASE_NAMING_TEMPLATES.find(
+          (t) => t.key === templateKey
+        );
+
+        if (!matchedTemplate) {
+          return;
+        }
+
+        setUnifiedPathFormat(matchedTemplate.format);
+
+        const {
+          platformFolderFormat,
+          regionFolderFormat,
+          standardGameFormat,
+        } = splitUnifiedPathIntoBackendFields(matchedTemplate.format);
+
+        updateSetting('platformFolderFormat', platformFolderFormat);
+        updateSetting('regionFolderFormat', regionFolderFormat);
+        updateSetting('standardGameFormat', standardGameFormat);
+        return;
+      }
+
       if (change.name === 'unifiedPathFormat') {
         const nextPath = String(change.value ?? '');
         setUnifiedPathFormat(nextPath);
@@ -308,6 +386,24 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   useEffect(() => {
     setChildSave(saveSettings);
   }, [setChildSave, saveSettings]);
+
+  const selectedTemplateKey =
+    DATABASE_NAMING_TEMPLATES.find(
+      (t) => t.format === unifiedPathFormat.trim()
+    )?.key ?? 'custom';
+
+  const databaseTemplateOptions: EnhancedSelectInputValue<string>[] = [
+    {
+      key: 'custom',
+      value: 'Custom',
+      hint: 'Modified or custom folder/filename format',
+    },
+    ...DATABASE_NAMING_TEMPLATES.map((t) => ({
+      key: t.key,
+      value: t.label,
+      hint: t.hint,
+    })),
+  ];
 
   const formatErrors = [
     ...(settings.platformFolderFormat?.errors ?? []),
@@ -389,6 +485,18 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
               />
             </FormRow>
           ) : null}
+
+          <FormRow size={sizes.MEDIUM}>
+            <FormLabel>Verification Database Template</FormLabel>
+            <FormInputHelpText text="Select a database verification naming template (No-Intro, SmokeMonster, TOSEC, Redump, GoodTools, HTGDB) to prepopulate the folder and ROM naming format below. You can still customize the format after selecting." />
+            <FormInput
+              type={inputTypes.SELECT}
+              name="unifiedNamingTemplate"
+              value={selectedTemplateKey}
+              values={databaseTemplateOptions}
+              onChange={handleInputChange}
+            />
+          </FormRow>
 
           <FormRow size={sizes.LARGE}>
             <FormLabel>

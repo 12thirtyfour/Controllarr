@@ -101,19 +101,29 @@ const romPathPresets: Token[] = [
       'Nintendo Entertainment System/USA/Super Mario Bros. (USA) (Rev 1)',
   },
   {
-    token: '{Platform Short}/{Region Code}/{Game CleanTitle} ({Release Year})',
-    example: 'NES/US/Super Mario Bros (1985)',
+    token: '{Platform}/{Region}/{Game FirstLetter}/{Game Title}',
+    example:
+      'Nintendo Entertainment System/USA/S/Super Mario Bros. (USA) (Rev 1)',
+  },
+  {
+    token:
+      '{Platform}/{Region}/{Game CleanTitle} ({Release Year})({Publisher})({Region Code})({Language}){Dump Tags}',
+    example:
+      'Nintendo Entertainment System/USA/Super Mario Bros (1985)(Nintendo)(US)(en)[!]',
+  },
+  {
+    token: '{Platform}/{Region}/{Game CleanTitle} ({Region Code}) {Dump Tags}',
+    example: 'Nintendo Entertainment System/USA/Super Mario Bros (US) [!]',
+  },
+  {
+    token: '{Platform Short}/{Region}/{Game Title}',
+    example: 'NES/USA/Super Mario Bros. (USA) (Rev 1)',
   },
   {
     token:
       '{Manufacturer}/{Platform}/{Region}/{Game Title}/{Game Title}',
     example:
       'Sony/PlayStation/USA/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
-  },
-  {
-    token: '{Platform}/{Game Title}/{Game Title}',
-    example:
-      'PlayStation/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
   },
 ];
 
@@ -128,6 +138,10 @@ const platformTokens: Token[] = [
   },
   {
     token: '{Manufacturer}',
+    example: 'Nintendo',
+  },
+  {
+    token: '{Publisher}',
     example: 'Nintendo',
   },
   {
@@ -157,8 +171,20 @@ const gameTitleTokens: Token[] = [
     example: 'The Legend of Zelda',
   },
   {
+    token: '{Game FirstLetter}',
+    example: 'L',
+  },
+  {
     token: '{Release Year}',
     example: '1986',
+  },
+  {
+    token: '{Language}',
+    example: 'en',
+  },
+  {
+    token: '{Dump Tags}',
+    example: '[!]',
   },
   {
     token: '{Version}',

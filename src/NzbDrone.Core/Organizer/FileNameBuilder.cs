@@ -699,6 +699,7 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Platform}"] = m => Truncate(platformTitle, m.CustomFormat);
             tokenHandlers["{Platform Short}"] = m => Truncate(platformShort, m.CustomFormat);
             tokenHandlers["{Manufacturer}"] = m => Truncate(manufacturer, m.CustomFormat);
+            tokenHandlers["{Publisher}"] = m => Truncate(manufacturer, m.CustomFormat);
             tokenHandlers["{Platform Year}"] = m => seriesYear.ToString();
         }
 
@@ -880,6 +881,61 @@ namespace NzbDrone.Core.Organizer
 
             tokenHandlers["{Version}"] = m => Truncate(versionTag, m.CustomFormat);
             tokenHandlers["{Disc}"] = m => Truncate(discTag, m.CustomFormat);
+            tokenHandlers["{Game FirstLetter}"] = m => ResolveGameFirstLetter(firstEpisode.Title);
+            tokenHandlers["{Language}"] = m => ResolveGameLanguageCode(firstEpisode);
+            tokenHandlers["{Dump Tags}"] = m => ResolveDumpTags(firstEpisode.Title);
+        }
+
+        private static string ResolveGameFirstLetter(string title)
+        {
+            var cleaned = (title ?? string.Empty).Trim();
+            if (cleaned.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
+            {
+                cleaned = cleaned.Substring(4).TrimStart();
+            }
+
+            foreach (var ch in cleaned)
+            {
+                if (char.IsLetter(ch))
+                {
+                    return char.ToUpperInvariant(ch).ToString();
+                }
+
+                if (char.IsDigit(ch))
+                {
+                    return "0-9";
+                }
+            }
+
+            return "#";
+        }
+
+        private static string ResolveGameLanguageCode(Episode episode)
+        {
+            var title = episode?.Title ?? string.Empty;
+            var langMatch = Regex.Match(title, @"\((En|Ja|Fr|De|Es|It|Pt|Nl|Sv|No|Da|Fi|Ko|Zh)\)", RegexOptions.IgnoreCase);
+            if (langMatch.Success)
+            {
+                return langMatch.Groups[1].Value.ToLowerInvariant();
+            }
+
+            if (episode?.SeasonNumber == 3 || title.Contains("(Japan", StringComparison.OrdinalIgnoreCase))
+            {
+                return "ja";
+            }
+
+            return "en";
+        }
+
+        private static string ResolveDumpTags(string title)
+        {
+            var matches = Regex.Matches(title ?? string.Empty, @"\[[^\]]+\]");
+            if (matches.Count > 0)
+            {
+                return string.Join(" ", matches.Select(m => m.Value));
+            }
+
+            return "[!]";
         }
 
         private void AddEpisodeTitlePlaceholderTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers)

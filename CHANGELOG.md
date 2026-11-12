@@ -30,6 +30,10 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Added
+- **Verification Database Naming Templates & Tokens (`Naming`, `NamingModal`, `FileNameBuilder`)**:
+  - Added a **Verification Database Template** dropdown above **Library Path & ROM Naming Format (Cartridge & Handheld)** in Media Management -> Naming (`Naming.tsx`) with presets for **Controllarr Default**, **No-Intro**, **SmokeMonster (EverDrive / MiSTer)**, **TOSEC**, **Redump**, **GoodTools**, and **HTGDB (Hardware Target Game Database)**, plus automatic **Custom** detection when edited.
+  - Selecting a template prepopulates the unified path format and automatically updates `platformFolderFormat`, `regionFolderFormat`, and `standardGameFormat` while keeping all fields editable.
+  - Added `{Publisher}`, `{Game FirstLetter}`, `{Language}`, and `{Dump Tags}` naming tokens in `FileNameBuilder.cs` and exposed them alongside the new presets in `NamingModal.tsx`.
 - **Console Firmware Catalog Expansion (`BiosService`)**:
   - Added the complete **Nintendo Switch** official firmware catalog from Darthsternie's Firmware Archive (`darthsternie.net/switch-firmwares/`): all 96 Global releases (`Firmware 23.0.1.zip` down to `Firmware 1.0.0-7 (Pre-Release).zip`) and 35 China releases (`Firmware 19.0.2 (China).zip` down to `Firmware 10.1.1 (China).zip`).
   - Added all 152 unique **Nintendo 3DS** firmware versions (`11.17.0-50U/E/J.zip` down to `1.0.0-0U/E/J.zip` with New/Old 3DS MD5 hashes), all 64 **PlayStation Portable** official firmwares (`661.PBP` down to `1.00` with Archive.org direct downloads), **PlayStation 3** (`PS3UPDAT.PUP` with all 99 official MD5 hashes 4.93 down to 1.02), and **PlayStation Vita** (`PSP2UPDAT.PUP` with Archive.org direct download and all 51 official MD5 hashes 3.74 down to 1.04).
