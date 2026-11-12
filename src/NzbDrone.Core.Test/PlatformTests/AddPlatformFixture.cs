@@ -349,5 +349,52 @@ namespace NzbDrone.Core.Test.PlatformTests
             added[0].Path.Should().Be(Path.Combine(targetRoot, _fakeSeries.Title));
             added[0].RootFolderPath.Should().Be(targetRoot);
         }
+
+        [Test]
+        public void should_create_platform_bios_and_monitored_region_folders_with_normalized_separators()
+        {
+            var rootFolder = @"C:\Test\ROMs".AsOsAgnostic();
+            var expectedPlatformPath = Path.Combine(rootFolder, "Nintendo", "Nintendo Entertainment System");
+
+            _fakeSeries.Seasons = new List<Season>
+            {
+                new Season { SeasonNumber = 1, Title = "USA", Monitored = true },
+                new Season { SeasonNumber = 2, Title = "Europe", Monitored = false }
+            };
+
+            Mocker.GetMock<IBuildFileNames>()
+                  .Setup(s => s.GetSeriesFolder(It.IsAny<Series>(), null))
+                  .Returns("Nintendo/Nintendo Entertainment System");
+
+            Mocker.GetMock<IBuildFileNames>()
+                  .Setup(s => s.GetSeasonFolder(It.IsAny<Series>(), 1, null))
+                  .Returns("USA");
+
+            Mocker.GetMock<IAddPlatformValidator>()
+                  .Setup(s => s.Validate(It.IsAny<Series>()))
+                  .Returns(new ValidationResult());
+
+            GivenValidSeries(1006);
+
+            var newSeries = new Series
+            {
+                TvdbId = 1006,
+                RootFolderPath = rootFolder,
+                Language = Language.English
+            };
+
+            var series = Subject.AddSeries(newSeries);
+
+            series.Path.Should().Be(expectedPlatformPath);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Verify(v => v.CreateFolder(expectedPlatformPath), Times.Once());
+            Mocker.GetMock<IDiskProvider>()
+                  .Verify(v => v.CreateFolder(Path.Combine(expectedPlatformPath, "BIOS")), Times.Once());
+            Mocker.GetMock<IDiskProvider>()
+                  .Verify(v => v.CreateFolder(Path.Combine(expectedPlatformPath, "USA")), Times.Once());
+            Mocker.GetMock<IDiskProvider>()
+                  .Verify(v => v.CreateFolder(Path.Combine(expectedPlatformPath, "Europe")), Times.Never());
+        }
     }
 }

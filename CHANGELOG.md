@@ -38,6 +38,9 @@ All notable changes to **Controllarr** are documented in this file.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
 ### Fixed
+- **Platform Folder Creation & Post-Add Preservation (`AddPlatformService`, `DiskScanService`)**:
+  - Normalized directory separators (`/` to OS directory separator) when resolving `{Manufacturer}/{Platform}` folder names in `AddPlatformService.SetPropertiesAndValidate` (with fallback to platform title when empty), ensuring clean platform paths on Windows.
+  - Prevented `DiskScanService.RemoveEmptySeriesFolder` from deleting empty platform, `BIOS`, and monitored region subfolders during the initial post-add refresh scan (`series.Added` within 5 minutes) when `DeleteEmptyFolders` is enabled in Media Management settings.
 - **RootFolder SQLite Persistence Mapping (`TableMapping`)**:
   - Ignored runtime-computed `ContainsRomFiles` and `UnmappedFolders` properties on `RootFolder` in `TableMapping.cs` (matching `ImportFolder` mapping), resolving `SQLiteException: table RootFolders has no column named ContainsRomFiles` when adding a new Media Management root folder via `POST /api/v5/rootFolder`.
 - **BIOS Isolation & Regular Game Library Leakage Prevention (`RegionHelper`, `GameCatalogProxy`, `RomParser`, `DiskScanService`, `UnmanagedDiskScanner`, `ManualImportService`, `RefreshGameService`)**:

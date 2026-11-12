@@ -266,7 +266,7 @@ namespace NzbDrone.Core.MediaFiles
                 return;
             }
 
-            RemoveEmptySeriesFolder(series.Path);
+            RemoveEmptySeriesFolder(series);
 
             var possibleExtraFiles = new List<string>();
 
@@ -850,15 +850,26 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        private void RemoveEmptySeriesFolder(string path)
+        private void RemoveEmptySeriesFolder(Series series)
         {
+            if (series == null || string.IsNullOrWhiteSpace(series.Path))
+            {
+                return;
+            }
+
+            // Preserve freshly provisioned platform/BIOS/region folders during the initial post-add scan.
+            if (series.Added > DateTime.UtcNow.AddMinutes(-5))
+            {
+                return;
+            }
+
             if (_configService.DeleteEmptyFolders)
             {
-                _diskProvider.RemoveEmptySubfolders(path);
+                _diskProvider.RemoveEmptySubfolders(series.Path);
 
-                if (_diskProvider.FolderEmpty(path))
+                if (_diskProvider.FolderEmpty(series.Path))
                 {
-                    _diskProvider.DeleteFolder(path, true);
+                    _diskProvider.DeleteFolder(series.Path, true);
                 }
             }
         }

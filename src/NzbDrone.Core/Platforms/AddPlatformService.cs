@@ -952,6 +952,12 @@ namespace NzbDrone.Core.Tv
                 }
 
                 var folderName = _fileNameBuilder.GetSeriesFolder(newSeries);
+                if (string.IsNullOrWhiteSpace(folderName))
+                {
+                    folderName = newSeries.Title;
+                }
+
+                folderName = folderName?.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
                 newSeries.Path = Path.Combine(newSeries.RootFolderPath, folderName);
             }
             else if (newSeries.Path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||

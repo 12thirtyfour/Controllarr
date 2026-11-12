@@ -585,5 +585,27 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
                 }
             }
         }
+
+        [Test]
+        public void should_not_delete_empty_folders_for_recently_added_platform_when_delete_empty_folders_enabled()
+        {
+            _series.Added = DateTime.UtcNow;
+            GivenSeriesFolder();
+
+            Mocker.GetMock<IConfigService>()
+                  .Setup(s => s.DeleteEmptyFolders)
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(s => s.FolderEmpty(_series.Path))
+                  .Returns(true);
+
+            Subject.Scan(_series);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Verify(v => v.RemoveEmptySubfolders(It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IDiskProvider>()
+                  .Verify(v => v.DeleteFolder(It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
+        }
     }
 }
