@@ -41,6 +41,7 @@ namespace NzbDrone.Core.Tv
         private readonly IRootFolderService _rootFolderService;
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IConfigService _configService;
+        private readonly IRefreshGameService _refreshGameService;
         private readonly Logger _logger;
 
         public AddPlatformService(ISeriesService seriesService,
@@ -54,7 +55,8 @@ namespace NzbDrone.Core.Tv
                                 IRootFolderService rootFolderService,
                                 IManageCommandQueue commandQueueManager,
                                 Logger logger,
-                                IConfigService configService = null)
+                                IConfigService configService = null,
+                                IRefreshGameService refreshGameService = null)
         {
             _seriesService = seriesService;
             _episodeService = episodeService;
@@ -67,6 +69,7 @@ namespace NzbDrone.Core.Tv
             _rootFolderService = rootFolderService;
             _commandQueueManager = commandQueueManager;
             _configService = configService;
+            _refreshGameService = refreshGameService;
             _logger = logger;
         }
 
@@ -109,10 +112,17 @@ namespace NzbDrone.Core.Tv
             newSeries = SetPropertiesAndValidate(newSeries, incomingSourcePath);
 
             _logger.Info("Adding Platform {0} Path: [{1}]", newSeries, newSeries.Path);
-            EnsurePlatformFoldersCreated(newSeries, incomingSourcePath);
-            _seriesService.AddSeries(newSeries);
+            EnsurePlatformFoldersCreated(newSeries);
+            var addedSeries = _seriesService.AddSeries(newSeries) ?? newSeries;
 
-            return newSeries;
+            if (!string.IsNullOrWhiteSpace(incomingSourcePath))
+            {
+                PopulatePlatformLibraryInfo(addedSeries);
+                ImportIncomingFilesToPlatform(addedSeries, incomingSourcePath);
+                _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { addedSeries.Id }, true));
+            }
+
+            return addedSeries;
         }
 
         public List<Series> AddSeries(List<Series> newSeries, bool ignoreErrors = false)
@@ -227,14 +237,112 @@ namespace NzbDrone.Core.Tv
                 return new List<Series>();
             }
 
-            foreach (var (series, incomingPath) in incomingSourcePaths)
+            foreach (var series in seriesToAdd)
             {
-                EnsurePlatformFoldersCreated(series, incomingPath);
+                EnsurePlatformFoldersCreated(series);
             }
 
             var addedSeries = _seriesService.AddSeries(seriesToAdd) ?? new List<Series>();
 
+            foreach (var added in addedSeries)
+            {
+                var matchingIncoming = incomingSourcePaths
+                    .Where(p => p.Series.TvdbId == added.TvdbId ||
+                                string.Equals(p.Series.Path, added.Path, StringComparison.OrdinalIgnoreCase))
+                    .Select(p => p.IncomingPath)
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (!matchingIncoming.Any())
+                {
+                    continue;
+                }
+
+                PopulatePlatformLibraryInfo(added);
+
+                foreach (var incomingPath in matchingIncoming)
+                {
+                    ImportIncomingFilesToPlatform(added, incomingPath);
+                }
+
+                _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { added.Id }, true));
+            }
+
             return addedSeries;
+        }
+
+        private void PopulatePlatformLibraryInfo(Series series)
+        {
+            if (series == null || series.Id <= 0 || _seriesInfo == null || _refreshGameService == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _logger.Info("Populating library information for newly added platform {0} before importing files", series.Title);
+                var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, series.SeasonType);
+                var seriesInfo = tuple?.Item1;
+                var episodes = tuple?.Item2;
+
+                if (seriesInfo != null)
+                {
+                    series.LastInfoSync = DateTime.UtcNow;
+                    if (seriesInfo.Seasons != null && seriesInfo.Seasons.Any() && (series.Seasons == null || !series.Seasons.Any()))
+                    {
+                        series.Seasons = seriesInfo.Seasons;
+                    }
+
+                    _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
+                }
+
+                if (episodes != null)
+                {
+                    _refreshGameService.RefreshEpisodeInfo(series, episodes);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to populate library information for {0} before importing files", series.Title);
+            }
+        }
+
+        private void ImportIncomingFilesToPlatform(Series series, string incomingSourcePath)
+        {
+            if (_diskProvider == null || string.IsNullOrWhiteSpace(series?.Path))
+            {
+                return;
+            }
+
+            try
+            {
+                var candidateArchive = ResolveCandidateArchive(incomingSourcePath);
+                if (string.IsNullOrWhiteSpace(candidateArchive))
+                {
+                    candidateArchive = ResolveCandidateArchive(series.Path);
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidateArchive) && _diskProvider.FileExists(candidateArchive))
+                {
+                    ExtractArchiveToDirectory(candidateArchive, series.Path, series);
+                }
+                else if (!string.IsNullOrWhiteSpace(incomingSourcePath) &&
+                         _diskProvider.FolderExists(incomingSourcePath) &&
+                         !incomingSourcePath.PathEquals(series.Path))
+                {
+                    CopyFolderContent(incomingSourcePath, series.Path, series);
+                }
+
+                if (_diskProvider.FolderExists(series.Path))
+                {
+                    OrganizeLooseFilesInPlatformDirectory(series.Path, series);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to import incoming files for {0} from {1}", series.Title, incomingSourcePath);
+            }
         }
 
         private Series AddGameOrParentPlatform(Series newSeries, GameCatalogEntry gameEntry)

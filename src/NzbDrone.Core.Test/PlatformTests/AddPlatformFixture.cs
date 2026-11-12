@@ -396,5 +396,65 @@ namespace NzbDrone.Core.Test.PlatformTests
             Mocker.GetMock<IDiskProvider>()
                   .Verify(v => v.CreateFolder(Path.Combine(expectedPlatformPath, "Europe")), Times.Never());
         }
+
+        [Test]
+        public void should_populate_library_information_before_importing_files_for_new_platform()
+        {
+            var sourcePath = @"C:\Downloads\Super Nintendo".AsOsAgnostic();
+            var targetRoot = @"C:\Roms".AsOsAgnostic();
+            var callOrder = new List<string>();
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(sourcePath))
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(targetRoot))
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.GetFiles(sourcePath, true))
+                  .Callback(() => callOrder.Add("ImportIncomingFiles"))
+                  .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IRootFolderService>()
+                  .Setup(r => r.All())
+                  .Returns(new List<RootFolder> { new RootFolder { Id = 1, Path = targetRoot } });
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.AddSeries(It.IsAny<List<Series>>()))
+                  .Callback<List<Series>>(list =>
+                  {
+                      callOrder.Add("AddSeries");
+                      foreach (var item in list)
+                      {
+                          item.Id = 42;
+                      }
+                  })
+                  .Returns<List<Series>>(list => list);
+
+            Mocker.GetMock<IRefreshGameService>()
+                  .Setup(r => r.RefreshEpisodeInfo(It.IsAny<Series>(), It.IsAny<List<Episode>>()))
+                  .Callback(() => callOrder.Add("RefreshEpisodeInfo"));
+
+            GivenValidSeries(1005);
+            GivenValidPath();
+
+            var newSeries = new Series
+            {
+                TvdbId = 1005,
+                Title = "Super Nintendo Entertainment System",
+                Path = sourcePath,
+                Language = Language.English
+            };
+
+            var added = Subject.AddSeries(new List<Series> { newSeries });
+
+            added.Should().ContainSingle();
+            callOrder.Should().ContainInOrder("AddSeries", "RefreshEpisodeInfo", "ImportIncomingFiles");
+
+            Mocker.GetMock<IRefreshGameService>()
+                  .Verify(r => r.RefreshEpisodeInfo(It.Is<Series>(s => s.Id == 42), It.IsAny<List<Episode>>()), Times.Once());
+        }
     }
 }
