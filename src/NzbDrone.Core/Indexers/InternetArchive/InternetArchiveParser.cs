@@ -465,6 +465,12 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                         {
                             continue;
                         }
+
+                        if (!string.IsNullOrWhiteSpace(platformSlug) &&
+                            !MatchesPlatformInMultiPlatformArchive(file.Name, file.Format, archiveId, platformSlug, platformName))
+                        {
+                            continue;
+                        }
                     }
                     else if (!string.IsNullOrWhiteSpace(searchTerm))
                     {
@@ -595,6 +601,36 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             }
 
             return results;
+        }
+
+        private static bool MatchesPlatformInMultiPlatformArchive(string fileName, string fileFormat, string archiveId, string platformSlug, string platformName)
+        {
+            var targetSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(platformSlug, platformName);
+
+            if (!string.IsNullOrWhiteSpace(archiveId) &&
+                PlatformCompatibilityValidator.DetectPlatforms(archiveId).Any(p => PlatformCompatibilityValidator.IsPlatformMatch(p, targetSlug)))
+            {
+                return true;
+            }
+
+            if (PlatformCompatibilityValidator.DetectPlatforms(fileName).Any(p => PlatformCompatibilityValidator.IsPlatformMatch(p, targetSlug)))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(fileFormat) &&
+                PlatformCompatibilityValidator.DetectPlatforms(fileFormat).Any(p => PlatformCompatibilityValidator.IsPlatformMatch(p, targetSlug)))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(platformName) &&
+                fileName.Contains(platformName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

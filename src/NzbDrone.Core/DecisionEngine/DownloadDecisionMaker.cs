@@ -91,7 +91,15 @@ namespace NzbDrone.Core.DecisionEngine
                         continue;
                     }
 
-                    parsedEpisodeInfo = Parser.Parser.ParseTitle(report.Title);
+                    var isCollectionRelease = searchCriteria is SeasonSearchCriteria { IsPlatformCollectionSearch: true } ||
+                                              report.ParsedRomInfo?.IsFullSetArchive == true;
+
+                    if (isCollectionRelease)
+                    {
+                        parsedEpisodeInfo = TryParseRomRelease(report.Title, searchCriteria);
+                    }
+
+                    parsedEpisodeInfo ??= Parser.Parser.ParseTitle(report.Title);
 
                     if (parsedEpisodeInfo == null || parsedEpisodeInfo.IsPossibleSpecialEpisode)
                     {
@@ -377,16 +385,23 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             var slug = series.TitleSlug?.ToLowerInvariant() ?? string.Empty;
+            var targetSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(slug, series.Title);
+            if (!string.IsNullOrWhiteSpace(targetSlug) &&
+                PlatformCompatibilityValidator.DetectPlatforms(releaseTitle).Any(p => PlatformCompatibilityValidator.IsPlatformMatch(p, targetSlug)))
+            {
+                return true;
+            }
+
             if (!string.IsNullOrWhiteSpace(slug) && slug.Length >= 2 &&
                 Regex.IsMatch(releaseTitle, $@"{Regex.Escape(slug)}", RegexOptions.IgnoreCase))
             {
                 return true;
             }
 
-            var aliases = slug switch
+            var aliases = targetSlug switch
             {
                 "snes" => new[] { "snes", "sd2snes", "super nintendo", "super famicom", "sfc", "super everdrive" },
-                "nes" => new[] { "nes", "everdrive n8", "famicom", "nintendo entertainment system" },
+                "nes" => new[] { "nes", "nes2.0", "everdrive n8", "famicom", "nintendo entertainment system" },
                 "genesis" or "megadrive" => new[] { "genesis", "mega everdrive", "mega drive", "megadrive", "sega genesis", "smd" },
                 "n64" => new[] { "n64", "everdrive 64", "nintendo 64" },
                 "gb" => new[] { "game boy", "gameboy", "everdrive gb" },
@@ -401,11 +416,18 @@ namespace NzbDrone.Core.DecisionEngine
                 "dreamcast" or "dc" => new[] { "dreamcast", "sega dreamcast" },
                 "segacd" => new[] { "segacd", "sega cd", "mega-cd", "megacd" },
                 "32x" => new[] { "32x", "sega 32x" },
-                "sms" => new[] { "master everdrive", "sega master system", "sms" },
+                "sms" => new[] { "master everdrive", "master system", "sega master system", "sms" },
                 "gg" => new[] { "game gear", "gamegear", "everdrive gg" },
                 "tg16" => new[] { "turbo everdrive", "pc engine", "turbografx", "pce" },
                 "tgcd" => new[] { "tgcd", "turbografx-cd", "pc engine cd" },
                 "atari2600" => new[] { "harmony", "atari 2600" },
+                "atari5200" => new[] { "atari 5200" },
+                "atari7800" => new[] { "atari 7800" },
+                "lynx" => new[] { "atari lynx", "lynx" },
+                "jaguar" => new[] { "atari jaguar", "jaguar" },
+                "fds" => new[] { "fds", "famicom disk system" },
+                "vb" => new[] { "virtual boy", "flashboy", "vb" },
+                "wonderswan" => new[] { "wonderswan" },
                 "neogeo" => new[] { "neosd", "neo geo", "neogeo" },
                 _ => Array.Empty<string>()
             };

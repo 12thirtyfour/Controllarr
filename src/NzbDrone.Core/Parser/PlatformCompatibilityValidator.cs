@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:famicom\s+disk\s+system|fds)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "fds"),
 
             // NES / Famicom
-            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+entertainment\s+system|nes|famicom)(?:\b|_|\]|\))|\b(?:NES|HVC)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "nes"),
+            (new Regex(@"(?:\b|_|\[|\(|@)(?:nintendo\s+entertainment\s+system|nes(?:\s*2\.0)?|famicom)(?:\b|_|\]|\))|\b(?:NES|HVC)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "nes"),
 
             // Game Boy Advance
             (new Regex(@"(?:\b|_|\[|\()(?:game\s*boy\s+advance|gba|agb)(?:\b|_|\]|\))|\bAGB-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gba"),
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:original\s+xbox|og\s+xbox|xbox)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox"),
 
             // Sega Genesis / Mega Drive
-            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+genesis|mega\s*drive|megadrive)(?:\b|_|\]|\))|(?:\[|\(|\.|_|-)\s*genesis\s*(?:\]|\)|\.|_|-)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "genesis"),
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+genesis|mega\s*drive|megadrive)(?:\b|_|\]|\))|(?:^|[\s@\[\(\._\-])\s*genesis\s*(?:$|[\s\]\)\._\-])", RegexOptions.IgnoreCase | RegexOptions.Compiled), "genesis"),
 
             // Sega CD / Mega CD
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s*cd|mega\s*cd|segacd|megacd|scd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "segacd"),

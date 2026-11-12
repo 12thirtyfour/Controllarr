@@ -45,6 +45,10 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **Multi-Platform Primary Archive Collection Search (`InternetArchiveParser`, `PlatformCompatibilityValidator`, `DownloadDecisionMaker`)**:
+  - Updated `PlatformCompatibilityValidator` to detect `@Genesis - ...` and `@NES2.0 ...` archive naming patterns used in multi-platform primary archives such as `htgdb-gamepacks`.
+  - Updated `InternetArchiveParser` collection search parsing so multi-platform primary archives (where the archive ID itself does not identify a single platform) positively match the target platform, preventing unrelated packs (`@MiSTer Pack`, `@SPC Music`, etc.) from matching.
+  - Updated `DownloadDecisionMaker` to evaluate `TryParseRomRelease` prior to TV title parsing for collection searches / full-set archives, and expanded `IsPlatformPackMatch` to use `PlatformCompatibilityValidator.DetectPlatforms` plus additional platform aliases (`atari5200`, `atari7800`, `lynx`, `jaguar`, `fds`, `vb`, `wonderswan`).
 - **Same-Folder Move Overwrite (`DiskTransferService`)**:
   - Updated `DiskTransferService.TransferFile` to invoke `ClearTargetPath(sourcePath, targetPath, overwrite)` before `TryMoveFileVerified` when moving a file within the same parent directory (`sourcePath.GetParentPath() == targetPath.GetParentPath()`). Prevents `FileAlreadyExistsException` during in-place ROM organization/import when an existing target file should be overwritten (or cleanly throws `DestinationAlreadyExistsException` when `overwrite` is `false`).
 - **Duplicate ROM Import & Japanese Region Misclassification (`RomParser`, `RegionHelper`, `GameCatalogProxy`, `UnmanagedDiskScanner`, `ManualImportService`)**:

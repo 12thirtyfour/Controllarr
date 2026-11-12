@@ -495,5 +495,40 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             release.ParsedRomInfo.Should().NotBeNull();
             release.ParsedRomInfo.IsFullSetArchive.Should().BeTrue();
         }
+
+        [Test]
+        public void should_parse_matching_platform_packs_from_multi_platform_primary_archive()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/download/htgdb-gamepacks" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""@Genesis - MegaSD Mega EverDrive 2024-01-03.zip"", ""size"": ""123456789"", ""format"": ""ZIP"" },
+                    { ""name"": ""@Genesis - MegaSD Mega EverDrive Game Series Collections 2024-01-03.zip"", ""size"": ""98765432"", ""format"": ""ZIP"" },
+                    { ""name"": ""@SNES - SD2SNES - Super EverDrive 2023-12-12.zip"", ""size"": ""234567890"", ""format"": ""ZIP"" },
+                    { ""name"": ""@MiSTer Pack 2023-06-09.7z"", ""size"": ""345678901"", ""format"": ""7z"" },
+                    { ""name"": ""@SPC Music 2023-12-26.zip"", ""size"": ""45678901"", ""format"": ""ZIP"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/htgdb-gamepacks/files#_platform=genesis&_platformName=Sega%20Genesis&_collection=true");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(2);
+            releases.Select(r => r.Title).Should().BeEquivalentTo(new[]
+            {
+                "@Genesis - MegaSD Mega EverDrive 2024-01-03.zip",
+                "@Genesis - MegaSD Mega EverDrive Game Series Collections 2024-01-03.zip"
+            });
+            releases.Should().OnlyContain(r => r.ParsedRomInfo != null && r.ParsedRomInfo.IsFullSetArchive);
+        }
     }
 }
