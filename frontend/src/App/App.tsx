@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Page from 'Components/Page/Page';
+import RouteErrorPage from 'Components/Error/RouteErrorPage';
 import ApplyTheme from './ApplyTheme';
 import { appRouteElements } from './AppRoutes';
 import { queryClient } from './queryClient';
@@ -28,7 +29,9 @@ function PageLayout() {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route element={<PageLayout />}>{appRouteElements()}</Route>
+    <Route element={<PageLayout />} errorElement={<RouteErrorPage />}>
+      {appRouteElements()}
+    </Route>
   ),
   { basename: window.Controllarr.urlBase || undefined }
 );

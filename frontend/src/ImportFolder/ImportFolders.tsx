@@ -4,7 +4,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import { kinds } from 'Helpers/Props';
 import ImportFolderRow from './ImportFolderRow';
 import useImportFolders from './useImportFolders';
-import styles from 'RootFolder/RootFolders.module.css';
+import styles from './ImportFolders.module.css';
 
 interface ImportFoldersProps {
   isSelectable?: boolean;

@@ -38,6 +38,10 @@ All notable changes to **Controllarr** are documented in this file.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
 ### Fixed
+- **Vite CSS Module Isolation & Route Error Boundary (`ImportFolders`, `ImportFolderRow`, `RouteErrorPage`, `index.ts`)**:
+  - Isolated CSS modules for `ImportFolder` (`ImportFolderRow.module.css`, `ImportFolders.module.css`) rather than cross-importing `RootFolder` stylesheets across lazy-loaded route boundaries. Completely prevents Vite from generating fragmented shared CSS preload chunks (`RootFolders-*.css`) that triggered `Unable to preload CSS` route transition errors when navigating between Settings menu options.
+  - Implemented top-level `RouteErrorPage` error boundary on the application router (`App.tsx`), eliminating raw React Router developer crash screens in favor of a styled recovery view with reload and navigation controls.
+  - Added self-healing `vite:preloadError` event handler in `index.ts` to automatically reload stale chunk manifests and refresh dynamic assets seamlessly across updates.
 - **Queue & Activity Table Column Header Alignment (`QueueRow`, `HistoryRow`, `BlocklistRow`, `CutoffUnmetRow`, `RomFileRow`)**:
   - Resolved column shifting and header misalignment in the Activity Queue and associated tables by updating row cell matching to accept both `'format'` and `'quality'` identifiers. Prevents the Format/ROM Quality column cell from being skipped and shifting all subsequent table cells (Formats, Time Left, Progress, Actions) one position to the left of their headers.
 - **Internet Archive S3 Authentication Header Retention on Redirects (`InternetArchive`)**:
