@@ -9,5 +9,6 @@ namespace NzbDrone.Core.MetadataSource
         List<Series> SearchForNewSeries(string title, Language language);
         List<Series> SearchForNewSeriesByImdbId(string imdbId, Language language);
         List<Series> SearchForNewSeriesByTmdbId(int tmdbId, Language language);
+        List<Series> GetAllPlatforms(Language language);
     }
 }

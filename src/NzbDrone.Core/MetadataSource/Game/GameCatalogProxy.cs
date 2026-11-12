@@ -543,6 +543,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             return SearchForNewSeries($"tvdb:{tmdbId}", language);
         }
 
+        public List<Series> GetAllPlatforms(Language language)
+        {
+            return BuiltInPlatforms.Select(MapPlatformToSeries).ToList();
+        }
+
         private Tuple<Series, List<Episode>> BuildPlatformAndGames(
             PlatformCatalogEntry platform,
             Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted)

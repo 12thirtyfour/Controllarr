@@ -30,6 +30,10 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Added
+- **Add All Supported Platforms (`PlatformController`, `GameCatalogProxy`, `AddAllPlatformsModal`, `NoPlatform`, `AddNewPlatform`)**:
+  - Added an **Add All Supported Platforms** button in both the Add Platform view (`AddNewPlatform.tsx`) and the blank Library view (`NoPlatform.tsx`).
+  - Created `AddAllPlatformsModal` / `AddAllPlatformsModalContent` presenting all standard platform addition options (Root Folder, Monitor, Collection Strategy, Version / Revision Preference, Pinned Version Tag, Track Unlicensed, Track ROM Hacks & Translations, Track Homebrew & Aftermarket, Tags, and Search for Missing Games) plus dedicated **Platform-Specific Options** sections for Disc-Based vs Cartridge & Handheld compression and Nintendo DS / Nintendo 3DS ROM encryption preferences.
+  - Added `IGameCatalogService` / `ISearchForNewPlatforms.GetAllPlatforms` and `POST /api/v5/series/addall` (`POST /api/v5/platform/addall`) to bulk-add all catalog platforms while automatically skipping platforms already in the library.
 - **Verification Database Naming Templates & Tokens (`Naming`, `NamingModal`, `FileNameBuilder`)**:
   - Added a **Verification Database Template** dropdown above **Library Path & ROM Naming Format (Cartridge & Handheld)** in Media Management -> Naming (`Naming.tsx`) with presets for **Controllarr Default**, **No-Intro**, **SmokeMonster (EverDrive / MiSTer)**, **TOSEC**, **Redump**, **GoodTools**, and **HTGDB (Hardware Target Game Database)**, plus automatic **Custom** detection when edited.
   - Selecting a template prepopulates the unified path format and automatically updates `platformFolderFormat`, `regionFolderFormat`, and `standardGameFormat` while keeping all fields editable.

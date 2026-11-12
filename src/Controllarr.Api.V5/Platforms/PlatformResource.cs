@@ -255,3 +255,25 @@ public static class PlatformResourceMapper
         return resources.Select(ToModel).ToList();
     }
 }
+
+public class AddAllPlatformsResource
+{
+    public string RootFolderPath { get; set; } = string.Empty;
+    public int QualityProfileId { get; set; } = 1;
+    public Language Language { get; set; } = Language.English;
+    public MonitorTypes Monitor { get; set; } = MonitorTypes.All;
+    public NzbDrone.Core.Games.CollectionStrategy CollectionStrategy { get; set; } = NzbDrone.Core.Games.CollectionStrategy.OneGameOneRom;
+    public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; } = NzbDrone.Core.Games.RevisionPreference.LatestRevision;
+    public string? PinnedVersion { get; set; }
+    public bool DiscCompression { get; set; } = true;
+    public bool CartridgeCompression { get; set; } = true;
+    public string NdsEncryptionPreference { get; set; } = "notEncrypted";
+    public string ThreeDsEncryptionPreference { get; set; } = "notEncrypted";
+    public bool TrackUnlicensed { get; set; }
+    public bool TrackRomHacks { get; set; }
+    public bool TrackHomebrew { get; set; }
+    public bool SearchForMissingGames { get; set; }
+    public bool SearchForCutoffUnmetGames { get; set; }
+    public SeriesTypes SeriesType { get; set; } = SeriesTypes.Standard;
+    public HashSet<int>? Tags { get; set; }
+}

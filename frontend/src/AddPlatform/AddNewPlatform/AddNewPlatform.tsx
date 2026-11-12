@@ -23,6 +23,7 @@ import MetadataSettingsModal from 'Settings/MetadataSource/MetadataSettingsModal
 import { InputChanged } from 'typings/inputs';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import translate from 'Utilities/String/translate';
+import AddAllPlatformsModal from './AddAllPlatformsModal';
 import AddNewPlatformSearchResult from './AddNewPlatformSearchResult';
 import { useLookupSeries } from './useAddPlatform';
 import styles from './AddNewPlatform.module.css';
@@ -39,6 +40,7 @@ function AddNewPlatform() {
   const [isFetching, setIsFetching] = useState(false);
   const [isMetadataSettingsModalOpen, setIsMetadataSettingsModalOpen] =
     useState(false);
+  const [isAddAllModalOpen, setIsAddAllModalOpen] = useState(false);
   const query = useDebounce(term, term ? 300 : 0);
 
   const handleSearchInputChange = useCallback(
@@ -55,6 +57,14 @@ function AddNewPlatform() {
 
   const handleMetadataSettingsModalClose = useCallback(() => {
     setIsMetadataSettingsModalOpen(false);
+  }, []);
+
+  const handleAddAllPlatformsPress = useCallback(() => {
+    setIsAddAllModalOpen(true);
+  }, []);
+
+  const handleAddAllModalClose = useCallback(() => {
+    setIsAddAllModalOpen(false);
   }, []);
 
   const handleClearSeriesLookupPress = useCallback(() => {
@@ -118,9 +128,17 @@ function AddNewPlatform() {
           scope={translate('Media')}
           title={translate('AddNewPlatform')}
           actions={
-            <Button onPress={handleMetadataSettingsPress}>
-              {translate('MetadataSettings')}
-            </Button>
+            <>
+              <Button
+                kind={kinds.PRIMARY}
+                onPress={handleAddAllPlatformsPress}
+              >
+                Add All Supported Platforms
+              </Button>
+              <Button onPress={handleMetadataSettingsPress}>
+                {translate('MetadataSettings')}
+              </Button>
+            </>
           }
         />
 
@@ -253,6 +271,11 @@ function AddNewPlatform() {
         <MetadataSettingsModal
           isOpen={isMetadataSettingsModalOpen}
           onModalClose={handleMetadataSettingsModalClose}
+        />
+
+        <AddAllPlatformsModal
+          isOpen={isAddAllModalOpen}
+          onModalClose={handleAddAllModalClose}
         />
       </PageContentBody>
     </PageContent>

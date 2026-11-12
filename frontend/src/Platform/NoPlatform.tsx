@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
+import AddAllPlatformsModal from 'AddPlatform/AddNewPlatform/AddAllPlatformsModal';
 import Button from 'Components/Link/Button';
 import { kinds } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
@@ -10,6 +11,15 @@ interface NoPlatformProps {
 
 function NoPlatform(props: NoPlatformProps) {
   const { totalItems } = props;
+  const [isAddAllModalOpen, setIsAddAllModalOpen] = useState(false);
+
+  const handleAddAllPlatformsPress = useCallback(() => {
+    setIsAddAllModalOpen(true);
+  }, []);
+
+  const handleAddAllModalClose = useCallback(() => {
+    setIsAddAllModalOpen(false);
+  }, []);
 
   if (totalItems > 0) {
     return (
@@ -38,6 +48,17 @@ function NoPlatform(props: NoPlatformProps) {
           {translate('AddNewPlatform')}
         </Button>
       </div>
+
+      <div className={styles.buttonContainer}>
+        <Button kind={kinds.PRIMARY} onPress={handleAddAllPlatformsPress}>
+          Add All Supported Platforms
+        </Button>
+      </div>
+
+      <AddAllPlatformsModal
+        isOpen={isAddAllModalOpen}
+        onModalClose={handleAddAllModalClose}
+      />
     </div>
   );
 }

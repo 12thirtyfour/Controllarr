@@ -6,10 +6,13 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.TPL;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
+using NzbDrone.Core.Games;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.PlatformStats;
 using NzbDrone.Core.RootFolders;
@@ -43,6 +46,8 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     private readonly IPlatformTranslationService _seriesTranslationService;
     private readonly IMapCoversToLocal _coverMapper;
     private readonly IRootFolderService _rootFolderService;
+    private readonly ISearchForNewPlatforms _searchProxy;
+    private readonly InlineValidator<AddAllPlatformsResource> _addAllValidator = new();
 
     private readonly LockByIdPool _seriesLockPool = new();
 
@@ -53,6 +58,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                         IPlatformTranslationService seriesTranslationService,
                         IMapCoversToLocal coverMapper,
                         IRootFolderService rootFolderService,
+                        ISearchForNewPlatforms searchProxy,
                         RootFolderValidator rootFolderValidator,
                         MappedNetworkDriveValidator mappedNetworkDriveValidator,
                         SeriesPathValidator seriesPathValidator,
@@ -72,6 +78,15 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
 
         _coverMapper = coverMapper;
         _rootFolderService = rootFolderService;
+        _searchProxy = searchProxy;
+
+        _addAllValidator.RuleFor(s => s.RootFolderPath).Cascade(CascadeMode.Stop)
+            .NotEmpty()
+            .IsValidPath()
+            .SetValidator(rootFolderExistsValidator);
+        _addAllValidator.RuleFor(s => s.QualityProfileId).Cascade(CascadeMode.Stop)
+            .ValidId()
+            .SetValidator(qualityProfileExistsValidator);
 
         SharedValidator.RuleFor(s => s.Path).Cascade(CascadeMode.Stop)
             .IsValidPath()
@@ -195,6 +210,109 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         var series = _addSeriesService.AddSeries(seriesResource.ToModel());
 
         return TypedCreated(series.Id);
+    }
+
+    private static readonly HashSet<string> DiscPlatformSlugs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ps1", "ps2", "ps3", "psp", "segacd", "saturn", "dreamcast", "tgcd",
+        "gamecube", "wii", "wiiu", "xbox", "xbox360", "jaguarcd", "3do",
+        "cdi", "pcfx", "neogeocd", "amigacd32"
+    };
+
+    [HttpPost("addall")]
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    public Ok<List<SeriesResource>> AddAllPlatforms([FromBody] AddAllPlatformsResource resource)
+    {
+        var validationResult = _addAllValidator.Validate(resource);
+        if (!validationResult.IsValid)
+        {
+            throw new ValidationException(validationResult.Errors);
+        }
+
+        var language = resource.Language ?? Language.English;
+        var allCatalogPlatforms = _searchProxy.GetAllPlatforms(language);
+        var isMonitorNone = resource.Monitor == MonitorTypes.None;
+        var isCompletionist = resource.CollectionStrategy == CollectionStrategy.Preservationist;
+
+        var platformsToAdd = new List<NzbDrone.Core.Tv.Series>(allCatalogPlatforms.Count);
+
+        foreach (var platform in allCatalogPlatforms)
+        {
+            var slug = platform.TitleSlug ?? string.Empty;
+            var isDisc = DiscPlatformSlugs.Contains(slug);
+            var enableCompression = isDisc ? resource.DiscCompression : resource.CartridgeCompression;
+            var archiveFormat = enableCompression ? "auto" : "none";
+
+            var isNds = platform.TvdbId == 1012 || slug.Equals("nds", StringComparison.OrdinalIgnoreCase);
+            var is3ds = platform.TvdbId == 1013 || slug.Equals("3ds", StringComparison.OrdinalIgnoreCase);
+            var hasEncryptedCollections = isNds || is3ds;
+
+            var encryptionPref = isNds
+                ? resource.NdsEncryptionPreference
+                : is3ds
+                    ? resource.ThreeDsEncryptionPreference
+                    : "notEncrypted";
+
+            var effectiveEncryption = isCompletionist ? "both" : encryptionPref;
+            var preferEncrypted = hasEncryptedCollections &&
+                                  !isCompletionist &&
+                                  string.Equals(effectiveEncryption, "encrypted", StringComparison.OrdinalIgnoreCase);
+
+            var defaultSeasonType = platform.SeasonTypes?.FirstOrDefault(s => s.Type == "official")?.Type ??
+                                    platform.SeasonTypes?.FirstOrDefault()?.Type ??
+                                    "official";
+
+            if (platform.Seasons != null)
+            {
+                foreach (var season in platform.Seasons)
+                {
+                    if (isMonitorNone)
+                    {
+                        season.Monitored = false;
+                    }
+                    else if (season.SeasonNumber == 0)
+                    {
+                        season.Monitored = resource.TrackUnlicensed;
+                    }
+                    else if (season.SeasonNumber == 5)
+                    {
+                        season.Monitored = resource.TrackHomebrew;
+                    }
+                    else if (season.SeasonNumber == 6)
+                    {
+                        season.Monitored = resource.TrackRomHacks;
+                    }
+                }
+            }
+
+            platform.Monitored = !isMonitorNone;
+            platform.RootFolderPath = resource.RootFolderPath;
+            platform.QualityProfileId = resource.QualityProfileId > 0 ? resource.QualityProfileId : 1;
+            platform.OriginalLanguage = language;
+            platform.SeasonFolder = true;
+            platform.SeriesType = (SeriesTypes)resource.SeriesType;
+            platform.CollectionStrategy = resource.CollectionStrategy;
+            platform.RevisionPreference = resource.RevisionPreference;
+            platform.PinnedVersion = resource.PinnedVersion ?? string.Empty;
+            platform.PreferredArchiveFormat = archiveFormat;
+            platform.Certification = archiveFormat;
+            platform.PreferEncryptedRoms = preferEncrypted;
+            platform.UseSceneNumbering = preferEncrypted;
+            platform.SeasonType = hasEncryptedCollections ? effectiveEncryption : defaultSeasonType;
+            platform.Tags = resource.Tags ?? new HashSet<int>();
+            platform.AddOptions = new NzbDrone.Core.Tv.AddPlatformOptions
+            {
+                Monitor = resource.Monitor,
+                SearchForMissingEpisodes = resource.SearchForMissingGames,
+                SearchForCutoffUnmetEpisodes = resource.SearchForCutoffUnmetGames
+            };
+
+            platformsToAdd.Add(platform);
+        }
+
+        var added = _addSeriesService.AddSeries(platformsToAdd, ignoreErrors: true);
+        return TypedResults.Ok(added.ToResource());
     }
 
     [RestPutById]
