@@ -235,11 +235,29 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         var isMonitorNone = resource.Monitor == MonitorTypes.None;
         var isCompletionist = resource.CollectionStrategy == CollectionStrategy.Preservationist;
 
-        var platformsToAdd = new List<NzbDrone.Core.Tv.Series>(allCatalogPlatforms.Count);
+        var existingSeries = _seriesService.GetAllSeries() ?? new List<NzbDrone.Core.Tv.Series>();
+        var existingTvdbIds = existingSeries.Select(s => s.TvdbId).ToHashSet();
+        var existingSlugs = existingSeries
+            .Where(s => !string.IsNullOrWhiteSpace(s.TitleSlug))
+            .Select(s => s.TitleSlug)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existingTitles = existingSeries
+            .Where(s => !string.IsNullOrWhiteSpace(s.Title))
+            .Select(s => s.Title)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var addedPlatforms = new List<NzbDrone.Core.Tv.Series>();
 
         foreach (var platform in allCatalogPlatforms)
         {
             var slug = platform.TitleSlug ?? string.Empty;
+            if (existingTvdbIds.Contains(platform.TvdbId) ||
+                (!string.IsNullOrWhiteSpace(slug) && existingSlugs.Contains(slug)) ||
+                (!string.IsNullOrWhiteSpace(platform.Title) && existingTitles.Contains(platform.Title)))
+            {
+                continue;
+            }
+
             var isDisc = DiscPlatformSlugs.Contains(slug);
             var enableCompression = isDisc ? resource.DiscCompression : resource.CartridgeCompression;
             var archiveFormat = enableCompression ? "auto" : "none";
@@ -308,11 +326,31 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                 SearchForCutoffUnmetEpisodes = resource.SearchForCutoffUnmetGames
             };
 
-            platformsToAdd.Add(platform);
+            try
+            {
+                var added = _addSeriesService.AddSeries(platform);
+                if (added != null)
+                {
+                    addedPlatforms.Add(added);
+                    existingTvdbIds.Add(added.TvdbId);
+                    if (!string.IsNullOrWhiteSpace(added.TitleSlug))
+                    {
+                        existingSlugs.Add(added.TitleSlug);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(added.Title))
+                    {
+                        existingTitles.Add(added.Title);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Skip platforms that already exist or fail per-platform constraints during bulk add
+            }
         }
 
-        var added = _addSeriesService.AddSeries(platformsToAdd, ignoreErrors: true);
-        return TypedResults.Ok(added.ToResource());
+        return TypedResults.Ok(addedPlatforms.ToResource());
     }
 
     [RestPutById]
