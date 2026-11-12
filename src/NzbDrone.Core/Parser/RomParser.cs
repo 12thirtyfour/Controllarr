@@ -17,6 +17,7 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex HardwareRegex = new Regex(@"\((NES 2\.0|Headered|Unheadered)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DumpRegex = new Regex(@"\((Beta|Proto|Demo|Sample)\)|\[(?<tag>!|b|t|h|f|a|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DiscTrackRegex = new Regex(@"\((?:Disc\s*(?<disc>\d+(?:\s*of\s*\d+)?)|Track\s*(?<track>\d+))\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex BiosRegex = new Regex(@"(?:\[BIOS\]|\(BIOS\)|\b(?:BIOS|Firmware|Boot\s*ROM)\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FullSetRegex = new Regex(@"\((Complete Set|Full Set|1G1R|Parent-Clone|[\d\-]+)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FormatTokenRegex = new Regex(@"\b(3ds|cia|cci|nds|dsi|gba|gbc|gb|nes|snes|sfc|smc|n64|z64|v64|iso|ciso|chd|rvz|gcm|wbfs|wux|wud|wua|nsp|nsz|xci|pbp|cso|vpk|pkg|bin|cue|gdi|cdi|zip|7z)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BracketCleanupRegex = new Regex(@"\[.*?\]|\(.*?\)", RegexOptions.Compiled);
@@ -138,6 +139,17 @@ namespace NzbDrone.Core.Parser
             foreach (Match match in DumpRegex.Matches(normalizedTitle))
             {
                 result.DumpTags.Add(match.Groups[1].Success ? match.Groups[1].Value : match.Groups["tag"].Value);
+                normalizedTitle = normalizedTitle.Replace(match.Value, "");
+            }
+
+            // BIOS tags
+            foreach (Match match in BiosRegex.Matches(normalizedTitle))
+            {
+                if (!result.DumpTags.Contains("BIOS"))
+                {
+                    result.DumpTags.Add("BIOS");
+                }
+
                 normalizedTitle = normalizedTitle.Replace(match.Value, "");
             }
 

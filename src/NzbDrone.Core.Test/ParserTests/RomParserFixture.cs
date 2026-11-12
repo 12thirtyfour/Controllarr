@@ -119,5 +119,20 @@ namespace NzbDrone.Core.Test.ParserTests
             result.Regions.Should().NotContain("EN");
             result.Regions.Should().NotContain("JA");
         }
+
+        [Test]
+        public void Should_parse_bios_tags_and_assign_bios_region()
+        {
+            var result = RomParser.ParseRomName("[BIOS] Sega CD (USA) (v1.10).bin");
+            result.DumpTags.Should().Contain("BIOS");
+            result.RegionNumber.Should().Be(99);
+
+            var result2 = RomParser.ParseRomName("Famicom Disk System (Japan) (Boot ROM).bin");
+            result2.DumpTags.Should().Contain("BIOS");
+            result2.RegionNumber.Should().Be(99);
+
+            var result3 = RomParser.ParseRomName("bios_CD_U.bin");
+            result3.RegionNumber.Should().Be(99);
+        }
     }
 }

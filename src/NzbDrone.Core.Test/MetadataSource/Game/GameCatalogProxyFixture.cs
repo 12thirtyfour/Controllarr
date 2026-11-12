@@ -627,5 +627,35 @@ game (
             var parsedOfficial = Parser.RomParser.ParseRomName("Pokemon - Red Version (USA, Europe).gb");
             parsedOfficial.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
         }
+
+        [Test]
+        public void should_isolate_bios_files_and_reject_from_regular_game_library()
+        {
+            Subject.TryGetPlatformEntry(1013, out var segaCdPlatform);
+            segaCdPlatform.Should().NotBeNull();
+
+            // IsValidGameTitle must reject BIOS titles
+            GameCatalogProxy.IsValidGameTitle("[BIOS] Sega CD (USA) (v1.10)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("bios_CD_U.bin").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("disksys.rom").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("cd_bios.rom").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Famicom Disk System (Japan) (Boot ROM)").Should().BeFalse();
+
+            // CreateCatalogEntryFromNoIntroName must return null for BIOS dumps
+            var biosEntry = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "[BIOS] Sega CD (USA) (v1.10)", 1992, "No-Intro");
+            biosEntry.Should().BeNull();
+
+            // Canonical region folder resolution must map BIOS files to "BIOS"
+            GameCatalogProxy.ResolveCanonicalRegionFolderForRom("BIOS/bios_CD_U.bin", "bios_CD_U.bin").Should().Be("BIOS");
+            GameCatalogProxy.ResolveCanonicalRegionFolderForRom("EverDrive/BIOS/Mega-CD 1 EU.bin", "Mega-CD 1 EU.bin").Should().Be("BIOS");
+
+            // RegionHelper.IsBios checks
+            NzbDrone.Core.Games.RegionHelper.IsBios("[BIOS] Sega CD (USA)").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("bios_CD_U.bin").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("disksys.rom").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("cd_bios.rom").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("boot.ipl").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("Sonic CD (USA)").Should().BeFalse();
+        }
     }
 }

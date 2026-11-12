@@ -705,6 +705,10 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                         if (string.IsNullOrWhiteSpace(rawName) ||
                             rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                            RegionHelper.IsBios(rawName) ||
+                            RegionHelper.IsBios(datEntry.GameName) ||
+                            RegionHelper.IsBios(datEntry.RomName) ||
+                            RegionHelper.IsBios(datEntry.SmdbPath) ||
                             !IsValidGameTitle(rawName) ||
                             (!string.IsNullOrWhiteSpace(datEntry.GameName) && !IsValidGameTitle(datEntry.GameName)) ||
                             (!string.IsNullOrWhiteSpace(datEntry.RomName) && !IsValidGameTitle(StripTrackOne(StripKnownRomExtension(datEntry.RomName)))))
@@ -1124,7 +1128,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
                 // Skip EverDrive duplicate playlist / collection sets (Best-Of, Top 100, Franchise, Genre, etc.)
-                // and subfolder audio/asset packs (FMVDATA, AUDIO, DATA, MD+, MSU-1)
+                // and subfolder audio/asset packs (FMVDATA, AUDIO, DATA, MD+, MSU-1) and BIOS/firmware files
                 if (pathSegments.Any(s => s.Contains("Game Series Collections", StringComparison.OrdinalIgnoreCase) ||
                                           s.Contains("Best-Of", StringComparison.OrdinalIgnoreCase) ||
                                           s.Contains("Top 100", StringComparison.OrdinalIgnoreCase) ||
@@ -1132,7 +1136,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                                           s.Contains("AUDIO", StringComparison.OrdinalIgnoreCase) ||
                                           s.Equals("DATA", StringComparison.OrdinalIgnoreCase) ||
                                           s.Contains("MD+", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase)))
+                                          s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Firmware", StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
                 }
@@ -1155,6 +1161,9 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 if (string.IsNullOrWhiteSpace(rawName) ||
                     rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    RegionHelper.IsBios(fileName) ||
+                    RegionHelper.IsBios(rawName) ||
+                    RegionHelper.IsBios(smdbPath) ||
                     !IsValidGameTitle(fileName) ||
                     !IsValidGameTitle(rawName) ||
                     !IsValidGameTitle(smdbPath))
@@ -1905,7 +1914,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             var trimmed = title.Trim();
             if (trimmed.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
                 trimmed.StartsWith("_", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                RegionHelper.IsBios(trimmed))
             {
                 return false;
             }
@@ -2504,6 +2514,11 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed, string verificationSource = null)
         {
+            if (RegionHelper.IsBios(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionBios;
+            }
+
             if (RegionHelper.IsRomHackOrTranslation(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
                 return RegionRomHacks;
@@ -3258,7 +3273,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 : Path.GetFileName(relativeOrFullPath ?? string.Empty);
 
             if (!string.IsNullOrWhiteSpace(effectiveFileName) &&
-                effectiveFileName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+                (effectiveFileName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                 RegionHelper.IsBios(effectiveFileName, null, null, relativeOrFullPath)))
             {
                 return "BIOS";
             }

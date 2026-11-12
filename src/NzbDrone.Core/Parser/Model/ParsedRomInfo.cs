@@ -41,6 +41,11 @@ namespace NzbDrone.Core.Parser.Model
         {
             get
             {
+                if (RegionHelper.IsBios(GameTitle, ReleaseTitle, DumpTags))
+                {
+                    return 99;
+                }
+
                 if (RegionHelper.IsRomHackOrTranslation(GameTitle, ReleaseTitle, DumpTags))
                 {
                     return 6;

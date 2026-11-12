@@ -11,6 +11,7 @@ using NzbDrone.Core.Bios;
 using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.GameImport.Manual;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -106,7 +107,9 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             foreach (var file in files)
             {
                 var fileName = Path.GetFileName(file);
-                if (_biosService != null && _biosService.IsKnownBiosFileName(fileName))
+                var isBios = (_biosService != null && _biosService.IsKnownBiosFileName(fileName)) ||
+                             RegionHelper.IsBios(fileName, null, null, file);
+                if (isBios)
                 {
                     var biosItem = ProcessBiosFile(file, rootFolder);
                     if (biosItem != null)
@@ -428,37 +431,53 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         return true;
                     }
 
+                    if (RegionHelper.IsBios(e.Name, null, null, e.FullName))
+                    {
+                        return true;
+                    }
+
                     var segments = e.FullName.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
                     return segments.Any(s => string.Equals(s, "BIOS", StringComparison.OrdinalIgnoreCase));
                 }).ToList();
 
                 foreach (var bEntry in biosEntries)
                 {
-                    if (_biosService != null && _biosService.TryGetBiosFile(bEntry.Name, out var biosFile))
+                    BiosFile biosFile = null;
+                    if (_biosService != null)
                     {
-                        var allSeries = _seriesService.GetAllSeries() ?? new List<Series>();
-                        var matchedSeries = allSeries.FirstOrDefault(s =>
-                            string.Equals(s.TitleSlug, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(s.CleanTitle, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase));
-
-                        results.Add(new ManualImportItem
-                        {
-                            Path = $"{filePath}#{bEntry.FullName}",
-                            RelativePath = rootFolder.GetRelativePath(filePath) + "#" + bEntry.FullName,
-                            Name = $"[BIOS] {biosFile.Description ?? biosFile.FileName}",
-                            Size = bEntry.Length,
-                            Series = matchedSeries,
-                            SeasonNumber = 99,
-                            Episodes = new List<Episode>(),
-                            Hashes = new Dictionary<string, string>
-                            {
-                                { "CRC32", bEntry.Crc32.ToString("x8").ToLowerInvariant() },
-                                { "MD5", biosFile.ExpectedMd5 ?? string.Empty },
-                                { "SHA-1", biosFile.ExpectedSha1 ?? string.Empty }
-                            },
-                            IsHighConfidenceMatch = true
-                        });
+                        _biosService.TryGetBiosFile(bEntry.Name, out biosFile);
                     }
+
+                    var allSeries = _seriesService.GetAllSeries() ?? new List<Series>();
+                    var matchedSeries = biosFile != null
+                        ? allSeries.FirstOrDefault(s =>
+                            string.Equals(s.TitleSlug, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(s.CleanTitle, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase))
+                        : null;
+
+                    if (matchedSeries == null)
+                    {
+                        var platformSlug = DetectPlatformFromPathClues(filePath) ?? DetectPlatformFromPathClues(bEntry.FullName);
+                        matchedSeries = FindPlatformBySlugOrTitle(platformSlug, filePath);
+                    }
+
+                    results.Add(new ManualImportItem
+                    {
+                        Path = $"{filePath}#{bEntry.FullName}",
+                        RelativePath = rootFolder.GetRelativePath(filePath) + "#" + bEntry.FullName,
+                        Name = $"[BIOS] {biosFile?.Description ?? bEntry.Name}",
+                        Size = bEntry.Length,
+                        Series = matchedSeries,
+                        SeasonNumber = 99,
+                        Episodes = new List<Episode>(),
+                        Hashes = new Dictionary<string, string>
+                        {
+                            { "CRC32", bEntry.Crc32.ToString("x8").ToLowerInvariant() },
+                            { "MD5", biosFile?.ExpectedMd5 ?? string.Empty },
+                            { "SHA-1", biosFile?.ExpectedSha1 ?? string.Empty }
+                        },
+                        IsHighConfidenceMatch = biosFile != null
+                    });
                 }
 
                 var gameEntries = archive.Entries.Where(e =>
@@ -469,6 +488,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     }
 
                     if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") || e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+
+                    if (biosEntries.Contains(e) || RegionHelper.IsBios(e.Name, null, null, e.FullName))
                     {
                         return false;
                     }
@@ -576,43 +600,52 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
         private ManualImportItem ProcessBiosFile(string filePath, string rootFolder)
         {
-            if (_biosService == null || !File.Exists(filePath))
+            if (!File.Exists(filePath))
             {
                 return null;
             }
 
             var fileName = Path.GetFileName(filePath);
-            if (!_biosService.TryGetBiosFile(fileName, out var biosFile))
+            BiosFile biosFile = null;
+            if (_biosService != null)
             {
-                return null;
+                _biosService.TryGetBiosFile(fileName, out biosFile);
             }
 
-            var allSeries = _seriesService.GetAllSeries() ?? new List<Series>();
-            var matchedSeries = allSeries.FirstOrDefault(s =>
-                string.Equals(s.TitleSlug, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(s.CleanTitle, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase));
+            var allSeries = _seriesService?.GetAllSeries() ?? new List<Series>();
+            var matchedSeries = biosFile != null
+                ? allSeries.FirstOrDefault(s =>
+                    string.Equals(s.TitleSlug, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(s.CleanTitle, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase))
+                : null;
 
-            if (matchedSeries == null && !string.IsNullOrWhiteSpace(biosFile.GamePlatform))
+            if (matchedSeries == null && biosFile != null && !string.IsNullOrWhiteSpace(biosFile.GamePlatform))
             {
                 matchedSeries = allSeries.FirstOrDefault(s =>
                     s.TitleSlug != null && s.TitleSlug.IndexOf(biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
-            var isValid = _biosService.VerifyBios(filePath, biosFile.ExpectedMd5, biosFile.ExpectedSha1);
+            if (matchedSeries == null)
+            {
+                var platformSlug = DetectPlatformFromPathClues(filePath);
+                matchedSeries = FindPlatformBySlugOrTitle(platformSlug, filePath);
+            }
+
+            var isValid = biosFile != null && _biosService != null && _biosService.VerifyBios(filePath, biosFile.ExpectedMd5, biosFile.ExpectedSha1);
 
             return new ManualImportItem
             {
                 Path = filePath,
                 RelativePath = rootFolder.GetRelativePath(filePath),
-                Name = $"[BIOS] {biosFile.Description ?? biosFile.FileName}",
+                Name = $"[BIOS] {biosFile?.Description ?? fileName}",
                 Size = new FileInfo(filePath).Length,
                 Series = matchedSeries,
                 SeasonNumber = 99,
                 Episodes = new List<Episode>(),
                 Hashes = new Dictionary<string, string>
                 {
-                    { "MD5", biosFile.ExpectedMd5 ?? string.Empty },
-                    { "SHA-1", biosFile.ExpectedSha1 ?? string.Empty }
+                    { "MD5", biosFile?.ExpectedMd5 ?? string.Empty },
+                    { "SHA-1", biosFile?.ExpectedSha1 ?? string.Empty }
                 },
                 IsHighConfidenceMatch = isValid
             };
@@ -621,6 +654,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private ManualImportItem ProcessSingleFile(string filePath, string rootFolder, List<string> validExtensions, Series preferredSeries = null)
         {
             var fileName = Path.GetFileName(filePath);
+            if (RegionHelper.IsBios(fileName, null, null, filePath))
+            {
+                return ProcessBiosFile(filePath, rootFolder);
+            }
+
             var hashes = ComputeHashes(filePath, validExtensions);
 
             var effectiveRomName = fileName;
@@ -910,7 +948,14 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                 if (_episodeService != null)
                 {
-                    var seasonNum = parsedRom?.RegionNumber ?? 1;
+                    var bestTitle = !string.IsNullOrWhiteSpace(parsedRom?.GameTitle)
+                        ? parsedRom.GameTitle
+                        : (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName)
+                            ? matchedDatEntry.GameName
+                            : fileNameNoExt);
+
+                    var isBios = RegionHelper.IsBios(bestTitle, romName, parsedRom?.DumpTags);
+                    var seasonNum = isBios ? GameCatalogProxy.RegionBios : (parsedRom?.RegionNumber ?? 1);
 
                     foreach (var cand in candidateTitles)
                     {
@@ -931,12 +976,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     {
                         return fuzzyMatched;
                     }
-
-                    var bestTitle = !string.IsNullOrWhiteSpace(parsedRom?.GameTitle)
-                        ? parsedRom.GameTitle
-                        : (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName)
-                            ? matchedDatEntry.GameName
-                            : fileNameNoExt);
 
                     var nextEpNum = games
                         .Where(e => e.SeasonNumber == seasonNum)

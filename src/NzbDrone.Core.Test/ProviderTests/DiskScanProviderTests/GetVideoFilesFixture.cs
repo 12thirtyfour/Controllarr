@@ -91,6 +91,8 @@ namespace NzbDrone.Core.Test.ProviderTests.DiskScanProviderTests
         [TestCase(".hidden")]
         [TestCase(".unwanted")]
         [TestCase("theme-music")]
+        [TestCase("BIOS")]
+        [TestCase("bios")]
         public void should_filter_certain_sub_folders(string subFolder)
         {
             var path = @"C:\Test\";

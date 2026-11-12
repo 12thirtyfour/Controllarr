@@ -12,6 +12,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles.GameImport.Aggregation;
 using NzbDrone.Core.MediaFiles.LibraryImport;
@@ -693,13 +694,41 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     }
                 }
 
-                if (_biosService != null && platform != null &&
-                    _biosService.IsKnownBiosFileName(Path.GetFileName(actualPath)))
+                var isBiosCandidate = (platform != null && _biosService != null && _biosService.IsKnownBiosFileName(Path.GetFileName(actualPath))) ||
+                                      RegionHelper.IsBios(Path.GetFileName(actualPath), file.Path, null, actualPath);
+
+                if (isBiosCandidate)
                 {
-                    var isBios = _biosService.ProcessCandidateBiosFile(actualPath, platform, move: message.ImportMode == ImportMode.Move);
+                    var isBios = false;
+                    if (_biosService != null && platform != null)
+                    {
+                        isBios = _biosService.ProcessCandidateBiosFile(actualPath, platform, move: message.ImportMode == ImportMode.Move);
+                    }
+
+                    if (!isBios && platform != null && !string.IsNullOrWhiteSpace(platform.Path))
+                    {
+                        var biosDestDir = Path.Combine(platform.Path, "BIOS");
+                        if (!Directory.Exists(biosDestDir))
+                        {
+                            Directory.CreateDirectory(biosDestDir);
+                        }
+
+                        var destFile = Path.Combine(biosDestDir, Path.GetFileName(actualPath));
+                        if (message.ImportMode == ImportMode.Move)
+                        {
+                            File.Move(actualPath, destFile, true);
+                        }
+                        else
+                        {
+                            File.Copy(actualPath, destFile, true);
+                        }
+
+                        isBios = true;
+                    }
+
                     if (isBios)
                     {
-                        var biosDest = Path.Combine(platform.Path, "BIOS", Path.GetFileName(actualPath));
+                        var biosDest = platform != null ? Path.Combine(platform.Path, "BIOS", Path.GetFileName(actualPath)) : actualPath;
                         var biosResult = new ImportResult(new ImportDecision(new LocalEpisode
                         {
                             Path = biosDest,

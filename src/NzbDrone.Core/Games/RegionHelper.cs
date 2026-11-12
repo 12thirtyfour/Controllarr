@@ -58,6 +58,7 @@ namespace NzbDrone.Core.Games
                 4 => "World",
                 5 => "Homebrew",
                 6 => "ROM Hacks & Translations",
+                99 => "BIOS",
                 _ => $"Region {regionNumber}"
             };
         }
@@ -79,6 +80,7 @@ namespace NzbDrone.Core.Games
                 "world" or "global" => 4,
                 "homebrew" => 5,
                 "rom hacks" or "rom hack" or "translation" or "translations" => 6,
+                "bios" or "firmware" => 99,
                 _ => 1
             };
         }
@@ -214,6 +216,52 @@ namespace NzbDrone.Core.Games
                     text.Contains("Demake", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Unlicensed/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\Unlicensed\\", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool IsBios(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            if (!string.IsNullOrWhiteSpace(verificationSource) &&
+                (verificationSource.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
+                 verificationSource.Contains("Firmware", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            if (dumpTags != null && dumpTags.Any(t =>
+                t.Equals("BIOS", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("Firmware", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var texts = new[] { title, releaseTitle };
+            foreach (var text in texts)
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (text.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("(BIOS)", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("(Firmware)", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("[Firmware]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Boot ROM", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/BIOS/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\BIOS\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.EndsWith("/BIOS", StringComparison.OrdinalIgnoreCase) ||
+                    text.EndsWith("\\BIOS", StringComparison.OrdinalIgnoreCase) ||
+                    text.StartsWith("bios_", StringComparison.OrdinalIgnoreCase) ||
+                    text.EndsWith(".ipl", StringComparison.OrdinalIgnoreCase) ||
+                    text.Equals("disksys.rom", StringComparison.OrdinalIgnoreCase) ||
+                    text.Equals("cd_bios.rom", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }

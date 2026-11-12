@@ -52,7 +52,10 @@ namespace NzbDrone.Core.Tv
             var episodesPerSeason = orderedEpisodes.GroupBy(s => s.SeasonNumber).ToDictionary(g => g.Key, g => g.Count());
             var latestSeason = seasons.MaxBy(s => s.SeasonNumber);
 
-            var validExisting = existingEpisodes.Where(e => string.IsNullOrWhiteSpace(e.Title) || GameCatalogProxy.IsValidGameTitle(e.Title)).ToList();
+            var validExisting = existingEpisodes
+                .Where(e => (string.IsNullOrWhiteSpace(e.Title) || GameCatalogProxy.IsValidGameTitle(e.Title)) &&
+                            (!RegionHelper.IsBios(e.Title) || e.SeasonNumber == GameCatalogProxy.RegionBios))
+                .ToList();
 
             foreach (var episode in orderedEpisodes)
             {
@@ -113,7 +116,11 @@ namespace NzbDrone.Core.Tv
             allEpisodes.AddRange(newList);
             allEpisodes.AddRange(updateList);
 
-            _episodeService.DeleteMany(existingEpisodes);
+            var episodesToDelete = existingEpisodes
+                .Where(e => e.SeasonNumber != GameCatalogProxy.RegionBios)
+                .ToList();
+
+            _episodeService.DeleteMany(episodesToDelete);
             _episodeService.UpdateMany(updateList);
             _episodeService.InsertMany(newList);
 

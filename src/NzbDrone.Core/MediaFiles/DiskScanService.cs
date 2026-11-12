@@ -12,6 +12,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.MediaFiles.GameImport;
@@ -77,7 +78,7 @@ namespace NzbDrone.Core.MediaFiles
         }
 
         private static readonly Regex ExcludedExtrasSubFolderRegex = new Regex(@"(?:\\|\/|^)(?:extras|extrafanart|behind the scenes|deleted scenes|featurettes|interviews|other|scenes|samples|shorts|trailers|theme[-_. ]music|backdrops)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:@eadir|\.@__thumb|plex versions|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:@eadir|\.@__thumb|plex versions|bios|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ExcludedExtraFilesRegex = new Regex(@"(-(trailer|other|behindthescenes|deleted|featurette|interview|scene|short)\.[^.]+$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ExcludedFilesRegex = new Regex(@"^\.(_|unmanic|DS_Store$)|^Thumbs\.db$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -397,6 +398,7 @@ namespace NzbDrone.Core.MediaFiles
         {
             var filteredPaths = paths.Where(path => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(path)))
                         .Where(path => !ExcludedFilesRegex.IsMatch(Path.GetFileName(path)))
+                        .Where(path => !IsBiosPathOrFile(basePath, path))
                         .ToList();
 
             if (filterExtras)
@@ -407,6 +409,24 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             return filteredPaths;
+        }
+
+        private bool IsBiosPathOrFile(string basePath, string path)
+        {
+            var fileName = Path.GetFileName(path);
+            if (_biosService != null && _biosService.IsKnownBiosFileName(fileName))
+            {
+                return true;
+            }
+
+            if (RegionHelper.IsBios(fileName, null, null, path))
+            {
+                return true;
+            }
+
+            var relativePath = basePath.GetRelativePath(path);
+            var segments = relativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+            return segments.Any(s => s.Equals("bios", StringComparison.OrdinalIgnoreCase));
         }
 
         private void ExtractCollectionArchives(Series series)

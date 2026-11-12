@@ -9,6 +9,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Parser;
@@ -377,7 +378,7 @@ namespace NzbDrone.Core.MediaFiles
                 };
             }
 
-            if (_biosService != null && series != null && _biosService.IsKnownBiosFileName(fileInfo.Name))
+            if (_biosService != null && series != null && (_biosService.IsKnownBiosFileName(fileInfo.Name) || RegionHelper.IsBios(fileInfo.Name)))
             {
                 var processed = _biosService.ProcessCandidateBiosFile(fileInfo.FullName, series, move: importMode == ImportMode.Move);
                 if (processed)
