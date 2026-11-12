@@ -83,10 +83,10 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         _addAllValidator.RuleFor(s => s.RootFolderPath).Cascade(CascadeMode.Stop)
             .NotEmpty()
             .IsValidPath()
-            .SetValidator(rootFolderExistsValidator);
+            .Must(path => _rootFolderService.All().Exists(r => r.Path.IsPathValid(NzbDrone.Common.Disk.PathValidationType.CurrentOs) && r.Path.PathEquals(path)))
+            .WithMessage("Root folder '{PropertyValue}' does not exist");
         _addAllValidator.RuleFor(s => s.QualityProfileId).Cascade(CascadeMode.Stop)
-            .ValidId()
-            .SetValidator(qualityProfileExistsValidator);
+            .ValidId();
 
         SharedValidator.RuleFor(s => s.Path).Cascade(CascadeMode.Stop)
             .IsValidPath()
