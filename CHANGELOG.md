@@ -57,6 +57,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **TG16 / PC Engine Region Classification (`GameCatalogProxy`)**:
+  - Updated `GameCatalogProxy.ClassifyRegionAndCategory` and region token sets (`UsaRegionTokens`, `EuropeRegionTokens`, `JapanRegionTokens`, `WorldRegionTokens`) so short parenthesized region codes parsed by `RomParser` (`J`, `JP`, `JPN`, `E`, `EU`, `EUR`, `U`, `US`, `W`, `JUE`, `UEJ`) classify into their true regions instead of falling through to `USA`.
+  - Updated the SMDB path-segment fallback in `ClassifyRegionAndCategory` so untagged entries under `PC Engine` or `SuperGrafx` folders map to `Japan` and entries under `TurboGrafx` map to `USA`, and added `.sgx` to `tg16`'s supported ROM extensions.
 - **Queue Loading Failure (`QualityProfile`, `QueueResource`, `QueueController`)**:
   - Guarded `QualityProfile.CalculateCustomFormatScore` against `null` custom format lists (`model.RemoteEpisode?.CustomFormats == null`), preventing a `NullReferenceException` (`500 Internal Server Error`) when mapping queue items without `RemoteEpisode.CustomFormats`.
   - Updated `QueueResourceMapper.ToResource` (V5) to treat packs with more than 50 mapped games as full-set packs (`GameIds = []`, `IsFullSeason = true`) so the Queue UI does not issue oversized `/episode?gameIds=...` query strings, and added null-safe guards in V5 `QueueController` sorting and filtering.

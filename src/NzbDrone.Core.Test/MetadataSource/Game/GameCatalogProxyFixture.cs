@@ -657,5 +657,35 @@ game (
             NzbDrone.Core.Games.RegionHelper.IsBios("boot.ipl").Should().BeTrue();
             NzbDrone.Core.Games.RegionHelper.IsBios("Sonic CD (USA)").Should().BeFalse();
         }
+
+        [Test]
+        public void should_classify_tg16_and_short_region_codes_into_correct_regions()
+        {
+            Subject.TryGetPlatformEntry(1020, out var tg16Platform).Should().BeTrue();
+
+            var jpShort = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(tg16Platform, "15-in-1 Mega Collection - Backtracking Ten Years (J)", 1990, "SmokeMonster HTGDB / SMDB");
+            jpShort.Should().NotBeNull();
+            jpShort.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
+
+            var euShort = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(tg16Platform, "Sample Game (E)", 1990, "SmokeMonster HTGDB / SMDB");
+            euShort.Should().NotBeNull();
+            euShort.RegionNumber.Should().Be(GameCatalogProxy.RegionEurope);
+
+            var worldShort = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(tg16Platform, "Sample Game (W)", 1990, "SmokeMonster HTGDB / SMDB");
+            worldShort.Should().NotBeNull();
+            worldShort.RegionNumber.Should().Be(GameCatalogProxy.RegionWorld);
+
+            var usaShort = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(tg16Platform, "Sample Game (U)", 1990, "SmokeMonster HTGDB / SMDB");
+            usaShort.Should().NotBeNull();
+            usaShort.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
+
+            var pcEnginePath = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(tg16Platform, "Untagged PC Engine Game", 1990, "SmokeMonster HTGDB / SMDB | Turbo EverDrive/2 PC Engine - A-M/Untagged PC Engine Game.pce");
+            pcEnginePath.Should().NotBeNull();
+            pcEnginePath.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
+
+            var superGrafxPath = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(tg16Platform, "Untagged SuperGrafx Game", 1990, "SmokeMonster HTGDB / SMDB | Turbo EverDrive/3 SuperGrafx/Untagged SuperGrafx Game.sgx");
+            superGrafxPath.Should().NotBeNull();
+            superGrafxPath.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
+        }
     }
 }

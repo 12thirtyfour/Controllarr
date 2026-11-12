@@ -118,12 +118,12 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static readonly HashSet<string> UsaRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "USA", "US", "NTSC-U", "NTSC", "CAN", "CANADA", "BRA", "BRAZIL", "MEX", "MEXICO", "LATIN AMERICA"
+            "U", "JU", "UE", "USA", "US", "NTSC-U", "NTSC", "CAN", "CANADA", "BRA", "BRAZIL", "MEX", "MEXICO", "LATIN AMERICA"
         };
 
         private static readonly HashSet<string> EuropeRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "EUR", "EU", "EUROPE", "PAL", "PAL-R", "GBR", "UK", "UKV", "UNITED KINGDOM", "AUS", "AUSTRALIA",
+            "E", "EUR", "EU", "EUROPE", "PAL", "PAL-R", "GBR", "UK", "UKV", "UNITED KINGDOM", "AUS", "AUSTRALIA",
             "GER", "DEU", "GERMANY", "FRA", "FRANCE", "SPA", "ESP", "SPAIN", "ITA", "ITALY", "HOL", "NLD",
             "NETHERLANDS", "RUS", "RUSSIA", "SWE", "SWEDEN", "NOR", "NORWAY", "DAN", "DEN", "DENMARK",
             "FIN", "FINLAND", "POL", "POLAND", "POR", "PRT", "PORTUGAL", "SCAN", "SCANDINAVIA", "GRE", "GREECE"
@@ -131,13 +131,13 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         private static readonly HashSet<string> JapanRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "JPN", "JP", "JAPAN", "NTSC-J", "KOR", "KR", "KOREA", "NTSC-K", "TWN", "TW", "TAIWAN", "NTSC-T",
+            "J", "JPN", "JP", "JAPAN", "NTSC-J", "KOR", "KR", "KOREA", "NTSC-K", "TWN", "TW", "TAIWAN", "NTSC-T",
             "CHN", "CN", "CHINA", "HKG", "HK", "HONG KONG", "ASI", "AS", "ASIA"
         };
 
         private static readonly HashSet<string> WorldRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "WLD", "WORLD", "ALL"
+            "W", "WLD", "WORLD", "ALL", "JUE", "UEJ"
         };
 
         private static readonly HashSet<string> AsianLanguageTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -2537,6 +2537,35 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             // Note: Prototypes, Betas, Demos, and Samples stay in their geographic region
             // so they appear as versions of the game itself rather than in a separate region.
+            if (parsed?.Regions != null && parsed.Regions.Count > 0)
+            {
+                var regionTokens = parsed.Regions
+                    .SelectMany(r => r.Split(new[] { ',', ';', '/' }, StringSplitOptions.RemoveEmptyEntries))
+                    .Select(t => t.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .ToList();
+
+                if (regionTokens.Any(t => WorldRegionTokens.Contains(t)))
+                {
+                    return RegionWorld;
+                }
+
+                if (regionTokens.Any(t => UsaRegionTokens.Contains(t)))
+                {
+                    return RegionUsa;
+                }
+
+                if (regionTokens.Any(t => JapanRegionTokens.Contains(t)))
+                {
+                    return RegionJapan;
+                }
+
+                if (regionTokens.Any(t => EuropeRegionTokens.Contains(t)))
+                {
+                    return RegionEurope;
+                }
+            }
+
             var regionStr = parsed?.Regions != null && parsed.Regions.Count > 0
                 ? string.Join(",", parsed.Regions)
                 : noIntroName;
@@ -2621,7 +2650,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     if (segment.Contains("Japan", StringComparison.OrdinalIgnoreCase) ||
                         segment.Contains("Korea", StringComparison.OrdinalIgnoreCase) ||
-                        segment.Contains("Asia", StringComparison.OrdinalIgnoreCase))
+                        segment.Contains("Asia", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("PC Engine", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("SuperGrafx", StringComparison.OrdinalIgnoreCase))
                     {
                         return RegionJapan;
                     }
@@ -2636,7 +2667,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                         return RegionWorld;
                     }
 
-                    if (segment.Contains("USA", StringComparison.OrdinalIgnoreCase))
+                    if (segment.Contains("USA", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("TurboGrafx", StringComparison.OrdinalIgnoreCase))
                     {
                         return RegionUsa;
                     }
@@ -3579,7 +3611,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     "NEC - PC Engine - TurboGrafx 16",
                     "Bonk's Adventure (USA)",
                     new[] { "TG16", "PC Engine", "PCE", "TurboGrafx" },
-                    new[] { ".pce", ".zip", ".7z" },
+                    new[] { ".pce", ".sgx", ".zip", ".7z" },
                     "Co-developed by Hudson Soft and NEC (released in Japan as the PC Engine), the TurboGrafx-16 combined an efficient 8-bit HuC6280 CPU with dual 16-bit graphics processors and credit-card-sized HuCard ROM media. Celebrated for its vibrant color palettes and legendary scrolling shooters like Blazing Lazers, R-Type, Soldier Blade, and Bonk's Adventure."),
                 CreatePlatform(
                     1021,
