@@ -72,7 +72,44 @@ namespace NzbDrone.Core.Tv
 
         public List<Episode> GetEpisodes(IEnumerable<int> ids)
         {
-            return _episodeRepository.Get(ids).ToList();
+            if (ids == null)
+            {
+                return new List<Episode>();
+            }
+
+            var distinctIds = ids.Where(id => id > 0).Distinct().ToList();
+            if (distinctIds.Count == 0)
+            {
+                return new List<Episode>();
+            }
+
+            try
+            {
+                return _episodeRepository.Get(distinctIds).ToList();
+            }
+            catch (ApplicationException ex)
+            {
+                _logger.Debug(ex, "Some requested game IDs no longer exist; returning available games");
+
+                var results = new List<Episode>(distinctIds.Count);
+                foreach (var id in distinctIds)
+                {
+                    try
+                    {
+                        var game = _episodeRepository.Get(id);
+                        if (game != null)
+                        {
+                            results.Add(game);
+                        }
+                    }
+                    catch (ModelNotFoundException)
+                    {
+                        // Skip stale or deleted game IDs so batch API queries remain resilient
+                    }
+                }
+
+                return results;
+            }
         }
 
         public Episode FindEpisode(int seriesId, int seasonNumber, int episodeNumber)

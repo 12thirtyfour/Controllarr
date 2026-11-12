@@ -57,6 +57,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **`GET /api/v5/episode` Row-Count Mismatch Crash (`GameService`)**:
+  - Updated `GameService.GetEpisodes(IEnumerable<int> ids)` to deduplicate/filter positive IDs and gracefully skip stale or deleted game IDs (`ModelNotFoundException` fallback when `BasicRepository.Get(ids)` throws `ApplicationException` on mismatched row count), preventing `GET /api/v5/episode` from failing with HTTP 500 when Queue/History/UI requests include duplicate or stale game IDs.
 - **TG16 / PC Engine Region Classification (`GameCatalogProxy`)**:
   - Updated `GameCatalogProxy.ClassifyRegionAndCategory` and region token sets (`UsaRegionTokens`, `EuropeRegionTokens`, `JapanRegionTokens`, `WorldRegionTokens`) so short parenthesized region codes parsed by `RomParser` (`J`, `JP`, `JPN`, `E`, `EU`, `EUR`, `U`, `US`, `W`, `JUE`, `UEJ`) classify into their true regions instead of falling through to `USA`.
   - Updated the SMDB path-segment fallback in `ClassifyRegionAndCategory` so untagged entries under `PC Engine` or `SuperGrafx` folders map to `Japan` and entries under `TurboGrafx` map to `USA`, and added `.sgx` to `tg16`'s supported ROM extensions.
