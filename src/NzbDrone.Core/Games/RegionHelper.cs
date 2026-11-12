@@ -74,10 +74,10 @@ namespace NzbDrone.Core.Games
             return r switch
             {
                 "unlicensed" => 0,
-                "usa" or "us" or "north america" or "na" => 1,
-                "europe" or "eu" or "pal" => 2,
-                "japan" or "jp" or "ja" => 3,
-                "world" or "global" => 4,
+                "usa" or "us" or "u" or "north america" or "na" or "canada" or "brazil" => 1,
+                "europe" or "eu" or "eur" or "e" or "pal" or "uk" or "united kingdom" or "australia" or "germany" or "france" or "spain" or "italy" or "netherlands" or "sweden" or "denmark" or "finland" or "norway" or "portugal" or "russia" or "poland" or "greece" or "scandinavia" => 2,
+                "japan" or "jp" or "ja" or "jpn" or "j" or "ntsc-j" or "asia" or "korea" or "ntsc-k" or "china" or "taiwan" or "hong kong" => 3,
+                "world" or "global" or "w" or "jue" or "uej" => 4,
                 "homebrew" => 5,
                 "rom hacks" or "rom hack" or "translation" or "translations" => 6,
                 "bios" or "firmware" => 99,

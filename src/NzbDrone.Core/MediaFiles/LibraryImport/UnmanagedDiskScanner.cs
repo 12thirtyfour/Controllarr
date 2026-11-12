@@ -937,9 +937,28 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             if (series != null)
             {
                 var games = _episodeService?.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
-                var matched = games.FirstOrDefault(g => g.Title != null && (
-                    candidateTitles.Contains(g.Title) ||
-                    cleanCandidates.Contains(g.Title.CleanSeriesTitle())));
+                var bestTitle = !string.IsNullOrWhiteSpace(parsedRom?.GameTitle)
+                    ? parsedRom.GameTitle
+                    : (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName)
+                        ? (RomParser.ParseRomName(matchedDatEntry.GameName)?.GameTitle ?? matchedDatEntry.GameName)
+                        : fileNameNoExt);
+
+                var isBios = RegionHelper.IsBios(bestTitle, romName, parsedRom?.DumpTags);
+                var seasonNum = isBios ? GameCatalogProxy.RegionBios : (parsedRom?.RegionNumber ?? 1);
+                var hasExplicitRegion = parsedRom?.Regions != null && parsedRom.Regions.Count > 0;
+
+                // Match within the target region first so Japanese/European ROMs never map onto USA entries.
+                var matched = games.FirstOrDefault(g => g.Title != null &&
+                    g.SeasonNumber == seasonNum &&
+                    (candidateTitles.Contains(g.Title) ||
+                     cleanCandidates.Contains(g.Title.CleanSeriesTitle())));
+
+                if (matched == null && (!hasExplicitRegion || seasonNum == GameCatalogProxy.RegionWorld))
+                {
+                    matched = games.FirstOrDefault(g => g.Title != null && (
+                        candidateTitles.Contains(g.Title) ||
+                        cleanCandidates.Contains(g.Title.CleanSeriesTitle())));
+                }
 
                 if (matched != null)
                 {
@@ -948,15 +967,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                 if (_episodeService != null)
                 {
-                    var bestTitle = !string.IsNullOrWhiteSpace(parsedRom?.GameTitle)
-                        ? parsedRom.GameTitle
-                        : (!string.IsNullOrWhiteSpace(matchedDatEntry?.GameName)
-                            ? matchedDatEntry.GameName
-                            : fileNameNoExt);
-
-                    var isBios = RegionHelper.IsBios(bestTitle, romName, parsedRom?.DumpTags);
-                    var seasonNum = isBios ? GameCatalogProxy.RegionBios : (parsedRom?.RegionNumber ?? 1);
-
                     foreach (var cand in candidateTitles)
                     {
                         var ep = _episodeService.FindEpisodeByTitle(series.Id, seasonNum, cand);

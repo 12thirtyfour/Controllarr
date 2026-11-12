@@ -43,6 +43,11 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **Duplicate ROM Import & Japanese Region Misclassification (`RomParser`, `RegionHelper`, `GameCatalogProxy`, `UnmanagedDiskScanner`, `ManualImportService`)**:
+  - Updated `RomParser.RegionRegex` and `RegionHelper.GetRegionNumber` to recognize short GoodTools/No-Intro region tags (`(J)`, `(JP)`, `(JPN)`, `(U)`, `(US)`, `(E)`, `(EU)`, `(EUR)`, `(W)`, `(JU)`, `(JUE)`), preventing Japanese/European Game Boy and console ROMs from defaulting to Region 1 (`USA`) or retaining unstripped region tags in created titles.
+  - Updated `GameCatalogProxy.ParseSmokeMonsterSmdbContent` to pass `smdbPath` as `verificationSource` and updated `ClassifyRegionAndCategory` to inspect `verificationSource` path segments (such as `2 Japan/`), preventing Japanese SMDB catalog entries without explicit `(Japan)` filename tags from falling back to `USA`.
+  - Scoped `UnmanagedDiskScanner.FindOrCreateEpisode` game matching by target region (`SeasonNumber`) first so Japanese/European ROMs never map onto `USA` entries of the same game title, and ensured newly created entries strip parenthetical region tags.
+  - Forced `ImportMode.Move` in `ManualImportService` when organizing files already inside the target platform library folder so in-place compression/renaming never leaves a duplicate copy alongside the renamed file.
 - **Library Import Top-Level Folder Discovery (`RootFolderService`, `ImportFolderService`)**:
   - Added `GetImportUnmappedFolders` on `IRootFolderService` and wired `ImportFolderService` to use `topLevelOnly: true` when scanning Library Import source folders. Prevents `SeriesFolderFormat` depth traversal from descending past top-level platform/collection folders into region subfolders (which previously hid collection directories and left only `.zip`/`.7z` archives visible).
 - **Date-Stamped Release Validation & TV Terminology Removal (`ValidateParsedGameInfo`, `ParsingService`, `PendingReleaseService`, `AggregateGames`)**:

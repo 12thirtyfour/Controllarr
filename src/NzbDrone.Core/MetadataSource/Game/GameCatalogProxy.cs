@@ -1227,7 +1227,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                     smdbCategory = "Unlicensed";
                 }
 
-                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, smdbCategory, customReleaseDate: releaseDate);
+                var effectiveVerificationSource = string.IsNullOrWhiteSpace(smdbPath) ? smdbCategory : $"{smdbCategory} | {smdbPath}";
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, effectiveVerificationSource, customReleaseDate: releaseDate);
                 if (entry != null)
                 {
                     entry.ExpectedSha256 = sha256;
@@ -2610,6 +2611,35 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (langTokens.Count >= 2)
                 {
                     return RegionWorld;
+                }
+            }
+
+            if ((parsed?.Regions == null || parsed.Regions.Count == 0) && !string.IsNullOrWhiteSpace(verificationSource))
+            {
+                var pathSegments = verificationSource.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var segment in pathSegments)
+                {
+                    if (segment.Contains("Japan", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("Korea", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("Asia", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionJapan;
+                    }
+
+                    if (segment.Contains("Europe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionEurope;
+                    }
+
+                    if (segment.Contains("World", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionWorld;
+                    }
+
+                    if (segment.Contains("USA", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionUsa;
+                    }
                 }
             }
 

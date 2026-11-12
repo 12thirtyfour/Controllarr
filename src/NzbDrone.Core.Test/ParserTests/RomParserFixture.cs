@@ -134,5 +134,16 @@ namespace NzbDrone.Core.Test.ParserTests
             var result3 = RomParser.ParseRomName("bios_CD_U.bin");
             result3.RegionNumber.Should().Be(99);
         }
+
+        [TestCase("Pocket Monsters (J).gb", "Pocket Monsters", 3)]
+        [TestCase("Super Mario Land (U).gb", "Super Mario Land", 1)]
+        [TestCase("Tetris (E).gb", "Tetris", 2)]
+        [TestCase("Kirby's Dream Land (JUE).gb", "Kirby's Dream Land", 4)]
+        public void Should_parse_short_region_codes_and_assign_region_number(string title, string expectedTitle, int expectedRegion)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.GameTitle.Should().Be(expectedTitle);
+            result.RegionNumber.Should().Be(expectedRegion);
+        }
     }
 }

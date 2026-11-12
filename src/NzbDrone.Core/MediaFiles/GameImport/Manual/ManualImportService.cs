@@ -614,6 +614,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                 var games = _episodeService.GetEpisodes(file.GameIds);
                 var fileGameInfo = Parser.Parser.ParsePath(file.Path) ?? new ParsedEpisodeInfo();
                 var existingFile = platform != null && platform.Path.IsParentPath(file.Path);
+                var isInLibraryPath = existingFile;
                 if (existingFile && platform != null)
                 {
                     var relativePath = platform.Path.GetRelativePath(file.Path);
@@ -806,7 +807,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                 if (trackedDownload == null)
                 {
-                    var importResult = _importApprovedGames.Import(new List<ImportDecision> { importDecision }, !existingFile, null, message.ImportMode);
+                    var effectiveImportMode = isInLibraryPath && !existingFile
+                        ? ImportMode.Move
+                        : message.ImportMode;
+
+                    var importResult = _importApprovedGames.Import(new List<ImportDecision> { importDecision }, !existingFile, null, effectiveImportMode);
 
                     imported.AddRange(importResult);
                     importedUntrackedDownload.AddRange(importResult);
