@@ -210,6 +210,11 @@ namespace NzbDrone.Core.Tv
                         continue;
                     }
 
+                    if (string.IsNullOrWhiteSpace(incomingSourcePath))
+                    {
+                        EnsurePlatformFoldersCreated(series);
+                    }
+
                     seriesToAdd.Add(series);
                     incomingSourcePaths.Add((series, incomingSourcePath));
                 }
