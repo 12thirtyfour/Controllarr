@@ -79,6 +79,7 @@ namespace NzbDrone.Core.Games.Launcher
         GameLaunchDescriptor BuildLaunchDescriptor(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0);
         DesktopLaunchResult LaunchDesktopGame(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0);
         Stream OpenRomStream(int gameId, out string fileName, string platformFolder = "", string romPath = "", int romFileId = 0);
+        Stream OpenBiosStream(int gameId, out string fileName, string platformFolder = "", string romPath = "", int romFileId = 0);
     }
 
     public class GameLauncherService : IGameLauncherService
@@ -652,6 +653,20 @@ namespace NzbDrone.Core.Games.Launcher
                 ? $"{streamRoute}?{string.Join("&", streamQueryParts)}"
                 : streamRoute;
 
+            var biosStreamUrl = string.Empty;
+            if (config.AutoInjectBios)
+            {
+                var biosPath = ResolveBiosFilePath(emulatorJsCore, romFileName, safeRomPath, series);
+                if (!string.IsNullOrWhiteSpace(biosPath))
+                {
+                    var biosFileName = Path.GetFileName(biosPath);
+                    var biosRoute = $"/api/v5/gamelauncher/{resolvedGameId}/bios/{Uri.EscapeDataString(biosFileName)}";
+                    biosStreamUrl = streamQueryParts.Count > 0
+                        ? $"{biosRoute}?{string.Join("&", streamQueryParts)}"
+                        : biosRoute;
+                }
+            }
+
             return new GameLaunchDescriptor
             {
                 GameId = resolvedGameId,
@@ -671,6 +686,7 @@ namespace NzbDrone.Core.Games.Launcher
                 Shader = config.DefaultShader ?? "none",
                 EmulatorJsDataPath = config.EmulatorJsDataPath ?? "https://cdn.emulatorjs.org/stable/data/",
                 RomStreamUrl = romStreamUrl,
+                BiosStreamUrl = biosStreamUrl,
                 DesktopProtocolUri = $"controllarr://play/{resolvedGameId}?core={encodedCore}&rom={encodedRom}",
                 WebPlayerUrl = $"/webplayer?gameId={resolvedGameId}&core={encodedCore}&rom={encodedRom}"
             };
@@ -775,6 +791,149 @@ namespace NzbDrone.Core.Games.Launcher
             return new FileStream(descriptor.RomPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
+        public Stream OpenBiosStream(int gameId, out string fileName, string platformFolder = "", string romPath = "", int romFileId = 0)
+        {
+            fileName = string.Empty;
+            var descriptor = BuildLaunchDescriptor(gameId, platformFolder, romPath, romFileId);
+            Series series = null;
+            if (_seriesService != null && descriptor.SeriesId > 0)
+            {
+                try
+                {
+                    series = _seriesService.GetSeries(descriptor.SeriesId);
+                }
+                catch
+                {
+                    series = null;
+                }
+            }
+
+            var biosPath = ResolveBiosFilePath(descriptor.EmulatorJsCore, descriptor.RomFileName, descriptor.RomPath, series);
+            if (string.IsNullOrWhiteSpace(biosPath) || !File.Exists(biosPath))
+            {
+                return null;
+            }
+
+            fileName = Path.GetFileName(biosPath);
+            return new FileStream(biosPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        private string ResolveBiosFilePath(string emulatorJsCore, string romFileName, string romPath, Series series)
+        {
+            var candidates = GetPreferredBiosFileNames(emulatorJsCore, romFileName);
+            if (candidates.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var searchDirs = new List<string>();
+            if (!string.IsNullOrWhiteSpace(series?.Path))
+            {
+                searchDirs.Add(Path.Combine(series.Path, "BIOS"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(romPath))
+            {
+                var romDir = Path.GetDirectoryName(romPath);
+                if (!string.IsNullOrWhiteSpace(romDir))
+                {
+                    searchDirs.Add(Path.Combine(romDir, "BIOS"));
+                    var parentDir = Path.GetDirectoryName(romDir);
+                    if (!string.IsNullOrWhiteSpace(parentDir))
+                    {
+                        searchDirs.Add(Path.Combine(parentDir, "BIOS"));
+                    }
+                }
+            }
+
+            if (_appFolderInfo != null && !string.IsNullOrWhiteSpace(_appFolderInfo.AppDataFolder))
+            {
+                searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios"));
+                if (!string.IsNullOrWhiteSpace(series?.TitleSlug))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", series.TitleSlug));
+                }
+            }
+
+            foreach (var dir in searchDirs.Where(d => !string.IsNullOrWhiteSpace(d)).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!Directory.Exists(dir))
+                {
+                    continue;
+                }
+
+                foreach (var fileName in candidates)
+                {
+                    var fullPath = Path.Combine(dir, fileName);
+                    if (File.Exists(fullPath))
+                    {
+                        return fullPath;
+                    }
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static List<string> GetPreferredBiosFileNames(string emulatorJsCore, string romFileName)
+        {
+            if (string.IsNullOrWhiteSpace(emulatorJsCore))
+            {
+                return new List<string>();
+            }
+
+            if (emulatorJsCore.Equals("segaCD", StringComparison.OrdinalIgnoreCase))
+            {
+                var name = romFileName ?? string.Empty;
+                if (name.Contains("(Europe", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("(EUR", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("(PAL", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new List<string> { "bios_CD_E.bin", "bios_CD_U.bin", "bios_CD_J.bin" };
+                }
+
+                if (name.Contains("(Japan", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("(JPN", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new List<string> { "bios_CD_J.bin", "bios_CD_U.bin", "bios_CD_E.bin" };
+                }
+
+                return new List<string> { "bios_CD_U.bin", "bios_CD_E.bin", "bios_CD_J.bin" };
+            }
+
+            if (emulatorJsCore.Equals("psx", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "scph5501.bin", "scph5500.bin", "scph5502.bin", "scph1001.bin", "PSXONPSP660.bin" };
+            }
+
+            if (emulatorJsCore.Equals("segaSaturn", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "sega_101.bin", "mpr-17933.bin", "saturn_bios.bin" };
+            }
+
+            if (emulatorJsCore.Equals("gba", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "gba_bios.bin" };
+            }
+
+            if (emulatorJsCore.Equals("lynx", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "lynxboot.img" };
+            }
+
+            if (emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "syscard3.pce" };
+            }
+
+            if (emulatorJsCore.Equals("3do", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "panafz10.bin", "panafz1.bin", "goldstar.bin" };
+            }
+
+            return new List<string>();
+        }
+
         private string ResolveRomFilePath(
             int romFileId,
             ref Series series,
@@ -863,6 +1022,30 @@ namespace NzbDrone.Core.Games.Launcher
                  emulatorJsCore.Equals("neocd", StringComparison.OrdinalIgnoreCase)))
             {
                 return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(emulatorJsCore) &&
+                (emulatorJsCore.Equals("segaCD", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("psx", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("segaSaturn", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("3do", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase)) &&
+                File.Exists(romPath))
+            {
+                try
+                {
+                    using var archive = ZipFile.OpenRead(romPath);
+                    var fileEntries = archive.Entries.Where(e => !string.IsNullOrWhiteSpace(e.Name) && e.Length > 0).ToList();
+                    if (fileEntries.Count > 1 ||
+                        fileEntries.Any(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return false;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
             }
 
             return true;

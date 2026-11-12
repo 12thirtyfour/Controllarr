@@ -175,6 +175,29 @@ function WebPlayerPage() {
     return `${origin}${relativeUrl.startsWith('/') ? '' : '/'}${relativeUrl}`;
   }, [apiKey, descriptor, urlBase]);
 
+  const biosStreamUrl = useMemo(() => {
+    if (!descriptor?.biosStreamUrl) {
+      return '';
+    }
+
+    const baseStream = descriptor.biosStreamUrl;
+    const separator = baseStream.includes('?') ? '&' : '?';
+    const relativeUrl = `${urlBase}${baseStream}${
+      apiKey ? `${separator}apikey=${encodeURIComponent(apiKey)}` : ''
+    }`;
+
+    if (/^https?:\/\//i.test(relativeUrl)) {
+      return relativeUrl;
+    }
+
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : '';
+
+    return `${origin}${relativeUrl.startsWith('/') ? '' : '/'}${relativeUrl}`;
+  }, [apiKey, descriptor, urlBase]);
+
   const playerSrcDoc = useMemo(() => {
     if (!descriptor || !descriptor.hasRomFile) {
       return '';
@@ -190,6 +213,9 @@ function WebPlayerPage() {
     const shaderValue = selectedShader === 'none' ? '' : selectedShader;
     const shaderLine = shaderValue
       ? `window.EJS_shader = ${JSON.stringify(shaderValue)};`
+      : '';
+    const biosLine = biosStreamUrl
+      ? `window.EJS_biosUrl = ${JSON.stringify(biosStreamUrl)};`
       : '';
     const originHref =
       typeof window !== 'undefined' && window.location?.origin
@@ -227,12 +253,14 @@ function WebPlayerPage() {
     window.EJS_pathtodata = ${JSON.stringify(dataPath)};
     window.EJS_color = '#00a8e8';
     window.EJS_startOnLoaded = true;
+    ${biosLine}
     ${shaderLine}
   </script>
   <script src="${dataPath}loader.js"></script>
 </body>
 </html>`;
   }, [
+    biosStreamUrl,
     descriptor,
     effectiveConfig.emulatorJsDataPath,
     romStreamUrl,

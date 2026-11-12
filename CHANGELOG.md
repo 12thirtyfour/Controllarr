@@ -65,6 +65,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **Sega CD & Disc-Based In-Browser WebPlayer Launch (`GameLauncherService`, `GameLauncherController`, `WebPlayerPage`)**:
+  - Added BIOS resolution (`ResolveBiosFilePath`, `OpenBiosStream`) and `GET /api/v5/gamelauncher/{gameId}/bios/{fileName?}` so `GameLaunchDescriptor.BiosStreamUrl` is populated when `AutoInjectBios` is enabled and `WebPlayerPage.tsx` passes `window.EJS_biosUrl` to EmulatorJS (enabling Sega CD `bios_CD_U.bin`/`bios_CD_E.bin`/`bios_CD_J.bin`, PlayStation, Saturn, GBA, Lynx, PC Engine CD, and 3DO BIOS loading).
+  - Updated `GameLauncherService.ShouldExtractZipForWebPlayer` so multi-file or `.cue`-containing `.zip` archives for disc cores (`segaCD`, `psx`, `segaSaturn`, `3do`, `pcengine`) are streamed intact instead of extracting only the `.cue` file without its `.bin` tracks.
 - **`GET /api/v5/episode` Row-Count Mismatch Crash (`GameService`)**:
   - Updated `GameService.GetEpisodes(IEnumerable<int> ids)` to deduplicate/filter positive IDs and gracefully skip stale or deleted game IDs (`ModelNotFoundException` fallback when `BasicRepository.Get(ids)` throws `ApplicationException` on mismatched row count), preventing `GET /api/v5/episode` from failing with HTTP 500 when Queue/History/UI requests include duplicate or stale game IDs.
 - **TG16 / PC Engine Region Classification (`GameCatalogProxy`)**:

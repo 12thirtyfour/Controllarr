@@ -76,6 +76,28 @@ namespace Sonarr.Api.V5.Games
             return File(stream, "application/octet-stream", downloadFileName, enableRangeProcessing: true);
         }
 
+        [HttpGet("{gameId:int}/bios")]
+        [HttpGet("{gameId:int}/bios/{fileName}")]
+        public IActionResult StreamBiosFile(
+            [FromRoute] int gameId,
+            [FromRoute] string? fileName = null,
+            [FromQuery] string platformFolder = "",
+            [FromQuery] string romPath = "",
+            [FromQuery] int romFileId = 0)
+        {
+            var stream = _gameLauncherService.OpenBiosStream(gameId, out var resolvedFileName, platformFolder, romPath, romFileId);
+            if (stream == null)
+            {
+                return NotFound(new { message = "BIOS file not found on disk." });
+            }
+
+            var downloadFileName = !string.IsNullOrWhiteSpace(resolvedFileName)
+                ? resolvedFileName
+                : (fileName ?? "bios.bin");
+
+            return File(stream, "application/octet-stream", downloadFileName, enableRangeProcessing: true);
+        }
+
         [HttpPost("{gameId:int}/launch")]
         [Produces("application/json")]
         public ActionResult<DesktopLaunchResult> LaunchDesktopGame(
