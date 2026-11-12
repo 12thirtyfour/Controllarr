@@ -38,6 +38,8 @@ All notable changes to **Controllarr** are documented in this file.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
 ### Fixed
+- **RootFolder SQLite Persistence Mapping (`TableMapping`)**:
+  - Ignored runtime-computed `ContainsRomFiles` and `UnmappedFolders` properties on `RootFolder` in `TableMapping.cs` (matching `ImportFolder` mapping), resolving `SQLiteException: table RootFolders has no column named ContainsRomFiles` when adding a new Media Management root folder via `POST /api/v5/rootFolder`.
 - **BIOS Isolation & Regular Game Library Leakage Prevention (`RegionHelper`, `GameCatalogProxy`, `RomParser`, `DiskScanService`, `UnmanagedDiskScanner`, `ManualImportService`, `RefreshGameService`)**:
   - Enforced strict isolation of system BIOS, firmware, boot ROM, IPL, and disc system files (`[BIOS]`, `(BIOS)`, `cd_bios.rom`, `disksys.rom`, `bios_*.bin`, `*.ipl`, `Boot ROM`), completely preventing them from populating into regular game regions (USA = Region 1, Europe = Region 2, Japan = Region 3, etc.).
   - Added centralized `RegionHelper.IsBios` detection and explicit `99 => "BIOS"` / `RegionBios` mapping across `RegionHelper`, `ParsedRomInfo.RegionNumber`, `RomParser`, and `GameCatalogProxy.ClassifyRegionAndCategory`.

@@ -63,7 +63,9 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(r => r.Accessible)
                   .Ignore(r => r.IsEmpty)
                   .Ignore(r => r.FreeSpace)
-                  .Ignore(r => r.TotalSpace);
+                  .Ignore(r => r.TotalSpace)
+                  .Ignore(r => r.ContainsRomFiles)
+                  .Ignore(r => r.UnmappedFolders);
 
             Mapper.Entity<ImportFolder>("ImportFolders").RegisterModel()
                   .Ignore(r => r.Accessible)
