@@ -17,6 +17,7 @@ using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Extras.Others;
 using NzbDrone.Core.History;
+using NzbDrone.Core.ImportFolders;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.ImportLists.Exclusions;
 using NzbDrone.Core.Indexers;
@@ -63,6 +64,14 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(r => r.IsEmpty)
                   .Ignore(r => r.FreeSpace)
                   .Ignore(r => r.TotalSpace);
+
+            Mapper.Entity<ImportFolder>("ImportFolders").RegisterModel()
+                  .Ignore(r => r.Accessible)
+                  .Ignore(r => r.IsEmpty)
+                  .Ignore(r => r.FreeSpace)
+                  .Ignore(r => r.TotalSpace)
+                  .Ignore(r => r.ContainsRomFiles)
+                  .Ignore(r => r.UnmappedFolders);
 
             Mapper.Entity<ScheduledTask>("ScheduledTasks").RegisterModel()
                   .Ignore(i => i.Priority);

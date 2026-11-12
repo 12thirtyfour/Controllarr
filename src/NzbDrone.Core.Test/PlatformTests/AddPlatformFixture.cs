@@ -7,11 +7,13 @@ using FluentValidation;
 using FluentValidation.Results;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Organizer;
+using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.Commands;
@@ -230,6 +232,122 @@ namespace NzbDrone.Core.Test.PlatformTests
             result.Should().BeSameAs(existing);
             Mocker.GetMock<ISeriesService>()
                   .Verify(s => s.AddSeries(It.IsAny<Series>()), Times.Never());
+        }
+
+        [Test]
+        public void should_resolve_to_primary_library_root_folder_when_importing_from_source_folder()
+        {
+            var sourcePath = @"C:\Downloads\Super Nintendo";
+            var targetRoot = @"C:\Roms";
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(sourcePath))
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(targetRoot))
+                  .Returns(true);
+
+            Mocker.GetMock<IRootFolderService>()
+                  .Setup(r => r.All())
+                  .Returns(new List<RootFolder> { new RootFolder { Id = 1, Path = targetRoot } });
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.AddSeries(It.IsAny<List<Series>>()))
+                  .Returns<List<Series>>(list => list);
+
+            GivenValidSeries(1005);
+            GivenValidPath();
+
+            var newSeries = new Series
+            {
+                TvdbId = 1005,
+                Title = "Super Nintendo Entertainment System",
+                Path = sourcePath,
+                Language = Language.English
+            };
+
+            var added = Subject.AddSeries(new List<Series> { newSeries });
+
+            added.Should().ContainSingle();
+            added[0].Path.Should().Be(Path.Combine(targetRoot, _fakeSeries.Title));
+            added[0].RootFolderPath.Should().Be(targetRoot);
+        }
+
+        [Test]
+        public void should_leave_platform_in_place_when_import_mode_is_leave()
+        {
+            var sourcePath = @"C:\Downloads\Super Nintendo";
+            var targetRoot = @"C:\Roms";
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(sourcePath))
+                  .Returns(true);
+
+            Mocker.GetMock<IRootFolderService>()
+                  .Setup(r => r.All())
+                  .Returns(new List<RootFolder> { new RootFolder { Id = 1, Path = targetRoot } });
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.AddSeries(It.IsAny<List<Series>>()))
+                  .Returns<List<Series>>(list => list);
+
+            GivenValidSeries(1005);
+            GivenValidPath();
+
+            var newSeries = new Series
+            {
+                TvdbId = 1005,
+                Title = "Super Nintendo Entertainment System",
+                Path = sourcePath,
+                Language = Language.English,
+                AddOptions = new AddPlatformOptions
+                {
+                    ImportMode = "leave"
+                }
+            };
+
+            var added = Subject.AddSeries(new List<Series> { newSeries });
+
+            added.Should().ContainSingle();
+            added[0].Path.Should().Be(sourcePath);
+        }
+
+        [Test]
+        public void should_use_explicit_root_folder_path_when_specified_on_import()
+        {
+            var sourcePath = @"C:\Downloads\Super Nintendo";
+            var targetRoot = @"D:\Games\Nintendo";
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(sourcePath))
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(targetRoot))
+                  .Returns(true);
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.AddSeries(It.IsAny<List<Series>>()))
+                  .Returns<List<Series>>(list => list);
+
+            GivenValidSeries(1005);
+            GivenValidPath();
+
+            var newSeries = new Series
+            {
+                TvdbId = 1005,
+                Title = "Super Nintendo Entertainment System",
+                Path = sourcePath,
+                RootFolderPath = targetRoot,
+                Language = Language.English
+            };
+
+            var added = Subject.AddSeries(new List<Series> { newSeries });
+
+            added.Should().ContainSingle();
+            added[0].Path.Should().Be(Path.Combine(targetRoot, _fakeSeries.Title));
+            added[0].RootFolderPath.Should().Be(targetRoot);
         }
     }
 }

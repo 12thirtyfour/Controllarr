@@ -205,6 +205,8 @@ function ImportPlatformFooter() {
         seriesType: defaults.seriesType,
         collectionStrategy: defaults.collectionStrategy,
         enableCompression: defaults.enableCompression,
+        importMode: defaults.importMode,
+        rootFolderPath: defaults.rootFolderPath,
       });
     });
   }, [defaults, defaultLanguage, importableIds]);

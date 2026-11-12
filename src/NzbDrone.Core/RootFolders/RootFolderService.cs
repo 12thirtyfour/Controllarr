@@ -26,6 +26,7 @@ namespace NzbDrone.Core.RootFolders
         string GetBestRootFolderPath(string path);
         string ResolvePlatformFromArchive(string filePath);
         bool CheckContainsRomFiles(string path);
+        List<UnmappedFolder> GetUnmappedFolders(string path);
     }
 
     public class RootFolderService : IRootFolderService
@@ -184,6 +185,12 @@ namespace NzbDrone.Core.RootFolders
             }
 
             return false;
+        }
+
+        public List<UnmappedFolder> GetUnmappedFolders(string path)
+        {
+            var seriesPaths = _seriesRepository.AllSeriesPaths();
+            return GetUnmappedFolders(path, seriesPaths);
         }
 
         private List<UnmappedFolder> GetUnmappedFolders(string path, Dictionary<int, string> seriesPaths)

@@ -87,6 +87,7 @@ public class AddPlatformOptionsResource : MonitoringOptions
 {
     public bool SearchForMissingGames { get; set; }
     public bool SearchForCutoffUnmetGames { get; set; }
+    public string? ImportMode { get; set; }
 }
 
 public static class AddPlatformOptionsResourceMapper
@@ -102,7 +103,8 @@ public static class AddPlatformOptionsResourceMapper
         {
             Monitor = model.Monitor,
             SearchForMissingGames = model.SearchForMissingEpisodes,
-            SearchForCutoffUnmetGames = model.SearchForCutoffUnmetEpisodes
+            SearchForCutoffUnmetGames = model.SearchForCutoffUnmetEpisodes,
+            ImportMode = model.ImportMode
         };
     }
 
@@ -117,7 +119,8 @@ public static class AddPlatformOptionsResourceMapper
         {
             Monitor = resource.Monitor,
             SearchForMissingEpisodes = resource.SearchForMissingGames,
-            SearchForCutoffUnmetEpisodes = resource.SearchForCutoffUnmetGames
+            SearchForCutoffUnmetEpisodes = resource.SearchForCutoffUnmetGames,
+            ImportMode = resource.ImportMode
         };
     }
 }

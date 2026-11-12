@@ -12,52 +12,52 @@ import PageHeading from 'Components/Page/PageHeading';
 import SectionHeading from 'Components/SectionHeading';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { icons, kinds } from 'Helpers/Props';
-import RootFolders from 'RootFolder/RootFolders';
-import useRootFolders, { useAddRootFolder } from 'RootFolder/useRootFolders';
+import ImportFolders from 'ImportFolder/ImportFolders';
+import useImportFolders, { useAddImportFolder } from 'ImportFolder/useImportFolders';
 import { useIsWindows } from 'System/Status/useSystemStatus';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
 import styles from './ImportPlatformSelectFolder.module.css';
 
 function ImportPlatformSelectFolder() {
-  const { isFetching, isFetched, error, data } = useRootFolders();
-  const { addRootFolder, isAdding, addError, newRootFolder } =
-    useAddRootFolder();
+  const { isFetching, isFetched, error, data } = useImportFolders();
+  const { addImportFolder, isAdding, addError, newImportFolder } =
+    useAddImportFolder();
   const navigate = useNavigate();
 
   const isWindows = useIsWindows();
 
-  const [isAddNewRootFolderModalOpen, setIsAddNewRootFolderModalOpen] =
+  const [isAddNewImportFolderModalOpen, setIsAddNewImportFolderModalOpen] =
     useState(false);
 
   const wasAdding = usePrevious(isAdding);
 
-  const hasRootFolders = data.length > 0;
-  const goodFolderExample = isWindows ? 'C:\\roms' : '/roms';
+  const hasImportFolders = data.length > 0;
+  const goodFolderExample = isWindows ? 'C:\\staging\\roms' : '/staging/roms';
   const badFolderExample = isWindows
-    ? 'C:\\roms\\Super Nintendo'
-    : '/roms/Super Nintendo';
+    ? 'C:\\staging\\roms\\Super Nintendo'
+    : '/staging/roms/Super Nintendo';
 
-  const handleAddNewRootFolderPress = useCallback(() => {
-    setIsAddNewRootFolderModalOpen(true);
+  const handleAddNewImportFolderPress = useCallback(() => {
+    setIsAddNewImportFolderModalOpen(true);
   }, []);
 
-  const handleAddRootFolderModalClose = useCallback(() => {
-    setIsAddNewRootFolderModalOpen(false);
+  const handleAddImportFolderModalClose = useCallback(() => {
+    setIsAddNewImportFolderModalOpen(false);
   }, []);
 
-  const handleNewRootFolderSelect = useCallback(
+  const handleNewImportFolderSelect = useCallback(
     ({ value }: InputChanged<string>) => {
-      addRootFolder({ path: value });
+      addImportFolder({ path: value });
     },
-    [addRootFolder]
+    [addImportFolder]
   );
 
   useEffect(() => {
-    if (!isAdding && wasAdding && !addError && newRootFolder) {
-      navigate(`/add/import/${newRootFolder.id}`);
+    if (!isAdding && wasAdding && !addError && newImportFolder) {
+      navigate(`/add/import/${newImportFolder.id}`);
     }
-  }, [isAdding, wasAdding, addError, newRootFolder, navigate]);
+  }, [isAdding, wasAdding, addError, newImportFolder, navigate]);
 
   return (
     <PageContent title={translate('ImportPlatform')}>
@@ -70,14 +70,14 @@ function ImportPlatformSelectFolder() {
         {isFetching && !isFetched ? <LoadingIndicator /> : null}
 
         {!isFetching && error ? (
-          <Alert kind={kinds.DANGER}>{translate('RootFoldersLoadError')}</Alert>
+          <Alert kind={kinds.DANGER}>Failed to load import source folders</Alert>
         ) : null}
 
         {!error && isFetched ? (
           <div>
             <SectionHeading
-              title={translate('LibraryImportPlatformHeader')}
-              description={translate('LibraryImportPlatformDescription')}
+              title="Import Source Folders"
+              description="Select an external source folder to scan and import games into your library. Import source folders are strictly sources and are never used to store your library."
             />
 
             <details className={styles.tips}>
@@ -87,34 +87,29 @@ function ImportPlatformSelectFolder() {
                   name={icons.EXPAND_INDETERMINATE}
                   size={12}
                 />
-                {translate('LibraryImportTips')}
+                Import Source Folder Tips
               </summary>
 
               <ul className={styles.tipsList}>
                 <li>
-                  <InlineMarkdown
-                    data={translate(
-                      'LibraryImportTipsQualityInRomFilename'
-                    )}
-                  />
+                  Import source folders are external staging folders (e.g. downloads, flash drives, temporary packs).
                 </li>
                 <li>
                   <InlineMarkdown
-                    data={translate('LibraryImportTipsSeriesUseRootFolder', {
-                      goodFolderExample,
-                      badFolderExample,
-                    })}
+                    data={`Select the folder containing platform folders, e.g. **${goodFolderExample}**, rather than individual platform subfolders like **${badFolderExample}**.`}
                   />
                 </li>
-                <li>{translate('LibraryImportTipsDontUseDownloadsFolder')}</li>
+                <li>
+                  Imported media will be organized and moved into your primary library folder configured in Media Management.
+                </li>
               </ul>
             </details>
 
-            {hasRootFolders ? <RootFolders isSelectable={true} /> : null}
+            {hasImportFolders ? <ImportFolders isSelectable={true} /> : null}
 
             {!isAdding && addError ? (
               <Alert className={styles.addErrorAlert} kind={kinds.DANGER}>
-                {translate('AddRootFolderError')}
+                Failed to add import source folder
 
                 <ul>
                   {Array.isArray(addError.statusBody) ? (
@@ -130,22 +125,22 @@ function ImportPlatformSelectFolder() {
 
             <div className={styles.chooseFolderButtonContainer}>
               <Button
-                kind={hasRootFolders ? kinds.DEFAULT : kinds.PRIMARY}
-                onPress={handleAddNewRootFolderPress}
+                kind={hasImportFolders ? kinds.DEFAULT : kinds.PRIMARY}
+                onPress={handleAddNewImportFolderPress}
               >
                 <Icon className={styles.importButtonIcon} name={icons.DRIVE} />
-                {hasRootFolders
-                  ? translate('ChooseAnotherFolder')
-                  : translate('StartImport')}
+                {hasImportFolders
+                  ? 'Choose Another Source Folder'
+                  : 'Add Source Folder to Import'}
               </Button>
             </div>
 
             <FileBrowserModal
-              isOpen={isAddNewRootFolderModalOpen}
-              name="rootFolderPath"
+              isOpen={isAddNewImportFolderModalOpen}
+              name="importSourcePath"
               value=""
-              onChange={handleNewRootFolderSelect}
-              onModalClose={handleAddRootFolderModalClose}
+              onChange={handleNewImportFolderSelect}
+              onModalClose={handleAddImportFolderModalClose}
             />
           </div>
         ) : null}

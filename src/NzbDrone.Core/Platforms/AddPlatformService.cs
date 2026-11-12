@@ -942,6 +942,15 @@ namespace NzbDrone.Core.Tv
         {
             if (string.IsNullOrWhiteSpace(newSeries.Path))
             {
+                if (string.IsNullOrWhiteSpace(newSeries.RootFolderPath))
+                {
+                    var targetRoot = ResolveTargetLibraryRootFolder(newSeries, incomingSourcePath);
+                    if (!string.IsNullOrWhiteSpace(targetRoot))
+                    {
+                        newSeries.RootFolderPath = targetRoot;
+                    }
+                }
+
                 var folderName = _fileNameBuilder.GetSeriesFolder(newSeries);
                 newSeries.Path = Path.Combine(newSeries.RootFolderPath, folderName);
             }
@@ -956,25 +965,45 @@ namespace NzbDrone.Core.Tv
                     folderName = Path.GetFileNameWithoutExtension(newSeries.Path);
                 }
 
-                if (!string.IsNullOrWhiteSpace(targetRoot) && !string.IsNullOrWhiteSpace(folderName))
+                if (!string.IsNullOrWhiteSpace(targetRoot))
                 {
-                    newSeries.Path = Path.Combine(targetRoot, folderName);
+                    newSeries.RootFolderPath = targetRoot;
+                    if (!string.IsNullOrWhiteSpace(folderName))
+                    {
+                        newSeries.Path = Path.Combine(targetRoot, folderName);
+                    }
                 }
             }
             else if (_diskProvider != null &&
                      !string.IsNullOrWhiteSpace(incomingSourcePath) &&
                      _diskProvider.FolderExists(incomingSourcePath))
             {
-                var targetRoot = ResolveTargetLibraryRootFolder(newSeries, incomingSourcePath);
-                var folderName = _fileNameBuilder?.GetSeriesFolder(newSeries);
-                if (string.IsNullOrWhiteSpace(folderName))
+                if (newSeries.AddOptions?.ImportMode?.Equals("leave", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    folderName = newSeries.Title;
+                    newSeries.Path = incomingSourcePath;
+                    var parentDir = Path.GetDirectoryName(incomingSourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                    if (!string.IsNullOrWhiteSpace(parentDir))
+                    {
+                        newSeries.RootFolderPath = parentDir;
+                    }
                 }
-
-                if (!string.IsNullOrWhiteSpace(targetRoot) && !string.IsNullOrWhiteSpace(folderName))
+                else
                 {
-                    newSeries.Path = Path.Combine(targetRoot, folderName);
+                    var targetRoot = ResolveTargetLibraryRootFolder(newSeries, incomingSourcePath);
+                    var folderName = _fileNameBuilder?.GetSeriesFolder(newSeries);
+                    if (string.IsNullOrWhiteSpace(folderName))
+                    {
+                        folderName = newSeries.Title;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(targetRoot))
+                    {
+                        newSeries.RootFolderPath = targetRoot;
+                        if (!string.IsNullOrWhiteSpace(folderName))
+                        {
+                            newSeries.Path = Path.Combine(targetRoot, folderName);
+                        }
+                    }
                 }
             }
 
@@ -1018,10 +1047,41 @@ namespace NzbDrone.Core.Tv
 
         private string ResolveTargetLibraryRootFolder(Series newSeries, string incomingSourcePath)
         {
-            if (!string.IsNullOrWhiteSpace(newSeries?.RootFolderPath) &&
-                (_diskProvider == null || _diskProvider.FolderExists(newSeries.RootFolderPath)))
+            if (!string.IsNullOrWhiteSpace(newSeries?.RootFolderPath))
             {
                 return newSeries.RootFolderPath;
+            }
+
+            if (newSeries?.AddOptions?.ImportMode?.Equals("leave", StringComparison.OrdinalIgnoreCase) == true &&
+                !string.IsNullOrWhiteSpace(incomingSourcePath))
+            {
+                var trimmed = incomingSourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                return Path.GetDirectoryName(trimmed);
+            }
+
+            if (_rootFolderService != null)
+            {
+                var rootFolders = _rootFolderService.All();
+                if (rootFolders != null && rootFolders.Any())
+                {
+                    var sourceParent = !string.IsNullOrWhiteSpace(incomingSourcePath)
+                        ? Path.GetDirectoryName(incomingSourcePath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                        : null;
+
+                    var primaryRoot = rootFolders.FirstOrDefault(r =>
+                        !string.IsNullOrWhiteSpace(r.Path) &&
+                        (sourceParent == null || !r.Path.PathEquals(sourceParent)));
+
+                    if (primaryRoot == null)
+                    {
+                        primaryRoot = rootFolders.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.Path));
+                    }
+
+                    if (primaryRoot != null)
+                    {
+                        return primaryRoot.Path;
+                    }
+                }
             }
 
             if (_diskProvider != null && _seriesService != null)

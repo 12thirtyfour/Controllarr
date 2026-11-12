@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useAddPlatformOptions } from 'AddPlatform/addPlatformOptionsStore';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import Series from 'Platform/Platform';
+import useRootFolders from 'RootFolder/useRootFolders';
 import {
   getImportPlatformItems,
   removeImportPlatformItemByPath,
@@ -9,12 +11,16 @@ import {
 
 export const useImportPlatform = () => {
   const queryClient = useQueryClient();
+  const defaults = useAddPlatformOptions();
+  const { data: targetRootFolders = [] } = useRootFolders();
+  const primaryRootFolder = defaults.rootFolderPath || targetRootFolders[0]?.path || '';
 
   const { isPending, error, mutate } = useApiMutation<Series[], Series[]>({
     path: '/series/import',
     method: 'POST',
     mutationOptions: {
       onSuccess: (data, newSeries) => {
+        queryClient.invalidateQueries({ queryKey: ['/importfolder'] });
         queryClient.invalidateQueries({ queryKey: ['/rootFolder'] });
         queryClient.setQueryData<Series[]>(['/series'], (oldSeries) => {
           if (!oldSeries) {
@@ -42,12 +48,16 @@ export const useImportPlatform = () => {
         const selectedSeries = item?.selectedSeries;
 
         if (selectedSeries && item) {
+          const isLeave = item.importMode === 'leave';
+          const targetRoot = isLeave ? undefined : (item.rootFolderPath || primaryRootFolder);
+
           const newSeries: Series = {
             ...selectedSeries,
             monitored: item.monitor !== 'none',
             monitorNewItems: 'all',
             qualityProfileId: item.qualityProfileId || 1,
             path: item.path,
+            rootFolderPath: targetRoot || '',
             seriesType: item.seriesType,
             language: item.language,
             seasonType: item.seasonType,
@@ -58,6 +68,7 @@ export const useImportPlatform = () => {
               monitor: item.monitor,
               searchForMissingGames: false,
               searchForCutoffUnmetGames: false,
+              importMode: item.importMode || defaults.importMode || 'move',
             },
             tags: [],
           };
@@ -75,7 +86,7 @@ export const useImportPlatform = () => {
         mutate(allNewSeries);
       }
     },
-    [mutate]
+    [defaults.importMode, mutate, primaryRootFolder]
   );
 
   return {

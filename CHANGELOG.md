@@ -29,6 +29,14 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-12]
 
+### Added
+- **Separation of Target Library Folders and Import Source Folders (`ImportFolders`, `RootFolders`, `AddPlatformService`)**:
+  - Architecturally decoupled Media Management Target Folders (`RootFolder`) from Library Import Source Folders (`ImportFolder`). Media Management root folders are strictly designated as destination locations where a user's library is stored, while Library Import folders are treated as external staging/import sources used solely to discover incoming ROMs and collections.
+  - Added dedicated database persistence (`ImportFolders`), API endpoints (`/api/v3/importfolder` and `/api/v5/importfolder`), and repository/service models (`ImportFolderRepository`, `ImportFolderService`) completely isolated from `RootFolder`.
+  - Adding an external source directory in Library Import no longer registers that directory as a permanent root folder in Media Management.
+  - Added "Import Action" (`Move to Library` vs `Leave in Place`) and "Target Library" selection in the Library Import Defaults bar and import cards.
+  - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
+
 ### Fixed
 - **Queue & Activity Table Column Header Alignment (`QueueRow`, `HistoryRow`, `BlocklistRow`, `CutoffUnmetRow`, `RomFileRow`)**:
   - Resolved column shifting and header misalignment in the Activity Queue and associated tables by updating row cell matching to accept both `'format'` and `'quality'` identifiers. Prevents the Format/ROM Quality column cell from being skipped and shifting all subsequent table cells (Formats, Time Left, Progress, Actions) one position to the left of their headers.

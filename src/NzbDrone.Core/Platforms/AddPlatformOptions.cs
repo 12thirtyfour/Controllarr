@@ -4,5 +4,6 @@
     {
         public bool SearchForMissingEpisodes { get; set; }
         public bool SearchForCutoffUnmetEpisodes { get; set; }
+        public string ImportMode { get; set; }
     }
 }

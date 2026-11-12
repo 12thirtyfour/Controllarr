@@ -68,6 +68,7 @@ export interface SeriesAddOptions {
   monitor: SeriesMonitor;
   searchForMissingGames: boolean;
   searchForCutoffUnmetGames: boolean;
+  importMode?: string;
 }
 
 export interface Translation {

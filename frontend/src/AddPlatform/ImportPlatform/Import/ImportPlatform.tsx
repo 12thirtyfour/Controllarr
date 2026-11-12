@@ -9,8 +9,9 @@ import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import { icons, kinds } from 'Helpers/Props';
+import useImportFolders, { useImportFolder } from 'ImportFolder/useImportFolders';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
-import useRootFolders, { useRootFolder } from 'RootFolder/useRootFolders';
+import { useRootFolder } from 'RootFolder/useRootFolders';
 import translate from 'Utilities/String/translate';
 import ImportPlatformFooter from './ImportPlatformFooter';
 import ImportPlatformList from './ImportPlatformList';
@@ -18,47 +19,53 @@ import { clearImportPlatform } from './importPlatformStore';
 import styles from './ImportPlatform.module.css';
 
 function ImportPlatform() {
-  const { rootFolderId: rootFolderIdString = '' } = useParams<{
+  const { rootFolderId: sourceFolderIdString = '' } = useParams<{
     rootFolderId: string;
   }>();
-  const rootFolderId = parseInt(rootFolderIdString);
+  const sourceFolderId = parseInt(sourceFolderIdString);
 
   const {
-    isFetching: rootFoldersFetching,
-    isFetched: rootFoldersFetched,
-    error: rootFoldersError,
-    data: rootFolders,
-  } = useRootFolders();
+    isFetching: importFoldersFetching,
+    isFetched: importFoldersFetched,
+    error: importFoldersError,
+    data: importFolders,
+  } = useImportFolders();
 
   const {
-    isFetching: rootFolderFetching,
-    isFetched: rootFolderFetched,
-    error: rootFolderError,
-    data: detailedRootFolder,
-  } = useRootFolder(rootFolderId, false);
+    isFetching: importFolderFetching,
+    isFetched: importFolderFetched,
+    error: importFolderError,
+    data: detailedImportFolder,
+  } = useImportFolder(sourceFolderId, false);
+
+  const {
+    data: fallbackRootFolder,
+  } = useRootFolder(sourceFolderId, false);
 
   const isLoading =
-    (rootFoldersFetching && !rootFoldersFetched && !detailedRootFolder) ||
-    (rootFolderFetching && !rootFolderFetched && !detailedRootFolder);
-  const isReady = rootFoldersFetched || rootFolderFetched;
-  const loadError = rootFolderError ?? rootFoldersError;
+    (importFoldersFetching && !importFoldersFetched && !detailedImportFolder) ||
+    (importFolderFetching && !importFolderFetched && !detailedImportFolder);
+  const isReady = importFoldersFetched || importFolderFetched || !!fallbackRootFolder;
+  const loadError = importFolderError ?? importFoldersError;
 
   const { path, unmappedFolders, containsRomFiles } = useMemo(() => {
-    const fallbackRootFolder = rootFolders.find((r) => r.id === rootFolderId);
-    const rootFolder = detailedRootFolder ?? fallbackRootFolder;
+    const importFolder =
+      detailedImportFolder ??
+      importFolders.find((r) => r.id === sourceFolderId) ??
+      fallbackRootFolder;
 
     return {
-      path: rootFolder?.path ?? '',
-      containsRomFiles: rootFolder?.containsRomFiles ?? false,
+      path: importFolder?.path ?? '',
+      containsRomFiles: importFolder?.containsRomFiles ?? false,
       unmappedFolders:
-        rootFolder?.unmappedFolders.map((unmappedFolder) => {
+        importFolder?.unmappedFolders.map((unmappedFolder) => {
           return {
             ...unmappedFolder,
             id: unmappedFolder.path || unmappedFolder.name,
           };
         }) ?? [],
     };
-  }, [detailedRootFolder, rootFolders, rootFolderId]);
+  }, [detailedImportFolder, fallbackRootFolder, importFolders, sourceFolderId]);
 
   const hasLooseRomsOnly = containsRomFiles && unmappedFolders.length === 0;
   const [isInteractiveImportOpen, setIsInteractiveImportOpen] = useState(false);
@@ -88,7 +95,7 @@ function ImportPlatform() {
     return () => {
       clearImportPlatform();
     };
-  }, [rootFolderId]);
+  }, [sourceFolderId]);
 
   return (
     <SelectProvider items={items}>
@@ -96,16 +103,24 @@ function ImportPlatform() {
         <PageContentBody ref={scrollerRef}>
           <div className={styles.content}>
             <PageHeading
-              scope={translate('Platforms')}
-              title={translate('ImportPlatform')}
+              scope="Import Source"
+              title={path ? path : translate('ImportPlatform')}
             />
 
             {isLoading ? <LoadingIndicator /> : null}
 
             {!isLoading && !!loadError ? (
               <Alert kind={kinds.DANGER}>
-                {translate('RootFoldersLoadError')}
+                Failed to load import source folder
               </Alert>
+            ) : null}
+
+            {!loadError && isReady && path ? (
+              <div style={{ marginBottom: 16 }}>
+                <Alert kind={kinds.INFO}>
+                  Import source folder: <strong>{path}</strong>. Content will be organized and moved into your primary library folder.
+                </Alert>
+              </div>
             ) : null}
 
             {hasLooseRomsOnly ? (
@@ -132,7 +147,7 @@ function ImportPlatform() {
             !hasLooseRomsOnly ? (
               <div>
                 <Alert kind={kinds.INFO}>
-                  {translate('AllSeriesInRootFolderHaveBeenImported', { path })}
+                  All platforms in this import source folder have been imported.
                 </Alert>
                 <div style={{ marginTop: 12 }}>
                   <Button

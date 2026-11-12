@@ -45,6 +45,8 @@ export interface ImportPlatformItem {
   seriesType: SeriesType;
   name: string;
   hasSearched: boolean;
+  importMode?: string;
+  rootFolderPath?: string;
 }
 
 interface ImportPlatformState {
@@ -65,6 +67,8 @@ export const useEnsureImportPlatformItems = (
   unmappedFolders: UnamppedFolderItem[]
 ) => {
   const {
+    rootFolderPath,
+    importMode,
     monitor,
     qualityProfileId,
     seriesType,
@@ -92,6 +96,8 @@ export const useEnsureImportPlatformItems = (
         seasonType: 'official',
         collectionStrategy: collectionStrategy || 'oneGameOneRom',
         enableCompression: enableCompression ?? true,
+        importMode: importMode ?? 'move',
+        rootFolderPath: rootFolderPath || '',
         hasSearched: false,
       };
 
@@ -105,6 +111,8 @@ export const useEnsureImportPlatformItems = (
   }, [
     unmappedFolders,
     language,
+    rootFolderPath,
+    importMode,
     monitor,
     qualityProfileId,
     seriesType,

@@ -79,6 +79,7 @@ export function normalizeRegionOrder(order?: number[]): number[] {
 
 export interface AddPlatformOptions {
   rootFolderPath: string;
+  importMode?: string;
   language: Language | null;
   monitor: SeriesMonitor;
   qualityProfileId: number;
@@ -103,6 +104,7 @@ const { useOptions, useOption, setOption } =
   createOptionsStore<AddPlatformOptions>('add_series_options', () => {
     return {
       rootFolderPath: '',
+      importMode: 'move',
       language: null,
       monitor: 'all',
       qualityProfileId: 1,
