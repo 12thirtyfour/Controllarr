@@ -12,61 +12,39 @@ namespace NzbDrone.Core.Test.ParserTests
     [TestFixture]
     public class ValidateParsedGameInfoFixture : CoreTest
     {
-        private ParsedEpisodeInfo _parsedEpisodeInfo;
-        private Series _series;
+        private ParsedEpisodeInfo _parsedGameInfo;
+        private Series _platform;
 
         [SetUp]
         public void Setup()
         {
-            _parsedEpisodeInfo = Builder<ParsedEpisodeInfo>.CreateNew()
-                                                           .With(p => p.AirDate = null)
-                                                           .Build();
+            _parsedGameInfo = Builder<ParsedEpisodeInfo>.CreateNew()
+                                                        .With(p => p.AirDate = null)
+                                                        .Build();
 
-            _series = Builder<Series>.CreateNew()
-                                     .With(s => s.SeriesType = SeriesTypes.Standard)
-                                     .Build();
+            _platform = Builder<Series>.CreateNew()
+                                       .With(s => s.SeriesType = SeriesTypes.Standard)
+                                       .Build();
         }
 
-        private void GivenDailyParsedEpisodeInfo()
+        private void GivenDatedParsedGameInfo()
         {
-            _parsedEpisodeInfo.AirDate = "2018-05-21";
-        }
-
-        private void GivenDailySeries()
-        {
-            _series.SeriesType = SeriesTypes.Daily;
+            _parsedGameInfo.AirDate = "2018-05-21";
         }
 
         [Test]
-        public void should_return_true_if_episode_info_is_not_daily()
+        public void should_return_true_if_game_info_is_not_dated()
         {
-            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeTrue();
+            ValidateParsedGameInfo.ValidateForPlatformType(_parsedGameInfo, _platform).Should().BeTrue();
+            ExceptionVerification.ExpectedWarns(0);
         }
 
         [Test]
-        public void should_return_true_if_episode_info_is_daily_for_daily_series()
+        public void should_return_true_if_game_info_is_dated_for_standard_platform()
         {
-            GivenDailyParsedEpisodeInfo();
-            GivenDailySeries();
+            GivenDatedParsedGameInfo();
 
-            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeTrue();
-        }
-
-        [Test]
-        public void should_return_false_if_episode_info_is_daily_for_standard_series()
-        {
-            GivenDailyParsedEpisodeInfo();
-
-            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series).Should().BeFalse();
-            ExceptionVerification.ExpectedWarns(1);
-        }
-
-        [Test]
-        public void should_not_log_warning_if_warnIfInvalid_is_false()
-        {
-            GivenDailyParsedEpisodeInfo();
-
-            ValidateParsedGameInfo.ValidateForSeriesType(_parsedEpisodeInfo, _series, false);
+            ValidateParsedGameInfo.ValidateForPlatformType(_parsedGameInfo, _platform).Should().BeTrue();
             ExceptionVerification.ExpectedWarns(0);
         }
     }

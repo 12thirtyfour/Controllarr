@@ -43,6 +43,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **Date-Stamped Release Validation & TV Terminology Removal (`ValidateParsedGameInfo`, `ParsingService`, `PendingReleaseService`, `AggregateGames`)**:
+  - Removed the legacy TV "daily-style release for non-daily platform" warning and rejection in `ValidateParsedGameInfo.ValidateForPlatformType`, allowing date-stamped ROMs, prototypes, builds, and collections (such as Atari Jaguar releases with parsed dates) to map cleanly on all console platforms.
+  - Updated callers in `ParsingService`, `PendingReleaseService`, and `AggregateGames` to use `ValidateForPlatformType` and updated `ValidateParsedGameInfoFixture` to gaming terminology.
 - **Platform Folder Creation & Post-Add Preservation (`AddPlatformService`, `DiskScanService`)**:
   - Normalized directory separators (`/` to OS directory separator) when resolving `{Manufacturer}/{Platform}` folder names in `AddPlatformService.SetPropertiesAndValidate` (with fallback to platform title when empty), ensuring clean platform paths on Windows.
   - Prevented `DiskScanService.RemoveEmptySeriesFolder` from deleting empty platform, `BIOS`, and monitored region subfolders during the initial post-add refresh scan (`series.Added` within 5 minutes) when `DeleteEmptyFolders` is enabled in Media Management settings.

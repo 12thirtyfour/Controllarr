@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Parser
                 }
 
                 if (remoteEpisode.MappedSeasonNumber.HasValue &&
-                    ValidateParsedGameInfo.ValidateForSeriesType(parsedEpisodeInfo, series))
+                    ValidateParsedGameInfo.ValidateForPlatformType(parsedEpisodeInfo, series))
                 {
                     remoteEpisode.Episodes = GetEpisodes(parsedEpisodeInfo, series, remoteEpisode.MappedSeasonNumber.Value, sceneSource, searchCriteria);
                 }

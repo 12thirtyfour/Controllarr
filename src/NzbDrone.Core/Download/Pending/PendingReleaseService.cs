@@ -413,7 +413,7 @@ namespace NzbDrone.Core.Download.Pending
                     release.RemoteEpisode.MappedSeasonNumber = knownRemoteEpisode.MappedSeasonNumber;
                     release.RemoteEpisode.Episodes = knownRemoteEpisode.Episodes;
                 }
-                else if (ValidateParsedGameInfo.ValidateForSeriesType(release.ParsedEpisodeInfo, series))
+                else if (ValidateParsedGameInfo.ValidateForPlatformType(release.ParsedEpisodeInfo, series))
                 {
                     try
                     {
