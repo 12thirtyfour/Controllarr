@@ -30,6 +30,8 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Fixed
+- **Queue & Activity Table Column Header Alignment (`QueueRow`, `HistoryRow`, `BlocklistRow`, `CutoffUnmetRow`, `RomFileRow`)**:
+  - Resolved column shifting and header misalignment in the Activity Queue and associated tables by updating row cell matching to accept both `'format'` and `'quality'` identifiers. Prevents the Format/ROM Quality column cell from being skipped and shifting all subsequent table cells (Formats, Time Left, Progress, Actions) one position to the left of their headers.
 - **Internet Archive S3 Authentication Header Retention on Redirects (`InternetArchive`)**:
   - Implemented manual redirect loop in `StreamDownloadToDiskAsync` (`AllowAutoRedirect = false`) that re-applies `Authorization: LOW <access>:<secret>` headers when following 301/302 redirects from `archive.org/download/...` to storage cluster nodes (`ia*.us.archive.org`). Prevents .NET's native `SocketsHttpHandler` from stripping credentials on cross-host redirects and erroneously causing `401 Unauthorized` responses on authenticated streams.
 - **In-Place Zip Header Inspection During Library Startup & Disk Scanning (`DiskScanService`, `UnmanagedDiskScanner`)**:

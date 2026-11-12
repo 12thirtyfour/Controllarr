@@ -104,7 +104,7 @@ function BlocklistRow({
           );
         }
 
-        if (name === 'quality') {
+        if (name === 'format' || name === 'quality') {
           return (
             <TableRowCell key={name} className={styles.quality}>
               <GameQuality quality={quality} />

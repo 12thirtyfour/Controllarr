@@ -134,7 +134,7 @@ function HistoryRow(props: HistoryRowProps) {
           );
         }
 
-        if (name === 'quality') {
+        if (name === 'format' || name === 'quality') {
           return (
             <TableRowCell key={name}>
               <GameQuality

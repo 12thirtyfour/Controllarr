@@ -127,7 +127,7 @@ function CutoffUnmetRow({
           );
         }
 
-        if (name === 'quality') {
+        if (name === 'format' || name === 'quality') {
           return (
             <TableRowCell key={name}>
               <RomFileQuality romFileId={romFileId} />

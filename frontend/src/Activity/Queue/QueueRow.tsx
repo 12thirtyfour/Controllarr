@@ -283,7 +283,7 @@ function QueueRow(props: QueueRowProps) {
           );
         }
 
-        if (name === 'quality') {
+        if (name === 'format' || name === 'quality') {
           return (
             <TableRowCell key={name}>
               {quality ? <GameQuality quality={quality} /> : null}
