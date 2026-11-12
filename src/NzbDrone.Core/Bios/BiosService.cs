@@ -250,6 +250,52 @@ namespace NzbDrone.Core.Bios
                     ("cd237e16e7e77c06bb58540e9e9fca68", "76a7360502fa0296ea93b4c537174610a834d367"),
                     ("e246140dec512abdae8ef7d99228c383", string.Empty)
                 }
+            },
+            {
+                "PS3UPDAT.PUP",
+                new[]
+                {
+                    ("a2b60b6ac1d2e49e230144345616927c", string.Empty), // PS3 Official Firmware 4.93
+                    ("c179ad173bbc08b55431d30947725a4b", string.Empty), // PS3 Official Firmware 4.92
+                    ("3694eb3fb8d9915c112e6ab41a60c69f", string.Empty), // PS3 Official Firmware 4.91
+                    ("05fe32f5dc8c78acbcd84d36ee7fdc5b", string.Empty), // PS3 Official Firmware 4.90
+                    ("95307e1b51d3bcc33a274db91488d29f", string.Empty)  // PS3 Official Firmware 4.89
+                }
+            },
+            {
+                "PSP2UPDAT.PUP",
+                new[]
+                {
+                    ("f2c7b12fe85496ec88a0391b514d6e3b", string.Empty), // PS Vita Official Firmware 3.74
+                    ("034ab948bbf1a002e0a058c602184b32", string.Empty), // PS Vita Official Firmware 3.73
+                    ("84a422f3ae0671de01e0f56d8de88a36", string.Empty), // PS Vita Official Firmware 3.72
+                    ("46b79772448291194608b44b17235da2", string.Empty), // PS Vita Official Firmware 3.71
+                    ("54227fd645fcb6f177102cbd1f2d1924", string.Empty)  // PS Vita Official Firmware 3.70
+                }
+            },
+            {
+                "11.17.0-50U.zip",
+                new[]
+                {
+                    ("e2f4d95f4fd8009d6785808f0e7a1749", string.Empty), // New 3DS USA 11.17.0-50U
+                    ("6e81f4fe7b892fc89c2f4be604731475", string.Empty)  // Old 3DS USA 11.17.0-50U
+                }
+            },
+            {
+                "11.17.0-50E.zip",
+                new[]
+                {
+                    ("d5357f47ead9fb98fb7d2522327693f8", string.Empty), // New 3DS Europe 11.17.0-50E
+                    ("ebef8f0f53d82b5453225252a83f0f0b", string.Empty)  // Old 3DS Europe 11.17.0-50E
+                }
+            },
+            {
+                "11.17.0-50J.zip",
+                new[]
+                {
+                    ("b2fb9eed4fb1fdf82c60ff507afa9fe2", string.Empty), // New 3DS Japan 11.17.0-50J
+                    ("0e29160de755d0448276767db9e4d543", string.Empty)  // Old 3DS Japan 11.17.0-50J
+                }
             }
         };
 
@@ -257,7 +303,9 @@ namespace NzbDrone.Core.Bios
         {
             { "ps1", "Sony PlayStation (PS1)" },
             { "ps2", "Sony PlayStation 2 (PS2)" },
+            { "ps3", "Sony PlayStation 3 (PS3)" },
             { "psp", "Sony PlayStation Portable (PSP)" },
+            { "psvita", "Sony PlayStation Vita (PS Vita)" },
             { "segacd", "Sega CD / Mega-CD" },
             { "saturn", "Sega Saturn" },
             { "dreamcast", "Sega Dreamcast" },
@@ -273,8 +321,10 @@ namespace NzbDrone.Core.Bios
             { "gba", "Nintendo Game Boy Advance" },
             { "nds", "Nintendo DS" },
             { "dsi", "Nintendo DSi" },
+            { "3ds", "Nintendo 3DS" },
             { "pokemonmini", "Nintendo Pokémon Mini" },
             { "gamecube", "Nintendo GameCube" },
+            { "switch", "Nintendo Switch" },
             { "tgcd", "TurboGrafx-CD / PC Engine CD-ROM²" },
             { "pcfx", "NEC PC-FX" },
             { "neogeo", "SNK Neo Geo AES / MVS" },
@@ -356,6 +406,49 @@ namespace NzbDrone.Core.Bios
                 ExpectedSha1 = "30a33f3651f8e1b0967a5dfe6ff714baebcce41a",
                 Description = "PPSSPP Font & UI Atlas Firmware",
                 IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "psp",
+                FileName = "661.PBP",
+                ExpectedMd5 = "6be8878f475ac5b1a499b95ab2f7d301",
+                ExpectedSha1 = "bc10ad2114e1c349f23ee2b130d82f7e863460ac",
+                Description = "PlayStation Portable Official Firmware 6.61",
+                IsRequired = false,
+                DownloadUrl = "https://archive.org/download/psp_ofw_firmwares/PSP/661.PBP"
+            },
+            new BiosFile
+            {
+                GamePlatform = "psp",
+                FileName = "660.PBP",
+                ExpectedMd5 = "2ca64d59dcf48f45fb99b400a586b395",
+                ExpectedSha1 = "9384597afb7317d7b99376450e12fc6b31240f75",
+                Description = "PlayStation Portable Official Firmware 6.60",
+                IsRequired = false,
+                DownloadUrl = "https://archive.org/download/psp_ofw_firmwares/PSP/660.PBP"
+            },
+
+            // Sony PlayStation 3 (PS3)
+            new BiosFile
+            {
+                GamePlatform = "ps3",
+                FileName = "PS3UPDAT.PUP",
+                ExpectedMd5 = "a2b60b6ac1d2e49e230144345616927c",
+                ExpectedSha1 = string.Empty,
+                Description = "PlayStation 3 Official Firmware 4.93 (also accepts 4.89–4.92)",
+                IsRequired = true
+            },
+
+            // Sony PlayStation Vita (PS Vita)
+            new BiosFile
+            {
+                GamePlatform = "psvita",
+                FileName = "PSP2UPDAT.PUP",
+                ExpectedMd5 = "f2c7b12fe85496ec88a0391b514d6e3b",
+                ExpectedSha1 = "cc72dfcc964577cc29112ef368c28f55277c237c",
+                Description = "PlayStation Vita Official Firmware 3.74 (also accepts 3.70–3.73)",
+                IsRequired = true,
+                DownloadUrl = "https://archive.org/download/PSVita-Official-Firmwares/Normal/Firmware%203.74/PSP2UPDAT.PUP"
             },
 
             // Sega CD / Mega-CD
@@ -626,6 +719,109 @@ namespace NzbDrone.Core.Bios
                 ExpectedSha1 = "7bf549b8be9e48ab0cdc9b0fdadd49a5131f97eb",
                 Description = "Nintendo DSi ARM9 BIOS",
                 IsRequired = true
+            },
+
+            // Nintendo 3DS
+            new BiosFile
+            {
+                GamePlatform = "3ds",
+                FileName = "11.17.0-50U.zip",
+                ExpectedMd5 = "e2f4d95f4fd8009d6785808f0e7a1749",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo 3DS Official Firmware 11.17.0-50U (USA)",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "3ds",
+                FileName = "11.17.0-50E.zip",
+                ExpectedMd5 = "d5357f47ead9fb98fb7d2522327693f8",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo 3DS Official Firmware 11.17.0-50E (Europe)",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "3ds",
+                FileName = "11.17.0-50J.zip",
+                ExpectedMd5 = "b2fb9eed4fb1fdf82c60ff507afa9fe2",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo 3DS Official Firmware 11.17.0-50J (Japan)",
+                IsRequired = false
+            },
+
+            // Nintendo Switch
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 23.0.1.zip",
+                ExpectedMd5 = "910bd0b523553c2a97254b654392976d",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 23.0.1",
+                IsRequired = true
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 23.0.0.zip",
+                ExpectedMd5 = "e9f3a9cdf8d545ab97c29f2f0d33a512",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 23.0.0",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 22.5.0.zip",
+                ExpectedMd5 = "1b18e881a68d3a41f35c1de9d0ccf3a2",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 22.5.0",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 22.1.0.zip",
+                ExpectedMd5 = "0bb4ae3b0a332ab5a4dabc9ad3786958",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 22.1.0",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 22.0.0.zip",
+                ExpectedMd5 = "6bf0608e502196f874b66ad8ccd8847e",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 22.0.0",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 21.2.0.zip",
+                ExpectedMd5 = "07f406f724ffb7a5f5e2561b59470167",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 21.2.0",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 21.0.0.zip",
+                ExpectedMd5 = "b525fe3937ecc6cd2e1646df48993d8e",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 21.0.0",
+                IsRequired = false
+            },
+            new BiosFile
+            {
+                GamePlatform = "switch",
+                FileName = "Firmware 20.5.0.zip",
+                ExpectedMd5 = "21dffefa931f1a41c4257579471cd9c6",
+                ExpectedSha1 = string.Empty,
+                Description = "Nintendo Switch Official Firmware 20.5.0",
+                IsRequired = false
             },
 
             // Nintendo Pokémon Mini & GameCube
@@ -1830,6 +2026,11 @@ namespace NzbDrone.Core.Bios
             var escapedBase = Uri.EscapeDataString(baseName);
 
             var urls = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(entry.DownloadUrl))
+            {
+                urls.Add(entry.DownloadUrl);
+            }
 
             if (AbdessSystemFolderByBiosGroup.TryGetValue(entry.GamePlatform, out var abdessFolder))
             {

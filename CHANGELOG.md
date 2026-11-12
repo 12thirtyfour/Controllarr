@@ -30,6 +30,10 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Added
+- **Console Firmware Catalog Expansion (`BiosService`)**:
+  - Added **Nintendo Switch** official firmware entries (`Firmware 23.0.1.zip` through `Firmware 20.5.0.zip`) with MD5 verification hashes sourced from Darthsternie's Firmware Archive (`darthsternie.net/switch-firmwares/`).
+  - Added **Nintendo 3DS** (`11.17.0-50U.zip`, `11.17.0-50E.zip`, `11.17.0-50J.zip` with New/Old 3DS MD5 hashes), **PlayStation 3** (`PS3UPDAT.PUP` 4.93 and alternate hashes 4.89–4.92), **PlayStation Vita** (`PSP2UPDAT.PUP` 3.74 with Archive.org direct download and alternate hashes 3.70–3.73), and **PlayStation Portable** official firmware (`661.PBP` and `660.PBP` with Archive.org direct downloads and MD5/SHA-1 hashes).
+  - Updated `BiosService.BuildCandidateDownloadUrls` to prioritize explicit `BiosFile.DownloadUrl` mirrors when present.
 - **Separation of Target Library Folders and Import Source Folders (`ImportFolders`, `RootFolders`, `AddPlatformService`)**:
   - Architecturally decoupled Media Management Target Folders (`RootFolder`) from Library Import Source Folders (`ImportFolder`). Media Management root folders are strictly designated as destination locations where a user's library is stored, while Library Import folders are treated as external staging/import sources used solely to discover incoming ROMs and collections.
   - Added dedicated database persistence (`ImportFolders`), API endpoints (`/api/v3/importfolder` and `/api/v5/importfolder`), and repository/service models (`ImportFolderRepository`, `ImportFolderService`) completely isolated from `RootFolder`.
