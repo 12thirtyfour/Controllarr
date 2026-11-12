@@ -30,6 +30,8 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Fixed
+- **Internet Archive S3 Authentication Header Retention on Redirects (`InternetArchive`)**:
+  - Implemented manual redirect loop in `StreamDownloadToDiskAsync` (`AllowAutoRedirect = false`) that re-applies `Authorization: LOW <access>:<secret>` headers when following 301/302 redirects from `archive.org/download/...` to storage cluster nodes (`ia*.us.archive.org`). Prevents .NET's native `SocketsHttpHandler` from stripping credentials on cross-host redirects and erroneously causing `401 Unauthorized` responses on authenticated streams.
 - **In-Place Zip Header Inspection During Library Startup & Disk Scanning (`DiskScanService`, `UnmanagedDiskScanner`)**:
   - **Single-ROM Zip Extraction Prevention**: Corrected extraction criteria in `DiskScanService.ExtractCollectionArchives` so that archives located inside the platform directory (`series.Path`) are only extracted if they represent multi-game collection packs (`isMultiGame`) or single multi-track disc games (`isSingleMultiTrack`), completely stopping single-game ROM `.zip` archives from being extracted to loose files on disk and recompressed during startup scans.
   - **Existing Mapped File Scan Optimization**: Skipped archive collection inspection in `ExtractCollectionArchives` for files already tracked in the database (`_mediaFileService.GetFilesBySeries`), eliminating redundant zip header parsing and file I/O on known library games during disk scans.

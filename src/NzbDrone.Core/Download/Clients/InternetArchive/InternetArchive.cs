@@ -274,7 +274,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
                 using var handler = new System.Net.Http.SocketsHttpHandler
                 {
-                    AllowAutoRedirect = true,
+                    AllowAutoRedirect = false,
                     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
                     PooledConnectionLifetime = TimeSpan.FromMinutes(30),
                     SslOptions = new SslClientAuthenticationOptions
@@ -305,23 +305,73 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 };
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Controllarr/10.0");
 
-                using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
                 var s3AccessKey = GetS3AccessKey();
                 var s3SecretKey = GetS3SecretKey();
+                string authHeader = null;
                 if (!string.IsNullOrWhiteSpace(s3AccessKey) && !string.IsNullOrWhiteSpace(s3SecretKey))
                 {
-                    req.Headers.TryAddWithoutValidation("Authorization", $"LOW {s3AccessKey}:{s3SecretKey}");
+                    authHeader = $"LOW {s3AccessKey}:{s3SecretKey}";
                 }
 
-                var resp = await client.SendAsync(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                static async Task<System.Net.Http.HttpResponseMessage> SendWithRedirectsAsync(
+                    System.Net.Http.HttpClient httpClient,
+                    string requestUrl,
+                    string auth)
+                {
+                    var currentUrl = requestUrl;
+                    const int maxRedirects = 10;
+                    for (var i = 0; i < maxRedirects; i++)
+                    {
+                        var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, currentUrl);
+                        if (!string.IsNullOrWhiteSpace(auth))
+                        {
+                            req.Headers.TryAddWithoutValidation("Authorization", auth);
+                        }
+
+                        var response = await httpClient.SendAsync(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                        var status = (int)response.StatusCode;
+                        if (status is 301 or 302 or 303 or 307 or 308)
+                        {
+                            var location = response.Headers.Location;
+                            response.Dispose();
+                            if (location == null)
+                            {
+                                break;
+                            }
+
+                            if (!location.IsAbsoluteUri)
+                            {
+                                location = new Uri(new Uri(currentUrl), location);
+                            }
+
+                            currentUrl = location.ToString();
+                            continue;
+                        }
+
+                        return response;
+                    }
+
+                    return null;
+                }
+
+                var resp = await SendWithRedirectsAsync(client, url, authHeader).ConfigureAwait(false);
+                if (resp == null)
+                {
+                    throw new System.Net.Http.HttpRequestException("Too many automatic redirections were attempted.");
+                }
+
                 if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
                     resp.Dispose();
                     if (ShouldAllowAnonymousFallback())
                     {
                         _logger.Warn("InternetArchive authenticated stream failed with {0}, falling back to anonymous.", resp.StatusCode);
-                        using var anonReq = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
-                        resp = await client.SendAsync(anonReq, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                        resp = await SendWithRedirectsAsync(client, url, null).ConfigureAwait(false);
+                        if (resp == null)
+                        {
+                            throw new System.Net.Http.HttpRequestException("Too many automatic redirections were attempted.");
+                        }
+
                         if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
                         {
                             state.Status = DownloadItemStatus.Failed;
