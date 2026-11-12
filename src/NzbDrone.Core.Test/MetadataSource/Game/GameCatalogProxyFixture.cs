@@ -687,5 +687,18 @@ game (
             superGrafxPath.Should().NotBeNull();
             superGrafxPath.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
         }
+
+        [Test]
+        public void should_return_all_supported_platforms_with_unique_identifiers_for_bulk_add()
+        {
+            var platforms = Subject.GetAllPlatforms(Language.English);
+
+            platforms.Should().HaveCount(40);
+            platforms.Select(p => p.TvdbId).Should().OnlyHaveUniqueItems();
+            platforms.Select(p => p.Title).Should().OnlyHaveUniqueItems();
+            platforms.Select(p => p.TitleSlug).Should().OnlyHaveUniqueItems();
+            platforms.Should().OnlyContain(p => p.TvdbId > 0 && !string.IsNullOrWhiteSpace(p.Title) && !string.IsNullOrWhiteSpace(p.TitleSlug));
+            platforms.Should().OnlyContain(p => p.Seasons != null && p.Seasons.Count > 0);
+        }
     }
 }
