@@ -38,6 +38,8 @@ All notable changes to **Controllarr** are documented in this file.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
 ### Changed
+- **Archive Inner ROM Naming Uniformity (`ArchiveRepackService`, `RomFileMovingService`)**:
+  - Added `SyncSingleRomEntryName` in `ArchiveRepackService` and invoked it during `RomFileMovingService.PostProcessRomFile` so that single-ROM `.zip` archives also rename their inner ROM entry to match the renamed archive filename (ensuring both the compressed archive and inner ROM follow configured naming rules).
 - **Queue View Source Column (`queueOptionsStore`, `QueueRow`, `ProtocolLabel`)**:
   - Removed the `Format` (`format`) and `Formats` (`customFormats`) columns from the Activity Queue table and replaced them with a visible, sortable `Source` (`protocol`) column.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).

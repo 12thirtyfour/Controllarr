@@ -331,6 +331,7 @@ namespace NzbDrone.Core.MediaFiles
                     else if (shouldCompress && _archiveRepackService != null && File.Exists(destinationFilePath))
                     {
                         _archiveRepackService.RepackArchive(destinationFilePath);
+                        _archiveRepackService.SyncSingleRomEntryName(destinationFilePath);
                     }
                 }
                 else if (shouldCompress && File.Exists(destinationFilePath) && IsZipCompressibleRom(ext, platform, destinationFilePath))

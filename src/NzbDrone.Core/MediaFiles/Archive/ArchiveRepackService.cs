@@ -9,6 +9,7 @@ namespace NzbDrone.Core.MediaFiles.Archive
     public interface IArchiveRepackService
     {
         void RepackArchive(string archivePath);
+        void SyncSingleRomEntryName(string archivePath);
         byte[] ModernizeINesHeader(byte[] romBytes);
     }
 
@@ -55,6 +56,62 @@ namespace NzbDrone.Core.MediaFiles.Archive
                             }
                         }
                     }
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        public void SyncSingleRomEntryName(string archivePath)
+        {
+            if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+            {
+                return;
+            }
+
+            var expectedBaseName = Path.GetFileNameWithoutExtension(archivePath);
+            if (string.IsNullOrWhiteSpace(expectedBaseName))
+            {
+                return;
+            }
+
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                using (var archive = ZipFile.Open(archivePath, ZipArchiveMode.Update))
+                {
+                    var fileEntries = archive.Entries
+                        .Where(e => !e.FullName.EndsWith("/") &&
+                                    !e.FullName.EndsWith("\\") &&
+                                    !e.FullName.Contains("__MACOSX") &&
+                                    !e.Name.StartsWith("."))
+                        .ToList();
+
+                    if (fileEntries.Count != 1)
+                    {
+                        return;
+                    }
+
+                    var entry = fileEntries[0];
+                    var entryExt = Path.GetExtension(entry.Name);
+                    var expectedEntryName = expectedBaseName + entryExt;
+
+                    if (string.Equals(entry.FullName, expectedEntryName, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+
+                    var tempFilePath = Path.Combine(tempDir, expectedEntryName);
+                    entry.ExtractToFile(tempFilePath, true);
+                    entry.Delete();
+                    archive.CreateEntryFromFile(tempFilePath, expectedEntryName, CompressionLevel.Optimal);
                 }
             }
             finally

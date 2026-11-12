@@ -66,5 +66,40 @@ namespace NzbDrone.Core.Test.MediaFiles
             // we're just testing it parses correctly without crashing
             result.Should().BeEquivalentTo(headerBytes);
         }
+
+        [Test]
+        public void should_sync_single_rom_entry_name_to_match_renamed_archive()
+        {
+            var renamedArchivePath = Path.Combine(Path.GetTempPath(), "Super Mario Land.zip");
+            if (File.Exists(renamedArchivePath))
+            {
+                File.Delete(renamedArchivePath);
+            }
+
+            try
+            {
+                using (var zip = ZipFile.Open(renamedArchivePath, ZipArchiveMode.Create))
+                {
+                    var entry = zip.CreateEntry("Super Mario Land (USA).gb");
+                    using var stream = entry.Open();
+                    stream.Write(new byte[] { 1, 2, 3, 4 }, 0, 4);
+                }
+
+                Subject.SyncSingleRomEntryName(renamedArchivePath);
+
+                using (var zip = ZipFile.OpenRead(renamedArchivePath))
+                {
+                    zip.Entries.Should().HaveCount(1);
+                    zip.Entries[0].FullName.Should().Be("Super Mario Land.gb");
+                }
+            }
+            finally
+            {
+                if (File.Exists(renamedArchivePath))
+                {
+                    File.Delete(renamedArchivePath);
+                }
+            }
+        }
     }
 }
