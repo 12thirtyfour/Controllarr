@@ -37,6 +37,11 @@ All notable changes to **Controllarr** are documented in this file.
   - Added "Import Action" (`Move to Library` vs `Leave in Place`) and "Target Library" selection in the Library Import Defaults bar and import cards.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
+### Changed
+- **Queue View Source Column (`queueOptionsStore`, `QueueRow`, `ProtocolLabel`)**:
+  - Removed the `Format` (`format`) and `Formats` (`customFormats`) columns from the Activity Queue table and replaced them with a visible, sortable `Source` (`protocol`) column.
+  - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
+
 ### Fixed
 - **Platform Folder Creation & Post-Add Preservation (`AddPlatformService`, `DiskScanService`)**:
   - Normalized directory separators (`/` to OS directory separator) when resolving `{Manufacturer}/{Platform}` folder names in `AddPlatformService.SetPropertiesAndValidate` (with fallback to platform title when empty), ensuring clean platform paths on Windows.

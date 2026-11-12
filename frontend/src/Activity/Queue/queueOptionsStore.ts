@@ -17,7 +17,7 @@ export interface QueueOptions extends PageableOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<QueueOptions>('queue_options_v3', () => {
+  createOptionsStore<QueueOptions>('queue_options_v4', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
@@ -57,15 +57,9 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
-          name: 'format',
-          label: () => translate('Format'),
+          name: 'protocol',
+          label: () => translate('Source'),
           isSortable: true,
-          isVisible: true,
-        },
-        {
-          name: 'customFormats',
-          label: () => translate('Formats'),
-          isSortable: false,
           isVisible: true,
         },
         {
@@ -75,12 +69,6 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
             name: icons.SCORE,
             title: () => translate('CustomFormatScore'),
           }),
-          isVisible: false,
-        },
-        {
-          name: 'protocol',
-          label: () => translate('Protocol'),
-          isSortable: true,
           isVisible: false,
         },
         {

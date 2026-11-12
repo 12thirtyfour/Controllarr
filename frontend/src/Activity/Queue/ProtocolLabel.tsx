@@ -6,12 +6,27 @@ import styles from './ProtocolLabel.module.css';
 interface ProtocolLabelProps
   extends Omit<LabelProps, 'children' | 'className'> {
   protocol: DownloadProtocol;
+  showSourceName?: boolean;
 }
 
-function ProtocolLabel({ protocol, ...otherProps }: ProtocolLabelProps) {
+function ProtocolLabel({
+  protocol,
+  showSourceName = false,
+  ...otherProps
+}: ProtocolLabelProps) {
   let protocolName: string = protocol;
 
-  if (protocol === 'usenet') {
+  if (showSourceName) {
+    if (protocol === 'http') {
+      protocolName = 'Internet Archive';
+    } else if (protocol === 'usenet') {
+      protocolName = 'Usenet';
+    } else if (protocol === 'torrent') {
+      protocolName = 'Torrent';
+    } else {
+      protocolName = 'Unknown';
+    }
+  } else if (protocol === 'usenet') {
     protocolName = 'nzb';
   } else if (protocol === 'http') {
     protocolName = 'https';

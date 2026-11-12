@@ -13,7 +13,6 @@ import Tooltip from 'Components/Tooltip/Tooltip';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
 import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
-import GameQuality from 'Game/GameQuality';
 import { useGamesWithIds } from 'Game/useGame';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
@@ -86,7 +85,6 @@ function QueueRow(props: QueueRowProps) {
     statusMessages,
     errorMessage,
     languages,
-    quality,
     customFormats = [],
     customFormatScore,
     protocol,
@@ -283,22 +281,6 @@ function QueueRow(props: QueueRowProps) {
           );
         }
 
-        if (name === 'format' || name === 'quality') {
-          return (
-            <TableRowCell key={name}>
-              {quality ? <GameQuality quality={quality} /> : null}
-            </TableRowCell>
-          );
-        }
-
-        if (name === 'customFormats') {
-          return (
-            <TableRowCell key={name}>
-              <GameFormats formats={customFormats} />
-            </TableRowCell>
-          );
-        }
-
         if (name === 'customFormatScore') {
           return (
             <TableRowCell key={name} className={styles.customFormatScore}>
@@ -317,7 +299,7 @@ function QueueRow(props: QueueRowProps) {
         if (name === 'protocol') {
           return (
             <TableRowCell key={name}>
-              <ProtocolLabel protocol={protocol} />
+              <ProtocolLabel protocol={protocol} showSourceName={true} />
             </TableRowCell>
           );
         }
