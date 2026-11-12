@@ -81,10 +81,6 @@ const GROUPS: SidebarGroup[] = [
             title: () => translate('Bios'),
             to: '/bios',
           },
-          {
-            title: () => 'ROM Patcher',
-            to: '/rom-patcher',
-          },
         ],
       },
       {
@@ -102,6 +98,21 @@ const GROUPS: SidebarGroup[] = [
             to: '/wanted/missing',
           },
         ],
+      },
+    ],
+  },
+  {
+    label: () => 'Utilities',
+    items: [
+      {
+        iconName: icons.EDIT,
+        title: () => 'ROM Patcher',
+        to: '/rom-patcher',
+      },
+      {
+        iconName: icons.ROOT_FOLDER,
+        title: () => 'Virtual Libraries',
+        to: '/settings/virtuallibraries',
       },
     ],
   },
@@ -143,7 +154,6 @@ const GROUPS: SidebarGroup[] = [
             title: () => 'Collection Settings',
             to: '/settings/collection',
           },
-          { title: () => 'Virtual Libraries', to: '/settings/virtuallibraries' },
           { title: () => translate('Indexers'), to: '/settings/indexers' },
           {
             title: () => translate('DownloadClients'),

@@ -42,6 +42,9 @@ All notable changes to **Controllarr** are documented in this file.
   - During import, games and platforms are imported into the designated Media Management target library folder (`RootFolderPath`), and files are automatically moved and organized into canonical region subfolders (`USA`, `Europe`, `Japan`, etc.), guaranteeing that the external source folder is never used to store the imported media.
 
 ### Changed
+- **Sidebar Utilities Section (`PageSidebar`)**:
+  - Added a new **Utilities** sidebar section positioned between **Platforms** and **Activity**.
+  - Moved **ROM Patcher** (`/rom-patcher`) out of the Library submenu and **Virtual Libraries** (`/settings/virtuallibraries`) out of the Settings submenu into **Utilities**.
 - **Pre-Populate New Platform Library Info Before File Import (`AddPlatformService`)**:
   - Updated `AddPlatformService.AddSeries` and `SaveAddedSeries` so that when importing a platform not yet in the library, the platform is persisted and its full game catalog (`IProvidePlatformInfo.GetSeriesInfo` and `IRefreshGameService.RefreshEpisodeInfo`) is populated before extracting, copying, or organizing incoming files into the platform directory, followed by queuing `RefreshPlatformCommand`.
 - **Defer Further Grabs While Full Collection Is Queued (`ProcessDownloadDecisions`, `QueueSpecification`)**:
