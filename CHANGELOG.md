@@ -43,6 +43,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `ProtocolLabel` (via `showSourceName`) to render human-readable acquisition source labels in the Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 
 ### Fixed
+- **Library Import Top-Level Folder Discovery (`RootFolderService`, `ImportFolderService`)**:
+  - Added `GetImportUnmappedFolders` on `IRootFolderService` and wired `ImportFolderService` to use `topLevelOnly: true` when scanning Library Import source folders. Prevents `SeriesFolderFormat` depth traversal from descending past top-level platform/collection folders into region subfolders (which previously hid collection directories and left only `.zip`/`.7z` archives visible).
 - **Date-Stamped Release Validation & TV Terminology Removal (`ValidateParsedGameInfo`, `ParsingService`, `PendingReleaseService`, `AggregateGames`)**:
   - Removed the legacy TV "daily-style release for non-daily platform" warning and rejection in `ValidateParsedGameInfo.ValidateForPlatformType`, allowing date-stamped ROMs, prototypes, builds, and collections (such as Atari Jaguar releases with parsed dates) to map cleanly on all console platforms.
   - Updated callers in `ParsingService`, `PendingReleaseService`, and `AggregateGames` to use `ValidateForPlatformType` and updated `ValidateParsedGameInfoFixture` to gaming terminology.

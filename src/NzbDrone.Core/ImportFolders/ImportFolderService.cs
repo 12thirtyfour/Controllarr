@@ -117,7 +117,7 @@ namespace NzbDrone.Core.ImportFolders
                     folder.FreeSpace = _diskProvider.GetAvailableSpace(folder.Path);
                     folder.TotalSpace = _diskProvider.GetTotalSize(folder.Path);
                     folder.ContainsRomFiles = _rootFolderService.CheckContainsRomFiles(folder.Path);
-                    folder.UnmappedFolders = _rootFolderService.GetUnmappedFolders(folder.Path);
+                    folder.UnmappedFolders = _rootFolderService.GetImportUnmappedFolders(folder.Path);
                 }
                 else if (_diskProvider.FileExists(folder.Path))
                 {
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.ImportFolders
                     folder.FreeSpace = _diskProvider.GetAvailableSpace(Path.GetDirectoryName(folder.Path));
                     folder.TotalSpace = _diskProvider.GetTotalSize(Path.GetDirectoryName(folder.Path));
                     folder.ContainsRomFiles = false;
-                    folder.UnmappedFolders = _rootFolderService.GetUnmappedFolders(folder.Path);
+                    folder.UnmappedFolders = _rootFolderService.GetImportUnmappedFolders(folder.Path);
                 }
             }).Wait(timeout ? 5000 : -1);
         }

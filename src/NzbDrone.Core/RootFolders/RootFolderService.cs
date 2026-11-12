@@ -27,6 +27,7 @@ namespace NzbDrone.Core.RootFolders
         string ResolvePlatformFromArchive(string filePath);
         bool CheckContainsRomFiles(string path);
         List<UnmappedFolder> GetUnmappedFolders(string path);
+        List<UnmappedFolder> GetImportUnmappedFolders(string path);
     }
 
     public class RootFolderService : IRootFolderService
@@ -190,10 +191,16 @@ namespace NzbDrone.Core.RootFolders
         public List<UnmappedFolder> GetUnmappedFolders(string path)
         {
             var seriesPaths = _seriesRepository.AllSeriesPaths();
-            return GetUnmappedFolders(path, seriesPaths);
+            return GetUnmappedFolders(path, seriesPaths, topLevelOnly: false);
         }
 
-        private List<UnmappedFolder> GetUnmappedFolders(string path, Dictionary<int, string> seriesPaths)
+        public List<UnmappedFolder> GetImportUnmappedFolders(string path)
+        {
+            var seriesPaths = _seriesRepository.AllSeriesPaths();
+            return GetUnmappedFolders(path, seriesPaths, topLevelOnly: true);
+        }
+
+        private List<UnmappedFolder> GetUnmappedFolders(string path, Dictionary<int, string> seriesPaths, bool topLevelOnly = false)
         {
             _logger.Debug("Generating list of unmapped folders");
 
@@ -240,7 +247,9 @@ namespace NzbDrone.Core.RootFolders
             var currentDir = new DirectoryInfo(path.Normalize());
             var currentPathPlatform = PlatformCompatibilityValidator.ResolvePlatformName(currentDir.Name);
 
-            var subFolderDepth = _namingConfigService.GetConfig().SeriesFolderFormat.Count(f => f == Path.DirectorySeparatorChar);
+            var subFolderDepth = topLevelOnly
+                ? 0
+                : _namingConfigService.GetConfig().SeriesFolderFormat.Count(f => f == Path.DirectorySeparatorChar);
             var possibleSeriesFolders = _diskProvider.GetDirectories(path).ToList();
 
             if (subFolderDepth > 0)

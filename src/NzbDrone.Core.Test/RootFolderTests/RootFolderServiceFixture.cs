@@ -374,5 +374,43 @@ namespace NzbDrone.Core.Test.RootFolderTests
             unmappedFolders.First().Path.Should().Be(extractedFolder);
             unmappedFolders.First().Name.Should().Be("Nintendo Game Boy");
         }
+
+        [Test]
+        public void should_return_top_level_folders_and_archives_for_import_folder_even_with_nested_series_folder_format()
+        {
+            _namingConfig.SeriesFolderFormat = "{Manufacturer}\\{Platform}".AsOsAgnostic();
+
+            var importPath = @"C:\Imports\Staging".AsOsAgnostic();
+            var nesFolder = Path.Combine(importPath, "Nintendo Entertainment System");
+            var nesUsaFolder = Path.Combine(nesFolder, "USA");
+            var snesArchive = Path.Combine(importPath, "Super Nintendo.zip");
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.FolderExists(importPath))
+                .Returns(true);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(importPath))
+                .Returns(new[] { nesFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(nesFolder))
+                .Returns(new[] { nesUsaFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(importPath, false))
+                .Returns(new[] { snesArchive });
+
+            var unmappedFolders = Subject.GetImportUnmappedFolders(importPath);
+
+            unmappedFolders.Should().HaveCount(2);
+            unmappedFolders.Should().Contain(u => u.Path == nesFolder && u.Name == "Nintendo Entertainment System");
+            unmappedFolders.Should().Contain(u => u.Path == Path.Combine(importPath, "Super Nintendo") && u.Name == "Super Nintendo Entertainment System");
+            unmappedFolders.Should().NotContain(u => u.Path == nesUsaFolder);
+        }
     }
 }
