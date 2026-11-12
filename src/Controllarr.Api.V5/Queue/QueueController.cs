@@ -208,12 +208,12 @@ namespace Sonarr.Api.V5.Queue
 
                 if (include && hasLanguageFilter)
                 {
-                    include &= q.Languages.Any(l => languages.Contains(l.Id));
+                    include &= q.Languages?.Any(l => languages.Contains(l.Id)) ?? false;
                 }
 
                 if (include && hasQualityFilter)
                 {
-                    include &= quality.Contains(q.Quality.Quality.Id);
+                    include &= q.Quality?.Quality != null && quality.Contains(q.Quality.Quality.Id);
                 }
 
                 if (include && hasStatusFilter)
@@ -309,17 +309,17 @@ namespace Sonarr.Api.V5.Queue
                     return q => q.Title;
                 case "episode":
                 case "game":
-                    return q => q.Episodes.FirstOrDefault();
+                    return q => q.Episodes?.FirstOrDefault();
                 case "episode.airDateUtc":
                 case "episodes.airDateUtc":
                 case "game.airDateUtc":
                 case "games.airDateUtc":
-                    return q => q.Episodes.FirstOrDefault()?.AirDateUtc ?? DateTime.MinValue;
+                    return q => q.Episodes?.FirstOrDefault()?.AirDateUtc ?? DateTime.MinValue;
                 case "episode.title":
                 case "episodes.title":
                 case "game.title":
                 case "games.title":
-                    return q => q.Episodes.FirstOrDefault()?.Title ?? string.Empty;
+                    return q => q.Episodes?.FirstOrDefault()?.Title ?? string.Empty;
                 case "language":
                 case "languages":
                     return q => q.Languages;

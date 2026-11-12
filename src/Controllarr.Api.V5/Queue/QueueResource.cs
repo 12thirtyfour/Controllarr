@@ -46,14 +46,15 @@ namespace Sonarr.Api.V5.Queue
     {
         public static QueueResource ToResource(this NzbDrone.Core.Queue.Queue model, bool includeSeries, bool includeEpisodes)
         {
-            var customFormats = model.RemoteEpisode?.CustomFormats;
+            var customFormats = model.RemoteEpisode?.CustomFormats ?? [];
             var customFormatScore = model.Series?.QualityProfile?.Value?.CalculateCustomFormatScore(customFormats) ?? 0;
+            var isFullSet = (model.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason ?? false) || (model.Episodes?.Count ?? 0) > 50;
 
             return new QueueResource
             {
                 Id = model.Id,
                 SeriesId = model.Series?.Id,
-                GameIds = (model.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason ?? false) ? [] : (model.Episodes?.Select(e => e.Id).ToList() ?? []),
+                GameIds = isFullSet ? [] : (model.Episodes?.Select(e => e.Id).ToList() ?? []),
                 SeasonNumbers = model.SeasonNumber.HasValue ? [model.SeasonNumber.Value] : [],
                 Series = includeSeries && model.Series != null ? model.Series.ToResource() : null,
                 Games = includeEpisodes ? model.Episodes?.ToResource() : null,
@@ -79,7 +80,7 @@ namespace Sonarr.Api.V5.Queue
                 Indexer = model.Indexer,
                 OutputPath = model.OutputPath,
                 GamesWithFilesCount = model.Episodes?.Count(e => e.HasFile) ?? 0,
-                IsFullSeason = model.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason ?? false
+                IsFullSeason = isFullSet
             };
         }
 

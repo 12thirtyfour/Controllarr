@@ -90,6 +90,11 @@ namespace NzbDrone.Core.Profiles.Qualities
 
         public int CalculateCustomFormatScore(List<CustomFormat> formats)
         {
+            if (formats == null || FormatItems == null)
+            {
+                return 0;
+            }
+
             return FormatItems.Where(x => formats.Contains(x.Format)).Sum(x => x.Score);
         }
     }
