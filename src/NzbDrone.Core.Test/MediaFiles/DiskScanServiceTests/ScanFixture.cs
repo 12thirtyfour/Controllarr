@@ -542,5 +542,48 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
                 }
             }
         }
+
+        [Test]
+        public void should_not_extract_single_rom_archive_during_scan()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "SeriesScan_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            var tempZip = Path.Combine(tempDir, "Super Mario Bros (USA).zip");
+
+            try
+            {
+                using (var archive = ZipFile.Open(tempZip, ZipArchiveMode.Create))
+                {
+                    var entry = archive.CreateEntry("Super Mario Bros (USA).nes");
+                    using var stream = entry.Open();
+                    stream.Write(new byte[] { 0x4E, 0x45, 0x53, 0x1A }, 0, 4);
+                }
+
+                _series.Path = tempDir;
+                _series.Title = "Nintendo Entertainment System";
+                _series.CleanTitle = "Nintendo Entertainment System";
+
+                GivenSeriesFolder();
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(s => s.GetFiles(_series.Path, true))
+                    .Returns(new[] { tempZip });
+
+                Subject.Scan(_series);
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Verify(s => s.SaveStream(It.IsAny<Stream>(), It.IsAny<string>()), Times.Never());
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Verify(v => v.GetImportDecisions(It.Is<List<string>>(l => l.Contains(tempZip)), _series, false), Times.Once());
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
     }
 }

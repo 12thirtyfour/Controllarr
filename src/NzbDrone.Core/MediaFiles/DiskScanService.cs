@@ -413,6 +413,25 @@ namespace NzbDrone.Core.MediaFiles
         {
             var archiveFiles = new List<string>();
 
+            HashSet<string> existingMappedFiles = null;
+            if (_mediaFileService != null)
+            {
+                try
+                {
+                    var mapped = _mediaFileService.GetFilesBySeries(series.Id);
+                    if (mapped != null && mapped.Count > 0)
+                    {
+                        existingMappedFiles = new HashSet<string>(
+                            mapped.Select(f => Path.Combine(series.Path, f.RelativePath)),
+                            PathEqualityComparer.Instance);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Unable to load existing mapped files for {0}", series);
+                }
+            }
+
             if (_diskProvider.FolderExists(series.Path))
             {
                 archiveFiles.AddRange(_diskProvider.GetFiles(series.Path, true)
@@ -464,6 +483,11 @@ namespace NzbDrone.Core.MediaFiles
 
             foreach (var archiveFile in archiveFiles)
             {
+                if (existingMappedFiles != null && existingMappedFiles.Contains(archiveFile))
+                {
+                    continue;
+                }
+
                 if (!Path.GetExtension(archiveFile).Equals(".zip", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -555,17 +579,22 @@ namespace NzbDrone.Core.MediaFiles
 
                         var isMultiGame = gameEntries.Count > 1 && !isSingleMultiTrack;
 
-                        var shouldExtract = isMultiGame || isSingleMultiTrack || gameEntries.Count > 0 || biosEntries.Count > 0;
+                        var targetDirectory = Path.GetFullPath(series.Path);
+                        if (!targetDirectory.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                        {
+                            targetDirectory += Path.DirectorySeparatorChar;
+                        }
+
+                        var isInsideSeriesPath = archiveFile.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase) ||
+                                                 series.Path.IsParentPath(archiveFile);
+
+                        var shouldExtract = isInsideSeriesPath
+                            ? (isMultiGame || isSingleMultiTrack || (biosEntries.Count > 0 && gameEntries.Count == 0))
+                            : (isMultiGame || isSingleMultiTrack || gameEntries.Count > 0 || biosEntries.Count > 0);
 
                         if (shouldExtract)
                         {
                             _logger.ProgressInfo("Extracting {0} ROMs from collection archive: {1}", gameEntries.Count, Path.GetFileName(archiveFile));
-
-                            var targetDirectory = Path.GetFullPath(series.Path);
-                            if (!targetDirectory.EndsWith(Path.DirectorySeparatorChar.ToString()))
-                            {
-                                targetDirectory += Path.DirectorySeparatorChar;
-                            }
 
                             if (!_diskProvider.FolderExists(targetDirectory))
                             {
@@ -660,7 +689,7 @@ namespace NzbDrone.Core.MediaFiles
                             _logger.Info("Extracted {0} ROMs from collection archive '{1}'", gameEntries.Count, Path.GetFileName(archiveFile));
 
                             if ((isSingleMultiTrack && archiveFile.StartsWith(targetDirectory, StringComparison.OrdinalIgnoreCase)) ||
-                                (_configService == null || _configService.DeleteOriginalAfterConversion))
+                                (_configService != null && _configService.DeleteOriginalAfterConversion))
                             {
                                 deleteArchiveAfterExtract = true;
                             }

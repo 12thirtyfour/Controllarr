@@ -621,18 +621,24 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private ManualImportItem ProcessSingleFile(string filePath, string rootFolder, List<string> validExtensions, Series preferredSeries = null)
         {
             var fileName = Path.GetFileName(filePath);
-            var parsedInfo = RomParser.ParseRomName(fileName);
-
             var hashes = ComputeHashes(filePath, validExtensions);
 
+            var effectiveRomName = fileName;
+            if (hashes.TryGetValue("ROM_NAME", out var innerRomName) && !string.IsNullOrWhiteSpace(innerRomName))
+            {
+                effectiveRomName = innerRomName;
+            }
+
+            var parsedInfo = RomParser.ParseRomName(effectiveRomName) ?? RomParser.ParseRomName(fileName);
+
             var crc32 = hashes.TryGetValue("CRC32", out var c) ? c : null;
-            var (matchedSeries, matchedEpisode, isHighConfidence) = ResolvePlatformAndGame(crc32, fileName, filePath, hashes, preferredSeries);
+            var (matchedSeries, matchedEpisode, isHighConfidence) = ResolvePlatformAndGame(crc32, effectiveRomName, filePath, hashes, preferredSeries);
 
             return new ManualImportItem
             {
                 Path = filePath,
                 RelativePath = rootFolder.GetRelativePath(filePath),
-                Name = parsedInfo?.GameTitle ?? Path.GetFileNameWithoutExtension(fileName),
+                Name = parsedInfo?.GameTitle ?? Path.GetFileNameWithoutExtension(effectiveRomName),
                 Size = new FileInfo(filePath).Length,
                 Series = matchedSeries,
                 SeasonNumber = matchedEpisode?.SeasonNumber,
@@ -1028,6 +1034,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     {
                         var crc32Hex = romEntry.Crc32.ToString("x8").ToLowerInvariant();
                         hashes["CRC32"] = crc32Hex;
+                        hashes["ROM_NAME"] = romEntry.Name;
 
                         var datMatch = _datCacheService?.FindByCrc32(crc32Hex);
                         if (datMatch != null && (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5)))

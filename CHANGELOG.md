@@ -27,6 +27,17 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [2026-11-12]
+
+### Fixed
+- **In-Place Zip Header Inspection During Library Startup & Disk Scanning (`DiskScanService`, `UnmanagedDiskScanner`)**:
+  - **Single-ROM Zip Extraction Prevention**: Corrected extraction criteria in `DiskScanService.ExtractCollectionArchives` so that archives located inside the platform directory (`series.Path`) are only extracted if they represent multi-game collection packs (`isMultiGame`) or single multi-track disc games (`isSingleMultiTrack`), completely stopping single-game ROM `.zip` archives from being extracted to loose files on disk and recompressed during startup scans.
+  - **Existing Mapped File Scan Optimization**: Skipped archive collection inspection in `ExtractCollectionArchives` for files already tracked in the database (`_mediaFileService.GetFilesBySeries`), eliminating redundant zip header parsing and file I/O on known library games during disk scans.
+  - **In-Place Zip Hash & Inner ROM Metadata Enrichment (`UnmanagedDiskScanner`)**: Enhanced `UnmanagedDiskScanner.ComputeHashes` and `ProcessSingleFile` to record inner archive ROM filenames (`ROM_NAME`) directly from zip central directory headers without decompressing the file to disk, allowing accurate DAT hash lookup, title parsing, and episode matching directly from `.zip` containers.
+  - **Disk Scan Unit Verification (`ScanFixture`)**: Added `should_not_extract_single_rom_archive_during_scan` verifying that single-ROM archives inside platform paths are preserved in-place without disk extraction while successfully dispatching to import decision analysis.
+
+---
+
 ## [2026-11-11]
 
 ### Optimized
