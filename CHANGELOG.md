@@ -30,6 +30,8 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Changed
+- **Add-Platform Search Flow (`PlatformScannedHandler`, `PlatformSearchService`, `GameSearchService`, `CollectionSearchHelper`)**:
+  - When adding a platform with **Start search for missing games** enabled, Controllarr now searches for a platform collection package first (`SearchCollectionFirst = true`). If a collection release is grabbed, individual ROM searches are skipped while the collection downloads; otherwise, it automatically moves on to searching for individual monitored ROMs.
 - **ROM Monitoring Trickle-Up (`PlatformService.EnsureMonitoredForGames`, `GameController` V3 & V5)**:
   - Marking one or more ROMs as monitored (`Monitored = true`) now automatically trickles up to mark the parent region (`Season.Monitored = true`) and platform (`Series.Monitored = true`) as monitored if either was unmonitored, without cascading back down to other ROMs in that region or platform.
 - **Platform Monitoring Options (`MonitorTypes`, `GameMonitoredService`, `GameRepository`, `monitorOptions`)**:

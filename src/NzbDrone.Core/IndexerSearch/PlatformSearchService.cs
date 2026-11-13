@@ -36,6 +36,12 @@ namespace NzbDrone.Core.IndexerSearch
             var downloadedCount = 0;
             var userInvokedSearch = message.Trigger == CommandTrigger.Manual;
 
+            if (message.SearchCollectionFirst &&
+                CollectionSearchHelper.TryGrabCollection(_releaseSearchService, _processDownloadDecisions, _logger, series.Id, userInvokedSearch))
+            {
+                return;
+            }
+
             var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id);
             var monitoredSeasons = series.Seasons
                 .Where(s => s.Monitored)

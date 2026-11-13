@@ -36,6 +36,9 @@ namespace NzbDrone.Core.Test.PlatformTests
             Subject.Handle(new PlatformScannedEvent(series, new List<string>()));
 
             calls.Should().Equal("search", "addCompleted");
+
+            Mocker.GetMock<IManageCommandQueue>()
+                  .Verify(s => s.Push(It.Is<MissingGameSearchCommand>(c => c.SearchCollectionFirst), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
         }
     }
 }

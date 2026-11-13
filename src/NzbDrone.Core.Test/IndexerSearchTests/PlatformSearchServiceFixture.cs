@@ -123,5 +123,49 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             searchedGameIds.Should().ContainInOrder(10, 20, 30);
         }
+
+        [Test]
+        public void should_skip_single_rom_search_when_collection_first_grabs_release()
+        {
+            _series.Seasons = new List<Season> { new Season { SeasonNumber = 1, Monitored = true } };
+            _episodes.Add(new Episode { Id = 10, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 1, Monitored = true, EpisodeFileId = 0 });
+
+            var collectionDecision = new DownloadDecision(null);
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Setup(s => s.PlatformCollectionSearch(_series.Id, false, false))
+                  .ReturnsAsync(new List<DownloadDecision> { collectionDecision });
+
+            Mocker.GetMock<IProcessDownloadDecisions>()
+                  .Setup(s => s.ProcessDecisions(It.IsAny<List<DownloadDecision>>()))
+                  .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision> { collectionDecision }, new List<DownloadDecision>(), new List<DownloadDecision>()));
+
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id, SearchCollectionFirst = true });
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(s => s.PlatformCollectionSearch(_series.Id, false, false), Times.Once());
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(s => s.EpisodeSearch(It.IsAny<Episode>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        [Test]
+        public void should_fall_back_to_single_rom_search_when_collection_first_grabs_nothing()
+        {
+            _series.Seasons = new List<Season> { new Season { SeasonNumber = 1, Monitored = true } };
+            _episodes.Add(new Episode { Id = 10, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 1, Monitored = true, EpisodeFileId = 0 });
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Setup(s => s.PlatformCollectionSearch(_series.Id, false, false))
+                  .ReturnsAsync(new List<DownloadDecision>());
+
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id, SearchCollectionFirst = true });
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(s => s.PlatformCollectionSearch(_series.Id, false, false), Times.Once());
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(s => s.EpisodeSearch(It.Is<Episode>(e => e.Id == 10), false, false), Times.Once());
+        }
     }
 }

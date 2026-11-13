@@ -80,6 +80,15 @@ namespace NzbDrone.Core.IndexerSearch
 
         public void Execute(MissingGameSearchCommand message)
         {
+            var userInvokedSearch = message.Trigger == CommandTrigger.Manual;
+
+            if (message.SearchCollectionFirst &&
+                message.SeriesId.HasValue &&
+                CollectionSearchHelper.TryGrabCollection(_releaseSearchService, _processDownloadDecisions, _logger, message.SeriesId.Value, userInvokedSearch))
+            {
+                return;
+            }
+
             var monitored = message.Monitored;
             List<Episode> episodes;
 

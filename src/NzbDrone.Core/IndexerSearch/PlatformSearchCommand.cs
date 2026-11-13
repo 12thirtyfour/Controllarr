@@ -5,6 +5,7 @@ namespace NzbDrone.Core.IndexerSearch
     public class PlatformSearchCommand : Command
     {
         public int SeriesId { get; set; }
+        public bool SearchCollectionFirst { get; set; }
 
         public override bool SendUpdatesToClient => true;
 
