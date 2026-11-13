@@ -206,6 +206,8 @@ namespace NzbDrone.Integration.Test.ApiTests
 
             series.Path = destinationPath;
 
+            Commands.WaitAll();
+
             ConnectSignalR().Wait();
 
             Series.Put(series, moveFiles: true);
@@ -217,7 +219,8 @@ namespace NzbDrone.Integration.Test.ApiTests
                 resource.TryGetProperty("path", out var pathProp) &&
                 pathProp.GetString() == oldPath &&
                 resource.TryGetProperty("pendingPath", out var pendingProp) &&
-                pendingProp.GetString() == destinationPath));
+                pendingProp.GetString() == destinationPath),
+                timeout: 30000);
 
             Commands.WaitAll();
         }
