@@ -2583,6 +2583,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             if (regionStr.Contains("USA", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(US", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(U)", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(regionStr, @"(?:^|[_\-\s])(US|USA)(?:[_\-\s.]|$)", RegexOptions.IgnoreCase) ||
                 regionStr.Contains("Canada", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("Brazil", StringComparison.OrdinalIgnoreCase))
             {
@@ -2598,7 +2599,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("NTSC-J", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("NTSC-K", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(JP", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("(J)", StringComparison.OrdinalIgnoreCase))
+                regionStr.Contains("(J)", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(regionStr, @"(?:^|[_\-\s])(JP|JPN)(?:[_\-\s.]|$)", RegexOptions.IgnoreCase))
             {
                 return RegionJapan;
             }
@@ -2623,7 +2625,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 regionStr.Contains("Scandinavia", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("PAL", StringComparison.OrdinalIgnoreCase) ||
                 regionStr.Contains("(EU", StringComparison.OrdinalIgnoreCase) ||
-                regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase))
+                regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(regionStr, @"(?:^|[_\-\s])(EU|EUR)(?:[_\-\s.]|$)", RegexOptions.IgnoreCase))
             {
                 return RegionEurope;
             }

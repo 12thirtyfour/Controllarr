@@ -51,6 +51,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Moved the **Utilities** section (**ROM Patcher**, **Virtual Libraries**) below the **Activity** section (**Queue**, **History**, **Blocklist**).
 
 ### Fixed
+- **Sega CD & Homebrew Region Classification (`RegionHelper`, `GameCatalogProxy`)**:
+  - Updated `RegionHelper.IsHomebrewOrAftermarket` to classify `240p Test Suite` / `240p_` / `240p-` utilities (such as `240p_MegaCD_EU`) under **Homebrew** instead of falling back to **USA**.
+  - Updated `GameCatalogProxy.ClassifyRegionAndCategory` to recognize underscore/hyphen-delimited region tokens (`_EU`, `_EUR`, `_JP`, `_JPN`, `_US`, `_USA`) so untagged regional entries do not default to **USA**.
 - **Library Downloaded vs. Monitored Game Count (`PlatformStatisticsRepository`, `PlatformDetailsRegion`)**:
   - Removed the TV `AirDateUtc <= @currentDate` gate from `PlatformStatisticsRepository` (`EpisodeCount` / `GameCount`) and `PlatformDetailsRegion.getSeasonStatistics` (`isBefore(game.airDateUtc)`), so monitored games without a release date (or with any release date) are accurately counted in the Library and Platform Details progress bars (`romFileCount / gameCount`).
 - **Multi-Game Collection Archive Extraction & Verification (`DownloadedGamesImportService`, `CompletedDownloadService`)**:

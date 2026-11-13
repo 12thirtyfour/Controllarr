@@ -172,6 +172,10 @@ namespace NzbDrone.Core.Games
                     text.Contains("8 BIT XMAS", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("Byte-Off", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("NESDev", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("240p Test Suite", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("240p Suite", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("240p_", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("240p-", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[PD]", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(HB)", StringComparison.OrdinalIgnoreCase) ||

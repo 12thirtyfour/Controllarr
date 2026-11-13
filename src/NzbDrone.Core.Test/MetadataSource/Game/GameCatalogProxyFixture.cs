@@ -700,5 +700,27 @@ game (
             platforms.Should().OnlyContain(p => p.TvdbId > 0 && !string.IsNullOrWhiteSpace(p.Title) && !string.IsNullOrWhiteSpace(p.TitleSlug));
             platforms.Should().OnlyContain(p => p.Seasons != null && p.Seasons.Count > 0);
         }
+
+        [Test]
+        public void should_classify_240p_test_suite_as_homebrew_and_underscore_regions_correctly()
+        {
+            Subject.TryGetPlatformEntry(1022, out var segaCdPlatform).Should().BeTrue();
+
+            var megaCd240pEu = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "240p_MegaCD_EU", 2014, "Redump");
+            megaCd240pEu.Should().NotBeNull();
+            megaCd240pEu.RegionNumber.Should().Be(GameCatalogProxy.RegionHomebrew);
+
+            var suite240p = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "240p Test Suite (USA)", 2014, "Redump");
+            suite240p.Should().NotBeNull();
+            suite240p.RegionNumber.Should().Be(GameCatalogProxy.RegionHomebrew);
+
+            var euUnderscore = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "Sample_Game_EU", 1993, "Redump");
+            euUnderscore.Should().NotBeNull();
+            euUnderscore.RegionNumber.Should().Be(GameCatalogProxy.RegionEurope);
+
+            var jpUnderscore = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(segaCdPlatform, "Sample_Game_JP", 1993, "Redump");
+            jpUnderscore.Should().NotBeNull();
+            jpUnderscore.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
+        }
     }
 }
