@@ -45,6 +45,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Moved the **Utilities** section (**ROM Patcher**, **Virtual Libraries**) below the **Activity** section (**Queue**, **History**, **Blocklist**).
 
 ### Fixed
+- **Library Downloaded vs. Monitored Game Count (`PlatformStatisticsRepository`, `PlatformDetailsRegion`)**:
+  - Removed the TV `AirDateUtc <= @currentDate` gate from `PlatformStatisticsRepository` (`EpisodeCount` / `GameCount`) and `PlatformDetailsRegion.getSeasonStatistics` (`isBefore(game.airDateUtc)`), so monitored games without a release date (or with any release date) are accurately counted in the Library and Platform Details progress bars (`romFileCount / gameCount`).
 - **Multi-Game Collection Archive Extraction & Verification (`DownloadedGamesImportService`, `CompletedDownloadService`)**:
   - Updated `DownloadedGamesImportService.ProcessFile` to detect multi-game `.zip` collection archives (such as Internet Archive full-set downloads like `sega32x20240104.zip`), extract them to a temporary subfolder, import all monitored and verified ROMs via `ProcessFolder`, and clean up the temporary extraction folder and source archive on move.
   - Updated `CompletedDownloadService.VerifyImport` so collection downloads (`FullSeason` or `IsFullSetArchive`) are marked `Imported` once eligible monitored games are imported instead of being blocked when `RemoteEpisode.Episodes` includes unmonitored games.

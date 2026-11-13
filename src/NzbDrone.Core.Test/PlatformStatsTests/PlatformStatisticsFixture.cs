@@ -145,6 +145,20 @@ namespace NzbDrone.Core.Test.SeriesStatsTests
         }
 
         [Test]
+        public void should_include_monitored_game_with_null_release_date_in_game_count()
+        {
+            GivenMonitoredEpisode();
+            _episode.AirDateUtc = null;
+            GivenEpisode();
+
+            var stats = Subject.SeriesStatistics();
+
+            stats.Should().HaveCount(1);
+            stats.First().EpisodeCount.Should().Be(1);
+            stats.First().EpisodeFileCount.Should().Be(0);
+        }
+
+        [Test]
         public void should_have_size_on_disk_of_zero_when_no_episode_file()
         {
             GivenEpisode();

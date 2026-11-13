@@ -83,7 +83,7 @@ namespace NzbDrone.Core.PlatformStats
                              ""Games"".""SeasonNumber"",
                              COUNT(*) AS TotalEpisodeCount,
                              SUM(CASE WHEN ""AirDateUtc"" <= @currentDate OR ""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS AvailableEpisodeCount,
-                             SUM(CASE WHEN (""Monitored"" = {trueIndicator} AND ""AirDateUtc"" <= @currentDate) OR ""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS EpisodeCount,
+                             SUM(CASE WHEN ""Monitored"" = {trueIndicator} OR ""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS EpisodeCount,
                              SUM(CASE WHEN ""EpisodeFileId"" > 0 THEN 1 ELSE 0 END) AS EpisodeFileCount,
                              SUM(CASE WHEN ""Monitored"" = {trueIndicator} THEN 1 ELSE 0 END) AS MonitoredEpisodeCount,
                              MIN(CASE WHEN ""AirDateUtc"" < @currentDate OR ""AirDateUtc"" < '1970-01-01' OR ""Monitored"" = {falseIndicator} THEN NULL ELSE ""AirDateUtc"" END) AS NextAiringString,

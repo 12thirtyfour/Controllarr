@@ -42,7 +42,6 @@ import { Statistics } from 'Platform/Platform';
 import { useSingleSeries, useToggleSeasonMonitored } from 'Platform/usePlatform';
 import { TableOptionsChangePayload } from 'typings/Table';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
-import isBefore from 'Utilities/Date/isBefore';
 import formatBytes from 'Utilities/Number/formatBytes';
 import translate from 'Utilities/String/translate';
 import getToggledRange from 'Utilities/Table/getToggledRange';
@@ -136,7 +135,7 @@ function getSeasonStatistics(games: Game[]) {
     if (game.romFileId) {
       gameCount++;
       romFileCount++;
-    } else if (game.monitored && isBefore(game.airDateUtc)) {
+    } else if (game.monitored) {
       gameCount++;
     }
 
