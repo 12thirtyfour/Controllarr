@@ -440,6 +440,104 @@ namespace NzbDrone.Core.Test.PlatformTests.GameMonitoredServiceTests
                   .Verify(v => v.UpdateEpisodes(episodes), Times.Once());
         }
 
+        [Test]
+        public void should_monitor_only_default_region_from_ui_settings()
+        {
+            var platform = Builder<Series>.CreateNew()
+                .With(s => s.CollectionStrategy = CollectionStrategy.Preservationist)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 0, Monitored = false },
+                    new Season { SeasonNumber = 1, Monitored = false },
+                    new Season { SeasonNumber = 2, Monitored = false },
+                    new Season { SeasonNumber = 3, Monitored = false },
+                    new Season { SeasonNumber = 5, Monitored = false },
+                    new Season { SeasonNumber = 6, Monitored = false }
+                })
+                .Build();
+
+            Mocker.GetMock<NzbDrone.Core.Configuration.IConfigService>()
+                  .SetupGet(c => c.ConsoleRegion)
+                  .Returns("EU");
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(platform.Id, MonitorTypes.DefaultRegion, 2, It.IsAny<int>()))
+                  .Returns(new List<int> { 2 });
+
+            Subject.SetEpisodeMonitoredStatus(platform, new MonitoringOptions { Monitor = MonitorTypes.DefaultRegion });
+
+            VerifySeasonNotMonitored(0);
+            VerifySeasonNotMonitored(1);
+            VerifySeasonMonitored(2);
+            VerifySeasonNotMonitored(3);
+            VerifySeasonNotMonitored(5);
+            VerifySeasonNotMonitored(6);
+        }
+
+        [Test]
+        public void should_monitor_only_retail_regions_for_all_retail()
+        {
+            var platform = Builder<Series>.CreateNew()
+                .With(s => s.CollectionStrategy = CollectionStrategy.Preservationist)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 0, Monitored = true },
+                    new Season { SeasonNumber = 1, Monitored = false },
+                    new Season { SeasonNumber = 2, Monitored = false },
+                    new Season { SeasonNumber = 3, Monitored = false },
+                    new Season { SeasonNumber = 4, Monitored = false },
+                    new Season { SeasonNumber = 5, Monitored = true },
+                    new Season { SeasonNumber = 6, Monitored = true }
+                })
+                .Build();
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(platform.Id, MonitorTypes.AllRetail, It.IsAny<int>(), It.IsAny<int>()))
+                  .Returns(new List<int> { 1, 2, 3, 4 });
+
+            Subject.SetEpisodeMonitoredStatus(platform, new MonitoringOptions { Monitor = MonitorTypes.AllRetail });
+
+            VerifySeasonNotMonitored(0);
+            VerifySeasonMonitored(1);
+            VerifySeasonMonitored(2);
+            VerifySeasonMonitored(3);
+            VerifySeasonMonitored(4);
+            VerifySeasonNotMonitored(5);
+            VerifySeasonNotMonitored(6);
+        }
+
+        [Test]
+        public void should_monitor_only_non_retail_regions_for_non_retail()
+        {
+            var platform = Builder<Series>.CreateNew()
+                .With(s => s.CollectionStrategy = CollectionStrategy.Preservationist)
+                .With(s => s.Seasons = new List<Season>
+                {
+                    new Season { SeasonNumber = 0, Monitored = false },
+                    new Season { SeasonNumber = 1, Monitored = true },
+                    new Season { SeasonNumber = 2, Monitored = true },
+                    new Season { SeasonNumber = 3, Monitored = true },
+                    new Season { SeasonNumber = 4, Monitored = true },
+                    new Season { SeasonNumber = 5, Monitored = false },
+                    new Season { SeasonNumber = 6, Monitored = false }
+                })
+                .Build();
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.SetEpisodeMonitoredBySeries(platform.Id, MonitorTypes.NonRetail, It.IsAny<int>(), It.IsAny<int>()))
+                  .Returns(new List<int> { 0, 5, 6 });
+
+            Subject.SetEpisodeMonitoredStatus(platform, new MonitoringOptions { Monitor = MonitorTypes.NonRetail });
+
+            VerifySeasonMonitored(0);
+            VerifySeasonNotMonitored(1);
+            VerifySeasonNotMonitored(2);
+            VerifySeasonNotMonitored(3);
+            VerifySeasonNotMonitored(4);
+            VerifySeasonMonitored(5);
+            VerifySeasonMonitored(6);
+        }
+
         private void VerifySeasonMonitored(int seasonNumber)
         {
             Mocker.GetMock<ISeriesService>()

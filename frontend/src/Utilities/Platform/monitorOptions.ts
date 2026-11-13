@@ -1,5 +1,4 @@
 import { SeriesMonitor } from 'Platform/Platform';
-import translate from 'Utilities/String/translate';
 
 interface MonitorOption {
   key: SeriesMonitor;
@@ -9,69 +8,19 @@ interface MonitorOption {
 const monitorOptions: MonitorOption[] = [
   {
     key: 'all',
-    get value() {
-      return translate('MonitorAllGames');
-    },
+    value: 'All ROMs',
   },
   {
-    key: 'future',
-    get value() {
-      return translate('MonitorFutureGames');
-    },
+    key: 'defaultRegion',
+    value: 'Default Region',
   },
   {
-    key: 'missing',
-    get value() {
-      return translate('MonitorMissingGames');
-    },
+    key: 'allRetail',
+    value: 'All Retail',
   },
   {
-    key: 'existing',
-    get value() {
-      return translate('MonitorExistingGames');
-    },
-  },
-  {
-    key: 'recent',
-    get value() {
-      return translate('MonitorRecentGames');
-    },
-  },
-  {
-    key: 'pilot',
-    get value() {
-      return translate('MonitorFirstGame');
-    },
-  },
-  {
-    key: 'firstSeason',
-    get value() {
-      return translate('MonitorFirstRegion');
-    },
-  },
-  {
-    key: 'lastSeason',
-    get value() {
-      return translate('MonitorLastRegion');
-    },
-  },
-  {
-    key: 'monitorSpecials',
-    get value() {
-      return translate('MonitorSpecialGames');
-    },
-  },
-  {
-    key: 'unmonitorSpecials',
-    get value() {
-      return translate('UnmonitorSpecialGames');
-    },
-  },
-  {
-    key: 'none',
-    get value() {
-      return translate('MonitorNoGames');
-    },
+    key: 'nonRetail',
+    value: 'Non-Retail',
   },
 ];
 

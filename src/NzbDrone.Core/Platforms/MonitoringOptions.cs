@@ -33,7 +33,10 @@ namespace NzbDrone.Core.Tv
         MonitorSpecials,
         UnmonitorSpecials,
         None,
-        Skip
+        Skip,
+        DefaultRegion,
+        AllRetail,
+        NonRetail
     }
 
     public enum NewItemMonitorTypes

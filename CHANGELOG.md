@@ -30,6 +30,9 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Changed
+- **Platform Monitoring Options (`MonitorTypes`, `GameMonitoredService`, `GameRepository`, `monitorOptions`)**:
+  - Replaced the platform addition monitoring options with **All ROMs** (all regions/ROMs), **Default Region** (matches the Console Region configured in UI Settings), **All Retail** (USA, Europe, Japan, World), and **Non-Retail** (Unlicensed, Homebrew & Aftermarket, ROM Hacks & Translations).
+  - Updated `PlatformMonitoringOptionsPopoverContent.tsx` with descriptions for the four monitoring modes.
 - **Activity Queue Columns (`QueueRow`, `TimeLeftCell`, `queueOptionsStore`)**:
   - Split download speed out of `TimeLeftCell` into its own dedicated **Speed** column and ordered the queue columns as **Speed**, **Progress**, and **Time Left**.
 - **Search Monitored vs. Collection Search Filtering (`PlatformPackOnlySpecification`, `ReleaseSearchService`, `DownloadDecisionMaker`)**:

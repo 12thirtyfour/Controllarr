@@ -6,6 +6,9 @@ import Quality from 'Quality/Quality';
 export type SeriesType = 'anime' | 'daily' | 'standard';
 export type SeriesMonitor =
   | 'all'
+  | 'defaultRegion'
+  | 'allRetail'
+  | 'nonRetail'
   | 'future'
   | 'missing'
   | 'existing'

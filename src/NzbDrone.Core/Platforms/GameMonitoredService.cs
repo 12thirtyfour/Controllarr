@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MetadataSource.Game;
 
@@ -18,17 +19,20 @@ namespace NzbDrone.Core.Tv
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
         private readonly IGameCatalogService _gameCatalogService;
+        private readonly IConfigService _configService;
         private readonly Logger _logger;
 
         public GameMonitoredService(
             ISeriesService seriesService,
             IEpisodeService episodeService,
             IGameCatalogService gameCatalogService,
-            Logger logger)
+            Logger logger,
+            IConfigService configService = null)
         {
             _seriesService = seriesService;
             _episodeService = episodeService;
             _gameCatalogService = gameCatalogService;
+            _configService = configService;
             _logger = logger;
         }
 
@@ -89,7 +93,9 @@ namespace NzbDrone.Core.Tv
 
             var initialSeasonMonitored = series.Seasons.ToDictionary(s => s.SeasonNumber, s => s.Monitored);
 
-            var firstSeason = series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
+            var firstSeason = monitoringOptions.Monitor == MonitorTypes.DefaultRegion
+                ? ResolveDefaultRegionSeason(_configService?.ConsoleRegion)
+                : series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
             var lastSeason = series.Seasons.Select(s => s.SeasonNumber).MaxOrDefault();
 
             _logger.Debug("[{0}] Setting game monitored status to {1}", series.Title, monitoringOptions.Monitor);
@@ -109,6 +115,29 @@ namespace NzbDrone.Core.Tv
                 if (monitoringOptions.Monitor == MonitorTypes.All)
                 {
                     season.Monitored = true;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.DefaultRegion)
+                {
+                    season.Monitored = seasonNumber == firstSeason;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.AllRetail)
+                {
+                    season.Monitored = seasonNumber is GameCatalogProxy.RegionUsa
+                        or GameCatalogProxy.RegionEurope
+                        or GameCatalogProxy.RegionJapan
+                        or GameCatalogProxy.RegionWorld;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.NonRetail)
+                {
+                    season.Monitored = seasonNumber is GameCatalogProxy.RegionUnlicensed
+                        or GameCatalogProxy.RegionHomebrew
+                        or GameCatalogProxy.RegionRomHacks;
                     continue;
                 }
 
@@ -341,6 +370,22 @@ namespace NzbDrone.Core.Tv
 
             clean = GameCatalogProxy.DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');
             return clean;
+        }
+
+        private static int ResolveDefaultRegionSeason(string consoleRegion)
+        {
+            if (string.IsNullOrWhiteSpace(consoleRegion))
+            {
+                return GameCatalogProxy.RegionUsa;
+            }
+
+            return consoleRegion.Trim().ToUpperInvariant() switch
+            {
+                "EU" or "EUR" or "EUROPE" or "PAL" => GameCatalogProxy.RegionEurope,
+                "JP" or "JPN" or "JAPAN" or "NTSC-J" => GameCatalogProxy.RegionJapan,
+                "WORLD" => GameCatalogProxy.RegionWorld,
+                _ => GameCatalogProxy.RegionUsa
+            };
         }
 
         private void LegacySetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions)

@@ -47,16 +47,16 @@ namespace NzbDrone.Core.Test.PlatformTests.GameRepositoryTests
         }
 
         [Test]
-        public void should_monitor_all_regular_episodes_and_unmonitor_specials_for_all()
+        public void should_monitor_all_roms_including_unlicensed_for_all()
         {
-            var special = GivenEpisode(0, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+            var special = GivenEpisode(0, 1, false, DateTime.UtcNow.AddDays(-1), monitored: false);
             var aired = GivenEpisode(1, 1, false, DateTime.UtcNow.AddDays(-1));
             var withFile = GivenEpisode(2, 1, true, DateTime.UtcNow.AddDays(-1));
 
             Subject.SetMonitored(_series.Id, MonitorTypes.All, 1, 2);
 
             var monitored = MonitoredByEpisodeId();
-            monitored[special.Id].Should().BeFalse();
+            monitored[special.Id].Should().BeTrue();
             monitored[aired.Id].Should().BeTrue();
             monitored[withFile.Id].Should().BeTrue();
         }
@@ -216,6 +216,63 @@ namespace NzbDrone.Core.Test.PlatformTests.GameRepositoryTests
             var monitoredSeasons = Subject.SetMonitored(_series.Id, MonitorTypes.Missing, 1, 3);
 
             monitoredSeasons.Should().BeEquivalentTo(new[] { 1, 2 });
+        }
+
+        [Test]
+        public void should_monitor_only_retail_regions_for_all_retail()
+        {
+            var unlicensed = GivenEpisode(0, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+            var usa = GivenEpisode(1, 1, false, DateTime.UtcNow.AddDays(-1));
+            var eur = GivenEpisode(2, 1, false, DateTime.UtcNow.AddDays(-1));
+            var jpn = GivenEpisode(3, 1, false, DateTime.UtcNow.AddDays(-1));
+            var world = GivenEpisode(4, 1, false, DateTime.UtcNow.AddDays(-1));
+            var homebrew = GivenEpisode(5, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+            var hacks = GivenEpisode(6, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+
+            Subject.SetMonitored(_series.Id, MonitorTypes.AllRetail, 1, 6);
+
+            var monitored = MonitoredByEpisodeId();
+            monitored[unlicensed.Id].Should().BeFalse();
+            monitored[usa.Id].Should().BeTrue();
+            monitored[eur.Id].Should().BeTrue();
+            monitored[jpn.Id].Should().BeTrue();
+            monitored[world.Id].Should().BeTrue();
+            monitored[homebrew.Id].Should().BeFalse();
+            monitored[hacks.Id].Should().BeFalse();
+        }
+
+        [Test]
+        public void should_monitor_only_non_retail_regions_for_non_retail()
+        {
+            var unlicensed = GivenEpisode(0, 1, false, DateTime.UtcNow.AddDays(-1));
+            var usa = GivenEpisode(1, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+            var eur = GivenEpisode(2, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+            var homebrew = GivenEpisode(5, 1, false, DateTime.UtcNow.AddDays(-1));
+            var hacks = GivenEpisode(6, 1, false, DateTime.UtcNow.AddDays(-1));
+
+            Subject.SetMonitored(_series.Id, MonitorTypes.NonRetail, 1, 6);
+
+            var monitored = MonitoredByEpisodeId();
+            monitored[unlicensed.Id].Should().BeTrue();
+            monitored[usa.Id].Should().BeFalse();
+            monitored[eur.Id].Should().BeFalse();
+            monitored[homebrew.Id].Should().BeTrue();
+            monitored[hacks.Id].Should().BeTrue();
+        }
+
+        [Test]
+        public void should_monitor_only_default_region_for_default_region()
+        {
+            var usa = GivenEpisode(1, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+            var eur = GivenEpisode(2, 1, false, DateTime.UtcNow.AddDays(-1));
+            var jpn = GivenEpisode(3, 1, false, DateTime.UtcNow.AddDays(-1), monitored: true);
+
+            Subject.SetMonitored(_series.Id, MonitorTypes.DefaultRegion, 2, 3);
+
+            var monitored = MonitoredByEpisodeId();
+            monitored[usa.Id].Should().BeFalse();
+            monitored[eur.Id].Should().BeTrue();
+            monitored[jpn.Id].Should().BeFalse();
         }
     }
 }

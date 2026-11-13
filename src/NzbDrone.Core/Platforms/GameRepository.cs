@@ -220,7 +220,20 @@ namespace NzbDrone.Core.Tv
 
             if (monitor == MonitorTypes.All)
             {
-                predicate = "\"SeasonNumber\" > 0";
+                predicate = "\"SeasonNumber\" >= 0";
+            }
+            else if (monitor == MonitorTypes.DefaultRegion)
+            {
+                predicate = "\"SeasonNumber\" = @firstSeason";
+                parameters.Add("firstSeason", firstSeason);
+            }
+            else if (monitor == MonitorTypes.AllRetail)
+            {
+                predicate = "\"SeasonNumber\" IN (1, 2, 3, 4)";
+            }
+            else if (monitor == MonitorTypes.NonRetail)
+            {
+                predicate = "\"SeasonNumber\" IN (0, 5, 6)";
             }
             else if (monitor == MonitorTypes.Future)
             {

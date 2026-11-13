@@ -1,64 +1,28 @@
 import React from 'react';
 import DescriptionList from 'Components/DescriptionList/DescriptionList';
 import DescriptionListItem from 'Components/DescriptionList/DescriptionListItem';
-import translate from 'Utilities/String/translate';
 
 function PlatformMonitoringOptionsPopoverContent() {
   return (
     <DescriptionList>
       <DescriptionListItem
-        title={translate('MonitorAllGames')}
-        data={translate('MonitorAllGamesDescription')}
+        title="All ROMs"
+        data="Marks all ROMs in the platform (all regions, unlicensed, homebrew, and ROM hacks/translations) as wanted."
       />
 
       <DescriptionListItem
-        title={translate('MonitorFutureGames')}
-        data={translate('MonitorFutureGamesDescription')}
+        title="Default Region"
+        data="Marks only ROMs matching the Console Region configured in UI Settings."
       />
 
       <DescriptionListItem
-        title={translate('MonitorMissingGames')}
-        data={translate('MonitorMissingGamesDescription')}
+        title="All Retail"
+        data="Marks all official retail regions (USA, Europe, Japan, and World) and excludes unlicensed, homebrew, and ROM hacks/translations."
       />
 
       <DescriptionListItem
-        title={translate('MonitorExistingGames')}
-        data={translate('MonitorExistingGamesDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('MonitorRecentGames')}
-        data={translate('MonitorRecentGamesDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('MonitorPilotGame')}
-        data={translate('MonitorPilotGameDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('MonitorFirstSeason')}
-        data={translate('MonitorFirstSeasonDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('MonitorLastSeason')}
-        data={translate('MonitorLastSeasonDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('MonitorSpecialGames')}
-        data={translate('MonitorSpecialGamesDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('UnmonitorSpecialGames')}
-        data={translate('UnmonitorSpecialsGamesDescription')}
-      />
-
-      <DescriptionListItem
-        title={translate('MonitorNoGames')}
-        data={translate('MonitorNoGamesDescription')}
+        title="Non-Retail"
+        data="Marks only non-retail content (unlicensed, homebrew/aftermarket, and ROM hacks/translations) and excludes retail regions."
       />
     </DescriptionList>
   );
