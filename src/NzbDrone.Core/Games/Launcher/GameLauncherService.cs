@@ -5,6 +5,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
@@ -819,7 +821,7 @@ namespace NzbDrone.Core.Games.Launcher
 
             if (ShouldExtractZipForWebPlayer(descriptor.RomPath, descriptor.EmulatorJsCore))
             {
-                var extracted = TryExtractZipRomToMemoryStream(descriptor.RomPath, out var innerFileName);
+                var extracted = TryOpenZipRomStream(descriptor.RomPath, out var innerFileName);
                 if (extracted != null)
                 {
                     fileName = innerFileName;
@@ -1162,37 +1164,113 @@ namespace NzbDrone.Core.Games.Launcher
             }
         }
 
-        private static Stream TryExtractZipRomToMemoryStream(string zipPath, out string innerFileName)
+        private static Stream TryOpenZipRomStream(string zipPath, out string innerFileName)
         {
             innerFileName = string.Empty;
+            ZipArchive archive = null;
             try
             {
-                using var archive = ZipFile.OpenRead(zipPath);
+                archive = ZipFile.OpenRead(zipPath);
                 var best = SelectBestRomZipEntry(archive);
                 if (best == null)
                 {
+                    archive.Dispose();
                     return null;
                 }
 
-                // Avoid buffering excessively large multi-hundred-MB disc images into memory
-                if (best.Length > 256L * 1024L * 1024L)
-                {
-                    return null;
-                }
-
-                var memoryStream = new MemoryStream((int)Math.Min(best.Length, int.MaxValue));
-                using (var entryStream = best.Open())
-                {
-                    entryStream.CopyTo(memoryStream);
-                }
-
-                memoryStream.Position = 0;
+                var entryStream = best.Open();
                 innerFileName = best.Name;
-                return memoryStream;
+                return new ZipEntryStream(archive, entryStream, best.Length);
             }
             catch
             {
+                archive?.Dispose();
                 return null;
+            }
+        }
+
+        private sealed class ZipEntryStream : Stream
+        {
+            private readonly ZipArchive _archive;
+            private readonly Stream _inner;
+            private readonly long _length;
+            private long _position;
+            private bool _disposed;
+
+            public ZipEntryStream(ZipArchive archive, Stream inner, long length)
+            {
+                _archive = archive;
+                _inner = inner;
+                _length = length;
+            }
+
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => _length;
+
+            public override long Position
+            {
+                get => _position;
+                set => throw new NotSupportedException();
+            }
+
+            public override void Flush() => _inner.Flush();
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                var read = _inner.Read(buffer, offset, count);
+                _position += read;
+                return read;
+            }
+
+            public override int Read(Span<byte> buffer)
+            {
+                var read = _inner.Read(buffer);
+                _position += read;
+                return read;
+            }
+
+            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                var read = await _inner.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
+                _position += read;
+                return read;
+            }
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                var read = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                _position += read;
+                return read;
+            }
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            protected override void Dispose(bool disposing)
+            {
+                if (!_disposed && disposing)
+                {
+                    _disposed = true;
+                    _inner.Dispose();
+                    _archive.Dispose();
+                }
+
+                base.Dispose(disposing);
+            }
+
+            public override async ValueTask DisposeAsync()
+            {
+                if (!_disposed)
+                {
+                    _disposed = true;
+                    await _inner.DisposeAsync().ConfigureAwait(false);
+                    _archive.Dispose();
+                }
+
+                await base.DisposeAsync().ConfigureAwait(false);
             }
         }
 

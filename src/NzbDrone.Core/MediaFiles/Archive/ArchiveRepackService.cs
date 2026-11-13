@@ -24,45 +24,41 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
         public void RepackArchive(string archivePath)
         {
-            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempDir);
-
-            try
+            using (var archive = ZipFile.Open(archivePath, ZipArchiveMode.Update))
             {
-                using (var archive = ZipFile.Open(archivePath, ZipArchiveMode.Update))
+                var entries = archive.Entries.ToList();
+                foreach (var entry in entries)
                 {
-                    var entries = archive.Entries.ToList();
-                    foreach (var entry in entries)
+                    if (!entry.Name.EndsWith(".smc", StringComparison.InvariantCultureIgnoreCase) ||
+                        entry.Length % 1024 != 512)
                     {
-                        if (entry.Name.EndsWith(".smc", StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            var tempFilePath = Path.Combine(tempDir, entry.Name);
-                            entry.ExtractToFile(tempFilePath);
-
-                            var bytes = File.ReadAllBytes(tempFilePath);
-
-                            // Detect 512-byte header
-                            if (bytes.Length % 1024 == 512)
-                            {
-                                _logger.Debug("Stripping 512-byte copier header from {0}", entry.Name);
-                                var newBytes = new byte[bytes.Length - 512];
-                                Array.Copy(bytes, 512, newBytes, 0, newBytes.Length);
-
-                                var newExtensionPath = Path.Combine(tempDir, Path.GetFileNameWithoutExtension(entry.Name) + ".sfc");
-                                File.WriteAllBytes(newExtensionPath, newBytes);
-
-                                entry.Delete();
-                                archive.CreateEntryFromFile(newExtensionPath, Path.GetFileName(newExtensionPath), CompressionLevel.Optimal); // Enforces Deflate
-                            }
-                        }
+                        continue;
                     }
-                }
-            }
-            finally
-            {
-                if (Directory.Exists(tempDir))
-                {
-                    Directory.Delete(tempDir, true);
+
+                    _logger.Debug("Stripping 512-byte copier header from {0}", entry.Name);
+                    var newEntryName = Path.GetFileNameWithoutExtension(entry.Name) + ".sfc";
+                    var newEntry = archive.CreateEntry(newEntryName, CompressionLevel.Optimal);
+
+                    using (var sourceStream = entry.Open())
+                    using (var destStream = newEntry.Open())
+                    {
+                        var header = new byte[512];
+                        var skipped = 0;
+                        while (skipped < 512)
+                        {
+                            var read = sourceStream.Read(header, skipped, 512 - skipped);
+                            if (read == 0)
+                            {
+                                break;
+                            }
+
+                            skipped += read;
+                        }
+
+                        sourceStream.CopyTo(destStream, 81920);
+                    }
+
+                    entry.Delete();
                 }
             }
         }

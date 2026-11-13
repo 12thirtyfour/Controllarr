@@ -34,6 +34,10 @@ All notable changes to **Controllarr** are documented in this file.
   - Added the **None** monitoring option when adding a platform (wired to `MonitorTypes.None`), leaving the platform, all regions, and all ROMs unmonitored.
 
 ### Changed
+- **Memory Usage & Streaming Optimizations (`GameLauncherService`, `ArchiveRepackService`, `GameCatalogProxy`)**:
+  - Updated `GameLauncherService.OpenRomStream` to stream `.zip`-packaged ROMs directly via a `ZipEntryStream` wrapper instead of buffering up to 256 MB into a `MemoryStream` on the Large Object Heap.
+  - Updated `ArchiveRepackService.RepackArchive` to check `entry.Length % 1024 == 512` before reading and stream 512-byte `.smc` header stripping directly in-archive without temp files or full-file `byte[]` copies.
+  - Bounded `GameCatalogProxy.SyncedPlatformGamesCache` (and corresponding `DynamicGames` entries) to the 4 most recently synced platform catalogs so multi-platform libraries do not permanently pin all catalog entries in Gen2 memory.
 - **Third-Party Dependencies (`Directory.Build.props`, `Controllarr.Core.csproj`, `Controllarr.Test.Common.csproj`, `frontend/package.json`)**:
   - Updated .NET packages (`Polly` `8.9.1`, `Moq` `4.21.0`, `Microsoft.NET.Test.Sdk` `18.12.0`, `NunitXml.TestLogger` `8.1.0`) and safe minor/patch frontend packages (`vite` `8.3.8`, `@vitejs/plugin-react` `6.3.0`, `@tanstack/react-query` `5.107.1`, `lucide-react` `1.72.0`, `zustand` `5.1.0`, `chart.js` `4.6.1`, `react-router-dom` `7.18.5`, `@dnd-kit/*` `0.5.3`, `@typescript-eslint/*` `8.72.2`, `postcss` `8.5.32`, `autoprefixer` `10.6.2`, `qs` `6.17.1`, `moment-timezone` `0.6.6`, etc.).
 - **Activity History Columns (`historyOptionsStore`, `HistoryRow`)**:

@@ -32,6 +32,8 @@ namespace NzbDrone.Core.MetadataSource.Game
         public const int RegionRomHacks = 6;
         public const int RegionBios = 99;
 
+        private const int MaxCachedPlatformCatalogs = 4;
+
         private static readonly Regex DatGameBlockRegex = new Regex(
             @"game\s*\(\s*name\s+""(?<name>[^""]+)""(?<body>.*?)\r?\n\)",
             RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
@@ -164,6 +166,8 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static readonly List<GameCatalogEntry> BuiltInGames = BuildGames();
         private static readonly ConcurrentDictionary<int, GameCatalogEntry> DynamicGames = new ConcurrentDictionary<int, GameCatalogEntry>();
         private static readonly ConcurrentDictionary<string, List<GameCatalogEntry>> SyncedPlatformGamesCache = new ConcurrentDictionary<string, List<GameCatalogEntry>>();
+        private static readonly Queue<string> SyncedCacheEvictionOrder = new Queue<string>();
+        private static readonly object SyncedCacheLock = new object();
         private static readonly ConcurrentDictionary<int, HashSet<int>> PendingPlatformGameSelections = new ConcurrentDictionary<int, HashSet<int>>();
 
         private readonly IDatCacheService _datCacheService;
@@ -944,12 +948,32 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (syncedList.Count > 0)
             {
-                foreach (var entry in syncedList)
+                lock (SyncedCacheLock)
                 {
-                    DynamicGames[entry.TvdbId] = entry;
-                }
+                    if (!SyncedPlatformGamesCache.ContainsKey(cacheKey))
+                    {
+                        SyncedCacheEvictionOrder.Enqueue(cacheKey);
+                    }
 
-                SyncedPlatformGamesCache[cacheKey] = syncedList;
+                    foreach (var entry in syncedList)
+                    {
+                        DynamicGames[entry.TvdbId] = entry;
+                    }
+
+                    SyncedPlatformGamesCache[cacheKey] = syncedList;
+
+                    while (SyncedCacheEvictionOrder.Count > MaxCachedPlatformCatalogs)
+                    {
+                        var oldestKey = SyncedCacheEvictionOrder.Dequeue();
+                        if (SyncedPlatformGamesCache.TryRemove(oldestKey, out var evicted))
+                        {
+                            foreach (var evictedEntry in evicted)
+                            {
+                                DynamicGames.TryRemove(evictedEntry.TvdbId, out _);
+                            }
+                        }
+                    }
+                }
             }
 
             return syncedList;
