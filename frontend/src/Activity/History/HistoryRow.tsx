@@ -1,14 +1,15 @@
 import React, { useCallback, useState } from 'react';
+import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
 import IconButton from 'Components/Link/IconButton';
 import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
+import DownloadProtocol from 'DownloadClient/DownloadProtocol';
 import gameEntities from 'Game/gameEntities';
 import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
-import GameQuality from 'Game/GameQuality';
 import GameTitleLink from 'Game/GameTitleLink';
 import useGame from 'Game/useGame';
 import { icons, tooltipPositions } from 'Helpers/Props';
@@ -43,16 +44,55 @@ interface HistoryRowProps {
   columns: Column[];
 }
 
+function getHistoryProtocol(data: HistoryData): DownloadProtocol | null {
+  if ('protocol' in data && data.protocol) {
+    const raw = data.protocol.toLowerCase();
+
+    if (raw === '1' || raw === 'usenet') {
+      return 'usenet';
+    }
+
+    if (raw === '2' || raw === 'torrent') {
+      return 'torrent';
+    }
+
+    if (raw === '3' || raw === 'http') {
+      return 'http';
+    }
+
+    return 'unknown';
+  }
+
+  const client =
+    ('downloadClient' in data && data.downloadClient) ||
+    ('downloadClientName' in data && data.downloadClientName) ||
+    '';
+
+  if (client) {
+    const lowerClient = client.toLowerCase();
+
+    if (lowerClient.includes('internetarchive')) {
+      return 'http';
+    }
+
+    if (lowerClient.includes('sabnzbd') || lowerClient.includes('nzbget')) {
+      return 'usenet';
+    }
+
+    return 'torrent';
+  }
+
+  return null;
+}
+
 function HistoryRow(props: HistoryRowProps) {
   const {
     id,
     gameId,
     seriesId,
     languages,
-    quality,
     customFormats = [],
     customFormatScore,
-    qualityCutoffNotMet,
     eventType,
     sourceTitle,
     date,
@@ -134,21 +174,14 @@ function HistoryRow(props: HistoryRowProps) {
           );
         }
 
-        if (name === 'format' || name === 'quality') {
-          return (
-            <TableRowCell key={name}>
-              <GameQuality
-                quality={quality}
-                isCutoffNotMet={qualityCutoffNotMet}
-              />
-            </TableRowCell>
-          );
-        }
+        if (name === 'protocol') {
+          const protocol = getHistoryProtocol(data);
 
-        if (name === 'customFormats') {
           return (
             <TableRowCell key={name}>
-              <GameFormats formats={customFormats} />
+              {protocol ? (
+                <ProtocolLabel protocol={protocol} showSourceName={true} />
+              ) : null}
             </TableRowCell>
           );
         }

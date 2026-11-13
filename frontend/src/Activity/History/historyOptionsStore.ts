@@ -10,7 +10,7 @@ import translate from 'Utilities/String/translate';
 export type HistoryOptions = PageableOptions;
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<HistoryOptions>('history_options_v3', () => {
+  createOptionsStore<HistoryOptions>('history_options_v4', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
@@ -41,14 +41,8 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
-          name: 'format',
-          label: () => translate('Format'),
-          isSortable: true,
-          isVisible: true,
-        },
-        {
-          name: 'customFormats',
-          label: () => translate('Formats'),
+          name: 'protocol',
+          label: () => translate('Source'),
           isSortable: false,
           isVisible: true,
         },

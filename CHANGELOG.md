@@ -34,6 +34,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Added the **None** monitoring option when adding a platform (wired to `MonitorTypes.None`), leaving the platform, all regions, and all ROMs unmonitored.
 
 ### Changed
+- **Activity History Columns (`historyOptionsStore`, `HistoryRow`)**:
+  - Removed the **Format** and **Formats** columns from the Activity History table and replaced them with the **Source** (`protocol`) column matching the Activity Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 - **Add-Platform Search Flow (`PlatformScannedHandler`, `PlatformSearchService`, `GameSearchService`, `CollectionSearchHelper`)**:
   - When adding a platform with **Start search for missing games** enabled, Controllarr now searches for a platform collection package first (`SearchCollectionFirst = true`). If a collection release is grabbed, individual ROM searches are skipped while the collection downloads; otherwise, it automatically moves on to searching for individual monitored ROMs.
 - **ROM Monitoring Trickle-Up (`PlatformService.EnsureMonitoredForGames`, `GameController` V3 & V5)**:
