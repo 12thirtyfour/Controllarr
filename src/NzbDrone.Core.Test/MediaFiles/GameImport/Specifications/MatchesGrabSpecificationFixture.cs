@@ -157,5 +157,35 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             decision.Accepted.Should().BeFalse();
             decision.Message.Should().Contain("Game 'Gran Turismo 6' was not found in the grabbed release");
         }
+
+        [Test]
+        public void should_be_accepted_if_verified_and_monitored_game_differs_from_grabbed_release()
+        {
+            _episode1.Monitored = true;
+            _localEpisode.RomHashVerified = true;
+            GivenHistoryForEpisodes(_episode2);
+
+            Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_be_rejected_if_verified_game_differs_and_is_unmonitored()
+        {
+            _episode1.Monitored = false;
+            _localEpisode.RomHashVerified = true;
+            GivenHistoryForEpisodes(_episode2);
+
+            Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_be_rejected_if_unverified_monitored_game_differs_from_grabbed_release()
+        {
+            _episode1.Monitored = true;
+            _localEpisode.RomHashVerified = false;
+            GivenHistoryForEpisodes(_episode2);
+
+            Subject.IsSatisfiedBy(_localEpisode, _downloadClientItem).Accepted.Should().BeFalse();
+        }
     }
 }

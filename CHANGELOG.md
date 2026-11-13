@@ -29,6 +29,11 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-12]
 
+### Fixed
+- **Multi-ROM Collection Import & Cross-Game Hash Verification (`ImportDecisionMaker`, `MatchesGrabSpecification`)**:
+  - Fixed multi-ROM collection downloads (e.g., from Internet Archive) mapping every ROM in the downloaded folder to the single grabbed `TrackedDownload.RemoteEpisode`, which caused only 1 ROM to match and the rest to be rejected and deleted on cleanup. Multi-file downloads (`otherFiles == true`) no longer fall back `fileEpisodeInfo` or `localEpisode.Episodes` to the single grabbed release.
+  - Updated `MatchesGrabSpecification` so any ROM whose hash is verified against a DAT catalog (`RomHashVerified == true`) and matches a monitored/wanted game in the library is accepted and imported even if it was not in the original grabbed `EpisodeIds`.
+
 ### Added
 - **Add All Supported Platforms (`PlatformController`, `GameCatalogProxy`, `AddAllPlatformsModal`, `NoPlatform`, `AddNewPlatform`)**:
   - Added an **Add All Supported Platforms** button in both the Add Platform view (`AddNewPlatform.tsx`) and the blank Library view (`NoPlatform.tsx`).

@@ -220,5 +220,39 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             ExceptionVerification.ExpectedErrors(1);
         }
+
+        [Test]
+        public void should_not_fallback_to_tracked_download_episodes_when_multiple_rom_files_exist()
+        {
+            GivenSpecifications(_pass1);
+
+            var grabbedEpisode = new Episode { Id = 42, Title = "Grabbed Game", Monitored = true };
+            var downloadClientItem = new NzbDrone.Core.Download.DownloadClientItem { DownloadId = "dl-1" };
+
+            Mocker.GetMock<NzbDrone.Core.Download.TrackedDownloads.ITrackedDownloadService>()
+                  .Setup(s => s.Find("dl-1"))
+                  .Returns(new NzbDrone.Core.Download.TrackedDownloads.TrackedDownload
+                  {
+                      RemoteEpisode = new NzbDrone.Core.Parser.Model.RemoteEpisode
+                      {
+                          Series = _series,
+                          Episodes = new List<Episode> { grabbedEpisode },
+                          ParsedEpisodeInfo = new NzbDrone.Core.Parser.Model.ParsedEpisodeInfo { SeriesTitle = _series.Title }
+                      }
+                  });
+
+            _videoFiles = new List<string>
+                {
+                    @"C:\downloads\collection\Game1.sfc",
+                    @"C:\downloads\collection\Game2.sfc"
+                };
+
+            GivenVideoFiles(_videoFiles);
+
+            var decisions = Subject.GetImportDecisions(_videoFiles, _series, downloadClientItem, null, null, false);
+
+            decisions.Should().HaveCount(2);
+            decisions.Should().OnlyContain(d => d.Rejections.Any(r => r.Reason == NzbDrone.Core.MediaFiles.GameImport.ImportRejectionReason.InvalidSeasonOrEpisode));
+        }
     }
 }

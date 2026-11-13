@@ -77,6 +77,12 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             if (unexpected.Any())
             {
+                if (localEpisode.RomHashVerified && unexpected.All(e => e.Monitored))
+                {
+                    _logger.Debug("Accepting verified ROM(s) for monitored game(s) not in grabbed release: {0}", FormatGame(unexpected));
+                    return ImportSpecDecision.Accept();
+                }
+
                 _logger.Debug("Unexpected game(s) in file: {0}", FormatGame(unexpected));
 
                 if (unexpected.Count == 1)

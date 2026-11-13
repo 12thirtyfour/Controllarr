@@ -124,7 +124,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                     ? _trackedDownloadService.Find(downloadClientItem.DownloadId)
                     : null;
 
-                if (fileEpisodeInfo == null && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
+                if (!otherFiles && fileEpisodeInfo == null && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
                 {
                     fileEpisodeInfo = trackedDownload.RemoteEpisode.ParsedEpisodeInfo ?? new ParsedEpisodeInfo
                     {
@@ -161,7 +161,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 _aggregationService.Augment(localEpisode, downloadClientItem);
                 _unmanagedDiskScanner?.VerifyAndEnrichLocalEpisode(localEpisode);
 
-                if (localEpisode.Episodes.Empty() && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
+                if (!otherFiles && localEpisode.Episodes.Empty() && trackedDownload?.RemoteEpisode?.Episodes?.Any() == true)
                 {
                     localEpisode.Episodes = trackedDownload.RemoteEpisode.Episodes;
                 }
