@@ -66,7 +66,8 @@ function PlatformIndexOverviews(props: PlatformIndexOverviewsProps) {
     isSmallScreen,
   } = props;
 
-  const { size: posterSize, detailedProgressBar } = usePlatformOverviewOptions();
+  const { size: posterSize, detailedProgressBar } =
+    usePlatformOverviewOptions();
   const listRef = useRef<List>(null);
   const [measureRef, bounds] = useMeasure();
   const [size, setSize] = useState({ width: 0, height: 0 });

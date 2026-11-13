@@ -3,7 +3,7 @@
 All notable changes to **Controllarr** are documented in this file.
 
 > [!NOTE]
-> **Project Lifecycle & Versioning Model: Alpha**
+> **Project Lifecycle & Versioning Model: Beta (`v1.0.0-beta.1`)**
 > Controllarr is currently in active **Alpha** development as core architecture, platform models, and media acquisition workflows are built and stabilized. Formal versioned releases (Beta, RC, and 1.0.0) will begin once the baseline feature set is verified. During Alpha, all changes are tracked chronologically by **Date**.
 >
 > **Beta Readiness Gate (Baseline Capabilities Required)**:
@@ -24,6 +24,16 @@ All notable changes to **Controllarr** are documented in this file.
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.0.0-beta.1] - 2026-11-13
+
+### Changed
+- **Beta 1 Release Pipeline & Code Cleanup**:
+  - Configured `.github/workflows/build.yml` for `RELEASE_VERSION: 1.0.0-beta.1` (`prerelease: true`) and fixed test assembly discovery (`Controllarr.*.Test.dll`) across unit, PostgreSQL, and integration test jobs.
+  - Resolved all remaining frontend ESLint (`filenames/match-exported` gaming symbol renames, `react/jsx-no-bind`, `no-nested-ternary`, `no-explicit-any`, `radix`) and Stylelint CSS ordering/formatting issues.
+  - Fixed `SerialNumberProviderFixture.should_throw_if_serial_number_unavailable` to invoke `GivenInvalidResponse()` so the exception-handling path is properly verified.
 
 ---
 

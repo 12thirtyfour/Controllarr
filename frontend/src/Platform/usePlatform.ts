@@ -5,19 +5,16 @@ import { Filter, FilterBuilderProp } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
-import {
-  filterBuilderTypes,
-  filterBuilderValueTypes,
-} from 'Helpers/Props';
+import { filterBuilderTypes, filterBuilderValueTypes } from 'Helpers/Props';
 import { FilterType } from 'Helpers/Props/filterTypes';
 import getFilterTypePredicate from 'Helpers/Props/getFilterTypePredicate';
 import { SortDirection } from 'Helpers/Props/sortDirections';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import sortByProp from 'Utilities/Array/sortByProp';
 import dateFilterPredicate from 'Utilities/Date/dateFilterPredicate';
 import clientSideFilterAndSort from 'Utilities/Filter/clientSideFilterAndSort';
-import translate from 'Utilities/String/translate';
-import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import getRegionalPlatformTitle from 'Utilities/Platform/getRegionalPlatformTitle';
+import translate from 'Utilities/String/translate';
 import Series, { Season, Statistics } from './Platform';
 import { usePlatformOptions } from './platformOptionsStore';
 
@@ -111,18 +108,13 @@ const SORT_PREDICATES = {
       : 0;
   },
 
-
-
-
   gameProgress: (item: Series, _: SortDirection) => {
     const statistics = item.statistics;
 
     const gameCount = statistics?.gameCount ?? 0;
     const romFileCount = statistics?.romFileCount ?? 0;
 
-    const progress = gameCount
-      ? (romFileCount / gameCount) * 100
-      : 100;
+    const progress = gameCount ? (romFileCount / gameCount) * 100 : 100;
 
     return progress + gameCount / 1000000;
   },
@@ -130,7 +122,6 @@ const SORT_PREDICATES = {
   gameCount: (item: Series, _: SortDirection) => {
     return item.statistics?.totalGameCount ?? 0;
   },
-
 
   originalLanguage: (item: Series, _: SortDirection) => {
     const { originalLanguage } = item;
@@ -143,7 +134,6 @@ const SORT_PREDICATES = {
 
     return language?.name ?? '';
   },
-
 
   ratings: (item: Series, _: SortDirection) => {
     const { ratings } = item;
@@ -162,9 +152,7 @@ const FILTER_PREDICATES = {
     const gameCount = statistics?.gameCount ?? 0;
     const romFileCount = statistics?.romFileCount ?? 0;
 
-    const progress = gameCount
-      ? (romFileCount / gameCount) * 100
-      : 100;
+    const progress = gameCount ? (romFileCount / gameCount) * 100 : 100;
 
     const predicate = getFilterTypePredicate(type);
     return predicate(progress, filterValue);
@@ -176,8 +164,6 @@ const FILTER_PREDICATES = {
     const romFileCount = statistics?.romFileCount ?? 0;
     return gameCount - romFileCount > 0;
   },
-
-
 
   added: (
     item: Series,
@@ -217,18 +203,13 @@ const FILTER_PREDICATES = {
     return predicate(releaseTypes, filterValue);
   },
 
-  romFileQualities: (
-    item: Series,
-    filterValue: number[],
-    type: FilterType
-  ) => {
-    const romFileQualities = (
-      item.statistics?.romFileQualities ?? []
-    ).map((q) => q.id);
+  romFileQualities: (item: Series, filterValue: number[], type: FilterType) => {
+    const romFileQualities = (item.statistics?.romFileQualities ?? []).map(
+      (q) => q.id
+    );
     const predicate = getFilterTypePredicate(type);
     return predicate(romFileQualities, filterValue);
   },
-
 
   sizeOnDisk: (item: Series, filterValue: number, type: FilterType) => {
     const predicate = getFilterTypePredicate(type);
@@ -236,11 +217,7 @@ const FILTER_PREDICATES = {
     return predicate(sizeOnDisk, filterValue);
   },
 
-  averageSizePerGame: (
-    item: Series,
-    filterValue: number,
-    type: FilterType
-  ) => {
+  averageSizePerGame: (item: Series, filterValue: number, type: FilterType) => {
     const predicate = getFilterTypePredicate(type);
     const totalGameCount = item.statistics?.totalGameCount ?? 0;
     const averageSize =
@@ -249,8 +226,6 @@ const FILTER_PREDICATES = {
         : 0;
     return predicate(averageSize, filterValue);
   },
-
-
 
   gamesMonitoredStatus: (
     item: Series,
@@ -266,8 +241,7 @@ const FILTER_PREDICATES = {
     // for seasons monitored status so we should to exclude them here too.
 
     const monitoredCount =
-      monitoredGameCount -
-      (specials?.statistics?.monitoredGameCount ?? 0);
+      monitoredGameCount - (specials?.statistics?.monitoredGameCount ?? 0);
 
     const totalCount =
       totalGameCount - (specials?.statistics?.totalGameCount ?? 0);
@@ -315,7 +289,6 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.QUALITY_PROFILE,
   },
-
 
   {
     name: 'added',
@@ -429,7 +402,6 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     valueType: filterBuilderValueTypes.TAG,
   },
 
-
   {
     name: 'gamesMonitoredStatus',
     label: () => translate('GamesMonitoredStatus'),
@@ -490,7 +462,9 @@ const usePlatform = () => {
       return new Map<number, Series>();
     }
 
-    return new Map<number, Series>(localizedData.map((series) => [series.id, series]));
+    return new Map<number, Series>(
+      localizedData.map((series) => [series.id, series])
+    );
   }, [localizedData]);
 
   return {
@@ -720,10 +694,7 @@ export const useToggleSeriesMonitored = (seriesId: number) => {
   const queryClient = useQueryClient();
   const series = useSingleSeries(seriesId);
 
-  const { mutate, isPending, error } = useApiMutation<
-    Series,
-    Partial<Series>
-  >({
+  const { mutate, isPending, error } = useApiMutation<Series, Partial<Series>>({
     path: '/series',
     method: 'PUT',
     mutationOptions: {
@@ -830,9 +801,7 @@ export const useToggleSeasonMonitored = (seriesId: number) => {
   };
 };
 
-export const useUpdateSeriesMonitor = (
-  shouldFetchGamesAfterUpdate = false
-) => {
+export const useUpdateSeriesMonitor = (shouldFetchGamesAfterUpdate = false) => {
   const queryClient = useQueryClient();
 
   const { mutate, isPending, error } = useApiMutation<

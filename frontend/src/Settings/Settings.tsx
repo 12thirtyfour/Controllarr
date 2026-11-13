@@ -117,7 +117,9 @@ function Settings() {
                   <span className={styles.cardIcon}>
                     <Icon name={section.iconName} size={16} />
                   </span>
-                  <h2 className={styles.cardTitle} title={section.title}>{section.title}</h2>
+                  <h2 className={styles.cardTitle} title={section.title}>
+                    {section.title}
+                  </h2>
                 </div>
                 <p className={styles.cardSummary}>{section.summary}</p>
               </Link>

@@ -36,7 +36,8 @@ interface CutoffUnmetRowProps {
 function CutoffUnmetRow({
   id,
   seriesId,
-  romFileId,  airDate,
+  romFileId,
+  airDate,
   airDateUtc,
   lastSearchTime,
   title,
@@ -106,7 +107,9 @@ function CutoffUnmetRow({
         }
 
         if (name === 'games.airDateUtc') {
-          return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
+          return (
+            <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />
+          );
         }
 
         if (name === 'games.lastSearchTime') {

@@ -36,7 +36,9 @@ interface AddNewPlatformSearchResultProps {
   series: AddPlatform;
 }
 
-function AddNewPlatformSearchResult({ series }: AddNewPlatformSearchResultProps) {
+function AddNewPlatformSearchResult({
+  series,
+}: AddNewPlatformSearchResultProps) {
   const {
     tvdbId,
     titleSlug,
@@ -60,7 +62,8 @@ function AddNewPlatformSearchResult({ series }: AddNewPlatformSearchResultProps)
   const language = useLanguageById(preferredMetadataLanguage);
   const isExistingSeries = useExistingPlatform(tvdbId);
   const isSmallScreen = useAppDimension('isSmallScreen');
-  const [isNewAddPlatformModalOpen, setIsNewAddPlatformModalOpen] = useState(false);
+  const [isNewAddPlatformModalOpen, setIsNewAddPlatformModalOpen] =
+    useState(false);
 
   const seasonCount = statistics.seasonCount;
   const translation = translations.find((t) => t.language.id === language?.id);
@@ -100,7 +103,9 @@ function AddNewPlatformSearchResult({ series }: AddNewPlatformSearchResultProps)
       <Link
         className={styles.underlay}
         aria-label={
-          isExistingSeries ? title : translate('AddPlatformWithTitle', { title })
+          isExistingSeries
+            ? title
+            : translate('AddPlatformWithTitle', { title })
         }
         {...linkProps}
       />

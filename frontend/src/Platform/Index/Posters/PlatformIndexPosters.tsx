@@ -11,7 +11,8 @@ import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
 
 const bodyPaddingSmallScreen = dimensions.pageContentBodyPaddingSmallScreen;
 const columnPadding = dimensions.platformIndexColumnPadding;
-const columnPaddingSmallScreen = dimensions.platformIndexColumnPaddingSmallScreen;
+const columnPaddingSmallScreen =
+  dimensions.platformIndexColumnPaddingSmallScreen;
 const progressBarHeight = dimensions.progressBarSmallHeight;
 const detailedProgressBarHeight = dimensions.progressBarMediumHeight;
 

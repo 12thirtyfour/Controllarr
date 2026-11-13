@@ -3,9 +3,9 @@ import React, { useCallback, useMemo, useState } from 'react';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
 import IconButton from 'Components/Link/IconButton';
-import MonitorToggleButton from 'Components/MonitorToggleButton';
 import Link from 'Components/Link/Link';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
+import MonitorToggleButton from 'Components/MonitorToggleButton';
 import useMeasure from 'Helpers/Hooks/useMeasure';
 import { icons } from 'Helpers/Props';
 import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
@@ -14,8 +14,8 @@ import PlatformIndexProgressBar from 'Platform/Index/ProgressBar/PlatformIndexPr
 import PlatformIndexPosterSelect from 'Platform/Index/Select/PlatformIndexPosterSelect';
 import { PlatformStatus, Statistics } from 'Platform/Platform';
 import { usePlatformOverviewOptions } from 'Platform/platformOptionsStore';
-import { useToggleSeriesMonitored } from 'Platform/usePlatform';
 import PlatformPoster from 'Platform/PlatformPoster';
+import { useToggleSeriesMonitored } from 'Platform/usePlatform';
 import translate from 'Utilities/String/translate';
 import usePlatformIndexItem from '../usePlatformIndexItem';
 import { ROW_BORDER, ROW_VERTICAL_PADDING } from './overviewLayout';
@@ -76,7 +76,8 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
     toggleSeriesMonitored({ monitored: !series?.monitored });
   }, [series?.monitored, toggleSeriesMonitored]);
   const [isEditPlatformModalOpen, setIsEditPlatformModalOpen] = useState(false);
-  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] = useState(false);
+  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] =
+    useState(false);
 
   const onRefreshPress = useCallback(() => {
     executeCommand({
@@ -270,8 +271,8 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
             showPath={overviewOptions.showPath}
             showSizeOnDisk={overviewOptions.showSizeOnDisk}
             showTags={overviewOptions.showTags}
-            onMonitorPress={onMonitorPress}
             tags={tags}
+            onMonitorPress={onMonitorPress}
           />
         </div>
       </div>

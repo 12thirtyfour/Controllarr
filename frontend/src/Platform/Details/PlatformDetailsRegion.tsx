@@ -35,11 +35,14 @@ import { align, icons, sortDirections, tooltipPositions } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import OrganizePreviewModal from 'Organize/OrganizePreviewModal';
-import formatSeason from 'Region/formatRegion';
 import PlatformHistoryModal from 'Platform/History/PlatformHistoryModal';
-import RegionInteractiveSearchModal from 'Platform/Search/RegionInteractiveSearchModal';
 import { Statistics } from 'Platform/Platform';
-import { useSingleSeries, useToggleSeasonMonitored } from 'Platform/usePlatform';
+import RegionInteractiveSearchModal from 'Platform/Search/RegionInteractiveSearchModal';
+import {
+  useSingleSeries,
+  useToggleSeasonMonitored,
+} from 'Platform/usePlatform';
+import formatSeason from 'Region/formatRegion';
 import { TableOptionsChangePayload } from 'typings/Table';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
 import formatBytes from 'Utilities/Number/formatBytes';
@@ -65,12 +68,17 @@ function isUpdateLabel(label?: string, title?: string): boolean {
 }
 
 function parseDiscNumber(versionLabel: string, title?: string): number {
-  const match = (versionLabel || '').match(/\bdisc\s*(\d+)\b/i) || (title || '').match(/\bdisc\s*(\d+)\b/i);
-  return match ? parseInt(match[1], 10) : 1;
+  const match =
+    (versionLabel || '').match(/\bdisc\s*(\d+)\b/i) ||
+    (title || '').match(/\bdisc\s*(\d+)\b/i);
+  return match ? parseInt(match[1]) : 1;
 }
 
 function hasDiscTag(versionLabel: string, title?: string): boolean {
-  return /\bdisc\s*\d+\b/i.test(versionLabel || '') || /\bdisc\s*\d+\b/i.test(title || '');
+  return (
+    /\bdisc\s*\d+\b/i.test(versionLabel || '') ||
+    /\bdisc\s*\d+\b/i.test(title || '')
+  );
 }
 
 function parseCleanVersion(versionLabel: string): string {
@@ -107,7 +115,7 @@ function parseBaseGameAndVersion(item: Game) {
   }
 
   const match = rawTitle.match(
-    /^(.*?)\s*[\(\[](Rev\.?\s*[A-Za-z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Alt\s*\d*|PRG\d+|Encrypted[^)\]]*|Beta[^)\]]*|Proto[^)\]]*|Prototype[^)\]]*|Demo[^)\]]*|Sample[^)\]]*|Virtual Console[^)\]]*|Re-Release|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack|(?:(?:Update|Patch|DLC)(?:\s*v?[\d.]+)?|v?[\d.]+\s*(?:Update|Patch)|UPD))[\)\]]$/i
+    /^(.*?)\s*[([](Rev\.?\s*[A-Za-z0-9.]+|v\d+[.\dA-Za-z]*|Version\s*[\d.]+|Alt\s*\d*|PRG\d+|Encrypted[^)\]]*|Beta[^)\]]*|Proto[^)\]]*|Prototype[^)\]]*|Demo[^)\]]*|Sample[^)\]]*|Virtual Console[^)\]]*|Re-Release|Unlicensed|Unl|Pirate|Homebrew|Aftermarket|ROM Hack|(?:(?:Update|Patch|DLC)(?:\s*v?[\d.]+)?|v?[\d.]+\s*(?:Update|Patch)|UPD))[)\]]$/i
   );
 
   if (match) {
@@ -178,7 +186,7 @@ interface PlatformDetailsSeasonProps {
   onExpandPress: (seasonNumber: number, isExpanded: boolean) => void;
 }
 
-function PlatformDetailsSeason({
+function PlatformDetailsRegion({
   seriesId,
   monitored,
   seasonNumber,
@@ -313,15 +321,22 @@ function PlatformDetailsSeason({
       rawEntries.forEach((entry) => {
         const cleanVer = parseCleanVersion(entry.versionLabel);
         const disc = parseDiscNumber(entry.versionLabel, entry.item.title);
-        const entryKey = `${cleanVer}:${disc}:${isEncryptedLabel(entry.versionLabel)}`;
+        const entryKey = `${cleanVer}:${disc}:${isEncryptedLabel(
+          entry.versionLabel
+        )}`;
+
         if (seenEntryKeys.add(entryKey)) {
           uniqueEntries.push(entry);
         } else if (entry.item.monitored || entry.item.romFileId) {
           const existingIdx = uniqueEntries.findIndex((e) => {
             const eVer = parseCleanVersion(e.versionLabel);
             const eDisc = parseDiscNumber(e.versionLabel, e.item.title);
-            return `${eVer}:${eDisc}:${isEncryptedLabel(e.versionLabel)}` === entryKey;
+            return (
+              `${eVer}:${eDisc}:${isEncryptedLabel(e.versionLabel)}` ===
+              entryKey
+            );
           });
+
           if (existingIdx >= 0) {
             uniqueEntries[existingIdx] = entry;
           }
@@ -329,23 +344,29 @@ function PlatformDetailsSeason({
       });
 
       // Sort unencrypted retail releases first, then encrypted retail releases, then Prototype/Beta/Demo/Sample pre-releases
+      const getEntryBucket = (versionLabel: string) => {
+        if (isPreReleaseLabel(versionLabel)) {
+          return 2;
+        }
+
+        if (isEncryptedLabel(versionLabel)) {
+          return 1;
+        }
+
+        return 0;
+      };
+
       const entries = [...uniqueEntries].sort((a, b) => {
-        const aBucket = isPreReleaseLabel(a.versionLabel)
-          ? 2
-          : isEncryptedLabel(a.versionLabel)
-          ? 1
-          : 0;
-        const bBucket = isPreReleaseLabel(b.versionLabel)
-          ? 2
-          : isEncryptedLabel(b.versionLabel)
-          ? 1
-          : 0;
+        const aBucket = getEntryBucket(a.versionLabel);
+        const bBucket = getEntryBucket(b.versionLabel);
+
         if (aBucket !== bBucket) {
           return aBucket - bBucket;
         }
 
         const aVer = parseCleanVersion(a.versionLabel);
         const bVer = parseCleanVersion(b.versionLabel);
+
         if (aVer !== bVer) {
           return preferOriginalRelease
             ? aVer.localeCompare(bVer)
@@ -377,6 +398,7 @@ function PlatformDetailsSeason({
         );
 
         let preferredBaseDiscs: typeof entries = [];
+
         if (baseEntries.length > 0) {
           const retailBase = baseEntries.filter(
             (e) => !isPreReleaseLabel(e.versionLabel)
@@ -411,6 +433,7 @@ function PlatformDetailsSeason({
         }
 
         let preferredUpdates: typeof entries = [];
+
         if (updateEntries.length > 0) {
           const sortedUpdates = [...updateEntries].sort((a, b) => {
             const aVer = parseCleanVersion(a.versionLabel);
@@ -423,20 +446,30 @@ function PlatformDetailsSeason({
         }
 
         effectiveEntries = [...preferredBaseDiscs, ...preferredUpdates];
+
         if (effectiveEntries.length === 0 && entries.length > 0) {
           effectiveEntries = [entries[0]];
         }
       }
 
-      const discCount = effectiveEntries.filter((e) => hasDiscTag(e.versionLabel, e.item.title)).length;
+      const discCount = effectiveEntries.filter((e) =>
+        hasDiscTag(e.versionLabel, e.item.title)
+      ).length;
       const isMultiDisc = discCount > 1;
-      const updateEntries = effectiveEntries.filter((e) => isUpdateLabel(e.versionLabel, e.item.title));
-      const baseEntries = effectiveEntries.filter((e) => !isUpdateLabel(e.versionLabel, e.item.title));
-      const distinctVersionCount = new Set(baseEntries.map((e) => parseCleanVersion(e.versionLabel))).size;
+      const updateEntries = effectiveEntries.filter((e) =>
+        isUpdateLabel(e.versionLabel, e.item.title)
+      );
+      const baseEntries = effectiveEntries.filter(
+        (e) => !isUpdateLabel(e.versionLabel, e.item.title)
+      );
+      const distinctVersionCount = new Set(
+        baseEntries.map((e) => parseCleanVersion(e.versionLabel))
+      ).size;
       const hasUpdates = updateEntries.length > 0;
       const isMultiVersion = distinctVersionCount > 1;
 
       let alternateType: 'versions' | 'discs' | 'both' | 'updates' = 'versions';
+
       if (hasUpdates && !isMultiVersion && !isMultiDisc) {
         alternateType = 'updates';
       } else if (hasUpdates && (isMultiVersion || isMultiDisc)) {
@@ -450,7 +483,8 @@ function PlatformDetailsSeason({
       }
 
       const isGroupExpanded = Boolean(expandedGameGroups[groupKey]);
-      const alternateVersionCount = effectiveEntries.length > 1 ? effectiveEntries.length - 1 : 0;
+      const alternateVersionCount =
+        effectiveEntries.length > 1 ? effectiveEntries.length - 1 : 0;
 
       if (isGroupExpanded) {
         effectiveEntries.forEach((entry, idx) => {
@@ -472,13 +506,15 @@ function PlatformDetailsSeason({
         const baseRetailEntries = effectiveEntries.filter(
           (e) => !isUpdateLabel(e.versionLabel, e.item.title)
         );
-        const baseEntriesPool = baseRetailEntries.length > 0 ? baseRetailEntries : effectiveEntries;
+        const baseEntriesPool =
+          baseRetailEntries.length > 0 ? baseRetailEntries : effectiveEntries;
 
         const disc1Entry = baseEntriesPool.find(
           (e) => parseDiscNumber(e.versionLabel, e.item.title) === 1
         );
 
-        let primaryEntry: typeof effectiveEntries[0];
+        let primaryEntry = effectiveEntries[0];
+
         if (isMultiDisc && disc1Entry) {
           primaryEntry = disc1Entry;
         } else {
@@ -496,12 +532,14 @@ function PlatformDetailsSeason({
             unencryptedRetailEntries.length > 0
               ? unencryptedRetailEntries
               : baseEntriesPool;
-          const fallbackRetail =
-            fallbackPool.length > 0
-              ? preferOriginalRelease
-                ? fallbackPool[0]
-                : fallbackPool[fallbackPool.length - 1]
-              : effectiveEntries[0];
+          let fallbackRetail = effectiveEntries[0];
+
+          if (fallbackPool.length > 0) {
+            fallbackRetail = preferOriginalRelease
+              ? fallbackPool[0]
+              : fallbackPool[fallbackPool.length - 1];
+          }
+
           primaryEntry = monitoredEntry ?? fallbackRetail;
         }
 
@@ -538,11 +576,7 @@ function PlatformDetailsSeason({
   }, [seasonNumber, isExpanded, onExpandPress]);
 
   const handleMonitorGamePress = useCallback(
-    (
-      gameId: number,
-      value: boolean,
-      { shiftKey }: { shiftKey: boolean }
-    ) => {
+    (gameId: number, value: boolean, { shiftKey }: { shiftKey: boolean }) => {
       const lastToggled = lastToggledGame.current;
       const gameIds = new Set([gameId]);
 
@@ -647,6 +681,7 @@ function PlatformDetailsSeason({
     }
 
     const container = gamesContainerRef.current;
+
     if (!container) {
       return;
     }
@@ -655,13 +690,17 @@ function PlatformDetailsSeason({
       node: HTMLElement | null
     ): HTMLElement | Window => {
       let current = node?.parentElement;
+
       while (current) {
         const { overflowY } = window.getComputedStyle(current);
+
         if (overflowY === 'auto' || overflowY === 'scroll') {
           return current;
         }
+
         current = current.parentElement;
       }
+
       return window;
     };
 
@@ -698,6 +737,7 @@ function PlatformDetailsSeason({
         ) {
           return prev;
         }
+
         return { start, end };
       });
     };
@@ -705,6 +745,7 @@ function PlatformDetailsSeason({
     updateWindow();
 
     let ticking = false;
+
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
@@ -735,7 +776,9 @@ function PlatformDetailsSeason({
     ? displayRows.slice(startIndex, endIndex)
     : displayRows;
   const topSpacerHeight = isVirtual ? startIndex * 42 : 0;
-  const bottomSpacerHeight = isVirtual ? (displayRows.length - endIndex) * 42 : 0;
+  const bottomSpacerHeight = isVirtual
+    ? (displayRows.length - endIndex) * 42
+    : 0;
   const visibleColumnCount = effectiveColumns.filter(
     (col) => col.isVisible !== false
   ).length;
@@ -762,9 +805,15 @@ function PlatformDetailsSeason({
           <div className={styles.seasonInfo}>
             <div className={styles.seasonNumber}>{seasonNumberTitle}</div>
             {title &&
-            title.trim().toLowerCase() !== seasonNumberTitle.trim().toLowerCase() &&
-            !seasonNumberTitle.toLowerCase().includes(title.trim().toLowerCase()) &&
-            !title.trim().toLowerCase().includes(seasonNumberTitle.trim().toLowerCase()) ? (
+            title.trim().toLowerCase() !==
+              seasonNumberTitle.trim().toLowerCase() &&
+            !seasonNumberTitle
+              .toLowerCase()
+              .includes(title.trim().toLowerCase()) &&
+            !title
+              .trim()
+              .toLowerCase()
+              .includes(seasonNumberTitle.trim().toLowerCase()) ? (
               <div className={styles.seasonTitle} title={title}>
                 {title}
               </div>
@@ -815,9 +864,7 @@ function PlatformDetailsSeason({
           <Icon
             className={styles.expandButtonIcon}
             name={isExpanded ? icons.COLLAPSE : icons.EXPAND}
-            title={
-              isExpanded ? translate('HideGames') : translate('ShowGames')
-            }
+            title={isExpanded ? translate('HideGames') : translate('ShowGames')}
             size={24}
           />
           {isSmallScreen ? null : <span>&nbsp;</span>}
@@ -904,9 +951,7 @@ function PlatformDetailsSeason({
               }
               size={20}
               isSpinning={isSearching}
-              isDisabled={
-                isSearching || !hasMonitoredGames || !seriesMonitored
-              }
+              isDisabled={isSearching || !hasMonitoredGames || !seriesMonitored}
               onPress={handleSearchPress}
             />
 
@@ -1084,4 +1129,4 @@ function PlatformDetailsSeason({
   );
 }
 
-export default PlatformDetailsSeason;
+export default PlatformDetailsRegion;

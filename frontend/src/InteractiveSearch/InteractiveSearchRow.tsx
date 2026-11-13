@@ -176,6 +176,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     if (missingCredentials) {
       return;
     }
+
     if (downloadAllowed) {
       grabRelease({
         guid,
@@ -201,6 +202,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
     if (missingCredentials) {
       return;
     }
+
     setIsConfirmGrabModalOpen(false);
 
     grabRelease({
@@ -208,7 +210,14 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
       indexerId,
       searchInfo: searchPayload,
     });
-  }, [guid, indexerId, searchPayload, missingCredentials, grabRelease, setIsConfirmGrabModalOpen]);
+  }, [
+    guid,
+    indexerId,
+    searchPayload,
+    missingCredentials,
+    grabRelease,
+    setIsConfirmGrabModalOpen,
+  ]);
 
   const onGrabCancel = useCallback(() => {
     setIsConfirmGrabModalOpen(false);
@@ -254,9 +263,7 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
               }
             >
               {translate(
-                missingCredentials
-                  ? 'RequiresCredentials'
-                  : 'UsesCredentials'
+                missingCredentials ? 'RequiresCredentials' : 'UsesCredentials'
               )}
             </Label>
           )}
@@ -340,12 +347,16 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         {(() => {
           const displayFormat =
             release.format ||
-            (props as any).format ||
+            (props as { format?: string }).format ||
             (() => {
-              const ext = title.match(/\.([A-Za-z0-9]{1,7})(?:\s*\[|\s*\(|\s*$)/)?.[1];
+              const ext = title.match(
+                /\.([A-Za-z0-9]{1,7})(?:\s*\[|\s*\(|\s*$)/
+              )?.[1];
+
               if (ext) {
                 return ext.toUpperCase();
               }
+
               const token = title.match(
                 /\b(3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|ISO|CISO|CHD|RVZ|GCM|WBFS|WUX|WUD|WUA|NSP|NSZ|XCI|PBP|CSO|VPK|PKG|BIN|CUE|GDI|CDI|ZIP|7Z)\b/i
               )?.[1];
@@ -415,24 +426,24 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
 
         {!missingCredentials && (
           <Link
-          className={styles.manualDownloadContent}
-          title={translate('OverrideAndAddToDownloadQueue')}
-          onPress={onOverridePress}
-        >
-          <div className={styles.manualDownloadContent}>
-            <Icon
-              className={styles.interactiveIcon}
-              name={icons.INTERACTIVE}
-              size={12}
-            />
+            className={styles.manualDownloadContent}
+            title={translate('OverrideAndAddToDownloadQueue')}
+            onPress={onOverridePress}
+          >
+            <div className={styles.manualDownloadContent}>
+              <Icon
+                className={styles.interactiveIcon}
+                name={icons.INTERACTIVE}
+                size={12}
+              />
 
-            <Icon
-              className={styles.downloadIcon}
-              name={icons.CIRCLE_DOWN}
-              size={10}
-            />
-          </div>
-        </Link>
+              <Icon
+                className={styles.downloadIcon}
+                name={icons.CIRCLE_DOWN}
+                size={10}
+              />
+            </div>
+          </Link>
         )}
         {series && (
           <IconButton
@@ -478,8 +489,8 @@ function InteractiveSearchRow(props: InteractiveSearchRowProps) {
         isGrabbing={isGrabbing}
         grabError={grabError}
         grabRelease={grabRelease}
-        onModalClose={onOverrideModalClose}
         missingCredentials={missingCredentials}
+        onModalClose={onOverrideModalClose}
       />
     </div>
   );

@@ -24,9 +24,11 @@ function SettingsSaveItems({
 
   const triggerSavedFeedback = useCallback(() => {
     setShowSavedToast(true);
+
     if (timerRef.current) {
       window.clearTimeout(timerRef.current);
     }
+
     timerRef.current = window.setTimeout(() => {
       setShowSavedToast(false);
     }, 2600);
@@ -36,6 +38,7 @@ function SettingsSaveItems({
     if (wasSavingRef.current && !isSaving && !hasPendingChanges) {
       triggerSavedFeedback();
     }
+
     wasSavingRef.current = isSaving;
   }, [isSaving, hasPendingChanges, triggerSavedFeedback]);
 
@@ -63,13 +66,13 @@ function SettingsSaveItems({
           id="save"
           priority={1}
           groupId="save"
-          label={
-            hasPendingChanges
-              ? translate('SaveChanges')
-              : showSavedToast
-                ? 'Saved!'
-                : translate('NoChanges')
-          }
+          label={(() => {
+            if (hasPendingChanges) {
+              return translate('SaveChanges');
+            }
+
+            return showSavedToast ? 'Saved!' : translate('NoChanges');
+          })()}
           iconName={
             showSavedToast && !hasPendingChanges ? icons.CHECK : icons.SAVE
           }

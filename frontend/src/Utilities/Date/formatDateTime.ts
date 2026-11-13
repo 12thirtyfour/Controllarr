@@ -36,6 +36,7 @@ function formatDateTime(
   }
 
   const dateTime = moment(date);
+
   if (!dateTime.isValid() || dateTime.year() < 1970) {
     return '';
   }

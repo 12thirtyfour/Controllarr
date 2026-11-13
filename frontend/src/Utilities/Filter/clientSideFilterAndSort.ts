@@ -12,11 +12,18 @@ const ARTICLE_REGEX = /^(?:the|a|an)\s+/i;
 const normalizeSortValue = (val: unknown, sortKey: string): unknown => {
   if (typeof val === 'string') {
     const lowerKey = sortKey.toLowerCase();
-    if (lowerKey === 'title' || lowerKey.endsWith('title') || lowerKey.includes('name')) {
+
+    if (
+      lowerKey === 'title' ||
+      lowerKey.endsWith('title') ||
+      lowerKey.includes('name')
+    ) {
       return val.replace(ARTICLE_REGEX, '').trim().toLowerCase();
     }
+
     return val.toLowerCase();
   }
+
   return val;
 };
 
@@ -31,7 +38,10 @@ const getSortClause = <T, TSort = null>(
 ) => {
   if (sortPredicates && sortPredicates.hasOwnProperty(sortKey)) {
     return function (item: T) {
-      const predicateVal = sortPredicates[sortKey as keyof TSort](item, sortDirection);
+      const predicateVal = sortPredicates[sortKey as keyof TSort](
+        item,
+        sortDirection
+      );
       return normalizeSortValue(predicateVal, sortKey);
     };
   }

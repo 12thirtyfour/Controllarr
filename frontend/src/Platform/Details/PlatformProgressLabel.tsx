@@ -32,7 +32,7 @@ interface SeriesProgressLabelProps {
   romFileCount: number;
 }
 
-function SeriesProgressLabel({
+function PlatformProgressLabel({
   className,
   seriesId,
   monitored,
@@ -62,4 +62,4 @@ function SeriesProgressLabel({
   );
 }
 
-export default SeriesProgressLabel;
+export default PlatformProgressLabel;

@@ -129,10 +129,7 @@ function AddNewPlatform() {
           title={translate('AddNewPlatform')}
           actions={
             <>
-              <Button
-                kind={kinds.PRIMARY}
-                onPress={handleAddAllPlatformsPress}
-              >
+              <Button kind={kinds.PRIMARY} onPress={handleAddAllPlatformsPress}>
                 Add All Supported Platforms
               </Button>
               <Button onPress={handleMetadataSettingsPress}>

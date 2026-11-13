@@ -2,8 +2,8 @@ import React from 'react';
 import { CommandBody } from 'Commands/Command';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import { useMultipleSeries } from 'Platform/usePlatform';
-import sortByProp from 'Utilities/Array/sortByProp';
 import formatSeason from 'Region/formatRegion';
+import sortByProp from 'Utilities/Array/sortByProp';
 import translate from 'Utilities/String/translate';
 import styles from './QueuedTaskRowNameCell.module.css';
 

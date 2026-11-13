@@ -36,10 +36,7 @@ const useRomFiles = (params: RomFileFilter) => {
 
 export default useRomFiles;
 
-export const useDeleteRomFile = (
-  id: number,
-  gameEntity: GameEntity
-) => {
+export const useDeleteRomFile = (id: number, gameEntity: GameEntity) => {
   const queryClient = useQueryClient();
 
   const { mutate, error, isPending } = useApiMutation<unknown, void>({

@@ -36,24 +36,26 @@ import MonitorGamesSelectInput, {
 import MonitorNewItemsSelectInput, {
   MonitorNewItemsSelectInputProps,
 } from './Select/MonitorNewItemsSelectInput';
+import PlatformTypeSelectInput, {
+  PlatformTypeSelectInputProps,
+} from './Select/PlatformTypeSelectInput';
 import ProviderDataSelectInput, {
   ProviderOptionSelectInputProps,
 } from './Select/ProviderOptionSelectInput';
 import QualityProfileSelectInput, {
   QualityProfileSelectInputProps,
 } from './Select/QualityProfileSelectInput';
-import RootFolderSelectInput, {
-  RootFolderSelectInputProps,
-} from './Select/RootFolderSelectInput';
 import RegionTypeSelectInput, {
   RegionTypeSelectInputProps,
 } from './Select/RegionTypeSelectInput';
-import PlatformTypeSelectInput, {
-  PlatformTypeSelectInputProps,
-} from './Select/PlatformTypeSelectInput';
+import RootFolderSelectInput, {
+  RootFolderSelectInputProps,
+} from './Select/RootFolderSelectInput';
 import UMaskInput, { UMaskInputProps } from './Select/UMaskInput';
 import DeviceInput, { DeviceInputProps } from './Tag/DeviceInput';
-import PlatformTagInput, { PlatformTagInputProps } from './Tag/PlatformTagInput';
+import PlatformTagInput, {
+  PlatformTagInputProps,
+} from './Tag/PlatformTagInput';
 import TagSelectInput, { TagSelectInputProps } from './Tag/TagSelectInput';
 import TextTagInput, { TextTagInputProps } from './Tag/TextTagInput';
 import TextArea, { TextAreaProps } from './TextArea';

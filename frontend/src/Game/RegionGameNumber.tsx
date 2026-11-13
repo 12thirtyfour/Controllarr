@@ -14,12 +14,7 @@ function RegionGameNumber(props: RegionGameNumberProps) {
     return <span>{airDate}</span>;
   }
 
-  return (
-    <GameNumber
-      seriesType={seriesType}
-      {...otherProps}
-    />
-  );
+  return <GameNumber seriesType={seriesType} {...otherProps} />;
 }
 
 export default RegionGameNumber;

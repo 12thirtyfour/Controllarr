@@ -21,11 +21,6 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import Column from 'Components/Table/Column';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
-import { RomFile } from 'RomFile/RomFile';
-import {
-  useDeleteRomFiles,
-  useUpdateRomFiles,
-} from 'RomFile/useRomFiles';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { align, icons, kinds, scrollDirections } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
@@ -42,19 +37,21 @@ import {
   useInteractiveImportOptions,
 } from 'InteractiveImport/interactiveImportOptionsStore';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
+import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
+import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
-import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
-import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import useInteractiveImport, {
   useReprocessInteractiveImportItems,
   useUpdateInteractiveImportItem,
   useUpdateInteractiveImportItems,
 } from 'InteractiveImport/useInteractiveImport';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import Series from 'Platform/Platform';
+import { QualityModel } from 'Quality/Quality';
+import { RomFile } from 'RomFile/RomFile';
+import { useDeleteRomFiles, useUpdateRomFiles } from 'RomFile/useRomFiles';
 import { SortCallback } from 'typings/callbacks';
 import { CheckInputChanged } from 'typings/inputs';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
@@ -264,16 +261,13 @@ function InteractiveImportModalContentInner(
 
   const items = data;
 
-  const { isDeleting, deleteRomFiles, deleteError } =
-    useDeleteRomFiles();
+  const { isDeleting, deleteRomFiles, deleteError } = useDeleteRomFiles();
 
   const { updateRomFiles } = useUpdateRomFiles();
 
   const [invalidRowsSelected, setInvalidRowsSelected] = useState<number[]>([]);
-  const [
-    withoutRomFileIdRowsSelected,
-    setWithoutRomFileIdRowsSelected,
-  ] = useState<number[]>([]);
+  const [withoutRomFileIdRowsSelected, setWithoutRomFileIdRowsSelected] =
+    useState<number[]>([]);
   const [selectModalOpen, setSelectModalOpen] = useState<SelectType | null>(
     null
   );

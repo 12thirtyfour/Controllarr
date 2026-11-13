@@ -17,9 +17,9 @@ import { useGamesWithIds } from 'Game/useGame';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import PlatformTitleLink from 'Platform/PlatformTitleLink';
 import { useSingleSeries } from 'Platform/usePlatform';
+import { QualityModel } from 'Quality/Quality';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { SelectStateInputProps } from 'typings/props';
@@ -232,9 +232,7 @@ function QueueRow(props: QueueRowProps) {
           }
 
           if (games.length === 1) {
-            return (
-              <RelativeDateCell key={name} date={games[0].airDateUtc} />
-            );
+            return <RelativeDateCell key={name} date={games[0].airDateUtc} />;
           }
 
           return (

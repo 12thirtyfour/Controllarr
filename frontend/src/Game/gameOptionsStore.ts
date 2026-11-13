@@ -68,10 +68,6 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
 
-
-
-
-
         {
           name: 'size',
           label: () => translate('Size'),

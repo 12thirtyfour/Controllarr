@@ -1,8 +1,8 @@
 import ModelBase from 'App/ModelBase';
 import Game from 'Game/Game';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import Series from 'Platform/Platform';
+import { QualityModel } from 'Quality/Quality';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 
 export interface PlatformTitleInfo {

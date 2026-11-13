@@ -91,11 +91,7 @@ function ImportFolderRow(props: ImportFolderRowProps) {
       <div
         className={classNames(styles.content, isSelectable && styles.overlay)}
       >
-        <Icon
-          className={styles.folderIcon}
-          name={icons.DRIVE}
-          size={20}
-        />
+        <Icon className={styles.folderIcon} name={icons.DRIVE} size={20} />
 
         <div className={styles.info}>
           <span className={styles.path}>{path}</span>
@@ -106,11 +102,17 @@ function ImportFolderRow(props: ImportFolderRowProps) {
             ) : (
               <>
                 <span className={styles.importable}>
-                  {importableCount > 0
-                    ? `${importableCount} platform${importableCount === 1 ? '' : 's'} to import`
-                    : containsRomFiles
-                    ? 'Contains Loose ROM Files'
-                    : 'Nothing to import'}
+                  {(() => {
+                    if (importableCount > 0) {
+                      return `${importableCount} platform${
+                        importableCount === 1 ? '' : 's'
+                      } to import`;
+                    }
+
+                    return containsRomFiles
+                      ? 'Contains Loose ROM Files'
+                      : 'Nothing to import';
+                  })()}
                 </span>
 
                 {hasFreeSpace ? (

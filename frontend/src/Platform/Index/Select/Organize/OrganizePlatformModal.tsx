@@ -13,7 +13,10 @@ function OrganizePlatformModal(props: OrganizePlatformModalProps) {
 
   return (
     <Modal isOpen={isOpen} onModalClose={onModalClose}>
-      <OrganizePlatformModalContent {...otherProps} onModalClose={onModalClose} />
+      <OrganizePlatformModalContent
+        {...otherProps}
+        onModalClose={onModalClose}
+      />
     </Modal>
   );
 }

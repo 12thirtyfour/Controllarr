@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useParams } from 'react-router';
 import { SelectProvider } from 'App/Select/SelectContext';
 import Alert from 'Components/Alert';
@@ -9,7 +15,9 @@ import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import { icons, kinds } from 'Helpers/Props';
-import useImportFolders, { useImportFolder } from 'ImportFolder/useImportFolders';
+import useImportFolders, {
+  useImportFolder,
+} from 'ImportFolder/useImportFolders';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import { useRootFolder } from 'RootFolder/useRootFolders';
 import translate from 'Utilities/String/translate';
@@ -38,14 +46,13 @@ function ImportPlatform() {
     data: detailedImportFolder,
   } = useImportFolder(sourceFolderId, false);
 
-  const {
-    data: fallbackRootFolder,
-  } = useRootFolder(sourceFolderId, false);
+  const { data: fallbackRootFolder } = useRootFolder(sourceFolderId, false);
 
   const isLoading =
     (importFoldersFetching && !importFoldersFetched && !detailedImportFolder) ||
     (importFolderFetching && !importFolderFetched && !detailedImportFolder);
-  const isReady = importFoldersFetched || importFolderFetched || !!fallbackRootFolder;
+  const isReady =
+    importFoldersFetched || importFolderFetched || !!fallbackRootFolder;
   const loadError = importFolderError ?? importFoldersError;
 
   const { path, unmappedFolders, containsRomFiles } = useMemo(() => {
@@ -75,6 +82,10 @@ function ImportPlatform() {
       setIsInteractiveImportOpen(true);
     }
   }, [hasLooseRomsOnly]);
+
+  const handleInteractiveImportOpen = useCallback(() => {
+    setIsInteractiveImportOpen(true);
+  }, []);
 
   const handleInteractiveImportClose = useCallback(() => {
     setIsInteractiveImportOpen(false);
@@ -118,7 +129,8 @@ function ImportPlatform() {
             {!loadError && isReady && path ? (
               <div style={{ marginBottom: 16 }}>
                 <Alert kind={kinds.INFO}>
-                  Import source folder: <strong>{path}</strong>. Content will be organized and moved into your primary library folder.
+                  Import source folder: <strong>{path}</strong>. Content will be
+                  organized and moved into your primary library folder.
                 </Alert>
               </div>
             ) : null}
@@ -126,12 +138,13 @@ function ImportPlatform() {
             {hasLooseRomsOnly ? (
               <div style={{ marginBottom: 16 }}>
                 <Alert kind={kinds.INFO}>
-                  Loose ROM files detected in {path}. Use Interactive Import to specify a platform per ROM and import them into your library.
+                  Loose ROM files detected in {path}. Use Interactive Import to
+                  specify a platform per ROM and import them into your library.
                 </Alert>
                 <div style={{ marginTop: 8 }}>
                   <Button
                     kind={kinds.PRIMARY}
-                    onPress={() => setIsInteractiveImportOpen(true)}
+                    onPress={handleInteractiveImportOpen}
                   >
                     <Icon name={icons.INTERACTIVE} />
                     {translate('InteractiveImport')}
@@ -152,7 +165,7 @@ function ImportPlatform() {
                 <div style={{ marginTop: 12 }}>
                   <Button
                     kind={kinds.PRIMARY}
-                    onPress={() => setIsInteractiveImportOpen(true)}
+                    onPress={handleInteractiveImportOpen}
                   >
                     <Icon name={icons.INTERACTIVE} />
                     {translate('InteractiveImport')}

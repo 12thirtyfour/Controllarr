@@ -14,10 +14,10 @@ import GameFormats from 'Game/GameFormats';
 import GameSearchCell from 'Game/GameSearchCell';
 import GameTitleLink from 'Game/GameTitleLink';
 import IndexerFlags from 'Game/IndexerFlags';
-import RomFileLanguages from 'RomFile/RomFileLanguages';
-import { useRomFile } from 'RomFile/RomFileProvider';
 import { icons, kinds } from 'Helpers/Props';
 import { useSingleSeries } from 'Platform/usePlatform';
+import RomFileLanguages from 'RomFile/RomFileLanguages';
+import { useRomFile } from 'RomFile/RomFileProvider';
 import { loadLocalLibretroConfig } from 'Settings/Libretro/LibretroSettings';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
@@ -133,11 +133,15 @@ function GameRow({
 
     if (config.preferredLaunchMode === 'protocol') {
       const protocolParams = new URLSearchParams();
+
       if (romPathValue) {
         protocolParams.set('rom', romPathValue);
       }
+
       const query = protocolParams.toString();
-      window.location.href = `controllarr://play/${id}${query ? `?${query}` : ''}`;
+      window.location.href = `controllarr://play/${id}${
+        query ? `?${query}` : ''
+      }`;
       return;
     }
 
@@ -216,27 +220,43 @@ function GameRow({
                   className={styles.versionToggleBtn}
                   onClick={handleToggleGroupExpandPress}
                 >
-                  {isGroupExpanded
-                    ? alternateType === 'discs'
-                      ? 'Hide discs'
-                      : alternateType === 'updates'
-                      ? 'Hide updates'
-                      : alternateType === 'both'
-                      ? 'Hide discs & versions'
-                      : 'Hide versions'
-                    : alternateType === 'discs'
-                    ? `+${alternateVersionCount} disc${
+                  {(() => {
+                    if (isGroupExpanded) {
+                      if (alternateType === 'discs') {
+                        return 'Hide discs';
+                      }
+
+                      if (alternateType === 'updates') {
+                        return 'Hide updates';
+                      }
+
+                      if (alternateType === 'both') {
+                        return 'Hide discs & versions';
+                      }
+
+                      return 'Hide versions';
+                    }
+
+                    if (alternateType === 'discs') {
+                      return `+${alternateVersionCount} disc${
                         alternateVersionCount > 1 ? 's' : ''
-                      }`
-                    : alternateType === 'updates'
-                    ? `+${alternateVersionCount} update${
+                      }`;
+                    }
+
+                    if (alternateType === 'updates') {
+                      return `+${alternateVersionCount} update${
                         alternateVersionCount > 1 ? 's' : ''
-                      }`
-                    : alternateType === 'both'
-                    ? `+${alternateVersionCount} (updates & versions)`
-                    : `+${alternateVersionCount} version${
-                        alternateVersionCount > 1 ? 's' : ''
-                      }`}
+                      }`;
+                    }
+
+                    if (alternateType === 'both') {
+                      return `+${alternateVersionCount} (updates & versions)`;
+                    }
+
+                    return `+${alternateVersionCount} version${
+                      alternateVersionCount > 1 ? 's' : ''
+                    }`;
+                  })()}
                 </button>
               ) : null}
             </TableRowCell>
@@ -313,7 +333,9 @@ function GameRow({
         }
 
         if (name === 'airDateUtc') {
-          return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
+          return (
+            <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />
+          );
         }
 
         if (name === 'runtime') {
@@ -378,9 +400,7 @@ function GameRow({
                 <Popover
                   anchor={<Icon name={icons.FLAG} kind="default" size={14} />}
                   title={translate('IndexerFlags')}
-                  body={
-                    <IndexerFlags indexerFlags={romFile?.indexerFlags} />
-                  }
+                  body={<IndexerFlags indexerFlags={romFile?.indexerFlags} />}
                   position="left"
                 />
               ) : null}

@@ -194,6 +194,7 @@ function BiosSettings() {
       if (!option.key) {
         return true;
       }
+
       return libraryPlatformSlugs.has(String(option.key).toLowerCase());
     });
   }, [libraryPlatformSlugs]);
@@ -213,8 +214,16 @@ function BiosSettings() {
     if (!data) {
       return [];
     }
+
     return data.filter((item) => {
-      const slug = (item.platformSlug || item.gamePlatform || item.platformTitle || '').toLowerCase().trim();
+      const slug = (
+        item.platformSlug ||
+        item.gamePlatform ||
+        item.platformTitle ||
+        ''
+      )
+        .toLowerCase()
+        .trim();
       return libraryPlatformSlugs.has(slug);
     });
   }, [data, libraryPlatformSlugs]);
@@ -268,7 +277,10 @@ function BiosSettings() {
     <PageContent title={translate('Bios')}>
       <PageContentBody>
         <div className={settingsStyles.section}>
-          <PageHeading scope={translate('Platforms')} title={translate('Bios')} />
+          <PageHeading
+            scope={translate('Platforms')}
+            title={translate('Bios')}
+          />
 
           <div className={styles.filterContainer}>
             <div className={styles.filterGroup}>

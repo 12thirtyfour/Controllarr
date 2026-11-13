@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useState,
+} from 'react';
 import { ThemeName, useUiSettingsValues } from 'Settings/UI/useUiSettings';
 
 const PLATFORM_THEME_MATCHING_KEY = 'controllarr_platform_theme_matching';
@@ -39,6 +45,7 @@ export function setPlatformThemeMatchingEnabled(enabled: boolean) {
   } catch {
     // Ignore storage error
   }
+
   notifyThemeListeners();
 }
 
@@ -50,6 +57,7 @@ export function usePlatformThemeMatching(): [boolean, (val: boolean) => void] {
   useEffect(() => {
     const sync = () => setEnabled(getPlatformThemeMatchingEnabled());
     themeListeners.add(sync);
+
     return () => {
       themeListeners.delete(sync);
     };
@@ -179,11 +187,12 @@ export function resolveConsoleThemeFromSlug(
 
 const useTheme = (): Exclude<ThemeName, 'auto'> => {
   const { theme } = useUiSettingsValues();
-  const [, setTick] = useState(0);
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    const onThemeChange = () => setTick((t) => t + 1);
+    const onThemeChange = () => forceUpdate();
     themeListeners.add(onThemeChange);
+
     return () => {
       themeListeners.delete(onThemeChange);
     };

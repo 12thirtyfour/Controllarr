@@ -43,6 +43,7 @@ function requestAction(payload) {
       }
     });
     const queryString = searchParams.toString();
+
     if (queryString) {
       ajaxOptions.url += `?${queryString}`;
     }

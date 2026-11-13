@@ -36,6 +36,7 @@ import PlatformIndexSortMenu from './Menus/PlatformIndexSortMenu';
 import PlatformIndexViewMenu from './Menus/PlatformIndexViewMenu';
 import PlatformIndexOverviewOptionsModal from './Overview/Options/PlatformIndexOverviewOptionsModal';
 import PlatformIndexOverviews from './Overview/PlatformIndexOverviews';
+import PlatformIndexFooter from './PlatformIndexFooter';
 import PlatformIndexPosterOptionsModal from './Posters/Options/PlatformIndexPosterOptionsModal';
 import PlatformIndexPosters from './Posters/PlatformIndexPosters';
 import PlatformIndexSelectAllButton from './Select/PlatformIndexSelectAllButton';
@@ -43,7 +44,6 @@ import PlatformIndexSelectAllMenuItem from './Select/PlatformIndexSelectAllMenuI
 import PlatformIndexSelectFooter from './Select/PlatformIndexSelectFooter';
 import PlatformIndexSelectModeButton from './Select/PlatformIndexSelectModeButton';
 import PlatformIndexSelectModeMenuItem from './Select/PlatformIndexSelectModeMenuItem';
-import PlatformIndexFooter from './PlatformIndexFooter';
 import PlatformIndexTable from './Table/PlatformIndexTable';
 import PlatformIndexTableOptions from './Table/PlatformIndexTableOptions';
 import styles from './PlatformIndex.module.css';
@@ -242,7 +242,10 @@ function PlatformIndexBody({ platformIndex }: PlatformIndexBodyProps) {
 
   const renderSelectAllOverflow = useCallback(
     ({ label }: PageToolbarButtonProps) => (
-      <PlatformIndexSelectAllMenuItem label={label} isSelectMode={isSelectMode} />
+      <PlatformIndexSelectAllMenuItem
+        label={label}
+        isSelectMode={isSelectMode}
+      />
     ),
     [isSelectMode]
   );

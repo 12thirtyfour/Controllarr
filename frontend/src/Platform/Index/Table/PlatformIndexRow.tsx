@@ -28,8 +28,8 @@ import translate from 'Utilities/String/translate';
 import PlatformIndexProgressBar from '../ProgressBar/PlatformIndexProgressBar';
 import usePlatformIndexItem from '../usePlatformIndexItem';
 import hasGrowableColumns from './hasGrowableColumns';
-import SeasonsCell from './RegionsCell';
 import PlatformStatusCell from './PlatformStatusCell';
+import SeasonsCell from './RegionsCell';
 import styles from './PlatformIndexRow.module.css';
 
 interface PlatformIndexRowProps {
@@ -42,18 +42,16 @@ interface PlatformIndexRowProps {
 function PlatformIndexRow(props: PlatformIndexRowProps) {
   const { seriesId, columns, isSelectMode } = props;
 
-  const {
-    series,
-    isRefreshingSeries,
-    isSearchingSeries,
-  } = usePlatformIndexItem(seriesId);
+  const { series, isRefreshingSeries, isSearchingSeries } =
+    usePlatformIndexItem(seriesId);
 
   const { showBanners, showSearchAction } = usePlatformTableOptions();
 
   const executeCommand = useExecuteCommand();
   const [hasBannerError, setHasBannerError] = useState(false);
   const [isEditPlatformModalOpen, setIsEditPlatformModalOpen] = useState(false);
-  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] = useState(false);
+  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] =
+    useState(false);
   const { getIsSelected, toggleSelected } = useSelect();
 
   const onRefreshPress = useCallback(() => {
@@ -224,8 +222,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
             </VirtualTableRowCell>
           );
         }
-
-
 
         if (name === 'added') {
           return (
@@ -416,7 +412,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
             </VirtualTableRowCell>
           );
         }
-
 
         if (name === 'monitorNewItems') {
           return (

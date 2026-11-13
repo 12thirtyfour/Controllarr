@@ -10,9 +10,9 @@ import ModelBase from 'App/ModelBase';
 import Command from 'Commands/Command';
 import { useUpdateCommand } from 'Commands/useCommands';
 import Game from 'Game/Game';
-import { RomFile } from 'RomFile/RomFile';
 import { PagedQueryResponse } from 'Helpers/Hooks/usePagedApiQuery';
 import Series from 'Platform/Platform';
+import { RomFile } from 'RomFile/RomFile';
 import { DownloadClientModel } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import { ImportListModel } from 'Settings/ImportLists/ImportLists/useImportLists';
 import { IndexerModel } from 'Settings/Indexers/useIndexers';
@@ -198,7 +198,6 @@ function SignalRListener() {
       return;
     }
 
-
     if (name === 'connection') {
       const updatedItem = body.resource as NotificationModel;
 
@@ -251,14 +250,14 @@ function SignalRListener() {
 
     if (name === 'series') {
       if (body.action === 'updated') {
-        const updatedItem = body.resource as Series;
+        const updatedItem = body.resource as Series & {
+          episodesChanged?: boolean;
+          gamesChanged?: boolean;
+        };
 
         updateQueryClientItem(queryClient, ['/series'], updatedItem, true);
 
-        if (
-          (updatedItem as any).episodesChanged ||
-          (updatedItem as any).gamesChanged
-        ) {
+        if (updatedItem.episodesChanged || updatedItem.gamesChanged) {
           queryClient.invalidateQueries({ queryKey: ['/episode'] });
         }
 

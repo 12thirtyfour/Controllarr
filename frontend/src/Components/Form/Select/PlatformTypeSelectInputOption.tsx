@@ -13,7 +13,9 @@ interface PlatformTypeSelectInputOptionProps
   isMobile: boolean;
 }
 
-function PlatformTypeSelectInputOption(props: PlatformTypeSelectInputOptionProps) {
+function PlatformTypeSelectInputOption(
+  props: PlatformTypeSelectInputOptionProps
+) {
   const { id, value, format, isMobile, ...otherProps } = props;
 
   return (

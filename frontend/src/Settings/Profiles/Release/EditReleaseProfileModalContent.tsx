@@ -174,9 +174,7 @@ function EditReleaseProfileModalContent({
                 {translate('AllowSeasonPackWithoutAllGamesAired')}
               </FormLabel>
               <FormInputHelpText
-                text={translate(
-                  'AllowSeasonPackWithoutAllGamesAiredHelpText'
-                )}
+                text={translate('AllowSeasonPackWithoutAllGamesAiredHelpText')}
               />
               <FormInputHelpText
                 text={translate(

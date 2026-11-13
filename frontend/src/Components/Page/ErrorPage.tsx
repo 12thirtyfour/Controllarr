@@ -51,7 +51,6 @@ function ErrorPage(props: ErrorPageProps) {
       tagsError,
       translate('FailedToLoadTagsFromApi')
     );
-
   } else if (uiSettingsError) {
     errorMessage = getErrorMessage(
       uiSettingsError,

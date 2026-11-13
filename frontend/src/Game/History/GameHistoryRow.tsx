@@ -94,10 +94,7 @@ function GameHistoryRow({
       </TableRowCell>
 
       <TableRowCell>
-        <GameQuality
-          quality={quality}
-          isCutoffNotMet={qualityCutoffNotMet}
-        />
+        <GameQuality quality={quality} isCutoffNotMet={qualityCutoffNotMet} />
       </TableRowCell>
 
       <TableRowCell>

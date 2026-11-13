@@ -59,10 +59,10 @@
   border-radius: 3px;
   background-color: var(--defaultLabelColor);
   color: var(--white);
-  font-size: 11px;
-  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
+  font-size: 11px;
 }
 
 .languages {
@@ -162,8 +162,8 @@
 }
 
 .credentialsLabel {
-  margin-left: 8px;
   flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .pinnedLabel {

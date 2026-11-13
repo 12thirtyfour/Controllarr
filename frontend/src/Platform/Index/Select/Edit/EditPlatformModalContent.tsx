@@ -56,7 +56,6 @@ const monitoredOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
-
 function EditPlatformModalContent(props: EditPlatformModalContentProps) {
   const { onSavePress, onModalClose } = props;
 
@@ -100,7 +99,6 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
         hasChanges = true;
         payload.seriesType = seriesType;
       }
-
 
       if (rootFolderPath !== NO_CHANGE) {
         hasChanges = true;
@@ -245,10 +243,11 @@ function EditPlatformModalContent(props: EditPlatformModalContentProps) {
           />
         </FormRow>
 
-
         <FormRow>
           <FormLabel>{translate('RootFolder')}</FormLabel>
-          <FormInputHelpText text={translate('PlatformEditRootFolderHelpText')} />
+          <FormInputHelpText
+            text={translate('PlatformEditRootFolderHelpText')}
+          />
           <FormInput
             type={inputTypes.ROOT_FOLDER_SELECT}
             name="rootFolderPath"

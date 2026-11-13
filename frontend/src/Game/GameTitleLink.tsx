@@ -26,11 +26,7 @@ function GameTitleLink(props: GameTitleLinkProps) {
 
   return (
     <div className={styles.container}>
-      <Link
-        className={styles.link}
-        title={gameTitle}
-        onPress={handleLinkPress}
-      >
+      <Link className={styles.link} title={gameTitle} onPress={handleLinkPress}>
         {gameTitle}
       </Link>
 

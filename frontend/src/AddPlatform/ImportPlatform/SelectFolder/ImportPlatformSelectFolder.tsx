@@ -13,7 +13,9 @@ import SectionHeading from 'Components/SectionHeading';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { icons, kinds } from 'Helpers/Props';
 import ImportFolders from 'ImportFolder/ImportFolders';
-import useImportFolders, { useAddImportFolder } from 'ImportFolder/useImportFolders';
+import useImportFolders, {
+  useAddImportFolder,
+} from 'ImportFolder/useImportFolders';
 import { useIsWindows } from 'System/Status/useSystemStatus';
 import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
@@ -70,7 +72,9 @@ function ImportPlatformSelectFolder() {
         {isFetching && !isFetched ? <LoadingIndicator /> : null}
 
         {!isFetching && error ? (
-          <Alert kind={kinds.DANGER}>Failed to load import source folders</Alert>
+          <Alert kind={kinds.DANGER}>
+            Failed to load import source folders
+          </Alert>
         ) : null}
 
         {!error && isFetched ? (
@@ -92,7 +96,8 @@ function ImportPlatformSelectFolder() {
 
               <ul className={styles.tipsList}>
                 <li>
-                  Import source folders are external staging folders (e.g. downloads, flash drives, temporary packs).
+                  Import source folders are external staging folders (e.g.
+                  downloads, flash drives, temporary packs).
                 </li>
                 <li>
                   <InlineMarkdown
@@ -100,7 +105,8 @@ function ImportPlatformSelectFolder() {
                   />
                 </li>
                 <li>
-                  Imported media will be organized and moved into your primary library folder configured in Media Management.
+                  Imported media will be organized and moved into your primary
+                  library folder configured in Media Management.
                 </li>
               </ul>
             </details>
@@ -110,7 +116,6 @@ function ImportPlatformSelectFolder() {
             {!isAdding && addError ? (
               <Alert className={styles.addErrorAlert} kind={kinds.DANGER}>
                 Failed to add import source folder
-
                 <ul>
                   {Array.isArray(addError.statusBody) ? (
                     addError.statusBody.map((e, index) => (

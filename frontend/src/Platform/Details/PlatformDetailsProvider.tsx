@@ -11,9 +11,7 @@ function PlatformDetailsProvider({
 
   return (
     <QueueDetailsProvider seriesId={seriesId}>
-      <RomFileContext.Provider value={data}>
-        {children}
-      </RomFileContext.Provider>
+      <RomFileContext.Provider value={data}>{children}</RomFileContext.Provider>
     </QueueDetailsProvider>
   );
 }

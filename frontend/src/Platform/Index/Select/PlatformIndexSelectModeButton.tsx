@@ -9,7 +9,9 @@ interface PlatformIndexSelectModeButtonProps extends PageToolbarButtonProps {
   onPress: () => void;
 }
 
-function PlatformIndexSelectModeButton(props: PlatformIndexSelectModeButtonProps) {
+function PlatformIndexSelectModeButton(
+  props: PlatformIndexSelectModeButtonProps
+) {
   const { label, iconName, isSelectMode, onPress } = props;
   const { unselectAll } = useSelect();
 

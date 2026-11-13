@@ -313,9 +313,8 @@ function AddNewPlatformModalContent({
         normalizedRevision === 'pinned'
           ? String(pinnedVersion?.value ?? '')
           : '',
-      preferredArchiveFormat: Boolean(enableCompression?.value ?? true)
-        ? 'auto'
-        : 'none',
+      preferredArchiveFormat:
+        enableCompression?.value ?? true ? 'auto' : 'none',
       encryptionPreference: hasEncryptedAndDecryptedCollections(series)
         ? effectiveEncryption
         : 'notEncrypted',

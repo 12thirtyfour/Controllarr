@@ -60,9 +60,7 @@ export function useIsDownloadingGames(gameIds: number[]) {
       return false;
     }
 
-    return queue.some((item) =>
-      item.gameIds?.some((e) => gameIds.includes(e))
-    );
+    return queue.some((item) => item.gameIds?.some((e) => gameIds.includes(e)));
   }, [gameIds, queue]);
 }
 

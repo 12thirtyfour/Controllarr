@@ -208,11 +208,14 @@ function mergeWithDefaults(
 function loadLocalMetadataSettings(): UnifiedMetadataSettings {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+
     if (!raw) {
       return DEFAULT_SETTINGS;
     }
 
-    return mergeWithDefaults(JSON.parse(raw) as Partial<UnifiedMetadataSettings>);
+    return mergeWithDefaults(
+      JSON.parse(raw) as Partial<UnifiedMetadataSettings>
+    );
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -220,31 +223,83 @@ function loadLocalMetadataSettings(): UnifiedMetadataSettings {
 
 function getEnabledAssetLabels(scraper: MetadataScraperConfig): string[] {
   const labels: string[] = [];
+
   if (scraper.publishingMetadata) {
     labels.push('Metadata');
   }
+
   if (scraper.boxArt2d) {
     labels.push('2D Box');
   }
+
   if (scraper.boxArt3d) {
     labels.push('3D Box');
   }
+
   if (scraper.screenshots) {
     labels.push('Screenshots');
   }
+
   if (scraper.titleScreens) {
     labels.push('Title Screens');
   }
+
   if (scraper.clearLogos) {
     labels.push('Clear Logos');
   }
+
   if (scraper.videoPreviews) {
     labels.push('Videos');
   }
+
   if (scraper.manualsPdf) {
     labels.push('Manuals');
   }
+
   return labels;
+}
+
+function ScraperSettingsCard({
+  scraper,
+  onSelect,
+}: {
+  scraper: MetadataScraperConfig;
+  onSelect: (id: string) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onSelect(scraper.id);
+  }, [onSelect, scraper.id]);
+
+  const assetLabels = getEnabledAssetLabels(scraper);
+
+  return (
+    <SettingsCard
+      name={scraper.name}
+      aria-label={`Edit ${scraper.name}`}
+      onPress={handlePress}
+    >
+      <SettingsCardStatus
+        dot={scraper.enabled ? 'active' : 'muted'}
+        segments={[
+          translate(scraper.enabled ? 'Enabled' : 'Disabled'),
+          `Priority: ${scraper.priority}`,
+          `${scraper.maxRequestsPerMinute} req/min`,
+        ]}
+      />
+
+      <div className={settingsCardStyles.labels}>
+        {assetLabels.map((lbl) => (
+          <Label
+            key={lbl}
+            kind={scraper.enabled ? kinds.PRIMARY : kinds.DEFAULT}
+            size={sizes.SMALL}
+          >
+            {lbl}
+          </Label>
+        ))}
+      </div>
+    </SettingsCard>
+  );
 }
 
 function MetadataSettings() {
@@ -271,6 +326,7 @@ function MetadataSettings() {
     if (serverSettings) {
       const merged = mergeWithDefaults(serverSettings);
       setSettings(merged);
+
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       } catch {
@@ -289,11 +345,13 @@ function MetadataSettings() {
       onSuccess: (saved) => {
         const merged = mergeWithDefaults(saved);
         setSettings(merged);
+
         try {
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         } catch {
           // Ignore storage quota errors
         }
+
         setHasPendingChanges(false);
         setSavedNotice(true);
       },
@@ -307,7 +365,9 @@ function MetadataSettings() {
       mutationOptions: {
         onSuccess: (result) => {
           setDatImportStatus(
-            `Imported ${result.datFile?.name ?? 'catalog'} (${result.entryCount} verified ROM entries cached and cross-referenced).`
+            `Imported ${result.datFile?.name ?? 'catalog'} (${
+              result.entryCount
+            } verified ROM entries cached and cross-referenced).`
           );
           setDatServerPath('');
           refetchDats();
@@ -346,6 +406,7 @@ function MetadataSettings() {
       } catch {
         // Ignore storage quota errors
       }
+
       saveToServer(nextSettings);
     },
     [saveToServer]
@@ -390,6 +451,60 @@ function MetadataSettings() {
     setEditingScraperId(null);
   }, [persistSettings, settings]);
 
+  const handleCloseScraperModal = useCallback(() => {
+    setEditingScraperId(null);
+  }, []);
+
+  const handleScraperFieldChange = useCallback(
+    ({ name, value }: InputChanged) => {
+      if (!editingScraperId) {
+        return;
+      }
+
+      const field = name.slice(
+        editingScraperId.length + 1
+      ) as keyof MetadataScraperConfig;
+
+      if (field === 'priority') {
+        updateScraperField(
+          editingScraperId,
+          field,
+          Math.max(1, Number(value) || 1)
+        );
+      } else if (field === 'maxRequestsPerMinute') {
+        updateScraperField(
+          editingScraperId,
+          field,
+          Math.max(5, Number(value) || 30)
+        );
+      } else if (
+        field === 'username' ||
+        field === 'password' ||
+        field === 'clientId' ||
+        field === 'clientSecret' ||
+        field === 'apiKey'
+      ) {
+        updateScraperField(editingScraperId, field, String(value ?? ''));
+      } else {
+        updateScraperField(
+          editingScraperId,
+          field as
+            | 'enabled'
+            | 'publishingMetadata'
+            | 'boxArt2d'
+            | 'boxArt3d'
+            | 'screenshots'
+            | 'titleScreens'
+            | 'clearLogos'
+            | 'videoPreviews'
+            | 'manualsPdf',
+          Boolean(value)
+        );
+      }
+    },
+    [editingScraperId, updateScraperField]
+  );
+
   const handleDatPathChange = useCallback(({ value }: InputChanged<string>) => {
     setDatServerPath(value ?? '');
   }, []);
@@ -407,13 +522,16 @@ function MetadataSettings() {
   const handleLocalFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
+
       if (!file) {
         return;
       }
 
       const reader = new FileReader();
+
       reader.onload = () => {
         const text = typeof reader.result === 'string' ? reader.result : '';
+
         if (text) {
           importDatCatalog({
             fileName: file.name,
@@ -421,6 +539,7 @@ function MetadataSettings() {
           });
         }
       };
+
       reader.readAsText(file);
       event.target.value = '';
     },
@@ -464,40 +583,13 @@ function MetadataSettings() {
             caption="Click any scraper card below to configure credentials, priority order (1 = highest), API rate-limit fail-safes, and artwork types. Controllarr cascades through enabled scrapers in priority order without overwriting existing files."
           >
             <div className={settingsCardStyles.grid}>
-              {sortedScrapers.map((scraper) => {
-                const assetLabels = getEnabledAssetLabels(scraper);
-                return (
-                  <SettingsCard
-                    key={scraper.id}
-                    name={scraper.name}
-                    aria-label={`Edit ${scraper.name}`}
-                    onPress={() => setEditingScraperId(scraper.id)}
-                  >
-                    <SettingsCardStatus
-                      dot={scraper.enabled ? 'active' : 'muted'}
-                      segments={[
-                        translate(scraper.enabled ? 'Enabled' : 'Disabled'),
-                        `Priority: ${scraper.priority}`,
-                        `${scraper.maxRequestsPerMinute} req/min`,
-                      ]}
-                    />
-
-                    <div className={settingsCardStyles.labels}>
-                      {assetLabels.map((lbl) => (
-                        <Label
-                          key={lbl}
-                          kind={
-                            scraper.enabled ? kinds.PRIMARY : kinds.DEFAULT
-                          }
-                          size={sizes.SMALL}
-                        >
-                          {lbl}
-                        </Label>
-                      ))}
-                    </div>
-                  </SettingsCard>
-                );
-              })}
+              {sortedScrapers.map((scraper) => (
+                <ScraperSettingsCard
+                  key={scraper.id}
+                  scraper={scraper}
+                  onSelect={setEditingScraperId}
+                />
+              ))}
             </div>
           </FieldSet>
 
@@ -607,7 +699,9 @@ function MetadataSettings() {
                     {importedDats.map((dat) => (
                       <span
                         key={dat.id}
-                        title={`${dat.name}${dat.category ? ` (${dat.category})` : ''}`}
+                        title={`${dat.name}${
+                          dat.category ? ` (${dat.category})` : ''
+                        }`}
                         style={{
                           maxWidth: '100%',
                           overflow: 'hidden',
@@ -641,10 +735,10 @@ function MetadataSettings() {
           <Modal
             isOpen={Boolean(editingScraper)}
             size={sizes.MEDIUM}
-            onModalClose={() => setEditingScraperId(null)}
+            onModalClose={handleCloseScraperModal}
           >
             {editingScraper ? (
-              <ModalContent onModalClose={() => setEditingScraperId(null)}>
+              <ModalContent onModalClose={handleCloseScraperModal}>
                 <ModalHeader>
                   Edit Metadata Scraper - {editingScraper.name}
                 </ModalHeader>
@@ -661,13 +755,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_enabled`}
                         value={editingScraper.enabled}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'enabled',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -680,13 +768,7 @@ function MetadataSettings() {
                         value={editingScraper.priority}
                         min={1}
                         max={10}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'priority',
-                            Math.max(1, Number(value) || 1)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -699,13 +781,7 @@ function MetadataSettings() {
                         value={editingScraper.maxRequestsPerMinute}
                         min={5}
                         max={600}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'maxRequestsPerMinute',
-                            Math.max(5, Number(value) || 30)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -719,13 +795,7 @@ function MetadataSettings() {
                             name={`${editingScraper.id}_username`}
                             value={editingScraper.username}
                             placeholder="ScreenScraper username"
-                            onChange={({ value }) =>
-                              updateScraperField(
-                                editingScraper.id,
-                                'username',
-                                String(value ?? '')
-                              )
-                            }
+                            onChange={handleScraperFieldChange}
                           />
                         </FormRow>
 
@@ -737,13 +807,7 @@ function MetadataSettings() {
                             name={`${editingScraper.id}_password`}
                             value={editingScraper.password}
                             placeholder="ScreenScraper password"
-                            onChange={({ value }) =>
-                              updateScraperField(
-                                editingScraper.id,
-                                'password',
-                                String(value ?? '')
-                              )
-                            }
+                            onChange={handleScraperFieldChange}
                           />
                         </FormRow>
                       </>
@@ -759,13 +823,7 @@ function MetadataSettings() {
                             name={`${editingScraper.id}_clientId`}
                             value={editingScraper.clientId}
                             placeholder="Twitch Client ID"
-                            onChange={({ value }) =>
-                              updateScraperField(
-                                editingScraper.id,
-                                'clientId',
-                                String(value ?? '')
-                              )
-                            }
+                            onChange={handleScraperFieldChange}
                           />
                         </FormRow>
 
@@ -777,13 +835,7 @@ function MetadataSettings() {
                             name={`${editingScraper.id}_clientSecret`}
                             value={editingScraper.clientSecret}
                             placeholder="Twitch Client Secret"
-                            onChange={({ value }) =>
-                              updateScraperField(
-                                editingScraper.id,
-                                'clientSecret',
-                                String(value ?? '')
-                              )
-                            }
+                            onChange={handleScraperFieldChange}
                           />
                         </FormRow>
                       </>
@@ -798,13 +850,7 @@ function MetadataSettings() {
                           name={`${editingScraper.id}_apiKey`}
                           value={editingScraper.apiKey}
                           placeholder="TheGamesDB API Key"
-                          onChange={({ value }) =>
-                            updateScraperField(
-                              editingScraper.id,
-                              'apiKey',
-                              String(value ?? '')
-                            )
-                          }
+                          onChange={handleScraperFieldChange}
                         />
                       </FormRow>
                     ) : null}
@@ -815,13 +861,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_publishingMetadata`}
                         value={editingScraper.publishingMetadata}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'publishingMetadata',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -831,13 +871,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_boxArt2d`}
                         value={editingScraper.boxArt2d}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'boxArt2d',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -847,13 +881,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_boxArt3d`}
                         value={editingScraper.boxArt3d}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'boxArt3d',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -865,13 +893,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_screenshots`}
                         value={editingScraper.screenshots}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'screenshots',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -881,13 +903,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_titleScreens`}
                         value={editingScraper.titleScreens}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'titleScreens',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -899,13 +915,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_clearLogos`}
                         value={editingScraper.clearLogos}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'clearLogos',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -917,13 +927,7 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_videoPreviews`}
                         value={editingScraper.videoPreviews}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'videoPreviews',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
 
@@ -935,20 +939,14 @@ function MetadataSettings() {
                       <CheckInput
                         name={`${editingScraper.id}_manualsPdf`}
                         value={editingScraper.manualsPdf}
-                        onChange={({ value }) =>
-                          updateScraperField(
-                            editingScraper.id,
-                            'manualsPdf',
-                            Boolean(value)
-                          )
-                        }
+                        onChange={handleScraperFieldChange}
                       />
                     </FormRow>
                   </Form>
                 </ModalBody>
 
                 <ModalFooter>
-                  <Button onPress={() => setEditingScraperId(null)}>
+                  <Button onPress={handleCloseScraperModal}>
                     {translate('Cancel')}
                   </Button>
                   <Button kind={kinds.PRIMARY} onPress={handleModalSavePress}>

@@ -106,7 +106,6 @@ const fileDateOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
-
 function MediaManagement() {
   const showAdvancedSettings = useShowAdvancedSettings();
   const isWindows = useIsWindows();
@@ -429,14 +428,6 @@ function MediaManagement() {
                       {...settings.userRejectedExtensions}
                     />
                   </FormRow>
-
-                  {showAdvancedSettings ? (
-                    <>
-                      
-
-                      
-                    </>
-                  ) : null}
                 </FieldSet>
               ) : null}
 

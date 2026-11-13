@@ -1,8 +1,6 @@
 import React from 'react';
 import Modal from 'Components/Modal/Modal';
-import SelectGameModalContent, {
-  SelectedGame,
-} from './SelectGameModalContent';
+import SelectGameModalContent, { SelectedGame } from './SelectGameModalContent';
 
 interface SelectGameModalProps {
   isOpen: boolean;

@@ -81,15 +81,19 @@ function WebPlayerPage() {
 
   const descriptorQueryParams = useMemo(() => {
     const params: Record<string, string | number> = {};
+
     if (romFileIdParam > 0) {
       params.romFileId = romFileIdParam;
     }
+
     if (platformQueryParam) {
       params.platformFolder = platformQueryParam;
     }
+
     if (romQueryParam) {
       params.romPath = romQueryParam;
     }
+
     return params;
   }, [platformQueryParam, romFileIdParam, romQueryParam]);
 

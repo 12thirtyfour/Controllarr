@@ -317,12 +317,14 @@ export function findMatchingGameProgress(
   consoleName?: string
 ): RetroAchievementsGameProgress | undefined {
   const normTitle = normalizeGameTitle(gameTitle);
+
   if (!normTitle) {
     return undefined;
   }
 
   if (consoleName) {
     const targetConsoleKey = resolveConsoleKey(consoleName);
+
     if (!targetConsoleKey) {
       return undefined;
     }
@@ -390,7 +392,9 @@ function ensureLibraryLoaded(consoleName?: string): void {
           return;
         }
 
-        const items = (await response.json()) as RetroAchievementsGameProgress[];
+        const items =
+          (await response.json()) as RetroAchievementsGameProgress[];
+
         if (Array.isArray(items)) {
           items.forEach((item) => {
             const norm = normalizeGameTitle(item.gameTitle);
@@ -400,6 +404,7 @@ function ensureLibraryLoaded(consoleName?: string): void {
                 normalizeGameTitle(i.gameTitle) === norm &&
                 resolveConsoleKey(i.consoleName) === cKey
             );
+
             if (existingIdx >= 0) {
               libraryItems[existingIdx] = item;
             } else {
@@ -420,6 +425,7 @@ function ensureLibraryLoaded(consoleName?: string): void {
 
   if (consoleName) {
     const targetConsoleKey = resolveConsoleKey(consoleName);
+
     if (
       targetConsoleKey &&
       !loadedConsoles.has(targetConsoleKey) &&
@@ -442,7 +448,9 @@ function ensureLibraryLoaded(consoleName?: string): void {
             return;
           }
 
-          const items = (await response.json()) as RetroAchievementsGameProgress[];
+          const items =
+            (await response.json()) as RetroAchievementsGameProgress[];
+
           if (Array.isArray(items)) {
             items.forEach((newItem) => {
               const normNew = normalizeGameTitle(newItem.gameTitle);
@@ -452,6 +460,7 @@ function ensureLibraryLoaded(consoleName?: string): void {
                   normalizeGameTitle(i.gameTitle) === normNew &&
                   resolveConsoleKey(i.consoleName) === cKey
               );
+
               if (existingIdx >= 0) {
                 libraryItems[existingIdx] = newItem;
               } else {
@@ -475,7 +484,9 @@ function ensureLibraryLoaded(consoleName?: string): void {
   }
 }
 
-export function useRetroAchievementsLibraryVersion(consoleName?: string): number {
+export function useRetroAchievementsLibraryVersion(
+  consoleName?: string
+): number {
   const [version, setVersion] = useState(cacheVersion);
 
   useEffect(() => {

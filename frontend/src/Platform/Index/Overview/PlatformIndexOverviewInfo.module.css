@@ -54,7 +54,7 @@
   user-select: none;
 
   &:hover {
-    color: var(--primaryColor, #5d9cec);
     border-color: var(--primaryColor, #5d9cec);
+    color: var(--primaryColor, #5d9cec);
   }
 }

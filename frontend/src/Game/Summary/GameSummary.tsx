@@ -9,8 +9,6 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import Game from 'Game/Game';
 import useGame, { GameEntity } from 'Game/useGame';
-import { useRomFile } from 'RomFile/RomFileProvider';
-import { useDeleteRomFile } from 'RomFile/useRomFiles';
 import { icons, kinds, sizes } from 'Helpers/Props';
 import { Kind } from 'Helpers/Props/kinds';
 import {
@@ -19,6 +17,8 @@ import {
 } from 'Platform/Details/gameAchievementsHelper';
 import Series from 'Platform/Platform';
 import { useSingleSeries } from 'Platform/usePlatform';
+import { useRomFile } from 'RomFile/RomFileProvider';
+import { useDeleteRomFile } from 'RomFile/useRomFiles';
 import translate from 'Utilities/String/translate';
 import RomFileRow from './RomFileRow';
 import styles from './GameSummary.module.css';
@@ -109,10 +109,7 @@ function GameSummary({
     customFormatScore,
   } = useRomFile(romFileId) ?? {};
 
-  const { deleteRomFile } = useDeleteRomFile(
-    romFileId!,
-    gameEntity
-  );
+  const { deleteRomFile } = useDeleteRomFile(romFileId!, gameEntity);
 
   const handleDeleteRomFile = useCallback(() => {
     deleteRomFile();
@@ -173,8 +170,8 @@ function GameSummary({
           <span className={styles.metaLabel}>{translate('ReleaseDate')}</span>
 
           <div className={styles.metaValue}>
-            {airDateUtc && parseInt(airDateUtc.slice(0, 4), 10) >= 1970
-              ? (airDate ?? airDateUtc.slice(0, 10))
+            {airDateUtc && parseInt(airDateUtc.slice(0, 4)) >= 1970
+              ? airDate ?? airDateUtc.slice(0, 10)
               : translate('Unknown')}
           </div>
         </div>

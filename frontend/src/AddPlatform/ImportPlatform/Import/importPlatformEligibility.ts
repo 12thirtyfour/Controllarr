@@ -31,9 +31,7 @@ export function getImportPlatformSelection(
     const status = eligibilityById.get(id);
 
     return (
-      status === 'ready' ||
-      status === 'existing' ||
-      status === 'duplicate'
+      status === 'ready' || status === 'existing' || status === 'duplicate'
     );
   });
 

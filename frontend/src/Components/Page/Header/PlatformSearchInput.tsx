@@ -340,7 +340,9 @@ function PlatformSearchInput() {
   const handleSuggestionSelected = useCallback(
     (
       _event: SyntheticEvent,
-      { suggestion }: { suggestion: SeriesSuggestion | AddNewPlatformSuggestion }
+      {
+        suggestion,
+      }: { suggestion: SeriesSuggestion | AddNewPlatformSuggestion }
     ) => {
       if ('type' in suggestion) {
         navigate(`/add/new?term=${encodeURIComponent(value)}`);

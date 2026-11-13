@@ -15,9 +15,9 @@ import useGame, {
   useToggleGamesMonitored,
 } from 'Game/useGame';
 import { useClearReleasesOnUnmount } from 'InteractiveSearch/useReleases';
-import formatSeason from 'Region/formatRegion';
 import Series from 'Platform/Platform';
 import { useSingleSeries } from 'Platform/usePlatform';
+import formatSeason from 'Region/formatRegion';
 import translate from 'Utilities/String/translate';
 import GameHistory from './History/GameHistory';
 import GameSearch from './Search/GameSearch';
@@ -52,7 +52,9 @@ function GameDetailsModalContent({
   const [currentlySelectedTab, setCurrentlySelectedTab] = useState(selectedTab);
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
-  const { title: platformTitle, titleSlug } = useSingleSeries(seriesId) as Series;
+  const { title: platformTitle, titleSlug } = useSingleSeries(
+    seriesId
+  ) as Series;
 
   const { romFileId, seasonNumber, monitored } = useGame(
     gameId,

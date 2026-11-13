@@ -1,9 +1,9 @@
 import { keepPreviousData } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import Game from 'Game/Game';
-import { setGameQueryKey } from 'Game/useGame';
 import { Filter, FilterBuilderProp } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
+import Game from 'Game/Game';
+import { setGameQueryKey } from 'Game/useGame';
 import usePage from 'Helpers/Hooks/usePage';
 import usePagedApiQuery from 'Helpers/Hooks/usePagedApiQuery';
 import { filterBuilderValueTypes } from 'Helpers/Props';

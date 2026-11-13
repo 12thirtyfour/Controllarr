@@ -16,14 +16,7 @@ interface PlatformSearchResultProps extends SuggestedSeries {
 }
 
 function PlatformSearchResult(props: PlatformSearchResultProps) {
-  const {
-    match,
-    title,
-    images,
-    alternateTitles,
-    tvdbId,
-    tags,
-  } = props;
+  const { match, title, images, alternateTitles, tvdbId, tags } = props;
 
   let alternateTitle = null;
   let tag: Tag | null = null;

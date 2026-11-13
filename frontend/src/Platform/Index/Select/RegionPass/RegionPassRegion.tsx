@@ -1,9 +1,9 @@
 import classNames from 'classnames';
 import React, { useCallback } from 'react';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
-import formatSeason from 'Region/formatRegion';
 import { Statistics } from 'Platform/Platform';
 import { useToggleSeasonMonitored } from 'Platform/usePlatform';
+import formatSeason from 'Region/formatRegion';
 import translate from 'Utilities/String/translate';
 import styles from './RegionPassRegion.module.css';
 
@@ -14,7 +14,7 @@ interface RegionPassSeasonProps {
   statistics: Statistics;
 }
 
-function RegionPassSeason(props: RegionPassSeasonProps) {
+function RegionPassRegion(props: RegionPassSeasonProps) {
   const {
     seriesId,
     seasonNumber,
@@ -56,12 +56,10 @@ function RegionPassSeason(props: RegionPassSeasonProps) {
           totalGameCount,
         })}
       >
-        {totalGameCount === 0
-          ? '0/0'
-          : `${romFileCount}/${totalGameCount}`}
+        {totalGameCount === 0 ? '0/0' : `${romFileCount}/${totalGameCount}`}
       </div>
     </div>
   );
 }
 
-export default RegionPassSeason;
+export default RegionPassRegion;

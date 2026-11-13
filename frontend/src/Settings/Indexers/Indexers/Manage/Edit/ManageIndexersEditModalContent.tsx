@@ -64,7 +64,7 @@ function ManageIndexersEditModalContent(
     useState(NO_CHANGE);
   const [priority, setPriority] = useState<null | number>(null);
   const [
-    seasonSearchMaximumSingleGameAge,
+    regionSearchMaximumSingleGameAge,
     setRegionSearchMaximumSingleGameAge,
   ] = useState<null | number>(null);
 
@@ -92,10 +92,10 @@ function ManageIndexersEditModalContent(
       payload.priority = priority as number;
     }
 
-    if (seasonSearchMaximumSingleGameAge !== null) {
+    if (regionSearchMaximumSingleGameAge !== null) {
       hasChanges = true;
       payload.seasonSearchMaximumSingleGameAge =
-        seasonSearchMaximumSingleGameAge as number;
+        regionSearchMaximumSingleGameAge as number;
     }
 
     if (hasChanges) {
@@ -108,7 +108,7 @@ function ManageIndexersEditModalContent(
     enableAutomaticSearch,
     enableInteractiveSearch,
     priority,
-    seasonSearchMaximumSingleGameAge,
+    regionSearchMaximumSingleGameAge,
     onSavePress,
     onModalClose,
   ]);
@@ -196,13 +196,11 @@ function ManageIndexersEditModalContent(
 
         <FormRow>
           <FormLabel>{translate('MaximumSingleGameAge')}</FormLabel>
-          <FormInputHelpText
-            text={translate('MaximumSingleGameAgeHelpText')}
-          />
+          <FormInputHelpText text={translate('MaximumSingleGameAgeHelpText')} />
           <FormInput
             type={inputTypes.NUMBER}
             name="seasonSearchMaximumSingleGameAge"
-            value={seasonSearchMaximumSingleGameAge}
+            value={regionSearchMaximumSingleGameAge}
             min={0}
             unit="days"
             onChange={onInputChange}

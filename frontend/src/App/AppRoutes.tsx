@@ -7,14 +7,21 @@ import PlatformIndex from 'Platform/Index/PlatformIndex';
 const Blocklist = lazy(() => import('Activity/Blocklist/Blocklist'));
 const History = lazy(() => import('Activity/History/History'));
 const Queue = lazy(() => import('Activity/Queue/Queue'));
-const AddNewPlatform = lazy(() => import('AddPlatform/AddNewPlatform/AddNewPlatform'));
-const ImportPlatform = lazy(() => import('AddPlatform/ImportPlatform/Import/ImportPlatform'));
+const AddNewPlatform = lazy(
+  () => import('AddPlatform/AddNewPlatform/AddNewPlatform')
+);
+const ImportPlatform = lazy(
+  () => import('AddPlatform/ImportPlatform/Import/ImportPlatform')
+);
 const ImportPlatformSelectFolder = lazy(
-  () => import('AddPlatform/ImportPlatform/SelectFolder/ImportPlatformSelectFolder')
+  () =>
+    import('AddPlatform/ImportPlatform/SelectFolder/ImportPlatformSelectFolder')
 );
 const RomPatcherPage = lazy(() => import('RomPatcher/RomPatcherPage'));
 const BiosSettings = lazy(() => import('Settings/Bios/BiosSettings'));
-const CollectionSettings = lazy(() => import('Settings/Collection/CollectionSettings'));
+const CollectionSettings = lazy(
+  () => import('Settings/Collection/CollectionSettings')
+);
 const CustomFormatSettingsPage = lazy(
   () => import('Settings/CustomFormats/CustomFormatSettingsPage')
 );
@@ -22,11 +29,19 @@ const DownloadClientSettings = lazy(
   () => import('Settings/DownloadClients/DownloadClientSettings')
 );
 const GeneralSettings = lazy(() => import('Settings/General/GeneralSettings'));
-const ImportListSettings = lazy(() => import('Settings/ImportLists/ImportListSettings'));
+const ImportListSettings = lazy(
+  () => import('Settings/ImportLists/ImportListSettings')
+);
 const IndexerSettings = lazy(() => import('Settings/Indexers/IndexerSettings'));
-const LibretroSettings = lazy(() => import('Settings/Libretro/LibretroSettings'));
-const MediaManagement = lazy(() => import('Settings/MediaManagement/MediaManagement'));
-const MetadataSettings = lazy(() => import('Settings/Metadata/MetadataSettings'));
+const LibretroSettings = lazy(
+  () => import('Settings/Libretro/LibretroSettings')
+);
+const MediaManagement = lazy(
+  () => import('Settings/MediaManagement/MediaManagement')
+);
+const MetadataSettings = lazy(
+  () => import('Settings/Metadata/MetadataSettings')
+);
 const NotificationSettings = lazy(
   () => import('Settings/Notifications/NotificationSettings')
 );

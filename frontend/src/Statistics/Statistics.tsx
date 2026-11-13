@@ -42,13 +42,10 @@ function Statistics() {
     }
 
     const downloadedPercent = data.totalGameCount
-      ? roundNumber(
-          (data.downloadedGameCount / data.totalGameCount) * 100
-        )
+      ? roundNumber((data.downloadedGameCount / data.totalGameCount) * 100)
       : 0;
 
-    const wantedGameCount =
-      data.downloadedGameCount + data.missingGameCount;
+    const wantedGameCount = data.downloadedGameCount + data.missingGameCount;
     const completedPercent = wantedGameCount
       ? roundNumber((data.downloadedGameCount / wantedGameCount) * 100)
       : 0;
@@ -61,25 +58,25 @@ function Statistics() {
       {
         label: translate('Platforms'),
         value: (data.platformCount ?? 0).toLocaleString(),
-        secondary: `${(data.monitoredPlatformCount ?? 0).toLocaleString()} ${translate(
-          'Monitored'
-        )} · ${(data.completedPlatformCount ?? 0).toLocaleString()} ${translate(
-          'Completed'
-        )}`,
+        secondary: `${(
+          data.monitoredPlatformCount ?? 0
+        ).toLocaleString()} ${translate('Monitored')} · ${(
+          data.completedPlatformCount ?? 0
+        ).toLocaleString()} ${translate('Completed')}`,
       },
       {
         label: translate('Regions'),
         value: (data.regionCount ?? 0).toLocaleString(),
-        secondary: `${(data.completedRegionCount ?? 0).toLocaleString()} ${translate(
-          'Completed'
-        )}`,
+        secondary: `${(
+          data.completedRegionCount ?? 0
+        ).toLocaleString()} ${translate('Completed')}`,
       },
       {
         label: translate('TotalGames'),
         value: (data.totalGameCount ?? 0).toLocaleString(),
-        secondary: `${(data.monitoredGameCount ?? 0).toLocaleString()} ${translate(
-          'Monitored'
-        )}`,
+        secondary: `${(
+          data.monitoredGameCount ?? 0
+        ).toLocaleString()} ${translate('Monitored')}`,
       },
       {
         label: translate('RomFiles'),
@@ -217,9 +214,9 @@ function Statistics() {
         label: tag.label,
         value: tag.platformCount ?? 0,
         tooltipLines: [
-          `${translate(
-            'RomFiles'
-          )}: ${(tag.romFileCount ?? 0).toLocaleString()}`,
+          `${translate('RomFiles')}: ${(
+            tag.romFileCount ?? 0
+          ).toLocaleString()}`,
           `${translate('SizeOnDisk')}: ${formatBytes(tag.sizeOnDisk ?? 0)}`,
         ],
       };
@@ -270,15 +267,10 @@ function Statistics() {
                 items={typeItems}
               />
 
-              <DoughnutChart
-                title={translate('Games')}
-                items={gameItems}
-              />
+              <DoughnutChart title={translate('Games')} items={gameItems} />
             </div>
 
             <div className={styles.charts}>
-
-
               <BarChart
                 title={translate('GameQualities')}
                 items={qualityItems}

@@ -18,14 +18,14 @@ import HistoryEventTypeFilterBuilderRowValue from './HistoryEventTypeFilterBuild
 import IndexerFilterBuilderRowValue from './IndexerFilterBuilderRowValue';
 import LanguageFilterBuilderRowValue from './LanguageFilterBuilderRowValue';
 import MonitoredStatusFilterBuilderRowValue from './MonitoredStatusFilterBuilderRowValue';
+import PlatformFilterBuilderRowValue from './PlatformFilterBuilderRowValue';
+import PlatformStatusFilterBuilderRowValue from './PlatformStatusFilterBuilderRowValue';
+import PlatformTypeFilterBuilderRowValue from './PlatformTypeFilterBuilderRowValue';
 import ProtocolFilterBuilderRowValue from './ProtocolFilterBuilderRowValue';
 import QualityFilterBuilderRowValue from './QualityFilterBuilderRowValue';
 import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRowValue';
 import QueueStatusFilterBuilderRowValue from './QueueStatusFilterBuilderRowValue';
 import ReleaseTypeFilterBuilderRowValue from './ReleaseTypeFilterBuilderRowValue';
-import PlatformFilterBuilderRowValue from './PlatformFilterBuilderRowValue';
-import PlatformStatusFilterBuilderRowValue from './PlatformStatusFilterBuilderRowValue';
-import PlatformTypeFilterBuilderRowValue from './PlatformTypeFilterBuilderRowValue';
 import TagFilterBuilderRowValue from './TagFilterBuilderRowValue';
 import styles from './FilterBuilderRow.module.css';
 

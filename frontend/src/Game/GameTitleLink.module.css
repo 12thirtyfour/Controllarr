@@ -1,16 +1,17 @@
 .container {
   display: flex;
   align-items: center;
+  overflow: hidden;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
 }
 
 .link {
   composes: link from 'Components/Link/Link.module.css';
 
-  min-width: 0;
   overflow: hidden;
+
+  min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 

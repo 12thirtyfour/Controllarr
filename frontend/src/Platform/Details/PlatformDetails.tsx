@@ -36,7 +36,6 @@ import ToolbarItem from 'Components/Page/Toolbar/ToolbarItem';
 import Popover from 'Components/Tooltip/Popover';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import useGames from 'Game/useGames';
-import useRomFiles from 'RomFile/useRomFiles';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import {
   resolveConsoleThemeFromSlug,
@@ -54,16 +53,17 @@ import OrganizePreviewModal from 'Organize/OrganizePreviewModal';
 import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
 import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import SdCardExportModal from 'Platform/Export/SdCardExportModal';
-import RegionInteractiveSearchModal from 'Platform/Search/RegionInteractiveSearchModal';
 import PlatformHistoryModal from 'Platform/History/PlatformHistoryModal';
 import MonitoringOptionsModal from 'Platform/MonitoringOptions/MonitoringOptionsModal';
 import { Image, PlatformStatus, Statistics } from 'Platform/Platform';
 import PlatformGenres from 'Platform/PlatformGenres';
 import { getPlatformStatusDetails } from 'Platform/PlatformStatus';
+import RegionInteractiveSearchModal from 'Platform/Search/RegionInteractiveSearchModal';
 import usePlatform, {
   useSingleSeries,
   useToggleSeriesMonitored,
 } from 'Platform/usePlatform';
+import useRomFiles from 'RomFile/useRomFiles';
 import sortByProp from 'Utilities/Array/sortByProp';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
 import formatBytes from 'Utilities/Number/formatBytes';
@@ -74,16 +74,16 @@ import {
 import filterAlternateTitles from 'Utilities/Platform/filterAlternateTitles';
 import translate from 'Utilities/String/translate';
 import toggleSelected from 'Utilities/Table/toggleSelected';
-import PlatformBiosSection from './PlatformBiosSection';
-import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
 import { isPlatformRetroAchievementsSupported } from './gameAchievementsHelper';
 import SeriesAlternateTitles from './PlatformAlternateTitles';
+import PlatformBiosSection from './PlatformBiosSection';
 import PlatformDetailsLinks from './PlatformDetailsLinks';
 import PlatformDetailsPath from './PlatformDetailsPath';
 import PlatformDetailsProvider from './PlatformDetailsProvider';
 import PlatformDetailsSeason from './PlatformDetailsRegion';
 import SeriesProgressLabel from './PlatformProgressLabel';
 import SeriesTags from './PlatformTags';
+import RetroAchievementsShowcaseModal from './RetroAchievementsShowcaseModal';
 import styles from './PlatformDetails.module.css';
 
 function getFanartUrl(images: Image[]) {
@@ -188,65 +188,66 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
 
   const { data: commands } = useCommands();
 
-  const { isRefreshing, isRenaming, isSearching, isSearchingCollection } = useMemo(() => {
-    const seriesRefreshingCommand = findCommand(commands, {
-      name: CommandNames.RefreshPlatform,
-    });
+  const { isRefreshing, isRenaming, isSearching, isSearchingCollection } =
+    useMemo(() => {
+      const seriesRefreshingCommand = findCommand(commands, {
+        name: CommandNames.RefreshPlatform,
+      });
 
-    const isSeriesRefreshingCommandExecuting = isCommandExecuting(
-      seriesRefreshingCommand
-    );
+      const isSeriesRefreshingCommandExecuting = isCommandExecuting(
+        seriesRefreshingCommand
+      );
 
-    const allSeriesRefreshing =
-      isSeriesRefreshingCommandExecuting &&
-      seriesRefreshingCommand &&
-      (!('seriesIds' in seriesRefreshingCommand.body) ||
-        seriesRefreshingCommand.body.seriesIds.length === 0);
+      const allSeriesRefreshing =
+        isSeriesRefreshingCommandExecuting &&
+        seriesRefreshingCommand &&
+        (!('seriesIds' in seriesRefreshingCommand.body) ||
+          seriesRefreshingCommand.body.seriesIds.length === 0);
 
-    const isSeriesRefreshing =
-      isSeriesRefreshingCommandExecuting &&
-      seriesRefreshingCommand &&
-      'seriesIds' in seriesRefreshingCommand.body &&
-      seriesRefreshingCommand.body.seriesIds.includes(seriesId);
+      const isSeriesRefreshing =
+        isSeriesRefreshingCommandExecuting &&
+        seriesRefreshingCommand &&
+        'seriesIds' in seriesRefreshingCommand.body &&
+        seriesRefreshingCommand.body.seriesIds.includes(seriesId);
 
-    const isSearchingExecuting = isCommandExecuting(
-      findCommand(commands, {
-        name: CommandNames.PlatformSearch,
-        seriesId,
-      })
-    );
+      const isSearchingExecuting = isCommandExecuting(
+        findCommand(commands, {
+          name: CommandNames.PlatformSearch,
+          seriesId,
+        })
+      );
 
-    const isSearchingCollectionExecuting = isCommandExecuting(
-      findCommand(commands, {
-        name: CommandNames.PlatformCollectionSearch,
-        seriesId,
-      })
-    );
+      const isSearchingCollectionExecuting = isCommandExecuting(
+        findCommand(commands, {
+          name: CommandNames.PlatformCollectionSearch,
+          seriesId,
+        })
+      );
 
-    const isRenamingFiles = isCommandExecuting(
-      findCommand(commands, {
-        name: CommandNames.RenameFiles,
-        seriesId,
-      })
-    );
+      const isRenamingFiles = isCommandExecuting(
+        findCommand(commands, {
+          name: CommandNames.RenameFiles,
+          seriesId,
+        })
+      );
 
-    const isRenamingSeriesCommand = findCommand(commands, {
-      name: CommandNames.RenamePlatform,
-    });
+      const isRenamingSeriesCommand = findCommand(commands, {
+        name: CommandNames.RenamePlatform,
+      });
 
-    const isRenamingSeries =
-      isCommandExecuting(isRenamingSeriesCommand) &&
-      isRenamingSeriesCommand &&
-      'seriesIds' in isRenamingSeriesCommand.body &&
-      isRenamingSeriesCommand.body.seriesIds.includes(seriesId);
+      const isRenamingSeries =
+        isCommandExecuting(isRenamingSeriesCommand) &&
+        isRenamingSeriesCommand &&
+        'seriesIds' in isRenamingSeriesCommand.body &&
+        isRenamingSeriesCommand.body.seriesIds.includes(seriesId);
 
-    return {
-      isRefreshing: isSeriesRefreshing || allSeriesRefreshing,
-      isRenaming: isRenamingFiles || isRenamingSeries,
-      isSearching: isSearchingExecuting,
-      isSearchingCollection: isSearchingCollectionExecuting,
-    };
-  }, [seriesId, commands]);
+      return {
+        isRefreshing: isSeriesRefreshing || allSeriesRefreshing,
+        isRenaming: isRenamingFiles || isRenamingSeries,
+        isSearching: isSearchingExecuting,
+        isSearchingCollection: isSearchingCollectionExecuting,
+      };
+    }, [seriesId, commands]);
 
   const { nextSeries, previousSeries } = useMemo(() => {
     const sortedSeries = [...allSeries].sort(sortByProp('sortTitle'));
@@ -280,9 +281,13 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   const [isOrganizeModalOpen, setIsOrganizeModalOpen] = useState(false);
   const [isManageGamesOpen, setIsManageGamesOpen] = useState(false);
   const [isEditPlatformModalOpen, setIsEditPlatformModalOpen] = useState(false);
-  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] = useState(false);
+  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] =
+    useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-  const [isCollectionInteractiveSearchModalOpen, setIsCollectionInteractiveSearchModalOpen] = useState(false);
+  const [
+    isCollectionInteractiveSearchModalOpen,
+    setIsCollectionInteractiveSearchModalOpen,
+  ] = useState(false);
 
   const handleToggleOverview = useCallback(() => {
     setIsOverviewExpanded((value) => !value);
@@ -312,10 +317,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
       return [];
     }
 
-    return filterAlternateTitles(
-      series.alternateTitles,
-      series.title
-    );
+    return filterAlternateTitles(series.alternateTitles, series.title);
   }, [series]);
 
   const handleOrganizePress = useCallback(() => {
@@ -469,7 +471,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     refetchGames();
     refetchRomFiles();
   }, [refetchGames, refetchRomFiles]);
-
 
   useEffect(() => {
     populate();
@@ -835,7 +836,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                 </div>
 
                 <div className={styles.details}>
-
                   {ratings.value ? (
                     <HeartRating
                       rating={ratings.value}
@@ -948,21 +948,19 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                       position={tooltipPositions.BOTTOM}
                     />
 
-
-
                     {isRaSupported ? (
                       <Link onPress={handleRetroAchievementsPress}>
-                      <Label
-                        className={styles.detailsLabel}
-                        title={translate('RetroAchievements')}
-                        size={sizes.LARGE}
-                        icon={icons.SCORE}
-                        interactive={true}
-                      >
-                        <span>RA Ready</span>
-                      </Label>
-                    </Link>
-                  ) : null}
+                        <Label
+                          className={styles.detailsLabel}
+                          title={translate('RetroAchievements')}
+                          size={sizes.LARGE}
+                          icon={icons.SCORE}
+                          interactive={true}
+                        >
+                          <span>RA Ready</span>
+                        </Label>
+                      </Link>
+                    ) : null}
 
                     <Label
                       className={styles.detailsLabel}
@@ -1061,9 +1059,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
             ) : null}
 
             {!isFetching && gamesError ? (
-              <Alert kind={kinds.DANGER}>
-                {translate('GamesLoadError')}
-              </Alert>
+              <Alert kind={kinds.DANGER}>{translate('GamesLoadError')}</Alert>
             ) : null}
 
             {!isFetching && romFilesError ? (
@@ -1088,7 +1084,11 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                     (s) => s.seasonNumber === regionId
                   );
 
-                  if (!season || (season.statistics && season.statistics.totalGameCount === 0)) {
+                  if (
+                    !season ||
+                    (season.statistics &&
+                      season.statistics.totalGameCount === 0)
+                  ) {
                     return null;
                   }
 
@@ -1103,7 +1103,11 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                   );
                 })}
                 {seasons
-                  .filter((s) => !orderedRegionIds.includes(s.seasonNumber) && (!s.statistics || s.statistics.totalGameCount > 0))
+                  .filter(
+                    (s) =>
+                      !orderedRegionIds.includes(s.seasonNumber) &&
+                      (!s.statistics || s.statistics.totalGameCount > 0)
+                  )
                   .map((season) => (
                     <PlatformDetailsSeason
                       key={season.seasonNumber}

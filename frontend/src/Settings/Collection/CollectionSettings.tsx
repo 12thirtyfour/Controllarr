@@ -75,6 +75,7 @@ function CollectionSettings() {
           onePerRegion1g1r ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
         );
       }
+
       setHasPendingChanges(true);
     },
     [onePerRegion1g1r]
@@ -94,6 +95,7 @@ function CollectionSettings() {
           useMulti ? 'oneGamePerRegionPerConsole' : 'oneGameOneRom'
         );
       }
+
       setHasPendingChanges(true);
     },
     [addOptions.collectionStrategy]

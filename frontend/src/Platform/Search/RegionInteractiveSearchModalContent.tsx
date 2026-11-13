@@ -43,9 +43,7 @@ function RegionInteractiveSearchModalContent({
         <InteractiveSearch
           type="season"
           searchPayload={
-            seasonNumber == null
-              ? { seriesId }
-              : { seriesId, seasonNumber }
+            seasonNumber == null ? { seriesId } : { seriesId, seasonNumber }
           }
           scrollerRef={modalBodyRef}
         />

@@ -20,21 +20,21 @@ import { SelectedGame } from 'InteractiveImport/Game/SelectGameModalContent';
 import SelectIndexerFlagsModal from 'InteractiveImport/IndexerFlags/SelectIndexerFlagsModal';
 import InteractiveImport from 'InteractiveImport/InteractiveImport';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
+import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
+import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
-import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
-import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import { useUpdateInteractiveImportItem } from 'InteractiveImport/useInteractiveImport';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import Series from 'Platform/Platform';
+import { QualityModel } from 'Quality/Quality';
+import formatSeason from 'Region/formatRegion';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { SelectStateInputProps } from 'typings/props';
 import Rejection from 'typings/Rejection';
 import formatBytes from 'Utilities/Number/formatBytes';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
-import formatSeason from 'Region/formatRegion';
 import translate from 'Utilities/String/translate';
 import InteractiveImportRowCellPlaceholder from './InteractiveImportRowCellPlaceholder';
 import styles from './InteractiveImportRow.module.css';
@@ -351,11 +351,7 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
   const isAnime = series?.seriesType === 'anime';
 
   const gameInfo = games.map((game) => {
-    return (
-      <div key={game.id}>
-        {game.title}
-      </div>
-    );
+    return <div key={game.id}>{game.title}</div>;
   });
 
   const requiresSeasonNumber = isNaN(Number(seasonNumber));
@@ -404,7 +400,9 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         {showSeasonNumberPlaceholder ? (
           <InteractiveImportRowCellPlaceholder />
         ) : (
-          (seasonNumber != null ? formatSeason(seasonNumber, false, series?.titleSlug) : null) ?? seasonNumber
+          (seasonNumber != null
+            ? formatSeason(seasonNumber, false, series?.titleSlug)
+            : null) ?? seasonNumber
         )}
 
         {isReprocessing && seasonNumber == null ? (

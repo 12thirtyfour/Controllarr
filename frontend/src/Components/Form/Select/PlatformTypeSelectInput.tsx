@@ -30,7 +30,9 @@ const seriesTypeOptions: ISeriesTypeOption[] = [
     key: platformTypes.STANDARD,
     value: 'Standard (Regional)',
     get format() {
-      return translate('StandardGameTypeFormat', { format: 'USA, Europe, Japan' });
+      return translate('StandardGameTypeFormat', {
+        format: 'USA, Europe, Japan',
+      });
     },
   },
   {

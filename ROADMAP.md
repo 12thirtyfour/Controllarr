@@ -20,26 +20,9 @@
 
 ---
 
-## Active Phase: Alpha Baseline Stabilization & Beta Readiness Gate
+## Active Phase: Beta Feature Verification & Multi-Platform Testing (`v1.0.0-beta.1`)
 
-Controllarr is currently in active **Alpha** development. Changes are tracked chronologically by **Date** in [**CHANGELOG.md**](CHANGELOG.md).
-
-### Baseline Feature Checklist (Beta Readiness Gate)
-To advance from Alpha to Beta testing, the following core capabilities must work reliably across both full collections and single ROMs, supporting all three download types (**Usenet**, **BitTorrent**, and **Internet Archive**):
-1. **Library Creation & Management**: Adding console platforms, configuring root paths, and initializing platform folders.
-2. **Library Import**: Scanning local directories, extracting archives, and identifying games against DAT/SMDB catalogs.
-3. **Indexing**: Ingesting releases from configured indexers with clean console categorization and zero TV/PC bleed.
-4. **Searching**: Automated and interactive searching for single games and entire collections.
-5. **Downloading**: Reliable queue dispatch to clients (SABnzbd, NZBGet, qBittorrent, Transmission, etc.) and Internet Archive HTTP downloader.
-6. **Cryptographic Verification**: Post-download hash verification (CRC32, MD5, SHA-1) against authentic DAT databases (No-Intro, Redump, TOSEC, SMDB).
-7. **Library Import & Renaming**: Moving verified files to their correct destination directory on disk with authentic game and disc naming.
-
----
-
-## Upcoming Phases
-
-### Phase: Beta Feature Verification & Multi-Platform Testing
-*Once baseline features are verified, advance to Beta to test all features end-to-end:*
+Controllarr has entered **Beta** (`v1.0.0-beta.1`). All 10 OS/architecture binary distributions and multi-arch Docker images are built from `main` for end-to-end validation:
 * **First-Run Setup & Guided Onboarding Wizard**:
   * Interactive first-run setup wizard launching on initial boot before handing off to the dashboard (Authentication, Root Folders, Metadata Scrapers, Indexers).
 * **Multi-OS Live Testing**:

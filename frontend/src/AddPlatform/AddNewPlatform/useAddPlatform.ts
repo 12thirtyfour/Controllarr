@@ -57,22 +57,23 @@ export const useLookupSeries = (
 export const useAddPlatform = (onSuccess?: () => void) => {
   const queryClient = useQueryClient();
 
-  const { isPending, error, mutate } = useApiMutation<Series, AddPlatformPayload>(
-    {
-      path: '/series',
-      method: 'POST',
-      mutationOptions: {
-        onSuccess: (newSeries) => {
-          queryClient.setQueryData<Series[]>(['/series'], (oldSeries = []) =>
-            addOrUpdateQueryClientItem(oldSeries, newSeries, 'id')
-          );
-          queryClient.invalidateQueries({ queryKey: ['/series'] });
-          queryClient.invalidateQueries({ queryKey: ['/episode'] });
-          onSuccess?.();
-        },
+  const { isPending, error, mutate } = useApiMutation<
+    Series,
+    AddPlatformPayload
+  >({
+    path: '/series',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (newSeries) => {
+        queryClient.setQueryData<Series[]>(['/series'], (oldSeries = []) =>
+          addOrUpdateQueryClientItem(oldSeries, newSeries, 'id')
+        );
+        queryClient.invalidateQueries({ queryKey: ['/series'] });
+        queryClient.invalidateQueries({ queryKey: ['/episode'] });
+        onSuccess?.();
       },
-    }
-  );
+    },
+  });
 
   return {
     isAdding: isPending,
@@ -115,9 +116,11 @@ export const useAddAllPlatforms = (onSuccess?: () => void) => {
       onSuccess: (addedSeries) => {
         queryClient.setQueryData<Series[]>(['/series'], (oldSeries = []) => {
           let next = oldSeries;
+
           for (const item of addedSeries ?? []) {
             next = addOrUpdateQueryClientItem(next, item, 'id');
           }
+
           return next;
         });
         queryClient.invalidateQueries({ queryKey: ['/series'] });

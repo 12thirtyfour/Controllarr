@@ -51,7 +51,10 @@ function ParseResult(props: ParseResultProps) {
           data={releaseTitle}
         />
 
-        <ParseResultItem title={translate('PlatformTitle')} data={platformTitle} />
+        <ParseResultItem
+          title={translate('PlatformTitle')}
+          data={platformTitle}
+        />
 
         <ParseResultItem
           title={translate('Year')}
@@ -204,7 +207,8 @@ function ParseResult(props: ParseResultProps) {
           title={translate('MatchedToRegion')}
           data={
             games.length
-              ? formatSeason(games[0].seasonNumber, false, series?.titleSlug) ?? games[0].seasonNumber
+              ? formatSeason(games[0].seasonNumber, false, series?.titleSlug) ??
+                games[0].seasonNumber
               : '-'
           }
         />
@@ -215,11 +219,7 @@ function ParseResult(props: ParseResultProps) {
             games.length ? (
               <div>
                 {games.map((e) => {
-                  return (
-                    <div key={e.id}>
-                      {e.title}
-                    </div>
-                  );
+                  return <div key={e.id}>{e.title}</div>;
                 })}
               </div>
             ) : (

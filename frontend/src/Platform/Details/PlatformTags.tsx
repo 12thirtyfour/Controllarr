@@ -9,7 +9,7 @@ interface SeriesTagsProps {
   seriesId: number;
 }
 
-function SeriesTags({ seriesId }: SeriesTagsProps) {
+function PlatformTags({ seriesId }: SeriesTagsProps) {
   const series = useSingleSeries(seriesId)!;
   const tagList = useTagList();
 
@@ -32,4 +32,4 @@ function SeriesTags({ seriesId }: SeriesTagsProps) {
   );
 }
 
-export default SeriesTags;
+export default PlatformTags;

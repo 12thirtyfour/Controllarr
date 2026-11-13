@@ -15,8 +15,8 @@ import GameQuality from 'Game/GameQuality';
 import useGame from 'Game/useGame';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import { useSingleSeries } from 'Platform/usePlatform';
+import { QualityModel } from 'Quality/Quality';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import { HistoryData, HistoryEventType } from 'typings/History';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
@@ -100,9 +100,7 @@ function PlatformHistoryRow({
     <TableRow>
       <HistoryEventTypeCell eventType={eventType} data={data} />
 
-      <TableRowCell>
-        {game.title}
-      </TableRowCell>
+      <TableRowCell>{game.title}</TableRowCell>
 
       <TableRowCell className={styles.sourceTitle}>{sourceTitle}</TableRowCell>
 
@@ -111,10 +109,7 @@ function PlatformHistoryRow({
       </TableRowCell>
 
       <TableRowCell>
-        <GameQuality
-          quality={quality}
-          isCutoffNotMet={qualityCutoffNotMet}
-        />
+        <GameQuality quality={quality} isCutoffNotMet={qualityCutoffNotMet} />
       </TableRowCell>
 
       <TableRowCell>

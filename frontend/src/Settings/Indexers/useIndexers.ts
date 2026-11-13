@@ -149,7 +149,8 @@ export const useManageIndexer = (
     if (selectedSchema && schema) {
       return {
         ...schema,
-        name: selectedSchema.presetName || schema.name || schema.implementationName,
+        name:
+          selectedSchema.presetName || schema.name || schema.implementationName,
         enableRss: schema.supportsRss,
         enableAutomaticSearch: schema.supportsSearch,
         enableInteractiveSearch: schema.supportsSearch,

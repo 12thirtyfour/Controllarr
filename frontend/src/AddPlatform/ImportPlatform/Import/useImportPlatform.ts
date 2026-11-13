@@ -13,7 +13,8 @@ export const useImportPlatform = () => {
   const queryClient = useQueryClient();
   const defaults = useAddPlatformOptions();
   const { data: targetRootFolders = [] } = useRootFolders();
-  const primaryRootFolder = defaults.rootFolderPath || targetRootFolders[0]?.path || '';
+  const primaryRootFolder =
+    defaults.rootFolderPath || targetRootFolders[0]?.path || '';
 
   const { isPending, error, mutate } = useApiMutation<Series[], Series[]>({
     path: '/series/import',
@@ -49,7 +50,9 @@ export const useImportPlatform = () => {
 
         if (selectedSeries && item) {
           const isLeave = item.importMode === 'leave';
-          const targetRoot = isLeave ? undefined : (item.rootFolderPath || primaryRootFolder);
+          const targetRoot = isLeave
+            ? undefined
+            : item.rootFolderPath || primaryRootFolder;
 
           const newSeries: Series = {
             ...selectedSeries,

@@ -45,7 +45,6 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
           {translate('OriginalLanguage')}
         </SortMenuItem>
 
-
         <SortMenuItem
           name="added"
           sortKey={sortKey}

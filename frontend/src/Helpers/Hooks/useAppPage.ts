@@ -32,7 +32,6 @@ const useAppPage = () => {
   const { isFetched: isUiSettingsFetched, error: uiSettingsError } =
     useUiSettings();
 
-
   const { isFetched: isLanguagesFetched, error: languagesError } =
     useLanguages();
 

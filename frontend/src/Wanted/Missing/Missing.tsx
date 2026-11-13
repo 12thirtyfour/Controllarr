@@ -20,10 +20,10 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
 import TablePager from 'Components/Table/TablePager';
-import Game from 'Game/Game';
-import { useToggleGamesMonitored } from 'Game/useGame';
 import { Filter } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
+import Game from 'Game/Game';
+import { useToggleGamesMonitored } from 'Game/useGame';
 import { align, icons, kinds } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
@@ -143,10 +143,7 @@ function MissingContent() {
 
   const handleSearchAllMissingConfirmed = useCallback(() => {
     executeCommand(
-      toWantedSearchCommandBody(
-        CommandNames.MissingGameSearch,
-        activeFilters
-      ),
+      toWantedSearchCommandBody(CommandNames.MissingGameSearch, activeFilters),
       () => {
         refetch();
       }
@@ -349,12 +346,9 @@ function MissingContent() {
                 message={
                   <div>
                     <div>
-                      {translate(
-                        'SearchForAllMissingGamesConfirmationCount',
-                        {
-                          totalRecords,
-                        }
-                      )}
+                      {translate('SearchForAllMissingGamesConfirmationCount', {
+                        totalRecords,
+                      })}
                     </div>
                     <div>{translate('MassSearchCancelWarning')}</div>
                   </div>

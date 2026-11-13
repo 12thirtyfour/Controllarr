@@ -63,10 +63,7 @@ export const setGameQueryKey = (
   }
 };
 
-const useGame = (
-  gameId: number | undefined,
-  gameEntity: GameEntity
-) => {
+const useGame = (gameId: number | undefined, gameEntity: GameEntity) => {
   const queryClient = useQueryClient();
   const queryKey = getQueryKey(gameEntity);
 
@@ -80,16 +77,11 @@ const useGame = (
 
   if (gameEntity === 'games') {
     return queryKey
-      ? queryClient
-          .getQueryData<Game[]>(queryKey)
-          ?.find((e) => e.id === gameId)
+      ? queryClient.getQueryData<Game[]>(queryKey)?.find((e) => e.id === gameId)
       : undefined;
   }
 
-  if (
-    gameEntity === 'wanted.cutoffUnmet' ||
-    gameEntity === 'wanted.missing'
-  ) {
+  if (gameEntity === 'wanted.cutoffUnmet' || gameEntity === 'wanted.missing') {
     return queryKey
       ? queryClient
           .getQueryData<PagedQueryResponse<Game>>(queryKey)
@@ -118,25 +110,22 @@ export const useToggleGamesMonitored = (queryKey: QueryKey) => {
     method: 'PUT',
     mutationOptions: {
       onSuccess: (_data, variables) => {
-        queryClient.setQueryData<Game[] | undefined>(
-          queryKey,
-          (oldGames) => {
-            if (!oldGames) {
-              return oldGames;
+        queryClient.setQueryData<Game[] | undefined>(queryKey, (oldGames) => {
+          if (!oldGames) {
+            return oldGames;
+          }
+
+          return oldGames.map((oldGame) => {
+            if (variables.gameIds.includes(oldGame.id)) {
+              return {
+                ...oldGame,
+                monitored: variables.monitored,
+              };
             }
 
-            return oldGames.map((oldGame) => {
-              if (variables.gameIds.includes(oldGame.id)) {
-                return {
-                  ...oldGame,
-                  monitored: variables.monitored,
-                };
-              }
-
-              return oldGame;
-            });
-          }
-        );
+            return oldGame;
+          });
+        });
       },
     },
   });

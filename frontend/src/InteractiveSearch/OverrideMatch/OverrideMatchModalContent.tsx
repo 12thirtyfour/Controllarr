@@ -14,16 +14,16 @@ import usePrevious from 'Helpers/Hooks/usePrevious';
 import SelectGameModal from 'InteractiveImport/Game/SelectGameModal';
 import { SelectedGame } from 'InteractiveImport/Game/SelectGameModalContent';
 import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
+import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
 import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
-import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
 import { ReleaseGame, useGrabRelease } from 'InteractiveSearch/useReleases';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import Series from 'Platform/Platform';
 import { useSingleSeries } from 'Platform/usePlatform';
-import { useEnabledDownloadClients } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
+import { QualityModel } from 'Quality/Quality';
 import formatSeason from 'Region/formatRegion';
+import { useEnabledDownloadClients } from 'Settings/DownloadClients/DownloadClients/useDownloadClients';
 import translate from 'Utilities/String/translate';
 import SelectDownloadClientModal from './DownloadClient/SelectDownloadClientModal';
 import OverrideMatchData from './OverrideMatchData';
@@ -86,11 +86,7 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
 
   const gameInfo = useMemo(() => {
     return games.map((game) => {
-      return (
-        <div key={game.id}>
-          {game.title}
-        </div>
-      );
+      return <div key={game.id}>{game.title}</div>;
     });
   }, [games]);
 
@@ -178,6 +174,7 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
       setError(translate('CredentialsRequiredMissingHelpText'));
       return;
     }
+
     if (!seriesId) {
       setError(translate('OverrideGrabNoSeries'));
       return;
@@ -246,7 +243,12 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
             title={translate('Region')}
             data={
               <OverrideMatchData
-                value={seasonNumber != null ? (formatSeason(seasonNumber, false, series?.titleSlug) ?? undefined) : undefined}
+                value={
+                  seasonNumber != null
+                    ? formatSeason(seasonNumber, false, series?.titleSlug) ??
+                      undefined
+                    : undefined
+                }
                 isDisabled={!series}
                 onPress={onSelectSeasonPress}
               />
@@ -314,7 +316,13 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
       </ModalBody>
 
       <ModalFooter className={styles.footer}>
-        <div className={styles.error}>{error || grabError || (missingCredentials ? translate('CredentialsRequiredMissingHelpText') : null)}</div>
+        <div className={styles.error}>
+          {error ||
+            grabError ||
+            (missingCredentials
+              ? translate('CredentialsRequiredMissingHelpText')
+              : null)}
+        </div>
 
         <div className={styles.buttons}>
           <Button onPress={onModalClose}>{translate('Cancel')}</Button>

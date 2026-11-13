@@ -66,6 +66,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
         [Test]
         public void should_throw_if_serial_number_unavailable()
         {
+            GivenInvalidResponse();
+
             Assert.Throws(Is.InstanceOf<Exception>(), () => Subject.GetSerialNumber(_settings));
 
             ExceptionVerification.ExpectedWarns(1);

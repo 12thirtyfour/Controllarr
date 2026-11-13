@@ -2,8 +2,8 @@ import ModelBase from 'App/ModelBase';
 import Game from 'Game/Game';
 import ReleaseType from 'InteractiveImport/ReleaseType';
 import Language from 'Language/Language';
-import { QualityModel } from 'Quality/Quality';
 import Series from 'Platform/Platform';
+import { QualityModel } from 'Quality/Quality';
 import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
 import Rejection from 'typings/Rejection';
 

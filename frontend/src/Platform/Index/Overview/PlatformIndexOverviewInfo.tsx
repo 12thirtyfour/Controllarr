@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { forwardRef, ReactNode } from 'react';
+import React, { forwardRef, ReactNode, useCallback } from 'react';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import { useTagList } from 'Tags/useTags';
 import sortByProp from 'Utilities/Array/sortByProp';
@@ -52,6 +52,15 @@ const PlatformIndexOverviewInfo = forwardRef<
     uiSettings;
   const tagList = useTagList();
 
+  const handleMonitorKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLSpanElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        onMonitorPress?.();
+      }
+    },
+    [onMonitorPress]
+  );
+
   const chips: ReactNode[] = [];
 
   if (showMonitored || sortKey === 'monitored') {
@@ -68,11 +77,7 @@ const PlatformIndexOverviewInfo = forwardRef<
               : translate('ToggleUnmonitoredToMonitored')
           }
           onClick={onMonitorPress}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              onMonitorPress();
-            }
-          }}
+          onKeyDown={handleMonitorKeyDown}
         >
           {monitored ? translate('Monitored') : translate('Unmonitored')}
         </span>
@@ -83,8 +88,6 @@ const PlatformIndexOverviewInfo = forwardRef<
       )
     );
   }
-
-
 
   if (added && (showAdded || sortKey === 'added')) {
     chips.push(

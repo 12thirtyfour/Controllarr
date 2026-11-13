@@ -288,7 +288,9 @@ function Profiles() {
                 </FormRow>
 
                 <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>Group All Disc-Based Games in Subfolders</FormLabel>
+                  <FormLabel>
+                    Group All Disc-Based Games in Subfolders
+                  </FormLabel>
                   <FormInputHelpText text="Organize all disc-based games (single-disc and multi-disc) into a dedicated folder titled after the game" />
                   <CheckInput
                     name="groupMultiDiscFolders"

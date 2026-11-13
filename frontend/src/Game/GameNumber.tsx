@@ -54,10 +54,7 @@ function GameNumber(props: GameNumberProps) {
 
   const hasAlternateTitles = !!alternateTitles.length;
 
-  const warningMessage = getWarningMessage(
-    seriesType,
-    absoluteGameNumber
-  );
+  const warningMessage = getWarningMessage(seriesType, absoluteGameNumber);
 
   return (
     <span className={styles.gameNumber}>

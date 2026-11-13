@@ -86,8 +86,7 @@ export const useAddImportFolder = () => {
       onSuccess: (newImportFolder) => {
         queryClient.setQueryData<ImportFolder[]>(
           ['/importfolder'],
-          (old = []) =>
-            addOrUpdateQueryClientItem(old, newImportFolder, 'id')
+          (old = []) => addOrUpdateQueryClientItem(old, newImportFolder, 'id')
         );
       },
     },

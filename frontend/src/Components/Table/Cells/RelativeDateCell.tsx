@@ -1,5 +1,5 @@
-import React from 'react';
 import moment from 'moment';
+import React from 'react';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import getRelativeDate from 'Utilities/Date/getRelativeDate';
@@ -35,6 +35,7 @@ function RelativeDateCell(props: RelativeDateCellProps) {
 
   if (effectiveDate) {
     const trimmed = effectiveDate.trim();
+
     if (/^\d{4}$/.test(trimmed)) {
       return (
         <Component className={className} title={trimmed} {...otherProps}>
@@ -42,6 +43,7 @@ function RelativeDateCell(props: RelativeDateCellProps) {
         </Component>
       );
     }
+
     if (/^\d{4}-\d{2}$/.test(trimmed)) {
       const parsedMoment = moment(trimmed, 'YYYY-MM');
       const formattedMonthYear = parsedMoment.format('MMM YYYY');
@@ -54,7 +56,10 @@ function RelativeDateCell(props: RelativeDateCellProps) {
     }
   }
 
-  const isInvalidYear = Boolean(date && (parseInt(date.slice(0, 4), 10) < 1970 || date.startsWith('189')));
+  const isInvalidYear = Boolean(
+    date && (parseInt(date.slice(0, 4)) < 1970 || date.startsWith('189'))
+  );
+
   if (!date || isInvalidYear) {
     return <Component className={className} {...otherProps} />;
   }

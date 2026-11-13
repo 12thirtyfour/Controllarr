@@ -165,7 +165,7 @@ function EditPlatformModalContent({
       {
         monitored,
         monitorNewItems,
-            qualityProfileId,
+        qualityProfileId,
         seriesType,
         seasonType,
         language,
@@ -355,7 +355,9 @@ function EditPlatformModalContent({
 
   return (
     <ModalContent onModalClose={onModalClose}>
-      <ModalHeader>{translate('EditPlatformModalHeader', { title })}</ModalHeader>
+      <ModalHeader>
+        {translate('EditPlatformModalHeader', { title })}
+      </ModalHeader>
 
       <ModalBody>
         <Form {...otherSettings}>

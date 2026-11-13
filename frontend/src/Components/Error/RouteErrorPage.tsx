@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useRouteError } from 'react-router-dom';
 import Button from 'Components/Link/Button';
 import Page from 'Components/Page/Page';
@@ -12,13 +12,13 @@ function RouteErrorPage() {
   const errorObj =
     error instanceof Error ? error : new Error(String(error || 'Route error'));
 
-  const handleReload = () => {
+  const handleReload = useCallback(() => {
     window.location.reload();
-  };
+  }, []);
 
-  const handleHome = () => {
+  const handleHome = useCallback(() => {
     window.location.href = `${window.Controllarr.urlBase}/`;
-  };
+  }, []);
 
   return (
     <Page>

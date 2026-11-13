@@ -6,7 +6,7 @@ interface SeriesAlternateTitlesProps {
   alternateTitles: AlternateTitle[];
 }
 
-function SeriesAlternateTitles({
+function PlatformAlternateTitles({
   alternateTitles,
 }: SeriesAlternateTitlesProps) {
   return (
@@ -25,4 +25,4 @@ function SeriesAlternateTitles({
   );
 }
 
-export default SeriesAlternateTitles;
+export default PlatformAlternateTitles;

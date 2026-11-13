@@ -8,7 +8,10 @@ interface SeriesMovePendingProps {
   pendingPath: string;
 }
 
-function SeriesMovePending({ className, pendingPath }: SeriesMovePendingProps) {
+function PlatformMovePending({
+  className,
+  pendingPath,
+}: SeriesMovePendingProps) {
   return (
     <Icon
       className={className}
@@ -18,4 +21,4 @@ function SeriesMovePending({ className, pendingPath }: SeriesMovePendingProps) {
   );
 }
 
-export default SeriesMovePending;
+export default PlatformMovePending;

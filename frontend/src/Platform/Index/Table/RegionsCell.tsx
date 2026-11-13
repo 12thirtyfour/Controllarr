@@ -14,7 +14,7 @@ interface PlatformStatusCellProps {
   isSelectMode: boolean;
 }
 
-function SeasonsCell(props: PlatformStatusCellProps) {
+function RegionsCell(props: PlatformStatusCellProps) {
   const {
     className,
     seriesId,
@@ -41,4 +41,4 @@ function SeasonsCell(props: PlatformStatusCellProps) {
   );
 }
 
-export default SeasonsCell;
+export default RegionsCell;

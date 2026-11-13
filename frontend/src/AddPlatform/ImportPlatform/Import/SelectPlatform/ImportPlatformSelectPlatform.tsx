@@ -54,7 +54,7 @@ interface ImportPlatformSelectSeriesProps {
   onEditingChange: (isEditing: boolean) => void;
 }
 
-function ImportPlatformSelectSeries({
+function ImportPlatformSelectPlatform({
   id,
   onInputChange,
   onEditingChange,
@@ -355,4 +355,4 @@ function ImportPlatformSelectSeries({
   );
 }
 
-export default ImportPlatformSelectSeries;
+export default ImportPlatformSelectPlatform;

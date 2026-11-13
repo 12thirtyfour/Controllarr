@@ -3,9 +3,9 @@ import React, { useCallback, useState } from 'react';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
 import IconButton from 'Components/Link/IconButton';
-import MonitorToggleButton from 'Components/MonitorToggleButton';
 import Link from 'Components/Link/Link';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
+import MonitorToggleButton from 'Components/MonitorToggleButton';
 import PlatformTagList from 'Components/PlatformTagList';
 import { icons } from 'Helpers/Props';
 import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
@@ -13,12 +13,12 @@ import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import PlatformIndexProgressBar from 'Platform/Index/ProgressBar/PlatformIndexProgressBar';
 import PlatformIndexPosterSelect from 'Platform/Index/Select/PlatformIndexPosterSelect';
 import { PlatformStatus, Statistics } from 'Platform/Platform';
-import { useToggleSeriesMonitored } from 'Platform/usePlatform';
 import {
   ShowStatusMode,
   usePlatformPosterOptions,
 } from 'Platform/platformOptionsStore';
 import PlatformPoster from 'Platform/PlatformPoster';
+import { useToggleSeriesMonitored } from 'Platform/usePlatform';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import translate from 'Utilities/String/translate';
 import usePlatformIndexItem from '../usePlatformIndexItem';
@@ -33,7 +33,10 @@ interface PlatformIndexPosterProps {
   posterHeight: number;
 }
 
-function getStatusBadge(status: PlatformStatus, showStatuses: ShowStatusMode[]) {
+function getStatusBadge(
+  status: PlatformStatus,
+  showStatuses: ShowStatusMode[]
+) {
   if (status === 'deleted' && showStatuses.includes('deleted')) {
     return { label: translate('Deleted'), statusClass: styles.deleted };
   }
@@ -80,7 +83,8 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
   }, [series?.monitored, toggleSeriesMonitored]);
   const [hasPosterError, setHasPosterError] = useState(false);
   const [isEditPlatformModalOpen, setIsEditPlatformModalOpen] = useState(false);
-  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] = useState(false);
+  const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] =
+    useState(false);
 
   const onRefreshPress = useCallback(() => {
     executeCommand({
@@ -164,7 +168,10 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
     <div className={styles.content}>
       <div className={styles.posterContainer} title={title}>
         {isSelectMode ? (
-          <PlatformIndexPosterSelect seriesId={seriesId} titleSlug={titleSlug} />
+          <PlatformIndexPosterSelect
+            seriesId={seriesId}
+            titleSlug={titleSlug}
+          />
         ) : null}
 
         <div className={styles.controls}>

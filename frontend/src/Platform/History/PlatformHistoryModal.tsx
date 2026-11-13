@@ -20,7 +20,10 @@ function PlatformHistoryModal({
       size={sizes.EXTRA_EXTRA_LARGE}
       onModalClose={onModalClose}
     >
-      <PlatformHistoryModalContent {...otherProps} onModalClose={onModalClose} />
+      <PlatformHistoryModalContent
+        {...otherProps}
+        onModalClose={onModalClose}
+      />
     </Modal>
   );
 }

@@ -7,9 +7,9 @@ import {
   Route,
   RouterProvider,
 } from 'react-router-dom';
+import RouteErrorPage from 'Components/Error/RouteErrorPage';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Page from 'Components/Page/Page';
-import RouteErrorPage from 'Components/Error/RouteErrorPage';
 import ApplyTheme from './ApplyTheme';
 import { appRouteElements } from './AppRoutes';
 import { queryClient } from './queryClient';

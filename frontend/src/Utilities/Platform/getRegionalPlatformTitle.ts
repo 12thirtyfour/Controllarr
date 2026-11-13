@@ -143,7 +143,9 @@ export default function getRegionalPlatformTitle(
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-  const region = (consoleRegion || 'US').toUpperCase() as keyof RegionalPlatformNames;
+  const region = (
+    consoleRegion || 'US'
+  ).toUpperCase() as keyof RegionalPlatformNames;
   const match = REGIONAL_CONSOLE_TITLES[normalized];
 
   if (match && match[region]) {

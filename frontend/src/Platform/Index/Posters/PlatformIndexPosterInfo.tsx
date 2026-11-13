@@ -50,8 +50,6 @@ function PlatformIndexPosterInfo(props: PlatformIndexPosterInfoProps) {
     );
   }
 
-
-
   if (sortKey === 'added' && added) {
     const addedDate = getRelativeDate({
       date: added,

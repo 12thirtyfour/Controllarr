@@ -25,11 +25,7 @@ interface RomFileId {
   romFileId: number;
 }
 
-export type GameFilter =
-  | SeriesGames
-  | SeasonGames
-  | GameIds
-  | RomFileId;
+export type GameFilter = SeriesGames | SeasonGames | GameIds | RomFileId;
 
 const useGames = (params: GameFilter) => {
   const setQueryKey = !('isSelection' in params);

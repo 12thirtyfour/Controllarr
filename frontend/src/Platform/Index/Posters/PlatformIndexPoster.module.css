@@ -209,9 +209,9 @@
 }
 
 .monitoredLink {
-  cursor: pointer;
   color: inherit;
   text-decoration: none;
+  cursor: pointer;
 
   &:hover {
     color: var(--primaryColor, #5d9cec);

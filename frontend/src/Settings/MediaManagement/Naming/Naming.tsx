@@ -75,8 +75,7 @@ const DATABASE_NAMING_TEMPLATES: DatabaseNamingTemplate[] = [
   {
     key: 'goodtools',
     label: 'GoodTools',
-    format:
-      '{Platform}/{Region}/{Game CleanTitle} ({Region Code}) {Dump Tags}',
+    format: '{Platform}/{Region}/{Game CleanTitle} ({Region Code}) {Dump Tags}',
     hint: 'Nintendo Entertainment System/USA/Super Mario Bros (US) [!].nes',
   },
   {
@@ -167,10 +166,7 @@ function splitUnifiedPathIntoBackendFields(rawPath: string): {
   }
 
   const regionIdx = segments.findIndex(
-    (s, idx) =>
-      idx >= 1 &&
-      idx < segments.length - 1 &&
-      /\{Region/i.test(s)
+    (s, idx) => idx >= 1 && idx < segments.length - 1 && /\{Region/i.test(s)
   );
 
   if (regionIdx >= 1) {
@@ -299,11 +295,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
 
         setUnifiedPathFormat(matchedTemplate.format);
 
-        const {
-          platformFolderFormat,
-          regionFolderFormat,
-          standardGameFormat,
-        } = splitUnifiedPathIntoBackendFields(matchedTemplate.format);
+        const { platformFolderFormat, regionFolderFormat, standardGameFormat } =
+          splitUnifiedPathIntoBackendFields(matchedTemplate.format);
 
         updateSetting('platformFolderFormat', platformFolderFormat);
         updateSetting('regionFolderFormat', regionFolderFormat);
@@ -315,11 +308,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
         const nextPath = String(change.value ?? '');
         setUnifiedPathFormat(nextPath);
 
-        const {
-          platformFolderFormat,
-          regionFolderFormat,
-          standardGameFormat,
-        } = splitUnifiedPathIntoBackendFields(nextPath);
+        const { platformFolderFormat, regionFolderFormat, standardGameFormat } =
+          splitUnifiedPathIntoBackendFields(nextPath);
 
         updateSetting('platformFolderFormat', platformFolderFormat);
         updateSetting('regionFolderFormat', regionFolderFormat);
@@ -388,9 +378,8 @@ function Naming({ setChildSave, onChildStateChange }: NamingProps) {
   }, [setChildSave, saveSettings]);
 
   const selectedTemplateKey =
-    DATABASE_NAMING_TEMPLATES.find(
-      (t) => t.format === unifiedPathFormat.trim()
-    )?.key ?? 'custom';
+    DATABASE_NAMING_TEMPLATES.find((t) => t.format === unifiedPathFormat.trim())
+      ?.key ?? 'custom';
 
   const databaseTemplateOptions: EnhancedSelectInputValue<string>[] = [
     {

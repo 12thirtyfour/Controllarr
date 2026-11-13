@@ -87,7 +87,7 @@ export interface SeasonType {
   gameCount: number;
 }
 
-interface Series extends ModelBase {
+interface Platform extends ModelBase {
   added: string;
   alternateTitles: AlternateTitle[];
   certification: string;
@@ -141,4 +141,4 @@ interface Series extends ModelBase {
   addOptions: SeriesAddOptions;
 }
 
-export default Series;
+export default Platform;

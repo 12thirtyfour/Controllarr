@@ -7,8 +7,8 @@ import {
 } from 'AddPlatform/addPlatformOptionsStore';
 import { createOptionsStore } from 'Helpers/Hooks/useOptionsStore';
 import Language from 'Language/Language';
-import { UnmappedFolder } from 'RootFolder/useRootFolders';
 import Series, { SeriesMonitor, SeriesType } from 'Platform/Platform';
+import { UnmappedFolder } from 'RootFolder/useRootFolders';
 
 interface ImportPlatformViewOptions {
   compactRows: boolean;

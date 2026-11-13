@@ -120,8 +120,7 @@ const romPathPresets: Token[] = [
     example: 'NES/USA/Super Mario Bros. (USA) (Rev 1)',
   },
   {
-    token:
-      '{Manufacturer}/{Platform}/{Region}/{Game Title}/{Game Title}',
+    token: '{Manufacturer}/{Platform}/{Region}/{Game Title}/{Game Title}',
     example:
       'Sony/PlayStation/USA/Final Fantasy VII (USA) (Disc 1)/Final Fantasy VII (USA) (Disc 1)',
   },

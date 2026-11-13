@@ -163,9 +163,7 @@ function PlatformBiosSection({ platformSlug }: PlatformBiosSectionProps) {
         <Link className={styles.expandButton} onPress={handleToggleExpand}>
           <Icon
             name={isExpanded ? icons.COLLAPSE : icons.EXPAND}
-            title={
-              isExpanded ? translate('HideGames') : translate('ShowGames')
-            }
+            title={isExpanded ? translate('HideGames') : translate('ShowGames')}
             size={24}
           />
         </Link>

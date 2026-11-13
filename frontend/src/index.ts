@@ -39,6 +39,7 @@ console.error = logError;
 window.addEventListener('vite:preloadError', (event) => {
   const reloadKey = 'controllarr_preload_retry';
   const hasRetried = sessionStorage.getItem(reloadKey);
+
   if (!hasRetried) {
     sessionStorage.setItem(reloadKey, '1');
     event.preventDefault();

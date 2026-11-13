@@ -17,15 +17,9 @@ export default function PlatformIndexFooter() {
   let totalFileSize = 0;
 
   series.forEach((s) => {
-    const {
-      statistics = { gameCount: 0, romFileCount: 0, sizeOnDisk: 0 },
-    } = s;
+    const { statistics = { gameCount: 0, romFileCount: 0, sizeOnDisk: 0 } } = s;
 
-    const {
-      gameCount = 0,
-      romFileCount = 0,
-      sizeOnDisk = 0,
-    } = statistics;
+    const { gameCount = 0, romFileCount = 0, sizeOnDisk = 0 } = statistics;
 
     games += gameCount;
     romFiles += romFileCount;

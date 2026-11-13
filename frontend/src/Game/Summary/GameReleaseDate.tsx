@@ -9,12 +9,12 @@ import isToday from 'Utilities/Date/isToday';
 import isTomorrow from 'Utilities/Date/isTomorrow';
 import translate from 'Utilities/String/translate';
 
-interface GameAiringProps {
+interface GameReleaseDateProps {
   airDateUtc?: string;
   network: string;
 }
 
-function GameAiring(props: GameAiringProps) {
+function GameReleaseDate(props: GameReleaseDateProps) {
   const { airDateUtc, network } = props;
 
   const { shortDateFormat, showRelativeDates, timeFormat } =
@@ -27,7 +27,7 @@ function GameAiring(props: GameAiringProps) {
   );
 
   // TODO: Update InlineMarkdown to accept tags and pass in networkLabel object, for now blank string passed into translation
-  if (!airDateUtc || parseInt(airDateUtc.slice(0, 4), 10) < 1970) {
+  if (!airDateUtc || parseInt(airDateUtc.slice(0, 4)) < 1970) {
     return (
       <span>
         {translate('AirsTbaOn', { networkLabel: '' })}
@@ -94,4 +94,4 @@ function GameAiring(props: GameAiringProps) {
   );
 }
 
-export default GameAiring;
+export default GameReleaseDate;

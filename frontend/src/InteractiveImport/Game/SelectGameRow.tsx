@@ -6,7 +6,6 @@ import TableRowButton from 'Components/Table/TableRowButton';
 import Game from 'Game/Game';
 import { SelectStateInputProps } from 'typings/props';
 
-
 interface SelectGameRowProps {
   id: number;
   gameNumber: number;
@@ -17,12 +16,7 @@ interface SelectGameRowProps {
   isSelected?: boolean;
 }
 
-function SelectGameRow({
-  id,
-  title,
-  airDate,
-
-}: SelectGameRowProps) {
+function SelectGameRow({ id, title, airDate }: SelectGameRowProps) {
   const { toggleSelected, useIsSelected } = useSelect<Game>();
   const isSelected = useIsSelected(id);
 

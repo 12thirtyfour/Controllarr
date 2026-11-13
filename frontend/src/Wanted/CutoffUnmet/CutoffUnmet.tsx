@@ -26,13 +26,13 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
 import TablePager from 'Components/Table/TablePager';
-import Game from 'Game/Game';
-import { useToggleGamesMonitored } from 'Game/useGame';
-import RomFileProvider from 'RomFile/RomFileProvider';
 import { Filter } from 'Filters/Filter';
 import { useCustomFiltersList } from 'Filters/useCustomFilters';
+import Game from 'Game/Game';
+import { useToggleGamesMonitored } from 'Game/useGame';
 import { align, icons, kinds } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
+import RomFileProvider from 'RomFile/RomFileProvider';
 import { CheckInputChanged } from 'typings/inputs';
 import { TableOptionsChangePayload } from 'typings/Table';
 import getFilterValue from 'Utilities/Filter/getFilterValue';
@@ -220,10 +220,7 @@ function CutoffUnmetContent() {
   }, [refetch]);
 
   return (
-    <CutoffUnmetProvider
-      gameIds={gameIds}
-      romFileIds={romFileIds}
-    >
+    <CutoffUnmetProvider gameIds={gameIds} romFileIds={romFileIds}>
       <PageContent title={translate('CutoffUnmet')}>
         <PageToolbar>
           <ToolbarItem
@@ -343,10 +340,9 @@ function CutoffUnmetContent() {
                 message={
                   <div>
                     <div>
-                      {translate(
-                        'SearchForCutoffUnmetGamesConfirmationCount',
-                        { totalRecords }
-                      )}
+                      {translate('SearchForCutoffUnmetGamesConfirmationCount', {
+                        totalRecords,
+                      })}
                     </div>
                     <div>{translate('MassSearchCancelWarning')}</div>
                   </div>
@@ -388,9 +384,7 @@ function CutoffUnmetProvider({
 }: PropsWithChildren<{ gameIds: number[]; romFileIds: number[] }>) {
   return (
     <QueueDetailsProvider gameIds={gameIds}>
-      <RomFileProvider romFileIds={romFileIds}>
-        {children}
-      </RomFileProvider>
+      <RomFileProvider romFileIds={romFileIds}>{children}</RomFileProvider>
     </QueueDetailsProvider>
   );
 }

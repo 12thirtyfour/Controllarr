@@ -34,7 +34,8 @@ interface MissingRowProps {
 function MissingRow({
   id,
   seriesId,
-  romFileId = 0,  airDate,
+  romFileId = 0,
+  airDate,
   airDateUtc,
   lastSearchTime,
   title,
@@ -104,7 +105,9 @@ function MissingRow({
         }
 
         if (name === 'games.airDateUtc') {
-          return <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />;
+          return (
+            <RelativeDateCell key={name} date={airDateUtc} airDate={airDate} />
+          );
         }
 
         if (name === 'games.lastSearchTime') {
