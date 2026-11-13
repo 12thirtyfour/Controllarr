@@ -51,6 +51,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Moved the **Utilities** section (**ROM Patcher**, **Virtual Libraries**) below the **Activity** section (**Queue**, **History**, **Blocklist**).
 
 ### Fixed
+- **Newznab Custom Indexer Categories Disappearing (`NewznabCategoryFieldOptionsConverter`, `Newznab`)**:
+  - Updated `NewznabCategoryFieldOptionsConverter.GetFieldSelectOptions` to fall back to default Newznab Console (`1000–1999`) categories whenever capabilities return an empty list or no Console categories, and guarded `Newznab.RequestAction` so capabilities are only queried once `BaseUrl` is a valid HTTP/HTTPS URL.
 - **Sega CD & Homebrew Region Classification (`RegionHelper`, `GameCatalogProxy`)**:
   - Updated `RegionHelper.IsHomebrewOrAftermarket` to classify `240p Test Suite` / `240p_` / `240p-` utilities (such as `240p_MegaCD_EU`) under **Homebrew** instead of falling back to **USA**.
   - Updated `GameCatalogProxy.ClassifyRegionAndCategory` to recognize underscore/hyphen-delimited region tokens (`_EU`, `_EUR`, `_JP`, `_JPN`, `_US`, `_USA`) so untagged regional entries do not default to **USA**.

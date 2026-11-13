@@ -10,9 +10,9 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             var result = new List<FieldSelectOption<int>>();
 
-            if (categories == null)
+            if (categories == null || !categories.Any(cat => cat.Id >= 1000 && cat.Id < 2000))
             {
-                // Fetching categories failed, use default Newznab Console categories
+                // Fetching categories failed or returned no Console categories, use default Newznab Console categories
                 categories = new List<NewznabCategory>
                 {
                     new NewznabCategory

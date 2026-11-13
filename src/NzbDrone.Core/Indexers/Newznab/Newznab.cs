@@ -144,7 +144,10 @@ namespace NzbDrone.Core.Indexers.Newznab
                 List<NewznabCategory> categories = null;
                 try
                 {
-                    if (Settings.BaseUrl.IsNotNullOrWhiteSpace() && Settings.ApiPath.IsNotNullOrWhiteSpace())
+                    if (Settings.BaseUrl.IsNotNullOrWhiteSpace() &&
+                        Settings.ApiPath.IsNotNullOrWhiteSpace() &&
+                        Uri.TryCreate(Settings.BaseUrl, UriKind.Absolute, out var baseUri) &&
+                        (baseUri.Scheme == Uri.UriSchemeHttp || baseUri.Scheme == Uri.UriSchemeHttps))
                     {
                         categories = _capabilitiesProvider.GetCapabilities(Settings).Categories;
                     }

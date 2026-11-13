@@ -84,5 +84,23 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             options.Should().NotContain(opt => opt.Value >= 4000 && opt.Value < 5000);
             options.Should().NotContain(opt => opt.Value >= 8000 && opt.Value < 9000);
         }
+
+        [Test]
+        public void should_return_default_console_categories_when_categories_is_empty_or_has_no_console_categories()
+        {
+            var emptyOptions = NewznabCategoryFieldOptionsConverter.GetFieldSelectOptions(new List<NewznabCategory>());
+            emptyOptions.Should().NotBeEmpty();
+            emptyOptions.Should().OnlyContain(opt => opt.Value >= 1000 && opt.Value < 2000);
+
+            var nonConsoleCategories = new List<NewznabCategory>
+            {
+                new NewznabCategory { Id = 4000, Name = "PC" },
+                new NewznabCategory { Id = 5000, Name = "TV" }
+            };
+
+            var fallbackOptions = NewznabCategoryFieldOptionsConverter.GetFieldSelectOptions(nonConsoleCategories);
+            fallbackOptions.Should().NotBeEmpty();
+            fallbackOptions.Should().OnlyContain(opt => opt.Value >= 1000 && opt.Value < 2000);
+        }
     }
 }
