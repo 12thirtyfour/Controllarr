@@ -30,6 +30,10 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Changed
+- **Search Monitored vs. Collection Search Filtering (`PlatformPackOnlySpecification`, `ReleaseSearchService`, `DownloadDecisionMaker`)**:
+  - Updated `PlatformPackOnlySpecification` so **Search Monitored** (`SingleEpisodeSearchCriteria`) rejects collection packages (`FullSeason` / `IsFullSetArchive`) and specifically targets individual ROM files, while **Search for Collection** (`SeasonSearchCriteria` with `IsPlatformCollectionSearch`) rejects single ROM releases and specifically targets collection packages.
+  - Removed bare platform/short/alias names from `ReleaseSearchService.BuildPlatformCollectionSearchTerms` so collection searches only query for collection packages (`complete`, `romset`, `full set`, `no-intro`, `redump`, `1g1r`, `collection`, `rom set`).
+  - Updated `DownloadDecisionMaker.IsPlatformPackMatch` so generic `.zip`/`.7z`/`.rar` extensions alone do not classify a single ROM as a platform pack, while recognizing `Collection` and `Rom Set` pack titles.
 - **Sidebar Navigation (`PageSidebar`)**:
   - Moved the **Utilities** section (**ROM Patcher**, **Virtual Libraries**) below the **Activity** section (**Queue**, **History**, **Blocklist**).
 

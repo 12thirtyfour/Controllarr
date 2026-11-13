@@ -680,6 +680,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             var criteria = allCriteria.First().Should().BeOfType<SeasonSearchCriteria>().Subject;
             criteria.IsPlatformCollectionSearch.Should().BeTrue();
             criteria.SceneTitles.Should().Contain(new[] { "Nintendo 64 complete", "Nintendo 64 romset", "@N64" });
+            criteria.SceneTitles.Should().NotContain(new[] { "Nintendo 64", "N64" });
         }
     }
 }

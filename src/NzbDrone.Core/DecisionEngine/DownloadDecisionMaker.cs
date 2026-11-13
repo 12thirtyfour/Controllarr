@@ -357,10 +357,7 @@ namespace NzbDrone.Core.DecisionEngine
                 return false;
             }
 
-            var isArchive = releaseTitle.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                            releaseTitle.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
-                            releaseTitle.EndsWith(".rar", StringComparison.OrdinalIgnoreCase) ||
-                            releaseTitle.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
+            var isArchive = releaseTitle.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("HTGDB", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("1G1R", StringComparison.OrdinalIgnoreCase) ||
@@ -368,6 +365,8 @@ namespace NzbDrone.Core.DecisionEngine
                             releaseTitle.Contains("Redump", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("TOSEC", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("Romset", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Rom Set", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Collection", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("Complete", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.StartsWith("[", StringComparison.OrdinalIgnoreCase);

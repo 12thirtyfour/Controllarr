@@ -186,7 +186,6 @@ namespace NzbDrone.Core.IndexerSearch
             if (!string.IsNullOrWhiteSpace(libretroName))
             {
                 terms.Add($"[{libretroName}");
-                terms.Add(libretroName);
             }
 
             if (string.Equals(series.TitleSlug, "nes", StringComparison.OrdinalIgnoreCase) ||
@@ -208,11 +207,9 @@ namespace NzbDrone.Core.IndexerSearch
             terms.Add($"{platformName} 1g1r");
             terms.Add($"{platformName} collection");
             terms.Add($"{platformName} rom set");
-            terms.Add(platformName);
 
             if (!string.IsNullOrWhiteSpace(shortName))
             {
-                terms.Add(shortName);
                 terms.Add($"{shortName} romset");
                 terms.Add($"{shortName} complete");
                 terms.Add($"{shortName} full set");
@@ -227,7 +224,6 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 if (!string.IsNullOrWhiteSpace(alias) && alias.Length > 2)
                 {
-                    terms.Add(alias);
                     terms.Add($"{alias} romset");
                     terms.Add($"{alias} collection");
                     terms.Add($"{alias} full set");
