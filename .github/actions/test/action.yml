@@ -64,7 +64,7 @@ runs:
       shell: bash
       run: |
         echo "Ensuring test fixture binaries are executable..."
-        chmod -R +x _tests/Sonarr.Test.Dummy* 2>/dev/null || true
+        chmod -R +x _tests/Controllarr.Test.Dummy* 2>/dev/null || true
         chmod -R +x _tests/ffprobe* 2>/dev/null || true
         chmod -R +x _tests/*.sh 2>/dev/null || true
 
