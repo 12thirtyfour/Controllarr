@@ -102,21 +102,6 @@ const GROUPS: SidebarGroup[] = [
     ],
   },
   {
-    label: () => 'Utilities',
-    items: [
-      {
-        iconName: icons.EDIT,
-        title: () => 'ROM Patcher',
-        to: '/rom-patcher',
-      },
-      {
-        iconName: icons.ROOT_FOLDER,
-        title: () => 'Virtual Libraries',
-        to: '/settings/virtuallibraries',
-      },
-    ],
-  },
-  {
     label: () => translate('Activity'),
     items: [
       {
@@ -134,6 +119,21 @@ const GROUPS: SidebarGroup[] = [
         iconName: icons.BLOCKLIST,
         title: () => translate('Blocklist'),
         to: '/activity/blocklist',
+      },
+    ],
+  },
+  {
+    label: () => 'Utilities',
+    items: [
+      {
+        iconName: icons.EDIT,
+        title: () => 'ROM Patcher',
+        to: '/rom-patcher',
+      },
+      {
+        iconName: icons.ROOT_FOLDER,
+        title: () => 'Virtual Libraries',
+        to: '/settings/virtuallibraries',
       },
     ],
   },

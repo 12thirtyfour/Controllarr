@@ -29,6 +29,10 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-12]
 
+### Changed
+- **Sidebar Navigation (`PageSidebar`)**:
+  - Moved the **Utilities** section (**ROM Patcher**, **Virtual Libraries**) below the **Activity** section (**Queue**, **History**, **Blocklist**).
+
 ### Fixed
 - **Multi-ROM Collection Import & Cross-Game Hash Verification (`ImportDecisionMaker`, `MatchesGrabSpecification`)**:
   - Fixed multi-ROM collection downloads (e.g., from Internet Archive) mapping every ROM in the downloaded folder to the single grabbed `TrackedDownload.RemoteEpisode`, which caused only 1 ROM to match and the rest to be rejected and deleted on cleanup. Multi-file downloads (`otherFiles == true`) no longer fall back `fileEpisodeInfo` or `localEpisode.Episodes` to the single grabbed release.
