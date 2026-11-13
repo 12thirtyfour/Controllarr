@@ -20,6 +20,10 @@
 
 > 📖 **Full Documentation**: Explore the [**Controllarr Wiki**](https://github.com/12thirtyfour/Controllarr/wiki) for in-depth setup guides, console platform compatibility, BIOS matrices, virtual symlink libraries, and hardware exporter profiles. Track release history in [**CHANGELOG.md**](CHANGELOG.md) and active/upcoming milestones in [**ROADMAP.md**](ROADMAP.md).
 
+> [!WARNING]
+> **Beta Software (`v1.0.0-beta.1`) — Do Not Use on an Established Library**  
+> Controllarr is currently in **Beta**. Do **not** trust beta builds with an already established ROM or game library. Always test using a **separate copy** of your library to prevent any potential file loss until a final stable build (`v1.0.0+`) is released and verified across a broader user base.
+
 ---
 
 ## What is Controllarr?
@@ -200,14 +204,14 @@ sudo systemctl enable --now controllarr
 *(For complete setup walkthroughs, reverse proxy configurations, and database options, see the [Installation Guide](https://github.com/12thirtyfour/Controllarr/wiki/Installation-Guide)).*
 
 ### Branches & Releases
-* **`main`** (stable): Every merge to `main` runs the full build and test suite and publishes an official [GitHub Release](https://github.com/12thirtyfour/Controllarr/releases) with binaries for all 10 OS/architecture targets plus the multi-arch Docker image (`ghcr.io/12thirtyfour/controllarr`).
+* **`main`** (stable / pre-releases): Every merge to `main` runs the full build and test suite and publishes a [GitHub Release](https://github.com/12thirtyfour/Controllarr/releases) with binaries for all 10 OS/architecture targets plus the multi-arch Docker image (`ghcr.io/12thirtyfour/controllarr:<version>`). The current Beta release is **`v1.0.0-beta.1`**.
 * **`develop`** (staging/testing): No automated builds. To run the latest development code, clone the `develop` branch and build from source using the steps above.
 
 ### Docker & Docker Compose
 ```yaml
 services:
   controllarr:
-    image: ghcr.io/12thirtyfour/controllarr:latest
+    image: ghcr.io/12thirtyfour/controllarr:1.0.0-beta.1
     build: .
     container_name: controllarr
     environment:
