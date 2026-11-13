@@ -27,6 +27,7 @@ WORKDIR /src
 
 COPY global.json .editorconfig ./
 COPY src ./src
+COPY Logo ./Logo
 COPY LICENSE.md ./
 
 RUN if [ -n "$VERSION" ] && [ "$VERSION" != "5.0.0.0" ]; then \
