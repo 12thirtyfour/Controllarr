@@ -58,9 +58,16 @@ public class GameController : GameControllerWithSignalR
     [Consumes("application/json")]
     public Ok<EpisodeResource> SetEpisodeMonitored([FromRoute] int id, [FromBody] EpisodeResource resource)
     {
-        _episodeService.SetEpisodeMonitored(id, resource.Monitored);
+        var monitored = resource.Monitored;
+        _episodeService.SetEpisodeMonitored(id, monitored);
 
-        resource = MapToResource(_episodeService.GetEpisode(id), false, false, false);
+        var episode = _episodeService.GetEpisode(id);
+        if (monitored)
+        {
+            _seriesService.EnsureMonitoredForGames(new[] { episode });
+        }
+
+        resource = MapToResource(episode, false, false, false);
 
         return TypedResults.Ok(resource);
     }
@@ -80,7 +87,13 @@ public class GameController : GameControllerWithSignalR
             _episodeService.SetMonitored(resource.GameIds, resource.Monitored);
         }
 
-        var resources = MapToResource(_episodeService.GetEpisodes(resource.GameIds), false, false, includeImages);
+        var episodes = _episodeService.GetEpisodes(resource.GameIds);
+        if (resource.Monitored)
+        {
+            _seriesService.EnsureMonitoredForGames(episodes);
+        }
+
+        var resources = MapToResource(episodes, false, false, includeImages);
 
         return TypedResults.Ok(resources);
     }

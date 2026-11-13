@@ -30,6 +30,8 @@ All notable changes to **Controllarr** are documented in this file.
 ## [2026-11-12]
 
 ### Changed
+- **ROM Monitoring Trickle-Up (`PlatformService.EnsureMonitoredForGames`, `GameController` V3 & V5)**:
+  - Marking one or more ROMs as monitored (`Monitored = true`) now automatically trickles up to mark the parent region (`Season.Monitored = true`) and platform (`Series.Monitored = true`) as monitored if either was unmonitored, without cascading back down to other ROMs in that region or platform.
 - **Platform Monitoring Options (`MonitorTypes`, `GameMonitoredService`, `GameRepository`, `monitorOptions`)**:
   - Replaced the platform addition monitoring options with **All ROMs** (all regions/ROMs), **Default Region** (matches the Console Region configured in UI Settings), **All Retail** (USA, Europe, Japan, World), and **Non-Retail** (Unlicensed, Homebrew & Aftermarket, ROM Hacks & Translations).
   - Updated `PlatformMonitoringOptionsPopoverContent.tsx` with descriptions for the four monitoring modes.

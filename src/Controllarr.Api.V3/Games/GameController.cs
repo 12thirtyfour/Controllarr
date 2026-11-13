@@ -54,9 +54,16 @@ namespace Sonarr.Api.V3.Games
         [Consumes("application/json")]
         public ActionResult<EpisodeResource> SetEpisodeMonitored([FromRoute] int id, [FromBody] EpisodeResource resource)
         {
-            _episodeService.SetEpisodeMonitored(id, resource.Monitored);
+            var monitored = resource.Monitored;
+            _episodeService.SetEpisodeMonitored(id, monitored);
 
-            resource = MapToResource(_episodeService.GetEpisode(id), false, false, false);
+            var episode = _episodeService.GetEpisode(id);
+            if (monitored && episode != null)
+            {
+                _seriesService.EnsureMonitoredForGames(new[] { episode });
+            }
+
+            resource = MapToResource(episode, false, false, false);
 
             return Accepted(resource);
         }
@@ -74,7 +81,13 @@ namespace Sonarr.Api.V3.Games
                 _episodeService.SetMonitored(resource.EpisodeIds, resource.Monitored);
             }
 
-            var resources = MapToResource(_episodeService.GetEpisodes(resource.EpisodeIds), false, false, includeImages);
+            var episodes = _episodeService.GetEpisodes(resource.EpisodeIds);
+            if (resource.Monitored && episodes != null)
+            {
+                _seriesService.EnsureMonitoredForGames(episodes);
+            }
+
+            var resources = MapToResource(episodes, false, false, includeImages);
 
             return Accepted(resources);
         }

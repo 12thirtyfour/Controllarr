@@ -45,6 +45,7 @@ namespace NzbDrone.Core.Tv
         Series UpdateSeries(Series series, bool updateEpisodesToMatchSeason = true, bool publishUpdatedEvent = true);
         List<Series> UpdateSeries(List<Series> series, bool moveFiles);
         Series UpdateSeries(Series series, string sourcePath, string destinationPath, bool moveFiles);
+        void EnsureMonitoredForGames(IEnumerable<Episode> games);
         bool SeriesPathExists(string folder);
         void RemoveAddOptions(Series series);
         bool UpdateAutoTaggingTags(Series series);
@@ -529,6 +530,48 @@ namespace NzbDrone.Core.Tv
 
             clean = GameCatalogProxy.DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');
             return clean;
+        }
+
+        public void EnsureMonitoredForGames(IEnumerable<Episode> games)
+        {
+            if (games == null)
+            {
+                return;
+            }
+
+            foreach (var group in games.Where(g => g != null && g.SeriesId > 0).GroupBy(g => g.SeriesId))
+            {
+                var series = _seriesRepository.Get(group.Key);
+                if (series == null)
+                {
+                    continue;
+                }
+
+                var updated = false;
+                if (!series.Monitored)
+                {
+                    series.Monitored = true;
+                    updated = true;
+                }
+
+                var seasonNumbers = group.Select(g => g.SeasonNumber).Distinct().ToHashSet();
+                if (series.Seasons != null)
+                {
+                    foreach (var season in series.Seasons)
+                    {
+                        if (seasonNumbers.Contains(season.SeasonNumber) && !season.Monitored)
+                        {
+                            season.Monitored = true;
+                            updated = true;
+                        }
+                    }
+                }
+
+                if (updated)
+                {
+                    UpdateSeries(series, updateEpisodesToMatchSeason: false, publishUpdatedEvent: true);
+                }
+            }
         }
 
         public List<Series> UpdateSeries(List<Series> series, bool moveFiles)
