@@ -76,7 +76,7 @@ runs:
           echo "Updating version info to: $CONTROLLARR_VERSION"
           sed -i'' -e "s/<AssemblyVersion>[0-9.*]\+<\/AssemblyVersion>/<AssemblyVersion>$CONTROLLARR_VERSION<\/AssemblyVersion>/g" src/Directory.Build.props src/Controllarr.Common/Controllarr.Common.csproj
           sed -i'' -e "s/<AssemblyConfiguration>[\$()A-Za-z-]\+<\/AssemblyConfiguration>/<AssemblyConfiguration>${BRANCH}<\/AssemblyConfiguration>/g" src/Directory.Build.props src/Controllarr.Common/Controllarr.Common.csproj
-          sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$CONTROLLARR_VERSION<\/string>/g" distribution/macOS/Sonarr.app/Contents/Info.plist
+          sed -i'' -e "s/<string>10.0.0.0<\/string>/<string>$CONTROLLARR_VERSION<\/string>/g" distribution/macOS/Controllarr.app/Contents/Info.plist
         fi
 
     - name: Build Backend
