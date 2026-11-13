@@ -34,6 +34,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Added the **None** monitoring option when adding a platform (wired to `MonitorTypes.None`), leaving the platform, all regions, and all ROMs unmonitored.
 
 ### Changed
+- **Third-Party Dependencies (`Directory.Build.props`, `Controllarr.Core.csproj`, `Controllarr.Test.Common.csproj`, `frontend/package.json`)**:
+  - Updated .NET packages (`Polly` `8.9.1`, `Moq` `4.21.0`, `Microsoft.NET.Test.Sdk` `18.12.0`, `NunitXml.TestLogger` `8.1.0`) and safe minor/patch frontend packages (`vite` `8.3.8`, `@vitejs/plugin-react` `6.3.0`, `@tanstack/react-query` `5.107.1`, `lucide-react` `1.72.0`, `zustand` `5.1.0`, `chart.js` `4.6.1`, `react-router-dom` `7.18.5`, `@dnd-kit/*` `0.5.3`, `@typescript-eslint/*` `8.72.2`, `postcss` `8.5.32`, `autoprefixer` `10.6.2`, `qs` `6.17.1`, `moment-timezone` `0.6.6`, etc.).
 - **Activity History Columns (`historyOptionsStore`, `HistoryRow`)**:
   - Removed the **Format** and **Formats** columns from the Activity History table and replaced them with the **Source** (`protocol`) column matching the Activity Queue view (`Internet Archive`, `Usenet`, `Torrent`).
 - **Add-Platform Search Flow (`PlatformScannedHandler`, `PlatformSearchService`, `GameSearchService`, `CollectionSearchHelper`)**:
