@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Datastore.Migration
                       .WithColumn("Version").AsString().Nullable()
                       .WithColumn("Author").AsString().Nullable()
                       .WithColumn("Category").AsString().Nullable()
-                      .WithColumn("CreatedAt").AsDateTime().NotNullable();
+                      .WithColumn("CreatedAt").AsDateTimeOffset().NotNullable();
             }
 
             if (!Schema.Table("DatEntries").Exists())

@@ -301,7 +301,7 @@ namespace NzbDrone.Integration.Test
 
             if (result.EpisodeFile == null)
             {
-                var path = Path.Combine(SeriesRootFolder, series.Title, string.Format("Series.S{0}E{1}.{2}.mkv", season, episode, quality.Name));
+                var path = Path.Combine(series.Path, "USA", string.Format("{0} (USA).iso", result.Title));
 
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, new byte[2048]);

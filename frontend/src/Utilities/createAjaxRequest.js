@@ -113,9 +113,9 @@ export default function createAjaxRequest(originalAjaxOptions) {
       return enhancePromise(next);
     };
 
-    p.fail = function(callback) {
+    p.fail = function(onFail) {
       const next = this.catch((error) => {
-        callback(error, error.statusText || 'error', error);
+        onFail(error, error.statusText || 'error', error);
         throw error;
       });
       return enhancePromise(next);

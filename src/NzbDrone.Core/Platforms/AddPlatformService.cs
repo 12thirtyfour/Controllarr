@@ -1189,7 +1189,7 @@ namespace NzbDrone.Core.Tv
 
                     var primaryRoot = rootFolders.FirstOrDefault(r =>
                         !string.IsNullOrWhiteSpace(r.Path) &&
-                        (sourceParent == null || !r.Path.PathEquals(sourceParent)));
+                        (string.IsNullOrWhiteSpace(sourceParent) || !r.Path.PathEquals(sourceParent)));
 
                     if (primaryRoot == null)
                     {

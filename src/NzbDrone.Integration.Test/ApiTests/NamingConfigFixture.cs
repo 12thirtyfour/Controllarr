@@ -25,14 +25,14 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = false;
-            config.StandardGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
-            config.DailyGameFormat = "{Series Title} - {Air-Date} - {Episode Title}";
-            config.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.StandardGameFormat = "{Game Title} ({Region})";
+            config.DiscGameFormat = "{Game Title} (Disc {disc})";
+            config.AnimeGameFormat = "{Game Title}";
 
             var result = NamingConfig.Put(config);
             result.RenameEpisodes.Should().BeFalse();
             result.StandardGameFormat.Should().Be(config.StandardGameFormat);
-            result.DailyGameFormat.Should().Be(config.DailyGameFormat);
+            result.DiscGameFormat.Should().Be(config.DiscGameFormat);
             result.AnimeGameFormat.Should().Be(config.AnimeGameFormat);
         }
 
@@ -41,9 +41,9 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = true;
-            config.StandardGameFormat = "";
-            config.DailyGameFormat = "{Series Title} - {Air-Date} - {Episode Title}";
-            config.AnimeGameFormat = "{Series Title} - {season}x{episode:00} - {Episode Title}";
+            config.StandardGameFormat = " ";
+            config.DiscGameFormat = "{Game Title} (Disc {disc})";
+            config.AnimeGameFormat = "{Game Title}";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -93,8 +93,8 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = false;
-            config.StandardGameFormat = "";
-            config.DailyGameFormat = "";
+            config.StandardGameFormat = " ";
+            config.DiscGameFormat = " ";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();
@@ -105,8 +105,8 @@ namespace NzbDrone.Integration.Test.ApiTests
         {
             var config = NamingConfig.GetSingle();
             config.RenameEpisodes = true;
-            config.StandardGameFormat = "";
-            config.DailyGameFormat = "";
+            config.StandardGameFormat = " ";
+            config.DiscGameFormat = " ";
 
             var errors = NamingConfig.InvalidPut(config);
             errors.Should().NotBeNull();

@@ -211,7 +211,7 @@ namespace NzbDrone.Integration.Test.ApiTests
             Series.Put(series, moveFiles: true);
 
             WaitForCompletion(() => SignalRMessages.Any(m =>
-                m.Name == "series" &&
+                (m.Name == "platform" || m.Name == "series") &&
                 m.Body is JsonElement body &&
                 body.TryGetProperty("resource", out var resource) &&
                 resource.TryGetProperty("path", out var pathProp) &&

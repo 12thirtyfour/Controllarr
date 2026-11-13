@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
                 var romFile = new EpisodeFile
                 {
                     Id = 10,
-                    RelativePath = @"USA\Super Mario World (USA).sfc"
+                    RelativePath = Path.Combine("USA", "Super Mario World (USA).sfc")
                 };
 
                 var game = new Episode

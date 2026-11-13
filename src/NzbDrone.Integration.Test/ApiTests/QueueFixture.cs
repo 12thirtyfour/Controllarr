@@ -61,7 +61,7 @@ namespace NzbDrone.Integration.Test.ApiTests
             var client = EnsureDownloadClient();
             var directory = client.Fields.First(v => v.Name == "watchFolder").Value as string;
 
-            File.WriteAllText(Path.Combine(directory, "Series.Title.S01E01.mkv"), "Test Download");
+            File.WriteAllText(Path.Combine(directory, "Super.Mario.World.USA.zip"), "Test Download");
             RefreshQueue();
 
             var queue = GetFirstPage();

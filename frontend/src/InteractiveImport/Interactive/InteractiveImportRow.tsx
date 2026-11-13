@@ -400,9 +400,10 @@ function InteractiveImportRow(props: InteractiveImportRowProps) {
         {showSeasonNumberPlaceholder ? (
           <InteractiveImportRowCellPlaceholder />
         ) : (
-          (seasonNumber != null
-            ? formatSeason(seasonNumber, false, series?.titleSlug)
-            : null) ?? seasonNumber
+          (seasonNumber == null
+            ? null
+            : formatSeason(seasonNumber, false, series?.titleSlug)) ??
+          seasonNumber
         )}
 
         {isReprocessing && seasonNumber == null ? (

@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Profiles.Qualities
 
         public QualityProfile GetDefaultProfile(string name, Quality cutoff = null, params Quality[] allowed)
         {
-            var groupedQualites = Quality.DefaultQualityDefinitions.GroupBy(q => q.Weight);
+            var groupedQualites = Quality.DefaultQualityDefinitions.GroupBy(q => q.Weight).OrderBy(g => g.Key);
             var items = new List<QualityProfileQualityItem>();
             var groupId = 1000;
             var profileCutoff = cutoff == null ? Quality.Unknown.Id : cutoff.Id;

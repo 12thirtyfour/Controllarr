@@ -244,10 +244,10 @@ function OverrideMatchModalContent(props: OverrideMatchModalContentProps) {
             data={
               <OverrideMatchData
                 value={
-                  seasonNumber != null
-                    ? formatSeason(seasonNumber, false, series?.titleSlug) ??
+                  seasonNumber == null
+                    ? undefined
+                    : formatSeason(seasonNumber, false, series?.titleSlug) ??
                       undefined
-                    : undefined
                 }
                 isDisabled={!series}
                 onPress={onSelectSeasonPress}
