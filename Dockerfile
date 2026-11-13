@@ -25,7 +25,7 @@ ARG BRANCH=develop
 ARG VERSION=5.0.0.0
 WORKDIR /src
 
-COPY global.json ./
+COPY global.json .editorconfig ./
 COPY src ./src
 COPY LICENSE.md ./
 
