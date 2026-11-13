@@ -37,6 +37,7 @@ namespace Sonarr.Api.V3.Queue
         public QueueStatus Status { get; set; }
         public TrackedDownloadStatus? TrackedDownloadStatus { get; set; }
         public TrackedDownloadState? TrackedDownloadState { get; set; }
+        public string ImportingActivity { get; set; }
         public List<TrackedDownloadStatusMessage> StatusMessages { get; set; }
         public string ErrorMessage { get; set; }
         public string DownloadId { get; set; }
@@ -90,6 +91,7 @@ namespace Sonarr.Api.V3.Queue
                 Status = model.Status,
                 TrackedDownloadStatus = model.TrackedDownloadStatus,
                 TrackedDownloadState = model.TrackedDownloadState,
+                ImportingActivity = model.ImportingActivity,
                 StatusMessages = model.StatusMessages,
                 ErrorMessage = model.ErrorMessage,
                 DownloadId = model.DownloadId,

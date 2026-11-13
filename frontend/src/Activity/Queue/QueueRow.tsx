@@ -49,6 +49,7 @@ interface QueueRowProps {
   status: string;
   trackedDownloadStatus?: QueueTrackedDownloadStatus;
   trackedDownloadState?: QueueTrackedDownloadState;
+  importingActivity?: string;
   statusMessages?: StatusMessage[];
   errorMessage?: string;
   languages: Language[];
@@ -82,6 +83,7 @@ function QueueRow(props: QueueRowProps) {
     status,
     trackedDownloadStatus,
     trackedDownloadState,
+    importingActivity,
     statusMessages,
     errorMessage,
     languages,
@@ -190,6 +192,7 @@ function QueueRow(props: QueueRowProps) {
               status={status}
               trackedDownloadStatus={trackedDownloadStatus}
               trackedDownloadState={trackedDownloadState}
+              importingActivity={importingActivity}
               statusMessages={statusMessages}
               errorMessage={errorMessage}
             />
@@ -358,6 +361,8 @@ function QueueRow(props: QueueRowProps) {
             <TimeLeftCell
               key={name}
               status={status}
+              trackedDownloadState={trackedDownloadState}
+              importingActivity={importingActivity}
               estimatedCompletionTime={estimatedCompletionTime}
               timeLeft={timeLeft}
               size={size}

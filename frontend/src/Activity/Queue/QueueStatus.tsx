@@ -38,6 +38,7 @@ interface QueueStatusProps {
   status: string;
   trackedDownloadStatus?: QueueTrackedDownloadStatus;
   trackedDownloadState?: QueueTrackedDownloadState;
+  importingActivity?: string;
   statusMessages?: StatusMessage[];
   errorMessage?: string;
   position: TooltipPosition;
@@ -50,6 +51,7 @@ function QueueStatus(props: QueueStatusProps) {
     status,
     trackedDownloadStatus = 'ok',
     trackedDownloadState = 'downloading',
+    importingActivity,
     statusMessages = [],
     errorMessage,
     position,
@@ -88,8 +90,11 @@ function QueueStatus(props: QueueStatusProps) {
       iconKind = kinds.PURPLE;
     }
 
-    if (trackedDownloadState === 'importing') {
-      title += ` - ${translate('Importing')}`;
+    if (trackedDownloadState === 'importing' || importingActivity) {
+      iconName = icons.SPINNER;
+      title = importingActivity
+        ? `${translate('Downloaded')} - ${importingActivity}`
+        : `${translate('Downloaded')} - ${translate('Importing')}`;
       iconKind = kinds.PRIMARY;
     }
 
@@ -142,7 +147,13 @@ function QueueStatus(props: QueueStatusProps) {
 
   return (
     <Popover
-      anchor={<Icon name={iconName} kind={iconKind} />}
+      anchor={
+        <Icon
+          name={iconName}
+          kind={iconKind}
+          isSpinning={iconName === icons.SPINNER}
+        />
+      }
       accessibleLabel={title}
       title={title}
       body={

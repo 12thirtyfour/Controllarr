@@ -48,6 +48,10 @@ All notable changes to **Controllarr** are documented in this file.
   - Updated `MatchesGrabSpecification` so any ROM whose hash is verified against a DAT catalog (`RomHashVerified == true`) and matches a monitored/wanted game in the library is accepted and imported even if it was not in the original grabbed `EpisodeIds`.
 
 ### Added
+- **Live Importing Activity in Queue (`ImportActivityService`, `QueueService`, `QueueStatus`, `TimeLeftCell`)**:
+  - Added `IImportActivityService` / `ImportActivityService` with async download-scoped activity tracking (`Importing...`, `Extracting...`, `Verifying...`, `Compressing...`, `Moving...`, `Copying...`) that publishes real-time `QueueUpdatedEvent` updates during import.
+  - Wired `CompletedDownloadService`, `DownloadedGamesImportService`, and `RomFileMovingService` to report live extracting, verifying, moving, copying, and compression steps.
+  - Updated `QueueResource`, `QueueStatus` (spinning primary icon + activity tooltip), and `TimeLeftCell` to display live importing activity directly in the Queue view.
 - **Add All Supported Platforms (`PlatformController`, `GameCatalogProxy`, `AddAllPlatformsModal`, `NoPlatform`, `AddNewPlatform`)**:
   - Added an **Add All Supported Platforms** button in both the Add Platform view (`AddNewPlatform.tsx`) and the blank Library view (`NoPlatform.tsx`).
   - Created `AddAllPlatformsModal` / `AddAllPlatformsModalContent` presenting all standard platform addition options (Root Folder, Monitor, Collection Strategy, Version / Revision Preference, Pinned Version Tag, Track Unlicensed, Track ROM Hacks & Translations, Track Homebrew & Aftermarket, Tags, and Search for Missing Games) plus dedicated **Platform-Specific Options** sections for Disc-Based vs Cartridge & Handheld compression and Nintendo DS / Nintendo 3DS ROM encryption preferences.

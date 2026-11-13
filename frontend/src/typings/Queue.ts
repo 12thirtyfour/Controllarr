@@ -36,6 +36,7 @@ interface Queue extends ModelBase {
   status: string;
   trackedDownloadStatus: QueueTrackedDownloadStatus;
   trackedDownloadState: QueueTrackedDownloadState;
+  importingActivity?: string;
   statusMessages: StatusMessage[];
   errorMessage: string;
   downloadId: string;

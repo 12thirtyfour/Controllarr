@@ -16,6 +16,7 @@ using NzbDrone.Core.MediaFiles.Synchronization;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Queue;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv;
 
@@ -44,6 +45,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IDiscCompressionService _discCompressionService;
         private readonly IArchiveRepackService _archiveRepackService;
         private readonly IArchiveExtractionService _archiveExtractionService;
+        private readonly IImportActivityService _importActivityService;
         private readonly Logger _logger;
 
         public RomFileMovingService(IEpisodeService gameService,
@@ -60,7 +62,8 @@ namespace NzbDrone.Core.MediaFiles
                                 ISidecarSaveService sidecarSaveService = null,
                                 IDiscCompressionService discCompressionService = null,
                                 IArchiveRepackService archiveRepackService = null,
-                                IArchiveExtractionService archiveExtractionService = null)
+                                IArchiveExtractionService archiveExtractionService = null,
+                                IImportActivityService importActivityService = null)
         {
             _gameService = gameService;
             _updateRomFileService = updateRomFileService;
@@ -77,6 +80,7 @@ namespace NzbDrone.Core.MediaFiles
             _discCompressionService = discCompressionService;
             _archiveRepackService = archiveRepackService;
             _archiveExtractionService = archiveExtractionService;
+            _importActivityService = importActivityService;
         }
 
         public EpisodeFile MoveEpisodeFile(EpisodeFile romFile, Series platform)
@@ -170,6 +174,7 @@ namespace NzbDrone.Core.MediaFiles
             }
             else
             {
+                _importActivityService?.SetCurrentActivity(mode == TransferMode.Move ? "Moving..." : "Copying...");
                 _diskTransferService.TransferFile(romFilePath, destinationFilePath, mode, File.Exists(destinationFilePath));
             }
 
@@ -325,17 +330,20 @@ namespace NzbDrone.Core.MediaFiles
                         var destDir = Path.GetDirectoryName(destinationFilePath);
                         if (!string.IsNullOrWhiteSpace(destDir))
                         {
+                            _importActivityService?.SetCurrentActivity("Extracting...");
                             _archiveExtractionService.ExtractArchive(destinationFilePath, destDir, false);
                         }
                     }
                     else if (shouldCompress && _archiveRepackService != null && File.Exists(destinationFilePath))
                     {
+                        _importActivityService?.SetCurrentActivity("Compressing...");
                         _archiveRepackService.RepackArchive(destinationFilePath);
                         _archiveRepackService.SyncSingleRomEntryName(destinationFilePath);
                     }
                 }
                 else if (shouldCompress && File.Exists(destinationFilePath) && IsZipCompressibleRom(ext, platform, destinationFilePath))
                 {
+                    _importActivityService?.SetCurrentActivity("Compressing...");
                     var zipPath = Path.ChangeExtension(destinationFilePath, ".zip");
                     if (File.Exists(zipPath))
                     {
@@ -362,6 +370,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
                 else if (shouldCompress && _discCompressionService != null && (ext == ".cue" || ext == ".iso" || ext == ".gdi"))
                 {
+                    _importActivityService?.SetCurrentActivity("Compressing...");
                     var platformSlug = platform?.TitleSlug ?? platform?.Title ?? string.Empty;
                     if (_discCompressionService.CompressDisc(destinationFilePath, platformSlug, out var compressedDiscPath) &&
                         !string.IsNullOrWhiteSpace(compressedDiscPath))

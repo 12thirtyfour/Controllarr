@@ -13,6 +13,7 @@ interface QueueStatusCellProps {
   status: string;
   trackedDownloadStatus?: QueueTrackedDownloadStatus;
   trackedDownloadState?: QueueTrackedDownloadState;
+  importingActivity?: string;
   statusMessages?: StatusMessage[];
   errorMessage?: string;
 }
@@ -23,6 +24,7 @@ function QueueStatusCell(props: QueueStatusCellProps) {
     status,
     trackedDownloadStatus = 'ok',
     trackedDownloadState = 'downloading',
+    importingActivity,
     statusMessages,
     errorMessage,
   } = props;
@@ -34,6 +36,7 @@ function QueueStatusCell(props: QueueStatusCellProps) {
         status={status}
         trackedDownloadStatus={trackedDownloadStatus}
         trackedDownloadState={trackedDownloadState}
+        importingActivity={importingActivity}
         statusMessages={statusMessages}
         errorMessage={errorMessage}
         position="right"

@@ -13,6 +13,7 @@ using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Download
@@ -39,6 +40,7 @@ namespace NzbDrone.Core.Download
         private readonly IRejectedFileExtensionService _rejectedFileExtensionService;
         private readonly IProvideDownloadClient _downloadClientProvider;
         private readonly IFailedDownloadService _failedDownloadService;
+        private readonly IImportActivityService _importActivityService;
         private readonly Logger _logger;
 
         public CompletedDownloadService(IEventAggregator eventAggregator,
@@ -54,7 +56,8 @@ namespace NzbDrone.Core.Download
                                         IRejectedFileExtensionService rejectedFileExtensionService,
                                         IProvideDownloadClient downloadClientProvider,
                                         IFailedDownloadService failedDownloadService,
-                                        Logger logger)
+                                        Logger logger,
+                                        IImportActivityService importActivityService = null)
         {
             _eventAggregator = eventAggregator;
             _historyService = historyService;
@@ -69,6 +72,7 @@ namespace NzbDrone.Core.Download
             _rejectedFileExtensionService = rejectedFileExtensionService;
             _downloadClientProvider = downloadClientProvider;
             _failedDownloadService = failedDownloadService;
+            _importActivityService = importActivityService;
             _logger = logger;
         }
 
@@ -154,10 +158,23 @@ namespace NzbDrone.Core.Download
             trackedDownload.State = TrackedDownloadState.Importing;
 
             var outputPath = trackedDownload.ImportItem.OutputPath.FullPath;
-            var importResults = _downloadedGamesImportService.ProcessPath(outputPath,
-                ImportMode.Auto,
-                trackedDownload.RemoteEpisode.Series,
-                trackedDownload.ImportItem);
+            List<ImportResult> importResults;
+
+            using (_importActivityService?.BeginDownloadScope(trackedDownload.DownloadItem.DownloadId))
+            {
+                _importActivityService?.SetActivity(trackedDownload.DownloadItem.DownloadId, "Importing...");
+                try
+                {
+                    importResults = _downloadedGamesImportService.ProcessPath(outputPath,
+                        ImportMode.Auto,
+                        trackedDownload.RemoteEpisode.Series,
+                        trackedDownload.ImportItem);
+                }
+                finally
+                {
+                    _importActivityService?.ClearActivity(trackedDownload.DownloadItem.DownloadId);
+                }
+            }
 
             if (VerifyImport(trackedDownload, importResults))
             {

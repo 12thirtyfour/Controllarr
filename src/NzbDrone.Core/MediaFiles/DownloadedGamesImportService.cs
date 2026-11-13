@@ -15,6 +15,7 @@ using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.MediaFiles
@@ -40,6 +41,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IRejectedFileExtensionService _rejectedFileExtensionService;
         private readonly IRomPatchingService _romPatchingService;
         private readonly IBiosService _biosService;
+        private readonly IImportActivityService _importActivityService;
         private readonly Logger _logger;
 
         public DownloadedGamesImportService(IDiskProvider diskProvider,
@@ -54,7 +56,8 @@ namespace NzbDrone.Core.MediaFiles
                                                IRejectedFileExtensionService rejectedFileExtensionService,
                                                Logger logger,
                                                IRomPatchingService romPatchingService = null,
-                                               IBiosService biosService = null)
+                                               IBiosService biosService = null,
+                                               IImportActivityService importActivityService = null)
         {
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
@@ -68,6 +71,7 @@ namespace NzbDrone.Core.MediaFiles
             _rejectedFileExtensionService = rejectedFileExtensionService;
             _romPatchingService = romPatchingService;
             _biosService = biosService;
+            _importActivityService = importActivityService;
             _logger = logger;
         }
 
@@ -283,6 +287,7 @@ namespace NzbDrone.Core.MediaFiles
                 remainingVideoFiles.Add(candidateFile);
             }
 
+            _importActivityService?.SetCurrentActivity("Verifying...");
             var decisions = _importDecisionMaker.GetImportDecisions(remainingVideoFiles, series, downloadClientItem, downloadClientItemInfo, folderInfo, true);
             var importResults = _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
             importResults.AddRange(patchResults);
@@ -500,6 +505,7 @@ namespace NzbDrone.Core.MediaFiles
 
             try
             {
+                _importActivityService?.SetCurrentActivity("Extracting...");
                 _logger.Info("Extracting multi-game archive {0} to {1} for collection import", fileInfo.FullName, extractDir);
                 _diskProvider.EnsureFolder(extractDir);
 

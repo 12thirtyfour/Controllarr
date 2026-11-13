@@ -3,6 +3,7 @@ import Icon from 'Components/Icon';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import { QueueTrackedDownloadState } from 'typings/Queue';
 import formatTime from 'Utilities/Date/formatTime';
 import formatTimeSpan from 'Utilities/Date/formatTimeSpan';
 import getRelativeDate from 'Utilities/Date/getRelativeDate';
@@ -14,6 +15,8 @@ interface TimeLeftCellProps {
   estimatedCompletionTime?: string;
   timeLeft?: string;
   status: string;
+  trackedDownloadState?: QueueTrackedDownloadState;
+  importingActivity?: string;
   size: number;
   sizeLeft: number;
   showRelativeDates: boolean;
@@ -26,6 +29,8 @@ function TimeLeftCell(props: TimeLeftCellProps) {
     estimatedCompletionTime,
     timeLeft,
     status,
+    trackedDownloadState,
+    importingActivity,
     size,
     sizeLeft,
     showRelativeDates,
@@ -73,6 +78,15 @@ function TimeLeftCell(props: TimeLeftCellProps) {
           kind={kinds.INVERSE}
           position={tooltipPositions.TOP}
         />
+      </TableRowCell>
+    );
+  }
+
+  if (trackedDownloadState === 'importing' || importingActivity) {
+    const label = importingActivity || translate('Importing');
+    return (
+      <TableRowCell className={styles.timeLeft} title={label}>
+        {label}
       </TableRowCell>
     );
   }

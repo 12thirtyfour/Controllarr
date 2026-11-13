@@ -18,14 +18,18 @@ namespace NzbDrone.Core.Queue
         void Remove(int id);
     }
 
-    public class QueueService : IQueueService, IHandle<TrackedDownloadRefreshedEvent>
+    public class QueueService : IQueueService,
+                                IHandle<TrackedDownloadRefreshedEvent>,
+                                IHandle<ImportActivityUpdatedEvent>
     {
         private readonly IEventAggregator _eventAggregator;
+        private readonly IImportActivityService _importActivityService;
         private static List<Queue> _queue = new();
 
-        public QueueService(IEventAggregator eventAggregator)
+        public QueueService(IEventAggregator eventAggregator, IImportActivityService importActivityService = null)
         {
             _eventAggregator = eventAggregator;
+            _importActivityService = importActivityService;
         }
 
         public List<Queue> GetQueue()
@@ -71,6 +75,7 @@ namespace NzbDrone.Core.Queue
                 Status = Enum.TryParse(trackedDownload.DownloadItem.Status.ToString(), out QueueStatus outValue) ? outValue : QueueStatus.Unknown,
                 TrackedDownloadStatus = trackedDownload.Status,
                 TrackedDownloadState = trackedDownload.State,
+                ImportingActivity = _importActivityService?.GetActivity(trackedDownload.DownloadItem.DownloadId),
                 StatusMessages = trackedDownload.StatusMessages.ToList(),
                 ErrorMessage = trackedDownload.DownloadItem.Message,
                 RemoteEpisode = trackedDownload.RemoteEpisode,
@@ -102,6 +107,31 @@ namespace NzbDrone.Core.Queue
                 .ToList();
 
             _eventAggregator.PublishEvent(new QueueUpdatedEvent());
+        }
+
+        public void Handle(ImportActivityUpdatedEvent message)
+        {
+            if (string.IsNullOrWhiteSpace(message.DownloadId))
+            {
+                return;
+            }
+
+            var updated = false;
+            foreach (var item in _queue.Where(q => string.Equals(q.DownloadId, message.DownloadId, StringComparison.OrdinalIgnoreCase)))
+            {
+                item.ImportingActivity = message.Activity;
+                if (!string.IsNullOrWhiteSpace(message.Activity))
+                {
+                    item.TrackedDownloadState = TrackedDownloadState.Importing;
+                }
+
+                updated = true;
+            }
+
+            if (updated)
+            {
+                _eventAggregator.PublishEvent(new QueueUpdatedEvent());
+            }
         }
     }
 }
