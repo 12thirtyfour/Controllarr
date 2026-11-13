@@ -37,6 +37,7 @@ RUN if [ -n "$VERSION" ] && [ "$VERSION" != "5.0.0.0" ]; then \
 RUN RID=$([ "$TARGETARCH" = "arm64" ] && echo "linux-arm64" || echo "linux-x64") && \
     dotnet publish src/NzbDrone.Console/Controllarr.Console.csproj \
       --configuration Release \
+      --framework net10.0 \
       --runtime "$RID" \
       --self-contained false \
       -p:PublishSingleFile=false \
