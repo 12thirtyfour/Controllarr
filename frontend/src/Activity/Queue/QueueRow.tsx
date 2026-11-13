@@ -324,6 +324,35 @@ function QueueRow(props: QueueRowProps) {
           return <TableRowCell key={name}>{outputPath}</TableRowCell>;
         }
 
+        if (name === 'speed') {
+          let speedLabel = '-';
+
+          if (status === 'downloading' && sizeLeft > 0 && timeLeft) {
+            const cleanSpan = timeLeft.split('.')[0].includes(':')
+              ? timeLeft
+              : timeLeft.replace(/^(\d+)\./, '$1:');
+            const parts = cleanSpan.split(':').map((p) => parseFloat(p) || 0);
+            let totalSeconds = 0;
+
+            if (parts.length === 4) {
+              totalSeconds =
+                parts[0] * 86400 + parts[1] * 3600 + parts[2] * 60 + parts[3];
+            } else if (parts.length === 3) {
+              totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+            }
+
+            if (totalSeconds > 0) {
+              speedLabel = `${formatBytes(sizeLeft / totalSeconds)}/s`;
+            }
+          }
+
+          return (
+            <TableRowCell key={name} className={styles.speed}>
+              {speedLabel}
+            </TableRowCell>
+          );
+        }
+
         if (name === 'estimatedCompletionTime') {
           return (
             <TimeLeftCell

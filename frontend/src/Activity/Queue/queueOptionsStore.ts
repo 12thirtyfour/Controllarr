@@ -17,7 +17,7 @@ export interface QueueOptions extends PageableOptions {
 }
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<QueueOptions>('queue_options_v4', () => {
+  createOptionsStore<QueueOptions>('queue_options_v5', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
@@ -102,6 +102,18 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
+          name: 'speed',
+          label: () => 'Speed',
+          isSortable: false,
+          isVisible: true,
+        },
+        {
+          name: 'progress',
+          label: () => translate('Progress'),
+          isSortable: true,
+          isVisible: true,
+        },
+        {
           name: 'estimatedCompletionTime',
           label: () => translate('TimeLeft'),
           isSortable: true,
@@ -112,12 +124,6 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           label: () => translate('Added'),
           isSortable: true,
           isVisible: false,
-        },
-        {
-          name: 'progress',
-          label: () => translate('Progress'),
-          isSortable: true,
-          isVisible: true,
         },
         {
           name: 'actions',

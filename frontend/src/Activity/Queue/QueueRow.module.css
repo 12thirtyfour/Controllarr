@@ -10,6 +10,13 @@
   width: 100px;
 }
 
+.speed {
+  composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
+
+  width: 100px;
+  white-space: nowrap;
+}
+
 .progress {
   composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
 
