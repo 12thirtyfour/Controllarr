@@ -181,7 +181,11 @@ jobs:
               target_commitish: '${{ github.sha }}',
               ...(previousTagName && { previous_tag_name: previousTagName }),
             })
-            return data.body
+            const isPrerelease = Boolean(${{ inputs.prerelease }})
+            const warningBanner = isPrerelease
+              ? `> [!WARNING]\n> **Pre-Release / Beta Software — Do Not Use on an Established Library**\n>\n> Do **not** trust this beta build with an already established ROM or game library. Always test using a **separate copy** of your library to prevent any potential file loss until a final stable build is released and verified across a broader user base.\n\n`
+              : ''
+            return warningBanner + data.body
 
       - name: Create release
         uses: ncipollo/release-action@v1
