@@ -29,6 +29,10 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [2026-11-12]
 
+### Added
+- **None Monitoring Option (`monitorOptions`, `PlatformMonitoringOptionsPopoverContent`)**:
+  - Added the **None** monitoring option when adding a platform (wired to `MonitorTypes.None`), leaving the platform, all regions, and all ROMs unmonitored.
+
 ### Changed
 - **Add-Platform Search Flow (`PlatformScannedHandler`, `PlatformSearchService`, `GameSearchService`, `CollectionSearchHelper`)**:
   - When adding a platform with **Start search for missing games** enabled, Controllarr now searches for a platform collection package first (`SearchCollectionFirst = true`). If a collection release is grabbed, individual ROM searches are skipped while the collection downloads; otherwise, it automatically moves on to searching for individual monitored ROMs.

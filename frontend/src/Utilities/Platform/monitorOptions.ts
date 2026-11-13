@@ -22,6 +22,10 @@ const monitorOptions: MonitorOption[] = [
     key: 'nonRetail',
     value: 'Non-Retail',
   },
+  {
+    key: 'none',
+    value: 'None',
+  },
 ];
 
 export default monitorOptions;

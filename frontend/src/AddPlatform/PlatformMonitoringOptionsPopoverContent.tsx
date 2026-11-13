@@ -24,6 +24,11 @@ function PlatformMonitoringOptionsPopoverContent() {
         title="Non-Retail"
         data="Marks only non-retail content (unlicensed, homebrew/aftermarket, and ROM hacks/translations) and excludes retail regions."
       />
+
+      <DescriptionListItem
+        title="None"
+        data="Does not monitor the platform, any regions, or any ROMs."
+      />
     </DescriptionList>
   );
 }
