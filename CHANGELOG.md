@@ -40,6 +40,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Moved the **Utilities** section (**ROM Patcher**, **Virtual Libraries**) below the **Activity** section (**Queue**, **History**, **Blocklist**).
 
 ### Fixed
+- **Multi-Game Collection Archive Extraction & Verification (`DownloadedGamesImportService`, `CompletedDownloadService`)**:
+  - Updated `DownloadedGamesImportService.ProcessFile` to detect multi-game `.zip` collection archives (such as Internet Archive full-set downloads like `sega32x20240104.zip`), extract them to a temporary subfolder, import all monitored and verified ROMs via `ProcessFolder`, and clean up the temporary extraction folder and source archive on move.
+  - Updated `CompletedDownloadService.VerifyImport` so collection downloads (`FullSeason` or `IsFullSetArchive`) are marked `Imported` once eligible monitored games are imported instead of being blocked when `RemoteEpisode.Episodes` includes unmonitored games.
 - **Multi-ROM Collection Import & Cross-Game Hash Verification (`ImportDecisionMaker`, `MatchesGrabSpecification`)**:
   - Fixed multi-ROM collection downloads (e.g., from Internet Archive) mapping every ROM in the downloaded folder to the single grabbed `TrackedDownload.RemoteEpisode`, which caused only 1 ROM to match and the rest to be rejected and deleted on cleanup. Multi-file downloads (`otherFiles == true`) no longer fall back `fileEpisodeInfo` or `localEpisode.Episodes` to the single grabbed release.
   - Updated `MatchesGrabSpecification` so any ROM whose hash is verified against a DAT catalog (`RomHashVerified == true`) and matches a monitored/wanted game in the library is accepted and imported even if it was not in the original grabbed `EpisodeIds`.

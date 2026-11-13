@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -436,10 +437,141 @@ namespace NzbDrone.Core.MediaFiles
                 }
             }
 
+            if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) && IsMultiGameZipArchive(fileInfo.FullName))
+            {
+                return ProcessMultiGameZipArchive(fileInfo, importMode, series, downloadClientItem);
+            }
+
             var downloadClientItemInfo = downloadClientItem == null ? null : Parser.Parser.ParseTitle(downloadClientItem.Title);
             var decisions = _importDecisionMaker.GetImportDecisions(new List<string>() { fileInfo.FullName }, series, downloadClientItem, downloadClientItemInfo, null, true);
 
             return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+        }
+
+        private bool IsMultiGameZipArchive(string zipPath)
+        {
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipPath);
+                var gameEntries = archive.Entries.Where(e =>
+                {
+                    if (e.FullName.EndsWith("/") || e.FullName.EndsWith("\\"))
+                    {
+                        return false;
+                    }
+
+                    if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") || e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+
+                    return MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name));
+                }).ToList();
+
+                if (gameEntries.Count <= 1)
+                {
+                    return false;
+                }
+
+                var cueEntries = gameEntries.Where(e =>
+                    Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                    Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                    Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                var hasNestedArchives = gameEntries.Any(e =>
+                    Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                    Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+
+                var isSingleMultiTrack = cueEntries.Count == 1 && !hasNestedArchives &&
+                    gameEntries.Select(e => Path.GetDirectoryName(e.FullName) ?? string.Empty).Distinct().Count() <= 1;
+
+                return !isSingleMultiTrack;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to inspect zip archive {0}", zipPath);
+                return false;
+            }
+        }
+
+        private List<ImportResult> ProcessMultiGameZipArchive(FileInfo fileInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem)
+        {
+            var extractDir = Path.Combine(fileInfo.DirectoryName ?? Path.GetTempPath(), Path.GetFileNameWithoutExtension(fileInfo.Name) + "_extracted");
+
+            try
+            {
+                _logger.Info("Extracting multi-game archive {0} to {1} for collection import", fileInfo.FullName, extractDir);
+                _diskProvider.EnsureFolder(extractDir);
+
+                var fullExtractRoot = Path.GetFullPath(extractDir);
+                if (!fullExtractRoot.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                {
+                    fullExtractRoot += Path.DirectorySeparatorChar;
+                }
+
+                using (var archive = ZipFile.OpenRead(fileInfo.FullName))
+                {
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
+                        {
+                            continue;
+                        }
+
+                        if (entry.FullName.Contains("__MACOSX") || entry.Name.StartsWith(".") || entry.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var destPath = Path.GetFullPath(Path.Combine(extractDir, entry.FullName));
+                        if (!destPath.StartsWith(fullExtractRoot, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var destParent = Path.GetDirectoryName(destPath);
+                        if (!string.IsNullOrWhiteSpace(destParent))
+                        {
+                            _diskProvider.EnsureFolder(destParent);
+                        }
+
+                        entry.ExtractToFile(destPath, true);
+                    }
+                }
+
+                var folderResults = ProcessFolder(new DirectoryInfo(extractDir), importMode, series, downloadClientItem);
+
+                var effectiveImportMode = importMode == ImportMode.Auto
+                    ? ((downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy)
+                    : importMode;
+
+                if (effectiveImportMode == ImportMode.Move && folderResults.Any(i => i.Result == ImportResultType.Imported))
+                {
+                    if (_diskProvider.FileExists(fileInfo.FullName))
+                    {
+                        _diskProvider.DeleteFile(fileInfo.FullName);
+                    }
+
+                    if (_diskProvider.FolderExists(extractDir))
+                    {
+                        _diskProvider.DeleteFolder(extractDir, true);
+                    }
+                }
+                else if (effectiveImportMode == ImportMode.Copy && _diskProvider.FolderExists(extractDir))
+                {
+                    _diskProvider.DeleteFolder(extractDir, true);
+                }
+
+                return folderResults;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to extract multi-game archive {0}", fileInfo.FullName);
+                return new List<ImportResult>
+                {
+                    RejectionResult(ImportRejectionReason.ArchiveFile, $"Failed to extract multi-game archive: {ex.Message}")
+                };
+            }
         }
 
         private string GetCleanedUpFolderName(string folder)

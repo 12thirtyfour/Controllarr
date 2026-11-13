@@ -227,10 +227,18 @@ namespace NzbDrone.Core.Download
 
         public bool VerifyImport(TrackedDownload trackedDownload, List<ImportResult> importResults)
         {
+            var isCollectionDownload = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.FullSeason == true ||
+                                       trackedDownload.RemoteEpisode?.ParsedRomInfo?.IsFullSetArchive == true;
+
             var allEpisodesImported = importResults.Where(c => c.Result == ImportResultType.Imported)
                                                    .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes)
                                                    .Count() >= Math.Max(1,
                                           trackedDownload.RemoteEpisode.Episodes.Count);
+
+            if (!allEpisodesImported && isCollectionDownload && importResults.Any(c => c.Result == ImportResultType.Imported))
+            {
+                allEpisodesImported = true;
+            }
 
             var historyItems = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId)
                 .OrderByDescending(h => h.Date)
