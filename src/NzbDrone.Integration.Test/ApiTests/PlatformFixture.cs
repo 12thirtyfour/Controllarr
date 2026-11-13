@@ -212,14 +212,14 @@ namespace NzbDrone.Integration.Test.ApiTests
 
             Series.Put(series, moveFiles: true);
 
-            WaitForCompletion(() => SignalRMessages.Any(m =>
+            WaitForCompletion(() => SignalRMessages.ToList().Any(m =>
                 (m.Name == "platform" || m.Name == "series") &&
                 m.Body is JsonElement body &&
                 body.TryGetProperty("resource", out var resource) &&
                 resource.TryGetProperty("path", out var pathProp) &&
-                pathProp.GetString() == oldPath &&
+                Path.GetFullPath(pathProp.GetString()) == Path.GetFullPath(oldPath) &&
                 resource.TryGetProperty("pendingPath", out var pendingProp) &&
-                pendingProp.GetString() == destinationPath),
+                Path.GetFullPath(pendingProp.GetString()) == Path.GetFullPath(destinationPath)),
                 timeout: 30000);
 
             Commands.WaitAll();
