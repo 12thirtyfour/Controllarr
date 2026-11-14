@@ -242,8 +242,51 @@ namespace NzbDrone.Core.DecisionEngine
                         return null;
                     }
 
+                    // Check if this is a platform full set or collection pack BEFORE matching individual games
+                    var isCollectionSearch = searchCriteria is SeasonSearchCriteria { IsPlatformCollectionSearch: true };
+                    var romInfoIsFullSet = romInfo?.IsFullSetArchive == true;
+                    if (IsPlatformPackMatch(releaseTitle, cleanRomGameTitle, series) || isCollectionSearch || romInfoIsFullSet)
+                    {
+                        if (IsPlatformPackMatch(releaseTitle, cleanRomGameTitle, series) || romInfoIsFullSet)
+                        {
+                            var isPlatformCollection = isCollectionSearch || romInfoIsFullSet;
+
+                            var allSeriesSeasons = series.Seasons?
+                                .Select(s => s.SeasonNumber)
+                                .Where(s => s > 0)
+                                .Distinct()
+                                .ToList() ?? new List<int>();
+
+                            var targetSeason = searchCriteria is SeasonSearchCriteria ssc && ssc.SeasonNumber > 0 ? ssc.SeasonNumber : 1;
+                            if (allSeriesSeasons.Count == 0)
+                            {
+                                allSeriesSeasons.Add(targetSeason);
+                            }
+
+                            var romQuality = romInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
+                            if (romQuality.Quality == Quality.Unknown)
+                            {
+                                romQuality = new QualityModel(Quality.VerifiedGoodDump);
+                            }
+
+                            var seasonNumbers = isPlatformCollection ? allSeriesSeasons : new List<int> { targetSeason };
+
+                            return new ParsedEpisodeInfo
+                            {
+                                SeriesTitle = series.Title,
+                                SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
+                                FullSeason = true,
+                                SeasonNumber = seasonNumbers.First(),
+                                SeasonNumbers = seasonNumbers,
+                                ReleaseTitle = releaseTitle,
+                                Languages = LanguageParser.ParseLanguages(releaseTitle),
+                                Quality = romQuality
+                            };
+                        }
+                    }
+
                     // Check if this is a single game search and the release title matches the searched episode
-                    if (searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
+                    if (!isCollectionSearch && !romInfoIsFullSet && searchCriteria.Episodes != null && searchCriteria.Episodes.Any())
                     {
                         var matchingEp = searchCriteria.Episodes.FirstOrDefault(ep =>
                             IsRomTitleMatch(cleanRomGameTitle, ep.Title));
@@ -270,46 +313,6 @@ namespace NzbDrone.Core.DecisionEngine
                             };
                         }
                     }
-
-                    // Check if this is a platform full set or season pack matching the platform
-                    if (IsPlatformPackMatch(releaseTitle, cleanRomGameTitle, series))
-                    {
-                        var isCollectionSearch = searchCriteria is SeasonSearchCriteria { IsPlatformCollectionSearch: true };
-                        var romInfoIsFullSet = romInfo?.IsFullSetArchive == true;
-                        var isPlatformCollection = isCollectionSearch || romInfoIsFullSet;
-
-                        var allSeriesSeasons = series.Seasons?
-                            .Select(s => s.SeasonNumber)
-                            .Where(s => s > 0)
-                            .Distinct()
-                            .ToList() ?? new List<int>();
-
-                        var targetSeason = searchCriteria is SeasonSearchCriteria ssc && ssc.SeasonNumber > 0 ? ssc.SeasonNumber : 1;
-                        if (allSeriesSeasons.Count == 0)
-                        {
-                            allSeriesSeasons.Add(targetSeason);
-                        }
-
-                        var romQuality = romInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
-                        if (romQuality.Quality == Quality.Unknown)
-                        {
-                            romQuality = new QualityModel(Quality.VerifiedGoodDump);
-                        }
-
-                        var seasonNumbers = isPlatformCollection ? allSeriesSeasons : new List<int> { targetSeason };
-
-                        return new ParsedEpisodeInfo
-                        {
-                            SeriesTitle = series.Title,
-                            SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
-                            FullSeason = true,
-                            SeasonNumber = seasonNumbers.First(),
-                            SeasonNumbers = seasonNumbers,
-                            ReleaseTitle = releaseTitle,
-                            Languages = LanguageParser.ParseLanguages(releaseTitle),
-                            Quality = romQuality
-                        };
-                    }
                 }
             }
             else if (romInfo != null && !string.IsNullOrWhiteSpace(romInfo.GameTitle))
@@ -328,6 +331,21 @@ namespace NzbDrone.Core.DecisionEngine
                 if (romQuality.Quality == Quality.Unknown)
                 {
                     romQuality = new QualityModel(Quality.VerifiedGoodDump);
+                }
+
+                if (romInfo.IsFullSetArchive)
+                {
+                    return new ParsedEpisodeInfo
+                    {
+                        SeriesTitle = seriesTitle,
+                        SeriesTitleInfo = new SeriesTitleInfo { Title = seriesTitle },
+                        FullSeason = true,
+                        SeasonNumber = 1,
+                        SeasonNumbers = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8 },
+                        ReleaseTitle = releaseTitle,
+                        Languages = LanguageParser.ParseLanguages(releaseTitle),
+                        Quality = romQuality
+                    };
                 }
 
                 return new ParsedEpisodeInfo
@@ -510,9 +528,18 @@ namespace NzbDrone.Core.DecisionEngine
                 return false;
             }
 
-            return candidateClean.Equals(targetClean, StringComparison.OrdinalIgnoreCase) ||
-                   candidateClean.StartsWith(targetClean, StringComparison.OrdinalIgnoreCase) ||
-                   targetClean.StartsWith(candidateClean, StringComparison.OrdinalIgnoreCase);
+            if (candidateClean.Equals(targetClean, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (candidateClean.Length >= 3 && targetClean.Length >= 3)
+            {
+                return candidateClean.StartsWith(targetClean, StringComparison.OrdinalIgnoreCase) ||
+                       targetClean.StartsWith(candidateClean, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
         }
 
         private DownloadDecision GetDecisionForReport(RemoteEpisode remoteEpisode, ReleaseDecisionInformation information)

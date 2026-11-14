@@ -178,6 +178,10 @@ namespace NzbDrone.Core.Games
                     text.Contains("240p-", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[PD]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Public Domain", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("(GD)", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("[GD]", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("GameDrive", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(HB)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[HB]", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Homebrew/", StringComparison.OrdinalIgnoreCase) ||

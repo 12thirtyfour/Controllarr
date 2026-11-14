@@ -40,5 +40,32 @@ namespace NzbDrone.Core.Test.PlatformTests
             Mocker.GetMock<IManageCommandQueue>()
                   .Verify(s => s.Push(It.Is<MissingGameSearchCommand>(c => c.SearchCollectionFirst), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
         }
+
+        [Test]
+        public void should_not_queue_search_when_monitor_is_none()
+        {
+            var series = Builder<Series>.CreateNew()
+                                        .With(s => s.AddOptions = new AddPlatformOptions
+                                        {
+                                            Monitor = MonitorTypes.None,
+                                            SearchForMissingEpisodes = true,
+                                            SearchForCutoffUnmetEpisodes = true
+                                        })
+                                        .Build();
+
+            Subject.Handle(new PlatformScannedEvent(series, new List<string>()));
+
+            Mocker.GetMock<IManageCommandQueue>()
+                  .Verify(s => s.Push(It.IsAny<PlatformSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+
+            Mocker.GetMock<IManageCommandQueue>()
+                  .Verify(s => s.Push(It.IsAny<MissingGameSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+
+            Mocker.GetMock<IManageCommandQueue>()
+                  .Verify(s => s.Push(It.IsAny<CutoffUnmetGameSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(s => s.PublishEvent(It.IsAny<PlatformAddCompletedEvent>()), Times.Once());
+        }
     }
 }

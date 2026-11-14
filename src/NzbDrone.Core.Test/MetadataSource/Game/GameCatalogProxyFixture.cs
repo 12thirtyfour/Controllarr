@@ -722,5 +722,23 @@ game (
             jpUnderscore.Should().NotBeNull();
             jpUnderscore.RegionNumber.Should().Be(GameCatalogProxy.RegionJapan);
         }
+
+        [Test]
+        public void should_reject_raw_title_ids_and_eboot_and_normalize_abbreviations()
+        {
+            GameCatalogProxy.IsValidGameTitle("00000000TU_1C421UH_201QS00000000.0000000G0EN80").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("000500001f940e00").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("EBoot").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("1ST_READ.BIN").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Halo 3 (USA)").Should().BeTrue();
+
+            GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Donkey Kong Jr")
+                .Should().Be(GameCatalogProxy.NormalizeCanonicalCrossRefTitle("Donkey Kong Junior"));
+
+            Subject.TryGetPlatformEntry(1038, out var jaguarPlatform).Should().BeTrue();
+            var gdEntry = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(jaguarPlatform, "Sample Homebrew (USA) (GD)", 2020, "SmokeMonster");
+            gdEntry.Should().NotBeNull();
+            gdEntry.RegionNumber.Should().Be(GameCatalogProxy.RegionHomebrew);
+        }
     }
 }

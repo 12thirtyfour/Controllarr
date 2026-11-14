@@ -50,7 +50,11 @@ namespace NzbDrone.Core.Tv
             // This way multiple searches for the same season are skipped, though a season that can't be upgraded may be
             // searched, but the logs will be more explicit.
 
-            if (addOptions.SearchForMissingEpisodes && addOptions.SearchForCutoffUnmetEpisodes)
+            if (addOptions.Monitor == MonitorTypes.None)
+            {
+                _logger.Info("[{0}] was added with monitoring set to None; skipping automatic search", series.Title);
+            }
+            else if (addOptions.SearchForMissingEpisodes && addOptions.SearchForCutoffUnmetEpisodes)
             {
                 _commandQueueManager.Push(new PlatformSearchCommand(series.Id) { SearchCollectionFirst = true });
             }

@@ -54,6 +54,13 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Wii Sports (Wii).iso", "gba", "Game Boy Advance", null, false)]
         [TestCase("Mario Kart 64 (USA).z64", "n64", "Nintendo 64", null, true)]
         [TestCase("Mario Kart Double Dash.iso", "n64", "Nintendo 64", null, false)]
+        [TestCase("Halo.XBOXDVD-GROUP", "atari7800", "Atari 7800", null, false)]
+        [TestCase("Halo.XBOXDVD-GROUP", "xbox", "Microsoft Xbox", null, true)]
+        [TestCase("Final.Fantasy.VII.PSX2PSP-GROUP", "atari7800", "Atari 7800", null, false)]
+        [TestCase("Final.Fantasy.VII.PSX2PSP-GROUP", "psp", "Sony PSP", null, true)]
+        [TestCase("Super.Mario.64.Virtual.Console.WAD", "n64", "Nintendo 64", null, false)]
+        [TestCase("Super.Mario.64.Virtual.Console.WAD", "wii", "Nintendo Wii", null, true)]
+        [TestCase("Nintendo 64DD Complete Collection", "64dd", "Nintendo 64DD", null, true)]
         public void should_validate_platform_compatibility(string candidatePath, string platformSlug, string platformName, string format, bool expected)
         {
             var result = PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName, format);

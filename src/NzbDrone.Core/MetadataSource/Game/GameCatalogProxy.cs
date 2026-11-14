@@ -594,6 +594,18 @@ namespace NzbDrone.Core.MetadataSource.Game
                     return false;
                 }
 
+                // Cross-reference verification hashes so identical ROM dumps with truncated/alternate titles do not double up
+                if ((!string.IsNullOrWhiteSpace(candidate.ExpectedSha256) && seenHashes.Contains($"sha256:{candidate.ExpectedSha256.ToLowerInvariant()}")) ||
+                    (!string.IsNullOrWhiteSpace(candidate.ExpectedSha1) && seenHashes.Contains($"sha1:{candidate.ExpectedSha1.ToLowerInvariant()}")) ||
+                    (!string.IsNullOrWhiteSpace(candidate.ExpectedMd5) && seenHashes.Contains($"md5:{candidate.ExpectedMd5.ToLowerInvariant()}")) ||
+                    (!string.IsNullOrWhiteSpace(candidate.ExpectedCrc32) &&
+                     candidate.ExpectedCrc32.Length == 8 &&
+                     !string.Equals(candidate.ExpectedCrc32, "00000000", StringComparison.OrdinalIgnoreCase) &&
+                     seenHashes.Contains($"crc:{candidate.ExpectedCrc32.ToLowerInvariant()}")))
+                {
+                    return false;
+                }
+
                 if (candidate.RegionNumber == RegionHomebrew ||
                     candidate.RegionNumber == RegionUnlicensed ||
                     candidate.RegionNumber == RegionRomHacks)
@@ -719,8 +731,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                             RegionHelper.IsBios(datEntry.RomName) ||
                             RegionHelper.IsBios(datEntry.SmdbPath) ||
                             !IsValidGameTitle(rawName) ||
-                            (!string.IsNullOrWhiteSpace(datEntry.GameName) && !IsValidGameTitle(datEntry.GameName)) ||
-                            (!string.IsNullOrWhiteSpace(datEntry.RomName) && !IsValidGameTitle(StripTrackOne(StripKnownRomExtension(datEntry.RomName)))))
+                            (!string.IsNullOrWhiteSpace(datEntry.GameName) && !IsValidGameTitle(datEntry.GameName)))
                         {
                             continue;
                         }
@@ -1806,6 +1817,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var strippedRomName = StripKnownRomExtension(romFileName);
                     if (!string.IsNullOrWhiteSpace(strippedRomName) &&
                         strippedRomName.Length >= blockName.Length &&
+                        IsValidGameTitle(strippedRomName) &&
                         !strippedRomName.Contains("(Track", StringComparison.OrdinalIgnoreCase) &&
                         !strippedRomName.Contains("[Track", StringComparison.OrdinalIgnoreCase))
                     {
@@ -1965,6 +1977,20 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var ext = Path.GetExtension(trimmed);
             if (!string.IsNullOrWhiteSpace(ext) && NonRomOrAudioExtensions.Contains(ext))
+            {
+                return false;
+            }
+
+            // Reject disc/console bootstrap executables and raw machine/title/content IDs (e.g. Dreamcast EBoot, Wii U 000500001f940e00, Xbox 360 00000000TU_...)
+            var lowerTrimmed = trimmed.ToLowerInvariant();
+            if (lowerTrimmed is "eboot" or "eboot.bin" or "eboot.pbp" or "1st_read" or "1st_read.bin" or "ip.bin" or "boot.bin" or "default.xex" or "default.xbe")
+            {
+                return false;
+            }
+
+            if (Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{16}$") ||
+                Regex.IsMatch(trimmed, @"^0{4,}TU_[A-Za-z0-9_.]+$", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(trimmed, @"^[0-9A-F]{8,}_[0-9A-Z_]+(?:\.[0-9A-Z]+)?$"))
             {
                 return false;
             }
@@ -2426,6 +2452,14 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var unaccented = value.RemoveDiacritics();
             var articleNormalized = NormalizeTitleArticle(StripParentheses(unaccented));
+            articleNormalized = articleNormalized.Replace("&", " and ");
+            articleNormalized = Regex.Replace(articleNormalized, @"\bjr\.?\b", "junior", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bsr\.?\b", "senior", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bdr\.?\b", "doctor", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bmr\.?\b", "mister", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bst\.?\b", "saint", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bmt\.?\b", "mount", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bvs\.?\b", "versus", RegexOptions.IgnoreCase);
             var sb = new System.Text.StringBuilder(articleNormalized.Length);
             foreach (var ch in articleNormalized)
             {

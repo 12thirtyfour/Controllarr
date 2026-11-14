@@ -35,11 +35,11 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
                 if (primaryRequests.Any())
                 {
-                    pageableRequests.Add(primaryRequests);
+                    pageableRequests.AddTier(primaryRequests);
                 }
             }
 
-            pageableRequests.Add(GetPagedRequests(null));
+            pageableRequests.AddTier(GetPagedRequests(null));
             return pageableRequests;
         }
 
@@ -169,36 +169,68 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     }
                 }
 
-                if (primaryRequests.Any())
+                if (primaryRequests.Any() && !searchCriteria.InteractiveSearch)
                 {
-                    pageableRequests.Add(primaryRequests);
+                    pageableRequests.AddTier(primaryRequests);
                 }
             }
 
+            var pagedTerms = isPlatformCollection
+                ? BuildCollectionSearchTermsForArchiveOrg(searchCriteria)
+                : terms.Distinct().ToList();
+
             var primaryPagedRequests = new List<IndexerRequest>();
-            foreach (var term in terms.Distinct())
+            if (searchCriteria.InteractiveSearch && primaryArchiveIds.Any())
             {
-                primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam));
+                foreach (var archiveId in primaryArchiveIds)
+                {
+                    if (isPlatformCollection)
+                    {
+                        var url = $"{baseUrl}/metadata/{archiveId}/files{platformParam}";
+                        primaryPagedRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
+                    }
+                    else
+                    {
+                        foreach (var term in terms.Distinct())
+                        {
+                            var url = $"{baseUrl}/metadata/{archiveId}/files?search={Uri.EscapeDataString(term)}{platformParam}";
+                            primaryPagedRequests.Add(new IndexerRequest(new HttpRequest(url, HttpAccept.Json)));
+                        }
+                    }
+                }
+            }
+
+            foreach (var term in pagedTerms)
+            {
+                primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam, isCollectionSearch: isPlatformCollection));
+            }
+
+            // In interactive search, include global IA search alongside primary archive search so users see all available results
+            if (searchCriteria.InteractiveSearch && primaryArchiveIds.Any())
+            {
+                foreach (var term in pagedTerms)
+                {
+                    primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: isPlatformCollection));
+                }
             }
 
             if (primaryPagedRequests.Any())
             {
-                pageableRequests.Add(primaryPagedRequests);
+                pageableRequests.AddTier(primaryPagedRequests);
             }
 
-            // If primary archives were configured, also provide a broader search tier across Internet Archive software library
-            // so interactive search returns results even if not in the primary archive
-            if (primaryArchiveIds.Any())
+            // If primary archives were configured, provide a global Internet Archive fallback tier when preferred archives return 0 hits
+            if (primaryArchiveIds.Any() && !searchCriteria.InteractiveSearch)
             {
                 var broadRequests = new List<IndexerRequest>();
-                foreach (var term in terms.Distinct())
+                foreach (var term in pagedTerms)
                 {
-                    broadRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true));
+                    broadRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: isPlatformCollection));
                 }
 
                 if (broadRequests.Any())
                 {
-                    pageableRequests.Add(broadRequests);
+                    pageableRequests.AddTier(broadRequests);
                 }
             }
 
@@ -228,19 +260,56 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             return clean.Trim();
         }
 
-        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "", bool ignorePrimaryArchives = false)
+        private static List<string> BuildCollectionSearchTermsForArchiveOrg(SearchCriteriaBase searchCriteria)
         {
-            var query = BuildQuery(term, ignorePrimaryArchives);
+            var terms = new List<string>();
+            var platformName = searchCriteria?.Series?.Title?.Trim();
+            var shortName = searchCriteria?.Series?.TitleSlug?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(platformName))
+            {
+                terms.Add(platformName);
+                terms.Add($"{platformName} collection");
+                terms.Add($"{platformName} romset");
+                terms.Add($"{platformName} no-intro");
+                terms.Add($"{platformName} redump");
+            }
+
+            if (!string.IsNullOrWhiteSpace(shortName) &&
+                !string.Equals(shortName, platformName, StringComparison.OrdinalIgnoreCase))
+            {
+                terms.Add(shortName);
+                terms.Add($"{shortName} collection");
+            }
+
+            if (terms.Count == 0 && searchCriteria?.SceneTitles != null)
+            {
+                foreach (var sceneTitle in searchCriteria.SceneTitles.Take(5))
+                {
+                    var sanitized = sceneTitle.Trim().TrimStart('@', '[');
+                    if (!string.IsNullOrWhiteSpace(sanitized))
+                    {
+                        terms.Add(sanitized);
+                    }
+                }
+            }
+
+            return terms.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "", bool ignorePrimaryArchives = false, bool isCollectionSearch = false)
+        {
+            var query = BuildQuery(term, ignorePrimaryArchives, isCollectionSearch);
             var baseUrl = Settings.BaseUrl.TrimEnd('/');
 
             for (var page = 1; page <= MaxPages; page++)
             {
-                var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&fl[]=access-restricted-item&sort[]=publicdate+desc&rows={PageSize}&page={page}&output=json{platformParam}";
+                var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&fl[]=access-restricted-item&rows={PageSize}&page={page}&output=json{platformParam}";
                 yield return new IndexerRequest(new HttpRequest(url, HttpAccept.Json));
             }
         }
 
-        private string BuildQuery(string term, bool ignorePrimaryArchives = false)
+        private string BuildQuery(string term, bool ignorePrimaryArchives = false, bool isCollectionSearch = false)
         {
             var collections = !ignorePrimaryArchives
                 ? Settings?.PrimaryArchiveUrls?
@@ -263,26 +332,45 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 }
             }
 
+            var mediaTypeQuery = isCollectionSearch
+                ? "(mediatype:software OR mediatype:data OR mediatype:collection)"
+                : "(mediatype:software OR mediatype:data)";
+
             if (term.IsNullOrWhiteSpace())
             {
-                return collectionQuery ?? "mediatype:software";
+                return collectionQuery ?? mediaTypeQuery;
             }
 
-            var escapedTerm = term.Replace("\"", "\\\"");
+            var cleanTerm = term.Replace("\"", string.Empty)
+                .Replace("[", " ")
+                .Replace("]", " ")
+                .Replace("@", " ")
+                .Trim();
+
+            var words = cleanTerm.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => !string.Equals(w, "AND", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(w, "OR", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(w, "NOT", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var escapedTerm = cleanTerm.Replace("\\", "\\\\").Replace("\"", "\\\"");
+            var termClause = words.Count > 1
+                ? $"(\"{escapedTerm}\" OR ({string.Join(" AND ", words)}))"
+                : $"\"{escapedTerm}\"";
 
             if (collectionQuery != null)
             {
-                return $"{collectionQuery} AND (\"{escapedTerm}\" OR {term})";
+                return $"{collectionQuery} AND {termClause}";
             }
 
             var fallbackCollections = Settings?.Collections?.Where(c => !c.IsNullOrWhiteSpace()).ToList();
             if (fallbackCollections != null && fallbackCollections.Any())
             {
                 var collectionPart = string.Join(" OR ", fallbackCollections.Select(c => $"collection:{c}"));
-                return $"(mediatype:software OR {collectionPart}) AND (\"{escapedTerm}\" OR {term})";
+                return $"({mediaTypeQuery} OR {collectionPart}) AND {termClause}";
             }
 
-            return $"mediatype:software AND (\"{escapedTerm}\" OR {term})";
+            return $"{mediaTypeQuery} AND {termClause}";
         }
     }
 }

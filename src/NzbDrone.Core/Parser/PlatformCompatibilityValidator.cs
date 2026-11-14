@@ -22,6 +22,14 @@ namespace NzbDrone.Core.Parser
             @"(?:\b|_|\[|\()(?:iso|chd|cso|cue|gdi|cdi|rvz|wbfs|wua|wux|wud)\b|\.(?:iso|chd|cso|cue|gdi|cdi|rvz|wbfs|wua|wux|wud)(?:\b|$)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private static readonly Regex VirtualConsoleIndicatorRegex = new Regex(
+            @"(?:\b|_|\[|\()(?:virtual[\s._-]*console|vc[\s._-]*wad)(?:\b|_|\]|\))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex NkitIndicatorRegex = new Regex(
+            @"(?:\b|_|\[|\()nkit(?:\b|_|\]|\))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private static readonly Dictionary<string, string[]> PlatformAliases = PlatformCatalogService.PlatformAliases;
 
         private static readonly Regex PlatformTagRegex = new Regex(
@@ -41,6 +49,9 @@ namespace NzbDrone.Core.Parser
 
             // Nintendo GameCube
             (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+gamecube|game\s*cube|gamecube|gcn|ngc)(?:\b|_|\]|\))|\bDOL-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gamecube"),
+
+            // Nintendo 64DD (must precede N64)
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s*64\s*dd|nintendo\s*64dd|n64dd|64dd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "64dd"),
 
             // Nintendo 64
             (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s*64|ultra\s*64|n64)(?:\b|_|\]|\))|\bNUS-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "n64"),
@@ -82,13 +93,13 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*3|playstation\s*3|ps3)(?:\b|_|\]|\))|\b(?:BLUS|BLES|BCUS|BCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps3"),
 
             // Sony PlayStation 2
-            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*2|playstation\s*2|ps2)(?:\b|_|\]|\))|\b(?:SLUS|SLES|SCES|SLPS)-2\d{4}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps2"),
+            (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*2|playstation\s*2|ps2|ps2dvd|ps2cd)(?:\b|_|\]|\))|\b(?:SLUS|SLES|SCES|SLPS)-2\d{4}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps2"),
 
             // Sony PlayStation 1 / PSX
             (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation|playstation\s*1|playstation|ps1|psx|psone)(?:\b|_|\]|\))|\b(?:SLUS|SLES|SCES|SCUS|SLPS)-0\d{4}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps1"),
 
             // PlayStation Portable
-            (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+portable|sony\s+psp|psp)(?:\b|_|\]|\))|\b(?:ULUS|ULES|UCUS|UCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psp"),
+            (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+portable|sony\s+psp|psp|psx2psp|ps2psp)(?:\b|_|\]|\))|\b(?:ULUS|ULES|UCUS|UCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psp"),
 
             // PlayStation Vita
             (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+vita|ps\s*vita|psvita|psv)(?:\b|_|\]|\))|\b(?:PCSB|PCSE|PCSG|PCSF)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psvita"),
@@ -100,7 +111,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:xbox\s*one|xbo|xb1)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xboxone"),
 
             // Xbox (Original)
-            (new Regex(@"(?:\b|_|\[|\()(?:original\s+xbox|og\s+xbox|xbox)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox"),
+            (new Regex(@"(?:\b|_|\[|\()(?:original\s+xbox|og\s+xbox|xbox|xboxdvd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox"),
 
             // Sega Genesis / Mega Drive
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s+genesis|mega\s*drive|megadrive)(?:\b|_|\]|\))|(?:^|[\s@\[\(\._\-])\s*genesis\s*(?:$|[\s\]\)\._\-])", RegexOptions.IgnoreCase | RegexOptions.Compiled), "genesis"),
@@ -218,6 +229,17 @@ namespace NzbDrone.Core.Parser
                 detected.Remove("nes");
             }
 
+            if (detected.Contains("64dd"))
+            {
+                detected.Remove("n64");
+            }
+
+            if (detected.Contains("psp") && Regex.IsMatch(text, @"\b(?:psx2psp|ps2psp)\b", RegexOptions.IgnoreCase))
+            {
+                detected.Remove("ps1");
+                detected.Remove("ps2");
+            }
+
             return detected;
         }
 
@@ -283,6 +305,20 @@ namespace NzbDrone.Core.Parser
                         return false;
                     }
                 }
+            }
+
+            // Reject Virtual Console / VC WAD packages for non-VC platforms
+            if (VirtualConsoleIndicatorRegex.IsMatch(filePathOrName) &&
+                targetSlug is not ("wii" or "wiiu" or "3ds" or "switch"))
+            {
+                return false;
+            }
+
+            // Reject NKit images for non-GameCube/Wii platforms
+            if (NkitIndicatorRegex.IsMatch(filePathOrName) &&
+                targetSlug is not ("gamecube" or "wii"))
+            {
+                return false;
             }
 
             // Cartridge platforms cannot have disc/optical indicators in release title, format, or archive ID

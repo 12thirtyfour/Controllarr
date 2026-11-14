@@ -12,6 +12,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.InternetArchive;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Qualities;
@@ -4884,6 +4885,7 @@ namespace NzbDrone.Core.Bios
         private readonly IEpisodeRepository _episodeRepository;
         private readonly IHistoryRepository _historyRepository;
         private readonly IGameCatalogService _gameCatalogService;
+        private readonly IIndexerFactory _indexerFactory;
 
         public BiosService(
             Logger logger,
@@ -4893,7 +4895,8 @@ namespace NzbDrone.Core.Bios
             IAppFolderInfo appFolderInfo = null,
             IEpisodeRepository episodeRepository = null,
             IHistoryRepository historyRepository = null,
-            IGameCatalogService gameCatalogService = null)
+            IGameCatalogService gameCatalogService = null,
+            IIndexerFactory indexerFactory = null)
         {
             _logger = logger;
             _seriesService = seriesService;
@@ -4903,6 +4906,7 @@ namespace NzbDrone.Core.Bios
             _episodeRepository = episodeRepository;
             _historyRepository = historyRepository;
             _gameCatalogService = gameCatalogService;
+            _indexerFactory = indexerFactory;
         }
 
         public List<BiosFile> GetCatalog(string platformSlug = null)
@@ -5225,6 +5229,7 @@ namespace NzbDrone.Core.Bios
                 }
 
                 var candidateUrls = BuildCandidateDownloadUrls(entry);
+                var s3AuthHeader = GetInternetArchiveAuthHeader();
                 var downloaded = false;
                 var usedUrl = candidateUrls.FirstOrDefault() ?? string.Empty;
 
@@ -5237,94 +5242,120 @@ namespace NzbDrone.Core.Bios
                     0d,
                     DownloadItemStatus.Downloading);
 
-                foreach (var url in candidateUrls)
+                var triedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                bool TryDownloadFromUrls(IEnumerable<string> urlsToTry)
                 {
-                    try
+                    foreach (var url in urlsToTry)
                     {
-                        var request = new HttpRequest(url)
+                        if (string.IsNullOrWhiteSpace(url) || !triedUrls.Add(url))
                         {
-                            SuppressHttpError = true,
-                            AllowAutoRedirect = true,
-                            RequestTimeout = TimeSpan.FromSeconds(12)
-                        };
+                            continue;
+                        }
 
-                        var response = _httpClient.Get(request);
-                        if (response != null && !response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
+                        try
                         {
-                            var tempFile = Path.Combine(Path.GetTempPath(), $"bios_dl_{Guid.NewGuid():N}.tmp");
-                            try
+                            var request = new HttpRequest(url)
                             {
-                                File.WriteAllBytes(tempFile, response.ResponseData);
+                                SuppressHttpError = true,
+                                AllowAutoRedirect = true,
+                                RequestTimeout = TimeSpan.FromSeconds(180)
+                            };
 
-                                var valid = false;
-                                var targetIsArchive = entry.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
-                                if (targetIsArchive)
+                            if (!string.IsNullOrWhiteSpace(s3AuthHeader) &&
+                                url.Contains("archive.org", StringComparison.OrdinalIgnoreCase))
+                            {
+                                request.Headers["Authorization"] = s3AuthHeader;
+                            }
+
+                            var response = _httpClient.Get(request);
+                            if (response != null && !response.HasHttpError && response.ResponseData != null && response.ResponseData.Length > 0)
+                            {
+                                var tempFile = Path.Combine(Path.GetTempPath(), $"bios_dl_{Guid.NewGuid():N}.tmp");
+                                try
                                 {
-                                    File.Copy(tempFile, destinationPath, true);
-                                    valid = VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1);
-                                    if (!valid && IsCompressedArchive(tempFile))
+                                    File.WriteAllBytes(tempFile, response.ResponseData);
+
+                                    var valid = false;
+                                    var targetIsArchive = entry.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+                                    if (targetIsArchive)
+                                    {
+                                        File.Copy(tempFile, destinationPath, true);
+                                        valid = VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1);
+                                        if (!valid && IsCompressedArchive(tempFile))
+                                        {
+                                            valid = TryExtractBiosFromArchive(tempFile, destinationPath, entry);
+                                        }
+                                    }
+                                    else if (IsCompressedArchive(tempFile) || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
                                     {
                                         valid = TryExtractBiosFromArchive(tempFile, destinationPath, entry);
                                     }
-                                }
-                                else if (IsCompressedArchive(tempFile) || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    valid = TryExtractBiosFromArchive(tempFile, destinationPath, entry);
-                                }
-                                else
-                                {
-                                    File.Copy(tempFile, destinationPath, true);
-                                    valid = VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1);
-                                }
-
-                                if (valid)
-                                {
-                                    downloaded = true;
-                                    usedUrl = url;
-                                    break;
-                                }
-
-                                _logger.Warn("Downloaded BIOS file {0} from {1} does not match expected hashes. Discarding invalid payload.", entry.FileName, url);
-                                if (File.Exists(destinationPath))
-                                {
-                                    try
+                                    else
                                     {
-                                        File.Delete(destinationPath);
+                                        File.Copy(tempFile, destinationPath, true);
+                                        valid = VerifyBios(destinationPath, entry.ExpectedMd5, entry.ExpectedSha1);
                                     }
-                                    catch (Exception ex)
+
+                                    if (valid)
                                     {
-                                        _logger.Error(ex, "Failed to delete invalid downloaded BIOS file at {0}", destinationPath);
+                                        usedUrl = url;
+                                        return true;
+                                    }
+
+                                    _logger.Warn("Downloaded BIOS file {0} from {1} does not match expected hashes. Discarding invalid payload.", entry.FileName, url);
+                                    if (File.Exists(destinationPath))
+                                    {
+                                        try
+                                        {
+                                            File.Delete(destinationPath);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.Error(ex, "Failed to delete invalid downloaded BIOS file at {0}", destinationPath);
+                                        }
+                                    }
+                                }
+                                finally
+                                {
+                                    if (File.Exists(tempFile))
+                                    {
+                                        try
+                                        {
+                                            File.Delete(tempFile);
+                                        }
+                                        catch
+                                        {
+                                        }
                                     }
                                 }
                             }
-                            finally
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug(ex, "Mirror fetch failed for BIOS {0} from {1}", entry.FileName, url);
+                            if (File.Exists(destinationPath))
                             {
-                                if (File.Exists(tempFile))
+                                try
                                 {
-                                    try
-                                    {
-                                        File.Delete(tempFile);
-                                    }
-                                    catch
-                                    {
-                                    }
+                                    File.Delete(destinationPath);
+                                }
+                                catch
+                                {
                                 }
                             }
                         }
                     }
-                    catch (Exception ex)
+
+                    return false;
+                }
+
+                downloaded = TryDownloadFromUrls(candidateUrls);
+                if (!downloaded)
+                {
+                    var dynamicUrls = DiscoverArchiveOrgCandidateUrls(entry, s3AuthHeader);
+                    if (dynamicUrls.Count > 0)
                     {
-                        _logger.Debug(ex, "Mirror fetch failed for BIOS {0} from {1}", entry.FileName, url);
-                        if (File.Exists(destinationPath))
-                        {
-                            try
-                            {
-                                File.Delete(destinationPath);
-                            }
-                            catch
-                            {
-                            }
-                        }
+                        downloaded = TryDownloadFromUrls(dynamicUrls);
                     }
                 }
 
@@ -5872,8 +5903,143 @@ namespace NzbDrone.Core.Bios
             urls.Add($"https://archive.org/download/retroarch_bios/{escapedBase}.zip");
             urls.Add($"https://archive.org/download/retroarch_bios/system/{escapedFile}");
             urls.Add($"https://archive.org/download/retroarch_bios/system/{escapedFile}.zip");
+            urls.Add($"https://archive.org/download/github.com-BatoceraPLUS-Batocera.PLUS-UPDATE-bios_-_2023-08-09_14-37-07/bios/{escapedFile}");
+
+            if (string.Equals(entry.GamePlatform, "dreamcast", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.GamePlatform, "naomi", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://archive.org/download/github.com-BatoceraPLUS-Batocera.PLUS-UPDATE-bios_-_2023-08-09_14-37-07/bios/dc/{escapedFile}");
+            }
+            else if (string.Equals(entry.GamePlatform, "ps2", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://archive.org/download/github.com-BatoceraPLUS-Batocera.PLUS-UPDATE-bios_-_2023-08-09_14-37-07/bios/ps2/{escapedFile}");
+            }
+            else if (string.Equals(entry.GamePlatform, "ps3", StringComparison.OrdinalIgnoreCase))
+            {
+                urls.Add($"https://archive.org/download/PS3UPDAT-PUP/{escapedFile}");
+                urls.Add($"https://archive.org/download/PS3SOFTWARE/{escapedFile}");
+            }
 
             return urls.Distinct().ToList();
+        }
+
+        private string GetInternetArchiveAuthHeader()
+        {
+            try
+            {
+                var definitions = _indexerFactory?.All();
+                if (definitions == null)
+                {
+                    return null;
+                }
+
+                foreach (var def in definitions)
+                {
+                    if (def.Settings is InternetArchiveIndexerSettings iaSettings &&
+                        !string.IsNullOrWhiteSpace(iaSettings.S3AccessKey) &&
+                        !string.IsNullOrWhiteSpace(iaSettings.S3SecretKey))
+                    {
+                        return $"LOW {iaSettings.S3AccessKey.Trim()}:{iaSettings.S3SecretKey.Trim()}";
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        private List<string> DiscoverArchiveOrgCandidateUrls(BiosFile entry, string s3AuthHeader)
+        {
+            var discovered = new List<string>();
+            if (_httpClient == null || string.IsNullOrWhiteSpace(entry?.FileName))
+            {
+                return discovered;
+            }
+
+            try
+            {
+                var searchQuery = $"\"{entry.FileName}\"";
+                var searchUrl = $"https://archive.org/advancedsearch.php?q={Uri.EscapeDataString(searchQuery)}&fl[]=identifier&rows=3&output=json";
+                var searchReq = new HttpRequest(searchUrl, HttpAccept.Json)
+                {
+                    SuppressHttpError = true,
+                    RequestTimeout = TimeSpan.FromSeconds(12)
+                };
+
+                var searchResp = _httpClient.Get(searchReq);
+                if (searchResp == null || searchResp.HasHttpError || string.IsNullOrWhiteSpace(searchResp.Content))
+                {
+                    return discovered;
+                }
+
+                var searchJson = Newtonsoft.Json.Linq.JObject.Parse(searchResp.Content);
+                var docs = searchJson["response"]?["docs"] as Newtonsoft.Json.Linq.JArray;
+                if (docs == null)
+                {
+                    return discovered;
+                }
+
+                var baseName = Path.GetFileNameWithoutExtension(entry.FileName);
+                foreach (var doc in docs)
+                {
+                    var id = doc["identifier"]?.ToString();
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    var metaUrl = $"https://archive.org/metadata/{Uri.EscapeDataString(id)}/files";
+                    var metaReq = new HttpRequest(metaUrl, HttpAccept.Json)
+                    {
+                        SuppressHttpError = true,
+                        RequestTimeout = TimeSpan.FromSeconds(12)
+                    };
+
+                    if (!string.IsNullOrWhiteSpace(s3AuthHeader))
+                    {
+                        metaReq.Headers["Authorization"] = s3AuthHeader;
+                    }
+
+                    var metaResp = _httpClient.Get(metaReq);
+                    if (metaResp == null || metaResp.HasHttpError || string.IsNullOrWhiteSpace(metaResp.Content))
+                    {
+                        continue;
+                    }
+
+                    var metaJson = Newtonsoft.Json.Linq.JObject.Parse(metaResp.Content);
+                    var files = metaJson["result"] as Newtonsoft.Json.Linq.JArray;
+                    if (files == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var file in files)
+                    {
+                        var fileName = file["name"]?.ToString();
+                        if (string.IsNullOrWhiteSpace(fileName))
+                        {
+                            continue;
+                        }
+
+                        var leaf = Path.GetFileName(fileName);
+                        if (string.Equals(leaf, entry.FileName, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(leaf, $"{entry.FileName}.zip", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(leaf, $"{baseName}.zip", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var escapedPath = string.Join("/", fileName.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
+                            discovered.Add($"https://archive.org/download/{Uri.EscapeDataString(id)}/{escapedPath}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Dynamic Archive.org BIOS discovery failed for {0}", entry.FileName);
+            }
+
+            return discovered.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private void RecordBiosDownloadHistory(

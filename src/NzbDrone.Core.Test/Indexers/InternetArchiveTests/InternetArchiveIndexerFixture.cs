@@ -530,5 +530,39 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             });
             releases.Should().OnlyContain(r => r.ParsedRomInfo != null && r.ParsedRomInfo.IsFullSetArchive);
         }
+
+        [Test]
+        public void should_include_global_ia_search_for_64dd_collection_and_pokemon_ruby_without_publicdate_sort()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+
+            var collectionCriteria = new NzbDrone.Core.IndexerSearch.Definitions.SeasonSearchCriteria
+            {
+                Series = new NzbDrone.Core.Tv.Series { Title = "Nintendo 64DD", TitleSlug = "64dd" },
+                IsPlatformCollectionSearch = true,
+                SceneTitles = new List<string> { "@64DD", "[Nintendo - Nintendo 64DD" }
+            };
+
+            var collectionChain = generator.GetSearchRequests(collectionCriteria);
+            collectionChain.Tiers.Should().Be(3);
+            var broadCollectionUrls = collectionChain.GetTier(2).SelectMany(p => p).Select(r => r.Url.FullUri).ToList();
+            broadCollectionUrls.Should().Contain(u => u.Contains("advancedsearch.php") && u.Contains("mediatype%3Adata") && !u.Contains("publicdate+desc"));
+
+            var singleCriteria = new NzbDrone.Core.IndexerSearch.Definitions.SingleEpisodeSearchCriteria
+            {
+                Series = new NzbDrone.Core.Tv.Series { Title = "Game Boy Advance", TitleSlug = "gba" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Title = "Pokemon - Ruby Version (USA)" } },
+                InteractiveSearch = true
+            };
+
+            var singleChain = generator.GetSearchRequests(singleCriteria);
+            var interactiveUrls = singleChain.GetTier(0).SelectMany(p => p).Select(r => r.Url.FullUri).ToList();
+            interactiveUrls.Should().Contain(u => u.Contains("advancedsearch.php") && u.Contains("Pokemon") && u.Contains("Ruby") && !u.Contains("publicdate+desc"));
+        }
     }
 }

@@ -25,6 +25,14 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Internet Archive Search & Global Fallback (#99, #113)**: Removed `publicdate desc` sort bias in `InternetArchiveRequestGenerator` so `advancedsearch.php` returns relevance-ordered results, expanded queries to include `mediatype:data` (and `mediatype:collection` for collection searches), sanitized Lucene characters (`[`, `]`, `@`), added clean platform/short-name collection queries (e.g. Nintendo 64DD), and ensured interactive searches include global Internet Archive results alongside primary archives.
+- **Filename Context Validation & Collection Queue Labeling (#110, #112)**: Added `64dd`, `XBOXDVD`, `PSX2PSP`/`PS2PSP`, `PS2DVD`/`PS2CD`, `Virtual.Console`, and `NKit` context detection/filtering in `PlatformCompatibilityValidator`; updated `RomParser` and `DownloadDecisionMaker` so `@...` / `SMDB` / collection archives are always recognized as `IsFullSetArchive` / `FullSeason` rather than matching a single game title in Queue.
+- **Monitoring `None` Skip-Search Gate (#97)**: Updated `PlatformScannedHandler` to skip automatic collection/missing/cutoff-unmet searches when a platform is added with `Monitor = None`, even if "Search for missing" is checked.
+- **BIOS Auto-Downloader Coverage & Auth (#95)**: Increased BIOS download request timeout to 180s for large firmwares (PSP, PS Vita, PS3, Switch), attached configured Internet Archive S3 credentials (`Authorization: LOW`) for restricted Archive.org BIOS items, added BatoceraPLUS/PS3UPDAT-PUP mirrors, and added dynamic Archive.org filename discovery fallback in `BiosService`.
+- **Library Population & Deduplication (#94)**: Checked `seenHashes` in `GameCatalogProxy.TryRegisterCrossReferencedGame` to deduplicate identical ROM dumps across DAT/SMDB sources, normalized abbreviations (`Jr`/`Junior`, `Sr`/`Senior`, `Dr`/`Doctor`, `St`/`Saint`, `Mt`/`Mount`, `Vs`/`Versus`, `&`/`and`) in `NormalizeCanonicalCrossRefTitle`, rejected raw Title/Content IDs (`00000000TU_...`, 16-char hex IDs like `000500001f940e00`) and bootstrap executables (`EBoot`, `1ST_READ.BIN`, `IP.BIN`, `BOOT.BIN`, `DEFAULT.XEX`/`XBE`) in `IsValidGameTitle` without discarding valid parent `game` titles, and classified `(GD)`/`[GD]`/`GameDrive`/`Public Domain` titles as Homebrew in `RegionHelper`.
+- **Satellaview Console Image (#108)**: Regenerated `frontend/public/Content/Images/Consoles/satellaview.png` from the Wikimedia Commons source using border-seeded flood-fill background removal with soft alpha anti-aliasing so console highlights remain intact.
+
 ---
 
 ## [1.0.0-beta.1] - 2026-11-13

@@ -145,5 +145,13 @@ namespace NzbDrone.Core.Test.ParserTests
             result.GameTitle.Should().Be(expectedTitle);
             result.RegionNumber.Should().Be(expectedRegion);
         }
+
+        [TestCase("@Game Boy Color SMDB 2022-05-12.zip")]
+        [TestCase("Nintendo 64DD No-Intro Collection.zip")]
+        public void Should_detect_full_set_archives_for_smdb_and_at_packs(string title)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.IsFullSetArchive.Should().BeTrue();
+        }
     }
 }
