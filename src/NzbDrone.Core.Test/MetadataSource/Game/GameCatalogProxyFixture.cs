@@ -885,5 +885,47 @@ game (
             smdbEntries.Should().HaveCount(1);
             smdbEntries[0].ExpectedSha1.Should().Be("fa7328f225cf1ffa6d1f34487fb66e63c03ad944");
         }
+
+        [Test]
+        public void should_filter_neogeo_bios_files_from_game_regions()
+        {
+            NzbDrone.Core.Games.RegionHelper.IsBios("neogeo.zip").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("uni-bios_4_0.rom").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("sp-s2.sp1").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("asia-s3.rom").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("neocd.bin").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsBios("000-lo.lo").Should().BeTrue();
+
+            Subject.TryGetPlatformEntryBySlug("neogeo", out var neoGeoPlatform).Should().BeTrue();
+            var datContent = string.Join("\n", new[]
+            {
+                "game (",
+                "\tname \"neogeo\"",
+                "\trom ( name \"neogeo.zip\" size 1400000 crc 12345678 )",
+                ")",
+                "game (",
+                "\tname \"uni-bios_4_0.rom\"",
+                "\trom ( name \"uni-bios_4_0.rom\" size 131072 crc 23456789 )",
+                ")",
+                "game (",
+                "\tname \"Metal Slug (World)\"",
+                "\trom ( name \"mslug.neo\" size 12582912 crc 3456789A )",
+                ")"
+            });
+
+            var parseDat = typeof(GameCatalogProxy).GetMethod(
+                "ParseLibretroDatContent",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            parseDat.Should().NotBeNull();
+
+            var seenNames = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var seenHashes = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var entries = (List<GameCatalogEntry>)parseDat.Invoke(
+                null,
+                new object[] { neoGeoPlatform, datContent, "FBNeo / Neo Geo AES", null, seenNames, seenHashes });
+
+            entries.Should().HaveCount(1);
+            entries[0].Title.Should().Be("Metal Slug");
+        }
     }
 }

@@ -262,12 +262,18 @@ namespace NzbDrone.Core.Games
                     text.Contains("(Firmware)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[Firmware]", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("Boot ROM", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("System BIOS", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Neo Geo BIOS", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("NeoGeo BIOS", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/BIOS/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\BIOS\\", StringComparison.OrdinalIgnoreCase) ||
                     text.EndsWith("/BIOS", StringComparison.OrdinalIgnoreCase) ||
                     text.EndsWith("\\BIOS", StringComparison.OrdinalIgnoreCase) ||
                     text.StartsWith("bios_", StringComparison.OrdinalIgnoreCase) ||
+                    text.StartsWith("uni-bios", StringComparison.OrdinalIgnoreCase) ||
+                    text.StartsWith("unibios", StringComparison.OrdinalIgnoreCase) ||
                     text.EndsWith(".ipl", StringComparison.OrdinalIgnoreCase) ||
+                    IsKnownNeoGeoBiosName(text) ||
                     text.Equals("disksys.rom", StringComparison.OrdinalIgnoreCase) ||
                     text.Equals("cd_bios.rom", StringComparison.OrdinalIgnoreCase))
                 {
@@ -276,6 +282,49 @@ namespace NzbDrone.Core.Games
             }
 
             return false;
+        }
+
+        private static readonly HashSet<string> NeoGeoBiosNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "neogeo",
+            "neogeo.zip",
+            "neocdz.zip",
+            "neocd.bin",
+            "neocd_f.rom",
+            "neocd_sf.rom",
+            "neocd_t.rom",
+            "neocd_st.rom",
+            "neocd_z.rom",
+            "neocd_sz.rom",
+            "front-sp1.bin",
+            "top-sp1.bin",
+            "sp-s2.sp1",
+            "sp-s3.sp1",
+            "sp-e.sp1",
+            "sp-j2.sp1",
+            "sp-j3.rom",
+            "sp-1v1_3db8c.bin",
+            "sp-45.sp1",
+            "sp-u2.sp1",
+            "sp1.jipan.1024",
+            "asia-s3.rom",
+            "vs-bios.rom",
+            "aes-bios.bin",
+            "japan-j3.bin",
+            "usa_2slt.bin",
+            "000-lo.lo",
+            "ng-lo.rom",
+            "ng-sfix.rom",
+            "ng-sm1.rom",
+            "sfix.sfix",
+            "sm1.sm1",
+            "neopen.bios"
+        };
+
+        private static bool IsKnownNeoGeoBiosName(string text)
+        {
+            var fileName = System.IO.Path.GetFileName(text.Trim());
+            return NeoGeoBiosNames.Contains(fileName) || NeoGeoBiosNames.Contains(text.Trim());
         }
     }
 }

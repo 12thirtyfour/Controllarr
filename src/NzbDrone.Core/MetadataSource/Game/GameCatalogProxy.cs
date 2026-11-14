@@ -1936,6 +1936,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (string.IsNullOrWhiteSpace(rawName) ||
                     rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
                     blockName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    RegionHelper.IsBios(rawName) ||
+                    RegionHelper.IsBios(blockName) ||
                     !IsValidGameTitle(rawName) ||
                     !IsValidGameTitle(blockName))
                 {
