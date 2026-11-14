@@ -335,42 +335,6 @@ function AddAllPlatformsModalContent({
             ) : null}
 
             <FormRow>
-              <FormLabel>Track Unlicensed</FormLabel>
-              <FormInputHelpText text="Enable monitoring of the Unlicensed region" />
-              <FormInput
-                type={inputTypes.CHECK}
-                name="trackUnlicensed"
-                onChange={handleInputChange}
-                {...trackUnlicensed}
-                value={Boolean(trackUnlicensed?.value)}
-              />
-            </FormRow>
-
-            <FormRow>
-              <FormLabel>Track ROM Hacks & Translations</FormLabel>
-              <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region (hash-gated against HTGDB / SMDB)" />
-              <FormInput
-                type={inputTypes.CHECK}
-                name="trackRomHacks"
-                onChange={handleInputChange}
-                {...trackRomHacks}
-                value={Boolean(trackRomHacks?.value)}
-              />
-            </FormRow>
-
-            <FormRow>
-              <FormLabel>Track Homebrew & Aftermarket</FormLabel>
-              <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region (hash-gated against HTGDB / SMDB)" />
-              <FormInput
-                type={inputTypes.CHECK}
-                name="trackHomebrew"
-                onChange={handleInputChange}
-                {...trackHomebrew}
-                value={Boolean(trackHomebrew?.value)}
-              />
-            </FormRow>
-
-            <FormRow>
               <FormLabel>{translate('Tags')}</FormLabel>
 
               <FormInput

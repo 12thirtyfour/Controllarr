@@ -103,7 +103,7 @@ export function getVerificationStatus(item: BiosFile): BiosVerificationStatus {
 const columns: Column[] = [
   {
     name: 'platformSlug',
-    label: () => translate('PlatformSlug'),
+    label: () => translate('Platform'),
     isVisible: true,
   },
   {
@@ -176,9 +176,31 @@ const PLATFORM_OPTIONS: SelectInputOption[] = [
   { key: 'tgcd', value: 'TurboGrafx-CD / PC Engine CD-ROM²' },
 ];
 
+const REQUIREMENT_OPTIONS: SelectInputOption[] = [
+  { key: '', value: 'All Requirements' },
+  { key: 'required', value: () => translate('Required') },
+  { key: 'optional', value: () => translate('Optional') },
+];
+
+const STATUS_OPTIONS: SelectInputOption[] = [
+  { key: '', value: 'All Statuses' },
+  { key: 'missing', value: () => translate('Missing') },
+  { key: 'present', value: () => translate('Present') },
+  { key: 'invalidHash', value: () => translate('InvalidHash') },
+];
+
+const ACTION_OPTIONS: SelectInputOption[] = [
+  { key: '', value: 'All Actions' },
+  { key: 'downloadable', value: 'Needs Download' },
+  { key: 'verified', value: 'Verified' },
+];
+
 function BiosSettings() {
   const queryClient = useQueryClient();
   const [platformSlug, setPlatformSlug] = useState('');
+  const [requirementFilter, setRequirementFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
   const { data: libraryPlatforms } = usePlatform();
@@ -210,7 +232,7 @@ function BiosSettings() {
     queryParams,
   });
 
-  const displayedData = useMemo(() => {
+  const libraryItems = useMemo(() => {
     if (!data) {
       return [];
     }
@@ -228,9 +250,59 @@ function BiosSettings() {
     });
   }, [data, libraryPlatformSlugs]);
 
+  const displayedData = useMemo(() => {
+    return libraryItems.filter((item) => {
+      if (requirementFilter === 'required' && !item.isRequired) {
+        return false;
+      }
+
+      if (requirementFilter === 'optional' && item.isRequired) {
+        return false;
+      }
+
+      const itemStatus = getVerificationStatus(item);
+      if (
+        statusFilter === 'missing' &&
+        itemStatus !== BiosVerificationStatus.Missing
+      ) {
+        return false;
+      }
+
+      if (
+        statusFilter === 'present' &&
+        itemStatus !== BiosVerificationStatus.Present
+      ) {
+        return false;
+      }
+
+      if (
+        statusFilter === 'invalidHash' &&
+        itemStatus !== BiosVerificationStatus.InvalidHash
+      ) {
+        return false;
+      }
+
+      if (
+        actionFilter === 'downloadable' &&
+        itemStatus === BiosVerificationStatus.Present
+      ) {
+        return false;
+      }
+
+      if (
+        actionFilter === 'verified' &&
+        itemStatus !== BiosVerificationStatus.Present
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [libraryItems, requirementFilter, statusFilter, actionFilter]);
+
   const { mutate: downloadBios, isPending: isDownloading } = useApiMutation<
     BiosFile[],
-    { platformSlug?: string; fileName?: string }
+    { platformSlug?: string; fileName?: string; onlyRequired?: boolean }
   >({
     path: '/bios/download',
     method: 'POST',
@@ -249,10 +321,34 @@ function BiosSettings() {
     setPlatformSlug(change.value);
   }, []);
 
+  const handleRequirementChange = useCallback(
+    (change: InputChanged<string>) => {
+      setRequirementFilter(change.value);
+    },
+    []
+  );
+
+  const handleStatusChange = useCallback((change: InputChanged<string>) => {
+    setStatusFilter(change.value);
+  }, []);
+
+  const handleActionChange = useCallback((change: InputChanged<string>) => {
+    setActionFilter(change.value);
+  }, []);
+
   const handleDownloadAllMissing = useCallback(() => {
     setDownloadingFile('__all__');
     downloadBios({
       platformSlug: platformSlug || undefined,
+      onlyRequired: false,
+    });
+  }, [downloadBios, platformSlug]);
+
+  const handleDownloadRequiredMissing = useCallback(() => {
+    setDownloadingFile('__required__');
+    downloadBios({
+      platformSlug: platformSlug || undefined,
+      onlyRequired: true,
     });
   }, [downloadBios, platformSlug]);
 
@@ -268,10 +364,18 @@ function BiosSettings() {
   );
 
   const missingCount = useMemo(() => {
-    return displayedData.filter(
+    return libraryItems.filter(
       (item) => getVerificationStatus(item) !== BiosVerificationStatus.Present
     ).length;
-  }, [displayedData]);
+  }, [libraryItems]);
+
+  const missingRequiredCount = useMemo(() => {
+    return libraryItems.filter(
+      (item) =>
+        item.isRequired &&
+        getVerificationStatus(item) !== BiosVerificationStatus.Present
+    ).length;
+  }, [libraryItems]);
 
   return (
     <PageContent title={translate('Bios')}>
@@ -285,7 +389,7 @@ function BiosSettings() {
           <div className={styles.filterContainer}>
             <div className={styles.filterGroup}>
               <label className={styles.filterLabel} htmlFor="platformSlug">
-                {translate('PlatformSlug')}
+                {translate('Platform')}
               </label>
               <SelectInput<string>
                 name="platformSlug"
@@ -293,16 +397,59 @@ function BiosSettings() {
                 values={filteredPlatformOptions}
                 onChange={handlePlatformChange}
               />
-              <span className={styles.storageNote}>
-                BIOS files are stored automatically inside each platform&apos;s{' '}
-                <code>BIOS/</code> subfolder (e.g.{' '}
-                <code>{'{PlatformFolder}/BIOS/'}</code>).
-              </span>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label
+                className={styles.filterLabel}
+                htmlFor="requirementFilter"
+              >
+                {translate('Requirement')}
+              </label>
+              <SelectInput<string>
+                name="requirementFilter"
+                value={requirementFilter}
+                values={REQUIREMENT_OPTIONS}
+                onChange={handleRequirementChange}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor="statusFilter">
+                {translate('VerificationStatus')}
+              </label>
+              <SelectInput<string>
+                name="statusFilter"
+                value={statusFilter}
+                values={STATUS_OPTIONS}
+                onChange={handleStatusChange}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor="actionFilter">
+                Actions
+              </label>
+              <SelectInput<string>
+                name="actionFilter"
+                value={actionFilter}
+                values={ACTION_OPTIONS}
+                onChange={handleActionChange}
+              />
             </div>
 
             <div className={styles.actionGroup}>
               <SpinnerButton
                 kind={kinds.PRIMARY}
+                isSpinning={isDownloading && downloadingFile === '__required__'}
+                isDisabled={isDownloading || missingRequiredCount === 0}
+                onPress={handleDownloadRequiredMissing}
+              >
+                Download All Required ({missingRequiredCount})
+              </SpinnerButton>
+
+              <SpinnerButton
+                kind={kinds.DEFAULT}
                 isSpinning={isDownloading && downloadingFile === '__all__'}
                 isDisabled={isDownloading || missingCount === 0}
                 onPress={handleDownloadAllMissing}
@@ -310,6 +457,12 @@ function BiosSettings() {
                 Download All Missing ({missingCount})
               </SpinnerButton>
             </div>
+
+            <span className={styles.storageNote}>
+              BIOS files are stored automatically inside each platform&apos;s{' '}
+              <code>BIOS/</code> subfolder (e.g.{' '}
+              <code>{'{PlatformFolder}/BIOS/'}</code>).
+            </span>
           </div>
 
           {isFetching ? <LoadingIndicator /> : null}

@@ -78,6 +78,7 @@ namespace NzbDrone.Core.Configuration
         bool ShowRelativeDates { get; set; }
         bool EnableColorImpairedMode { get; set; }
         string ConsoleRegion { get; set; }
+        bool AutoDownloadRequiredBios { get; set; }
         int UILanguage { get; set; }
         int PreferredMetadataLanguage { get; set; }
 

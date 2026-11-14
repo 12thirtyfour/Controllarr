@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Bios
         bool VerifyBios(string filePath, string expectedMd5, string expectedSha1);
         List<BiosFile> GetCatalog(string platformSlug = null);
         List<BiosFile> ScanAndVerifyBiosDirectory(string biosDirectory, string platformSlug = null);
-        List<BiosFile> DownloadMissingBios(string platformSlug = null, string fileName = null);
+        List<BiosFile> DownloadMissingBios(string platformSlug = null, string fileName = null, bool onlyRequired = false);
         bool IsKnownBiosFileName(string fileName);
         bool TryGetBiosFile(string fileName, out BiosFile biosFile, string platformSlug = null);
         bool ProcessCandidateBiosFile(string sourceFilePath, Series series, bool move = false);
@@ -5013,11 +5013,12 @@ namespace NzbDrone.Core.Bios
             return catalog;
         }
 
-        public List<BiosFile> DownloadMissingBios(string platformSlug = null, string fileName = null)
+        public List<BiosFile> DownloadMissingBios(string platformSlug = null, string fileName = null, bool onlyRequired = false)
         {
             var catalog = GetCatalog(platformSlug);
             var targets = catalog
                 .Where(b => !b.IsVerified &&
+                            (!onlyRequired || b.IsRequired) &&
                             (string.IsNullOrWhiteSpace(fileName) ||
                              string.Equals(b.FileName, fileName.Trim(), StringComparison.OrdinalIgnoreCase)))
                 .ToList();

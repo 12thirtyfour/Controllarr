@@ -325,6 +325,48 @@ function QueueRow(props: QueueRowProps) {
           return <TableRowCell key={name}>{outputPath}</TableRowCell>;
         }
 
+        if (name === 'activityStatus') {
+          let activityLabel = status || '-';
+
+          if (importingActivity) {
+            activityLabel = importingActivity;
+          } else if (trackedDownloadState === 'importing') {
+            activityLabel = translate('Importing');
+          } else if (trackedDownloadState === 'importPending') {
+            activityLabel = 'Import Pending';
+          } else if (trackedDownloadState === 'importBlocked') {
+            activityLabel = 'Import Blocked';
+          } else if (trackedDownloadState === 'failedPending') {
+            activityLabel = 'Failed Pending';
+          } else if (trackedDownloadState === 'failed') {
+            activityLabel = translate('Failed');
+          } else if (trackedDownloadState === 'imported') {
+            activityLabel = translate('Imported');
+          } else if (status === 'downloading') {
+            activityLabel = translate('Downloading');
+          } else if (status === 'queued') {
+            activityLabel = translate('Queued');
+          } else if (status === 'paused') {
+            activityLabel = translate('Paused');
+          } else if (status === 'completed') {
+            activityLabel = translate('Completed');
+          } else if (status === 'delay') {
+            activityLabel = 'Delayed';
+          } else if (status === 'downloadClientUnavailable') {
+            activityLabel = 'Unavailable';
+          } else if (status === 'failed') {
+            activityLabel = translate('Failed');
+          } else if (status === 'warning') {
+            activityLabel = 'Warning';
+          }
+
+          return (
+            <TableRowCell key={name} title={activityLabel}>
+              {activityLabel}
+            </TableRowCell>
+          );
+        }
+
         if (name === 'speed') {
           let speedLabel = '-';
 

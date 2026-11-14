@@ -406,6 +406,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("ConsoleRegion", value); }
         }
 
+        public bool AutoDownloadRequiredBios
+        {
+            get { return GetValueBoolean("AutoDownloadRequiredBios", false); }
+
+            set { SetValue("AutoDownloadRequiredBios", value); }
+        }
+
         public int UILanguage
         {
             get { return GetValueInt("UILanguage", (int)Language.English); }

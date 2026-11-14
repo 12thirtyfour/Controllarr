@@ -78,6 +78,8 @@ namespace Sonarr.Api.V3.Config
         public PlatformPackUpgradeType SeasonPackUpgrade { get; set; }
 
         public double SeasonPackUpgradeThreshold { get; set; }
+
+        public bool AutoDownloadRequiredBios { get; set; }
     }
 
     public static class MediaManagementConfigResourceMapper
@@ -113,7 +115,8 @@ namespace Sonarr.Api.V3.Config
                 EnableMediaInfo = model.EnableMediaInfo,
                 UserRejectedExtensions = model.UserRejectedExtensions,
                 SeasonPackUpgrade = model.SeasonPackUpgrade,
-                SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold
+                SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold,
+                AutoDownloadRequiredBios = model.AutoDownloadRequiredBios
             };
         }
     }

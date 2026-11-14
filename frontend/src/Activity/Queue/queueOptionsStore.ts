@@ -102,6 +102,12 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
+          name: 'activityStatus',
+          label: () => translate('Status'),
+          isSortable: false,
+          isVisible: true,
+        },
+        {
           name: 'speed',
           label: () => 'Speed',
           isSortable: false,

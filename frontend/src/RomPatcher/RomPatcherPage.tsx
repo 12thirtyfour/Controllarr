@@ -176,37 +176,6 @@ function RomPatcherPage() {
           <div style={{ marginTop: '20px' }}>
             <Form>
               <FieldSet
-                legend="Patch Configuration"
-                caption="Specify an optional base retail ROM path or output title, or leave blank to automatically discover the base ROM and match the HTGDB / SMDB catalog."
-              >
-                <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>Optional Base Retail ROM Path</FormLabel>
-                  <FormInputHelpText text="Leave blank to automatically discover the matching retail base ROM in your library by BPS source CRC32 or title, or specify an explicit retail ROM path" />
-                  <FormInput
-                    type={inputTypes.TEXT}
-                    name="baseRomServerPath"
-                    value={baseRomServerPath}
-                    placeholder="(Auto-discover from platform library)"
-                    onChange={handleBaseRomServerPathChange}
-                  />
-                </FormRow>
-
-                <FormRow size={sizes.MEDIUM}>
-                  <FormLabel>
-                    Optional Output Hack / Translation Title
-                  </FormLabel>
-                  <FormInputHelpText text="Leave blank to use the matched HTGDB / SMDB / DAT canonical name or patch filename" />
-                  <FormInput
-                    type={inputTypes.TEXT}
-                    name="patchOutputTitle"
-                    value={patchOutputTitle}
-                    placeholder="e.g. Mother 3 [T+Eng v1.3] (Hack)"
-                    onChange={handlePatchOutputTitleChange}
-                  />
-                </FormRow>
-              </FieldSet>
-
-              <FieldSet
                 legend="Apply Patch File"
                 caption="Upload a patch file from your browser or provide a path on the Controllarr host server."
               >
@@ -245,6 +214,37 @@ function RomPatcherPage() {
                         : 'Apply Patch to Retail Base ROM'}
                     </Button>
                   </div>
+                </FormRow>
+              </FieldSet>
+
+              <FieldSet
+                legend="Patch Configuration"
+                caption="Specify an optional base retail ROM path or output title, or leave blank to automatically discover the base ROM and match the HTGDB / SMDB catalog."
+              >
+                <FormRow size={sizes.MEDIUM}>
+                  <FormLabel>Optional Base Retail ROM Path</FormLabel>
+                  <FormInputHelpText text="Leave blank to automatically discover the matching retail base ROM in your library by BPS source CRC32 or title, or specify an explicit retail ROM path" />
+                  <FormInput
+                    type={inputTypes.TEXT}
+                    name="baseRomServerPath"
+                    value={baseRomServerPath}
+                    placeholder="(Auto-discover from platform library)"
+                    onChange={handleBaseRomServerPathChange}
+                  />
+                </FormRow>
+
+                <FormRow size={sizes.MEDIUM}>
+                  <FormLabel>
+                    Optional Output Hack / Translation Title
+                  </FormLabel>
+                  <FormInputHelpText text="Leave blank to use the matched HTGDB / SMDB / DAT canonical name or patch filename" />
+                  <FormInput
+                    type={inputTypes.TEXT}
+                    name="patchOutputTitle"
+                    value={patchOutputTitle}
+                    placeholder="e.g. Mother 3 [T+Eng v1.3] (Hack)"
+                    onChange={handlePatchOutputTitleChange}
+                  />
                 </FormRow>
               </FieldSet>
             </Form>

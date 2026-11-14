@@ -53,5 +53,7 @@ public enum ImportRejectionReason
     MultiSeason,
     MultiRegion = MultiSeason,
     PlatformFormatRejected,
-    UnverifiedRomHash
+    UnverifiedRomHash,
+    CrossPlatformMatchImported,
+    UnmonitoredDatMatch
 }

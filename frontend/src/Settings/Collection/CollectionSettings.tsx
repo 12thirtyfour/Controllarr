@@ -14,6 +14,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageHeading from 'Components/Page/PageHeading';
 import { inputTypes, sizes } from 'Helpers/Props';
 import RegionOrderingSection from 'Settings/MediaManagement/RegionOrderingSection';
+import { useManageMediaManagementSettings } from 'Settings/MediaManagement/useMediaManagementSettings';
 import settingsStyles from 'Settings/Settings.module.css';
 import SettingsPage from 'Settings/SettingsPage';
 import { InputChanged } from 'typings/inputs';
@@ -47,6 +48,13 @@ const defaultRevisionPreferenceOptions: SelectInputOption[] = [
 function CollectionSettings() {
   const addOptions = useAddPlatformOptions();
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const {
+    settings: mediaSettings,
+    hasPendingChanges: hasMediaPendingChanges,
+    isSaving: isSavingMedia,
+    saveSettings: saveMediaManagementSettings,
+    updateSetting,
+  } = useManageMediaManagementSettings();
   const [onePerRegion1g1r, setOnePerRegion1g1r] = useState<boolean>(
     () =>
       String(addOptions.collectionStrategy) === 'oneGamePerRegionPerConsole' ||
@@ -62,8 +70,18 @@ function CollectionSettings() {
   }, []);
 
   const handleSavePress = useCallback(() => {
+    if (hasMediaPendingChanges) {
+      saveMediaManagementSettings();
+    }
     setHasPendingChanges(false);
-  }, []);
+  }, [hasMediaPendingChanges, saveMediaManagementSettings]);
+
+  const handleAutoDownloadRequiredBiosChange = useCallback(
+    ({ value }: InputChanged<boolean>) => {
+      updateSetting('autoDownloadRequiredBios', Boolean(value));
+    },
+    [updateSetting]
+  );
 
   const handleDefaultLibraryStyleChange = useCallback(
     ({ value }: InputChanged<string>) => {
@@ -146,7 +164,8 @@ function CollectionSettings() {
     <SettingsPage
       title="Collection Settings"
       showSave={true}
-      hasPendingChanges={hasPendingChanges}
+      isSaving={isSavingMedia}
+      hasPendingChanges={hasPendingChanges || hasMediaPendingChanges}
       onSavePress={handleSavePress}
     >
       <PageContentBody>
@@ -257,6 +276,19 @@ function CollectionSettings() {
                   name="trackHomebrew"
                   value={Boolean(addOptions.trackHomebrew)}
                   onChange={handleBooleanOptionChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>
+                  Automatically Download Required BIOS Files
+                </FormLabel>
+                <FormInputHelpText text="Automatically download the latest required BIOS/firmware files for each region when a platform is added (unchecked by default)" />
+                <FormInput
+                  type={inputTypes.CHECK}
+                  name="autoDownloadRequiredBios"
+                  value={Boolean(mediaSettings.autoDownloadRequiredBios?.value)}
+                  onChange={handleAutoDownloadRequiredBiosChange}
                 />
               </FormRow>
             </Form>

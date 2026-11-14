@@ -29,8 +29,6 @@ function TimeLeftCell(props: TimeLeftCellProps) {
     estimatedCompletionTime,
     timeLeft,
     status,
-    trackedDownloadState,
-    importingActivity,
     size,
     sizeLeft,
     showRelativeDates,
@@ -78,15 +76,6 @@ function TimeLeftCell(props: TimeLeftCellProps) {
           kind={kinds.INVERSE}
           position={tooltipPositions.TOP}
         />
-      </TableRowCell>
-    );
-  }
-
-  if (trackedDownloadState === 'importing' || importingActivity) {
-    const label = importingActivity || translate('Importing');
-    return (
-      <TableRowCell className={styles.timeLeft} title={label}>
-        {label}
       </TableRowCell>
     );
   }

@@ -31,6 +31,7 @@ export interface MediaManagementSettingsModel {
   allowFingerprinting: string;
   seasonPackUpgrade: string;
   seasonPackUpgradeThreshold: number;
+  autoDownloadRequiredBios: boolean;
 }
 
 const PATH = '/settings/mediamanagement';

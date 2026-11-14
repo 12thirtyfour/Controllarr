@@ -234,9 +234,6 @@ function AddNewPlatformModalContent({
     pinnedVersion,
     enableCompression,
     preferEncryptedRoms,
-    trackUnlicensed,
-    trackHomebrew,
-    trackRomHacks,
     seriesType: seriesTypeSetting,
     tags,
   } = settings;
@@ -278,18 +275,6 @@ function AddNewPlatformModalContent({
     const updatedSeasons = (series.seasons ?? []).map((s) => {
       if (isMonitorNone) {
         return { ...s, monitored: false };
-      }
-
-      if (s.seasonNumber === 0) {
-        return { ...s, monitored: Boolean(trackUnlicensed?.value) };
-      }
-
-      if (s.seasonNumber === 5) {
-        return { ...s, monitored: Boolean(trackHomebrew?.value) };
-      }
-
-      if (s.seasonNumber === 6) {
-        return { ...s, monitored: Boolean(trackRomHacks?.value) };
       }
 
       return s;
@@ -345,9 +330,6 @@ function AddNewPlatformModalContent({
     normalizedEncryption,
     pinnedVersion,
     enableCompression,
-    trackUnlicensed,
-    trackHomebrew,
-    trackRomHacks,
     searchForMissingGames,
     tags,
     addPlatform,
@@ -510,42 +492,6 @@ function AddNewPlatformModalContent({
                       onChange={handleInputChange}
                       {...enableCompression}
                       value={Boolean(enableCompression?.value ?? true)}
-                    />
-                  </FormRow>
-
-                  <FormRow>
-                    <FormLabel>Track Unlicensed</FormLabel>
-                    <FormInputHelpText text="Enable monitoring of the Unlicensed region" />
-                    <FormInput
-                      type={inputTypes.CHECK}
-                      name="trackUnlicensed"
-                      onChange={handleInputChange}
-                      {...trackUnlicensed}
-                      value={Boolean(trackUnlicensed?.value)}
-                    />
-                  </FormRow>
-
-                  <FormRow>
-                    <FormLabel>Track ROM Hacks & Translations</FormLabel>
-                    <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region (hash-gated against HTGDB / SMDB)" />
-                    <FormInput
-                      type={inputTypes.CHECK}
-                      name="trackRomHacks"
-                      onChange={handleInputChange}
-                      {...trackRomHacks}
-                      value={Boolean(trackRomHacks?.value)}
-                    />
-                  </FormRow>
-
-                  <FormRow>
-                    <FormLabel>Track Homebrew & Aftermarket</FormLabel>
-                    <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region (hash-gated against HTGDB / SMDB)" />
-                    <FormInput
-                      type={inputTypes.CHECK}
-                      name="trackHomebrew"
-                      onChange={handleInputChange}
-                      {...trackHomebrew}
-                      value={Boolean(trackHomebrew?.value)}
                     />
                   </FormRow>
                 </>

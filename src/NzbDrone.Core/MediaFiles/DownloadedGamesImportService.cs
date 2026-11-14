@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.GameImport;
@@ -42,6 +44,8 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IRomPatchingService _romPatchingService;
         private readonly IBiosService _biosService;
         private readonly IImportActivityService _importActivityService;
+        private readonly IDatCacheService _datCacheService;
+        private readonly IEpisodeService _episodeService;
         private readonly Logger _logger;
 
         public DownloadedGamesImportService(IDiskProvider diskProvider,
@@ -57,7 +61,9 @@ namespace NzbDrone.Core.MediaFiles
                                                Logger logger,
                                                IRomPatchingService romPatchingService = null,
                                                IBiosService biosService = null,
-                                               IImportActivityService importActivityService = null)
+                                               IImportActivityService importActivityService = null,
+                                               IDatCacheService datCacheService = null,
+                                               IEpisodeService episodeService = null)
         {
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
@@ -72,6 +78,8 @@ namespace NzbDrone.Core.MediaFiles
             _romPatchingService = romPatchingService;
             _biosService = biosService;
             _importActivityService = importActivityService;
+            _datCacheService = datCacheService;
+            _episodeService = episodeService;
             _logger = logger;
         }
 
@@ -345,7 +353,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 return new List<ImportResult>
                        {
-                           new ImportResult(new ImportDecision(new LocalEpisode { Path = fileInfo.FullName }, new ImportRejection(ImportRejectionReason.InvalidFilePath, "Invalid video file, filename starts with '._'")), "Invalid video file, filename starts with '._'")
+                           new ImportResult(new ImportDecision(new LocalEpisode { Path = fileInfo.FullName }, new ImportRejection(ImportRejectionReason.InvalidFilePath, "Invalid ROM file, filename starts with '._'")), "Invalid ROM file, filename starts with '._'")
                        };
             }
 
@@ -403,13 +411,19 @@ namespace NzbDrone.Core.MediaFiles
 
             if (extension.IsNullOrWhiteSpace() || !MediaFileExtensions.Extensions.Contains(extension))
             {
+                var crossMatch = TryHandleNoWastedDownload(fileInfo, series, importMode, downloadClientItem, null);
+                if (crossMatch != null)
+                {
+                    return crossMatch;
+                }
+
                 _logger.Debug("[{0}] has an unsupported extension: '{1}'", fileInfo.FullName, extension);
 
                 return new List<ImportResult>
                        {
                            new ImportResult(new ImportDecision(new LocalEpisode { Path = fileInfo.FullName },
-                               new ImportRejection(ImportRejectionReason.UnsupportedExtension, $"Invalid video file, unsupported extension: '{extension}'")),
-                               $"Invalid video file, unsupported extension: '{extension}'")
+                               new ImportRejection(ImportRejectionReason.UnsupportedExtension, $"Invalid ROM file, unsupported extension: '{extension}'")),
+                               $"Invalid ROM file, unsupported extension: '{extension}'")
                        };
             }
 
@@ -450,7 +464,150 @@ namespace NzbDrone.Core.MediaFiles
             var downloadClientItemInfo = downloadClientItem == null ? null : Parser.Parser.ParseTitle(downloadClientItem.Title);
             var decisions = _importDecisionMaker.GetImportDecisions(new List<string>() { fileInfo.FullName }, series, downloadClientItem, downloadClientItemInfo, null, true);
 
+            if (decisions != null && decisions.Any() && decisions.All(d => !d.Approved))
+            {
+                var firstDecision = decisions.First();
+                var crossMatch = TryHandleNoWastedDownload(fileInfo, series, importMode, downloadClientItem, firstDecision.LocalEpisode);
+                if (crossMatch != null)
+                {
+                    return crossMatch;
+                }
+            }
+
             return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+        }
+
+        private List<ImportResult> TryHandleNoWastedDownload(FileInfo fileInfo, Series targetSeries, ImportMode importMode, DownloadClientItem downloadClientItem, LocalEpisode existingLocalEpisode)
+        {
+            if (_datCacheService == null || fileInfo == null || !fileInfo.Exists || downloadClientItem == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var hashes = existingLocalEpisode?.RomHashes != null && existingLocalEpisode.RomHashes.Count > 0
+                    ? existingLocalEpisode.RomHashes
+                    : ComputeFileHashes(fileInfo.FullName);
+
+                hashes.TryGetValue("CRC32", out var crc32);
+                hashes.TryGetValue("SHA-1", out var sha1);
+                hashes.TryGetValue("MD5", out var md5);
+                hashes.TryGetValue("SHA-256", out var sha256);
+
+                var matchedWithPlatform = _datCacheService.FindPlatformByHash(crc32, sha1, md5, sha256);
+                var matchedEntry = matchedWithPlatform?.DatEntry;
+                if (matchedEntry == null)
+                {
+                    return null;
+                }
+
+                var rawPlatformSlug = matchedWithPlatform.PlatformSlug ?? matchedWithPlatform.DatFile?.Name;
+                var matchedPlatformSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(rawPlatformSlug, matchedWithPlatform.DatFile?.Name);
+                var allPlatforms = _seriesService.GetAllSeries();
+                var matchedPlatform = allPlatforms.FirstOrDefault(s =>
+                    string.Equals(PlatformCompatibilityValidator.NormalizePlatformSlug(s.TitleSlug, s.Title), matchedPlatformSlug, StringComparison.OrdinalIgnoreCase));
+
+                Episode matchedEpisode = null;
+                if (matchedPlatform != null && _episodeService != null)
+                {
+                    var games = _episodeService.GetEpisodeBySeries(matchedPlatform.Id);
+                    var normalizedTargetName = CleanTitleForMatch(matchedEntry.GameName ?? matchedEntry.RomName);
+                    matchedEpisode = games.FirstOrDefault(g =>
+                        string.Equals(CleanTitleForMatch(g.Title), normalizedTargetName, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (matchedPlatform != null && matchedEpisode != null && matchedPlatform.Monitored && matchedEpisode.Monitored)
+                {
+                    _logger.Info(
+                        "No Wasted Downloads: File '{0}' matched monitored ROM '{1}' on platform '{2}'. Importing for matched ROM and failing original request.",
+                        fileInfo.Name,
+                        matchedEpisode.Title,
+                        matchedPlatform.Title);
+
+                    var matchedLocalEpisode = new LocalEpisode
+                    {
+                        Path = fileInfo.FullName,
+                        Size = fileInfo.Length,
+                        Series = matchedPlatform,
+                        Episodes = new List<Episode> { matchedEpisode },
+                        RomHashes = hashes,
+                        RomHashVerified = true
+                    };
+
+                    var importResults = _importApprovedEpisodes.Import(new List<ImportDecision> { new ImportDecision(matchedLocalEpisode) }, true, downloadClientItem, importMode);
+                    if (importResults.Any(r => r.Result == ImportResultType.Imported))
+                    {
+                        var crossMessage = $"Imported as '{matchedEpisode.Title}' ({matchedPlatform.Title}); failing original request so search continues.";
+                        return new List<ImportResult>
+                        {
+                            new ImportResult(
+                                new ImportDecision(
+                                    new LocalEpisode { Path = fileInfo.FullName },
+                                    new ImportRejection(ImportRejectionReason.CrossPlatformMatchImported, crossMessage)),
+                                crossMessage)
+                        };
+                    }
+                }
+
+                var matchedLabel = matchedEpisode?.Title ?? matchedEntry.GameName ?? matchedEntry.RomName ?? fileInfo.Name;
+                var platformLabel = matchedPlatform?.Title ?? matchedWithPlatform.DatFile?.Name ?? matchedWithPlatform.PlatformSlug ?? "Unknown Platform";
+                var holdMessage = $"Does not match target platform '{targetSeries?.Title}', but matches unmonitored ROM '{matchedLabel}' ({platformLabel}). Held for manual verification.";
+                _logger.Warn("No Wasted Downloads: {0}", holdMessage);
+
+                return new List<ImportResult>
+                {
+                    new ImportResult(
+                        new ImportDecision(
+                            new LocalEpisode { Path = fileInfo.FullName },
+                            new ImportRejection(ImportRejectionReason.UnmonitoredDatMatch, holdMessage)),
+                        holdMessage)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to cross-match rejected file '{0}' in DAT cache.", fileInfo.FullName);
+                return null;
+            }
+        }
+
+        private static string CleanTitleForMatch(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var noExt = Path.GetFileNameWithoutExtension(title);
+            return System.Text.RegularExpressions.Regex.Replace(noExt, @"\s*[(\[][^)\]]*[)\]]", string.Empty).Trim();
+        }
+
+        private static Dictionary<string, string> ComputeFileHashes(string filePath)
+        {
+            var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            using var stream = File.OpenRead(filePath);
+            using var md5 = MD5.Create();
+            using var sha1 = SHA1.Create();
+            using var sha256 = SHA256.Create();
+
+            var buffer = new byte[81920];
+            int bytesRead;
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                md5.TransformBlock(buffer, 0, bytesRead, null, 0);
+                sha1.TransformBlock(buffer, 0, bytesRead, null, 0);
+                sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+            }
+
+            md5.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            sha1.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+            hashes["MD5"] = Convert.ToHexString(md5.Hash).ToLowerInvariant();
+            hashes["SHA-1"] = Convert.ToHexString(sha1.Hash).ToLowerInvariant();
+            hashes["SHA-256"] = Convert.ToHexString(sha256.Hash).ToLowerInvariant();
+            return hashes;
         }
 
         private bool IsMultiGameZipArchive(string zipPath)

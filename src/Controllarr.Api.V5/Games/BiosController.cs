@@ -8,6 +8,7 @@ namespace Sonarr.Api.V5.Games
     {
         public string? PlatformSlug { get; set; }
         public string? FileName { get; set; }
+        public bool OnlyRequired { get; set; }
     }
 
     [V3ApiController("bios")]
@@ -38,7 +39,7 @@ namespace Sonarr.Api.V5.Games
         [Produces("application/json")]
         public List<BiosFile> DownloadMissing([FromBody] BiosDownloadRequestResource? request)
         {
-            return _biosService.DownloadMissingBios(request?.PlatformSlug, request?.FileName);
+            return _biosService.DownloadMissingBios(request?.PlatformSlug, request?.FileName, request?.OnlyRequired ?? false);
         }
     }
 }

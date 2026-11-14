@@ -25,6 +25,17 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **BIOS Files Filters & Download All Required (#109)**: Added `Platform`, `Requirement`, `Verification Status`, and `Actions` filters in `Library > BIOS Files`, fixed the `"Platform Slug"` column/filter label to `"Platform"`, and added a `Download All Required` button backed by `OnlyRequired` in `/api/v5/bios/download`.
+- **Auto-Download Required BIOS on Platform Add (#107)**: Added `AutoDownloadRequiredBios` in `Collection Settings` (unchecked by default) and `PlatformAddedHandler` to automatically download required BIOS/firmware files across regions when a platform is added or imported.
+- **Activity Queue Status Column (#100)**: Added a dedicated `Status` column (`activityStatus`) between `Source` and `Speed` in the Activity Queue to display current activity (`Downloading`, `Moving`, `Compressing`, `Verifying`, etc.) while keeping `Time Left` focused on remaining time.
+- **"No Wasted Downloads" Verification Recovery (#101)**: Added cryptographic DAT cross-matching in `DownloadedGamesImportService` and `RejectedImportService` so rejected/incompatible downloads that hash-match another monitored ROM are imported for that ROM while failing and re-searching the original request; hash-matches for unmonitored ROMs are held for manual verification with the matched ROM noted while continuing the original search; unverified files matching nothing in the DAT database are failed immediately. Also fixed `"Invalid video file"` import rejection messages to `"Invalid ROM file"`.
+
+### Changed
+- **Pre-Move Compression & Cleanup (#98)**: Updated `RomFileMovingService` to stage compression/renaming before moving into the library and delete original source files (including `.cue`/`.gdi` track files) once compressed output is verified, preventing duplicate-disc `.m3u` false positives.
+- **ROM Patcher Layout (#103)**: Moved the optional `Patch Configuration` section below `Apply Patch File` on the ROM Patcher page.
+- **Add Platform Modal Cleanup (#96)**: Removed redundant `Track Unlicensed`, `Track ROM Hacks & Translations`, and `Track Homebrew & Aftermarket` checkboxes from the Add Platform and Add All Platforms modals.
+
 ### Fixed
 - **Internet Archive Search & Global Fallback (#99, #113)**: Removed `publicdate desc` sort bias in `InternetArchiveRequestGenerator` so `advancedsearch.php` returns relevance-ordered results, expanded queries to include `mediatype:data` (and `mediatype:collection` for collection searches), sanitized Lucene characters (`[`, `]`, `@`), added clean platform/short-name collection queries (e.g. Nintendo 64DD), and ensured interactive searches include global Internet Archive results alongside primary archives.
 - **Filename Context Validation & Collection Queue Labeling (#110, #112)**: Added `64dd`, `XBOXDVD`, `PSX2PSP`/`PS2PSP`, `PS2DVD`/`PS2CD`, `Virtual.Console`, and `NKit` context detection/filtering in `PlatformCompatibilityValidator`; updated `RomParser` and `DownloadDecisionMaker` so `@...` / `SMDB` / collection archives are always recognized as `IsFullSetArchive` / `FullSeason` rather than matching a single game title in Queue.
