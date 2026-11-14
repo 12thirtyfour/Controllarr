@@ -598,13 +598,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 // Cross-reference verification hashes so identical ROM dumps with truncated/alternate titles do not double up
-                if ((!string.IsNullOrWhiteSpace(candidate.ExpectedSha256) && seenHashes.Contains($"sha256:{candidate.ExpectedSha256.ToLowerInvariant()}")) ||
-                    (!string.IsNullOrWhiteSpace(candidate.ExpectedSha1) && seenHashes.Contains($"sha1:{candidate.ExpectedSha1.ToLowerInvariant()}")) ||
-                    (!string.IsNullOrWhiteSpace(candidate.ExpectedMd5) && seenHashes.Contains($"md5:{candidate.ExpectedMd5.ToLowerInvariant()}")) ||
-                    (!string.IsNullOrWhiteSpace(candidate.ExpectedCrc32) &&
-                     candidate.ExpectedCrc32.Length == 8 &&
-                     !string.Equals(candidate.ExpectedCrc32, "00000000", StringComparison.OrdinalIgnoreCase) &&
-                     seenHashes.Contains($"crc:{candidate.ExpectedCrc32.ToLowerInvariant()}")))
+                if (HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32))
                 {
                     return false;
                 }
@@ -620,25 +614,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 seenIds.Add(candidate.TvdbId);
                 seenNames.Add(candidate.NoIntroName ?? candidate.Title);
 
-                if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha256))
-                {
-                    seenHashes.Add($"sha256:{candidate.ExpectedSha256.ToLowerInvariant()}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha1))
-                {
-                    seenHashes.Add($"sha1:{candidate.ExpectedSha1.ToLowerInvariant()}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(candidate.ExpectedMd5))
-                {
-                    seenHashes.Add($"md5:{candidate.ExpectedMd5.ToLowerInvariant()}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(candidate.ExpectedCrc32))
-                {
-                    seenHashes.Add($"crc:{candidate.ExpectedCrc32.ToLowerInvariant()}");
-                }
+                RegisterHashes(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32);
 
                 return true;
             }
@@ -682,17 +658,6 @@ namespace NzbDrone.Core.MetadataSource.Game
                     foreach (var datEntry in cachedDatEntries)
                     {
                         if (datEntry == null)
-                        {
-                            continue;
-                        }
-
-                        var hasDuplicateHash =
-                            (!string.IsNullOrWhiteSpace(datEntry.Sha256) && !seenHashes.Add($"sha256:{datEntry.Sha256}")) ||
-                            (!string.IsNullOrWhiteSpace(datEntry.Sha1) && !seenHashes.Add($"sha1:{datEntry.Sha1}")) ||
-                            (!string.IsNullOrWhiteSpace(datEntry.Md5) && !seenHashes.Add($"md5:{datEntry.Md5}")) ||
-                            (!string.IsNullOrWhiteSpace(datEntry.Crc32) && !seenHashes.Add($"crc:{datEntry.Crc32}"));
-
-                        if (hasDuplicateHash)
                         {
                             continue;
                         }
@@ -756,6 +721,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                             continue;
                         }
 
+                        if (HasSeenHash(seenHashes, datEntry.Sha256, datEntry.Sha1, datEntry.Md5, datEntry.Crc32))
+                        {
+                            continue;
+                        }
+
                         var effectiveCategory = "Cross-Referenced DAT / SMDB Catalog";
                         if (datFileMap.TryGetValue(datEntry.DatFileId, out var datFile))
                         {
@@ -792,10 +762,18 @@ namespace NzbDrone.Core.MetadataSource.Game
                         var cachedReleaseDate = cachedDateInfo?.ReleaseDate;
 
                         var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, cachedYear, effectiveCategory, customReleaseDate: cachedReleaseDate);
-                        if (converted != null && TryRegisterCrossReferencedGame(converted))
+                        if (converted != null)
                         {
-                            DynamicGames[converted.TvdbId] = converted;
-                            platformGames.Add(converted);
+                            converted.ExpectedSha256 = datEntry.Sha256?.Trim().ToLowerInvariant();
+                            converted.ExpectedSha1 = datEntry.Sha1?.Trim().ToLowerInvariant();
+                            converted.ExpectedMd5 = datEntry.Md5?.Trim().ToLowerInvariant();
+                            converted.ExpectedCrc32 = IsValidCrc32(datEntry.Crc32) ? datEntry.Crc32.Trim().ToLowerInvariant() : null;
+
+                            if (TryRegisterCrossReferencedGame(converted))
+                            {
+                                DynamicGames[converted.TvdbId] = converted;
+                                platformGames.Add(converted);
+                            }
                         }
                     }
                 }
@@ -889,6 +867,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             var syncedList = new List<GameCatalogEntry>();
             var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
@@ -908,7 +887,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var response = _httpClient.Execute(request);
                     if (response != null && !response.HasHttpError && !string.IsNullOrWhiteSpace(response.Content))
                     {
-                        var parsedEntries = ParseLibretroDatContent(platform, response.Content, feed.SourceLabel, releaseYearLookup, seenNames);
+                        var parsedEntries = ParseLibretroDatContent(platform, response.Content, feed.SourceLabel, releaseYearLookup, seenNames, seenHashes);
                         if (parsedEntries.Count > 0)
                         {
                             syncedList.AddRange(parsedEntries);
@@ -929,7 +908,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var smdbResponse = _httpClient.Execute(smdbRequest);
                     if (smdbResponse != null && !smdbResponse.HasHttpError && !string.IsNullOrWhiteSpace(smdbResponse.Content))
                     {
-                        var smdbEntries = ParseSmokeMonsterSmdbContent(platform, smdbResponse.Content, releaseYearLookup, seenNames, forceRefresh);
+                        var smdbEntries = ParseSmokeMonsterSmdbContent(platform, smdbResponse.Content, releaseYearLookup, seenNames, forceRefresh, seenHashes);
                         if (smdbEntries.Count > 0)
                         {
                             syncedList.AddRange(smdbEntries);
@@ -1198,10 +1177,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             string smdbContent,
             Dictionary<string, ReleaseDateInfo> releaseYearLookup,
             HashSet<string> seenNames,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
         {
             var results = new List<GameCatalogEntry>();
             var datEntries = new List<DatEntry>();
+            var seenCacheHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var lines = smdbContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var line in lines)
@@ -1212,11 +1193,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                     continue;
                 }
 
-                var sha256 = parts[0].Trim();
+                var sha256 = parts[0].Trim().ToLowerInvariant();
                 var smdbPath = parts[1].Trim();
-                var sha1 = parts.Length > 2 ? parts[2].Trim() : string.Empty;
-                var md5 = parts.Length > 3 ? parts[3].Trim() : string.Empty;
-                var crc32 = parts.Length > 4 ? parts[4].Trim() : string.Empty;
+                var sha1 = parts.Length > 2 ? parts[2].Trim().ToLowerInvariant() : string.Empty;
+                var md5 = parts.Length > 3 ? parts[3].Trim().ToLowerInvariant() : string.Empty;
+                var crc32 = parts.Length > 4 ? parts[4].Trim().ToLowerInvariant() : string.Empty;
 
                 var normalizedSmdbPath = smdbPath.Replace('\\', '/');
                 var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -1259,21 +1240,27 @@ namespace NzbDrone.Core.MetadataSource.Game
                     continue;
                 }
 
-                datEntries.Add(new DatEntry
+                if (!HasSeenHash(seenCacheHashes, sha256, sha1, md5, crc32))
                 {
-                    GameName = rawName,
-                    RomName = fileName,
-                    SmdbPath = smdbPath,
-                    Sha256 = sha256,
-                    Sha1 = sha1,
-                    Md5 = md5,
-                    Crc32 = crc32
-                });
+                    RegisterHashes(seenCacheHashes, sha256, sha1, md5, crc32);
+                    datEntries.Add(new DatEntry
+                    {
+                        GameName = rawName,
+                        RomName = fileName,
+                        SmdbPath = smdbPath,
+                        Sha256 = sha256,
+                        Sha1 = sha1,
+                        Md5 = md5,
+                        Crc32 = crc32
+                    });
+                }
 
-                if (!seenNames.Add(rawName))
+                if (HasSeenHash(seenHashes, sha256, sha1, md5, crc32) || !seenNames.Add(rawName))
                 {
                     continue;
                 }
+
+                RegisterHashes(seenHashes, sha256, sha1, md5, crc32);
 
                 var smdbDateInfo = ResolveReleaseDateInfo(releaseYearLookup, crc32, rawName);
                 var year = smdbDateInfo?.Year ?? platform.ReleaseYear;
@@ -1899,7 +1886,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             string datContent,
             string sourceLabel,
             Dictionary<string, ReleaseDateInfo> releaseYearLookup,
-            HashSet<string> seenNames)
+            HashSet<string> seenNames,
+            HashSet<string> seenHashes = null)
         {
             var results = new List<GameCatalogEntry>();
             var matches = DatGameBlockRegex.Matches(datContent);
@@ -1961,13 +1949,21 @@ namespace NzbDrone.Core.MetadataSource.Game
                     rawName = $"{rawName} (Encrypted)";
                 }
 
-                if (!seenNames.Add(rawName))
+                var crcMatch = DatCrcRegex.Match(body);
+                var crc32 = crcMatch.Success ? crcMatch.Groups[1].Value.ToLowerInvariant() : null;
+                var md5Match = Regex.Match(body, @"\bmd5\s+([0-9a-fA-F]{32})", RegexOptions.IgnoreCase);
+                var md5 = md5Match.Success ? md5Match.Groups[1].Value.ToLowerInvariant() : null;
+                var sha1Match = Regex.Match(body, @"\bsha1\s+([0-9a-fA-F]{40})", RegexOptions.IgnoreCase);
+                var sha1 = sha1Match.Success ? sha1Match.Groups[1].Value.ToLowerInvariant() : null;
+                var sha256Match = Regex.Match(body, @"\bsha256\s+([0-9a-fA-F]{64})", RegexOptions.IgnoreCase);
+                var sha256 = sha256Match.Success ? sha256Match.Groups[1].Value.ToLowerInvariant() : null;
+
+                if (HasSeenHash(seenHashes, sha256, sha1, md5, crc32) || !seenNames.Add(rawName))
                 {
                     continue;
                 }
 
-                var crcMatch = DatCrcRegex.Match(body);
-                var crc32 = crcMatch.Success ? crcMatch.Groups[1].Value.ToLowerInvariant() : null;
+                RegisterHashes(seenHashes, sha256, sha1, md5, crc32);
 
                 var year = platform.ReleaseYear;
                 string releaseDate = null;
@@ -2008,16 +2004,19 @@ namespace NzbDrone.Core.MetadataSource.Game
                         entry.ExpectedCrc32 = crc32;
                     }
 
-                    var md5Match = Regex.Match(body, @"\bmd5\s+([0-9a-fA-F]{32})", RegexOptions.IgnoreCase);
-                    if (md5Match.Success)
+                    if (!string.IsNullOrWhiteSpace(md5))
                     {
-                        entry.ExpectedMd5 = md5Match.Groups[1].Value.ToLowerInvariant();
+                        entry.ExpectedMd5 = md5;
                     }
 
-                    var sha1Match = Regex.Match(body, @"\bsha1\s+([0-9a-fA-F]{40})", RegexOptions.IgnoreCase);
-                    if (sha1Match.Success)
+                    if (!string.IsNullOrWhiteSpace(sha1))
                     {
-                        entry.ExpectedSha1 = sha1Match.Groups[1].Value.ToLowerInvariant();
+                        entry.ExpectedSha1 = sha1;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(sha256))
+                    {
+                        entry.ExpectedSha256 = sha256;
                     }
 
                     results.Add(entry);
@@ -2025,6 +2024,72 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             return results;
+        }
+
+        private static bool IsValidCrc32(string crc32)
+        {
+            var trimmed = crc32?.Trim();
+            return !string.IsNullOrWhiteSpace(trimmed) &&
+                   trimmed.Length == 8 &&
+                   !string.Equals(trimmed, "00000000", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasSeenHash(HashSet<string> seenHashes, string sha256, string sha1, string md5, string crc32)
+        {
+            if (seenHashes == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha256) && seenHashes.Contains($"sha256:{sha256.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha1) && seenHashes.Contains($"sha1:{sha1.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(md5) && seenHashes.Contains($"md5:{md5.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (IsValidCrc32(crc32) && seenHashes.Contains($"crc:{crc32.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void RegisterHashes(HashSet<string> seenHashes, string sha256, string sha1, string md5, string crc32)
+        {
+            if (seenHashes == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha256))
+            {
+                seenHashes.Add($"sha256:{sha256.Trim().ToLowerInvariant()}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha1))
+            {
+                seenHashes.Add($"sha1:{sha1.Trim().ToLowerInvariant()}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(md5))
+            {
+                seenHashes.Add($"md5:{md5.Trim().ToLowerInvariant()}");
+            }
+
+            if (IsValidCrc32(crc32))
+            {
+                seenHashes.Add($"crc:{crc32.Trim().ToLowerInvariant()}");
+            }
         }
 
         private static string StripKnownRomExtension(string fileName)

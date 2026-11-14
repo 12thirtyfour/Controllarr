@@ -788,7 +788,7 @@ game (
             var seenNames = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             var entries = (List<GameCatalogEntry>)method.Invoke(
                 Subject,
-                new object[] { vbPlatform, smdbContent, null, seenNames, false });
+                new object[] { vbPlatform, smdbContent, null, seenNames, false, null });
 
             entries.Should().HaveCount(1);
             entries[0].Title.Should().Be("3-D Tetris");
@@ -834,13 +834,56 @@ game (
             var seenNames = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             var entries = (List<GameCatalogEntry>)parseMethod.Invoke(
                 null,
-                new object[] { vbPlatform, datContent, "No-Intro", lookup, seenNames });
+                new object[] { vbPlatform, datContent, "No-Intro", lookup, seenNames, null });
 
             entries.Should().HaveCount(2);
             entries[0].ReleaseYear.Should().Be(1996);
             entries[0].ReleaseDateString.Should().Be("1996");
             entries[1].ReleaseYear.Should().Be(1996);
             entries[1].ReleaseDateString.Should().Be("1996");
+        }
+
+        [Test]
+        public void should_deduplicate_romhacks_across_libretro_dat_and_smdb_by_hash()
+        {
+            Subject.TryGetPlatformEntry(1010, out var snesPlatform).Should().BeTrue();
+            var datContent = string.Join("\n", new[]
+            {
+                "game (",
+                "\tname \"Chrono Trigger - Crimson Echoes [Hack by Kajar Laboratories]\"",
+                "\trom ( name \"Chrono Trigger (USA).smc\" size 6291968 crc 2EBCEB79 md5 24955542c1ea9c5bbd21a07479e64047 sha1 a43632026948df3d288f0bb03f6c83ee8e76bdd5 )",
+                ")"
+            });
+
+            var smdbContent = string.Join("\n", new[]
+            {
+                "d9fdfc05640522d39e1bb5ff4d082a8a93b9e7817fe6632bebe03303091d7d0c\tSD2SNES/4 Hacks/Hacks - A-R/Chrono Trigger Crimson Echoes (Hack) Kajar Laboratories.sfc\ta43632026948df3d288f0bb03f6c83ee8e76bdd5\t24955542c1ea9c5bbd21a07479e64047\t2ebceb79\t6291968",
+                "d9fdfc05640522d39e1bb5ff4d082a8a93b9e7817fe6632bebe03303091d7d0c\tSD2SNES/4 Hacks/Selections/Chrono Trigger Crimson Echoes (Hack) Kajar Laboratories.sfc\ta43632026948df3d288f0bb03f6c83ee8e76bdd5\t24955542c1ea9c5bbd21a07479e64047\t2ebceb79\t6291968",
+                "c28ab3ff76060214724e5ce1b8daafcb1eb49c4c72fd6f1258e04dde19d0208d\tSD2SNES/4 Hacks/Hacks - S-Z/Super Metroid Hacks/SM Ancient Chozo (Hack) v1.1 Albert V.sfc\tfa7328f225cf1ffa6d1f34487fb66e63c03ad944\ta817bc339d87dbb68fb03dae8decbcd9\t0f3890f5\t3244032"
+            });
+
+            var parseDat = typeof(GameCatalogProxy).GetMethod(
+                "ParseLibretroDatContent",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var parseSmdb = typeof(GameCatalogProxy).GetMethod(
+                "ParseSmokeMonsterSmdbContent",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            parseDat.Should().NotBeNull();
+            parseSmdb.Should().NotBeNull();
+
+            var seenNames = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var seenHashes = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+
+            var datEntries = (List<GameCatalogEntry>)parseDat.Invoke(
+                null,
+                new object[] { snesPlatform, datContent, "ROM Hacks & Translations", null, seenNames, seenHashes });
+            var smdbEntries = (List<GameCatalogEntry>)parseSmdb.Invoke(
+                Subject,
+                new object[] { snesPlatform, smdbContent, null, seenNames, false, seenHashes });
+
+            datEntries.Should().HaveCount(1);
+            smdbEntries.Should().HaveCount(1);
+            smdbEntries[0].ExpectedSha1.Should().Be("fa7328f225cf1ffa6d1f34487fb66e63c03ad944");
         }
     }
 }
