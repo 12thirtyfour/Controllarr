@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.IndexerSearch.Definitions;
@@ -202,7 +203,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
             foreach (var term in pagedTerms)
             {
-                primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam, isCollectionSearch: isPlatformCollection));
+                primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam, isCollectionSearch: isPlatformCollection, maxPagesOverride: isPlatformCollection ? 1 : (int?)null));
             }
 
             // In interactive search, include global IA search alongside primary archive search so users see all available results
@@ -210,7 +211,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             {
                 foreach (var term in pagedTerms)
                 {
-                    primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: isPlatformCollection));
+                    primaryPagedRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: isPlatformCollection, maxPagesOverride: isPlatformCollection ? 1 : (int?)null));
                 }
             }
 
@@ -225,7 +226,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 var broadRequests = new List<IndexerRequest>();
                 foreach (var term in pagedTerms)
                 {
-                    broadRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: isPlatformCollection));
+                    broadRequests.AddRange(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: isPlatformCollection, maxPagesOverride: isPlatformCollection ? 1 : (int?)null));
                 }
 
                 if (broadRequests.Any())
@@ -269,22 +270,31 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             if (!string.IsNullOrWhiteSpace(platformName))
             {
                 terms.Add(platformName);
-                terms.Add($"{platformName} collection");
-                terms.Add($"{platformName} romset");
-                terms.Add($"{platformName} no-intro");
-                terms.Add($"{platformName} redump");
+
+                var strippedPlatform = Regex.Replace(
+                    platformName,
+                    @"^(?:Nintendo|Sega|Sony|Atari|NEC|SNK|Microsoft|Bandai|Commodore)\s+",
+                    string.Empty,
+                    RegexOptions.IgnoreCase).Trim();
+
+                if (!string.IsNullOrWhiteSpace(strippedPlatform) &&
+                    strippedPlatform.Length >= 4 &&
+                    !string.Equals(strippedPlatform, platformName, StringComparison.OrdinalIgnoreCase))
+                {
+                    terms.Add(strippedPlatform);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(shortName) &&
+                shortName.Length >= 3 &&
                 !string.Equals(shortName, platformName, StringComparison.OrdinalIgnoreCase))
             {
                 terms.Add(shortName);
-                terms.Add($"{shortName} collection");
             }
 
             if (terms.Count == 0 && searchCriteria?.SceneTitles != null)
             {
-                foreach (var sceneTitle in searchCriteria.SceneTitles.Take(5))
+                foreach (var sceneTitle in searchCriteria.SceneTitles.Take(3))
                 {
                     var sanitized = sceneTitle.Trim().TrimStart('@', '[');
                     if (!string.IsNullOrWhiteSpace(sanitized))
@@ -297,12 +307,13 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             return terms.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "", bool ignorePrimaryArchives = false, bool isCollectionSearch = false)
+        private IEnumerable<IndexerRequest> GetPagedRequests(string term, string platformParam = "", bool ignorePrimaryArchives = false, bool isCollectionSearch = false, int? maxPagesOverride = null)
         {
             var query = BuildQuery(term, ignorePrimaryArchives, isCollectionSearch);
             var baseUrl = Settings.BaseUrl.TrimEnd('/');
+            var totalPages = maxPagesOverride ?? MaxPages;
 
-            for (var page = 1; page <= MaxPages; page++)
+            for (var page = 1; page <= totalPages; page++)
             {
                 var url = $"{baseUrl}/advancedsearch.php?q={Uri.EscapeDataString(query)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=collection&fl[]=date&fl[]=item_size&fl[]=publicdate&fl[]=downloads&fl[]=access-restricted-item&rows={PageSize}&page={page}&output=json{platformParam}";
                 yield return new IndexerRequest(new HttpRequest(url, HttpAccept.Json));
