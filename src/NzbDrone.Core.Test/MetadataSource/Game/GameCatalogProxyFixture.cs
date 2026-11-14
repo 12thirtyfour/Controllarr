@@ -792,5 +792,53 @@ game (
             entries[0].Title.Should().Be("3-D Tetris");
             entries[0].NoIntroName.Should().Be("3-D Tetris (USA)");
         }
+
+        [Test]
+        public void should_resolve_game_release_year_via_crc_and_normalized_title_in_libretro_dat()
+        {
+            Subject.TryGetPlatformEntry(1027, out var vbPlatform).Should().BeTrue();
+            var datContent = string.Join("\n", new[]
+            {
+                "game (",
+                "\tname \"3-D Tetris (USA)\"",
+                "\trom ( name \"3-D Tetris (USA) (Rev 1).vb\" size 1048576 crc BB71B522 )",
+                ")",
+                "game (",
+                "\tname \"Innsmouth no Yakata (Japan)\"",
+                "\trom ( name \"Innsmouth no Yakata (Japan).vb\" size 1048576 crc 83CB6A00 )",
+                ")"
+            });
+
+            var releaseDateInfoType = typeof(GameCatalogProxy).GetNestedType("ReleaseDateInfo", System.Reflection.BindingFlags.NonPublic);
+            releaseDateInfoType.Should().NotBeNull();
+            var dictType = typeof(Dictionary<,>).MakeGenericType(typeof(string), releaseDateInfoType);
+            var lookup = System.Activator.CreateInstance(dictType, System.StringComparer.OrdinalIgnoreCase);
+
+            var info1996 = System.Activator.CreateInstance(releaseDateInfoType);
+            releaseDateInfoType.GetProperty("Year").SetValue(info1996, 1996);
+            releaseDateInfoType.GetProperty("ReleaseDate").SetValue(info1996, "1996");
+            dictType.GetMethod("set_Item").Invoke(lookup, new[] { "3-D Tetris", info1996 });
+
+            var info1996Crc = System.Activator.CreateInstance(releaseDateInfoType);
+            releaseDateInfoType.GetProperty("Year").SetValue(info1996Crc, 1996);
+            releaseDateInfoType.GetProperty("ReleaseDate").SetValue(info1996Crc, "1996");
+            dictType.GetMethod("set_Item").Invoke(lookup, new[] { "crc:83CB6A00", info1996Crc });
+
+            var parseMethod = typeof(GameCatalogProxy).GetMethod(
+                "ParseLibretroDatContent",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            parseMethod.Should().NotBeNull();
+
+            var seenNames = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var entries = (List<GameCatalogEntry>)parseMethod.Invoke(
+                null,
+                new object[] { vbPlatform, datContent, "No-Intro", lookup, seenNames });
+
+            entries.Should().HaveCount(2);
+            entries[0].ReleaseYear.Should().Be(1996);
+            entries[0].ReleaseDateString.Should().Be("1996");
+            entries[1].ReleaseYear.Should().Be(1996);
+            entries[1].ReleaseDateString.Should().Be("1996");
+        }
     }
 }

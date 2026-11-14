@@ -168,6 +168,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static readonly List<GameCatalogEntry> BuiltInGames = BuildGames();
         private static readonly ConcurrentDictionary<int, GameCatalogEntry> DynamicGames = new ConcurrentDictionary<int, GameCatalogEntry>();
         private static readonly ConcurrentDictionary<string, List<GameCatalogEntry>> SyncedPlatformGamesCache = new ConcurrentDictionary<string, List<GameCatalogEntry>>();
+        private static readonly ConcurrentDictionary<string, Dictionary<string, ReleaseDateInfo>> ReleaseYearLookupCache = new ConcurrentDictionary<string, Dictionary<string, ReleaseDateInfo>>(StringComparer.OrdinalIgnoreCase);
         private static readonly Queue<string> SyncedCacheEvictionOrder = new Queue<string>();
         private static readonly object SyncedCacheLock = new object();
         private static readonly ConcurrentDictionary<int, HashSet<int>> PendingPlatformGameSelections = new ConcurrentDictionary<int, HashSet<int>>();
@@ -674,6 +675,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var cachedDatEntries = _datCacheService?.GetEntriesForPlatform(platform.Slug, platform.Name, platform.LibretroSystemName);
                 if (cachedDatEntries != null)
                 {
+                    var releaseYearLookup = !string.IsNullOrWhiteSpace(platform.LibretroSystemName) && _httpClient != null
+                        ? FetchReleaseYearLookup(Uri.EscapeDataString(platform.LibretroSystemName))
+                        : null;
                     var datFileMap = _datCacheService?.GetAllDatFiles()?.ToDictionary(d => d.Id) ?? new Dictionary<int, DatFile>();
                     foreach (var datEntry in cachedDatEntries)
                     {
@@ -783,7 +787,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                             }
                         }
 
-                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, effectiveCategory);
+                        var cachedDateInfo = ResolveReleaseDateInfo(releaseYearLookup, datEntry.Crc32, rawName, datEntry.GameName);
+                        var cachedYear = cachedDateInfo?.Year ?? platform.ReleaseYear;
+                        var cachedReleaseDate = cachedDateInfo?.ReleaseDate;
+
+                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, cachedYear, effectiveCategory, customReleaseDate: cachedReleaseDate);
                         if (converted != null && TryRegisterCrossReferencedGame(converted))
                         {
                             DynamicGames[converted.TvdbId] = converted;
@@ -885,7 +893,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             try
             {
                 var escapedSystem = Uri.EscapeDataString(platform.LibretroSystemName);
-                var releaseYearLookup = FetchReleaseYearLookup(escapedSystem);
+                var releaseYearLookup = FetchReleaseYearLookup(escapedSystem, forceRefresh);
 
                 var datFeeds = BuildDatFeedsForPlatform(platform, escapedSystem, encryptionPreference);
 
@@ -1267,22 +1275,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                     continue;
                 }
 
-                var year = platform.ReleaseYear;
-                string releaseDate = null;
-                if (!string.IsNullOrWhiteSpace(crc32) &&
-                    releaseYearLookup != null &&
-                    releaseYearLookup.TryGetValue($"crc:{crc32.ToUpperInvariant()}", out var crcDateInfo))
-                {
-                    year = crcDateInfo.Year;
-                    releaseDate = crcDateInfo.ReleaseDate;
-                }
-                else if (releaseYearLookup != null &&
-                         (releaseYearLookup.TryGetValue(rawName, out var mappedDateInfo) ||
-                          releaseYearLookup.TryGetValue(RomParser.CleanIndexPrefix(rawName), out mappedDateInfo)))
-                {
-                    year = mappedDateInfo.Year;
-                    releaseDate = mappedDateInfo.ReleaseDate;
-                }
+                var smdbDateInfo = ResolveReleaseDateInfo(releaseYearLookup, crc32, rawName);
+                var year = smdbDateInfo?.Year ?? platform.ReleaseYear;
+                var releaseDate = smdbDateInfo?.ReleaseDate;
 
                 var smdbCategory = "SmokeMonster HTGDB / SMDB";
 
@@ -1722,8 +1717,65 @@ namespace NzbDrone.Core.MetadataSource.Game
             return results;
         }
 
-        private Dictionary<string, ReleaseDateInfo> FetchReleaseYearLookup(string escapedSystem)
+        private static ReleaseDateInfo ResolveReleaseDateInfo(
+            Dictionary<string, ReleaseDateInfo> releaseYearLookup,
+            string crc32,
+            params string[] candidateNames)
         {
+            if (releaseYearLookup == null || releaseYearLookup.Count == 0)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(crc32) &&
+                releaseYearLookup.TryGetValue($"crc:{crc32.ToUpperInvariant()}", out var crcDateInfo))
+            {
+                return crcDateInfo;
+            }
+
+            if (candidateNames != null)
+            {
+                foreach (var candidate in candidateNames)
+                {
+                    if (string.IsNullOrWhiteSpace(candidate))
+                    {
+                        continue;
+                    }
+
+                    if (releaseYearLookup.TryGetValue(candidate, out var directMatch))
+                    {
+                        return directMatch;
+                    }
+
+                    var cleaned = RomParser.CleanIndexPrefix(candidate);
+                    if (!string.IsNullOrWhiteSpace(cleaned) && releaseYearLookup.TryGetValue(cleaned, out var cleanedMatch))
+                    {
+                        return cleanedMatch;
+                    }
+
+                    var normalizedTitle = RomParser.ParseRomName(cleaned)?.GameTitle;
+                    if (!string.IsNullOrWhiteSpace(normalizedTitle) && releaseYearLookup.TryGetValue(normalizedTitle, out var titleMatch))
+                    {
+                        return titleMatch;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private Dictionary<string, ReleaseDateInfo> FetchReleaseYearLookup(string escapedSystem, bool forceRefresh = false)
+        {
+            if (string.IsNullOrWhiteSpace(escapedSystem))
+            {
+                return new Dictionary<string, ReleaseDateInfo>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (!forceRefresh && ReleaseYearLookupCache.TryGetValue(escapedSystem, out var cachedLookup))
+            {
+                return cachedLookup;
+            }
+
             var lookup = new Dictionary<string, ReleaseDateInfo>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -1798,6 +1850,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             catch (Exception ex)
             {
                 _logger?.Trace(ex, "Unable to fetch releaseyear DAT metadata for {0}", escapedSystem);
+            }
+
+            if (lookup.Count > 0)
+            {
+                ReleaseYearLookupCache[escapedSystem] = lookup;
             }
 
             return lookup;
@@ -1909,11 +1966,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                     continue;
                 }
 
+                var crcMatch = DatCrcRegex.Match(body);
+                var crc32 = crcMatch.Success ? crcMatch.Groups[1].Value.ToLowerInvariant() : null;
+
                 var year = platform.ReleaseYear;
                 string releaseDate = null;
-                if (releaseYearLookup != null &&
-                    (releaseYearLookup.TryGetValue(rawName, out var mappedDateInfo) ||
-                     releaseYearLookup.TryGetValue(blockName, out mappedDateInfo)))
+                var mappedDateInfo = ResolveReleaseDateInfo(releaseYearLookup, crc32, rawName, blockName);
+                if (mappedDateInfo != null)
                 {
                     year = mappedDateInfo.Year;
                     releaseDate = mappedDateInfo.ReleaseDate;
@@ -1944,10 +2003,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, sourceLabel, customReleaseDate: releaseDate);
                 if (entry != null)
                 {
-                    var crcMatch = DatCrcRegex.Match(body);
-                    if (crcMatch.Success)
+                    if (!string.IsNullOrWhiteSpace(crc32))
                     {
-                        entry.ExpectedCrc32 = crcMatch.Groups[1].Value.ToLowerInvariant();
+                        entry.ExpectedCrc32 = crc32;
                     }
 
                     var md5Match = Regex.Match(body, @"\bmd5\s+([0-9a-fA-F]{32})", RegexOptions.IgnoreCase);
