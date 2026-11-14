@@ -124,6 +124,19 @@ namespace Sonarr.Api.V3.Indexers
                         var series = _seriesService.GetSeries(release.SeriesId.Value);
                         var episodes = _parsingService.GetEpisodes(remoteEpisode.ParsedEpisodeInfo, series, true);
 
+                        if (episodes.Empty() &&
+                            (remoteEpisode.ParsedRomInfo?.IsFullSetArchive == true ||
+                             remoteEpisode.ParsedEpisodeInfo?.FullSeason == true ||
+                             (remoteEpisode.Release?.Title != null &&
+                              (remoteEpisode.Release.Title.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
+                               remoteEpisode.Release.Title.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
+                               remoteEpisode.Release.Title.EndsWith(".rar", StringComparison.OrdinalIgnoreCase)))))
+                        {
+                            var seriesGames = _episodeService.GetEpisodeBySeries(series.Id);
+                            var monitoredGames = seriesGames.FindAll(g => g.Monitored);
+                            episodes = monitoredGames.Count > 0 ? monitoredGames : seriesGames;
+                        }
+
                         if (episodes.Empty())
                         {
                             throw new NzbDroneClientException(HttpStatusCode.NotFound, "Unable to parse episodes in the release, will need to be manually provided");

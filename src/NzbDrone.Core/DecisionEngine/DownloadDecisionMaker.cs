@@ -377,6 +377,13 @@ namespace NzbDrone.Core.DecisionEngine
 
             var isArchive = releaseTitle.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("HTGDB", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("FlashBoy", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("EverDrive", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Ever Drive", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("PowerPak", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("RetroHQ", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("Darksoft", StringComparison.OrdinalIgnoreCase) ||
+                            releaseTitle.Contains("GamePack", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("1G1R", StringComparison.OrdinalIgnoreCase) ||
                             releaseTitle.Contains("No-Intro", StringComparison.OrdinalIgnoreCase) ||
