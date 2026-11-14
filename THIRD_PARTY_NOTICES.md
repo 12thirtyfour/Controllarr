@@ -87,6 +87,7 @@ Controllarr parses online and user-supplied DAT/SMDB catalogs and communicates w
 ## 5. Key Open-Source Libraries (.NET & Frontend)
 
 - **SharpZipLib (`ICSharpCode.SharpZipLib`)** — [MIT License](https://github.com/icsharpcode/SharpZipLib/blob/master/LICENSE.txt) (Archive inspection, central directory CRC32 reading, and `.zip` extraction/repackaging)
+- **SharpCompress** — [MIT License](https://github.com/adamhathcock/sharpcompress/blob/master/LICENSE.txt) (`.7z` and `.rar` multi-game collection archive inspection and extraction)
 - **SixLabors.ImageSharp** — [Six Labors Split License / Apache-2.0](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE) (Cover art and media image processing)
 - **MonoTorrent** — [MIT License](https://github.com/alanmcgovern/monotorrent/blob/master/LICENSE) (BitTorrent `.torrent` file and magnet link parsing)
 - **Dapper** — [Apache License 2.0](https://github.com/DapperLib/Dapper/blob/main/License.txt) (Micro-ORM data access)

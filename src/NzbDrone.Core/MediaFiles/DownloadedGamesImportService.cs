@@ -19,6 +19,8 @@ using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
+using SharpCompress.Archives;
+using SharpCompress.Common;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -276,8 +278,7 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var candidateFile in videoFiles)
             {
                 var ext = Path.GetExtension(candidateFile);
-                if (!string.IsNullOrWhiteSpace(ext) &&
-                    ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                if (IsSupportedMultiGameArchiveExtension(ext) &&
                     IsMultiGameZipArchive(candidateFile))
                 {
                     patchResults.AddRange(ProcessMultiGameZipArchive(new FileInfo(candidateFile), importMode, series, downloadClientItem));
@@ -464,7 +465,7 @@ namespace NzbDrone.Core.MediaFiles
                 }
             }
 
-            if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) && IsMultiGameZipArchive(fileInfo.FullName))
+            if (IsSupportedMultiGameArchiveExtension(extension) && IsMultiGameZipArchive(fileInfo.FullName))
             {
                 return ProcessMultiGameZipArchive(fileInfo, importMode, series, downloadClientItem);
             }
@@ -618,24 +619,47 @@ namespace NzbDrone.Core.MediaFiles
             return hashes;
         }
 
-        private bool IsMultiGameZipArchive(string zipPath)
+        private static bool IsSupportedMultiGameArchiveExtension(string extension)
+        {
+            return !string.IsNullOrWhiteSpace(extension) &&
+                   (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                    extension.Equals(".7z", StringComparison.OrdinalIgnoreCase) ||
+                    extension.Equals(".rar", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool IsMultiGameZipArchive(string archivePath)
         {
             try
             {
-                using var archive = ZipFile.OpenRead(zipPath);
-                var gameEntries = archive.Entries.Where(e =>
+                var extension = Path.GetExtension(archivePath);
+                List<string> entryFullNames;
+
+                if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (e.FullName.EndsWith("/") || e.FullName.EndsWith("\\"))
+                    using var zipArchive = ZipFile.OpenRead(archivePath);
+                    entryFullNames = zipArchive.Entries
+                        .Where(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\"))
+                        .Select(e => e.FullName)
+                        .ToList();
+                }
+                else
+                {
+                    using var archive = ArchiveFactory.OpenArchive(archivePath);
+                    entryFullNames = archive.Entries
+                        .Where(e => !e.IsDirectory && !string.IsNullOrWhiteSpace(e.Key))
+                        .Select(e => e.Key)
+                        .ToList();
+                }
+
+                var gameEntries = entryFullNames.Where(fullName =>
+                {
+                    var name = Path.GetFileName(fullName.Replace('\\', '/'));
+                    if (fullName.Contains("__MACOSX") || name.StartsWith(".") || name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
                     {
                         return false;
                     }
 
-                    if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") || e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return false;
-                    }
-
-                    return MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name));
+                    return MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(name));
                 }).ToList();
 
                 if (gameEntries.Count <= 1)
@@ -643,23 +667,29 @@ namespace NzbDrone.Core.MediaFiles
                     return false;
                 }
 
-                var cueEntries = gameEntries.Where(e =>
-                    Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                    Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
-                    Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+                var cueEntries = gameEntries.Where(fullName =>
+                {
+                    var ext = Path.GetExtension(fullName);
+                    return ext.Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                           ext.Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                           ext.Equals(".ccd", StringComparison.OrdinalIgnoreCase);
+                }).ToList();
 
-                var hasNestedArchives = gameEntries.Any(e =>
-                    Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
-                    Path.GetExtension(e.Name).Equals(".7z", StringComparison.OrdinalIgnoreCase));
+                var hasNestedArchives = gameEntries.Any(fullName =>
+                {
+                    var ext = Path.GetExtension(fullName);
+                    return ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
+                           ext.Equals(".7z", StringComparison.OrdinalIgnoreCase);
+                });
 
                 var isSingleMultiTrack = cueEntries.Count == 1 && !hasNestedArchives &&
-                    gameEntries.Select(e => Path.GetDirectoryName(e.FullName) ?? string.Empty).Distinct().Count() <= 1;
+                    gameEntries.Select(e => Path.GetDirectoryName(e) ?? string.Empty).Distinct().Count() <= 1;
 
                 return !isSingleMultiTrack;
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Unable to inspect zip archive {0}", zipPath);
+                _logger.Debug(ex, "Unable to inspect archive {0}", archivePath);
                 return false;
             }
         }
@@ -680,33 +710,70 @@ namespace NzbDrone.Core.MediaFiles
                     fullExtractRoot += Path.DirectorySeparatorChar;
                 }
 
-                using (var archive = ZipFile.OpenRead(fileInfo.FullName))
+                if (fileInfo.Extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
                 {
-                    foreach (var entry in archive.Entries)
+                    using (var archive = ZipFile.OpenRead(fileInfo.FullName))
                     {
-                        if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
+                        foreach (var entry in archive.Entries)
                         {
-                            continue;
-                        }
+                            if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
+                            {
+                                continue;
+                            }
 
-                        if (entry.FullName.Contains("__MACOSX") || entry.Name.StartsWith(".") || entry.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            if (entry.FullName.Contains("__MACOSX") || entry.Name.StartsWith(".") || entry.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            var destPath = Path.GetFullPath(Path.Combine(extractDir, entry.FullName));
+                            if (!destPath.StartsWith(fullExtractRoot, StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            var destParent = Path.GetDirectoryName(destPath);
+                            if (!string.IsNullOrWhiteSpace(destParent))
+                            {
+                                _diskProvider.EnsureFolder(destParent);
+                            }
+
+                            entry.ExtractToFile(destPath, true);
+                        }
+                    }
+                }
+                else
+                {
+                    using (var archive = ArchiveFactory.OpenArchive(fileInfo.FullName))
+                    {
+                        foreach (var entry in archive.Entries)
                         {
-                            continue;
-                        }
+                            if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                            {
+                                continue;
+                            }
 
-                        var destPath = Path.GetFullPath(Path.Combine(extractDir, entry.FullName));
-                        if (!destPath.StartsWith(fullExtractRoot, StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
+                            var entryKey = entry.Key.Replace('\\', '/');
+                            var entryName = Path.GetFileName(entryKey);
+                            if (entryKey.Contains("__MACOSX") || entryName.StartsWith(".") || entryName.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
 
-                        var destParent = Path.GetDirectoryName(destPath);
-                        if (!string.IsNullOrWhiteSpace(destParent))
-                        {
-                            _diskProvider.EnsureFolder(destParent);
-                        }
+                            var destPath = Path.GetFullPath(Path.Combine(extractDir, entry.Key));
+                            if (!destPath.StartsWith(fullExtractRoot, StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
 
-                        entry.ExtractToFile(destPath, true);
+                            var destParent = Path.GetDirectoryName(destPath);
+                            if (!string.IsNullOrWhiteSpace(destParent))
+                            {
+                                _diskProvider.EnsureFolder(destParent);
+                            }
+
+                            entry.WriteToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
+                        }
                     }
                 }
 

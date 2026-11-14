@@ -422,12 +422,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                             _commandQueue?.Push(new RefreshMonitoredDownloadsCommand(), CommandPriority.High);
                         }
                     }
-
-                    state.TotalSize = Math.Max(state.TotalSize, totalRead);
-                    state.DownloadedBytes = state.TotalSize;
-                    state.Status = DownloadItemStatus.Completed;
-                    _logger.Info("HTTPS download completed: {0} ({1} bytes) -> {2}", filename, totalRead, downloadPath);
                 }
+
+                state.TotalSize = Math.Max(state.TotalSize, state.DownloadedBytes);
+                state.DownloadedBytes = state.TotalSize;
+                state.Status = DownloadItemStatus.Completed;
+                _logger.Info("HTTPS download completed: {0} ({1} bytes) -> {2}", filename, state.DownloadedBytes, downloadPath);
             }
             catch (Exception ex)
             {
