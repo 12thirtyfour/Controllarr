@@ -2116,10 +2116,11 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8,}$") ||
                 Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8}-[0-9a-fA-F]{8}$") ||
-                Regex.IsMatch(trimmed, @"^(?:0{4,})?TU_[A-Za-z0-9_.]+$", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(trimmed, @"^(?:[0-9a-fA-F]{4,})?TU_[A-Za-z0-9_.]+$", RegexOptions.IgnoreCase) ||
                 Regex.IsMatch(trimmed, @"^tu[0-9a-fA-F]{8}_[0-9a-fA-F]{8}$", RegexOptions.IgnoreCase) ||
                 Regex.IsMatch(trimmed, @"^(?:\$?su|SystemUpdate)[0-9a-fA-F_]+$", RegexOptions.IgnoreCase) ||
-                Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8,}_[0-9A-Za-z_]+(?:\.[0-9A-Za-z]+)?$"))
+                Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8,}_[0-9A-Za-z_]+(?:\.[0-9A-Za-z]+)?$") ||
+                Regex.IsMatch(trimmed, @"\.[0-9A-Za-z]{10,}$"))
             {
                 return false;
             }

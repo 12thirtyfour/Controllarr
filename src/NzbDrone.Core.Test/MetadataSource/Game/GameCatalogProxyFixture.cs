@@ -750,6 +750,8 @@ game (
             GameCatalogProxy.IsValidGameTitle("58410A5A").Should().BeFalse();
             GameCatalogProxy.IsValidGameTitle("TU_10L621R_000000C0").Should().BeFalse();
             GameCatalogProxy.IsValidGameTitle("tu00000001_00000000").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("21271645TU_12K225K_000000O000000.00000000000O6").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("213B2D4CTU_12K21US_0000004000000.0000000000081").Should().BeFalse();
             GameCatalogProxy.IsValidGameTitle("4d5307e6_00000000").Should().BeFalse();
             GameCatalogProxy.IsValidGameTitle("$SystemUpdate").Should().BeFalse();
 
