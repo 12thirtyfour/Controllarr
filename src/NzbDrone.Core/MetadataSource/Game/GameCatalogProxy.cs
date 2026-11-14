@@ -115,7 +115,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             ".wav", ".mp3", ".ogg", ".flac", ".ape", ".aac", ".m4a", ".wma",
             ".mid", ".midi", ".mod", ".s3m", ".xm", ".it",
             ".cue", ".sub", ".ccd", ".mds", ".m3u", ".m3u8", ".toc",
-            ".txt", ".nfo", ".xml", ".json", ".sfv", ".sha"
+            ".txt", ".nfo", ".xml", ".json", ".sfv", ".sha",
+            ".dll", ".ocx", ".exe", ".bat", ".cmd", ".ini", ".cfg", ".imp",
+            ".ips", ".bps", ".ups", ".xdelta", ".ppf", ".pdf", ".htm", ".html"
         };
 
         private static readonly HashSet<string> UsaRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -1178,7 +1180,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                                           s.Contains("MD+", StringComparison.OrdinalIgnoreCase) ||
                                           s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase) ||
                                           s.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Firmware", StringComparison.OrdinalIgnoreCase)))
+                                          s.Contains("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Game Boy Emulator", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Equals("Scripts", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Tools & Service", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Service Test", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Demos & Intros", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Equals("InsmEdit", StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
                 }
@@ -1197,6 +1205,11 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 var rawName = StripKnownRomExtension(fileName);
                 rawName = StripTrackOne(rawName);
+                if (rawName.EndsWith("_pad", StringComparison.OrdinalIgnoreCase))
+                {
+                    rawName = rawName.Substring(0, rawName.Length - 4).TrimEnd();
+                }
+
                 rawName = RomParser.CleanIndexPrefix(rawName);
 
                 if (string.IsNullOrWhiteSpace(rawName) ||

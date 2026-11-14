@@ -762,5 +762,35 @@ game (
             nativeFds.Should().NotBeNull();
             nativeFds.Title.Should().Be("Metroid");
         }
+
+        [Test]
+        public void should_filter_virtual_boy_smdb_non_games_and_strip_pad_suffix()
+        {
+            Subject.TryGetPlatformEntry(1027, out var vbPlatform).Should().BeTrue();
+            var smdbContent = string.Join("\n", new[]
+            {
+                "348a85b1030056edb91b9411da8df01847f787e813be803efd315d3520849fc9\tVirtual Boy/1 USA - A-Z/3-D Tetris (USA)_pad.vb\t08a1ce0ea0337a3b91e890d4423b1b3501a0e20d\t7e8014d0d080b80b2eaf77da8894efa4\tb45b10b3\t2097152",
+                "1111111111111111111111111111111111111111111111111111111111111111\tVirtual Boy/unpadded/1 USA - A-Z/3-D Tetris (USA).vb\t1111111111111111111111111111111111111111\t11111111111111111111111111111111\tbb71b522\t1048576",
+                "2222222222222222222222222222222222222222222222222222222222222222\tVirtual Boy/4 Game Boy Emulator/Legend of Zelda - Link's Awakening.vb\t2222222222222222222222222222222222222222\t22222222222222222222222222222222\t12345678\t1048576",
+                "3333333333333333333333333333333333333333333333333333333333333333\tVirtual Boy/4 Game Boy Emulator/Scripts/1942 (USA, Europe).gbc\t3333333333333333333333333333333333333333\t33333333333333333333333333333333\t23456789\t524288",
+                "4444444444444444444444444444444444444444444444444444444444444444\tVirtual Boy/5 Tools & Service Test Carts/VB Sound Tester (PD) v1 Frostgiant.vb\t4444444444444444444444444444444444444444\t44444444444444444444444444444444\t25ee69f2\t1048576",
+                "5555555555555555555555555555555555555555555555555555555555555555\tVirtual Boy/unpadded/4 Hacks/InsmEdit/msvbvm50.dll\t5555555555555555555555555555555555555555\t55555555555555555555555555555555\t3456789a\t1347344",
+                "6666666666666666666666666666666666666666666666666666666666666666\tVirtual Boy/unpadded/4 Homebrew/Demos & Intros/Hello, World! Demo V1.1 by Amos Bieler (PD).vb\t6666666666666666666666666666666666666666\t66666666666666666666666666666666\t456789ab\t1048576"
+            });
+
+            var method = typeof(GameCatalogProxy).GetMethod(
+                "ParseSmokeMonsterSmdbContent",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            method.Should().NotBeNull();
+
+            var seenNames = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var entries = (List<GameCatalogEntry>)method.Invoke(
+                Subject,
+                new object[] { vbPlatform, smdbContent, null, seenNames, false });
+
+            entries.Should().HaveCount(1);
+            entries[0].Title.Should().Be("3-D Tetris");
+            entries[0].NoIntroName.Should().Be("3-D Tetris (USA)");
+        }
     }
 }
