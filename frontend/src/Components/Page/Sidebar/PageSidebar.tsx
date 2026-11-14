@@ -131,6 +131,11 @@ const GROUPS: SidebarGroup[] = [
         to: '/rom-patcher',
       },
       {
+        iconName: icons.DRIVE,
+        title: () => 'Export to SD Card',
+        to: '/export-sd',
+      },
+      {
         iconName: icons.ROOT_FOLDER,
         title: () => 'Virtual Libraries',
         to: '/settings/virtuallibraries',

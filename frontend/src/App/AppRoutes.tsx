@@ -18,6 +18,7 @@ const ImportPlatformSelectFolder = lazy(
     import('AddPlatform/ImportPlatform/SelectFolder/ImportPlatformSelectFolder')
 );
 const RomPatcherPage = lazy(() => import('RomPatcher/RomPatcherPage'));
+const ExportToSdPage = lazy(() => import('ExportToSd/ExportToSdPage'));
 const BiosSettings = lazy(() => import('Settings/Bios/BiosSettings'));
 const CollectionSettings = lazy(
   () => import('Settings/Collection/CollectionSettings')
@@ -94,6 +95,8 @@ export function appRouteElements() {
       <Route path="/bios" element={<BiosSettings />} />
 
       <Route path="/rom-patcher" element={<RomPatcherPage />} />
+
+      <Route path="/export-sd" element={<ExportToSdPage />} />
 
       <Route path="/webplayer" element={<WebPlayerPage />} />
 

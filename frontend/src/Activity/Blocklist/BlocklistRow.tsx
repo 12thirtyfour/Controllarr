@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
 import { useSelect } from 'App/Select/SelectContext';
 import IconButton from 'Components/Link/IconButton';
 import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
@@ -6,9 +7,7 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
-import GameFormats from 'Game/GameFormats';
 import GameLanguages from 'Game/GameLanguages';
-import GameQuality from 'Game/GameQuality';
 import { icons, kinds } from 'Helpers/Props';
 import PlatformTitleLink from 'Platform/PlatformTitleLink';
 import { useSinglePlatform } from 'Platform/usePlatform';
@@ -28,8 +27,6 @@ function BlocklistRow({
   seriesId,
   sourceTitle,
   languages,
-  quality,
-  customFormats,
   date,
   protocol,
   indexer,
@@ -104,18 +101,10 @@ function BlocklistRow({
           );
         }
 
-        if (name === 'format' || name === 'quality') {
-          return (
-            <TableRowCell key={name} className={styles.quality}>
-              <GameQuality quality={quality} />
-            </TableRowCell>
-          );
-        }
-
-        if (name === 'customFormats') {
+        if (name === 'protocol') {
           return (
             <TableRowCell key={name}>
-              <GameFormats formats={customFormats} />
+              <ProtocolLabel protocol={protocol} showSourceName={true} />
             </TableRowCell>
           );
         }

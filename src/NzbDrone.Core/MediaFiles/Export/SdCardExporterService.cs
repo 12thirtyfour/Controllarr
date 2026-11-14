@@ -100,6 +100,14 @@ namespace NzbDrone.Core.MediaFiles.Export
             IEnumerable<SdCardExportItem> items,
             bool overwrite = false,
             bool optimizeFormatsForDevice = false);
+        SdCardExportResult ExportToSdCard(
+            SdCardDeviceProfile profile,
+            string targetMountPath,
+            IEnumerable<SdCardExportItem> items,
+            bool overwrite,
+            bool useCartridgeCompression,
+            bool useDiscCompression);
+        bool IsPlatformSupportedByProfile(SdCardDeviceProfile profile, string platformSlug, string platformTitle = null);
     }
 
     public class SdCardExporterService : ISdCardExporterService
@@ -495,6 +503,38 @@ namespace NzbDrone.Core.MediaFiles.Export
             return ProfileCatalog;
         }
 
+        private static readonly Dictionary<SdCardDeviceProfile, HashSet<string>> ProfilePlatformRestrictions =
+            new Dictionary<SdCardDeviceProfile, HashSet<string>>
+            {
+                [SdCardDeviceProfile.FXPakPro] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "snes", "satellaview", "sgb" },
+                [SdCardDeviceProfile.EZFlash] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gba", "gb", "gbc" },
+                [SdCardDeviceProfile.R4] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nds" },
+                [SdCardDeviceProfile.TwilightMenu] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nds", "dsi", "gb", "gbc", "gba", "nes", "snes", "sms", "gamegear" },
+                [SdCardDeviceProfile.SwissGameCube] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gamecube" },
+                [SdCardDeviceProfile.XStation] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ps1" },
+                [SdCardDeviceProfile.Fenrir] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "saturn" },
+                [SdCardDeviceProfile.GDEMU] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dreamcast" },
+                [SdCardDeviceProfile.AnaloguePocket] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "gb", "gbc", "gba", "nes", "snes", "sms", "gamegear", "genesis", "tg16", "tgcd", "neogeo", "ngp", "ngpc", "lynx", "wonderswan", "wonderswancolor", "arcade"
+                },
+                [SdCardDeviceProfile.EverDrive] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nes", "fds", "snes", "n64", "64dd", "gb", "gbc", "gba", "sms", "genesis", "sega32x", "segacd", "gamegear", "tg16", "tgcd"
+                },
+            };
+
+        public bool IsPlatformSupportedByProfile(SdCardDeviceProfile profile, string platformSlug, string platformTitle = null)
+        {
+            if (!ProfilePlatformRestrictions.TryGetValue(profile, out var allowedSlugs))
+            {
+                return true;
+            }
+
+            var normalized = Parser.PlatformCompatibilityValidator.NormalizePlatformSlug(platformSlug, platformTitle);
+            return !string.IsNullOrWhiteSpace(normalized) && allowedSlugs.Contains(normalized);
+        }
+
         private static readonly HashSet<string> OpticalDiscExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".chd", ".iso", ".cue", ".bin", ".gdi", ".cdi", ".m3u", ".cso", ".wbfs", ".rvz", ".wud", ".wux", ".wua", ".xiso", ".pbp"
@@ -627,9 +667,28 @@ namespace NzbDrone.Core.MediaFiles.Export
             bool optimizeFormatsForDevice = false,
             string innerRomExtensionHint = null)
         {
+            return ResolveExportPlan(
+                profile,
+                platformFolder,
+                gameTitle,
+                sourceFileName,
+                optimizeFormatsForDevice,
+                optimizeFormatsForDevice,
+                innerRomExtensionHint);
+        }
+
+        public SdCardExportPlan ResolveExportPlan(
+            SdCardDeviceProfile profile,
+            string platformFolder,
+            string gameTitle,
+            string sourceFileName,
+            bool useCartridgeCompression,
+            bool useDiscCompression,
+            string innerRomExtensionHint = null)
+        {
             var safeFileName = Path.GetFileName(sourceFileName);
 
-            if (!optimizeFormatsForDevice)
+            if (!useCartridgeCompression && !useDiscCompression)
             {
                 return new SdCardExportPlan
                 {
@@ -644,8 +703,9 @@ namespace NzbDrone.Core.MediaFiles.Export
 
             if (descriptor != null)
             {
-                // 1. Target supports CHD on optical consoles, and source is raw disc (.cue/.iso/.gdi)
-                if (descriptor.SupportsChdForOpticalDiscs &&
+                // 1. Disc compression: compress raw disc if useDiscCompression && target supports CHD/RVZ
+                if (useDiscCompression &&
+                    descriptor.SupportsChdForOpticalDiscs &&
                     RawOpticalDiscExtensions.Contains(ext) &&
                     ChdSupportedPlatforms.Contains(safePlatform))
                 {
@@ -657,8 +717,8 @@ namespace NzbDrone.Core.MediaFiles.Export
                     };
                 }
 
-                // 2. Target supports RVZ on GameCube/Wii, and source is raw disc (.iso/.gcm)
-                if (descriptor.SupportsRvzForGameCubeWii &&
+                if (useDiscCompression &&
+                    descriptor.SupportsRvzForGameCubeWii &&
                     RawOpticalDiscExtensions.Contains(ext) &&
                     RvzSupportedPlatforms.Contains(safePlatform))
                 {
@@ -670,8 +730,8 @@ namespace NzbDrone.Core.MediaFiles.Export
                     };
                 }
 
-                // 3. Target does NOT support CHD (e.g. Mega EverDrive Pro for Sega CD, xStation, Fenrir, GDEMU), and source is .chd
-                if (!descriptor.SupportsChdForOpticalDiscs && ext == ".chd")
+                // 2. Disc decompression: convert .chd/.rvz when target does NOT support them OR user disabled disc compression
+                if ((!descriptor.SupportsChdForOpticalDiscs || !useDiscCompression) && ext == ".chd")
                 {
                     var cueFileName = Path.ChangeExtension(safeFileName, ".cue");
                     return new SdCardExportPlan
@@ -681,8 +741,7 @@ namespace NzbDrone.Core.MediaFiles.Export
                     };
                 }
 
-                // 4. Target does NOT support RVZ (e.g. SwissGameCube / GC Loader), and source is .rvz
-                if (!descriptor.SupportsRvzForGameCubeWii && ext == ".rvz")
+                if ((!descriptor.SupportsRvzForGameCubeWii || !useDiscCompression) && ext == ".rvz")
                 {
                     var isoFileName = Path.ChangeExtension(safeFileName, ".iso");
                     return new SdCardExportPlan
@@ -692,8 +751,9 @@ namespace NzbDrone.Core.MediaFiles.Export
                     };
                 }
 
-                // 5. Target supports per-ROM zip (e.g. MiSTer, RetroArch, OnionOS, Batocera) and source is an uncompressed cartridge ROM
-                if (descriptor.SupportsZipPerRom &&
+                // 3. Cartridge compression: zip raw cartridge ROM if useCartridgeCompression && target supports zip
+                if (useCartridgeCompression &&
+                    descriptor.SupportsZipPerRom &&
                     CartridgeRomExtensions.Contains(ext) &&
                     !ChdSupportedPlatforms.Contains(safePlatform))
                 {
@@ -705,8 +765,8 @@ namespace NzbDrone.Core.MediaFiles.Export
                     };
                 }
 
-                // 6. Target does NOT support .zip (e.g. Analogue Pocket openFPGA, EverDrive, FXPak Pro, EZ-Flash) and source is .zip
-                if (!descriptor.SupportsZipPerRom && ext == ".zip")
+                // 4. Cartridge decompression: extract .zip if target does NOT support .zip OR user disabled cartridge compression
+                if ((!descriptor.SupportsZipPerRom || !useCartridgeCompression) && ext == ".zip")
                 {
                     var targetExt = innerRomExtensionHint.IsNotNullOrWhiteSpace()
                         ? (innerRomExtensionHint.StartsWith(".") ? innerRomExtensionHint : "." + innerRomExtensionHint)
@@ -735,6 +795,23 @@ namespace NzbDrone.Core.MediaFiles.Export
             bool overwrite = false,
             bool optimizeFormatsForDevice = false)
         {
+            return ExportToSdCard(
+                profile,
+                targetMountPath,
+                items,
+                overwrite,
+                optimizeFormatsForDevice,
+                optimizeFormatsForDevice);
+        }
+
+        public SdCardExportResult ExportToSdCard(
+            SdCardDeviceProfile profile,
+            string targetMountPath,
+            IEnumerable<SdCardExportItem> items,
+            bool overwrite,
+            bool useCartridgeCompression,
+            bool useDiscCompression)
+        {
             if (targetMountPath.IsNullOrWhiteSpace())
             {
                 throw new ArgumentException("Target mount path is required.", nameof(targetMountPath));
@@ -744,7 +821,7 @@ namespace NzbDrone.Core.MediaFiles.Export
             {
                 Profile = profile,
                 TargetMountPath = targetMountPath,
-                OptimizeFormatsForDevice = optimizeFormatsForDevice
+                OptimizeFormatsForDevice = useCartridgeCompression || useDiscCompression
             };
 
             if (items == null)
@@ -765,7 +842,8 @@ namespace NzbDrone.Core.MediaFiles.Export
                     item.PlatformFolder,
                     item.GameTitle,
                     Path.GetFileName(item.SourceFilePath),
-                    optimizeFormatsForDevice,
+                    useCartridgeCompression,
+                    useDiscCompression,
                     item.InnerRomExtensionHint);
 
                 var destinationPath = Path.Combine(targetMountPath, plan.RelativeDestinationPath);

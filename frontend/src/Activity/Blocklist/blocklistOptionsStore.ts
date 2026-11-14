@@ -7,7 +7,7 @@ import translate from 'Utilities/String/translate';
 export type BlocklistOptions = PageableOptions;
 
 const { useOptions, useOption, setOptions, setOption, setSort } =
-  createOptionsStore<BlocklistOptions>('blocklist_options', () => {
+  createOptionsStore<BlocklistOptions>('blocklist_options_v2', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
@@ -32,15 +32,9 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isVisible: false,
         },
         {
-          name: 'quality',
-          label: () => translate('Quality'),
+          name: 'protocol',
+          label: () => translate('Source'),
           isSortable: true,
-          isVisible: true,
-        },
-        {
-          name: 'customFormats',
-          label: () => translate('Formats'),
-          isSortable: false,
           isVisible: true,
         },
         {
