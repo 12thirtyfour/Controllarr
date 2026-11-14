@@ -1513,8 +1513,27 @@ namespace NzbDrone.Core.MetadataSource.Game
                         var synopsis = localeEn?.Element("synopsis")?.Value?.Trim();
 
                         var id = gameEl.Element("id")?.Value?.Trim();
+                        var gameType = gameEl.Element("type")?.Value?.Trim();
                         var region = gameEl.Element("region")?.Value?.Trim();
                         var languages = gameEl.Element("languages")?.Value?.Trim();
+
+                        if (!string.IsNullOrWhiteSpace(gameType) &&
+                            (gameType.Equals("System", StringComparison.OrdinalIgnoreCase) ||
+                             gameType.Equals("Channel", StringComparison.OrdinalIgnoreCase) ||
+                             gameType.Equals("Update", StringComparison.OrdinalIgnoreCase) ||
+                             gameType.Equals("DLC", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(id) &&
+                            (id.StartsWith("0005000E", StringComparison.OrdinalIgnoreCase) ||
+                             id.StartsWith("0005000C", StringComparison.OrdinalIgnoreCase) ||
+                             id.StartsWith("00050010", StringComparison.OrdinalIgnoreCase) ||
+                             id.StartsWith("0005001B", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue;
+                        }
 
                         var title = !string.IsNullOrWhiteSpace(localeTitle) && IsValidGameTitle(localeTitle)
                             ? localeTitle
@@ -1981,16 +2000,28 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return false;
             }
 
-            // Reject disc/console bootstrap executables and raw machine/title/content IDs (e.g. Dreamcast EBoot, Wii U 000500001f940e00, Xbox 360 00000000TU_...)
+            // Reject disc/console bootstrap executables, Wii U NUS content files, and raw machine/title/content IDs
             var lowerTrimmed = trimmed.ToLowerInvariant();
-            if (lowerTrimmed is "eboot" or "eboot.bin" or "eboot.pbp" or "1st_read" or "1st_read.bin" or "ip.bin" or "boot.bin" or "default.xex" or "default.xbe")
+            if (lowerTrimmed is "eboot" or "eboot.bin" or "eboot.pbp" or "1st_read" or "1st_read.bin" or "ip.bin" or "boot.bin" or "boot.dol" or "default.xex" or "default.xbe" or "title.tmd" or "title.tik" or "title.cert" or "nxeart" or "systemupdate" or "$systemupdate")
             {
                 return false;
             }
 
-            if (Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{16}$") ||
-                Regex.IsMatch(trimmed, @"^0{4,}TU_[A-Za-z0-9_.]+$", RegexOptions.IgnoreCase) ||
-                Regex.IsMatch(trimmed, @"^[0-9A-F]{8,}_[0-9A-Z_]+(?:\.[0-9A-Z]+)?$"))
+            if (ext.Equals(".app", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".tmd", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".tik", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".cert", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".h3", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8,}$") ||
+                Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8}-[0-9a-fA-F]{8}$") ||
+                Regex.IsMatch(trimmed, @"^(?:0{4,})?TU_[A-Za-z0-9_.]+$", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(trimmed, @"^tu[0-9a-fA-F]{8}_[0-9a-fA-F]{8}$", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(trimmed, @"^(?:\$?su|SystemUpdate)[0-9a-fA-F_]+$", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(trimmed, @"^[0-9a-fA-F]{8,}_[0-9A-Za-z_]+(?:\.[0-9A-Za-z]+)?$"))
             {
                 return false;
             }
@@ -2033,6 +2064,15 @@ namespace NzbDrone.Core.MetadataSource.Game
             string customReleaseDate = null)
         {
             if (!IsValidGameTitle(noIntroName))
+            {
+                return null;
+            }
+
+            if (platform?.Slug != null &&
+                !platform.Slug.Equals("wii", StringComparison.OrdinalIgnoreCase) &&
+                !platform.Slug.Equals("wiiu", StringComparison.OrdinalIgnoreCase) &&
+                !platform.Slug.Equals("3ds", StringComparison.OrdinalIgnoreCase) &&
+                Regex.IsMatch(noIntroName, @"\((?:(?:Wii U|Wii|3DS)\s+)?Virtual Console\)", RegexOptions.IgnoreCase))
             {
                 return null;
             }
@@ -2523,7 +2563,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            if (noIntroName.Contains("(Virtual Console)", StringComparison.OrdinalIgnoreCase))
+            if (Regex.IsMatch(noIntroName, @"\((?:(?:Wii U|Wii|3DS)\s+)?Virtual Console\)", RegexOptions.IgnoreCase))
             {
                 parts.Add("Virtual Console");
             }

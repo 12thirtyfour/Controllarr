@@ -740,5 +740,27 @@ game (
             gdEntry.Should().NotBeNull();
             gdEntry.RegionNumber.Should().Be(GameCatalogProxy.RegionHomebrew);
         }
+
+        [Test]
+        public void should_filter_wiiu_xbox360_artifacts_and_fds_virtual_console()
+        {
+            GameCatalogProxy.IsValidGameTitle("00050000-1010EC00").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("00000001.app").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("title.tmd").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("58410A5A").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("TU_10L621R_000000C0").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("tu00000001_00000000").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("4d5307e6_00000000").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("$SystemUpdate").Should().BeFalse();
+
+            Subject.TryGetPlatformEntry(1002, out var fdsPlatform).Should().BeTrue();
+            GameCatalogProxy.CreateCatalogEntryFromNoIntroName(fdsPlatform, "Super Mario Bros. (Japan) (Wii Virtual Console)", 1986, "No-Intro")
+                .Should().BeNull();
+            GameCatalogProxy.CreateCatalogEntryFromNoIntroName(fdsPlatform, "Metroid (Japan) (3DS Virtual Console)", 1986, "No-Intro")
+                .Should().BeNull();
+            var nativeFds = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(fdsPlatform, "Metroid (Japan)", 1986, "No-Intro");
+            nativeFds.Should().NotBeNull();
+            nativeFds.Title.Should().Be("Metroid");
+        }
     }
 }
