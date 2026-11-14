@@ -276,6 +276,14 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var candidateFile in videoFiles)
             {
                 var ext = Path.GetExtension(candidateFile);
+                if (!string.IsNullOrWhiteSpace(ext) &&
+                    ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                    IsMultiGameZipArchive(candidateFile))
+                {
+                    patchResults.AddRange(ProcessMultiGameZipArchive(new FileInfo(candidateFile), importMode, series, downloadClientItem));
+                    continue;
+                }
+
                 if (_romPatchingService != null &&
                     !string.IsNullOrWhiteSpace(ext) &&
                     MediaFileExtensions.PatchExtensions.Contains(ext))
@@ -708,7 +716,12 @@ namespace NzbDrone.Core.MediaFiles
                     ? ((downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy)
                     : importMode;
 
-                if (effectiveImportMode == ImportMode.Move && folderResults.Any(i => i.Result == ImportResultType.Imported))
+                var hasRemainingUnimportedFiles = folderResults.Any(i => i.Result == ImportResultType.Rejected) ||
+                                                  (_diskProvider.FolderExists(extractDir) && !ShouldDeleteFolder(new DirectoryInfo(extractDir), series));
+
+                if (effectiveImportMode == ImportMode.Move &&
+                    folderResults.Any(i => i.Result == ImportResultType.Imported) &&
+                    !hasRemainingUnimportedFiles)
                 {
                     if (_diskProvider.FileExists(fileInfo.FullName))
                     {

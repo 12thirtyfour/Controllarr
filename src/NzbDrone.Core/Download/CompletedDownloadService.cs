@@ -252,7 +252,10 @@ namespace NzbDrone.Core.Download
                                                    .Count() >= Math.Max(1,
                                           trackedDownload.RemoteEpisode.Episodes.Count);
 
-            if (!allEpisodesImported && isCollectionDownload && importResults.Any(c => c.Result == ImportResultType.Imported))
+            if (!allEpisodesImported &&
+                isCollectionDownload &&
+                importResults.Any(c => c.Result == ImportResultType.Imported) &&
+                !importResults.Any(c => c.Result == ImportResultType.Rejected))
             {
                 allEpisodesImported = true;
             }
