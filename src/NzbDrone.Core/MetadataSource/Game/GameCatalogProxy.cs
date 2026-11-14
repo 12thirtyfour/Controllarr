@@ -693,8 +693,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                             continue;
                         }
 
-                        if (!string.IsNullOrWhiteSpace(datEntry.RomName) &&
-                            datEntry.RomName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase))
+                        if (!string.IsNullOrWhiteSpace(datEntry.RomName))
+                        {
+                            var romExt = Path.GetExtension(datEntry.RomName.Replace('\\', '/'));
+                            if (datEntry.RomName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase) ||
+                                (!string.IsNullOrWhiteSpace(romExt) && NonRomOrAudioExtensions.Contains(romExt)))
+                            {
+                                continue;
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath) && ShouldSkipSmdbPath(datEntry.SmdbPath))
                         {
                             continue;
                         }
@@ -718,6 +727,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                         {
                             rawName = StripKnownRomExtension(Path.GetFileName(rawName.Replace('\\', '/')));
                             rawName = StripTrackOne(rawName);
+                            if (rawName.EndsWith("_pad", StringComparison.OrdinalIgnoreCase))
+                            {
+                                rawName = rawName.Substring(0, rawName.Length - 4).TrimEnd();
+                            }
+
                             rawName = RomParser.CleanIndexPrefix(rawName);
                             if (!string.IsNullOrWhiteSpace(datEntry.Region))
                             {
@@ -1141,6 +1155,36 @@ namespace NzbDrone.Core.MetadataSource.Game
             public string ReleaseDate { get; set; }
         }
 
+        private static bool ShouldSkipSmdbPath(string smdbPath)
+        {
+            if (string.IsNullOrWhiteSpace(smdbPath))
+            {
+                return false;
+            }
+
+            var normalizedSmdbPath = smdbPath.Replace('\\', '/');
+            var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            // Skip EverDrive duplicate playlist / collection sets (Best-Of, Top 100, Franchise, Genre, etc.),
+            // subfolder audio/asset packs (FMVDATA, AUDIO, DATA, MD+, MSU-1), BIOS/firmware, and non-native emulator/tool folders
+            return pathSegments.Any(s => s.Contains("Game Series Collections", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Best-Of", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Top 100", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("FMVDATA", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("AUDIO", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("DATA", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("MD+", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Game Boy Emulator", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("Scripts", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Tools & Service", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Service Test", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Demos & Intros", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("InsmEdit", StringComparison.OrdinalIgnoreCase));
+        }
+
         private List<GameCatalogEntry> ParseSmokeMonsterSmdbContent(
             PlatformCatalogEntry platform,
             string smdbContent,
@@ -1169,24 +1213,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var normalizedSmdbPath = smdbPath.Replace('\\', '/');
                 var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-                // Skip EverDrive duplicate playlist / collection sets (Best-Of, Top 100, Franchise, Genre, etc.)
-                // and subfolder audio/asset packs (FMVDATA, AUDIO, DATA, MD+, MSU-1) and BIOS/firmware files
-                if (pathSegments.Any(s => s.Contains("Game Series Collections", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Best-Of", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Top 100", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("FMVDATA", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("AUDIO", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Equals("DATA", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("MD+", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Firmware", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Game Boy Emulator", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Equals("Scripts", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Tools & Service", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Service Test", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Contains("Demos & Intros", StringComparison.OrdinalIgnoreCase) ||
-                                          s.Equals("InsmEdit", StringComparison.OrdinalIgnoreCase)))
+                if (ShouldSkipSmdbPath(normalizedSmdbPath))
                 {
                     continue;
                 }
