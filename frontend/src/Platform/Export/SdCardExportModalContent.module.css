@@ -1,0 +1,41 @@
+.profileDetails {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  background-color: var(--paperWarm);
+}
+
+.pathTemplateContainer {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.pathTemplate {
+  font-weight: 600;
+  font-family: var(--monospaceFontFamily);
+}
+
+.chipsContainer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.optimizationHelp {
+  margin-top: 8px;
+  color: var(--inkMuted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.optimizationHelpList {
+  margin-top: 4px;
+  margin-bottom: 0;
+  padding-left: 18px;
+}
+
+.resultContainer {
+  margin-top: 16px;
+}

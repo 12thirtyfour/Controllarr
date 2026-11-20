@@ -1,0 +1,58 @@
+using System;
+using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Download;
+using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Tv;
+
+namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
+{
+    public class AbsoluteGameNumberSpecification : IImportDecisionEngineSpecification
+    {
+        private readonly IBuildFileNames _buildFileNames;
+        private readonly Logger _logger;
+
+        public AbsoluteGameNumberSpecification(IBuildFileNames buildFileNames, Logger logger)
+        {
+            _buildFileNames = buildFileNames;
+            _logger = logger;
+        }
+
+        public ImportSpecDecision IsSatisfiedBy(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
+        {
+            if (localEpisode.Series.SeriesType != SeriesTypes.Anime)
+            {
+                _logger.Debug("Series type is not Anime, skipping check");
+                return ImportSpecDecision.Accept();
+            }
+
+            if (!_buildFileNames.RequiresAbsoluteEpisodeNumber())
+            {
+                _logger.Debug("File name format does not require absolute episode number, skipping check");
+                return ImportSpecDecision.Accept();
+            }
+
+            foreach (var episode in localEpisode.Episodes)
+            {
+                var airDateUtc = episode.AirDateUtc;
+                var absoluteEpisodeNumber = episode.AbsoluteEpisodeNumber;
+
+                if (airDateUtc.HasValue && airDateUtc.Value.Before(DateTime.UtcNow.AddDays(-1)))
+                {
+                    _logger.Debug("Game released more than 1 day ago");
+                    continue;
+                }
+
+                if (!absoluteEpisodeNumber.HasValue)
+                {
+                    _logger.Debug("Game does not have an absolute game number");
+
+                    return ImportSpecDecision.Reject(ImportRejectionReason.MissingAbsoluteGameNumber, "Game does not have an absolute game number");
+                }
+            }
+
+            return ImportSpecDecision.Accept();
+        }
+    }
+}

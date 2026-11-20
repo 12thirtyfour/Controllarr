@@ -1,0 +1,273 @@
+name: Build & Release
+
+# Branch model:
+# - `develop` is the staging/testing branch. It intentionally has NO automated builds.
+#   Anyone wanting to run develop builds from source.
+# - `main` is the stable branch. Every push/merge to `main` runs the full build + test suite,
+#   then packages all 10 OS/arch targets plus the multi-arch Docker image and publishes a
+#   GitHub Release for `RELEASE_VERSION` (skipped if that release already exists).
+# - Pushing a version tag (e.g. `v1.0.1` or `v1.1.0-rc.1`) publishes that exact version.
+#   Tags containing a `-` suffix are published as pre-releases.
+# - Pull requests targeting `main` run build + tests only (no packaging or publishing).
+#
+# To cut a new release: bump RELEASE_VERSION below (or push a `vX.Y.Z` tag) and merge to `main`.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FRAMEWORK: net10.0
+  RELEASE_VERSION: 1.0.0-rc.1
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      framework: ${{ steps.variables.outputs.framework }}
+      major_version: ${{ steps.variables.outputs.major_version }}
+      version: ${{ steps.variables.outputs.version }}
+      release_version: ${{ steps.variables.outputs.release_version }}
+      prerelease: ${{ steps.variables.outputs.prerelease }}
+      branch: ${{ steps.variables.outputs.branch }}
+      publish: ${{ steps.variables.outputs.publish }}
+    steps:
+      - name: Setup Environment Variables
+        id: variables
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            release_version="${GITHUB_REF_NAME#v}"
+          else
+            release_version="${RELEASE_VERSION}"
+          fi
+
+          # Numeric part (e.g. 1.0.0 from 1.0.0-rc.1) is used for the 4-part assembly version.
+          numeric_version="${release_version%%-*}"
+
+          if [[ "${release_version}" == *-* ]]; then
+            prerelease=true
+          else
+            prerelease=false
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            publish=false
+          else
+            publish=true
+          fi
+
+          echo "framework=${FRAMEWORK}" >> "$GITHUB_OUTPUT"
+          echo "major_version=${numeric_version%%.*}" >> "$GITHUB_OUTPUT"
+          echo "version=${numeric_version}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+          echo "branch=main" >> "$GITHUB_OUTPUT"
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: freebsd-x64
+            package_tests: false
+            os: ubuntu-24.04
+          - runtime: linux-arm
+            package_tests: false
+            os: ubuntu-24.04
+          - runtime: linux-arm64
+            package_tests: false
+            os: ubuntu-24.04
+          - runtime: linux-musl-arm64
+            package_tests: false
+            os: ubuntu-24.04
+          - runtime: linux-musl-x64
+            package_tests: false
+            os: ubuntu-24.04
+          - runtime: linux-x64
+            package_tests: true
+            os: ubuntu-24.04
+          - runtime: osx-arm64
+            package_tests: true
+            os: ubuntu-24.04
+          - runtime: osx-x64
+            package_tests: false
+            os: ubuntu-24.04
+          - runtime: win-x64
+            package_tests: true
+            os: ubuntu-24.04
+          - runtime: win-x86
+            package_tests: false
+            os: ubuntu-24.04
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          branch: ${{ needs.prepare.outputs.branch }}
+          version: ${{ needs.prepare.outputs.version }}
+          framework: ${{ needs.prepare.outputs.framework }}
+          runtime: ${{ matrix.runtime }}
+          package_tests: ${{ matrix.package_tests }}
+
+  frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Volta
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Yarn Install
+        run: yarn install --frozen-lockfile
+
+      - parallel:
+        - name: Lint
+          run: yarn lint
+
+        - name: Stylelint
+          run: yarn stylelint -f github
+
+        - name: Build
+          run: yarn build
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Publish UI Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build_ui
+          path: _output/UI/**/*
+
+  unit_test:
+    needs: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-24.04
+            artifact: tests-linux-x64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+          - os: macos-latest
+            artifact: tests-osx-arm64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+          - os: windows-latest
+            artifact: tests-win-x64
+            filter: TestCategory!=ManualTest&TestCategory!=LINUX&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          os: ${{ matrix.os }}
+          artifact: ${{ matrix.artifact }}
+          pattern: Controllarr.*.Test.dll
+          filter: ${{ matrix.filter }}
+
+  unit_test_postgres:
+    needs: backend
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres-version: [16, 17, 18]
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          os: ubuntu-24.04
+          artifact: tests-linux-x64
+          pattern: Controllarr.*.Test.dll
+          filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory!=IntegrationTest&TestCategory!=AutomationTest
+          use_postgres: true
+          postgres-version: ${{ matrix.postgres-version }}
+
+  integration_test:
+    needs: [prepare, backend]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-24.04
+            artifact: tests-linux-x64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory=IntegrationTest
+            binary_artifact: build-linux-x64
+            binary_path: linux-x64/${{ needs.prepare.outputs.framework }}/Sonarr
+          - os: macos-latest
+            artifact: tests-osx-arm64
+            filter: TestCategory!=ManualTest&TestCategory!=WINDOWS&TestCategory=IntegrationTest
+            binary_artifact: build-osx-arm64
+            binary_path: osx-arm64/${{ needs.prepare.outputs.framework }}/Sonarr
+          - os: windows-latest
+            artifact: tests-win-x64
+            filter: TestCategory!=ManualTest&TestCategory!=LINUX&TestCategory=IntegrationTest
+            binary_artifact: build-win-x64
+            binary_path: win-x64/${{ needs.prepare.outputs.framework }}/Sonarr
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Test
+        uses: ./.github/actions/test
+        with:
+          os: ${{ matrix.os }}
+          artifact: ${{ matrix.artifact }}
+          pattern: Controllarr.*.Test.dll
+          filter: ${{ matrix.filter }}
+          integration_tests: true
+          binary_artifact: ${{ matrix.binary_artifact }}
+          binary_path: ${{ matrix.binary_path }}
+
+  deploy:
+    if: ${{ needs.prepare.outputs.publish == 'true' }}
+    needs:
+      [
+        prepare,
+        backend,
+        frontend,
+        unit_test,
+        unit_test_postgres,
+        integration_test,
+      ]
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: write
+      packages: write
+    with:
+      framework: ${{ needs.prepare.outputs.framework }}
+      branch: ${{ needs.prepare.outputs.branch }}
+      major_version: ${{ needs.prepare.outputs.major_version }}
+      version: ${{ needs.prepare.outputs.version }}
+      release_version: ${{ needs.prepare.outputs.release_version }}
+      prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}

@@ -1,0 +1,16 @@
+namespace NzbDrone.Core.Tv
+{
+    public enum PlatformTypes
+    {
+        Standard = 0,
+        Daily = 1,
+        Anime = 2,
+    }
+
+    public enum SeriesTypes
+    {
+        Standard = 0,
+        Daily = 1,
+        Anime = 2,
+    }
+}

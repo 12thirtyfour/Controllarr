@@ -1,0 +1,416 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using FizzWare.NBuilder;
+using FluentAssertions;
+using Moq;
+using NUnit.Framework;
+using NzbDrone.Common.Disk;
+using NzbDrone.Core.Organizer;
+using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
+using NzbDrone.Test.Common;
+
+namespace NzbDrone.Core.Test.RootFolderTests
+{
+    [TestFixture]
+    public class RootFolderServiceFixture : CoreTest<RootFolderService>
+    {
+        private NamingConfig _namingConfig;
+
+        [SetUp]
+        public void Setup()
+        {
+            _namingConfig = NamingConfig.Default;
+            _namingConfig.SeriesFolderFormat = "{Platform}";
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(m => m.FolderExists(It.IsAny<string>()))
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(m => m.FolderWritable(It.IsAny<string>()))
+                  .Returns(true);
+
+            Mocker.GetMock<IRootFolderRepository>()
+                  .Setup(s => s.All())
+                  .Returns(new List<RootFolder>());
+
+            Mocker.GetMock<INamingConfigService>()
+                  .Setup(c => c.GetConfig())
+                  .Returns(_namingConfig);
+        }
+
+        private void WithNonExistingFolder()
+        {
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(m => m.FolderExists(It.IsAny<string>()))
+                .Returns(false);
+        }
+
+        [TestCase("D:\\TV Shows\\")]
+        [TestCase("//server//folder")]
+        public void should_be_able_to_add_root_dir(string path)
+        {
+            Mocker.GetMock<ISeriesRepository>()
+                  .Setup(s => s.AllSeriesPaths())
+                  .Returns(new Dictionary<int, string>());
+
+            var root = new RootFolder { Path = path.AsOsAgnostic() };
+
+            Subject.Add(root);
+
+            Mocker.GetMock<IRootFolderRepository>().Verify(c => c.Insert(root), Times.Once());
+        }
+
+        [Test]
+        public void should_throw_if_folder_being_added_doesnt_exist()
+        {
+            WithNonExistingFolder();
+
+            Assert.Throws<DirectoryNotFoundException>(() => Subject.Add(new RootFolder { Path = "C:\\TEST".AsOsAgnostic() }));
+        }
+
+        [Test]
+        public void should_be_able_to_remove_root_dir()
+        {
+            Subject.Remove(1);
+            Mocker.GetMock<IRootFolderRepository>().Verify(c => c.Delete(1), Times.Once());
+        }
+
+        [TestCase("")]
+        [TestCase(null)]
+        [TestCase("BAD PATH")]
+        public void invalid_folder_path_throws_on_add(string path)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                    Mocker.Resolve<RootFolderService>().Add(new RootFolder { Id = 0, Path = path }));
+        }
+
+        [Test]
+        public void adding_duplicated_root_folder_should_throw()
+        {
+            Mocker.GetMock<IRootFolderRepository>().Setup(c => c.All()).Returns(new List<RootFolder> { new RootFolder { Path = "C:\\TV".AsOsAgnostic() } });
+
+            Assert.Throws<InvalidOperationException>(() => Subject.Add(new RootFolder { Path = @"C:\TV".AsOsAgnostic() }));
+        }
+
+        [Test]
+        public void should_throw_when_adding_not_writable_folder()
+        {
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(m => m.FolderWritable(It.IsAny<string>()))
+                  .Returns(false);
+
+            Assert.Throws<UnauthorizedAccessException>(() => Subject.Add(new RootFolder { Path = @"C:\TV".AsOsAgnostic() }));
+        }
+
+        [TestCase("$recycle.bin")]
+        [TestCase("system volume information")]
+        [TestCase("recycler")]
+        [TestCase("lost+found")]
+        [TestCase(".appledb")]
+        [TestCase(".appledesktop")]
+        [TestCase(".appledouble")]
+        [TestCase("@eadir")]
+        [TestCase(".grab")]
+        public void should_get_root_folder_with_subfolders_excluding_special_sub_folders(string subFolder)
+        {
+            var rootFolderPath = @"C:\Test\TV".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                                                .With(r => r.Path = rootFolderPath)
+                                                .Build();
+
+            var subFolders = new[]
+                        {
+                            "Series1",
+                            "Series2",
+                            "Series3",
+                            subFolder
+                        };
+
+            var folders = subFolders.Select(f => Path.Combine(rootFolderPath, f)).ToArray();
+
+            Mocker.GetMock<IRootFolderRepository>()
+                  .Setup(s => s.Get(It.IsAny<int>()))
+                  .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                  .Setup(s => s.AllSeriesPaths())
+                  .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(s => s.GetDirectories(rootFolder.Path))
+                  .Returns(folders);
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, true).UnmappedFolders;
+
+            unmappedFolders.Count.Should().BeGreaterThan(0);
+            unmappedFolders.Should().NotContain(u => u.Name == subFolder);
+        }
+
+        [Test]
+        public void should_get_unmapped_folders_inside_letter_subfolder()
+        {
+            _namingConfig.SeriesFolderFormat = "{Series TitleFirstCharacter}\\{Series Title}".AsOsAgnostic();
+
+            var rootFolderPath = @"C:\Test\TV".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var subFolderPath = Path.Combine(rootFolderPath, "S");
+
+            var subFolders = new[]
+            {
+                "Series1",
+                "Series2",
+                "Series3",
+            };
+
+            var folders = subFolders.Select(f => Path.Combine(subFolderPath, f)).ToArray();
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolder.Path))
+                .Returns(new[] { subFolderPath });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(subFolderPath))
+                .Returns(folders);
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Count.Should().Be(3);
+        }
+
+        [Test]
+        public void should_detect_collection_zip_file_as_unmapped_platform()
+        {
+            var rootFolderPath = @"C:\Test\Roms".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(new[] { Path.Combine(rootFolderPath, "NES.zip") });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Name.Should().Be("Nintendo Entertainment System");
+            unmappedFolders.First().RelativePath.Should().Be("NES");
+        }
+
+        [Test]
+        public void should_group_region_subfolders_into_parent_platform()
+        {
+            var rootFolderPath = @"C:\Test\NES".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var usaFolder = Path.Combine(rootFolderPath, "USA");
+            var europeFolder = Path.Combine(rootFolderPath, "Europe");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { usaFolder, europeFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, true))
+                .Returns(new[] { Path.Combine(usaFolder, "Super Mario Bros. (USA).nes") });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Name.Should().Be("Nintendo Entertainment System");
+            unmappedFolders.First().RelativePath.Should().Be("NES");
+        }
+
+        [Test]
+        public void should_identify_extracted_folder_with_game_subfolders_as_single_platform()
+        {
+            var rootFolderPath = @"C:\Test\Sega CD".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var sonicFolder = Path.Combine(rootFolderPath, "Sonic CD (USA)");
+            var lunarFolder = Path.Combine(rootFolderPath, "Lunar (USA)");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { sonicFolder, lunarFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, true))
+                .Returns(new[]
+                {
+                    Path.Combine(sonicFolder, "Sonic CD (USA).cue"),
+                    Path.Combine(lunarFolder, "Lunar (USA).cue")
+                });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Name.Should().Be("Sega CD");
+            unmappedFolders.First().Path.Should().Be(rootFolderPath);
+        }
+
+        [Test]
+        public void should_list_both_zip_archive_and_already_extracted_folder_in_same_root_folder()
+        {
+            var rootFolderPath = @"C:\Test\Import".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var extractedFolder = Path.Combine(rootFolderPath, "Game Boy Pack");
+            var zipArchive = Path.Combine(rootFolderPath, "Game Boy Pack.zip");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { extractedFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(new[] { zipArchive });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(2);
+            unmappedFolders.Should().Contain(u => u.Path == zipArchive && u.Name == "Nintendo Game Boy");
+            unmappedFolders.Should().Contain(u => u.Path == extractedFolder && u.Name == "Nintendo Game Boy");
+        }
+
+        [Test]
+        public void should_list_already_extracted_subfolder_containing_roms_even_when_folder_name_has_no_platform_keyword()
+        {
+            var rootFolderPath = @"C:\Test\Import".AsOsAgnostic();
+            var rootFolder = Builder<RootFolder>.CreateNew()
+                .With(r => r.Path = rootFolderPath)
+                .Build();
+
+            var extractedFolder = Path.Combine(rootFolderPath, "MyExtractedCollection");
+
+            Mocker.GetMock<IRootFolderRepository>()
+                .Setup(s => s.Get(It.IsAny<int>()))
+                .Returns(rootFolder);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(rootFolderPath))
+                .Returns(new[] { extractedFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(rootFolderPath, false))
+                .Returns(Array.Empty<string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(extractedFolder, true))
+                .Returns(new[] { Path.Combine(extractedFolder, "Tetris (World).gb") });
+
+            var unmappedFolders = Subject.Get(rootFolder.Id, false).UnmappedFolders;
+
+            unmappedFolders.Should().HaveCount(1);
+            unmappedFolders.First().Path.Should().Be(extractedFolder);
+            unmappedFolders.First().Name.Should().Be("Nintendo Game Boy");
+        }
+
+        [Test]
+        public void should_return_top_level_folders_and_archives_for_import_folder_even_with_nested_series_folder_format()
+        {
+            _namingConfig.SeriesFolderFormat = "{Manufacturer}\\{Platform}".AsOsAgnostic();
+
+            var importPath = @"C:\Imports\Staging".AsOsAgnostic();
+            var nesFolder = Path.Combine(importPath, "Nintendo Entertainment System");
+            var nesUsaFolder = Path.Combine(nesFolder, "USA");
+            var snesArchive = Path.Combine(importPath, "Super Nintendo.zip");
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.FolderExists(importPath))
+                .Returns(true);
+
+            Mocker.GetMock<ISeriesRepository>()
+                .Setup(s => s.AllSeriesPaths())
+                .Returns(new Dictionary<int, string>());
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(importPath))
+                .Returns(new[] { nesFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetDirectories(nesFolder))
+                .Returns(new[] { nesUsaFolder });
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.GetFiles(importPath, false))
+                .Returns(new[] { snesArchive });
+
+            var unmappedFolders = Subject.GetImportUnmappedFolders(importPath);
+
+            unmappedFolders.Should().HaveCount(2);
+            unmappedFolders.Should().Contain(u => u.Path == nesFolder && u.Name == "Nintendo Entertainment System");
+            unmappedFolders.Should().Contain(u => u.Path == Path.Combine(importPath, "Super Nintendo") && u.Name == "Super Nintendo Entertainment System");
+            unmappedFolders.Should().NotContain(u => u.Path == nesUsaFolder);
+        }
+    }
+}

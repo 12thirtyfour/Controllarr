@@ -1,0 +1,586 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSelect } from 'App/Select/SelectContext';
+import Icon from 'Components/Icon';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import TableRowCellButton from 'Components/Table/Cells/TableRowCellButton';
+import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
+import Column from 'Components/Table/Column';
+import TableRow from 'Components/Table/TableRow';
+import Popover from 'Components/Tooltip/Popover';
+import Game from 'Game/Game';
+import GameFormats from 'Game/GameFormats';
+import GameLanguages from 'Game/GameLanguages';
+import GameQuality from 'Game/GameQuality';
+import getReleaseTypeName from 'Game/getReleaseTypeName';
+import IndexerFlags from 'Game/IndexerFlags';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import SelectGameModal from 'InteractiveImport/Game/SelectGameModal';
+import { SelectedGame } from 'InteractiveImport/Game/SelectGameModalContent';
+import SelectIndexerFlagsModal from 'InteractiveImport/IndexerFlags/SelectIndexerFlagsModal';
+import InteractiveImport from 'InteractiveImport/InteractiveImport';
+import SelectLanguageModal from 'InteractiveImport/Language/SelectLanguageModal';
+import SelectPlatformModal from 'InteractiveImport/Platform/SelectPlatformModal';
+import SelectQualityModal from 'InteractiveImport/Quality/SelectQualityModal';
+import SelectRegionModal from 'InteractiveImport/Region/SelectRegionModal';
+import ReleaseType from 'InteractiveImport/ReleaseType';
+import SelectReleaseTypeModal from 'InteractiveImport/ReleaseType/SelectReleaseTypeModal';
+import { useUpdateInteractiveImportItem } from 'InteractiveImport/useInteractiveImport';
+import Language from 'Language/Language';
+import Series from 'Platform/Platform';
+import { QualityModel } from 'Quality/Quality';
+import formatSeason from 'Region/formatRegion';
+import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
+import { SelectStateInputProps } from 'typings/props';
+import Rejection from 'typings/Rejection';
+import formatBytes from 'Utilities/Number/formatBytes';
+import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
+import translate from 'Utilities/String/translate';
+import InteractiveImportRowCellPlaceholder from './InteractiveImportRowCellPlaceholder';
+import styles from './InteractiveImportRow.module.css';
+
+type SelectType =
+  | 'series'
+  | 'season'
+  | 'game'
+  | 'quality'
+  | 'language'
+  | 'indexerFlags'
+  | 'releaseType';
+
+type SelectedChangeProps = SelectStateInputProps & {
+  hasRomFileId: boolean;
+};
+
+interface InteractiveImportRowProps {
+  id: number;
+  allowSeriesChange: boolean;
+  relativePath: string;
+  series?: Series;
+  seasonNumber?: number;
+  games?: Game[];
+  releaseGroup?: string;
+  quality?: QualityModel;
+  languages?: Language[];
+  size: number;
+  releaseType: ReleaseType;
+  customFormats?: CustomFormat[];
+  customFormatScore?: number;
+  indexerFlags: number;
+  rejections: Rejection[];
+  columns: Column[];
+  romFileId?: number;
+  isReprocessing?: boolean;
+  modalTitle: string;
+  onReprocessItems: (ids: number[]) => void;
+  onSelectedChange(result: SelectedChangeProps): void;
+  onValidRowChange(id: number, isValid: boolean): void;
+}
+
+function InteractiveImportRow(props: InteractiveImportRowProps) {
+  const {
+    id,
+    allowSeriesChange,
+    relativePath,
+    series,
+    seasonNumber,
+    games = [],
+    quality,
+    languages,
+    size,
+    releaseType,
+    customFormats = [],
+    customFormatScore,
+    indexerFlags,
+    rejections,
+    isReprocessing,
+    modalTitle,
+    romFileId,
+    columns,
+    onReprocessItems,
+    onSelectedChange,
+    onValidRowChange,
+  } = props;
+
+  const { useIsSelected } = useSelect<InteractiveImport>();
+  const isSelected = useIsSelected(id);
+  const { updateInteractiveImportItem } = useUpdateInteractiveImportItem();
+
+  const isSeriesColumnVisible = useMemo(
+    () => columns.find((c) => c.name === 'series')?.isVisible ?? false,
+    [columns]
+  );
+  const isIndexerFlagsColumnVisible = useMemo(
+    () => columns.find((c) => c.name === 'indexerFlags')?.isVisible ?? false,
+    [columns]
+  );
+
+  const [selectModalOpen, setSelectModalOpen] = useState<SelectType | null>(
+    null
+  );
+
+  useEffect(
+    () => {
+      if (
+        allowSeriesChange &&
+        series &&
+        seasonNumber != null &&
+        games.length &&
+        quality &&
+        languages &&
+        size > 0
+      ) {
+        onSelectedChange({
+          id,
+          hasRomFileId: !!romFileId,
+          value: true,
+          shiftKey: false,
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  useEffect(() => {
+    const isValid = !!(
+      series &&
+      seasonNumber != null &&
+      games.length &&
+      quality &&
+      languages
+    );
+
+    if (isSelected && !isValid) {
+      onValidRowChange(id, false);
+    } else {
+      onValidRowChange(id, true);
+    }
+  }, [
+    id,
+    series,
+    seasonNumber,
+    games,
+    quality,
+    languages,
+    isSelected,
+    onValidRowChange,
+  ]);
+
+  const handleSelectedChange = useCallback(
+    (result: SelectStateInputProps) => {
+      onSelectedChange({
+        ...result,
+        hasRomFileId: !!romFileId,
+      });
+    },
+    [romFileId, onSelectedChange]
+  );
+
+  const selectRowAfterChange = useCallback(() => {
+    if (!isSelected) {
+      onSelectedChange({
+        id,
+        hasRomFileId: !!romFileId,
+        value: true,
+        shiftKey: false,
+      });
+    }
+  }, [id, romFileId, isSelected, onSelectedChange]);
+
+  const onSelectModalClose = useCallback(() => {
+    setSelectModalOpen(null);
+  }, [setSelectModalOpen]);
+
+  const onSelectSeriesPress = useCallback(() => {
+    setSelectModalOpen('series');
+  }, [setSelectModalOpen]);
+
+  const onSeriesSelect = useCallback(
+    (series: Series) => {
+      updateInteractiveImportItem(id, {
+        series,
+        seasonNumber: undefined,
+        games: [],
+      });
+
+      onReprocessItems([id]);
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const onSelectSeasonPress = useCallback(() => {
+    setSelectModalOpen('season');
+  }, [setSelectModalOpen]);
+
+  const onSeasonSelect = useCallback(
+    (seasonNumber: number) => {
+      updateInteractiveImportItem(id, {
+        seasonNumber,
+        games: [],
+      });
+
+      onReprocessItems([id]);
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const onSelectGamePress = useCallback(() => {
+    setSelectModalOpen('game');
+  }, [setSelectModalOpen]);
+
+  const onGamesSelect = useCallback(
+    (selectedGames: SelectedGame[]) => {
+      const games = selectedGames[0].games;
+      updateInteractiveImportItem(id, { games });
+      onReprocessItems([id]);
+
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const onSelectQualityPress = useCallback(() => {
+    setSelectModalOpen('quality');
+  }, [setSelectModalOpen]);
+
+  const onQualitySelect = useCallback(
+    (quality: QualityModel) => {
+      updateInteractiveImportItem(id, { quality });
+      onReprocessItems([id]);
+
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const onSelectLanguagePress = useCallback(() => {
+    setSelectModalOpen('language');
+  }, [setSelectModalOpen]);
+
+  const onLanguagesSelect = useCallback(
+    (languages: Language[]) => {
+      updateInteractiveImportItem(id, { languages });
+      onReprocessItems([id]);
+
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const onSelectReleaseTypePress = useCallback(() => {
+    setSelectModalOpen('releaseType');
+  }, [setSelectModalOpen]);
+
+  const onReleaseTypeSelect = useCallback(
+    (releaseType: ReleaseType) => {
+      updateInteractiveImportItem(id, { releaseType });
+      onReprocessItems([id]);
+
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const onSelectIndexerFlagsPress = useCallback(() => {
+    setSelectModalOpen('indexerFlags');
+  }, [setSelectModalOpen]);
+
+  const onIndexerFlagsSelect = useCallback(
+    (indexerFlags: number) => {
+      updateInteractiveImportItem(id, { indexerFlags });
+      onReprocessItems([id]);
+
+      setSelectModalOpen(null);
+      selectRowAfterChange();
+    },
+    [
+      id,
+      updateInteractiveImportItem,
+      onReprocessItems,
+      setSelectModalOpen,
+      selectRowAfterChange,
+    ]
+  );
+
+  const platformTitle = series ? series.title : '';
+  const isAnime = series?.seriesType === 'anime';
+
+  const gameInfo = games.map((game) => {
+    return <div key={game.id}>{game.title}</div>;
+  });
+
+  const requiresSeasonNumber = isNaN(Number(seasonNumber));
+  const showSeriesPlaceholder = isSelected && !series;
+  const showSeasonNumberPlaceholder =
+    isSelected && !!series && requiresSeasonNumber && !isReprocessing;
+  const showGamesPlaceholder =
+    isSelected && Number.isInteger(seasonNumber) && !games.length;
+  const showQualityPlaceholder = isSelected && !quality;
+  const showLanguagePlaceholder = isSelected && !languages;
+  const showIndexerFlagsPlaceholder = isSelected && !indexerFlags;
+
+  return (
+    <TableRow>
+      <TableSelectCell
+        id={id}
+        isSelected={isSelected}
+        onSelectedChange={handleSelectedChange}
+      />
+
+      <TableRowCell className={styles.relativePath} title={relativePath}>
+        {relativePath}
+      </TableRowCell>
+
+      {isSeriesColumnVisible ? (
+        <TableRowCellButton
+          isDisabled={!allowSeriesChange}
+          title={
+            allowSeriesChange ? translate('ClickToChangePlatform') : undefined
+          }
+          onPress={onSelectSeriesPress}
+        >
+          {showSeriesPlaceholder ? (
+            <InteractiveImportRowCellPlaceholder />
+          ) : (
+            platformTitle
+          )}
+        </TableRowCellButton>
+      ) : null}
+
+      <TableRowCellButton
+        isDisabled={!series}
+        title={series ? translate('ClickToChangeRegion') : undefined}
+        onPress={onSelectSeasonPress}
+      >
+        {showSeasonNumberPlaceholder ? (
+          <InteractiveImportRowCellPlaceholder />
+        ) : (
+          (seasonNumber == null
+            ? null
+            : formatSeason(seasonNumber, false, series?.titleSlug)) ??
+          seasonNumber
+        )}
+
+        {isReprocessing && seasonNumber == null ? (
+          <LoadingIndicator className={styles.reprocessing} size={20} />
+        ) : null}
+      </TableRowCellButton>
+
+      <TableRowCellButton
+        isDisabled={!series || requiresSeasonNumber}
+        title={
+          series && !requiresSeasonNumber
+            ? translate('ClickToChangeGame')
+            : undefined
+        }
+        onPress={onSelectGamePress}
+      >
+        {showGamesPlaceholder ? (
+          <InteractiveImportRowCellPlaceholder />
+        ) : (
+          gameInfo
+        )}
+      </TableRowCellButton>
+
+      <TableRowCellButton
+        className={styles.quality}
+        title={translate('ClickToChangeQuality')}
+        onPress={onSelectQualityPress}
+      >
+        {showQualityPlaceholder && <InteractiveImportRowCellPlaceholder />}
+
+        {!showQualityPlaceholder && !!quality && (
+          <GameQuality className={styles.label} quality={quality} />
+        )}
+      </TableRowCellButton>
+
+      <TableRowCellButton
+        className={styles.languages}
+        title={translate('ClickToChangeLanguage')}
+        onPress={onSelectLanguagePress}
+      >
+        {showLanguagePlaceholder && <InteractiveImportRowCellPlaceholder />}
+
+        {!showLanguagePlaceholder && !!languages && (
+          <GameLanguages className={styles.label} languages={languages} />
+        )}
+      </TableRowCellButton>
+
+      <TableRowCell>{formatBytes(size)}</TableRowCell>
+
+      <TableRowCellButton
+        title={translate('ClickToChangeReleaseType')}
+        onPress={onSelectReleaseTypePress}
+      >
+        {getReleaseTypeName(releaseType)}
+      </TableRowCellButton>
+
+      <TableRowCell>
+        {customFormats?.length ? (
+          <Popover
+            anchor={formatCustomFormatScore(
+              customFormatScore,
+              customFormats.length
+            )}
+            title={translate('CustomFormats')}
+            body={
+              <div className={styles.customFormatTooltip}>
+                <GameFormats formats={customFormats} />
+              </div>
+            }
+            position={tooltipPositions.LEFT}
+          />
+        ) : null}
+      </TableRowCell>
+
+      {isIndexerFlagsColumnVisible ? (
+        <TableRowCellButton
+          title={translate('ClickToChangeIndexerFlags')}
+          onPress={onSelectIndexerFlagsPress}
+        >
+          {showIndexerFlagsPlaceholder ? (
+            <InteractiveImportRowCellPlaceholder isOptional={true} />
+          ) : (
+            <>
+              {indexerFlags ? (
+                <Popover
+                  anchor={<Icon name={icons.FLAG} />}
+                  isAnchorFocusable={false}
+                  title={translate('IndexerFlags')}
+                  body={<IndexerFlags indexerFlags={indexerFlags} />}
+                  position={tooltipPositions.LEFT}
+                />
+              ) : null}
+            </>
+          )}
+        </TableRowCellButton>
+      ) : null}
+
+      <TableRowCell>
+        {rejections.length ? (
+          <Popover
+            anchor={<Icon name={icons.DANGER} kind={kinds.DANGER} />}
+            title={translate('ReleaseRejected')}
+            body={
+              <ul>
+                {rejections.map((rejection, index) => {
+                  return <li key={index}>{rejection.message}</li>;
+                })}
+              </ul>
+            }
+            position={tooltipPositions.LEFT}
+            canFlip={false}
+          />
+        ) : null}
+      </TableRowCell>
+
+      <SelectPlatformModal
+        isOpen={selectModalOpen === 'series'}
+        modalTitle={modalTitle}
+        onSeriesSelect={onSeriesSelect}
+        onModalClose={onSelectModalClose}
+      />
+
+      <SelectRegionModal
+        isOpen={selectModalOpen === 'season'}
+        seriesId={series?.id}
+        modalTitle={modalTitle}
+        onSeasonSelect={onSeasonSelect}
+        onModalClose={onSelectModalClose}
+      />
+
+      <SelectGameModal
+        isOpen={selectModalOpen === 'game'}
+        selectedIds={[id]}
+        seriesId={series?.id}
+        isAnime={isAnime}
+        seasonNumber={seasonNumber}
+        selectedDetails={relativePath}
+        modalTitle={modalTitle}
+        onGamesSelect={onGamesSelect}
+        onModalClose={onSelectModalClose}
+      />
+
+      <SelectQualityModal
+        isOpen={selectModalOpen === 'quality'}
+        qualityId={quality ? quality.quality.id : 0}
+        proper={quality ? quality.revision.version > 1 : false}
+        real={quality ? quality.revision.real > 0 : false}
+        modalTitle={modalTitle}
+        onQualitySelect={onQualitySelect}
+        onModalClose={onSelectModalClose}
+      />
+
+      <SelectLanguageModal
+        isOpen={selectModalOpen === 'language'}
+        languageIds={languages ? languages.map((l) => l.id) : []}
+        modalTitle={modalTitle}
+        onLanguagesSelect={onLanguagesSelect}
+        onModalClose={onSelectModalClose}
+      />
+
+      <SelectReleaseTypeModal
+        isOpen={selectModalOpen === 'releaseType'}
+        releaseType={releaseType ?? 'unknown'}
+        modalTitle={modalTitle}
+        onReleaseTypeSelect={onReleaseTypeSelect}
+        onModalClose={onSelectModalClose}
+      />
+
+      <SelectIndexerFlagsModal
+        isOpen={selectModalOpen === 'indexerFlags'}
+        indexerFlags={indexerFlags ?? 0}
+        modalTitle={modalTitle}
+        onIndexerFlagsSelect={onIndexerFlagsSelect}
+        onModalClose={onSelectModalClose}
+      />
+    </TableRow>
+  );
+}
+
+export default InteractiveImportRow;

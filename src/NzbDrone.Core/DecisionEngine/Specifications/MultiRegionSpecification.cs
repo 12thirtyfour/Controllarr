@@ -1,0 +1,34 @@
+using NLog;
+using NzbDrone.Core.Parser.Model;
+
+namespace NzbDrone.Core.DecisionEngine.Specifications
+{
+    public class MultiRegionSpecification : IDownloadDecisionEngineSpecification
+    {
+        private readonly Logger _logger;
+
+        public MultiRegionSpecification(Logger logger)
+        {
+            _logger = logger;
+        }
+
+        public SpecificationPriority Priority => SpecificationPriority.Default;
+        public RejectionType Type => RejectionType.Permanent;
+
+        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)
+        {
+            if (subject.ParsedEpisodeInfo.IsMultiSeason)
+            {
+                if (information.SearchCriteria is IndexerSearch.Definitions.RegionSearchCriteria { IsPlatformCollectionSearch: true })
+                {
+                    return DownloadSpecDecision.Accept();
+                }
+
+                _logger.Debug("Multi-region release {0} rejected. Not supported", subject.Release.Title);
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.MultiSeason, "Multi-region releases are not supported");
+            }
+
+            return DownloadSpecDecision.Accept();
+        }
+    }
+}

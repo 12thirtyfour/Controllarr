@@ -1,0 +1,157 @@
+using System.Linq;
+using FluentAssertions;
+using NUnit.Framework;
+using NzbDrone.Core.Parser;
+using NzbDrone.Core.Qualities;
+
+namespace NzbDrone.Core.Test.ParserTests
+{
+    [TestFixture]
+    public class RomParserFixture
+    {
+        [Test]
+        public void Should_parse_simple_title()
+        {
+            var result = RomParser.ParseRomName("Super Mario World (USA).sfc");
+            result.GameTitle.Should().Be("Super Mario World");
+            result.Regions.Should().Contain("USA");
+            result.Format.Should().Be("sfc");
+        }
+
+        [TestCase("Castlevania (USA) (Rev 1).nes", "Castlevania", "USA", "1", "nes")]
+        [TestCase("Zelda II - The Adventure of Link (Europe).nes", "Zelda II - The Adventure of Link", "Europe", null, "nes")]
+        [TestCase("Chrono Trigger (Japan) (v1.1).sfc", "Chrono Trigger", "Japan", "1.1", "sfc")]
+        [TestCase("Super Mario 64 (USA) (Rev A).z64", "Super Mario 64", "USA", "A", "z64")]
+        [TestCase("NES/A-F/Castlevania (USA) (Rev 1).nes", "Castlevania", "USA", "1", "nes")]
+        [TestCase("001 Legend of Zelda, The (USA).sfc", "Legend of Zelda, The", "USA", null, "sfc")]
+        [TestCase("002 Chrono Trigger (USA).sfc", "Chrono Trigger", "USA", null, "sfc")]
+        [TestCase("001-Super Mario World (USA).sfc", "Super Mario World", "USA", null, "sfc")]
+        [TestCase("[001] Super Mario World (USA).sfc", "Super Mario World", "USA", null, "sfc")]
+        [TestCase("#001 Super Mario World (USA).sfc", "Super Mario World", "USA", null, "sfc")]
+        [TestCase("01 - Metroid (USA).nes", "Metroid", "USA", null, "nes")]
+        [TestCase("Final Fantasy III (USA) (Rev 1).sfc", "Final Fantasy III", "USA", "1", "sfc")]
+        [TestCase("Donkey Kong Country (USA) (Rev. 1).sfc", "Donkey Kong Country", "USA", "1", "sfc")]
+        [TestCase("Super Metroid (Japan, USA).sfc", "Super Metroid", "USA", null, "sfc")]
+        [TestCase("1942 (USA).nes", "1942", "USA", null, "nes")]
+        [TestCase("2020 Super Baseball (USA).sfc", "2020 Super Baseball", "USA", null, "sfc")]
+        [TestCase("3 Ninjas Kick Back (USA).sfc", "3 Ninjas Kick Back", "USA", null, "sfc")]
+        [TestCase("7th Saga, The (USA).sfc", "7th Saga, The", "USA", null, "sfc")]
+        [TestCase("Pokemon Moon (USA) (Update v1.2).cia", "Pokemon Moon", "USA", "Update v1.2", "cia")]
+        [TestCase("The Legend of Zelda - Breath of the Wild (USA) (Update v1.6.0).nsp", "The Legend of Zelda - Breath of the Wild", "USA", "Update v1.6.0", "nsp")]
+        [TestCase("Mario Kart 8 (USA) (Update 4.1).wux", "Mario Kart 8", "USA", "Update 4.1", "wux")]
+        public void Should_parse_real_world_roms(string title, string expectedTitle, string expectedRegion, string expectedRevision, string expectedFormat)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.GameTitle.Should().Be(expectedTitle);
+            result.Regions.Should().Contain(expectedRegion);
+            if (expectedRevision != null)
+            {
+                if (result.Revision != null)
+                    result.Revision.Should().Be(expectedRevision);
+                else
+                    result.Version.Should().Be(expectedRevision);
+            }
+            result.Format.Should().Be(expectedFormat);
+        }
+
+        [Test]
+        public void Should_parse_full_set_archive()
+        {
+            var result = RomParser.ParseRomName("Nintendo - Super Nintendo Entertainment System (20240501-120000).zip");
+            result.IsFullSetArchive.Should().BeTrue();
+            result.GameTitle.Should().Be("Nintendo - Super Nintendo Entertainment System");
+            result.Format.Should().Be("zip");
+        }
+
+        [Test]
+        public void Should_parse_quality_tags()
+        {
+            var result = RomParser.ParseRomName("Some Game [!].nes");
+            result.Quality.Quality.Should().Be(Quality.VerifiedGoodDump);
+
+            result = RomParser.ParseRomName("Bad Game [b].nes");
+            result.Quality.Quality.Should().Be(Quality.UnverifiedRaw);
+
+            result = RomParser.ParseRomName("Translation [T+Eng].nes");
+            result.Quality.Quality.Should().Be(Quality.TranslationPatch);
+        }
+
+        [TestCase("Some Game (Headered).smc", "Headered")]
+        [TestCase("Another Game (NES 2.0).nes", "NES 2.0")]
+        public void Should_parse_hardware_tags(string title, string expectedTag)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.HardwareTags.Should().Contain(expectedTag);
+        }
+
+        [TestCase("Game (Disc 1).iso", "1", null)]
+        [TestCase("Game (Track 02).bin", null, "02")]
+        public void Should_parse_disc_and_track_numbers(string title, string expectedDisc, string expectedTrack)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.DiscNumber.Should().Be(expectedDisc);
+            result.TrackNumber.Should().Be(expectedTrack);
+        }
+
+        [TestCase("_Top/Game.nes", "Game")]
+        [TestCase("A-F/Another.nes", "Another")]
+        [TestCase("1 USA/Third.nes", "Third")]
+        [TestCase("Translations/Translated.nes", "Translated")]
+        public void Should_strip_ignored_prefixes(string title, string expectedTitle)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.GameTitle.Should().Be(expectedTitle);
+        }
+
+        [Test]
+        public void Should_return_null_for_empty_title()
+        {
+            var result = RomParser.ParseRomName("  ");
+            result.Should().BeNull();
+        }
+
+        [Test]
+        public void Should_not_treat_language_codes_as_geographic_regions()
+        {
+            var result = RomParser.ParseRomName("Monster Fruit Academy (World) (EN,FR,JA,KO,ZHCN).nsp");
+            result.GameTitle.Should().Be("Monster Fruit Academy");
+            result.Regions.Should().Contain("World");
+            result.Regions.Should().NotContain("EN");
+            result.Regions.Should().NotContain("JA");
+        }
+
+        [Test]
+        public void Should_parse_bios_tags_and_assign_bios_region()
+        {
+            var result = RomParser.ParseRomName("[BIOS] Sega CD (USA) (v1.10).bin");
+            result.DumpTags.Should().Contain("BIOS");
+            result.RegionNumber.Should().Be(99);
+
+            var result2 = RomParser.ParseRomName("Famicom Disk System (Japan) (Boot ROM).bin");
+            result2.DumpTags.Should().Contain("BIOS");
+            result2.RegionNumber.Should().Be(99);
+
+            var result3 = RomParser.ParseRomName("bios_CD_U.bin");
+            result3.RegionNumber.Should().Be(99);
+        }
+
+        [TestCase("Pocket Monsters (J).gb", "Pocket Monsters", 3)]
+        [TestCase("Super Mario Land (U).gb", "Super Mario Land", 1)]
+        [TestCase("Tetris (E).gb", "Tetris", 2)]
+        [TestCase("Kirby's Dream Land (JUE).gb", "Kirby's Dream Land", 4)]
+        public void Should_parse_short_region_codes_and_assign_region_number(string title, string expectedTitle, int expectedRegion)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.GameTitle.Should().Be(expectedTitle);
+            result.RegionNumber.Should().Be(expectedRegion);
+        }
+
+        [TestCase("@Game Boy Color SMDB 2022-05-12.zip")]
+        [TestCase("Nintendo 64DD No-Intro Collection.zip")]
+        public void Should_detect_full_set_archives_for_smdb_and_at_packs(string title)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.IsFullSetArchive.Should().BeTrue();
+        }
+    }
+}

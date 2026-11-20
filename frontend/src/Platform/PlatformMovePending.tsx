@@ -1,0 +1,24 @@
+import React from 'react';
+import Icon from 'Components/Icon';
+import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
+
+interface SeriesMovePendingProps {
+  className?: string;
+  pendingPath: string;
+}
+
+function PlatformMovePending({
+  className,
+  pendingPath,
+}: SeriesMovePendingProps) {
+  return (
+    <Icon
+      className={className}
+      name={icons.PENDING}
+      title={translate('PlatformMovePending', { path: pendingPath })}
+    />
+  );
+}
+
+export default PlatformMovePending;

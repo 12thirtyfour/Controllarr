@@ -1,0 +1,119 @@
+import { keepPreviousData } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
+import { Filter, FilterBuilderProp } from 'Filters/Filter';
+import { useCustomFiltersList } from 'Filters/useCustomFilters';
+import Game from 'Game/Game';
+import { setGameQueryKey } from 'Game/useGame';
+import usePage from 'Helpers/Hooks/usePage';
+import usePagedApiQuery from 'Helpers/Hooks/usePagedApiQuery';
+import { filterBuilderValueTypes } from 'Helpers/Props';
+import findSelectedFilters from 'Utilities/Filter/findSelectedFilters';
+import translate from 'Utilities/String/translate';
+import { useCutoffUnmetOptions } from './cutoffUnmetOptionsStore';
+
+export const FILTERS: Filter[] = [
+  {
+    key: 'monitored',
+    label: () => translate('Monitored'),
+    filters: [
+      {
+        key: 'monitored',
+        value: [true],
+        type: 'equal',
+      },
+    ],
+  },
+  {
+    key: 'unmonitored',
+    label: () => translate('Unmonitored'),
+    filters: [
+      {
+        key: 'monitored',
+        value: [false],
+        type: 'equal',
+      },
+    ],
+  },
+];
+
+export const FILTER_BUILDER: FilterBuilderProp<Game>[] = [
+  {
+    name: 'monitored',
+    label: () => translate('Monitored'),
+    type: 'equal',
+    valueType: filterBuilderValueTypes.BOOL,
+  },
+  {
+    name: 'seriesIds',
+    label: () => translate('Platform'),
+    type: 'equal',
+    valueType: filterBuilderValueTypes.SERIES,
+  },
+  {
+    name: 'qualityProfileIds',
+    label: () => translate('QualityProfile'),
+    type: 'equal',
+    valueType: filterBuilderValueTypes.QUALITY_PROFILE,
+  },
+  {
+    name: 'seriesType',
+    label: () => translate('PlatformType'),
+    type: 'equal',
+    valueType: filterBuilderValueTypes.SERIES_TYPES,
+  },
+  {
+    name: 'seriesTags',
+    label: () => translate('Tags'),
+    type: 'array',
+    valueType: filterBuilderValueTypes.TAG,
+  },
+  {
+    name: 'format',
+    label: () => translate('Format'),
+    type: 'equal',
+    valueType: filterBuilderValueTypes.QUALITY,
+  },
+];
+
+const useCutoffUnmet = () => {
+  const { page, goToPage } = usePage('cutoffUnmet');
+  const { pageSize, selectedFilterKey, sortKey, sortDirection } =
+    useCutoffUnmetOptions();
+  const customFilters = useCustomFiltersList('wanted.cutoffUnmet');
+
+  const filters = useMemo(() => {
+    return findSelectedFilters(selectedFilterKey, FILTERS, customFilters);
+  }, [selectedFilterKey, customFilters]);
+
+  const { isPlaceholderData, queryKey, ...query } = usePagedApiQuery<Game>({
+    path: '/wanted/cutoff',
+    page,
+    pageSize,
+    filters,
+    sortKey,
+    sortDirection,
+    queryOptions: {
+      placeholderData: keepPreviousData,
+    },
+  });
+
+  useEffect(() => {
+    if (!isPlaceholderData) {
+      setGameQueryKey('wanted.cutoffUnmet', queryKey);
+    }
+  }, [isPlaceholderData, queryKey]);
+
+  return {
+    ...query,
+    goToPage,
+    isPlaceholderData,
+    page,
+    filters,
+  };
+};
+
+export default useCutoffUnmet;
+
+export const useFilters = () => {
+  return FILTERS;
+};

@@ -1,0 +1,396 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Delay;
+using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Tv;
+
+namespace NzbDrone.Core.DecisionEngine
+{
+    public class DownloadDecisionComparer : IComparer<DownloadDecision>
+    {
+        private readonly IConfigService _configService;
+        private readonly IDelayProfileService _delayProfileService;
+
+        public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
+        public delegate int CompareDelegate<TSubject, TValue>(DownloadDecision x, DownloadDecision y);
+
+        public DownloadDecisionComparer(IConfigService configService, IDelayProfileService delayProfileService)
+        {
+            _configService = configService;
+            _delayProfileService = delayProfileService;
+        }
+
+        public int Compare(DownloadDecision x, DownloadDecision y)
+        {
+            var comparers = new List<CompareDelegate>
+            {
+                CompareQuality,
+                CompareCustomFormatScore,
+                CompareProtocol,
+                CompareEpisodeCount,
+                CompareEpisodeNumber,
+                CompareCollectionStrategy,
+                CompareIndexerPriority,
+                ComparePeersIfTorrent,
+                CompareAgeIfUsenet,
+                CompareSize
+            };
+
+            return comparers.Select(comparer => comparer(x, y)).FirstOrDefault(result => result != 0);
+        }
+
+        private int CompareCollectionStrategy(DownloadDecision x, DownloadDecision y)
+        {
+            var series = x.RemoteEpisode.Series ?? y.RemoteEpisode.Series;
+            if (series == null)
+            {
+                return 0;
+            }
+
+            var xRomInfo = x.RemoteEpisode.ParsedRomInfo;
+            var yRomInfo = y.RemoteEpisode.ParsedRomInfo;
+
+            if (xRomInfo == null && yRomInfo == null)
+            {
+                return 0;
+            }
+
+            if (xRomInfo == null)
+            {
+                return -1;
+            }
+
+            if (yRomInfo == null)
+            {
+                return 1;
+            }
+
+            // Pinned versions take precedence over everything else
+            var pinnedVersion = series.PinnedVersion;
+            if (!string.IsNullOrWhiteSpace(pinnedVersion))
+            {
+                var xIsPinned = xRomInfo.Version == pinnedVersion || xRomInfo.Revision == pinnedVersion;
+                var yIsPinned = yRomInfo.Version == pinnedVersion || yRomInfo.Revision == pinnedVersion;
+
+                if (xIsPinned && !yIsPinned)
+                {
+                    return -1;
+                }
+
+                if (yIsPinned && !xIsPinned)
+                {
+                    return 1;
+                }
+            }
+
+            // 1G1R Tie-Breaking: Demos, Protos, Betas, and Samples are never considered for 1G1R
+            if (series.CollectionStrategy != Games.CollectionStrategy.Preservationist)
+            {
+                var xPreRelease = IsPreReleaseRom(xRomInfo);
+                var yPreRelease = IsPreReleaseRom(yRomInfo);
+                if (xPreRelease != yPreRelease)
+                {
+                    return xPreRelease ? 1 : -1;
+                }
+            }
+
+            if (series.CollectionStrategy == Games.CollectionStrategy.OneGameOneRom ||
+                (series.CollectionStrategy == Games.CollectionStrategy.OneGamePerRegionPerConsole &&
+                 string.Equals(xRomInfo.Regions?.FirstOrDefault(), yRomInfo.Regions?.FirstOrDefault(), StringComparison.OrdinalIgnoreCase)))
+            {
+                // Revision Preference tie-breaking
+                if (!string.IsNullOrWhiteSpace(xRomInfo.Revision) && !string.IsNullOrWhiteSpace(yRomInfo.Revision))
+                {
+                    var xRev = xRomInfo.Revision;
+                    var yRev = yRomInfo.Revision;
+
+                    if (xRev != yRev)
+                    {
+                        var comparison = string.Compare(xRev, yRev, StringComparison.OrdinalIgnoreCase);
+                        if (series.RevisionPreference == Games.RevisionPreference.LatestRevision)
+                        {
+                            return comparison * -1; // Highest revision wins
+                        }
+
+                        return comparison; // Initial release wins
+                    }
+                }
+                else if (string.IsNullOrWhiteSpace(xRomInfo.Revision) != string.IsNullOrWhiteSpace(yRomInfo.Revision))
+                {
+                    var xHasRevision = !string.IsNullOrWhiteSpace(xRomInfo.Revision);
+                    var yHasRevision = !string.IsNullOrWhiteSpace(yRomInfo.Revision);
+
+                    if (series.RevisionPreference == Games.RevisionPreference.LatestRevision)
+                    {
+                        return xHasRevision ? -1 : 1;
+                    }
+
+                    return xHasRevision ? 1 : -1;
+                }
+            }
+
+            return 0;
+        }
+
+        private static bool IsPreReleaseRom(ParsedRomInfo romInfo)
+        {
+            if (romInfo == null)
+            {
+                return false;
+            }
+
+            if (romInfo.DumpTags != null && romInfo.DumpTags.Any(t =>
+                t.StartsWith("Proto", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Beta", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Demo", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Sample", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("Promo", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var raw = romInfo.ReleaseTitle ?? string.Empty;
+            return raw.Contains("(Proto", StringComparison.OrdinalIgnoreCase) ||
+                   raw.Contains("(Beta", StringComparison.OrdinalIgnoreCase) ||
+                   raw.Contains("(Demo", StringComparison.OrdinalIgnoreCase) ||
+                   raw.Contains("(Sample", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private int CompareBy<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)
+            where TValue : IComparable<TValue>
+        {
+            var leftValue = funcValue(left);
+            var rightValue = funcValue(right);
+
+            return leftValue.CompareTo(rightValue);
+        }
+
+        private int CompareByReverse<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)
+            where TValue : IComparable<TValue>
+        {
+            return CompareBy(left, right, funcValue) * -1;
+        }
+
+        private int CompareAll(params int[] comparers)
+        {
+            return comparers.Select(comparer => comparer).FirstOrDefault(result => result != 0);
+        }
+
+        private int CompareIndexerPriority(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareByReverse(x.RemoteEpisode.Release, y.RemoteEpisode.Release, release => release.IndexerPriority);
+        }
+
+        private int CompareQuality(DownloadDecision x, DownloadDecision y)
+        {
+            var xProfile = x.RemoteEpisode?.Series?.QualityProfile?.Value;
+            var yProfile = y.RemoteEpisode?.Series?.QualityProfile?.Value;
+
+            if (xProfile?.Items != null && xProfile.Items.Count > 0 &&
+                yProfile?.Items != null && yProfile.Items.Count > 0)
+            {
+                if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
+                {
+                    return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality));
+                }
+
+                return CompareAll(
+                    CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Series.QualityProfile.Value.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality)),
+                    CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.ParsedEpisodeInfo.Quality.Revision));
+            }
+
+            var xQuality = x.RemoteEpisode?.ParsedEpisodeInfo?.Quality;
+            var yQuality = y.RemoteEpisode?.ParsedEpisodeInfo?.Quality;
+
+            if (xQuality == null && yQuality == null)
+            {
+                return 0;
+            }
+
+            if (xQuality == null)
+            {
+                return -1;
+            }
+
+            if (yQuality == null)
+            {
+                return 1;
+            }
+
+            var xId = xQuality.Quality?.Id ?? 0;
+            var yId = yQuality.Quality?.Id ?? 0;
+
+            if (xId != yId)
+            {
+                return xId.CompareTo(yId);
+            }
+
+            if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
+            {
+                return 0;
+            }
+
+            return xQuality.Revision.CompareTo(yQuality.Revision);
+        }
+
+        private int CompareCustomFormatScore(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteMovie => remoteMovie.CustomFormatScore);
+        }
+
+        private int CompareProtocol(DownloadDecision x, DownloadDecision y)
+        {
+            var result = CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+            {
+                var delayProfile = _delayProfileService.BestForTags(remoteEpisode.Series.Tags);
+                var downloadProtocol = remoteEpisode.Release.DownloadProtocol;
+
+                if (delayProfile?.ProtocolPriority != null && delayProfile.ProtocolPriority.Count > 0)
+                {
+                    var index = delayProfile.ProtocolPriority.IndexOf(downloadProtocol);
+                    return index >= 0 ? delayProfile.ProtocolPriority.Count - index : 0;
+                }
+
+                if (delayProfile != null && delayProfile.PreferredProtocol != DownloadProtocol.Unknown)
+                {
+                    return downloadProtocol == delayProfile.PreferredProtocol ? 1 : 0;
+                }
+
+                return downloadProtocol switch
+                {
+                    DownloadProtocol.Http => 3,
+                    DownloadProtocol.Torrent => 2,
+                    DownloadProtocol.Usenet => 1,
+                    _ => 0
+                };
+            });
+
+            return result;
+        }
+
+        private int CompareEpisodeCount(DownloadDecision x, DownloadDecision y)
+        {
+            var seasonPackCompare = CompareBy(x.RemoteEpisode,
+                y.RemoteEpisode,
+                remoteEpisode => remoteEpisode.ParsedEpisodeInfo.FullSeason);
+
+            if (seasonPackCompare != 0)
+            {
+                return seasonPackCompare;
+            }
+
+            if (x.RemoteEpisode.Series.SeriesType == SeriesTypes.Anime &
+                y.RemoteEpisode.Series.SeriesType == SeriesTypes.Anime)
+            {
+                return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Episodes.Count);
+            }
+
+            return CompareByReverse(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Episodes.Count);
+        }
+
+        private int CompareEpisodeNumber(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareByReverse(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode => remoteEpisode.Episodes.Select(e => e.EpisodeNumber).MinOrDefault());
+        }
+
+        private int ComparePeersIfTorrent(DownloadDecision x, DownloadDecision y)
+        {
+            // Different protocols should get caught when checking the preferred protocol,
+            // since we're dealing with the same series in our comparisons
+            if (x.RemoteEpisode.Release.DownloadProtocol != DownloadProtocol.Torrent ||
+                y.RemoteEpisode.Release.DownloadProtocol != DownloadProtocol.Torrent)
+            {
+                return 0;
+            }
+
+            return CompareAll(
+                CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+                {
+                    var seeders = TorrentInfo.GetSeeders(remoteEpisode.Release);
+
+                    return seeders.HasValue && seeders.Value > 0 ? Math.Round(Math.Log10(seeders.Value)) : 0;
+                }),
+                CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+                {
+                    var peers = TorrentInfo.GetPeers(remoteEpisode.Release);
+
+                    return peers.HasValue && peers.Value > 0 ? Math.Round(Math.Log10(peers.Value)) : 0;
+                }));
+        }
+
+        private int CompareAgeIfUsenet(DownloadDecision x, DownloadDecision y)
+        {
+            if (x.RemoteEpisode.Release.DownloadProtocol != DownloadProtocol.Usenet ||
+                y.RemoteEpisode.Release.DownloadProtocol != DownloadProtocol.Usenet)
+            {
+                return 0;
+            }
+
+            return CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+            {
+                var ageHours = remoteEpisode.Release.AgeHours;
+                var age = remoteEpisode.Release.Age;
+
+                if (ageHours < 1)
+                {
+                    return 1000;
+                }
+
+                if (ageHours <= 24)
+                {
+                    return 100;
+                }
+
+                if (age <= 7)
+                {
+                    return 10;
+                }
+
+                return Math.Round(Math.Log10(age)) * -1;
+            });
+        }
+
+        private int CompareSize(DownloadDecision x, DownloadDecision y)
+        {
+            var sizeCompare =  CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+            {
+                var qualityProfile = remoteEpisode.Series.QualityProfile.Value;
+                var qualityIndex = qualityProfile.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality, true);
+                var qualityOrGroup = qualityProfile.Items[qualityIndex.Index];
+                var item = qualityOrGroup.Quality == null ? qualityOrGroup.Items[qualityIndex.GroupIndex] : qualityOrGroup;
+                var preferredSize = item.PreferredSize;
+                var runtime = GetRuntime(remoteEpisode);
+
+                // If no value for preferred it means unlimited so fallback to sort largest is best
+                if (preferredSize.HasValue && runtime > 0)
+                {
+                    var preferredReleaseSize = runtime * preferredSize.Value.Megabytes();
+
+                    // Calculate closest to the preferred size
+                    return Math.Abs((remoteEpisode.Release.Size - preferredReleaseSize).Round(200.Megabytes())) * (-1);
+                }
+                else
+                {
+                    return remoteEpisode.Release.Size.Round(200.Megabytes());
+                }
+            });
+
+            return sizeCompare;
+        }
+
+        private static int GetRuntime(RemoteEpisode remoteEpisode)
+        {
+            if (remoteEpisode.Episodes.Count == 0)
+            {
+                return remoteEpisode.Series.Runtime;
+            }
+
+            return remoteEpisode.Episodes.Sum(episode => episode.Runtime > 0 ? episode.Runtime : remoteEpisode.Series.Runtime);
+        }
+    }
+}

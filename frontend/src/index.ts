@@ -1,0 +1,52 @@
+import './polyfills';
+import 'Styles/globals.css';
+import './index.css';
+
+const initializeUrl = `${
+  window.Controllarr.urlBase
+}/initialize.json?t=${Date.now()}`;
+const response = await fetch(initializeUrl);
+
+window.Controllarr = await response.json();
+window.Sonarr = window.Controllarr;
+
+const error = console.error;
+
+// Monkey patch console.error to filter out some warnings from React
+// TODO: Remove this after the great TypeScript migration
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function logError(...parameters: any[]) {
+  const filter = parameters.find((parameter) => {
+    return (
+      typeof parameter === 'string' &&
+      (parameter.includes(
+        'Support for defaultProps will be removed from function components in a future major release'
+      ) ||
+        parameter.includes(
+          'findDOMNode is deprecated and will be removed in the next major release'
+        ))
+    );
+  });
+
+  if (!filter) {
+    error(...parameters);
+  }
+}
+
+console.error = logError;
+
+window.addEventListener('vite:preloadError', (event) => {
+  const reloadKey = 'controllarr_preload_retry';
+  const hasRetried = sessionStorage.getItem(reloadKey);
+
+  if (!hasRetried) {
+    sessionStorage.setItem(reloadKey, '1');
+    event.preventDefault();
+    window.location.reload();
+  }
+});
+
+const { bootstrap } = await import('./bootstrap');
+
+await bootstrap();

@@ -1,0 +1,279 @@
+using System.Text.Json.Serialization;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Tv;
+using Sonarr.Http.REST;
+using Swashbuckle.AspNetCore.Annotations;
+
+namespace Sonarr.Api.V5.Platforms;
+
+public class PlatformResource : RestResource
+{
+    public string? Title { get; set; }
+    public List<AlternateTitleResource>? AlternateTitles { get; set; }
+    public string? SortTitle { get; set; }
+    public SeriesStatusType Status { get; set; }
+    public bool Ended => Status == SeriesStatusType.Ended;
+    public string? ProfileName { get; set; }
+    public string? Overview { get; set; }
+    public DateTime? NextAiring { get; set; }
+    public DateTime? PreviousAiring { get; set; }
+    public string? Network { get; set; }
+    public List<MediaCover>? Images { get; set; }
+    public Language? Language { get; set; }
+    public Language? OriginalLanguage { get; set; }
+    public string? RemotePoster { get; set; }
+    public string? SeasonType { get; set; }
+    public List<SeasonResource> Seasons { get; set; } = [];
+    public List<SeasonTypeResource> SeasonTypes { get; set; } = [];
+    public List<PlatformTranslationResource> Translations { get; set; } = [];
+    public int Year { get; set; }
+    public string? Path { get; set; }
+    public string? PendingPath { get; set; }
+    public int QualityProfileId { get; set; }
+    public bool SeasonFolder { get; set; }
+    public bool RegionFolder { get => SeasonFolder; set => SeasonFolder = value; }
+    public DateTime? NextRelease { get => NextAiring; set => NextAiring = value; }
+    public DateTime? PreviousRelease { get => PreviousAiring; set => PreviousAiring = value; }
+    public List<SeasonResource> Regions { get => Seasons; set => Seasons = value; }
+    public DateTime? FirstReleased { get => FirstAired; set => FirstAired = value; }
+    public DateTime? LastReleased { get => LastAired; set => LastAired = value; }
+    public bool Monitored { get; set; }
+    public NewItemMonitorTypes MonitorNewItems { get; set; }
+    public NzbDrone.Core.Games.CollectionStrategy CollectionStrategy { get; set; }
+    public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; }
+    public string? PinnedVersion { get; set; }
+    public string? PreferredArchiveFormat { get; set; }
+    public bool PreferEncryptedRoms { get; set; }
+    public bool UseSceneNumbering { get; set; }
+    public int Runtime { get; set; }
+    public int TvdbId { get; set; }
+    public int TvRageId { get; set; }
+    public int TvMazeId { get; set; }
+    public int TmdbId { get; set; }
+    public HashSet<int>? MalIds { get; set; }
+    public HashSet<int>? AniListIds { get; set; }
+    public DateTime? FirstAired { get; set; }
+    public DateTime? LastAired { get; set; }
+    public SeriesTypes SeriesType { get; set; }
+    public string? OriginalTitle { get; set; }
+    public string? CleanTitle { get; set; }
+    public string? CleanOriginalTitle { get; set; }
+    public string? ImdbId { get; set; }
+    public string? TitleSlug { get; set; }
+    public string? RootFolderPath { get; set; }
+    public string? Folder { get; set; }
+    public List<SeriesFolderResource> Folders { get; set; } = [];
+    public string? Certification { get; set; }
+    public List<string>? Genres { get; set; }
+    public string? OriginalCountry { get; set; }
+    public HashSet<int>? Tags { get; set; }
+    public DateTime Added { get; set; }
+    public AddPlatformOptionsResource? AddOptions { get; set; }
+    public Ratings? Ratings { get; set; }
+    public SeriesStatisticsResource? Statistics { get; set; }
+    public bool? GamesChanged { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [SwaggerIgnore]
+    public bool? IsExcluded { get; set; }
+}
+
+public class SeriesResource : PlatformResource
+{
+}
+
+public class AddPlatformOptionsResource : MonitoringOptions
+{
+    public bool SearchForMissingGames { get; set; }
+    public bool SearchForCutoffUnmetGames { get; set; }
+    public string? ImportMode { get; set; }
+}
+
+public static class AddPlatformOptionsResourceMapper
+{
+    public static AddPlatformOptionsResource? ToResource(this AddPlatformOptions? model)
+    {
+        if (model == null)
+        {
+            return null;
+        }
+
+        return new AddPlatformOptionsResource
+        {
+            Monitor = model.Monitor,
+            SearchForMissingGames = model.SearchForMissingEpisodes,
+            SearchForCutoffUnmetGames = model.SearchForCutoffUnmetEpisodes,
+            ImportMode = model.ImportMode
+        };
+    }
+
+    public static AddPlatformOptions? ToModel(this AddPlatformOptionsResource? resource)
+    {
+        if (resource == null)
+        {
+            return null;
+        }
+
+        return new AddPlatformOptions
+        {
+            Monitor = resource.Monitor,
+            SearchForMissingEpisodes = resource.SearchForMissingGames,
+            SearchForCutoffUnmetEpisodes = resource.SearchForCutoffUnmetGames,
+            ImportMode = resource.ImportMode
+        };
+    }
+}
+
+public static class PlatformResourceMapper
+{
+    public static SeriesResource ToResource(this NzbDrone.Core.Tv.Series model, bool includeSeasonImages = false)
+    {
+        return new SeriesResource
+        {
+            Id = model.Id,
+            Title = model.Title,
+            SortTitle = model.SortTitle,
+            Status = model.Status,
+            Overview = string.IsNullOrWhiteSpace(model.Overview) || model.Overview.Contains(" hardware platform (", StringComparison.OrdinalIgnoreCase)
+                ? (NzbDrone.Core.MetadataSource.Game.GameCatalogProxy.GetPlatformOverview(model.TitleSlug, model.TvdbId) ?? model.Overview)
+                : model.Overview,
+            Network = model.Network,
+            Images = model.Images.JsonClone(),
+            Language = model.Language ?? Language.English,
+            SeasonType = model.SeasonType,
+            Seasons = model.Seasons.ToResource(includeSeasonImages),
+            SeasonTypes = model.SeasonTypes.ToResource(),
+            Translations = model.Translations.ToResource(),
+            Year = model.Year,
+            OriginalCountry = model.OriginalCountry,
+            OriginalLanguage = model.OriginalLanguage,
+            Path = model.Path,
+            PendingPath = model.PendingPath,
+            QualityProfileId = model.QualityProfileId,
+            SeasonFolder = model.SeasonFolder,
+            Monitored = model.Monitored,
+            MonitorNewItems = model.MonitorNewItems,
+            CollectionStrategy = model.CollectionStrategy,
+            RevisionPreference = model.RevisionPreference,
+            PinnedVersion = model.PinnedVersion,
+            PreferredArchiveFormat = model.PreferredArchiveFormat,
+            PreferEncryptedRoms = model.PreferEncryptedRoms,
+            UseSceneNumbering = model.UseSceneNumbering,
+            Runtime = model.Runtime,
+            TvdbId = model.TvdbId,
+            TvRageId = model.TvRageId,
+            TvMazeId = model.TvMazeId,
+            TmdbId = model.TmdbId,
+            MalIds = model.MalIds,
+            AniListIds = model.AniListIds,
+            FirstAired = model.FirstAired,
+            LastAired = model.LastAired,
+            SeriesType = model.SeriesType,
+            OriginalTitle = model.OriginalTitle,
+            CleanTitle = model.CleanTitle,
+            CleanOriginalTitle = model.CleanOriginalTitle,
+            ImdbId = model.ImdbId,
+            TitleSlug = model.TitleSlug,
+            Certification = model.Certification,
+            Genres = model.Genres,
+            Tags = model.Tags,
+            Added = model.Added,
+            AddOptions = model.AddOptions.ToResource(),
+            Ratings = model.Ratings
+        };
+    }
+
+    public static NzbDrone.Core.Tv.Series ToModel(this SeriesResource resource)
+    {
+        return new NzbDrone.Core.Tv.Series
+        {
+            Id = resource.Id,
+            Title = resource.Title,
+            SortTitle = resource.SortTitle,
+            Status = resource.Status,
+            Overview = resource.Overview,
+            Network = resource.Network,
+            Images = resource.Images,
+            Language = resource.Language,
+            SeasonType = resource.SeasonType,
+            Seasons = resource.Seasons?.ToModel() ?? [],
+            Year = resource.Year,
+            OriginalLanguage = resource.OriginalLanguage,
+            Path = resource.Path,
+            QualityProfileId = resource.QualityProfileId,
+            SeasonFolder = resource.SeasonFolder,
+            Monitored = resource.Monitored,
+            MonitorNewItems = resource.MonitorNewItems,
+            CollectionStrategy = resource.CollectionStrategy,
+            RevisionPreference = resource.RevisionPreference,
+            PinnedVersion = resource.PinnedVersion,
+            PreferredArchiveFormat = resource.PreferredArchiveFormat ?? resource.Certification,
+            PreferEncryptedRoms = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
+            UseSceneNumbering = resource.PreferEncryptedRoms || resource.UseSceneNumbering,
+            Runtime = resource.Runtime,
+            TvdbId = resource.TvdbId,
+            TvRageId = resource.TvRageId,
+            TvMazeId = resource.TvMazeId,
+            TmdbId = resource.TmdbId,
+            MalIds = resource.MalIds,
+            AniListIds = resource.AniListIds,
+            FirstAired = resource.FirstAired,
+            SeriesType = resource.SeriesType,
+            OriginalTitle = resource.OriginalTitle,
+            CleanTitle = resource.CleanTitle,
+            CleanOriginalTitle = resource.CleanOriginalTitle,
+            ImdbId = resource.ImdbId,
+            TitleSlug = resource.TitleSlug,
+            RootFolderPath = resource.RootFolderPath,
+            Certification = resource.PreferredArchiveFormat ?? resource.Certification,
+            Genres = resource.Genres,
+            Tags = resource.Tags,
+            Added = resource.Added,
+            AddOptions = resource.AddOptions.ToModel(),
+            Ratings = resource.Ratings
+        };
+    }
+
+    public static NzbDrone.Core.Tv.Series ToModel(this SeriesResource resource, NzbDrone.Core.Tv.Series series)
+    {
+        var updatedSeries = resource.ToModel();
+
+        series.ApplyChanges(updatedSeries);
+
+        return series;
+    }
+
+    public static List<SeriesResource> ToResource(this IEnumerable<NzbDrone.Core.Tv.Series> series,
+        bool includeSeasonImages = false)
+    {
+        return series.Select(s => ToResource(s, includeSeasonImages)).ToList();
+    }
+
+    public static List<NzbDrone.Core.Tv.Series> ToModel(this IEnumerable<SeriesResource> resources)
+    {
+        return resources.Select(ToModel).ToList();
+    }
+}
+
+public class AddAllPlatformsResource
+{
+    public string RootFolderPath { get; set; } = string.Empty;
+    public int QualityProfileId { get; set; } = 1;
+    public Language Language { get; set; } = Language.English;
+    public MonitorTypes Monitor { get; set; } = MonitorTypes.All;
+    public NzbDrone.Core.Games.CollectionStrategy CollectionStrategy { get; set; } = NzbDrone.Core.Games.CollectionStrategy.OneGameOneRom;
+    public NzbDrone.Core.Games.RevisionPreference RevisionPreference { get; set; } = NzbDrone.Core.Games.RevisionPreference.LatestRevision;
+    public string? PinnedVersion { get; set; }
+    public bool DiscCompression { get; set; } = true;
+    public bool CartridgeCompression { get; set; } = true;
+    public string NdsEncryptionPreference { get; set; } = "notEncrypted";
+    public string ThreeDsEncryptionPreference { get; set; } = "notEncrypted";
+    public bool TrackUnlicensed { get; set; }
+    public bool TrackRomHacks { get; set; }
+    public bool TrackHomebrew { get; set; }
+    public bool SearchForMissingGames { get; set; }
+    public bool SearchForCutoffUnmetGames { get; set; }
+    public SeriesTypes SeriesType { get; set; } = SeriesTypes.Standard;
+    public HashSet<int>? Tags { get; set; }
+}

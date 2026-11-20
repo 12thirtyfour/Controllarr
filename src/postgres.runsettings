@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <RunConfiguration>
+        <EnvironmentVariables>
+            <Controllarr__Postgres__Host>localhost</Controllarr__Postgres__Host>
+            <Controllarr__Postgres__Port>5432</Controllarr__Postgres__Port>
+            <Controllarr__Postgres__User>abc</Controllarr__Postgres__User>
+            <Controllarr__Postgres__Password>abc</Controllarr__Postgres__Password>
+            <Sonarr__Postgres__Host>localhost</Sonarr__Postgres__Host>
+			<Sonarr__Postgres__Port>5432</Sonarr__Postgres__Port>
+			<Sonarr__Postgres__User>abc</Sonarr__Postgres__User>
+			<Sonarr__Postgres__Password>abc</Sonarr__Postgres__Password>
+        </EnvironmentVariables>
+    </RunConfiguration>
+</RunSettings>

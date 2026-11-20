@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.SignalR\Controllarr.SignalR.csproj" />
+    <ProjectReference Include="..\NzbDrone.Host\Controllarr.Host.csproj" />
+    <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
+  </ItemGroup>
+</Project>

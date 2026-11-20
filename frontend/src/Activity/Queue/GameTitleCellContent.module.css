@@ -1,0 +1,14 @@
+.multiple {
+  cursor: default;
+}
+
+.row {
+  display: flex;
+}
+
+.episodeNumber,
+.gameNumber {
+  margin-right: 8px;
+  font-weight: 600;
+  cursor: default;
+}

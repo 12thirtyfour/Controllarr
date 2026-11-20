@@ -1,0 +1,234 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.History;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
+
+namespace NzbDrone.Core.Download
+{
+    public interface IFailedDownloadService
+    {
+        void MarkAsFailed(int historyId, string message = null, string source = null, bool skipRedownload = false);
+        void MarkAsFailed(TrackedDownload trackedDownload, string message = null, string source = null, bool skipRedownload = false);
+        void Check(TrackedDownload trackedDownload);
+        void ProcessFailed(TrackedDownload trackedDownload);
+    }
+
+    public class FailedDownloadService : IFailedDownloadService
+    {
+        private readonly IHistoryService _historyService;
+        private readonly IEventAggregator _eventAggregator;
+
+        public FailedDownloadService(IHistoryService historyService,
+                                     ITrackedDownloadService trackedDownloadService,
+                                     IEventAggregator eventAggregator)
+        {
+            _historyService = historyService;
+            _eventAggregator = eventAggregator;
+        }
+
+        public void MarkAsFailed(int historyId, string message, string source = null, bool skipRedownload = false)
+        {
+            message ??= "Manually marked as failed";
+
+            var history = _historyService.Get(historyId);
+            var downloadId = history.DownloadId;
+
+            if (downloadId.IsNullOrWhiteSpace())
+            {
+                if (history.EventType == GameHistoryEventType.Grabbed)
+                {
+                    PublishDownloadFailedEvent(history, new List<int> { history.EpisodeId }, message, source, skipRedownload: skipRedownload);
+                    return;
+                }
+
+                throw new InvalidOperationException("Unable to mark download as failed, history item was not grabbed and has no download ID");
+            }
+
+            var grabbedHistory = new List<GameHistory>();
+
+            // If the history item is a grabbed item (it should be, at least from the UI) add it as the first history item
+            if (history.EventType == GameHistoryEventType.Grabbed)
+            {
+                grabbedHistory.Add(history);
+            }
+
+            // Add any other history items for the download ID then filter out any duplicate history items.
+            grabbedHistory.AddRange(GetGrabbedHistory(downloadId));
+            grabbedHistory = grabbedHistory.DistinctBy(h => h.Id).ToList();
+
+            if (grabbedHistory.Any())
+            {
+                PublishDownloadFailedEvent(grabbedHistory.First(), GetEpisodeIds(grabbedHistory), message, source);
+                return;
+            }
+
+            var fallback = new GameHistory
+            {
+                EventType = GameHistoryEventType.Grabbed,
+                Date = DateTime.UtcNow,
+                Quality = history.Quality,
+                SourceTitle = history.SourceTitle,
+                SeriesId = history.SeriesId,
+                EpisodeId = history.EpisodeId,
+                DownloadId = downloadId,
+                Languages = history.Languages,
+                Data = history.Data ?? new Dictionary<string, string>()
+            };
+
+            PublishDownloadFailedEvent(fallback, new List<int> { history.EpisodeId }, message, source);
+        }
+
+        public void MarkAsFailed(TrackedDownload trackedDownload, string message, string source = null, bool skipRedownload = false)
+        {
+            var history = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
+
+            if (history.Any())
+            {
+                PublishDownloadFailedEvent(history.First(), GetEpisodeIds(history), message ?? "Manually marked as failed", source, trackedDownload, skipRedownload: skipRedownload);
+                return;
+            }
+
+            var episodeIds = trackedDownload.RemoteEpisode?.Episodes?.Select(e => e.Id).ToList() ?? new List<int>();
+            var fallback = new GameHistory
+            {
+                EventType = GameHistoryEventType.Grabbed,
+                Date = DateTime.UtcNow,
+                Quality = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Quality ?? new QualityModel(Quality.Unknown),
+                SourceTitle = trackedDownload.DownloadItem.Title,
+                SeriesId = trackedDownload.RemoteEpisode?.Series?.Id ?? 0,
+                EpisodeId = episodeIds.FirstOrDefault(),
+                DownloadId = trackedDownload.DownloadItem.DownloadId,
+                Languages = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Languages ?? new List<Language> { Language.Unknown },
+                Data = new Dictionary<string, string>
+                {
+                    { GameHistory.DOWNLOAD_CLIENT, trackedDownload.DownloadItem.DownloadClientInfo?.Type },
+                    { "DownloadClientName", trackedDownload.DownloadItem.DownloadClientInfo?.Name }
+                }
+            };
+
+            trackedDownload.State = TrackedDownloadState.FailedPending;
+            PublishDownloadFailedEvent(fallback, episodeIds, message ?? "Manually marked as failed", source, trackedDownload, skipRedownload: skipRedownload);
+        }
+
+        public void Check(TrackedDownload trackedDownload)
+        {
+            // Only process tracked downloads that are still downloading or import is blocked (if they fail after attempting to be processed)
+            if (trackedDownload.State != TrackedDownloadState.Downloading && trackedDownload.State != TrackedDownloadState.ImportBlocked)
+            {
+                return;
+            }
+
+            if (trackedDownload.DownloadItem.IsEncrypted ||
+                trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed)
+            {
+                var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
+
+                if (grabbedItems.Empty())
+                {
+                    trackedDownload.Warn(trackedDownload.DownloadItem.IsEncrypted ? $"Download is encrypted and wasn't grabbed by {BuildInfo.AppName}, skipping automatic download handling" : $"Download has failed and wasn't grabbed by {BuildInfo.AppName}, skipping automatic download handling");
+                    return;
+                }
+
+                trackedDownload.State = TrackedDownloadState.FailedPending;
+            }
+        }
+
+        public void ProcessFailed(TrackedDownload trackedDownload)
+        {
+            if (trackedDownload.State != TrackedDownloadState.FailedPending)
+            {
+                return;
+            }
+
+            var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
+
+            GameHistory historyItem;
+            List<int> episodeIds;
+
+            if (grabbedItems.Any())
+            {
+                historyItem = grabbedItems.First();
+                episodeIds = GetEpisodeIds(grabbedItems);
+            }
+            else
+            {
+                episodeIds = trackedDownload.RemoteEpisode?.Episodes?.Select(e => e.Id).ToList() ?? new List<int>();
+                historyItem = new GameHistory
+                {
+                    EventType = GameHistoryEventType.Grabbed,
+                    Date = DateTime.UtcNow,
+                    Quality = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Quality ?? new QualityModel(Quality.Unknown),
+                    SourceTitle = trackedDownload.DownloadItem.Title,
+                    SeriesId = trackedDownload.RemoteEpisode?.Series?.Id ?? 0,
+                    EpisodeId = episodeIds.FirstOrDefault(),
+                    DownloadId = trackedDownload.DownloadItem.DownloadId,
+                    Languages = trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.Languages ?? new List<Language> { Language.Unknown },
+                    Data = new Dictionary<string, string>
+                    {
+                        { GameHistory.DOWNLOAD_CLIENT, trackedDownload.DownloadItem.DownloadClientInfo?.Type },
+                        { "DownloadClientName", trackedDownload.DownloadItem.DownloadClientInfo?.Name }
+                    }
+                };
+            }
+
+            var failure = "Failed download detected";
+
+            if (trackedDownload.DownloadItem.IsEncrypted)
+            {
+                failure = "Encrypted download detected";
+            }
+            else if (trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed && trackedDownload.DownloadItem.Message.IsNotNullOrWhiteSpace())
+            {
+                failure = trackedDownload.DownloadItem.Message;
+            }
+
+            trackedDownload.State = TrackedDownloadState.Failed;
+            PublishDownloadFailedEvent(historyItem, episodeIds, failure, $"{BuildInfo.AppName} Failed Download Handling", trackedDownload, skipBlocklist: trackedDownload.SkipBlocklist);
+        }
+
+        private void PublishDownloadFailedEvent(GameHistory historyItem, List<int> episodeIds, string message, string source, TrackedDownload trackedDownload = null, bool skipRedownload = false, bool skipBlocklist = false)
+        {
+            Enum.TryParse(historyItem.Data.GetValueOrDefault(GameHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
+
+            var downloadFailedEvent = new DownloadFailedEvent
+            {
+                SeriesId = historyItem.SeriesId,
+                EpisodeIds = episodeIds,
+                Quality = historyItem.Quality,
+                SourceTitle = historyItem.SourceTitle,
+                DownloadClient = historyItem.Data.GetValueOrDefault(GameHistory.DOWNLOAD_CLIENT),
+                DownloadId = historyItem.DownloadId,
+                Message = message,
+                Source = source,
+                Data = historyItem.Data,
+                TrackedDownload = trackedDownload,
+                Languages = historyItem.Languages,
+                SkipRedownload = skipRedownload,
+                SkipBlocklist = skipBlocklist,
+                ReleaseSource = releaseSource,
+            };
+
+            _eventAggregator.PublishEvent(downloadFailedEvent);
+        }
+
+        private List<int> GetEpisodeIds(List<GameHistory> historyItems)
+        {
+            return historyItems.Select(h => h.EpisodeId).Distinct().ToList();
+        }
+
+        private List<GameHistory> GetGrabbedHistory(string downloadId)
+        {
+            // Sort by date so items are always in the same order
+            return _historyService.Find(downloadId, GameHistoryEventType.Grabbed)
+                .OrderByDescending(h => h.Date)
+                .ToList();
+        }
+    }
+}

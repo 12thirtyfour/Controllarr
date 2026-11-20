@@ -1,0 +1,272 @@
+using System;
+using System.IO;
+using System.Net;
+using NLog;
+using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Bios;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.MediaFiles.Commands;
+using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.Messaging;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.Events;
+
+namespace NzbDrone.Core.MediaFiles
+{
+    public interface IDeleteMediaFiles
+    {
+        void DeleteEpisodeFile(Series series, EpisodeFile episodeFile);
+    }
+
+    public class MediaFileDeletionService : IDeleteMediaFiles,
+                                            IExecute<DeletePlatformFilesCommand>,
+                                            IHandle<PlatformDeletedEvent>,
+                                            IHandle<RomFileDeletedEvent>
+    {
+        private readonly IDiskProvider _diskProvider;
+        private readonly IRecycleBinProvider _recycleBinProvider;
+        private readonly IMediaFileService _mediaFileService;
+        private readonly ISeriesService _seriesService;
+        private readonly IRootFolderService _rootFolderService;
+        private readonly IConfigService _configService;
+        private readonly ICommandResultReporter _commandResultReporter;
+        private readonly IEventAggregator _eventAggregator;
+        private readonly IBiosService _biosService;
+        private readonly Logger _logger;
+
+        public MediaFileDeletionService(IDiskProvider diskProvider,
+                                        IRecycleBinProvider recycleBinProvider,
+                                        IMediaFileService mediaFileService,
+                                        ISeriesService seriesService,
+                                        IRootFolderService rootFolderService,
+                                        IConfigService configService,
+                                        ICommandResultReporter commandResultReporter,
+                                        IEventAggregator eventAggregator,
+                                        Logger logger,
+                                        IBiosService biosService = null)
+        {
+            _diskProvider = diskProvider;
+            _recycleBinProvider = recycleBinProvider;
+            _mediaFileService = mediaFileService;
+            _seriesService = seriesService;
+            _rootFolderService = rootFolderService;
+            _configService = configService;
+            _commandResultReporter = commandResultReporter;
+            _eventAggregator = eventAggregator;
+            _biosService = biosService;
+            _logger = logger;
+        }
+
+        public void DeleteEpisodeFile(Series series, EpisodeFile episodeFile)
+        {
+            var fullPath = Path.Combine(series.Path, episodeFile.RelativePath);
+            var rootFolder = _rootFolderService.GetBestRootFolderPath(series.Path);
+
+            if (!_diskProvider.FolderExists(rootFolder))
+            {
+                _logger.Warn("Platform's root folder ({0}) doesn't exist.", rootFolder);
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, "Platform's root folder ({0}) doesn't exist.", rootFolder);
+            }
+
+            if (_diskProvider.GetDirectories(rootFolder).Empty())
+            {
+                _logger.Warn("Platform's root folder ({0}) is empty.", rootFolder);
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, "Platform's root folder ({0}) is empty.", rootFolder);
+            }
+
+            if (_diskProvider.FolderExists(series.Path) && _diskProvider.FileExists(fullPath))
+            {
+                _logger.Info("Deleting ROM file: {0}", fullPath);
+
+                var subfolder = _diskProvider.GetParentFolder(series.Path).GetRelativePath(_diskProvider.GetParentFolder(fullPath));
+
+                try
+                {
+                    _recycleBinProvider.DeleteFile(fullPath, subfolder);
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e, "Unable to delete ROM file");
+                    throw new NzbDroneClientException(HttpStatusCode.InternalServerError, "Unable to delete ROM file");
+                }
+            }
+
+            // Delete the episode file from the database to clean it up even if the file was already deleted
+            _mediaFileService.Delete(episodeFile, DeleteMediaFileReason.Manual);
+
+            _eventAggregator.PublishEvent(new DeleteCompletedEvent());
+        }
+
+        public void Execute(DeletePlatformFilesCommand message)
+        {
+            foreach (var seriesId in message.SeriesIds)
+            {
+                try
+                {
+                    var series = _seriesService.GetSeries(seriesId);
+                    var mediaFiles = _mediaFileService.GetFilesBySeries(seriesId);
+
+                    _logger.ProgressDebug("{0}: Deleting ROM files", series.Title);
+
+                    _biosService?.DeletePlatformBiosFiles(series);
+
+                    if (mediaFiles.Count == 0)
+                    {
+                        _logger.Debug("No files found for platform: {0}", series.Title);
+                        continue;
+                    }
+
+                    var rootFolder = _rootFolderService.GetBestRootFolderPath(series.Path);
+
+                    if (!_diskProvider.FolderExists(rootFolder))
+                    {
+                        _logger.Warn("Platform's root folder ({0}) doesn't exist.", rootFolder);
+                        _commandResultReporter.Report(CommandResult.Indeterminate);
+                        continue;
+                    }
+
+                    if (_diskProvider.GetDirectories(rootFolder).Empty())
+                    {
+                        _logger.Warn("Platform's root folder ({0}) is empty.", rootFolder);
+                        _commandResultReporter.Report(CommandResult.Indeterminate);
+                        continue;
+                    }
+
+                    if (!_diskProvider.FolderExists(series.Path))
+                    {
+                        _logger.Warn("Platform's folder ({0}) does not exist.", series.Path);
+                        _commandResultReporter.Report(CommandResult.Indeterminate);
+                        continue;
+                    }
+
+                    foreach (var episodeFile in mediaFiles)
+                    {
+                        var fullPath = Path.Combine(series.Path, episodeFile.RelativePath);
+
+                        if (_diskProvider.FileExists(fullPath))
+                        {
+                            _logger.Info("Deleting ROM file: {0}", fullPath);
+
+                            var subfolder = _diskProvider.GetParentFolder(series.Path).GetRelativePath(_diskProvider.GetParentFolder(fullPath));
+
+                            try
+                            {
+                                _recycleBinProvider.DeleteFile(fullPath, subfolder);
+                            }
+                            catch (Exception e)
+                            {
+                                _logger.Error(e, "Unable to delete ROM file");
+                                _commandResultReporter.Report(CommandResult.Indeterminate);
+                                continue;
+                            }
+
+                            _mediaFileService.Delete(episodeFile, DeleteMediaFileReason.Manual);
+                        }
+                    }
+
+                    _logger.ProgressDebug("{0}: Deleted ROM files", series.Title);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Unable to delete files for platform with ID: {0}", seriesId);
+                    _commandResultReporter.Report(CommandResult.Indeterminate);
+                }
+            }
+        }
+
+        public void Handle(PlatformDeletedEvent message)
+        {
+            if (message.DeleteFiles)
+            {
+                var allSeries = _seriesService.GetAllSeriesPaths() ?? new System.Collections.Generic.Dictionary<int, string>();
+
+                foreach (var series in message.Series)
+                {
+                    if (string.IsNullOrWhiteSpace(series?.Path))
+                    {
+                        continue;
+                    }
+
+                    var skipDelete = false;
+
+                    foreach (var s in allSeries)
+                    {
+                        if (s.Key == series.Id || string.IsNullOrWhiteSpace(s.Value))
+                        {
+                            continue;
+                        }
+
+                        if (series.Path.IsParentPath(s.Value))
+                        {
+                            _logger.Error("Platform path: '{0}' is a parent of another platform, not deleting files.", series.Path);
+                            skipDelete = true;
+                            break;
+                        }
+
+                        if (series.Path.PathEquals(s.Value))
+                        {
+                            _logger.Error("Platform path: '{0}' is the same as another platform, not deleting files.", series.Path);
+                            skipDelete = true;
+                            break;
+                        }
+                    }
+
+                    if (skipDelete)
+                    {
+                        continue;
+                    }
+
+                    if (_diskProvider.FolderExists(series.Path))
+                    {
+                        _recycleBinProvider.DeleteFolder(series.Path);
+                    }
+
+                    _biosService?.DeletePlatformBiosFiles(series);
+
+                    _eventAggregator.PublishEvent(new DeleteCompletedEvent());
+                }
+            }
+        }
+
+        public void HandleAsync(PlatformDeletedEvent message)
+        {
+            Handle(message);
+        }
+
+        [EventHandleOrder(EventHandleOrder.Last)]
+        public void Handle(RomFileDeletedEvent message)
+        {
+            if (!_configService.DeleteEmptyFolders || message.Reason == DeleteMediaFileReason.MissingFromDisk)
+            {
+                return;
+            }
+
+            var series = message.EpisodeFile.Series.Value;
+            var seriesPath = series.Path;
+            var folder = message.EpisodeFile.Path.GetParentPath();
+
+            while (seriesPath.IsParentPath(folder))
+            {
+                if (_diskProvider.FolderExists(folder))
+                {
+                    _diskProvider.RemoveEmptySubfolders(folder);
+                }
+
+                folder = folder.GetParentPath();
+            }
+
+            _diskProvider.RemoveEmptySubfolders(seriesPath);
+
+            if (_diskProvider.FolderEmpty(seriesPath))
+            {
+                _diskProvider.DeleteFolder(seriesPath, true);
+            }
+        }
+    }
+}

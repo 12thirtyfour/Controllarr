@@ -1,0 +1,484 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Games;
+using NzbDrone.Core.MetadataSource.Game;
+
+namespace NzbDrone.Core.Tv
+{
+    public interface IGameMonitoredService
+    {
+        void SetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions);
+    }
+
+    public class GameMonitoredService : IGameMonitoredService
+    {
+        private readonly ISeriesService _seriesService;
+        private readonly IEpisodeService _episodeService;
+        private readonly IGameCatalogService _gameCatalogService;
+        private readonly IConfigService _configService;
+        private readonly Logger _logger;
+
+        public GameMonitoredService(
+            ISeriesService seriesService,
+            IEpisodeService episodeService,
+            IGameCatalogService gameCatalogService,
+            Logger logger,
+            IConfigService configService = null)
+        {
+            _seriesService = seriesService;
+            _episodeService = episodeService;
+            _gameCatalogService = gameCatalogService;
+            _configService = configService;
+            _logger = logger;
+        }
+
+        public void SetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions)
+        {
+            // Update the series without changing the episodes
+            if (monitoringOptions == null)
+            {
+                _seriesService.UpdateSeries(series, false);
+                return;
+            }
+
+            if (_gameCatalogService != null && _gameCatalogService.HasPendingGameSelections(series.TvdbId))
+            {
+                var selectedGameIds = _gameCatalogService.GetSelectedGameIdsForPlatform(series.TvdbId);
+                var episodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+                var activeRegions = new HashSet<int>();
+
+                foreach (var episode in episodes)
+                {
+                    episode.Monitored = selectedGameIds.Contains(episode.TvdbId);
+                    if (episode.Monitored)
+                    {
+                        activeRegions.Add(episode.SeasonNumber);
+                    }
+                }
+
+                if (episodes.Any())
+                {
+                    _episodeService.UpdateEpisodes(episodes);
+                }
+
+                foreach (var season in series.Seasons)
+                {
+                    if (activeRegions.Contains(season.SeasonNumber))
+                    {
+                        season.Monitored = true;
+                    }
+                }
+
+                _gameCatalogService.ClearPendingPlatformSelections(series.TvdbId);
+                _seriesService.UpdateSeries(series, false);
+                return;
+            }
+
+            // Fallback for v2 endpoints
+            if (monitoringOptions.Monitor == MonitorTypes.Unknown)
+            {
+                LegacySetEpisodeMonitoredStatus(series, monitoringOptions);
+                return;
+            }
+
+            // Skip episode level monitoring and use season information when series was added
+            if (monitoringOptions.Monitor == MonitorTypes.Skip)
+            {
+                return;
+            }
+
+            var initialSeasonMonitored = series.Seasons.ToDictionary(s => s.SeasonNumber, s => s.Monitored);
+
+            var firstSeason = monitoringOptions.Monitor == MonitorTypes.DefaultRegion
+                ? ResolveDefaultRegionSeason(_configService?.ConsoleRegion)
+                : series.Seasons.Select(s => s.SeasonNumber).Where(s => s > 0).MinOrDefault();
+            var lastSeason = series.Seasons.Select(s => s.SeasonNumber).MaxOrDefault();
+
+            _logger.Debug("[{0}] Setting game monitored status to {1}", series.Title, monitoringOptions.Monitor);
+
+            if (monitoringOptions.Monitor == MonitorTypes.None)
+            {
+                series.Monitored = false;
+            }
+            else if (monitoringOptions.Monitor != MonitorTypes.Unknown &&
+                     monitoringOptions.Monitor != MonitorTypes.Skip)
+            {
+                series.Monitored = true;
+            }
+
+            var monitoredSeasons = _episodeService.SetEpisodeMonitoredBySeries(series.Id, monitoringOptions.Monitor, firstSeason, lastSeason);
+
+            foreach (var season in series.Seasons)
+            {
+                var seasonNumber = season.SeasonNumber;
+
+                if (monitoringOptions.Monitor == MonitorTypes.None)
+                {
+                    season.Monitored = false;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.All)
+                {
+                    season.Monitored = true;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.DefaultRegion)
+                {
+                    season.Monitored = seasonNumber == firstSeason;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.AllRetail)
+                {
+                    season.Monitored = seasonNumber is GameCatalogProxy.RegionUsa
+                        or GameCatalogProxy.RegionEurope
+                        or GameCatalogProxy.RegionJapan
+                        or GameCatalogProxy.RegionWorld;
+                    continue;
+                }
+
+                if (monitoringOptions.Monitor == MonitorTypes.NonRetail)
+                {
+                    season.Monitored = seasonNumber is GameCatalogProxy.RegionUnlicensed
+                        or GameCatalogProxy.RegionHomebrew
+                        or GameCatalogProxy.RegionRomHacks
+                        or GameCatalogProxy.RegionTestAndUtilities
+                        or GameCatalogProxy.RegionMagazinesAndBooks;
+                    continue;
+                }
+
+                if (seasonNumber == GameCatalogProxy.RegionUnlicensed ||
+                    seasonNumber == GameCatalogProxy.RegionHomebrew ||
+                    seasonNumber == GameCatalogProxy.RegionRomHacks ||
+                    seasonNumber == GameCatalogProxy.RegionTestAndUtilities ||
+                    seasonNumber == GameCatalogProxy.RegionMagazinesAndBooks)
+                {
+                    season.Monitored = initialSeasonMonitored.TryGetValue(seasonNumber, out var wasMonitored) && wasMonitored;
+                    continue;
+                }
+
+                // Monitor the last season when:
+                // - Not specials
+                // - The latest season
+                // - Set to monitor all episodes
+                // - Set to monitor future episodes and series is continuing or not yet aired
+                if (seasonNumber > 0 &&
+                    seasonNumber == lastSeason &&
+                    (monitoringOptions.Monitor == MonitorTypes.All ||
+                     (monitoringOptions.Monitor == MonitorTypes.Future && series.Status is SeriesStatusType.Continuing or SeriesStatusType.Upcoming)))
+                {
+                    season.Monitored = true;
+                }
+                else if (seasonNumber == firstSeason && monitoringOptions.Monitor == MonitorTypes.Pilot)
+                {
+                    // Don't monitor season 1 if only the pilot episode is monitored
+                    season.Monitored = false;
+                }
+                else if (monitoredSeasons.Contains(seasonNumber))
+                {
+                    // Monitor the season if it has any monitor episodes
+                    season.Monitored = true;
+                }
+
+                // Don't monitor the season
+                else
+                {
+                    season.Monitored = false;
+                }
+            }
+
+            var allEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
+            if (allEpisodes.Any())
+            {
+                var monitoredSeasonSet = series.Seasons != null
+                    ? series.Seasons.Where(s => s.Monitored).Select(s => s.SeasonNumber).ToHashSet()
+                    : new HashSet<int>();
+
+                if (series.CollectionStrategy == CollectionStrategy.Preservationist)
+                {
+                    foreach (var item in allEpisodes)
+                    {
+                        item.Monitored = monitoredSeasonSet.Contains(item.SeasonNumber);
+                    }
+                }
+                else
+                {
+                    foreach (var ep in allEpisodes)
+                    {
+                        if (!monitoredSeasonSet.Contains(ep.SeasonNumber))
+                        {
+                            ep.Monitored = false;
+                        }
+                    }
+
+                    var preferInitial = series.RevisionPreference == RevisionPreference.InitialRelease;
+                    var encryptionPref = series.EncryptionPreference;
+
+                    var groups = series.CollectionStrategy == CollectionStrategy.OneGameOneRom
+                        ? allEpisodes
+                            .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                            .GroupBy(e => ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant())
+                        : allEpisodes
+                            .Where(e => monitoredSeasonSet.Contains(e.SeasonNumber))
+                            .GroupBy(e => $"{e.SeasonNumber}:{ExtractBaseTitle(e.Title, e.FinaleType).ToLowerInvariant()}");
+
+                    foreach (var group in groups)
+                    {
+                        var groupList = group.ToList();
+
+                        // Prototypes and Betas never count as "the first version" or "the latest version" for 1G1R
+                        var retailList = groupList
+                            .Where(e => !GameCatalogProxy.IsPreReleaseVersion(e.FinaleType, e.Title))
+                            .ToList();
+
+                        var candidateList = retailList.Count > 0 ? retailList : groupList;
+
+                        var preferredEpisodes = new HashSet<Episode>();
+
+                        void AddPreferredVersionEpisodes(List<Episode> candidates)
+                        {
+                            if (candidates.Count == 0)
+                            {
+                                return;
+                            }
+
+                            var regionCandidates = candidates;
+                            if (series.CollectionStrategy == CollectionStrategy.OneGameOneRom)
+                            {
+                                var bestRegion = candidates
+                                    .Select(c => c.SeasonNumber)
+                                    .OrderBy(GameCatalogProxy.GetRegionPriority)
+                                    .FirstOrDefault();
+                                regionCandidates = candidates.Where(c => c.SeasonNumber == bestRegion).ToList();
+                            }
+
+                            var versionGroups = regionCandidates
+                                .GroupBy(e => GameCatalogProxy.ExtractVersionOnly(e.FinaleType, e.Title))
+                                .OrderBy(vg => GameCatalogProxy.GetRevisionSortOrder(vg.Key))
+                                .ToList();
+
+                            if (versionGroups.Count == 0)
+                            {
+                                return;
+                            }
+
+                            var chosenVersionGroup = preferInitial ? versionGroups.First() : versionGroups.Last();
+                            foreach (var ep in chosenVersionGroup)
+                            {
+                                preferredEpisodes.Add(ep);
+                            }
+                        }
+
+                        void ProcessCandidatePool(List<Episode> pool)
+                        {
+                            if (pool.Count == 0)
+                            {
+                                return;
+                            }
+
+                            var unencryptedRetail = pool
+                                .Where(e => !GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                                .ToList();
+                            var encryptedRetail = pool
+                                .Where(e => GameCatalogProxy.IsEncryptedVersion(e.FinaleType, e.Title))
+                                .ToList();
+
+                            if (encryptionPref == EncryptionPreference.NotEncrypted ||
+                                encryptionPref == EncryptionPreference.Both)
+                            {
+                                if (unencryptedRetail.Count > 0)
+                                {
+                                    AddPreferredVersionEpisodes(unencryptedRetail);
+                                }
+                                else if (encryptionPref == EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                                {
+                                    AddPreferredVersionEpisodes(encryptedRetail);
+                                }
+                            }
+
+                            if (encryptionPref == EncryptionPreference.Encrypted ||
+                                encryptionPref == EncryptionPreference.Both)
+                            {
+                                if (encryptedRetail.Count > 0)
+                                {
+                                    AddPreferredVersionEpisodes(encryptedRetail);
+                                }
+                                else if (encryptionPref == EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                                {
+                                    AddPreferredVersionEpisodes(unencryptedRetail);
+                                }
+                            }
+                        }
+
+                        var baseGamePool = candidateList.Where(e => !GameCatalogProxy.IsUpdateVersion(e.FinaleType, e.Title)).ToList();
+                        var patchUpdatePool = candidateList.Where(e => GameCatalogProxy.IsPatchUpdateVersion(e.FinaleType, e.Title)).ToList();
+                        var dlcPool = candidateList.Where(e => GameCatalogProxy.IsUpdateVersion(e.FinaleType, e.Title) && !GameCatalogProxy.IsPatchUpdateVersion(e.FinaleType, e.Title)).ToList();
+
+                        if (baseGamePool.Count > 0)
+                        {
+                            ProcessCandidatePool(baseGamePool);
+                        }
+                        else if (patchUpdatePool.Count == 0 && dlcPool.Count == 0)
+                        {
+                            ProcessCandidatePool(candidateList);
+                        }
+
+                        if (patchUpdatePool.Count > 0)
+                        {
+                            ProcessCandidatePool(patchUpdatePool);
+                        }
+
+                        if (dlcPool.Count > 0)
+                        {
+                            ProcessCandidatePool(dlcPool);
+                        }
+
+                        foreach (var item in groupList)
+                        {
+                            item.Monitored = preferredEpisodes.Contains(item);
+                        }
+                    }
+                }
+
+                _episodeService.UpdateEpisodes(allEpisodes);
+            }
+
+            _seriesService.UpdateSeries(series, false);
+        }
+
+        private static string ExtractBaseTitle(string title, string finaleType = null)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var clean = title;
+            if (!string.IsNullOrWhiteSpace(finaleType) &&
+                !string.Equals(finaleType, "Retail (v1.0)", StringComparison.OrdinalIgnoreCase) &&
+                clean.EndsWith($"({finaleType})", StringComparison.OrdinalIgnoreCase))
+            {
+                clean = clean.Substring(0, clean.Length - finaleType.Length - 2).Trim();
+            }
+
+            var parenIdx = clean.IndexOf(" (", StringComparison.Ordinal);
+            var bracketIdx = clean.IndexOf(" [", StringComparison.Ordinal);
+            var cutIdx = -1;
+            if (parenIdx > 0 && bracketIdx > 0)
+            {
+                cutIdx = Math.Min(parenIdx, bracketIdx);
+            }
+            else if (parenIdx > 0)
+            {
+                cutIdx = parenIdx;
+            }
+            else if (bracketIdx > 0)
+            {
+                cutIdx = bracketIdx;
+            }
+
+            if (cutIdx > 0)
+            {
+                clean = clean.Substring(0, cutIdx).Trim();
+            }
+
+            clean = GameCatalogProxy.DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');
+            return clean;
+        }
+
+        private static int ResolveDefaultRegionSeason(string consoleRegion)
+        {
+            if (string.IsNullOrWhiteSpace(consoleRegion))
+            {
+                return GameCatalogProxy.RegionUsa;
+            }
+
+            return consoleRegion.Trim().ToUpperInvariant() switch
+            {
+                "EU" or "EUR" or "EUROPE" or "PAL" => GameCatalogProxy.RegionEurope,
+                "JP" or "JPN" or "JAPAN" or "NTSC-J" => GameCatalogProxy.RegionJapan,
+                "WORLD" => GameCatalogProxy.RegionWorld,
+                _ => GameCatalogProxy.RegionUsa
+            };
+        }
+
+        private void LegacySetEpisodeMonitoredStatus(Series series, MonitoringOptions monitoringOptions)
+        {
+            _logger.Debug("[{0}] Setting game monitored status.", series.Title);
+
+            var episodes = _episodeService.GetEpisodeBySeries(series.Id);
+
+            if (monitoringOptions.IgnoreEpisodesWithFiles)
+            {
+                _logger.Debug("Unmonitoring Games with Files");
+                ToggleEpisodesMonitoredState(episodes.Where(e => e.HasFile), false);
+            }
+            else
+            {
+                _logger.Debug("Monitoring Games with Files");
+                ToggleEpisodesMonitoredState(episodes.Where(e => e.HasFile), true);
+            }
+
+            if (monitoringOptions.IgnoreEpisodesWithoutFiles)
+            {
+                _logger.Debug("Unmonitoring Games without Files");
+                ToggleEpisodesMonitoredState(episodes.Where(e => !e.HasFile && e.AirDateUtc.HasValue && e.AirDateUtc.Value.Before(DateTime.UtcNow)), false);
+            }
+            else
+            {
+                _logger.Debug("Monitoring Games without Files");
+                ToggleEpisodesMonitoredState(episodes.Where(e => !e.HasFile && e.AirDateUtc.HasValue && e.AirDateUtc.Value.Before(DateTime.UtcNow)), true);
+            }
+
+            var lastSeason = series.Seasons.Select(s => s.SeasonNumber).MaxOrDefault();
+
+            foreach (var s in series.Seasons)
+            {
+                var season = s;
+
+                // If the season is unmonitored we should unmonitor all episodes in that season
+
+                if (!season.Monitored)
+                {
+                    _logger.Debug("Unmonitoring all games in region {0}", season.SeasonNumber);
+                    ToggleEpisodesMonitoredState(episodes.Where(e => e.SeasonNumber == season.SeasonNumber), false);
+                }
+
+                // If the season is not the latest season and all it's episodes are unmonitored the season will be unmonitored
+
+                if (season.SeasonNumber < lastSeason)
+                {
+                    if (episodes.Where(e => e.SeasonNumber == season.SeasonNumber).All(e => !e.Monitored))
+                    {
+                        _logger.Debug("Unmonitoring region {0} because all games are not monitored", season.SeasonNumber);
+                        season.Monitored = false;
+                    }
+                }
+            }
+
+            _episodeService.UpdateEpisodes(episodes);
+
+            _seriesService.UpdateSeries(series, false);
+        }
+
+        private void ToggleEpisodesMonitoredState(IEnumerable<Episode> episodes, bool monitored)
+        {
+            foreach (var episode in episodes)
+            {
+                episode.Monitored = monitored;
+            }
+        }
+
+        private void ToggleEpisodesMonitoredState(List<Episode> episodes, Func<Episode, bool> predicate)
+        {
+            ToggleEpisodesMonitoredState(episodes.Where(predicate), true);
+            ToggleEpisodesMonitoredState(episodes.Where(e => !predicate(e)), false);
+        }
+    }
+}

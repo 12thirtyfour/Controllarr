@@ -1,0 +1,22 @@
+.container {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.link {
+  composes: link from 'Components/Link/Link.module.css';
+
+  overflow: hidden;
+
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--linkHoverColor);
+    text-decoration: underline;
+  }
+}

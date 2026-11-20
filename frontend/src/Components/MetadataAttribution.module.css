@@ -1,0 +1,28 @@
+.container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex-direction: column;
+  margin-top: auto;
+  gap: 2px;
+}
+
+.attribution {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--mediumGray);
+  font-size: var(--defaultFontSize);
+
+  &:hover {
+    color: var(--darkGray);
+    text-decoration: none;
+  }
+}
+
+.detailText {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--mediumGray);
+  text-align: right;
+  font-size: var(--defaultFontSize);
+}

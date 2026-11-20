@@ -1,0 +1,23 @@
+using System.Collections.Generic;
+using NzbDrone.Core.Datastore;
+
+namespace NzbDrone.Core.Tv
+{
+    public class Region : IEmbeddedDocument
+    {
+        public Region()
+        {
+            Images = new List<MediaCover.MediaCover>();
+        }
+
+        public int SeasonNumber { get; set; }
+        public int RegionNumber { get => SeasonNumber; set => SeasonNumber = value; }
+        public bool Monitored { get; set; }
+        public string Title { get; set; }
+        public List<MediaCover.MediaCover> Images { get; set; }
+    }
+
+    public class Season : Region
+    {
+    }
+}

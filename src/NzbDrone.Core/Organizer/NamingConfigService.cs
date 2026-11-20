@@ -1,0 +1,93 @@
+using System;
+
+namespace NzbDrone.Core.Organizer
+{
+    public interface INamingConfigService
+    {
+        NamingConfig GetConfig();
+        void Save(NamingConfig namingConfig);
+    }
+
+    public class NamingConfigService : INamingConfigService
+    {
+        private readonly INamingConfigRepository _repository;
+
+        public NamingConfigService(INamingConfigRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public NamingConfig GetConfig()
+        {
+            var config = _repository.SingleOrDefault();
+
+            if (config == null)
+            {
+                lock (_repository)
+                {
+                    config = _repository.SingleOrDefault();
+
+                    if (config == null)
+                    {
+                        var defaultConfig = NamingConfig.Default;
+                        defaultConfig.SeriesFolderFormat = "{Manufacturer}/{Platform}";
+                        defaultConfig.SeasonFolderFormat = "{Region}";
+                        defaultConfig.SpecialsFolderFormat = "Unlicensed";
+                        defaultConfig.StandardGameFormat = "{Game Title}";
+                        defaultConfig.DailyGameFormat = "{Game Title}/{Game Title}";
+                        defaultConfig.AnimeGameFormat = "{Game Title}";
+
+                        _repository.Insert(defaultConfig);
+                        config = _repository.Single();
+                    }
+                }
+            }
+
+            if (config != null && UpgradeLegacyTvNamingConfig(config))
+            {
+                _repository.Upsert(config);
+            }
+
+            return config;
+        }
+
+        public void Save(NamingConfig namingConfig)
+        {
+            _repository.Upsert(namingConfig);
+        }
+
+        private static bool UpgradeLegacyTvNamingConfig(NamingConfig config)
+        {
+            var modified = false;
+
+            if (string.IsNullOrWhiteSpace(config.SeasonFolderFormat) ||
+                config.SeasonFolderFormat.Equals("Season {season}", StringComparison.OrdinalIgnoreCase) ||
+                config.SeasonFolderFormat.Equals("Season {season:00}", StringComparison.OrdinalIgnoreCase) ||
+                config.SeasonFolderFormat.Equals("Season {season:0}", StringComparison.OrdinalIgnoreCase))
+            {
+                config.SeasonFolderFormat = "{Region}";
+                config.SpecialsFolderFormat = "Unlicensed";
+                modified = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(config.SeriesFolderFormat) ||
+                config.SeriesFolderFormat.Equals("{Series Title}", StringComparison.OrdinalIgnoreCase) ||
+                config.SeriesFolderFormat.Equals("{Platform}", StringComparison.OrdinalIgnoreCase))
+            {
+                config.SeriesFolderFormat = "{Manufacturer}/{Platform}";
+                modified = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(config.StandardGameFormat) ||
+                config.StandardGameFormat.Contains("{Series Title}"))
+            {
+                config.StandardGameFormat = "{Game Title}";
+                config.DailyGameFormat = "{Game Title}/{Game Title}";
+                config.AnimeGameFormat = "{Game Title}";
+                modified = true;
+            }
+
+            return modified;
+        }
+    }
+}

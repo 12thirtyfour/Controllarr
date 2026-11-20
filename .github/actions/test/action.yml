@@ -1,0 +1,160 @@
+name: Test
+description: Runs unit/integration tests
+
+inputs:
+  use_postgres:
+    description: 'Whether postgres should be used for the database'
+  postgres-version:
+    description: 'Which postgres version should be used for the database'
+  os:
+    description: 'OS that the tests are running on'
+    required: true
+  artifact:
+    description: 'Test binary artifact'
+    required: true
+  pattern:
+    description: 'Pattern for DLLs'
+    required: true
+  filter:
+    description: 'Filter for tests'
+    required: true
+  integration_tests:
+    description: 'True if running integration tests'
+  binary_artifact:
+    description: 'Binary artifact for integration tests'
+  binary_path:
+    description: 'Path witin binary artifact for integration tests'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Setup Postgres
+      if: ${{ inputs.use_postgres }}
+      uses: ikalnytskyi/action-setup-postgres@v8
+      with:
+        postgres-version: ${{ inputs.postgres-version }}
+
+    - name: Setup Test Variables
+      shell: bash
+      run: |
+        echo "RESULTS_NAME=${{ inputs.integration_tests && 'integation-' || 'unit-' }}${{ inputs.artifact }}${{ inputs.use_postgres && '-postgres' }}${{ inputs.use_postgres && inputs.postgres-version && inputs.postgres-version }}" >> "$GITHUB_ENV"
+
+    - name: Setup Postgres Environment Variables
+      if: ${{ inputs.use_postgres }}
+      shell: bash
+      run: |
+        echo "Controllarr__Postgres__Host=localhost" >> "$GITHUB_ENV"
+        echo "Controllarr__Postgres__Port=5432" >> "$GITHUB_ENV"
+        echo "Controllarr__Postgres__User=postgres" >> "$GITHUB_ENV"
+        echo "Controllarr__Postgres__Password=postgres" >> "$GITHUB_ENV"
+
+    - name: Download Artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.artifact }}
+        path: _tests
+
+    - name: Ensure test fixture executables have execution permissions
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "Ensuring test fixture binaries are executable..."
+        chmod -R +x _tests/Controllarr.Test.Dummy* 2>/dev/null || true
+        chmod -R +x _tests/ffprobe* 2>/dev/null || true
+        chmod -R +x _tests/*.sh 2>/dev/null || true
+
+    - name: Download Binary Artifact
+      if: ${{ inputs.integration_tests }}
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ inputs.binary_artifact }}
+        path: _output
+
+    - name: Set up binary artifact
+      if: inputs.integration_tests == 'true'
+      shell: bash
+      run: |
+        echo "=== Locating binary artifacts in _output ==="
+        mkdir -p _output/net10.0
+        mkdir -p _tests/bin
+
+        # 1. Locate the directory that contains the compiled application assemblies
+        TARGET_DIR=""
+        for d in $(find _output -type d \( -name "Sonarr" -o -name "Controllarr" \)); do
+          if [ -f "$d/Sonarr.Host.dll" ] || [ -f "$d/Controllarr.Common.dll" ] || [ -f "$d/Sonarr.Core.dll" ]; then
+            TARGET_DIR="$d"
+            break
+          fi
+        done
+
+        if [ -z "$TARGET_DIR" ]; then
+          # Fallback: search for any directory containing Sonarr.Core.dll or Controllarr.Common.dll
+          TARGET_DIR=$(dirname $(find _output -type f \( -name "Sonarr.Core.dll" -o -name "Controllarr.Common.dll" \) | head -n 1))
+        fi
+
+        echo "Found compiled binaries directory: $TARGET_DIR"
+
+        if [ -n "$TARGET_DIR" ] && [ -d "$TARGET_DIR" ]; then
+          echo "Copying all files from $TARGET_DIR to _output/net10.0 and _tests/bin"
+          cp -rf "$TARGET_DIR"/* _output/net10.0/ 2>/dev/null || true
+          cp -rf "$TARGET_DIR"/* _tests/bin/ 2>/dev/null || true
+        fi
+
+        # 2. Guarantee exact binary names required by NzbDroneRunner.cs
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          # On Windows, NzbDroneRunner checks for Sonarr.Console.exe first, then Sonarr.exe
+          if [ -f "_output/net10.0/Sonarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+            cp _output/net10.0/Sonarr.exe _output/net10.0/Sonarr.Console.exe
+          fi
+          if [ -f "_output/net10.0/Controllarr.Console.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+            cp _output/net10.0/Controllarr.Console.exe _output/net10.0/Sonarr.Console.exe
+          fi
+          if [ -f "_output/net10.0/Controllarr.exe" ] && [ ! -f "_output/net10.0/Sonarr.Console.exe" ]; then
+            cp _output/net10.0/Controllarr.exe _output/net10.0/Sonarr.Console.exe
+          fi
+
+          # Mirror into _tests/bin
+          cp _output/net10.0/Controllarr*.exe _tests/bin/ 2>/dev/null || true
+          cp _output/net10.0/Sonarr*.exe _tests/bin/ 2>/dev/null || true
+        else
+          # On Unix (Linux & macOS), NzbDroneRunner executes _output/net10.0/Sonarr
+          if [ -f "_output/net10.0/Controllarr" ] && [ ! -f "_output/net10.0/Sonarr" ]; then
+            cp _output/net10.0/Controllarr _output/net10.0/Sonarr
+          fi
+          if [ ! -f "_output/net10.0/Sonarr" ]; then
+            # Find any mach-o / elf binary named Sonarr or Controllarr
+            FOUND_EXEC=$(find _output -type f \( -name "Sonarr" -o -name "Controllarr" \) ! -name "*.dll" ! -name "*.xml" ! -name "*.json" ! -name "*.pdb" | head -n 1)
+            if [ -n "$FOUND_EXEC" ]; then
+              cp "$FOUND_EXEC" _output/net10.0/Sonarr
+            fi
+          fi
+
+          if [ -f "_output/net10.0/Sonarr" ]; then
+            cp _output/net10.0/Sonarr _tests/bin/Sonarr 2>/dev/null || true
+            cp _output/net10.0/Controllarr _tests/bin/Controllarr 2>/dev/null || true
+          fi
+
+          # Ensure execute permissions on every executable in _output/net10.0 and _tests/
+          chmod -R 755 _output/net10.0/
+          chmod -R 755 _tests/
+        fi
+
+        echo "=== Verification of _output/net10.0/Sonarr* ==="
+        ls -la _output/net10.0/Sonarr* 2>/dev/null || true
+        ls -la _output/net10.0/Controllarr* 2>/dev/null || true
+
+    - name: Run tests
+      shell: bash
+      run: dotnet test ./_tests/${{ inputs.pattern }} --filter "${{ inputs.filter }}" --logger "trx;LogFileName=${{ env.RESULTS_NAME }}.trx" --logger "GitHubActions;summary.includePassedTests=true;summary.includeSkippedTests=true"
+
+    - name: Upload Test Results
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: results-${{ env.RESULTS_NAME }}
+        path: TestResults/*.trx

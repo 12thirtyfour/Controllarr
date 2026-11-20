@@ -1,0 +1,15 @@
+# Auto detect text files and normalize line endings to LF across all platforms
+* text=auto eol=lf
+
+# Explicitly set bash and distribution scripts to have unix endings
+*.sh text eol=lf
+distribution/debian/* text eol=lf
+distribution/osx/Sonarr text eol=lf
+
+# Windows batch scripts require CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Custom for Visual Studio
+*.cs     diff=csharp
+*.sln    merge=union

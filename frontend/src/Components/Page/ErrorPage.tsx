@@ -1,0 +1,77 @@
+import React from 'react';
+import { ApiError } from 'Utilities/Fetch/fetchJson';
+import getErrorMessage from 'Utilities/Object/getErrorMessage';
+import translate from 'Utilities/String/translate';
+import styles from './ErrorPage.module.css';
+
+interface ErrorPageProps {
+  version: string;
+  isLocalStorageSupported: boolean;
+  translationsError: ApiError | null;
+  seriesError: ApiError | null;
+  customFiltersError: ApiError | null;
+  tagsError: ApiError | null;
+  uiSettingsError: ApiError | null;
+  systemStatusError: ApiError | null;
+}
+
+function ErrorPage(props: ErrorPageProps) {
+  const {
+    version,
+    isLocalStorageSupported,
+    translationsError,
+    seriesError,
+    customFiltersError,
+    tagsError,
+    uiSettingsError,
+    systemStatusError,
+  } = props;
+
+  let errorMessage = translate('FailedToLoadControllarr');
+
+  if (!isLocalStorageSupported) {
+    errorMessage = translate('LocalStorageIsNotSupported');
+  } else if (translationsError) {
+    errorMessage = getErrorMessage(
+      translationsError,
+      translate('FailedToLoadTranslationsFromApi')
+    );
+  } else if (seriesError) {
+    errorMessage = getErrorMessage(
+      seriesError,
+      translate('FailedToLoadPlatformsFromApi')
+    );
+  } else if (customFiltersError) {
+    errorMessage = getErrorMessage(
+      customFiltersError,
+      translate('FailedToLoadCustomFiltersFromApi')
+    );
+  } else if (tagsError) {
+    errorMessage = getErrorMessage(
+      tagsError,
+      translate('FailedToLoadTagsFromApi')
+    );
+  } else if (uiSettingsError) {
+    errorMessage = getErrorMessage(
+      uiSettingsError,
+      translate('FailedToLoadUiSettingsFromApi')
+    );
+  } else if (systemStatusError) {
+    errorMessage = getErrorMessage(
+      systemStatusError,
+      translate('FailedToLoadSystemStatusFromApi')
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      <div>{errorMessage}</div>
+
+      <div className={styles.version}>
+        {translate('VersionNumber', { version })}
+      </div>
+    </div>
+  );
+}
+
+export default ErrorPage;

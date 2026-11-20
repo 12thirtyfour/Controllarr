@@ -1,0 +1,734 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using FluentAssertions;
+using Moq;
+using NUnit.Framework;
+using NzbDrone.Common.Http;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.InternetArchive;
+using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
+
+namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
+{
+    [TestFixture]
+    public class InternetArchiveIndexerFixture : CoreTest<InternetArchiveIndexer>
+    {
+        [SetUp]
+        public void Setup()
+        {
+            Subject.Definition = new IndexerDefinition
+            {
+                Name = "InternetArchive",
+                Settings = new InternetArchiveIndexerSettings
+                {
+                    BaseUrl = "https://archive.org",
+                    Collections = new[] { "no-intro_romsets", "redump", "softwarelibrary" }
+                }
+            };
+        }
+
+        [Test]
+        public async Task should_parse_recent_feed_from_InternetArchive()
+        {
+            var jsonResponse = @"{
+                ""responseHeader"": { ""status"": 0, ""QTime"": 10 },
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""snes_no_intro_romset"",
+                            ""title"": ""Super Nintendo Entertainment System (No-Intro)"",
+                            ""mediatype"": ""software"",
+                            ""collection"": [""no-intro_romsets""],
+                            ""date"": ""2021-01-01T00:00:00Z"",
+                            ""publicdate"": ""2021-01-01T00:00:00Z"",
+                            ""item_size"": 104857600,
+                            ""downloads"": 500
+                        }
+                    ]
+                }
+            }";
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), jsonResponse));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(1);
+            var release = releases.First();
+
+            release.Guid.Should().Be("IA-snes_no_intro_romset");
+            release.Title.Should().Be("Super Nintendo Entertainment System (No-Intro)");
+            release.DownloadProtocol.Should().Be(DownloadProtocol.Http);
+            release.DownloadUrl.Should().Be("https://archive.org/compress/snes_no_intro_romset");
+            release.InfoUrl.Should().Be("https://archive.org/details/snes_no_intro_romset");
+            release.Size.Should().Be(104857600);
+            release.PublishDate.Should().Be(DateTime.Parse("2021-01-01T00:00:00Z").ToUniversalTime());
+            release.RequiresCredentials.Should().BeFalse();
+        }
+
+        [Test]
+        public async Task should_mark_requires_credentials_true_when_doc_is_access_restricted()
+        {
+            var jsonResponse = @"{
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""restricted_rom"",
+                            ""title"": ""Restricted ROM"",
+                            ""access-restricted-item"": ""true"",
+                            ""item_size"": 1024
+                        }
+                    ]
+                }
+            }";
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), jsonResponse));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(1);
+            releases.First().RequiresCredentials.Should().BeTrue();
+        }
+
+        [Test]
+        public async Task should_mark_requires_credentials_true_when_indexer_setting_is_enabled()
+        {
+            var settings = (InternetArchiveIndexerSettings)Subject.Definition.Settings;
+            settings.RequireCredentials = true;
+
+            var jsonResponse = @"{
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""public_rom"",
+                            ""title"": ""Public ROM"",
+                            ""item_size"": 1024
+                        }
+                    ]
+                }
+            }";
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), jsonResponse));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().HaveCount(1);
+            releases.First().RequiresCredentials.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_generate_recent_request_with_collections()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                Collections = new[] { "no-intro_romsets", "redump" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var requests = generator.GetRecentRequests().GetAllTiers().SelectMany(x => x).ToList();
+
+            requests.Should().HaveCount(3);
+            requests[0].HttpRequest.Url.FullUri.Should().Be("https://archive.org/metadata/no-intro_romsets/files");
+            requests[1].HttpRequest.Url.FullUri.Should().Be("https://archive.org/metadata/redump/files");
+
+            var request = requests[2];
+            request.HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            request.HttpRequest.Url.FullUri.Should().Contain("collection%3Ano-intro_romsets");
+            request.HttpRequest.Url.FullUri.Should().Contain("collection%3Aredump");
+            request.HttpRequest.Url.FullUri.Should().Contain("output=json");
+        }
+
+        [Test]
+        public void should_generate_search_request_with_primary_archives_and_fallback()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                SceneTitles = new List<string> { "Super Mario World" }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+
+            requests.Should().HaveCount(3);
+
+            // Tier 1: Query primary archive metadata directly for single ROM files
+            requests[0].HttpRequest.Url.FullUri.Should().Contain("/metadata/htgdb-gamepacks/files?search=Super%20Mario%20World");
+
+            // Tier 2: Fallback query across collection
+            requests[1].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            requests[1].HttpRequest.Url.FullUri.Should().Contain("collection%3Ahtgdb-gamepacks");
+            requests[1].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
+
+            // Tier 3: Broad search across Internet Archive software library
+            requests[2].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            requests[2].HttpRequest.Url.FullUri.Should().Contain("mediatype%3Asoftware");
+            requests[2].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
+        }
+
+        [Test]
+        public void should_generate_search_request_without_primary_archives()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = Array.Empty<string>()
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                SceneTitles = new List<string> { "Super Mario World" }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+
+            requests.Should().HaveCount(1);
+            requests[0].HttpRequest.Url.FullUri.Should().Contain("advancedsearch.php");
+            requests[0].HttpRequest.Url.FullUri.Should().Contain("Super%20Mario%20World");
+        }
+
+        [Test]
+        public async Task should_handle_empty_response_gracefully()
+        {
+            var jsonResponse = @"{ ""response"": { ""numFound"": 0, ""start"": 0, ""docs"": [] } }";
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.IsAny<HttpRequest>()))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), jsonResponse));
+
+            var releases = await Subject.FetchRecent();
+
+            releases.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_validate_default_settings()
+        {
+            var settings = new InternetArchiveIndexerSettings();
+            var validationResult = settings.Validate();
+
+            validationResult.IsValid.Should().BeTrue();
+        }
+
+        [TestCase("https://archive.org/details/htgdb-gamepacks", "htgdb-gamepacks")]
+        [TestCase("https://archive.org/details/htgdb-gamepacks/", "htgdb-gamepacks")]
+        [TestCase("https://archive.org/download/htgdb-gamepacks", "htgdb-gamepacks")]
+        [TestCase("htgdb-gamepacks", "htgdb-gamepacks")]
+        [TestCase("https://archive.org/details/no-intro-rom-sets/item", "no-intro-rom-sets")]
+        public void should_extract_identifier_from_archive_urls(string inputUrl, string expectedId)
+        {
+            InternetArchiveIndexerSettings.ExtractIdentifier(inputUrl).Should().Be(expectedId);
+        }
+
+        [Test]
+        public void should_parse_metadata_files_response_for_primary_archive()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""@ = MiSTer Ready.txt"", ""size"": ""181"", ""format"": ""Text"" },
+                    { ""name"": ""Super Mario World (USA).sfc"", ""size"": ""524288"", ""format"": ""ROM"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Chrono Trigger (USA).sfc"", ""size"": ""4194304"", ""format"": ""ROM"", ""mtime"": 1600000000, ""private"": ""true"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/htgdb-gamepacks/files?search=Super%20Mario%20World");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            var release = releases.First();
+            release.Title.Should().Be("Super Mario World (USA).sfc");
+            release.DownloadUrl.Should().Be("https://archive.org/download/htgdb-gamepacks/Super%20Mario%20World%20%28USA%29.sfc");
+            release.InfoUrl.Should().Be("https://archive.org/details/htgdb-gamepacks");
+            release.Size.Should().Be(524288);
+            release.RequiresCredentials.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_parse_search_response_when_title_is_array_of_strings()
+        {
+            var parser = new InternetArchiveParser(new InternetArchiveIndexerSettings());
+            var json = @"{
+                ""response"": {
+                    ""numFound"": 1,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""2003_11_27_DPCS0803"",
+                            ""title"": [""2003-11-27 DPCS0803"", ""2003 11 27 DPCS0803""],
+                            ""mediatype"": [""software""],
+                            ""date"": [""2003-11-27""],
+                            ""publicdate"": ""2020-01-01T00:00:00Z"",
+                            ""item_size"": 123456
+                        }
+                    ]
+                }
+            }";
+
+            var request = new HttpRequest("https://archive.org/advancedsearch.php?q=test");
+            var response = new HttpResponse(request, new HttpHeader(), json);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            releases[0].Title.Should().Be("2003-11-27 DPCS0803");
+            releases[0].Guid.Should().Be("IA-2003_11_27_DPCS0803");
+            releases[0].Size.Should().Be(123456);
+        }
+
+        [Test]
+        public void should_scope_query_strictly_to_primary_archives_when_configured()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                Series = new Series { Title = "Nintendo Entertainment System", TitleSlug = "nes" },
+                Episodes = new List<Episode> { new Episode { Title = "106 Games" } }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+            var pagedRequest = requests.FirstOrDefault(r => r.HttpRequest.Url.FullUri.Contains("advancedsearch.php"));
+
+            pagedRequest.Should().NotBeNull();
+            var uri = pagedRequest.HttpRequest.Url.FullUri;
+            uri.Should().Contain("htgdb-gamepacks");
+            uri.Should().NotContain("OR+mediatype%3Asoftware");
+        }
+
+        [Test]
+        public void should_pass_test_connection_when_probe_is_successful()
+        {
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.IsAny<HttpRequest>()))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), "{}"));
+
+            var failures = Subject.Test();
+
+            failures.IsValid.Should().BeTrue();
+            failures.Errors.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_fail_test_connection_when_auth_error_returned()
+        {
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.IsAny<HttpRequest>()))
+                .ReturnsAsync((HttpRequest r, CancellationToken _) => new HttpResponse(r, new HttpHeader(), new byte[0], System.Net.HttpStatusCode.Unauthorized));
+
+            var failures = Subject.Test();
+
+            failures.IsValid.Should().BeFalse();
+            failures.Errors.Should().HaveCount(1);
+            failures.Errors.First().ErrorMessage.Should().Contain("authentication failed");
+        }
+
+        [Test]
+        public void should_parse_metadata_files_response_for_primary_archive_with_platform_hash_parameter()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/chd_segacd" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""@ = Sega CD Directory.txt"", ""size"": ""181"", ""format"": ""Text"" },
+                    { ""name"": ""Sonic CD (USA).chd"", ""size"": ""471859200"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Sonic The Hedgehog CD (USA).chd"", ""size"": ""471859200"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Sonic_CD_(Japan).chd"", ""size"": ""460000000"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" },
+                    { ""name"": ""Snatcher (USA).chd"", ""size"": ""524288000"", ""format"": ""CHD"", ""mtime"": 1600000000, ""private"": ""false"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/chd_segacd/files?search=Sonic%20CD#_platform=segacd&_platformName=Sega%20CD");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(3);
+            releases.Should().Contain(r => r.Title == "Sonic CD (USA).chd" && r.DownloadUrl == "https://archive.org/download/chd_segacd/Sonic%20CD%20%28USA%29.chd");
+            releases.Should().Contain(r => r.Title == "Sonic The Hedgehog CD (USA).chd");
+            releases.Should().Contain(r => r.Title == "Sonic_CD_(Japan).chd");
+            releases.Should().NotContain(r => r.Title.Contains("Snatcher"));
+            releases.First().Size.Should().Be(471859200);
+        }
+
+        [Test]
+        public void should_exclude_primary_archive_collection_itself_and_huge_archives_from_search_results()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/chd_segacd" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var searchJson = @"{
+                ""response"": {
+                    ""numFound"": 2,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""chd_segacd"",
+                            ""title"": ""Sega CD Complete CHD Collection"",
+                            ""mediatype"": ""software"",
+                            ""item_size"": 506806149120
+                        },
+                        {
+                            ""identifier"": ""sonic_cd_standalone_release"",
+                            ""title"": ""Sonic CD (USA)"",
+                            ""mediatype"": ""software"",
+                            ""item_size"": 471859200
+                        }
+                    ]
+                }
+            }";
+
+            var request = new HttpRequest("https://archive.org/advancedsearch.php?q=Sonic%20CD#_platform=segacd");
+            var response = new HttpResponse(request, new HttpHeader(), searchJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            releases[0].Guid.Should().Be("IA-sonic_cd_standalone_release");
+            releases[0].Title.Should().Be("Sonic CD (USA)");
+            releases[0].Size.Should().Be(471859200);
+        }
+
+        [Test]
+        public void should_generate_single_collection_request_for_primary_archives_without_search_query()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/nointro.nes" }
+            };
+
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+            var criteria = new SeasonSearchCriteria
+            {
+                Series = new Series { Title = "Nintendo Entertainment System", TitleSlug = "nes" },
+                IsPlatformCollectionSearch = true,
+                SceneTitles = new List<string> { "NES", "Nintendo Entertainment System", "NES romset" }
+            };
+
+            var requests = generator.GetSearchRequests(criteria).GetAllTiers().SelectMany(x => x).ToList();
+
+            // Tier 1 should have exactly one request for the primary archive without ?search= query
+            var tier1 = requests.First();
+            tier1.HttpRequest.Url.FullUri.Should().Be("https://archive.org/metadata/nointro.nes/files#_platform=nes&_platformName=Nintendo%20Entertainment%20System&_collection=true");
+        }
+
+        [Test]
+        public void should_parse_collection_zip_file_as_season_pack_from_primary_archive()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/nointro.nes" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""Nintendo - Nintendo Entertainment System.zip"", ""size"": ""123456789"", ""format"": ""ZIP"" },
+                    { ""name"": ""readme.txt"", ""size"": ""100"", ""format"": ""Text"" },
+                    { ""name"": ""Super Mario Bros (USA).nes"", ""size"": ""40960"", ""format"": ""ROM"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/nointro.nes/files#_platform=nes&_platformName=Nintendo%20Entertainment%20System&_collection=true");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(1);
+            var release = releases.First();
+            release.Title.Should().Be("Nintendo - Nintendo Entertainment System.zip");
+            release.DownloadUrl.Should().Be("https://archive.org/download/nointro.nes/Nintendo%20-%20Nintendo%20Entertainment%20System.zip");
+            release.ParsedRomInfo.Should().NotBeNull();
+            release.ParsedRomInfo.IsFullSetArchive.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_parse_matching_platform_packs_from_multi_platform_primary_archive()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/download/htgdb-gamepacks" }
+            };
+
+            var parser = new InternetArchiveParser(settings);
+            var metadataJson = @"{
+                ""result"": [
+                    { ""name"": ""@Genesis - MegaSD Mega EverDrive 2024-01-03.zip"", ""size"": ""123456789"", ""format"": ""ZIP"" },
+                    { ""name"": ""@Genesis - MegaSD Mega EverDrive Game Series Collections 2024-01-03.zip"", ""size"": ""98765432"", ""format"": ""ZIP"" },
+                    { ""name"": ""@SNES - SD2SNES - Super EverDrive 2023-12-12.zip"", ""size"": ""234567890"", ""format"": ""ZIP"" },
+                    { ""name"": ""@MiSTer Pack 2023-06-09.7z"", ""size"": ""345678901"", ""format"": ""7z"" },
+                    { ""name"": ""@SPC Music 2023-12-26.zip"", ""size"": ""45678901"", ""format"": ""ZIP"" }
+                ]
+            }";
+
+            var request = new HttpRequest("https://archive.org/metadata/htgdb-gamepacks/files#_platform=genesis&_platformName=Sega%20Genesis&_collection=true");
+            var response = new HttpResponse(request, new HttpHeader(), metadataJson);
+            var indexerResponse = new IndexerResponse(new IndexerRequest(request), response);
+
+            var releases = parser.ParseResponse(indexerResponse);
+
+            releases.Should().HaveCount(2);
+            releases.Select(r => r.Title).Should().BeEquivalentTo(new[]
+            {
+                "@Genesis - MegaSD Mega EverDrive 2024-01-03.zip",
+                "@Genesis - MegaSD Mega EverDrive Game Series Collections 2024-01-03.zip"
+            });
+            releases.Should().OnlyContain(r => r.ParsedRomInfo != null && r.ParsedRomInfo.IsFullSetArchive);
+        }
+
+        [Test]
+        public void should_include_global_ia_search_for_64dd_collection_and_pokemon_ruby_without_publicdate_sort()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+
+            var collectionCriteria = new NzbDrone.Core.IndexerSearch.Definitions.SeasonSearchCriteria
+            {
+                Series = new NzbDrone.Core.Tv.Series { Title = "Nintendo 64DD", TitleSlug = "64dd" },
+                IsPlatformCollectionSearch = true,
+                SceneTitles = new List<string> { "@64DD", "[Nintendo - Nintendo 64DD" }
+            };
+
+            var collectionChain = generator.GetSearchRequests(collectionCriteria);
+            collectionChain.Tiers.Should().Be(3);
+            var broadCollectionUrls = collectionChain.GetTier(2).SelectMany(p => p).Select(r => r.Url.FullUri).ToList();
+            broadCollectionUrls.Should().Contain(u => u.Contains("advancedsearch.php") && u.Contains("mediatype%3Adata") && !u.Contains("publicdate+desc"));
+
+            var singleCriteria = new NzbDrone.Core.IndexerSearch.Definitions.SingleEpisodeSearchCriteria
+            {
+                Series = new NzbDrone.Core.Tv.Series { Title = "Game Boy Advance", TitleSlug = "gba" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Title = "Pokemon - Ruby Version (USA)" } },
+                InteractiveSearch = true
+            };
+
+            var singleChain = generator.GetSearchRequests(singleCriteria);
+            var interactiveUrls = singleChain.GetTier(0).SelectMany(p => p).Select(r => r.Url.FullUri).ToList();
+            interactiveUrls.Should().Contain(u => u.Contains("advancedsearch.php") && u.Contains("Pokemon") && u.Contains("Ruby") && !u.Contains("publicdate+desc"));
+        }
+
+        [Test]
+        public void should_create_separate_pageable_requests_for_each_preferred_archive_and_scrutinize_global_context()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[]
+                {
+                    "https://archive.org/details/htgdb-gamepacks",
+                    "https://archive.org/details/retro-roms-pack"
+                }
+            };
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+
+            var collectionCriteria = new NzbDrone.Core.IndexerSearch.Definitions.SeasonSearchCriteria
+            {
+                Series = new NzbDrone.Core.Tv.Series { Title = "Virtual Boy", TitleSlug = "vb" },
+                IsPlatformCollectionSearch = true
+            };
+
+            var chain = generator.GetSearchRequests(collectionCriteria);
+            chain.Tiers.Should().Be(3);
+            chain.GetTier(0).Should().HaveCount(2);
+
+            var parser = new InternetArchiveParser(settings);
+            var globalSearchJson = @"{
+                ""response"": {
+                    ""numFound"": 5,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""virtual-boy-reference-set"",
+                            ""title"": ""Complete No-Intro Reference Set"",
+                            ""mediatype"": ""software"",
+                            ""collection"": [""roms"", ""virtualboy_library""],
+                            ""subject"": [""Nintendo Virtual Boy"", ""ROMSet""]
+                        },
+                        {
+                            ""identifier"": ""vb-manual-scans"",
+                            ""title"": ""Virtual Boy Instruction Manuals"",
+                            ""mediatype"": ""texts""
+                        },
+                        {
+                            ""identifier"": ""virtual-boy-ost"",
+                            ""title"": ""Virtual Boy Original Soundtrack OST"",
+                            ""mediatype"": ""software""
+                        },
+                        {
+                            ""identifier"": ""gba-complete-set"",
+                            ""title"": ""Complete ROM Collection"",
+                            ""mediatype"": ""software"",
+                            ""subject"": [""Game Boy Advance""]
+                        },
+                        {
+                            ""identifier"": ""dos-virtual-boy-promo"",
+                            ""title"": ""Virtual Boy Promo Pack"",
+                            ""mediatype"": ""software"",
+                            ""collection"": [""softwarelibrary_msdos_games""]
+                        }
+                    ]
+                }
+            }";
+
+            var request = new HttpRequest("https://archive.org/advancedsearch.php?q=test#_platform=vb&_platformName=Virtual%20Boy&_collection=true");
+            var response = new HttpResponse(request, new HttpHeader(), globalSearchJson);
+            var releases = parser.ParseResponse(new IndexerResponse(new IndexerRequest(request), response));
+
+            releases.Should().HaveCount(1);
+            releases[0].Guid.Should().Be("IA-virtual-boy-reference-set");
+            releases[0].Origin.Should().Contain("virtual-boy-reference-set");
+            releases[0].Origin.Should().Contain("Nintendo Virtual Boy");
+            releases[0].ParsedRomInfo.IsFullSetArchive.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_search_and_parse_pokemon_ruby_gba_without_hyphen_lucene_error()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+
+            var singleCriteria = new NzbDrone.Core.IndexerSearch.Definitions.SingleEpisodeSearchCriteria
+            {
+                Series = new NzbDrone.Core.Tv.Series { Title = "Game Boy Advance", TitleSlug = "gba" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Title = "Pokemon - Ruby" } },
+                InteractiveSearch = true
+            };
+
+            var chain = generator.GetSearchRequests(singleCriteria);
+            var urls = chain.GetTier(0).SelectMany(p => p).Select(r => Uri.UnescapeDataString(r.Url.FullUri)).ToList();
+
+            urls.Should().NotContain(u => u.Contains("AND - AND"));
+            urls.Should().NotContain(u => u.Contains("collection:https://"));
+            urls.Should().Contain(u => !u.Contains("htgdb-gamepacks") && u.Contains("title:(Pokemon AND Ruby)") && u.Contains("\"gba\""));
+
+            var parser = new InternetArchiveParser(settings);
+            var searchJson = @"{
+                ""response"": {
+                    ""numFound"": 5,
+                    ""start"": 0,
+                    ""docs"": [
+                        {
+                            ""identifier"": ""pokemon_ruby-version-u-v-1.1"",
+                            ""title"": ""Pokémon Ruby Version ( U) ( V 1.1)"",
+                            ""mediatype"": ""software"",
+                            ""collection"": [""miscconsoles"", ""consolelivingroom"", ""fav-ps2_gamer"", ""fav-segadude113""],
+                            ""subject"": [""GBA"", ""Pokemon""],
+                            ""item_size"": 16917234
+                        },
+                        {
+                            ""identifier"": ""pokemon-sapphire-usa-europe"",
+                            ""title"": ""Pokemon Sapphire (USA, Europe)"",
+                            ""mediatype"": ""software"",
+                            ""collection"": [""roms"", ""fav-dreamcast_fan""],
+                            ""subject"": [""Game Boy Advance"", ""Pokemon""],
+                            ""item_size"": 16777216
+                        },
+                        {
+                            ""identifier"": ""fireemerald-0.7"",
+                            ""title"": ""FireEmerald v0.7"",
+                            ""mediatype"": ""software"",
+                            ""subject"": [""Pokemon"", ""ROM hack"", ""GBA""],
+                            ""item_size"": 29655730
+                        },
+                        {
+                            ""identifier"": ""pokemon-diamond-europe"",
+                            ""title"": ""Pokemon Diamond (Europe)"",
+                            ""mediatype"": ""software"",
+                            ""subject"": [""DS"", ""Nintendo"", ""Pokemon""],
+                            ""item_size"": 28325829
+                        },
+                        {
+                            ""identifier"": ""github.com-TwitchPlaysPokemon-metronome-sapphire"",
+                            ""title"": ""github.com-TwitchPlaysPokemon-metronome-sapphire"",
+                            ""mediatype"": ""software"",
+                            ""subject"": [""GitHub"", ""code"", ""software"", ""git""],
+                            ""item_size"": 53205304
+                        }
+                    ]
+                }
+            }";
+
+            var request = new HttpRequest("https://archive.org/advancedsearch.php?q=test#_platform=gba&_platformName=Game%20Boy%20Advance&_searchTerm=Pokemon%20-%20Ruby%20Version");
+            var response = new HttpResponse(request, new HttpHeader(), searchJson);
+            var releases = parser.ParseResponse(new IndexerResponse(new IndexerRequest(request), response));
+
+            releases.Should().HaveCount(1);
+            releases[0].Guid.Should().Be("IA-pokemon_ruby-version-u-v-1.1");
+            releases[0].Origin.Should().NotContain("fav-");
+            releases[0].Container.Should().Be("ZIP");
+            releases[0].ParsedRomInfo.Regions.Should().Contain("U");
+            releases[0].ParsedRomInfo.Version.Should().Be("1.1");
+
+            var sapphireRequest = new HttpRequest("https://archive.org/advancedsearch.php?q=test#_platform=gba&_platformName=Game%20Boy%20Advance&_searchTerm=Pokemon%20-%20Sapphire%20Version");
+            var sapphireResponse = new HttpResponse(sapphireRequest, new HttpHeader(), searchJson);
+            var sapphireReleases = parser.ParseResponse(new IndexerResponse(new IndexerRequest(sapphireRequest), sapphireResponse));
+
+            sapphireReleases.Should().HaveCount(1);
+            sapphireReleases[0].Guid.Should().Be("IA-pokemon-sapphire-usa-europe");
+            sapphireReleases[0].Origin.Should().NotContain("fav-");
+            sapphireReleases[0].Container.Should().Be("ZIP");
+        }
+    }
+}

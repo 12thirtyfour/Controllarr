@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);SA1210;IDE0005;SA1513;SA1500;SA1503;SA1501</NoWarn>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.89" />
+    <PackageReference Include="NBuilder" Version="6.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Controllarr.Test.Common\Controllarr.Test.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
+    <ProjectReference Include="..\NzbDrone.Core\Controllarr.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Logo\1024.png">
+      <Link>Files\1024.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Files\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Files\Indexers\encoded_title.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <ProjectReference Include="..\NzbDrone.Mono\Controllarr.Mono.csproj" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="..\NzbDrone.Windows\Controllarr.Windows.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <RollForward>LatestMajor</RollForward>
+    <AssemblyName>Controllarr.Console</AssemblyName>
+
+    <ApplicationIcon>..\NzbDrone.Host\Controllarr.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="!$(RuntimeIdentifier.StartsWith('win'))">
+    <AssemblyName>Controllarr</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
+    <ProjectReference Include="..\Controllarr.SignalR\Controllarr.SignalR.csproj" />
+    <ProjectReference Include="..\NzbDrone.Host\Controllarr.Host.csproj" />
+    <ProjectReference Include="..\Controllarr.RuntimePatches\Controllarr.RuntimePatches.csproj" />
+    <ProjectReference Include="..\NzbDrone.Mono\Controllarr.Mono.csproj" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ProjectReference Include="..\NzbDrone.Windows\Controllarr.Windows.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+  </ItemGroup>
+</Project>

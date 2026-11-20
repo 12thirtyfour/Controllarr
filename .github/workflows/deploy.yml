@@ -1,0 +1,200 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      framework:
+        description: ".net framework"
+        type: string
+        required: true
+      branch:
+        description: "Release channel used in package names (always main)"
+        type: string
+        required: true
+      major_version:
+        description: "Controllarr major version"
+        type: string
+        required: true
+      version:
+        description: "4-part assembly version (e.g. 1.0.0.42)"
+        type: string
+        required: true
+      release_version:
+        description: "Public release version used for the tag (e.g. 1.0.0 or 1.1.0-rc.1)"
+        type: string
+        required: true
+      prerelease:
+        description: "Publish as a GitHub pre-release"
+        type: boolean
+        required: true
+
+jobs:
+  check_release:
+    runs-on: ubuntu-24.04
+    outputs:
+      exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - name: Check for existing release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          if gh release view "v${{ inputs.release_version }}" > /dev/null 2>&1; then
+            echo "Release v${{ inputs.release_version }} already exists; skipping packaging and publishing."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  package:
+    needs: check_release
+    if: ${{ needs.check_release.outputs.exists != 'true' }}
+    strategy:
+      matrix:
+        include:
+          - runtime: freebsd-x64
+            os: ubuntu-24.04
+          - runtime: linux-arm
+            os: ubuntu-24.04
+          - runtime: linux-arm64
+            os: ubuntu-24.04
+          - runtime: linux-musl-arm64
+            os: ubuntu-24.04
+          - runtime: linux-musl-x64
+            os: ubuntu-24.04
+          - runtime: linux-x64
+            os: ubuntu-24.04
+          - runtime: osx-arm64
+            os: ubuntu-24.04
+          - runtime: osx-x64
+            os: ubuntu-24.04
+          - runtime: win-x64
+            os: windows-latest
+          - runtime: win-x86
+            os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Package
+        uses: ./.github/actions/package
+        with:
+          framework: ${{ inputs.framework }}
+          runtime: ${{ matrix.runtime }}
+          artifact: build-${{ matrix.runtime }}
+          branch: ${{ inputs.branch }}
+          major_version: ${{ inputs.major_version }}
+          version: ${{ inputs.version }}
+
+  docker:
+    needs: check_release
+    if: ${{ needs.check_release.outputs.exists != 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/controllarr
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ inputs.release_version }}
+            type=raw,value=latest
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BRANCH=${{ inputs.branch }}
+            VERSION=${{ inputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    needs: [check_release, package, docker]
+    if: ${{ needs.check_release.outputs.exists != 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: _artifacts
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Get Previous Release
+        id: previous-release
+        uses: cardinalby/git-get-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          latest: true
+          doNotFailIfNotFound: true
+
+      - name: Generate Release Notes
+        id: generate-release-notes
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ github.token }}
+          result-encoding: string
+          script: |
+            const previousTagName = '${{ steps.previous-release.outputs.tag_name }}'
+
+            const { data } = await github.rest.repos.generateReleaseNotes({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: 'v${{ inputs.release_version }}',
+              target_commitish: '${{ github.sha }}',
+              ...(previousTagName && { previous_tag_name: previousTagName }),
+            })
+            const isPrerelease = Boolean(${{ inputs.prerelease }})
+            const warningBanner = isPrerelease
+              ? `> [!WARNING]\n> **Pre-Release / Beta Software — Do Not Use on an Established Library**\n>\n> Do **not** trust this beta build with an already established ROM or game library. Always test using a **separate copy** of your library to prevent any potential file loss until a final stable build is released and verified across a broader user base.\n\n`
+              : ''
+            return warningBanner + data.body
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "_artifacts/*"
+          commit: ${{ github.sha }}
+          generateReleaseNotes: false
+          body: ${{ steps.generate-release-notes.outputs.result }}
+          name: Controllarr v${{ inputs.release_version }}
+          prerelease: ${{ inputs.prerelease }}
+          skipIfReleaseExists: true
+          tag: v${{ inputs.release_version }}

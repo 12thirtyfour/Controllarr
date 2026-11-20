@@ -1,0 +1,82 @@
+using System;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Equ;
+using FluentValidation;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Validation;
+
+namespace NzbDrone.Core.Indexers.Torznab
+{
+    public class TorznabSettingsValidator : AbstractValidator<TorznabSettings>
+    {
+        private static readonly string[] ApiKeyAllowList = Array.Empty<string>();
+
+        private static bool ShouldHaveApiKey(TorznabSettings settings)
+        {
+            return settings.BaseUrl != null && ApiKeyAllowList.Any(c => settings.BaseUrl.ToLowerInvariant().Contains(c));
+        }
+
+        private static readonly Regex AdditionalParametersRegex = new(@"(&.+?\=.+?)+", RegexOptions.Compiled);
+
+        public TorznabSettingsValidator()
+        {
+            RuleFor(c => c.Categories).NotEmpty().WithMessage("'Categories' must be provided");
+
+            RuleFor(c => c.BaseUrl).ValidRootUrl();
+            RuleFor(c => c.ApiPath).ValidUrlBase("/api");
+            RuleFor(c => c.ApiKey).NotEmpty().When(ShouldHaveApiKey);
+            RuleFor(c => c.AdditionalParameters).Matches(AdditionalParametersRegex)
+                                                .When(c => !c.AdditionalParameters.IsNullOrWhiteSpace());
+
+            RuleFor(c => c.SeedCriteria).SetValidator(_ => new SeedCriteriaSettingsValidator());
+        }
+    }
+
+    public class TorznabSettings : NewznabSettings, ITorrentIndexerSettings, IEquatable<TorznabSettings>
+    {
+        private static readonly TorznabSettingsValidator Validator = new();
+
+        private static readonly MemberwiseEqualityComparer<TorznabSettings> Comparer = MemberwiseEqualityComparer<TorznabSettings>.ByProperties;
+
+        public TorznabSettings()
+        {
+            Categories = new[] { 1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1110, 1120, 1130, 1140, 1180 };
+            MinimumSeeders = IndexerDefaults.MINIMUM_SEEDERS;
+        }
+
+        [FieldDefinition(7, Type = FieldType.Number, Label = "IndexerSettingsMinimumSeeders", HelpText = "IndexerSettingsMinimumSeedersHelpText", Advanced = true)]
+        public int MinimumSeeders { get; set; }
+
+        [FieldDefinition(8)]
+        public SeedCriteriaSettings SeedCriteria { get; set; } = new();
+
+        [FieldDefinition(9, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectBlocklistedTorrentHashes", HelpText = "IndexerSettingsRejectBlocklistedTorrentHashesHelpText", Advanced = true)]
+        public bool RejectBlocklistedTorrentHashesWhileGrabbing { get; set; }
+
+        [FieldDefinition(10, Type = FieldType.Checkbox, Label = "IndexerSettingsRejectTorrentFilesWithBlockedExtensions", HelpText = "IndexerSettingsRejectTorrentFilesWithBlockedExtensionsHelpText")]
+        public bool RejectTorrentFilesWithBlockedExtensionsWhileGrabbing { get; set; }
+
+        public override NzbDroneValidationResult Validate()
+        {
+            return new NzbDroneValidationResult(Validator.Validate(this));
+        }
+
+        public bool Equals(TorznabSettings other)
+        {
+            return Comparer.Equals(this, other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as TorznabSettings);
+        }
+
+        public override int GetHashCode()
+        {
+            return Comparer.GetHashCode(this);
+        }
+    }
+}

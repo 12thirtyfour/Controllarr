@@ -1,0 +1,1259 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text.RegularExpressions;
+using NLog;
+using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Games;
+using NzbDrone.Core.MediaFiles.Disc;
+
+namespace NzbDrone.Core.MediaFiles.Export
+{
+    public enum SdCardDeviceProfile
+    {
+        OnionOS = 0,
+        AnaloguePocket = 1,
+        EverDrive = 2,
+        FXPakPro = 3,
+        EZFlash = 4,
+        R4 = 5,
+        MiSTer = 6,
+        RetroArch = 7,
+        Batocera = 8,
+        EmulationStation = 9,
+        GarlicOS = 10,
+        ArkOS = 11,
+        TwilightMenu = 12,
+        SwissGameCube = 13,
+        XStation = 14,
+        Fenrir = 15,
+        GDEMU = 16
+    }
+
+    public enum SdCardFormatTransformation
+    {
+        CopyAsIs = 0,
+        ZipSingleRom = 1,
+        ExtractZipToRawRom = 2,
+        CompressDiscToChd = 3,
+        CompressDiscToRvz = 4,
+        ConvertChdToCueBin = 5,
+        ConvertRvzToIso = 6
+    }
+
+    public class SdCardProfileDescriptor
+    {
+        public SdCardDeviceProfile Profile { get; set; }
+        public string Name { get; set; }
+        public string Category { get; set; }
+        public string PathTemplate { get; set; }
+        public bool UsesFat32AlphabeticalBuckets { get; set; }
+        public bool SupportsZipPerRom { get; set; }
+        public bool SupportsChdForOpticalDiscs { get; set; }
+        public bool SupportsRvzForGameCubeWii { get; set; }
+        public string OptimizationOptionLabel { get; set; } = "To save room, compress or convert files to optimal formats for target device";
+    }
+
+    public class SdCardExportItem
+    {
+        public string SourceFilePath { get; set; }
+        public string PlatformFolder { get; set; }
+        public string RegionFolder { get; set; }
+        public string GameTitle { get; set; }
+        public string InnerRomExtensionHint { get; set; }
+        public bool IsBios { get; set; }
+        public string CanonicalBiosFileName { get; set; }
+    }
+
+    public class SdCardExportPlan
+    {
+        public SdCardFormatTransformation Transformation { get; set; }
+        public string RelativeDestinationPath { get; set; }
+    }
+
+    public class SdCardExportResult
+    {
+        public SdCardDeviceProfile Profile { get; set; }
+        public string TargetMountPath { get; set; }
+        public bool OptimizeFormatsForDevice { get; set; }
+        public int ExportedCount { get; set; }
+        public int ExportedMediaAssetCount { get; set; }
+        public List<string> DestinationPaths { get; set; } = new List<string>();
+        public List<string> ExportedMediaPaths { get; set; } = new List<string>();
+        public List<SdCardFormatTransformation> AppliedTransformations { get; set; } = new List<SdCardFormatTransformation>();
+    }
+
+    public interface ISdCardExporterService
+    {
+        IReadOnlyList<SdCardProfileDescriptor> GetSupportedProfiles();
+        string BuildDeviceRelativePath(SdCardDeviceProfile profile, string platformFolder, string gameTitle, string fileName, string regionFolder = null);
+        string BuildDeviceBiosRelativePath(SdCardDeviceProfile profile, string platformFolder, string biosFileName);
+        SdCardExportPlan ResolveExportPlan(
+            SdCardDeviceProfile profile,
+            string platformFolder,
+            string gameTitle,
+            string sourceFileName,
+            bool optimizeFormatsForDevice = false,
+            string innerRomExtensionHint = null,
+            string regionFolder = null);
+        SdCardExportResult ExportToSdCard(
+            SdCardDeviceProfile profile,
+            string targetMountPath,
+            IEnumerable<SdCardExportItem> items,
+            bool overwrite = false,
+            bool optimizeFormatsForDevice = false);
+        SdCardExportResult ExportToSdCard(
+            SdCardDeviceProfile profile,
+            string targetMountPath,
+            IEnumerable<SdCardExportItem> items,
+            bool overwrite,
+            bool useCartridgeCompression,
+            bool useDiscCompression);
+        bool IsPlatformSupportedByProfile(SdCardDeviceProfile profile, string platformSlug, string platformTitle = null);
+    }
+
+    public class SdCardExporterService : ISdCardExporterService
+    {
+        private static readonly IReadOnlyList<SdCardProfileDescriptor> ProfileCatalog = new List<SdCardProfileDescriptor>
+        {
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.MiSTer,
+                Name = "MiSTer FPGA",
+                Category = "FPGA",
+                PathTemplate = "games/{Core}/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.AnaloguePocket,
+                Name = "Analogue Pocket (openFPGA)",
+                Category = "FPGA",
+                PathTemplate = "Assets/{Core}/common/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.RetroArch,
+                Name = "RetroArch",
+                Category = "Multi-System Frontend",
+                PathTemplate = "downloads/{Platform}/{FileName}",
+                UsesFat32AlphabeticalBuckets = false,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = true
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.Batocera,
+                Name = "Batocera / Knulli",
+                Category = "Multi-System OS",
+                PathTemplate = "roms/{SystemSlug}/{FileName}",
+                UsesFat32AlphabeticalBuckets = false,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = true
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.EmulationStation,
+                Name = "EmulationStation DE (ES-DE / EmuDeck)",
+                Category = "Multi-System Frontend",
+                PathTemplate = "ROMs/{SystemSlug}/{FileName}",
+                UsesFat32AlphabeticalBuckets = false,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = true
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.OnionOS,
+                Name = "OnionOS (Miyoo Mini / Plus)",
+                Category = "Handheld CFW",
+                PathTemplate = "Roms/{OnionSystem}/{FileName}",
+                UsesFat32AlphabeticalBuckets = false,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.GarlicOS,
+                Name = "GarlicOS / MuOS (Anbernic RG35XX)",
+                Category = "Handheld CFW",
+                PathTemplate = "Roms/{OnionSystem}/{FileName}",
+                UsesFat32AlphabeticalBuckets = false,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.ArkOS,
+                Name = "ArkOS / ROCKNIX / JELOS",
+                Category = "Handheld CFW",
+                PathTemplate = "roms/{SystemSlug}/{FileName}",
+                UsesFat32AlphabeticalBuckets = false,
+                SupportsZipPerRom = true,
+                SupportsChdForOpticalDiscs = true,
+                SupportsRvzForGameCubeWii = true
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.EverDrive,
+                Name = "Krikzz EverDrive (N8 / GB / GBA / Mega EverDrive Pro / 64)",
+                Category = "Flash Cart",
+                PathTemplate = "{Platform}/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.FXPakPro,
+                Name = "FXPak Pro / SD2SNES",
+                Category = "Flash Cart",
+                PathTemplate = "sd2snes/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.EZFlash,
+                Name = "EZ-Flash (Omega / Definitive / Junior)",
+                Category = "Flash Cart",
+                PathTemplate = "ROMS/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.R4,
+                Name = "R4 Wood / Flashcart",
+                Category = "Flash Cart",
+                PathTemplate = "Games/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.TwilightMenu,
+                Name = "TWiLight Menu++ (DSi / 3DS)",
+                Category = "Handheld CFW / Flash Cart",
+                PathTemplate = "roms/nds/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.XStation,
+                Name = "xStation (PlayStation 1 ODE)",
+                Category = "Optical Drive Emulator (ODE)",
+                PathTemplate = "00xstation/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.SwissGameCube,
+                Name = "Swiss / GC Loader / Picoboot (GameCube)",
+                Category = "Optical Drive Emulator (ODE)",
+                PathTemplate = "games/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.Fenrir,
+                Name = "Fenrir / Saroo / Satiator (Sega Saturn)",
+                Category = "Optical Drive Emulator (ODE)",
+                PathTemplate = "saturn/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            },
+            new SdCardProfileDescriptor
+            {
+                Profile = SdCardDeviceProfile.GDEMU,
+                Name = "GDEMU / MODE (Sega Dreamcast)",
+                Category = "Optical Drive Emulator (ODE)",
+                PathTemplate = "GDEMU/{AlphaBucket}/{FileName}",
+                UsesFat32AlphabeticalBuckets = true,
+                SupportsZipPerRom = false,
+                SupportsChdForOpticalDiscs = false,
+                SupportsRvzForGameCubeWii = false
+            }
+        };
+
+        private static readonly HashSet<string> CartridgeRomExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".sfc",
+            ".smc",
+            ".nes",
+            ".fds",
+            ".gb",
+            ".gbc",
+            ".gba",
+            ".md",
+            ".gen",
+            ".bin",
+            ".sms",
+            ".gg",
+            ".pce",
+            ".a26",
+            ".a52",
+            ".a78",
+            ".n64",
+            ".z64",
+            ".v64",
+            ".nds",
+            ".32x",
+            ".ngp",
+            ".ngc",
+            ".ws",
+            ".wsc"
+        };
+
+        private static readonly HashSet<string> RawOpticalDiscExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".cue",
+            ".iso",
+            ".gdi",
+            ".gcm"
+        };
+
+        private static readonly HashSet<string> ChdSupportedPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "PlayStation",
+            "Sony PlayStation",
+            "PSX",
+            "PS1",
+            "PlayStation 2",
+            "Sony PlayStation 2",
+            "PS2",
+            "PSP",
+            "Sega CD",
+            "Mega-CD",
+            "Mega CD",
+            "Sega Saturn",
+            "Saturn",
+            "Dreamcast",
+            "Sega Dreamcast",
+            "TurboGrafx-CD",
+            "PC Engine CD",
+            "PCECD",
+            "3DO",
+            "Neo Geo CD"
+        };
+
+        private static readonly HashSet<string> RvzSupportedPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "GameCube",
+            "Nintendo GameCube",
+            "GC",
+            "Wii",
+            "Nintendo Wii"
+        };
+
+        private static readonly Dictionary<string, string> DefaultPlatformRawExtension = PlatformCatalogService.DefaultPlatformRawExtension;
+
+        private static readonly Dictionary<string, string> OnionOsSystemMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "SNES", "SFC" },
+            { "Super Nintendo Entertainment System", "SFC" },
+            { "NES", "FC" },
+            { "Nintendo Entertainment System", "FC" },
+            { "Game Boy", "GB" },
+            { "Game Boy Color", "GBC" },
+            { "Game Boy Advance", "GBA" },
+            { "Nintendo DS", "NDS" },
+            { "Genesis", "MD" },
+            { "Sega Genesis", "MD" },
+            { "Mega Drive", "MD" },
+            { "Sega CD", "SEGACD" },
+            { "Mega-CD", "SEGACD" },
+            { "Master System", "MS" },
+            { "Game Gear", "GG" },
+            { "PlayStation", "PS" },
+            { "Sony PlayStation", "PS" }
+        };
+
+        private static readonly Dictionary<string, string> AnaloguePocketCoreMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "SNES", "snes" },
+            { "Super Nintendo Entertainment System", "snes" },
+            { "NES", "nes" },
+            { "Nintendo Entertainment System", "nes" },
+            { "Game Boy", "gb" },
+            { "Game Boy Color", "gbc" },
+            { "Game Boy Advance", "gba" },
+            { "Genesis", "genesis" },
+            { "Sega Genesis", "genesis" },
+            { "Master System", "sms" },
+            { "Game Gear", "gg" }
+        };
+
+        private static readonly Dictionary<string, string> MisterCoreMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "SNES", "SNES" },
+            { "Super Nintendo Entertainment System", "SNES" },
+            { "NES", "NES" },
+            { "Nintendo Entertainment System", "NES" },
+            { "Game Boy", "GAMEBOY" },
+            { "Game Boy Color", "GBC" },
+            { "Game Boy Advance", "GBA" },
+            { "Nintendo 64", "N64" },
+            { "Genesis", "Genesis" },
+            { "Sega Genesis", "Genesis" },
+            { "Mega Drive", "Genesis" },
+            { "Sega CD", "MegaCD" },
+            { "Mega-CD", "MegaCD" },
+            { "Master System", "SMS" },
+            { "Game Gear", "GameGear" },
+            { "PlayStation", "PSX" },
+            { "Sony PlayStation", "PSX" },
+            { "Sega Saturn", "Saturn" },
+            { "TurboGrafx-16", "TGFX16" },
+            { "TurboGrafx-CD", "TGFX16-CD" },
+            { "PC Engine CD", "TGFX16-CD" }
+        };
+
+        private static readonly string[] MediaAssetTypes = new[]
+        {
+            "box2d",
+            "box3d",
+            "screenshots",
+            "titlescreens",
+            "marquee",
+            "videos",
+            "manuals"
+        };
+
+        private static readonly HashSet<string> AlphabeticalBuckets = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "#",
+            "A-F",
+            "G-M",
+            "N-S",
+            "T-Z"
+        };
+
+        private static readonly Dictionary<string, string> EmulationStationSlugMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "SNES", "snes" },
+            { "Super Nintendo Entertainment System", "snes" },
+            { "NES", "nes" },
+            { "Nintendo Entertainment System", "nes" },
+            { "Game Boy", "gb" },
+            { "Game Boy Color", "gbc" },
+            { "Game Boy Advance", "gba" },
+            { "Nintendo 64", "n64" },
+            { "Nintendo DS", "nds" },
+            { "GameCube", "gc" },
+            { "Nintendo GameCube", "gc" },
+            { "Genesis", "megadrive" },
+            { "Sega Genesis", "megadrive" },
+            { "Mega Drive", "megadrive" },
+            { "Sega CD", "segacd" },
+            { "Mega-CD", "segacd" },
+            { "Master System", "mastersystem" },
+            { "Game Gear", "gamegear" },
+            { "Sega Saturn", "saturn" },
+            { "Dreamcast", "dreamcast" },
+            { "Sega Dreamcast", "dreamcast" },
+            { "PlayStation", "psx" },
+            { "Sony PlayStation", "psx" },
+            { "PlayStation 2", "ps2" }
+        };
+
+        private readonly IDiskProvider _diskProvider;
+        private readonly IDiscCompressionService _discCompressionService;
+        private readonly Logger _logger;
+
+        public SdCardExporterService(
+            IDiskProvider diskProvider,
+            Logger logger,
+            IDiscCompressionService discCompressionService = null)
+        {
+            _diskProvider = diskProvider;
+            _discCompressionService = discCompressionService;
+            _logger = logger;
+        }
+
+        public IReadOnlyList<SdCardProfileDescriptor> GetSupportedProfiles()
+        {
+            return ProfileCatalog;
+        }
+
+        private static readonly Dictionary<SdCardDeviceProfile, HashSet<string>> ProfilePlatformRestrictions =
+            new Dictionary<SdCardDeviceProfile, HashSet<string>>
+            {
+                [SdCardDeviceProfile.FXPakPro] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "snes", "satellaview", "sgb" },
+                [SdCardDeviceProfile.EZFlash] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gba", "gb", "gbc" },
+                [SdCardDeviceProfile.R4] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nds" },
+                [SdCardDeviceProfile.TwilightMenu] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nds", "dsi", "gb", "gbc", "gba", "nes", "snes", "sms", "gg", "gamegear" },
+                [SdCardDeviceProfile.SwissGameCube] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gamecube" },
+                [SdCardDeviceProfile.XStation] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ps1" },
+                [SdCardDeviceProfile.Fenrir] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "saturn" },
+                [SdCardDeviceProfile.GDEMU] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dreamcast" },
+                [SdCardDeviceProfile.AnaloguePocket] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "gb", "gbc", "gba", "nes", "snes", "sms", "gg", "gamegear", "genesis", "tg16", "tgcd", "neogeo", "ngp", "ngpc", "lynx", "wonderswan", "wonderswancolor"
+                },
+                [SdCardDeviceProfile.EverDrive] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nes", "fds", "snes", "n64", "64dd", "gb", "gbc", "gba", "sms", "genesis", "32x", "sega32x", "segacd", "gg", "gamegear", "tg16", "tgcd"
+                },
+                [SdCardDeviceProfile.MiSTer] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nes", "fds", "snes", "satellaview", "sgb", "n64", "64dd", "gb", "gbc", "gba",
+                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "saturn",
+                    "ps1", "tg16", "tgcd", "neogeo", "neogeocd",
+                    "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "jaguarcd",
+                    "colecovision", "intellivision", "vectrex", "wonderswan", "wonderswancolor", "pcfx"
+                },
+                [SdCardDeviceProfile.OnionOS] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nes", "fds", "snes", "satellaview", "sgb", "gb", "gbc", "gba", "nds",
+                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "ps1",
+                    "tg16", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx", "colecovision", "intellivision",
+                    "vectrex", "wonderswan", "wonderswancolor", "virtualboy", "pokemini", "pokemonmini"
+                },
+                [SdCardDeviceProfile.GarlicOS] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nes", "fds", "snes", "satellaview", "sgb", "gb", "gbc", "gba",
+                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "ps1",
+                    "tg16", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx", "colecovision", "intellivision",
+                    "vectrex", "wonderswan", "wonderswancolor", "virtualboy", "pokemini", "pokemonmini"
+                },
+                [SdCardDeviceProfile.ArkOS] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nes", "fds", "snes", "satellaview", "sgb", "n64", "64dd", "gb", "gbc", "gba", "nds",
+                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "saturn", "dreamcast",
+                    "ps1", "psp", "tg16", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx", "colecovision", "intellivision",
+                    "vectrex", "wonderswan", "wonderswancolor", "virtualboy", "pokemini", "pokemonmini", "3do"
+                },
+            };
+
+        public bool IsPlatformSupportedByProfile(SdCardDeviceProfile profile, string platformSlug, string platformTitle = null)
+        {
+            if (!ProfilePlatformRestrictions.TryGetValue(profile, out var allowedSlugs))
+            {
+                return true;
+            }
+
+            var normalized = Parser.PlatformCompatibilityValidator.NormalizePlatformSlug(platformSlug, platformTitle);
+            return !string.IsNullOrWhiteSpace(normalized) && allowedSlugs.Contains(normalized);
+        }
+
+        private static readonly HashSet<string> OpticalDiscExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".chd", ".iso", ".cue", ".bin", ".gdi", ".cdi", ".m3u", ".cso", ".wbfs", ".rvz", ".wud", ".wux", ".wua", ".xiso", ".pbp"
+        };
+
+        private static readonly HashSet<string> OpticalDiscPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ps1", "ps2", "ps3", "psp", "playstation", "sony playstation", "playstation 2", "sony playstation 2",
+            "playstation 3", "sony playstation 3", "playstation portable", "sony psp", "psx",
+            "segacd", "sega cd", "mega cd", "mega-cd",
+            "saturn", "sega saturn",
+            "dreamcast", "sega dreamcast", "dc",
+            "gamecube", "nintendo gamecube", "gcn", "ngc",
+            "wii", "nintendo wii",
+            "wiiu", "wii u", "nintendo wii u",
+            "tgcd", "turbografx-cd", "pc engine cd", "pcecd",
+            "jaguarcd", "jaguar cd", "atari jaguar cd",
+            "xbox", "original xbox", "xbox 360",
+            "3do", "neogeocd", "neo geo cd", "cdi", "cd-i", "philips cd-i"
+        };
+
+        public static bool IsDiscBasedGame(string platformFolder, string fileName, string gameTitle = null)
+        {
+            var ext = Path.GetExtension(fileName ?? string.Empty);
+            if (OpticalDiscExtensions.Contains(ext))
+            {
+                return true;
+            }
+
+            var cleanPlatform = (platformFolder ?? string.Empty).Trim().ToLowerInvariant();
+            if (OpticalDiscPlatforms.Contains(cleanPlatform))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(gameTitle) &&
+                Regex.IsMatch(gameTitle, @"\b(?:Disc|Disk|Track)\s*\d+", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static string ResolveDiscGameFolder(string gameTitle, string fileName)
+        {
+            var raw = !string.IsNullOrWhiteSpace(gameTitle)
+                ? gameTitle.Trim()
+                : Path.GetFileNameWithoutExtension(fileName);
+
+            var stripped = Regex.Replace(raw, @"\s*\((?:Disc|Disk|Side)\s*[A-Z0-9]+[^\)]*\)", "", RegexOptions.IgnoreCase).Trim();
+            return string.IsNullOrWhiteSpace(stripped) ? raw : stripped;
+        }
+
+        private static readonly Regex ExplicitRegionTagRegex = new Regex(
+            @"\((?<tag>USA|Europe|Japan|World|Asia|Australia|Brazil|Canada|China|France|Germany|Italy|Korea|Mexico|Netherlands|Russia|Spain|Sweden|Taiwan|UK|United Kingdom|Unlicensed|Homebrew|Aftermarket|ROM Hacks|Hack|Translation)\b[^)]*\)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        public string BuildDeviceBiosRelativePath(SdCardDeviceProfile profile, string platformFolder, string biosFileName)
+        {
+            var safeFileName = Path.GetFileName(biosFileName ?? string.Empty);
+            if (safeFileName.IsNullOrWhiteSpace())
+            {
+                return string.Empty;
+            }
+
+            var cleanPlatform = (platformFolder ?? string.Empty).Trim();
+
+            switch (profile)
+            {
+                case SdCardDeviceProfile.MiSTer:
+                {
+                    var core = MisterCoreMap.TryGetValue(cleanPlatform, out var mappedMister)
+                        ? mappedMister
+                        : SanitizeFolderName(cleanPlatform);
+                    return Path.Combine("games", core, safeFileName);
+                }
+
+                case SdCardDeviceProfile.AnaloguePocket:
+                {
+                    var core = AnaloguePocketCoreMap.TryGetValue(cleanPlatform, out var mappedPocket)
+                        ? mappedPocket
+                        : SanitizeFolderName(cleanPlatform).ToLowerInvariant();
+                    return Path.Combine("Assets", core, "common", safeFileName);
+                }
+
+                case SdCardDeviceProfile.OnionOS:
+                case SdCardDeviceProfile.GarlicOS:
+                    return Path.Combine("BIOS", safeFileName);
+
+                case SdCardDeviceProfile.RetroArch:
+                    return Path.Combine("system", safeFileName);
+
+                case SdCardDeviceProfile.Batocera:
+                case SdCardDeviceProfile.EmulationStation:
+                case SdCardDeviceProfile.ArkOS:
+                    return Path.Combine("bios", safeFileName);
+
+                case SdCardDeviceProfile.TwilightMenu:
+                    return Path.Combine("_nds", "TWiLightMenu", "bios", safeFileName);
+
+                case SdCardDeviceProfile.EverDrive:
+                case SdCardDeviceProfile.FXPakPro:
+                case SdCardDeviceProfile.EZFlash:
+                case SdCardDeviceProfile.R4:
+                case SdCardDeviceProfile.SwissGameCube:
+                case SdCardDeviceProfile.XStation:
+                case SdCardDeviceProfile.Fenrir:
+                case SdCardDeviceProfile.GDEMU:
+                {
+                    var folder = SanitizeFolderName(cleanPlatform);
+                    return string.IsNullOrWhiteSpace(folder)
+                        ? Path.Combine("BIOS", safeFileName)
+                        : Path.Combine(folder, safeFileName);
+                }
+
+                default:
+                    return Path.Combine("BIOS", safeFileName);
+            }
+        }
+
+        private static string ResolveRegionFolder(string regionFolder, string fileName)
+        {
+            if (regionFolder.IsNotNullOrWhiteSpace())
+            {
+                return SanitizeFolderName(regionFolder.Trim());
+            }
+
+            if (fileName.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            var match = ExplicitRegionTagRegex.Match(fileName);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var tag = match.Groups["tag"].Value;
+            if (tag.Equals("Hack", StringComparison.OrdinalIgnoreCase) ||
+                tag.Equals("Translation", StringComparison.OrdinalIgnoreCase) ||
+                tag.Equals("ROM Hacks", StringComparison.OrdinalIgnoreCase))
+            {
+                return "ROM Hacks";
+            }
+
+            if (tag.Equals("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                tag.Equals("Homebrew", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Homebrew";
+            }
+
+            if (tag.Equals("Unlicensed", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Unlicensed";
+            }
+
+            var regionNumber = RegionHelper.GetRegionNumber(tag);
+            var regionName = RegionHelper.GetRegionName(regionNumber);
+            return regionName.IsNotNullOrWhiteSpace() ? SanitizeFolderName(regionName) : null;
+        }
+
+        private static string SanitizeFolderName(string value)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var cleaned = new string(value.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray()).Trim();
+            return string.IsNullOrWhiteSpace(cleaned) ? "Unknown" : cleaned;
+        }
+
+        private static string CombineNonEmpty(params string[] parts)
+        {
+            var filtered = parts.Where(p => p.IsNotNullOrWhiteSpace()).ToArray();
+            return Path.Combine(filtered);
+        }
+
+        public string BuildDeviceRelativePath(SdCardDeviceProfile profile, string platformFolder, string gameTitle, string fileName, string regionFolder = null)
+        {
+            var safePlatform = platformFolder.IsNotNullOrWhiteSpace() ? platformFolder.Trim() : "Unknown";
+            var safeFileName = Path.GetFileName(fileName);
+            var region = ResolveRegionFolder(regionFolder, safeFileName);
+            var bucket = ResolveAlphabeticalBucket(gameTitle.IsNotNullOrWhiteSpace() ? gameTitle : safeFileName);
+
+            var isDisc = IsDiscBasedGame(safePlatform, safeFileName, gameTitle);
+            var gameFolder = isDisc ? ResolveDiscGameFolder(gameTitle, safeFileName) : null;
+            var discLeaf = isDisc ? Path.Combine(gameFolder, safeFileName) : safeFileName;
+
+            switch (profile)
+            {
+                case SdCardDeviceProfile.OnionOS:
+                case SdCardDeviceProfile.GarlicOS:
+                    var onionSystem = OnionOsSystemMap.TryGetValue(safePlatform, out var mappedOnion) ? mappedOnion : safePlatform.ToUpperInvariant();
+                    return CombineNonEmpty("Roms", onionSystem, region, discLeaf);
+
+                case SdCardDeviceProfile.AnaloguePocket:
+                    var pocketCore = AnaloguePocketCoreMap.TryGetValue(safePlatform, out var mappedCore) ? mappedCore : safePlatform.ToLowerInvariant();
+                    return CombineNonEmpty("Assets", pocketCore, "common", region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.MiSTer:
+                    var misterCore = MisterCoreMap.TryGetValue(safePlatform, out var mappedMister) ? mappedMister : safePlatform;
+                    return CombineNonEmpty("games", misterCore, region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.RetroArch:
+                    return CombineNonEmpty("downloads", safePlatform, region, discLeaf);
+
+                case SdCardDeviceProfile.Batocera:
+                case SdCardDeviceProfile.ArkOS:
+                    var batoceraSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedBatocera) ? mappedBatocera : safePlatform.ToLowerInvariant();
+                    return CombineNonEmpty("roms", batoceraSlug, region, discLeaf);
+
+                case SdCardDeviceProfile.EmulationStation:
+                    var esSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedEs) ? mappedEs : safePlatform.ToLowerInvariant();
+                    return CombineNonEmpty("ROMs", esSlug, region, discLeaf);
+
+                case SdCardDeviceProfile.EverDrive:
+                    return CombineNonEmpty(safePlatform, region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.FXPakPro:
+                    return CombineNonEmpty("sd2snes", region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.EZFlash:
+                    return CombineNonEmpty("ROMS", region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.R4:
+                    return CombineNonEmpty("Games", region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.TwilightMenu:
+                    var twilightSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedTwilight) ? mappedTwilight : "nds";
+                    return CombineNonEmpty("roms", twilightSlug, region, bucket, discLeaf);
+
+                case SdCardDeviceProfile.SwissGameCube:
+                    return CombineNonEmpty("games", region, bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
+
+                case SdCardDeviceProfile.XStation:
+                    return CombineNonEmpty("00xstation", region, bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
+
+                case SdCardDeviceProfile.Fenrir:
+                    return CombineNonEmpty("saturn", region, bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
+
+                case SdCardDeviceProfile.GDEMU:
+                    return CombineNonEmpty("GDEMU", region, bucket, ResolveDiscGameFolder(gameTitle, safeFileName), safeFileName);
+
+                default:
+                    return CombineNonEmpty(safePlatform, region, discLeaf);
+            }
+        }
+
+        public SdCardExportPlan ResolveExportPlan(
+            SdCardDeviceProfile profile,
+            string platformFolder,
+            string gameTitle,
+            string sourceFileName,
+            bool optimizeFormatsForDevice = false,
+            string innerRomExtensionHint = null,
+            string regionFolder = null)
+        {
+            return ResolveExportPlan(
+                profile,
+                platformFolder,
+                gameTitle,
+                sourceFileName,
+                optimizeFormatsForDevice,
+                optimizeFormatsForDevice,
+                innerRomExtensionHint,
+                regionFolder);
+        }
+
+        public SdCardExportPlan ResolveExportPlan(
+            SdCardDeviceProfile profile,
+            string platformFolder,
+            string gameTitle,
+            string sourceFileName,
+            bool useCartridgeCompression,
+            bool useDiscCompression,
+            string innerRomExtensionHint = null,
+            string regionFolder = null)
+        {
+            var safeFileName = Path.GetFileName(sourceFileName);
+
+            if (!useCartridgeCompression && !useDiscCompression)
+            {
+                return new SdCardExportPlan
+                {
+                    Transformation = SdCardFormatTransformation.CopyAsIs,
+                    RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, safeFileName, regionFolder)
+                };
+            }
+
+            var descriptor = ProfileCatalog.FirstOrDefault(p => p.Profile == profile);
+            var ext = Path.GetExtension(safeFileName)?.ToLowerInvariant() ?? string.Empty;
+            var safePlatform = platformFolder?.Trim() ?? string.Empty;
+
+            if (descriptor != null)
+            {
+                // 1. Disc compression: compress raw disc if useDiscCompression && target supports CHD/RVZ
+                if (useDiscCompression &&
+                    descriptor.SupportsChdForOpticalDiscs &&
+                    RawOpticalDiscExtensions.Contains(ext) &&
+                    ChdSupportedPlatforms.Contains(safePlatform))
+                {
+                    var chdFileName = Path.ChangeExtension(safeFileName, ".chd");
+                    return new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.CompressDiscToChd,
+                        RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, chdFileName, regionFolder)
+                    };
+                }
+
+                if (useDiscCompression &&
+                    descriptor.SupportsRvzForGameCubeWii &&
+                    RawOpticalDiscExtensions.Contains(ext) &&
+                    RvzSupportedPlatforms.Contains(safePlatform))
+                {
+                    var rvzFileName = Path.ChangeExtension(safeFileName, ".rvz");
+                    return new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.CompressDiscToRvz,
+                        RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, rvzFileName, regionFolder)
+                    };
+                }
+
+                // 2. Disc decompression: convert .chd/.rvz when target does NOT support them OR user disabled disc compression
+                if ((!descriptor.SupportsChdForOpticalDiscs || !useDiscCompression) && ext == ".chd")
+                {
+                    var cueFileName = Path.ChangeExtension(safeFileName, ".cue");
+                    return new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.ConvertChdToCueBin,
+                        RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, cueFileName, regionFolder)
+                    };
+                }
+
+                if ((!descriptor.SupportsRvzForGameCubeWii || !useDiscCompression) && ext == ".rvz")
+                {
+                    var isoFileName = Path.ChangeExtension(safeFileName, ".iso");
+                    return new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.ConvertRvzToIso,
+                        RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, isoFileName, regionFolder)
+                    };
+                }
+
+                // 3. Cartridge compression: zip raw cartridge ROM if useCartridgeCompression && target supports zip
+                if (useCartridgeCompression &&
+                    descriptor.SupportsZipPerRom &&
+                    CartridgeRomExtensions.Contains(ext) &&
+                    !ChdSupportedPlatforms.Contains(safePlatform))
+                {
+                    var zipFileName = Path.ChangeExtension(safeFileName, ".zip");
+                    return new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.ZipSingleRom,
+                        RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, zipFileName, regionFolder)
+                    };
+                }
+
+                // 4. Cartridge decompression: extract .zip if target does NOT support .zip OR user disabled cartridge compression
+                if ((!descriptor.SupportsZipPerRom || !useCartridgeCompression) && ext == ".zip")
+                {
+                    var targetExt = innerRomExtensionHint.IsNotNullOrWhiteSpace()
+                        ? (innerRomExtensionHint.StartsWith(".") ? innerRomExtensionHint : "." + innerRomExtensionHint)
+                        : (DefaultPlatformRawExtension.TryGetValue(safePlatform, out var defaultExt) ? defaultExt : ".rom");
+
+                    var rawFileName = Path.ChangeExtension(safeFileName, targetExt);
+                    return new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.ExtractZipToRawRom,
+                        RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, rawFileName, regionFolder)
+                    };
+                }
+            }
+
+            return new SdCardExportPlan
+            {
+                Transformation = SdCardFormatTransformation.CopyAsIs,
+                RelativeDestinationPath = BuildDeviceRelativePath(profile, platformFolder, gameTitle, safeFileName, regionFolder)
+            };
+        }
+
+        public SdCardExportResult ExportToSdCard(
+            SdCardDeviceProfile profile,
+            string targetMountPath,
+            IEnumerable<SdCardExportItem> items,
+            bool overwrite = false,
+            bool optimizeFormatsForDevice = false)
+        {
+            return ExportToSdCard(
+                profile,
+                targetMountPath,
+                items,
+                overwrite,
+                optimizeFormatsForDevice,
+                optimizeFormatsForDevice);
+        }
+
+        public SdCardExportResult ExportToSdCard(
+            SdCardDeviceProfile profile,
+            string targetMountPath,
+            IEnumerable<SdCardExportItem> items,
+            bool overwrite,
+            bool useCartridgeCompression,
+            bool useDiscCompression)
+        {
+            if (targetMountPath.IsNullOrWhiteSpace())
+            {
+                throw new ArgumentException("Target mount path is required.", nameof(targetMountPath));
+            }
+
+            var result = new SdCardExportResult
+            {
+                Profile = profile,
+                TargetMountPath = targetMountPath,
+                OptimizeFormatsForDevice = useCartridgeCompression || useDiscCompression
+            };
+
+            if (items == null)
+            {
+                return result;
+            }
+
+            foreach (var item in items.Where(i => i != null && i.SourceFilePath.IsNotNullOrWhiteSpace()))
+            {
+                var isBios = item.IsBios;
+                if (!isBios && RegionHelper.IsBios(item.SourceFilePath, item.GameTitle))
+                {
+                    _logger.Debug("Skipping BIOS file during SD export: {0}", item.SourceFilePath);
+                    continue;
+                }
+
+                if (!_diskProvider.FileExists(item.SourceFilePath))
+                {
+                    _logger.Warn("Skipping missing source ROM during SD export: {0}", item.SourceFilePath);
+                    continue;
+                }
+
+                SdCardExportPlan plan;
+                if (isBios)
+                {
+                    var biosFileName = !string.IsNullOrWhiteSpace(item.CanonicalBiosFileName)
+                        ? item.CanonicalBiosFileName
+                        : Path.GetFileName(item.SourceFilePath);
+
+                    plan = new SdCardExportPlan
+                    {
+                        Transformation = SdCardFormatTransformation.CopyAsIs,
+                        RelativeDestinationPath = BuildDeviceBiosRelativePath(profile, item.PlatformFolder, biosFileName)
+                    };
+                }
+                else
+                {
+                    plan = ResolveExportPlan(
+                        profile,
+                        item.PlatformFolder,
+                        item.GameTitle,
+                        Path.GetFileName(item.SourceFilePath),
+                        useCartridgeCompression,
+                        useDiscCompression,
+                        item.InnerRomExtensionHint,
+                        item.RegionFolder);
+                }
+
+                var destinationPath = Path.Combine(targetMountPath, plan.RelativeDestinationPath);
+                var destinationFolder = Path.GetDirectoryName(destinationPath);
+
+                if (destinationFolder.IsNotNullOrWhiteSpace() && !_diskProvider.FolderExists(destinationFolder))
+                {
+                    _diskProvider.CreateFolder(destinationFolder);
+                }
+
+                var exported = ExecuteExportTransformation(
+                    plan.Transformation,
+                    item,
+                    destinationPath,
+                    destinationFolder,
+                    overwrite,
+                    out var finalOutputPath);
+
+                if (exported)
+                {
+                    result.DestinationPaths.Add(finalOutputPath);
+                    result.AppliedTransformations.Add(plan.Transformation);
+                    result.ExportedCount++;
+
+                    ExportPlatformMediaAndGamelist(destinationFolder, item, overwrite, result);
+                }
+            }
+
+            return result;
+        }
+
+        private void ExportPlatformMediaAndGamelist(
+            string destinationFolder,
+            SdCardExportItem item,
+            bool overwrite,
+            SdCardExportResult result)
+        {
+            if (item?.SourceFilePath == null)
+            {
+                return;
+            }
+
+            var romDir = Path.GetDirectoryName(item.SourceFilePath);
+            if (romDir.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            var candidateSourceDirs = new List<string> { romDir };
+            var parentDir = Path.GetDirectoryName(romDir);
+            if (parentDir.IsNotNullOrWhiteSpace())
+            {
+                candidateSourceDirs.Add(parentDir);
+            }
+
+            var targetPlatformDir = AlphabeticalBuckets.Contains(Path.GetFileName(destinationFolder))
+                ? Path.GetDirectoryName(destinationFolder)
+                : destinationFolder;
+
+            if (targetPlatformDir.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            foreach (var sourceDir in candidateSourceDirs)
+            {
+                foreach (var assetType in MediaAssetTypes)
+                {
+                    var sourceMediaFolder = Path.Combine(sourceDir, "media", assetType);
+                    if (_diskProvider.FolderExists(sourceMediaFolder))
+                    {
+                        var files = _diskProvider.GetFiles(sourceMediaFolder, false);
+                        if (files != null)
+                        {
+                            foreach (var file in files)
+                            {
+                                var fileName = Path.GetFileName(file);
+                                var targetMediaFolder = Path.Combine(targetPlatformDir, "media", assetType);
+                                var targetFilePath = Path.Combine(targetMediaFolder, fileName);
+
+                                if (!result.ExportedMediaPaths.Any(p => p.Equals(targetFilePath, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    if (!_diskProvider.FolderExists(targetMediaFolder))
+                                    {
+                                        _diskProvider.CreateFolder(targetMediaFolder);
+                                    }
+
+                                    _diskProvider.CopyFile(file, targetFilePath, overwrite);
+                                    result.ExportedMediaAssetCount++;
+                                    result.ExportedMediaPaths.Add(targetFilePath);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                var sourceGamelist = Path.Combine(sourceDir, "gamelist.xml");
+                if (_diskProvider.FileExists(sourceGamelist))
+                {
+                    var targetGamelist = Path.Combine(targetPlatformDir, "gamelist.xml");
+                    if (!result.ExportedMediaPaths.Any(p => p.Equals(targetGamelist, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _diskProvider.CopyFile(sourceGamelist, targetGamelist, overwrite);
+                        result.ExportedMediaPaths.Add(targetGamelist);
+                    }
+                }
+            }
+        }
+
+        private bool ExecuteExportTransformation(
+            SdCardFormatTransformation transformation,
+            SdCardExportItem item,
+            string destinationPath,
+            string destinationFolder,
+            bool overwrite,
+            out string finalOutputPath)
+        {
+            finalOutputPath = destinationPath;
+
+            switch (transformation)
+            {
+                case SdCardFormatTransformation.CompressDiscToChd:
+                case SdCardFormatTransformation.CompressDiscToRvz:
+                    if (_discCompressionService != null)
+                    {
+                        return _discCompressionService.CompressDisc(
+                            item.SourceFilePath,
+                            item.PlatformFolder,
+                            out finalOutputPath,
+                            destinationPath);
+                    }
+
+                    _diskProvider.CopyFile(item.SourceFilePath, destinationPath, overwrite);
+                    return true;
+
+                case SdCardFormatTransformation.ConvertChdToCueBin:
+                case SdCardFormatTransformation.ConvertRvzToIso:
+                    if (_discCompressionService != null)
+                    {
+                        var baseName = Path.GetFileNameWithoutExtension(destinationPath);
+                        return _discCompressionService.DecompressDisc(
+                            item.SourceFilePath,
+                            destinationFolder,
+                            out finalOutputPath,
+                            baseName);
+                    }
+
+                    _diskProvider.CopyFile(item.SourceFilePath, destinationPath, overwrite);
+                    return true;
+
+                case SdCardFormatTransformation.ZipSingleRom:
+                    if (File.Exists(item.SourceFilePath))
+                    {
+                        if (overwrite && File.Exists(destinationPath))
+                        {
+                            File.Delete(destinationPath);
+                        }
+
+                        using (var archive = ZipFile.Open(destinationPath, ZipArchiveMode.Create))
+                        {
+                            archive.CreateEntryFromFile(item.SourceFilePath, Path.GetFileName(item.SourceFilePath), CompressionLevel.Optimal);
+                        }
+
+                        return true;
+                    }
+
+                    _diskProvider.CopyFile(item.SourceFilePath, destinationPath, overwrite);
+                    return true;
+
+                case SdCardFormatTransformation.ExtractZipToRawRom:
+                    if (File.Exists(item.SourceFilePath))
+                    {
+                        using (var archive = ZipFile.OpenRead(item.SourceFilePath))
+                        {
+                            var romEntry = archive.Entries.FirstOrDefault(e => !string.IsNullOrEmpty(e.Name));
+                            if (romEntry != null)
+                            {
+                                var actualFileName = Path.Combine(destinationFolder ?? string.Empty, romEntry.Name);
+                                romEntry.ExtractToFile(actualFileName, overwrite);
+                                finalOutputPath = actualFileName;
+                                return true;
+                            }
+                        }
+                    }
+
+                    _diskProvider.CopyFile(item.SourceFilePath, destinationPath, overwrite);
+                    return true;
+
+                default:
+                    _diskProvider.CopyFile(item.SourceFilePath, destinationPath, overwrite);
+                    return true;
+            }
+        }
+
+        private static string ResolveAlphabeticalBucket(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return "#";
+            }
+
+            var firstChar = char.ToUpperInvariant(title.Trim()[0]);
+            if (!char.IsLetter(firstChar))
+            {
+                return "#";
+            }
+
+            if (firstChar >= 'A' && firstChar <= 'F')
+            {
+                return "A-F";
+            }
+
+            if (firstChar >= 'G' && firstChar <= 'M')
+            {
+                return "G-M";
+            }
+
+            if (firstChar >= 'N' && firstChar <= 'S')
+            {
+                return "N-S";
+            }
+
+            return "T-Z";
+        }
+    }
+}

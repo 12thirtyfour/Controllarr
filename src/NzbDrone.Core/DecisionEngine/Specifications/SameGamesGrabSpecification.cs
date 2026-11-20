@@ -1,0 +1,31 @@
+using NLog;
+using NzbDrone.Core.Parser.Model;
+
+namespace NzbDrone.Core.DecisionEngine.Specifications
+{
+    public class SameGamesGrabSpecification : IDownloadDecisionEngineSpecification
+    {
+        private readonly SameGamesSpecification _sameEpisodesSpecification;
+        private readonly Logger _logger;
+
+        public SameGamesGrabSpecification(SameGamesSpecification sameEpisodesSpecification, Logger logger)
+        {
+            _sameEpisodesSpecification = sameEpisodesSpecification;
+            _logger = logger;
+        }
+
+        public SpecificationPriority Priority => SpecificationPriority.Default;
+        public RejectionType Type => RejectionType.Permanent;
+
+        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)
+        {
+            if (_sameEpisodesSpecification.IsSatisfiedBy(subject.Episodes))
+            {
+                return DownloadSpecDecision.Accept();
+            }
+
+            _logger.Debug("ROM file on disk contains more games than this release contains");
+            return DownloadSpecDecision.Reject(DownloadRejectionReason.ExistingFileHasMoreEpisodes, "ROM file on disk contains more games than this release contains");
+        }
+    }
+}

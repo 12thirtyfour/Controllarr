@@ -1,0 +1,184 @@
+using System;
+using System.Collections.Generic;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.Profiles.Qualities;
+
+namespace NzbDrone.Core.Tv
+{
+    public class Platform : ModelBase
+    {
+        public Platform()
+        {
+            Images = new List<MediaCover.MediaCover>();
+            Genres = new List<string>();
+            SeasonTypes = new List<SeasonType>();
+            Translations = new List<PlatformTranslation>();
+            Seasons = new List<Season>();
+            Tags = new HashSet<int>();
+            OriginalLanguage = Language.English;
+            MalIds = new HashSet<int>();
+            AniListIds = new HashSet<int>();
+        }
+
+        public int TvdbId { get; set; }
+        public int TvRageId { get; set; }
+        public int TvMazeId { get; set; }
+        public string ImdbId { get; set; }
+        public int TmdbId { get; set; }
+        public HashSet<int> MalIds { get; set; }
+        public HashSet<int> AniListIds { get; set; }
+        public string Title { get; set; }
+        public string CleanTitle { get; set; }
+        public string SortTitle { get; set; }
+
+        public Games.CollectionStrategy CollectionStrategy { get; set; }
+        public Games.RevisionPreference RevisionPreference { get; set; }
+        public string PinnedVersion { get; set; }
+
+        public string PreferredArchiveFormat
+        {
+            get => Certification;
+            set => Certification = value;
+        }
+
+        public bool PreferEncryptedRoms
+        {
+            get => EncryptionPreference == Games.EncryptionPreference.Encrypted;
+            set
+            {
+                UseSceneNumbering = value;
+                if (value && !string.Equals(SeasonType, "both", StringComparison.OrdinalIgnoreCase))
+                {
+                    SeasonType = "encrypted";
+                }
+                else if (!value && string.Equals(SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase))
+                {
+                    SeasonType = "notEncrypted";
+                }
+            }
+        }
+
+        public Games.EncryptionPreference EncryptionPreference
+        {
+            get
+            {
+                if (string.Equals(SeasonType, "both", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Games.EncryptionPreference.Both;
+                }
+
+                if (string.Equals(SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase) || UseSceneNumbering)
+                {
+                    return Games.EncryptionPreference.Encrypted;
+                }
+
+                return Games.EncryptionPreference.NotEncrypted;
+            }
+            set
+            {
+                switch (value)
+                {
+                    case Games.EncryptionPreference.Encrypted:
+                        SeasonType = "encrypted";
+                        UseSceneNumbering = true;
+                        break;
+                    case Games.EncryptionPreference.Both:
+                        SeasonType = "both";
+                        UseSceneNumbering = false;
+                        break;
+                    default:
+                        if (string.Equals(SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(SeasonType, "both", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(SeasonType, "notEncrypted", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(SeasonType, "decrypted", StringComparison.OrdinalIgnoreCase))
+                        {
+                            SeasonType = "notEncrypted";
+                        }
+
+                        UseSceneNumbering = false;
+                        break;
+                }
+            }
+        }
+
+        public SeriesStatusType Status { get; set; }
+        public string Overview { get; set; }
+        public bool Monitored { get; set; }
+        public NewItemMonitorTypes MonitorNewItems { get; set; }
+        public int QualityProfileId { get; set; }
+        public bool SeasonFolder { get; set; }
+        public bool RegionFolder { get => SeasonFolder; set => SeasonFolder = value; }
+        public DateTime? LastInfoSync { get; set; }
+        public int Runtime { get; set; }
+        public List<MediaCover.MediaCover> Images { get; set; }
+        public SeriesTypes SeriesType { get; set; }
+        public string Network { get; set; }
+        public bool UseSceneNumbering { get; set; }
+        public string TitleSlug { get; set; }
+        public string Path { get; set; }
+        public string PendingPath { get; set; }
+        public int Year { get; set; }
+        public Ratings Ratings { get; set; }
+        public List<string> Genres { get; set; }
+        public string Certification { get; set; }
+        public string RootFolderPath { get; set; }
+        public DateTime Added { get; set; }
+        public DateTime? FirstAired { get; set; }
+        public DateTime? FirstReleased { get => FirstAired; set => FirstAired = value; }
+        public DateTime? LastAired { get; set; }
+        public DateTime? LastReleased { get => LastAired; set => LastAired = value; }
+        public LazyLoaded<QualityProfile> QualityProfile { get; set; }
+        public Language Language { get; set; }
+        public Language OriginalLanguage { get; set; }
+        public string OriginalCountry { get; set; }
+        public string OriginalTitle { get; set; }
+        public string CleanOriginalTitle { get; set; }
+        public string SeasonType { get; set; }
+        public List<SeasonType> SeasonTypes { get; set; }
+        public List<PlatformTranslation> Translations { get; set; }
+        public List<Season> Seasons { get; set; }
+        public HashSet<int> Tags { get; set; }
+        public AddPlatformOptions AddOptions { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("[{0}][{1}]", TvdbId, Title.NullSafe());
+        }
+
+        public void ApplyChanges(Series otherSeries)
+        {
+            TvdbId = otherSeries.TvdbId;
+
+            Seasons = otherSeries.Seasons;
+            Path = otherSeries.Path;
+            QualityProfileId = otherSeries.QualityProfileId;
+
+            SeasonFolder = otherSeries.SeasonFolder;
+            Monitored = otherSeries.Monitored;
+            MonitorNewItems = otherSeries.MonitorNewItems;
+            CollectionStrategy = otherSeries.CollectionStrategy;
+            RevisionPreference = otherSeries.RevisionPreference;
+            PinnedVersion = otherSeries.PinnedVersion;
+            if (otherSeries.PreferredArchiveFormat.IsNotNullOrWhiteSpace())
+            {
+                PreferredArchiveFormat = otherSeries.PreferredArchiveFormat;
+            }
+
+            UseSceneNumbering = otherSeries.UseSceneNumbering;
+
+            SeriesType = otherSeries.SeriesType;
+            RootFolderPath = otherSeries.RootFolderPath;
+            Tags = otherSeries.Tags;
+            AddOptions = otherSeries.AddOptions;
+
+            Language = otherSeries.Language;
+            SeasonType = otherSeries.SeasonType;
+        }
+    }
+
+    public class Series : Platform
+    {
+    }
+}

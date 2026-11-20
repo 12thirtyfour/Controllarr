@@ -1,0 +1,89 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Download.Aggregation;
+using NzbDrone.Core.Parser;
+using Sonarr.Api.V5.CustomFormats;
+using Sonarr.Api.V5.Games;
+using Sonarr.Api.V5.Platforms;
+using Sonarr.Api.V5.Release;
+using Sonarr.Http;
+
+namespace Sonarr.Api.V5.Parse;
+
+[V5ApiController]
+public class ParseController : Controller
+{
+    private readonly IParsingService _parsingService;
+    private readonly IRemoteGameAggregationService _aggregationService;
+    private readonly ICustomFormatCalculationService _formatCalculator;
+
+    public ParseController(IParsingService parsingService,
+                           IRemoteGameAggregationService aggregationService,
+                           ICustomFormatCalculationService formatCalculator)
+    {
+        _parsingService = parsingService;
+        _aggregationService = aggregationService;
+        _formatCalculator = formatCalculator;
+    }
+
+    [HttpGet]
+    [Produces("application/json")]
+    public Ok<ParseResource> Parse(string? title, string? path)
+    {
+        if (title.IsNullOrWhiteSpace())
+        {
+            return TypedResults.Ok(new ParseResource
+            {
+                Title = title
+            });
+        }
+
+        var parsedEpisodeInfo = path.IsNotNullOrWhiteSpace() ? Parser.ParsePath(path) : Parser.ParseTitle(title);
+
+        // Try to parse a season title if previous parsing failed and we're not dealing with a path.
+        if (parsedEpisodeInfo == null && path.IsNullOrWhiteSpace())
+        {
+            parsedEpisodeInfo = Parser.ParseSeasonTitle(title);
+        }
+
+        if (parsedEpisodeInfo == null)
+        {
+            return TypedResults.Ok(new ParseResource
+            {
+                Title = title
+            });
+        }
+
+        var remoteEpisode = _parsingService.Map(parsedEpisodeInfo, 0, 0, null);
+
+        if (remoteEpisode != null)
+        {
+            _aggregationService.Augment(remoteEpisode);
+
+            remoteEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(remoteEpisode, 0);
+            remoteEpisode.CustomFormatScore = remoteEpisode.Series?.QualityProfile?.Value.CalculateCustomFormatScore(remoteEpisode.CustomFormats) ?? 0;
+
+            return TypedResults.Ok(new ParseResource
+            {
+                Title = title,
+                ParsedGameInfo = remoteEpisode.ParsedEpisodeInfo.ToResource(),
+                Series = remoteEpisode.Series?.ToResource(),
+                Games = remoteEpisode.Episodes.ToResource(),
+                Languages = remoteEpisode.Languages,
+                CustomFormats = remoteEpisode.CustomFormats?.ToResource(false),
+                CustomFormatScore = remoteEpisode.CustomFormatScore
+            });
+        }
+        else
+        {
+            return TypedResults.Ok(new ParseResource
+            {
+                Title = title,
+                ParsedGameInfo = parsedEpisodeInfo.ToResource()
+            });
+        }
+    }
+}

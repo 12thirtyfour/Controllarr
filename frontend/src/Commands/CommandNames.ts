@@ -1,0 +1,28 @@
+enum CommandNames {
+  ApplicationUpdate = 'ApplicationUpdate',
+  Backup = 'Backup',
+  ClearBlocklist = 'ClearBlocklist',
+  ClearLog = 'ClearLog',
+  CutoffUnmetGameSearch = 'CutoffUnmetGameSearch',
+  DeleteLogFiles = 'DeleteLogFiles',
+  DeletePlatformFiles = 'DeletePlatformFiles',
+  DeleteUpdateLogFiles = 'DeleteUpdateLogFiles',
+  DownloadedGamesScan = 'DownloadedGamesScan',
+  GameSearch = 'GameSearch',
+  ManualImport = 'ManualImport',
+  MissingGameSearch = 'MissingGameSearch',
+  MovePlatform = 'MovePlatform',
+  RefreshMonitoredDownloads = 'RefreshMonitoredDownloads',
+  RefreshPlatform = 'RefreshPlatform',
+  RenameFiles = 'RenameFiles',
+  RenamePlatform = 'RenamePlatform',
+  ResetApiKey = 'ResetApiKey',
+  ResetQualityDefinitions = 'ResetQualityDefinitions',
+  RssSync = 'RssSync',
+  RegionSearch = 'RegionSearch',
+  PlatformSearch = 'PlatformSearch',
+  PlatformCollectionSearch = 'PlatformCollectionSearch',
+  UpdateDatCatalogs = 'UpdateDatCatalogs',
+}
+
+export default CommandNames;

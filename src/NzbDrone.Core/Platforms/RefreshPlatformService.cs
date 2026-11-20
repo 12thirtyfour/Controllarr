@@ -1,0 +1,334 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.Game;
+using NzbDrone.Core.Tv.Commands;
+using NzbDrone.Core.Tv.Events;
+
+namespace NzbDrone.Core.Tv
+{
+    public class RefreshPlatformService : IExecute<RefreshPlatformCommand>
+    {
+        private readonly IProvidePlatformInfo _seriesInfo;
+        private readonly NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy _gameMetadataProxy;
+        private readonly ISeriesService _seriesService;
+        private readonly IPlatformTranslationService _seriesTranslationService;
+        private readonly IRefreshGameService _refreshEpisodeService;
+        private readonly IEventAggregator _eventAggregator;
+        private readonly IDiskScanService _diskScanService;
+        private readonly ICheckIfSeriesShouldBeRefreshed _checkIfSeriesShouldBeRefreshed;
+        private readonly IConfigService _configService;
+        private readonly ICommandResultReporter _commandResultReporter;
+        private readonly Logger _logger;
+
+        public RefreshPlatformService(IProvidePlatformInfo seriesInfo,
+                                    NzbDrone.Core.MetadataSource.Game.IGameMetadataProxy gameMetadataProxy,
+                                    ISeriesService seriesService,
+                                    IPlatformTranslationService seriesTranslationService,
+                                    IRefreshGameService refreshEpisodeService,
+                                    IEventAggregator eventAggregator,
+                                    IDiskScanService diskScanService,
+                                    ICheckIfSeriesShouldBeRefreshed checkIfSeriesShouldBeRefreshed,
+                                    IConfigService configService,
+                                    ICommandResultReporter commandResultReporter,
+                                    Logger logger)
+        {
+            _seriesInfo = seriesInfo;
+            _gameMetadataProxy = gameMetadataProxy;
+            _seriesService = seriesService;
+            _seriesTranslationService = seriesTranslationService;
+            _refreshEpisodeService = refreshEpisodeService;
+            _eventAggregator = eventAggregator;
+            _diskScanService = diskScanService;
+            _checkIfSeriesShouldBeRefreshed = checkIfSeriesShouldBeRefreshed;
+            _configService = configService;
+            _commandResultReporter = commandResultReporter;
+            _logger = logger;
+        }
+
+        private Series RefreshSeriesInfo(int seriesId)
+        {
+            // Get the series before updating, that way any changes made to the series after the refresh started,
+            // but before this series was refreshed won't be lost.
+            var series = _seriesService.GetSeries(seriesId);
+
+            _logger.ProgressInfo("Updating {0}", series.Title);
+
+            Series seriesInfo;
+            List<Episode> episodes;
+
+            try
+            {
+                var hasEncryptedCatalog = series.TvdbId == 1012 ||
+                                          series.TvdbId == 1013 ||
+                                          string.Equals(series.TitleSlug, "nds", StringComparison.OrdinalIgnoreCase) ||
+                                          string.Equals(series.TitleSlug, "3ds", StringComparison.OrdinalIgnoreCase);
+                var effectiveSeasonType = hasEncryptedCatalog
+                    ? series.EncryptionPreference switch
+                    {
+                        Games.EncryptionPreference.Encrypted => "encrypted",
+                        Games.EncryptionPreference.Both => "both",
+                        _ => series.SeasonType
+                    }
+                    : series.SeasonType;
+                (_seriesInfo as NzbDrone.Core.MetadataSource.Game.IGameCatalogService)?.InvalidatePlatformCache(series.TvdbId);
+                var tuple = _seriesInfo.GetSeriesInfo(series.TvdbId, series.Language, effectiveSeasonType);
+                seriesInfo = tuple.Item1;
+                episodes = tuple.Item2;
+            }
+            catch (SeriesNotFoundException)
+            {
+                if (series.Status != SeriesStatusType.Deleted)
+                {
+                    series.Status = SeriesStatusType.Deleted;
+                    _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
+                    _logger.Debug("Platform marked as deleted in game database for {0}", series.Title);
+                    _eventAggregator.PublishEvent(new PlatformUpdatedEvent(series));
+                }
+
+                throw;
+            }
+
+            if (series.TvdbId != seriesInfo.TvdbId)
+            {
+                _logger.Warn("Platform '{0}' (id {1}) was replaced with '{2}' (id {3}), because the original was a duplicate.", series.Title, series.TvdbId, seriesInfo.Title, seriesInfo.TvdbId);
+                series.TvdbId = seriesInfo.TvdbId;
+            }
+
+            series.Title = seriesInfo.Title;
+            series.Year = seriesInfo.Year;
+            series.TitleSlug = seriesInfo.TitleSlug;
+            series.TvRageId = seriesInfo.TvRageId;
+            series.TvMazeId = seriesInfo.TvMazeId;
+            series.TmdbId = seriesInfo.TmdbId;
+            series.ImdbId = seriesInfo.ImdbId;
+            series.MalIds = seriesInfo.MalIds;
+            series.AniListIds = seriesInfo.AniListIds;
+            series.Overview = seriesInfo.Overview;
+            series.OriginalLanguage = seriesInfo.OriginalLanguage;
+            series.Status = seriesInfo.Status;
+            series.CleanTitle = seriesInfo.CleanTitle;
+            series.SortTitle = seriesInfo.SortTitle;
+            series.LastInfoSync = DateTime.UtcNow;
+            series.Runtime = seriesInfo.Runtime;
+            series.Images = seriesInfo.Images;
+            series.Network = seriesInfo.Network;
+            series.FirstAired = seriesInfo.FirstAired;
+            series.LastAired = seriesInfo.LastAired;
+            series.Ratings = seriesInfo.Ratings;
+            series.Genres = seriesInfo.Genres;
+            if (seriesInfo.Certification.IsNotNullOrWhiteSpace())
+            {
+                series.Certification = seriesInfo.Certification;
+            }
+
+            series.OriginalCountry = seriesInfo.OriginalCountry;
+            series.OriginalTitle = seriesInfo.OriginalTitle;
+            series.CleanOriginalTitle = seriesInfo.CleanOriginalTitle;
+            series.SeasonTypes = seriesInfo.SeasonTypes;
+            series.SeasonFolder = true;
+            if (string.IsNullOrWhiteSpace(series.PreferredArchiveFormat))
+            {
+                series.PreferredArchiveFormat = "auto";
+            }
+
+            try
+            {
+                series.Path = new DirectoryInfo(series.Path).FullName;
+                series.Path = series.Path.GetActualCasing();
+            }
+            catch (Exception e)
+            {
+                _logger.Warn(e, "Couldn't update platform path for " + series.Path);
+            }
+
+            series.Seasons = UpdateSeasons(series, seriesInfo);
+
+            _seriesService.UpdateSeries(series, publishUpdatedEvent: false);
+            _seriesTranslationService.UpdateTranslations(series.Id, seriesInfo.Translations);
+            _refreshEpisodeService.RefreshEpisodeInfo(series, episodes);
+
+            _logger.Debug("Finished platform refresh for {0}", series.Title);
+            _eventAggregator.PublishEvent(new PlatformUpdatedEvent(series));
+
+            return series;
+        }
+
+        private List<Season> UpdateSeasons(Series series, Series seriesInfo)
+        {
+            var seasons = seriesInfo.Seasons.DistinctBy(s => s.SeasonNumber).ToList();
+
+            foreach (var season in seasons)
+            {
+                var existingSeason = series.Seasons.FirstOrDefault(s => s.SeasonNumber == season.SeasonNumber);
+
+                if (existingSeason == null)
+                {
+                    if (season.SeasonNumber is GameCatalogProxy.RegionUnlicensed
+                        or GameCatalogProxy.RegionHomebrew
+                        or GameCatalogProxy.RegionRomHacks
+                        or GameCatalogProxy.RegionTestAndUtilities
+                        or GameCatalogProxy.RegionMagazinesAndBooks)
+                    {
+                        _logger.Debug("Ignoring non-retail region ({0}) for platform [{1}] {2} by default", season.SeasonNumber, series.TvdbId, series.Title);
+                        season.Monitored = false;
+                        continue;
+                    }
+
+                    var monitorNewSeasons = series.MonitorNewItems == NewItemMonitorTypes.All;
+
+                    _logger.Debug("New region ({0}) for platform: [{1}] {2}, setting monitored to {3}", season.SeasonNumber, series.TvdbId, series.Title, monitorNewSeasons.ToString().ToLowerInvariant());
+                    season.Monitored = monitorNewSeasons;
+                }
+                else
+                {
+                    season.Monitored = existingSeason.Monitored;
+                }
+            }
+
+            return seasons;
+        }
+
+        private void RescanSeries(Series series, bool isNew, CommandTrigger trigger)
+        {
+            var rescanAfterRefresh = _configService.RescanAfterRefresh;
+
+            if (isNew)
+            {
+                _logger.Trace("Forcing rescan of {0}. Reason: New platform", series);
+            }
+            else if (rescanAfterRefresh == RescanAfterRefreshType.Never)
+            {
+                _logger.Trace("Skipping rescan of {0}. Reason: never rescan after refresh", series);
+                _eventAggregator.PublishEvent(new PlatformScanSkippedEvent(series, SeriesScanSkippedReason.NeverRescanAfterRefresh));
+
+                return;
+            }
+            else if (rescanAfterRefresh == RescanAfterRefreshType.AfterManual && trigger != CommandTrigger.Manual)
+            {
+                _logger.Trace("Skipping rescan of {0}. Reason: not after automatic scans", series);
+                _eventAggregator.PublishEvent(new PlatformScanSkippedEvent(series, SeriesScanSkippedReason.RescanAfterManualRefreshOnly));
+
+                return;
+            }
+
+            try
+            {
+                _diskScanService.Scan(series);
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Couldn't rescan platform {0}", series);
+            }
+        }
+
+        private void UpdateTags(Series series)
+        {
+            var tagsUpdated = _seriesService.UpdateAutoTaggingTags(series);
+
+            if (tagsUpdated)
+            {
+                _seriesService.UpdateSeries(series);
+            }
+        }
+
+        public void Execute(RefreshPlatformCommand message)
+        {
+            var trigger = message.Trigger;
+            var isNew = message.IsNewSeries;
+            _eventAggregator.PublishEvent(new PlatformRefreshStartingEvent(trigger == CommandTrigger.Manual));
+
+            if (message.SeriesIds.Any())
+            {
+                foreach (var seriesId in message.SeriesIds)
+                {
+                    var series = _seriesService.GetSeries(seriesId);
+
+                    try
+                    {
+                        series = RefreshSeriesInfo(seriesId);
+                        if (_seriesService.IsSeriesDeletedWithFiles(seriesId))
+                        {
+                            _logger.Debug("Platform {0} was deleted during refresh; skipping tag update and rescan.", series.Title);
+                            continue;
+                        }
+
+                        UpdateTags(series);
+                        RescanSeries(series, isNew, trigger);
+                    }
+                    catch (SeriesNotFoundException)
+                    {
+                        _logger.Error("Platform '{0}' (id {1}) was not found, it may have been removed from the game database.", series.Title, series.TvdbId);
+
+                        // Mark the result as indeterminate so it's not marked as a full success,
+                        // but we can still process other series if needed.
+                        _commandResultReporter.Report(CommandResult.Indeterminate);
+                    }
+                    catch (Exception e)
+                    {
+                        if (_seriesService.IsSeriesDeletedWithFiles(seriesId))
+                        {
+                            _logger.Debug("Platform {0} was deleted during refresh; aborting rescan.", series.Title);
+                            continue;
+                        }
+
+                        _logger.Error(e, "Couldn't refresh info for {0}", series);
+                        UpdateTags(series);
+                        RescanSeries(series, isNew, trigger);
+
+                        // Mark the result as indeterminate so it's not marked as a full success,
+                        // but we can still process other series if needed.
+                        _commandResultReporter.Report(CommandResult.Indeterminate);
+                    }
+                }
+            }
+            else
+            {
+                var allSeries = _seriesService.GetAllSeries().OrderBy(c => c.SortTitle).ToList();
+
+                foreach (var series in allSeries)
+                {
+                    var seriesLocal = series;
+                    if (trigger == CommandTrigger.Manual || _checkIfSeriesShouldBeRefreshed.ShouldRefresh(seriesLocal))
+                    {
+                        try
+                        {
+                            seriesLocal = RefreshSeriesInfo(seriesLocal.Id);
+                        }
+                        catch (SeriesNotFoundException)
+                        {
+                            _logger.Error("Platform '{0}' (id {1}) was not found, it may have been removed from the game database.", seriesLocal.Title, seriesLocal.TvdbId);
+                            continue;
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.Error(e, "Couldn't refresh info for {0}", seriesLocal);
+                        }
+
+                        UpdateTags(series);
+                        RescanSeries(seriesLocal, false, trigger);
+                    }
+                    else
+                    {
+                        _logger.Info("Skipping refresh of platform: {0}", seriesLocal.Title);
+                        UpdateTags(series);
+                        RescanSeries(seriesLocal, false, trigger);
+                    }
+                }
+            }
+
+            _eventAggregator.PublishEvent(new PlatformRefreshCompleteEvent());
+        }
+    }
+}

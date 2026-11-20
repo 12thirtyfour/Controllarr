@@ -1,0 +1,79 @@
+.virtualLibCard {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--paperCard);
+}
+
+.presetPreview {
+  margin-top: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairlineStrong);
+  border-radius: 6px;
+  background: var(--paperWarm);
+  color: var(--inkSoft);
+  font-size: 12px;
+  font-family: var(--monospaceFontFamily);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.libraryGrid {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+  gap: 12px;
+}
+
+.libraryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 16px;
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  background-color: var(--paperCard);
+  gap: 16px;
+}
+
+.libraryInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.libraryTitleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.libraryName {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.libraryPath {
+  color: var(--inkSoft);
+  font-size: 13px;
+  font-family: var(--monospaceFontFamily);
+}
+
+.libraryMeta {
+  color: var(--inkMuted);
+  font-size: 12px;
+}
+
+.libraryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

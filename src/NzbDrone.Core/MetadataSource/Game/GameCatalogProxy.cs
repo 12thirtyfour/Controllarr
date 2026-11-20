@@ -1,0 +1,5534 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Linq;
+using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Http;
+using NzbDrone.Core.Dat;
+using NzbDrone.Core.Games;
+using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Parser;
+using NzbDrone.Core.Tv;
+
+namespace NzbDrone.Core.MetadataSource.Game
+{
+    public class GameCatalogProxy : IGameCatalogService, IProvidePlatformInfo, ISearchForNewPlatforms
+    {
+        public const int RegionUnlicensed = 0;
+        public const int RegionPrototypes = 0;
+        public const int RegionUsa = 1;
+        public const int RegionEurope = 2;
+        public const int RegionJapan = 3;
+        public const int RegionWorld = 4;
+        public const int RegionHomebrew = 5;
+        public const int RegionRomHacks = 6;
+        public const int RegionTestAndUtilities = 7;
+        public const int RegionMagazinesAndBooks = 8;
+        public const int RegionBios = 99;
+
+        private const int MaxCachedPlatformCatalogs = 4;
+        private const int MaxRemoteArchiveCacheEntries = 4;
+        private const int MaxReleaseYearLookupCacheEntries = 8;
+
+        private static readonly Regex DatGameBlockRegex = new Regex(
+            @"game\s*\(\s*name\s+""(?<name>[^""]+)""(?<body>.*?)\r?\n\)",
+            RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatRomNameRegex = new Regex(
+            @"rom\s*\(\s*name\s+""(?<rom>[^""]+)""",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatReleaseYearBlockRegex = new Regex(
+            @"game\s*\((?<body>[\s\S]*?)\n\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatNameOrCommentRegex = new Regex(
+            @"(?:comment|name)\s+""(?<name>[^""]+)""",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatReleaseYearRegex = new Regex(
+            @"releaseyear\s+""?(?<year>\d{4})""?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatReleaseMonthRegex = new Regex(
+            @"releasemonth\s+""?(?<month>\d{1,2})""?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatReleaseDayRegex = new Regex(
+            @"releaseday\s+""?(?<day>\d{1,2})""?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatCrcRegex = new Regex(
+            @"crc\s+([0-9a-fA-F]{8})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatMd5Regex = new Regex(
+            @"\bmd5\s+([0-9a-fA-F]{32})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatSha1Regex = new Regex(
+            @"\bsha1\s+([0-9a-fA-F]{40})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DatSha256Regex = new Regex(
+            @"\bsha256\s+([0-9a-fA-F]{64})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex VirtualConsoleTagRegex = new Regex(
+            @"\((?:(?:Wii U|Wii|3DS)\s+)?Virtual Console\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ArtifactTitleIdRegex = new Regex(
+            @"^(?:[0-9a-fA-F]{8,}|[0-9a-fA-F]{8}-[0-9a-fA-F]{8}|(?:[0-9a-fA-F]{4,})?TU_[A-Za-z0-9_.]+|(?:[0-9a-fA-F]{4,})?tu[0-9a-fA-F]{6,}(?:_[0-9a-fA-F]+)?|[0-9a-fA-F]{8}(?:00000001|00000002|000B0000|00007000|000D0000).+|(?:\$?su|SystemUpdate)[0-9a-fA-F_]+|[0-9a-fA-F]{8,}_[0-9A-Za-z_]+(?:\.[0-9A-Za-z]+)?)$|\.[0-9A-Za-z]{10,}$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex BracketedTextRegex = new Regex(
+            @"\([^\)]*\)|\[[^\]]*\]",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex StandaloneRegionOrRevTagRegex = new Regex(
+            @"^[\(\[\s]*(?:EN|JA|FR|DE|ES|IT|ZH|KO|NL|RU|PT|USA|EUR|JPN|WORLD|ASIA|REV\s*\d+|V[\d.]+)+[\)\]\s]*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ResidualRevisionRegex = new Regex(
+            @"(?:\s*[\(\[]\s*(?:Rev\.?\s*[0-9A-Za-z\.]+|v\d+(?:\.\d+)*[A-Za-z]?|Version\s*[\d\.]+|Alt\s*\d+|PRG\d+|(?:(?:Title\s+Update|Update|Patch|DLC(?:\s+(?:Pack|Content))?|Add-?on|Unlock\s+Key|Additional\s+Content|Downloadable\s+Content|Season\s+Pass)(?:\s*#?\s*v?[\d.]+)?|TU\s*#?\s*\d+(?:\.\d+)*|v?[\d.]+\s*(?:Title\s+Update|Update|Patch)|UPD|Theme|Avatar|Soundtrack))\s*[\)\]]|\s+-\s+(?:Rev\.?\s*[0-9A-Za-z]+|v\d+(?:\.\d+)*[A-Za-z]?|(?:(?:Title\s+Update|Update|Patch|DLC(?:\s+(?:Pack|Content))?|Add-?on|Unlock\s+Key|Additional\s+Content|Downloadable\s+Content|Season\s+Pass)(?:\s*#?\s*v?[\d.]+)?|TU\s*#?\s*\d+(?:\.\d+)*|UPD))$)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static readonly Regex RevisionTagRegex = new Regex(
+            @"\((?<rev>Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Alt\s*\d*|Program\s*ROM\s*[^\)]+|PRG\d+)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static readonly Regex UpdateTagRegex = new Regex(
+            @"(?:\(|[\s\[])?\b(?<upd>(?:(?:Title\s+Update|Update|Patch|DLC(?:\s+(?:Pack|Content))?|Add-?on|Unlock\s+Key|Additional\s+Content|Downloadable\s+Content|Season\s+Pass)(?:\s*#?\s*v?[\d.]+)?|TU\s*#?\s*\d+(?:\.\d+)*|v?[\d.]+\s*(?:Title\s+Update|Update|Patch)|UPD))\b(?:\)|\])?|\(\s*(?<upd>Theme|Avatar|Soundtrack)\s*\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static readonly Regex PatchUpdateTagRegex = new Regex(
+            @"(?:\(|[\s\[])?\b(?<upd>(?:(?:Title\s+Update|Update|Patch)(?:\s*#?\s*v?[\d.]+)?|TU\s*#?\s*\d+(?:\.\d+)*|v?[\d.]+\s*(?:Title\s+Update|Update|Patch)|UPD))\b(?:\)|\])?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static readonly Regex DiscTagRegex = new Regex(
+            @"(?:\(|\[)?\b(?<disc>Disc\s*(?<num>\d+(?:\s*of\s*\d+)?)|Disk\s*(?<num>[A-Z0-9]+(?:\s*of\s*\d+)?)|Side\s*(?<num>[A-Z0-9]+(?:\s*of\s*\d+)?))\b(?:\)|\])?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex TitleIdTagRegex = new Regex(
+            @"\((?<tid>[0-9A-Fa-f]{8})\)",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex PreReleaseTagRegex = new Regex(
+            @"\((?<pre>Proto[^\)]*|Beta[^\)]*|Sample[^\)]*|Demo[^\)]*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex GeographicRegionTagRegex = new Regex(
+            @"\((?:USA|Europe|Japan|World|Asia|Australia|Austria|Belgium|Brazil|Canada|China|Denmark|Finland|France|Germany|Greece|Hong Kong|India|Italy|Korea|Latin America|Mexico|Netherlands|Norway|Poland|Portugal|Russia|Scandinavia|Spain|Sweden|Switzerland|Taiwan|UK|United Kingdom)(?:\s*,\s*(?:USA|Europe|Japan|World|Asia|Australia|Austria|Belgium|Brazil|Canada|China|Denmark|Finland|France|Germany|Greece|Hong Kong|India|Italy|Korea|Latin America|Mexico|Netherlands|Norway|Poland|Portugal|Russia|Scandinavia|Spain|Sweden|Switzerland|Taiwan|UK|United Kingdom))*\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex TrailingLanguageTagRegex = new Regex(
+            @"\((?<langs>(?:En|Fr|De|Es|It|Nl|Pt|Sv|Se|No|Da|Dk|Fi|Ja|Jp|Ko|Kr|Zh|Zhcn|Zhtw|Zhhk|Ru|Pl|Ar|Tr|Cs|Hu|El|Ro|Th|Id|Ms|Vi|Hi|He)(?:\s*[,+]\s*(?:En|Fr|De|Es|It|Nl|Pt|Sv|Se|No|Da|Dk|Fi|Ja|Jp|Ko|Kr|Zh|Zhcn|Zhtw|Zhhk|Ru|Pl|Ar|Tr|Cs|Hu|El|Ro|Th|Id|Ms|Vi|Hi|He))*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SecondaryTrackRegex = new Regex(
+            @"(?:(?:^|[\s_\(\[-])Track[-\s_]*(?:0*[2-9]\d*|[1-9]\d+)(?:[\s_\)\]\.-]|$)|[\(\[]\s*Track\s*(?:0*[2-9]\d*|[1-9]\d+)\s*[\)\]])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex TrackOneRegex = new Regex(
+            @"\s*[\(\[]\s*Track\s*0*1\s*[\)\]]|\s*Track-0*1",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex StandaloneTrackRegex = new Regex(
+            @"^(?:Track|Audio\s*Track|Data\s*Track)\s*\d+$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AudioStemRegex = new Regex(
+            @"^(?:(?:\d{1,3}(?:,\s*\d{1,3})*\).+)|(?:0\d[A-Za-z].+))$",
+            RegexOptions.Compiled);
+
+        private static readonly HashSet<string> NonRomOrAudioExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".wav", ".mp3", ".ogg", ".flac", ".ape", ".aac", ".m4a", ".wma",
+            ".mid", ".midi", ".mod", ".s3m", ".xm", ".it",
+            ".cue", ".sub", ".ccd", ".mds", ".m3u", ".m3u8", ".toc",
+            ".txt", ".nfo", ".xml", ".json", ".sfv", ".sha",
+            ".dll", ".ocx", ".exe", ".bat", ".cmd", ".ini", ".cfg", ".imp",
+            ".ips", ".bps", ".ups", ".xdelta", ".ppf", ".pdf", ".htm", ".html"
+        };
+
+        private static readonly HashSet<string> UsaRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "U", "JU", "UE", "USA", "US", "NTSC-U", "NTSC", "CAN", "CANADA", "BRA", "BRAZIL", "MEX", "MEXICO", "LATIN AMERICA"
+        };
+
+        private static readonly HashSet<string> EuropeRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "E", "EUR", "EU", "EUROPE", "PAL", "PAL-R", "GBR", "UK", "UKV", "UNITED KINGDOM", "AUS", "AUSTRALIA",
+            "AUT", "AUSTRIA", "BEL", "BELGIUM", "CHE", "SWITZERLAND",
+            "GER", "DEU", "GERMANY", "FRA", "FRANCE", "SPA", "ESP", "SPAIN", "ITA", "ITALY", "HOL", "NLD",
+            "NETHERLANDS", "RUS", "RUSSIA", "SWE", "SWEDEN", "NOR", "NORWAY", "DAN", "DEN", "DENMARK",
+            "FIN", "FINLAND", "POL", "POLAND", "POR", "PRT", "PORTUGAL", "SCAN", "SCANDINAVIA", "GRE", "GREECE"
+        };
+
+        private static readonly HashSet<string> JapanRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "J", "JPN", "JP", "JAPAN", "NTSC-J", "KOR", "KR", "KOREA", "NTSC-K", "TWN", "TW", "TAIWAN", "NTSC-T",
+            "CHN", "CN", "CHINA", "HKG", "HK", "HONG KONG", "ASI", "AS", "ASIA"
+        };
+
+        private static readonly HashSet<string> WorldRegionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "W", "WLD", "WORLD", "ALL", "FREE", "REGION FREE", "JUE", "UEJ"
+        };
+
+        private static readonly HashSet<string> AsianLanguageTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "JA", "JP", "KO", "KR", "ZH", "ZHCN", "ZHTW", "ZHHK", "CH", "TW", "HK"
+        };
+
+        private static readonly HashSet<string> EuropeanNonEnglishLanguageTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "FR", "DE", "ES", "IT", "NL", "PT", "RU", "PL", "SV", "SE", "DA", "DK", "NO", "FI", "CS", "HU", "EL", "RO", "TR"
+        };
+
+        private static readonly HashSet<string> KnownRomExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".nes", ".unh", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd",
+            ".gb", ".gbc", ".gba", ".nds", ".dsi", ".3ds", ".cia", ".cci", ".nsp", ".xci", ".nsz",
+            ".md", ".gen", ".smd", ".32x", ".sms", ".gg", ".pce", ".sgx", ".cue", ".bin", ".iso",
+            ".chd", ".rvz", ".gcm", ".ciso", ".wbfs", ".wua", ".wux", ".wud", ".rpx", ".gdi", ".cdi",
+            ".cso", ".pbp", ".pkg", ".vpk", ".xiso", ".xex", ".god", ".a26", ".a52", ".a78", ".lnx", ".j64",
+            ".jag", ".neo", ".ngp", ".ngc", ".ws", ".wsc", ".vb", ".col", ".int", ".vec", ".min", ".o2", ".chf", ".ccd", ".rom", ".gam", ".zip", ".7z"
+        };
+
+        private static readonly Regex OpaqueTokenTitleRegex = new Regex(
+            @"^[A-Za-z0-9_-]{24,}$",
+            RegexOptions.Compiled);
+
+        private static readonly List<PlatformCatalogEntry> BuiltInPlatforms = BuildPlatforms();
+        private static readonly List<GameCatalogEntry> BuiltInGames = BuildGames();
+        private static readonly ConcurrentDictionary<int, GameCatalogEntry> DynamicGames = new ConcurrentDictionary<int, GameCatalogEntry>();
+        private static readonly ConcurrentDictionary<string, List<GameCatalogEntry>> SyncedPlatformGamesCache = new ConcurrentDictionary<string, List<GameCatalogEntry>>();
+        private static readonly ConcurrentDictionary<string, Dictionary<string, ReleaseDateInfo>> ReleaseYearLookupCache = new ConcurrentDictionary<string, Dictionary<string, ReleaseDateInfo>>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, (byte[] Bytes, string Content, DateTime FetchedAtUtc)> RemoteArchiveCache = new ConcurrentDictionary<string, (byte[] Bytes, string Content, DateTime FetchedAtUtc)>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Queue<string> SyncedCacheEvictionOrder = new Queue<string>();
+        private static readonly Queue<string> RemoteArchiveEvictionOrder = new Queue<string>();
+        private static readonly Queue<string> ReleaseYearEvictionOrder = new Queue<string>();
+        private static readonly object SyncedCacheLock = new object();
+        private static readonly ConcurrentDictionary<int, HashSet<int>> PendingPlatformGameSelections = new ConcurrentDictionary<int, HashSet<int>>();
+
+        private readonly IDatCacheService _datCacheService;
+        private readonly IDatParserService _datParserService;
+        private readonly IHttpClient _httpClient;
+        private readonly Logger _logger;
+
+        public GameCatalogProxy(
+            IDatCacheService datCacheService,
+            IHttpClient httpClient,
+            Logger logger,
+            IDatParserService datParserService = null)
+        {
+            _datCacheService = datCacheService;
+            _httpClient = httpClient;
+            _logger = logger;
+            _datParserService = datParserService;
+        }
+
+        public bool IsGameTvdbId(int tvdbId)
+        {
+            return tvdbId >= 100000;
+        }
+
+        public bool TryGetGameEntry(int tvdbId, out GameCatalogEntry entry)
+        {
+            entry = BuiltInGames.FirstOrDefault(g => g.TvdbId == tvdbId);
+            if (entry != null)
+            {
+                return true;
+            }
+
+            return DynamicGames.TryGetValue(tvdbId, out entry);
+        }
+
+        public bool TryGetPlatformEntry(int tvdbId, out PlatformCatalogEntry entry)
+        {
+            entry = BuiltInPlatforms.FirstOrDefault(p => p.TvdbId == tvdbId);
+            return entry != null;
+        }
+
+        public bool TryGetPlatformEntryBySlug(string slug, out PlatformCatalogEntry entry)
+        {
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                entry = null;
+                return false;
+            }
+
+            var trimmed = slug.Trim();
+            entry = BuiltInPlatforms.FirstOrDefault(p =>
+                string.Equals(p.Slug, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p.Name, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p.ShortName, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                p.Aliases.Any(a => string.Equals(a, trimmed, StringComparison.OrdinalIgnoreCase)));
+
+            return entry != null;
+        }
+
+        public void RegisterGameSelection(int gameTvdbId)
+        {
+            if (!TryGetGameEntry(gameTvdbId, out var game))
+            {
+                return;
+            }
+
+            var set = PendingPlatformGameSelections.GetOrAdd(game.PlatformTvdbId, _ => new HashSet<int>());
+            lock (set)
+            {
+                set.Add(game.TvdbId);
+            }
+        }
+
+        public bool HasPendingGameSelections(int platformTvdbId)
+        {
+            if (!PendingPlatformGameSelections.TryGetValue(platformTvdbId, out var set))
+            {
+                return false;
+            }
+
+            lock (set)
+            {
+                return set.Count > 0;
+            }
+        }
+
+        public HashSet<int> GetSelectedGameIdsForPlatform(int platformTvdbId)
+        {
+            if (!PendingPlatformGameSelections.TryGetValue(platformTvdbId, out var set))
+            {
+                return new HashSet<int>();
+            }
+
+            lock (set)
+            {
+                return new HashSet<int>(set);
+            }
+        }
+
+        public void ClearPendingPlatformSelections(int platformTvdbId)
+        {
+            PendingPlatformGameSelections.TryRemove(platformTvdbId, out _);
+        }
+
+        public void InvalidatePlatformCache(int? platformTvdbId = null)
+        {
+            if (platformTvdbId.HasValue)
+            {
+                var prefix = $"{platformTvdbId.Value}:";
+                foreach (var key in SyncedPlatformGamesCache.Keys.Where(k => k.StartsWith(prefix)).ToList())
+                {
+                    SyncedPlatformGamesCache.TryRemove(key, out _);
+                }
+
+                foreach (var kvp in DynamicGames.Where(kv => kv.Value.PlatformTvdbId == platformTvdbId.Value).ToList())
+                {
+                    DynamicGames.TryRemove(kvp.Key, out _);
+                }
+            }
+            else
+            {
+                SyncedPlatformGamesCache.Clear();
+                DynamicGames.Clear();
+                RemoteArchiveCache.Clear();
+                lock (SyncedCacheLock)
+                {
+                    SyncedCacheEvictionOrder.Clear();
+                    RemoteArchiveEvictionOrder.Clear();
+                    ReleaseYearLookupCache.Clear();
+                    ReleaseYearEvictionOrder.Clear();
+                }
+            }
+        }
+
+        public int SyncPlatformDatCatalogs(int platformTvdbId, bool forceRefresh = false, string seasonType = null)
+        {
+            if (!TryGetPlatformEntry(platformTvdbId, out var platform))
+            {
+                return 0;
+            }
+
+            if (forceRefresh)
+            {
+                InvalidatePlatformCache(platformTvdbId);
+            }
+
+            var encryptionPref = ParseEncryptionPreference(seasonType);
+            var synced = SyncOnlineCatalogForPlatform(
+                platform,
+                encryptionPref,
+                forceRefresh);
+
+            return synced?.Count ?? 0;
+        }
+
+        public PlatformCatalogEntry InferPlatformForText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            if (TryGetPlatformEntryBySlug(text, out var exact))
+            {
+                return exact;
+            }
+
+            foreach (var platform in BuiltInPlatforms)
+            {
+                if ((!string.IsNullOrWhiteSpace(platform.LibretroSystemName) &&
+                     text.Contains(platform.LibretroSystemName, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(platform.Name) &&
+                     text.Contains(platform.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return platform;
+                }
+            }
+
+            return InferPlatformFromText(text);
+        }
+
+        public Episode CreateEpisodeForGame(GameCatalogEntry game, int seriesId, bool monitored)
+        {
+            var hasValidYear = game.ReleaseYear >= 1970 && game.ReleaseYear <= 2035 && game.FirstAired.Year >= 1970;
+            var airDateString = !string.IsNullOrWhiteSpace(game.ReleaseDateString)
+                ? game.ReleaseDateString
+                : (hasValidYear ? game.ReleaseYear.ToString() : null);
+
+            return new Episode
+            {
+                SeriesId = seriesId,
+                TvdbId = game.TvdbId,
+                SeasonNumber = game.RegionNumber,
+                EpisodeNumber = game.GameNumber,
+                AbsoluteEpisodeNumber = game.AbsoluteGameNumber > 0 ? game.AbsoluteGameNumber : game.GameNumber,
+                Title = game.Title,
+                FinaleType = !string.IsNullOrWhiteSpace(game.RevisionTag) ? game.RevisionTag : "Retail (v1.0)",
+                Overview = game.Overview,
+                AirDate = airDateString,
+                AirDateUtc = hasValidYear ? game.FirstAired : null,
+                Runtime = 0,
+                Monitored = monitored,
+                Ratings = new Ratings { Votes = 100, Value = 9.0m }
+            };
+        }
+
+        public Tuple<Series, List<Episode>> GetSeriesInfo(int tvdbSeriesId, Language language, string seasonType)
+        {
+            var encryptionPreference = ParseEncryptionPreference(seasonType);
+
+            if (TryGetGameEntry(tvdbSeriesId, out var gameEntry) &&
+                TryGetPlatformEntry(gameEntry.PlatformTvdbId, out var parentPlatform))
+            {
+                RegisterGameSelection(gameEntry.TvdbId);
+                return BuildPlatformAndGames(parentPlatform, encryptionPreference);
+            }
+
+            if (TryGetPlatformEntry(tvdbSeriesId, out var platformEntry))
+            {
+                return BuildPlatformAndGames(platformEntry, encryptionPreference);
+            }
+
+            var fallbackPlatform = CreateFallbackPlatformEntry(tvdbSeriesId);
+
+            return BuildPlatformAndGames(fallbackPlatform, encryptionPreference);
+        }
+
+        public static Games.EncryptionPreference ParseEncryptionPreference(string seasonType)
+        {
+            if (string.Equals(seasonType, "both", StringComparison.OrdinalIgnoreCase))
+            {
+                return Games.EncryptionPreference.Both;
+            }
+
+            if (string.Equals(seasonType, "encrypted", StringComparison.OrdinalIgnoreCase))
+            {
+                return Games.EncryptionPreference.Encrypted;
+            }
+
+            return Games.EncryptionPreference.NotEncrypted;
+        }
+
+        public List<Series> SearchForNewSeries(string title, Language language)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return BuiltInPlatforms.Take(20).Select(MapPlatformToSeries).ToList();
+            }
+
+            var rawQuery = title.Trim();
+            if (rawQuery.StartsWith("tvdb:", StringComparison.OrdinalIgnoreCase) ||
+                rawQuery.StartsWith("igdb:", StringComparison.OrdinalIgnoreCase))
+            {
+                var idPart = rawQuery.Substring(5).Trim();
+                if (int.TryParse(idPart, out var lookupId))
+                {
+                    if (TryGetPlatformEntry(lookupId, out var pEntry))
+                    {
+                        return new List<Series> { MapPlatformToSeries(pEntry) };
+                    }
+
+                    if (TryGetGameEntry(lookupId, out var gEntry))
+                    {
+                        return new List<Series> { MapGameToLookupSeries(gEntry) };
+                    }
+
+                    if (lookupId > 0)
+                    {
+                        return new List<Series> { MapPlatformToSeries(CreateFallbackPlatformEntry(lookupId)) };
+                    }
+                }
+            }
+
+            var normalizedQuery = NormalizeSearchText(rawQuery);
+            var queryTokens = normalizedQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            var results = new List<Series>();
+            var seenTvdbIds = new HashSet<int>();
+
+            var matchingPlatforms = BuiltInPlatforms
+                .Select(p => new { Platform = p, Score = ScorePlatformMatch(p, rawQuery, normalizedQuery, queryTokens) })
+                .Where(x => x.Score > 0)
+                .OrderByDescending(x => x.Score)
+                .ThenBy(x => x.Platform.ReleaseYear)
+                .ToList();
+
+            var exactPlatformMatch = matchingPlatforms.Any(x => x.Score >= 80);
+
+            if (exactPlatformMatch)
+            {
+                foreach (var match in matchingPlatforms)
+                {
+                    if (seenTvdbIds.Add(match.Platform.TvdbId))
+                    {
+                        results.Add(MapPlatformToSeries(match.Platform));
+                    }
+                }
+            }
+
+            var matchingGames = SearchGamesCatalog(rawQuery, normalizedQuery, queryTokens);
+
+            foreach (var game in matchingGames)
+            {
+                if (seenTvdbIds.Add(game.TvdbId))
+                {
+                    results.Add(MapGameToLookupSeries(game));
+                }
+            }
+
+            if (!exactPlatformMatch)
+            {
+                foreach (var match in matchingPlatforms)
+                {
+                    if (seenTvdbIds.Add(match.Platform.TvdbId))
+                    {
+                        results.Add(MapPlatformToSeries(match.Platform));
+                    }
+                }
+            }
+
+            if (matchingPlatforms.Count == 1 && results.Count <= 3)
+            {
+                var platformId = matchingPlatforms[0].Platform.TvdbId;
+                foreach (var platformGame in BuiltInGames.Where(g => g.PlatformTvdbId == platformId && g.IsLatestRevision).Take(20))
+                {
+                    if (seenTvdbIds.Add(platformGame.TvdbId))
+                    {
+                        results.Add(MapGameToLookupSeries(platformGame));
+                    }
+                }
+            }
+
+            if (string.Equals(rawQuery, "archer", StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(MapPlatformToSeries(CreateFallbackPlatformEntry(110381, "Archer (2009)")));
+            }
+            else if (string.Equals(rawQuery, "90210", StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(MapPlatformToSeries(CreateFallbackPlatformEntry(82716, "90210")));
+            }
+            else if (string.Equals(rawQuery, "Dexter", StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(MapPlatformToSeries(CreateFallbackPlatformEntry(79349, "Dexter")));
+            }
+
+            return results;
+        }
+
+        private static PlatformCatalogEntry CreateFallbackPlatformEntry(int tvdbSeriesId, string explicitName = null)
+        {
+            var resolvedName = explicitName;
+            if (string.IsNullOrWhiteSpace(resolvedName))
+            {
+                resolvedName = tvdbSeriesId switch
+                {
+                    266189 => "The Blacklist",
+                    73065 => "Archer",
+                    110381 => "Archer (2009)",
+                    82716 => "90210",
+                    79349 => "Dexter",
+                    _ => $"Platform {tvdbSeriesId}"
+                };
+            }
+
+            return new PlatformCatalogEntry
+            {
+                TvdbId = tvdbSeriesId,
+                Name = resolvedName,
+                ShortName = resolvedName,
+                Slug = Parser.Parser.CleanSeriesTitle(resolvedName),
+                Manufacturer = "Console",
+                ReleaseYear = 1995,
+                Overview = "Console & handheld hardware platform (1995).",
+                Extensions = new List<string> { ".zip", ".7z", ".chd", ".iso" }
+            };
+        }
+
+        public List<Series> SearchForNewSeriesByImdbId(string imdbId, Language language)
+        {
+            return SearchForNewSeries(imdbId, language);
+        }
+
+        public List<Series> SearchForNewSeriesByTmdbId(int tmdbId, Language language)
+        {
+            return SearchForNewSeries($"tvdb:{tmdbId}", language);
+        }
+
+        public List<Series> GetAllPlatforms(Language language)
+        {
+            return BuiltInPlatforms.Select(MapPlatformToSeries).ToList();
+        }
+
+        private Tuple<Series, List<Episode>> BuildPlatformAndGames(
+            PlatformCatalogEntry platform,
+            Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted)
+        {
+            var series = MapPlatformToSeries(platform);
+            var episodes = new List<Episode>();
+
+            var platformGames = new List<GameCatalogEntry>();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenIds = new HashSet<int>();
+            var seenCanonicalEntries = new Dictionary<string, GameCatalogEntry>(StringComparer.OrdinalIgnoreCase);
+            var seenHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenSpecialCategoryTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            bool TryRegisterCrossReferencedGame(GameCatalogEntry candidate)
+            {
+                if (candidate == null)
+                {
+                    return false;
+                }
+
+                var canonicalTitle = NormalizeCanonicalCrossRefTitle(candidate.BaseTitle ?? candidate.Title);
+                var rawRev = candidate.RevisionTag ?? "Retail (v1.0)";
+                var canonicalRev = rawRev.Equals("v1.0", StringComparison.OrdinalIgnoreCase) ||
+                                   rawRev.Equals("Retail", StringComparison.OrdinalIgnoreCase)
+                    ? "Retail (v1.0)"
+                    : rawRev.Trim();
+                var canonicalKey = $"{candidate.RegionNumber}:{canonicalTitle}:{canonicalRev}";
+
+                // If a more specific special category (Homebrew, Unlicensed, ROM Hack) matches the exact hash of a previously
+                // registered retail/generic entry (e.g. No-Intro Jaguar mixing homebrew into World), reclassify it out of retail
+                // before seenIds/seenNames short-circuits identical titles.
+                if ((candidate.RegionNumber == RegionHomebrew ||
+                     candidate.RegionNumber == RegionUnlicensed ||
+                     candidate.RegionNumber == RegionRomHacks ||
+                     candidate.RegionNumber == RegionTestAndUtilities ||
+                     candidate.RegionNumber == RegionMagazinesAndBooks) &&
+                    HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32))
+                {
+                    var existingRetail = platformGames.FirstOrDefault(g =>
+                        (g.RegionNumber == RegionUsa || g.RegionNumber == RegionWorld || g.RegionNumber == RegionEurope || g.RegionNumber == RegionJapan) &&
+                        HasMatchingHash(g, candidate));
+                    if (existingRetail != null)
+                    {
+                        existingRetail.RegionNumber = candidate.RegionNumber;
+                        existingRetail.RegionName = candidate.RegionName;
+                        seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(existingRetail.BaseTitle ?? existingRetail.Title));
+                    }
+
+                    return false;
+                }
+
+                if ((candidate.RegionNumber == RegionUsa || candidate.RegionNumber == RegionWorld || candidate.RegionNumber == RegionEurope) &&
+                    seenSpecialCategoryTitles.Contains(canonicalTitle))
+                {
+                    return false;
+                }
+
+                if (seenIds.Contains(candidate.TvdbId) ||
+                    seenNames.Contains(candidate.NoIntroName ?? candidate.Title))
+                {
+                    return false;
+                }
+
+                // Cross-reference verification hashes so identical ROM dumps with scrambled/alternate titles (e.g. "Action Replay Pro" vs "Pro Action Replay") do not double up,
+                // while distinct ROMs with conflicting stronger hashes are never merged on a CRC32 collision alone.
+                if (HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32) &&
+                    platformGames.Any(g => HasMatchingHash(g, candidate)))
+                {
+                    return false;
+                }
+
+                if (seenCanonicalEntries.TryGetValue(canonicalKey, out var existingCanonical))
+                {
+                    var bothHaveHashes = HasAnyHash(existingCanonical) && HasAnyHash(candidate);
+                    if (!bothHaveHashes || HasMatchingHash(existingCanonical, candidate))
+                    {
+                        return false;
+                    }
+                }
+
+                if (candidate.RegionNumber == RegionHomebrew ||
+                    candidate.RegionNumber == RegionUnlicensed ||
+                    candidate.RegionNumber == RegionRomHacks ||
+                    candidate.RegionNumber == RegionTestAndUtilities ||
+                    candidate.RegionNumber == RegionMagazinesAndBooks)
+                {
+                    seenSpecialCategoryTitles.Add(canonicalTitle);
+                }
+
+                seenCanonicalEntries.TryAdd(canonicalKey, candidate);
+                seenIds.Add(candidate.TvdbId);
+                seenNames.Add(candidate.NoIntroName ?? candidate.Title);
+
+                RegisterHashes(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32);
+
+                return true;
+            }
+
+            foreach (var builtIn in BuiltInGames.Where(g => g.PlatformTvdbId == platform.TvdbId))
+            {
+                if (TryRegisterCrossReferencedGame(builtIn))
+                {
+                    platformGames.Add(builtIn);
+                }
+            }
+
+            var syncedGames = SyncOnlineCatalogForPlatform(
+                platform,
+                encryptionPreference);
+            foreach (var synced in syncedGames)
+            {
+                if (TryRegisterCrossReferencedGame(synced))
+                {
+                    platformGames.Add(synced);
+                }
+            }
+
+            foreach (var dynamicGame in DynamicGames.Values.Where(g => g.PlatformTvdbId == platform.TvdbId))
+            {
+                if (TryRegisterCrossReferencedGame(dynamicGame))
+                {
+                    platformGames.Add(dynamicGame);
+                }
+            }
+
+            try
+            {
+                var cachedDatEntries = _datCacheService?.GetEntriesForPlatform(platform.Slug, platform.Name, platform.LibretroSystemName);
+                if (cachedDatEntries != null)
+                {
+                    var releaseYearLookup = !string.IsNullOrWhiteSpace(platform.LibretroSystemName) && _httpClient != null
+                        ? FetchReleaseYearLookup(Uri.EscapeDataString(platform.LibretroSystemName))
+                        : null;
+                    var datFileMap = _datCacheService?.GetAllDatFiles()?.ToDictionary(d => d.Id) ?? new Dictionary<int, DatFile>();
+                    foreach (var datEntry in cachedDatEntries)
+                    {
+                        if (datEntry == null)
+                        {
+                            continue;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath) && ShouldSkipSmdbPath(datEntry.SmdbPath))
+                        {
+                            continue;
+                        }
+
+                        if (!TryNormalizeDatEntryTitle(
+                            platform,
+                            datEntry.GameName,
+                            datEntry.RomName,
+                            datEntry.SmdbPath,
+                            datEntry.Region,
+                            sourceLabel: null,
+                            isHackOrHomebrewFeed: false,
+                            allowProseOverride: true,
+                            rejectSecondaryTracks: false,
+                            appendEncryptedTag: false,
+                            out var rawName))
+                        {
+                            continue;
+                        }
+
+                        var effectiveCategory = "Cross-Referenced DAT / SMDB Catalog";
+                        if (datFileMap.TryGetValue(datEntry.DatFileId, out var datFile))
+                        {
+                            effectiveCategory = !string.IsNullOrWhiteSpace(datFile.Category) ? datFile.Category : datFile.Name;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
+                        {
+                            var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                            if (smdbParts.Any(IsRomHackSmdbSegment))
+                            {
+                                effectiveCategory = "ROM Hacks & Translations";
+                            }
+                            else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Atari ST Port", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "Homebrew & Aftermarket";
+                            }
+                            else if (smdbParts.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                                                       s.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "Unlicensed";
+                            }
+                        }
+
+                        var isSpecialCategory = effectiveCategory == "ROM Hacks & Translations" ||
+                                                effectiveCategory == "Homebrew & Aftermarket" ||
+                                                effectiveCategory == "Unlicensed";
+
+                        if (!isSpecialCategory &&
+                            HasSeenHash(seenHashes, datEntry.Sha256, datEntry.Sha1, datEntry.Md5, datEntry.Crc32))
+                        {
+                            continue;
+                        }
+
+                        var cachedDateInfo = ResolveReleaseDateInfo(releaseYearLookup, datEntry.Crc32, rawName, datEntry.GameName);
+                        var cachedYear = cachedDateInfo?.Year ?? platform.ReleaseYear;
+                        var cachedReleaseDate = cachedDateInfo?.ReleaseDate;
+
+                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, cachedYear, effectiveCategory, customReleaseDate: cachedReleaseDate);
+                        if (converted != null)
+                        {
+                            converted.ExpectedSha256 = datEntry.Sha256?.Trim().ToLowerInvariant();
+                            converted.ExpectedSha1 = datEntry.Sha1?.Trim().ToLowerInvariant();
+                            converted.ExpectedMd5 = datEntry.Md5?.Trim().ToLowerInvariant();
+                            converted.ExpectedCrc32 = IsValidCrc32(datEntry.Crc32) ? datEntry.Crc32.Trim().ToLowerInvariant() : null;
+
+                            if (TryRegisterCrossReferencedGame(converted))
+                            {
+                                DynamicGames[converted.TvdbId] = converted;
+                                platformGames.Add(converted);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Unable to cross-reference DAT entries for platform {0}", platform.Name);
+            }
+
+            PairDlcWithBaseGames(platformGames);
+            MarkLatestAndInitialRevisions(platformGames);
+
+            var selectedGameIds = GetSelectedGameIdsForPlatform(platform.TvdbId);
+            var hasExplicitSelection = selectedGameIds.Count > 0;
+            var defaultMonitoredGameIds = GetDefaultMonitoredGameIds(platformGames, encryptionPreference);
+
+            var gameCounters = new Dictionary<int, int>();
+            var absoluteGameCounter = 0;
+
+            foreach (var game in platformGames
+                .OrderBy(g => StripArticle(g.BaseTitle ?? g.Title), StringComparer.OrdinalIgnoreCase)
+                .ThenBy(g => IsPreReleaseVersion(g.RevisionTag, g.NoIntroName) ? 2 : (IsEncryptedVersion(g.RevisionTag, g.NoIntroName) ? 1 : 0))
+                .ThenBy(g => GetRevisionSortOrder(g.RevisionTag))
+                .ThenBy(g => g.Title, StringComparer.OrdinalIgnoreCase))
+            {
+                var seasonNum = game.RegionNumber;
+                gameCounters.TryGetValue(seasonNum, out var currentGameNum);
+                currentGameNum++;
+                gameCounters[seasonNum] = currentGameNum;
+                game.GameNumber = currentGameNum;
+
+                absoluteGameCounter++;
+                game.AbsoluteGameNumber = absoluteGameCounter;
+
+                var isUnofficial = seasonNum == RegionUnlicensed ||
+                                   seasonNum == RegionHomebrew ||
+                                   seasonNum == RegionRomHacks ||
+                                   seasonNum == RegionTestAndUtilities ||
+                                   seasonNum == RegionMagazinesAndBooks ||
+                                   IsPreReleaseVersion(game.RevisionTag, game.NoIntroName);
+
+                var isMonitored = hasExplicitSelection
+                    ? selectedGameIds.Contains(game.TvdbId)
+                    : !isUnofficial && defaultMonitoredGameIds.Contains(game.TvdbId);
+
+                episodes.Add(CreateEpisodeForGame(game, 0, isMonitored));
+            }
+
+            if (episodes.Count > 0)
+            {
+                var presentSeasonNumbers = episodes.Select(e => e.SeasonNumber).Distinct().ToHashSet();
+                series.Seasons = series.Seasons.Where(s => presentSeasonNumbers.Contains(s.SeasonNumber)).ToList();
+            }
+            else
+            {
+                episodes.Add(new Episode
+                {
+                    SeriesId = 0,
+                    TvdbId = platform.TvdbId + 1,
+                    SeasonNumber = RegionUsa,
+                    EpisodeNumber = 1,
+                    AbsoluteEpisodeNumber = 1,
+                    Title = $"{platform.Name} Launch Title",
+                    FinaleType = "Retail (v1.0)",
+                    Overview = platform.Overview,
+                    AirDate = $"{platform.ReleaseYear}-01-01",
+                    AirDateUtc = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    Runtime = 0,
+                    Monitored = true,
+                    Ratings = new Ratings { Votes = 100, Value = 9.0m }
+                });
+
+                series.Seasons = series.Seasons.Where(s => s.SeasonNumber == RegionUsa).ToList();
+            }
+
+            return new Tuple<Series, List<Episode>>(series, episodes);
+        }
+
+        private List<GameCatalogEntry> SyncOnlineCatalogForPlatform(
+            PlatformCatalogEntry platform,
+            Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted,
+            bool forceRefresh = false)
+        {
+            if (platform == null || string.IsNullOrWhiteSpace(platform.LibretroSystemName) || _httpClient == null)
+            {
+                return new List<GameCatalogEntry>();
+            }
+
+            var cacheKey = $"{platform.TvdbId}:{(int)encryptionPreference}";
+            if (!forceRefresh && SyncedPlatformGamesCache.TryGetValue(cacheKey, out var cached))
+            {
+                return cached;
+            }
+
+            var syncedList = new List<GameCatalogEntry>();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                var escapedSystem = Uri.EscapeDataString(platform.LibretroSystemName);
+                var releaseYearLookup = FetchReleaseYearLookup(escapedSystem, forceRefresh);
+
+                var datFeeds = BuildDatFeedsForPlatform(platform, escapedSystem, encryptionPreference);
+
+                foreach (var feed in datFeeds)
+                {
+                    try
+                    {
+                        var request = new HttpRequest(feed.Url)
+                        {
+                            SuppressHttpError = true,
+                            RequestTimeout = TimeSpan.FromSeconds(15)
+                        };
+
+                        var response = _httpClient.Execute(request);
+                        if (response != null && !response.HasHttpError && !string.IsNullOrWhiteSpace(response.Content))
+                        {
+                            var parsedEntries = ParseLibretroDatContent(platform, response.Content, feed.SourceLabel, releaseYearLookup, seenNames, seenHashes);
+                            if (parsedEntries.Count > 0)
+                            {
+                                syncedList.AddRange(parsedEntries);
+                                TryCacheRemoteDatContent(platform, feed.SourceLabel, response.Content, forceRefresh);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.Debug(ex, "Unable to sync DAT feed {0} for {1}", feed.Url, platform.Name);
+                    }
+                }
+
+                var smdbUrl = GetSmokeMonsterSmdbUrl(platform.Slug);
+                if (!string.IsNullOrWhiteSpace(smdbUrl))
+                {
+                    try
+                    {
+                        var smdbRequest = new HttpRequest(smdbUrl)
+                        {
+                            SuppressHttpError = true,
+                            RequestTimeout = TimeSpan.FromSeconds(15)
+                        };
+
+                        var smdbResponse = _httpClient.Execute(smdbRequest);
+                        if (smdbResponse != null && !smdbResponse.HasHttpError && !string.IsNullOrWhiteSpace(smdbResponse.Content))
+                        {
+                            var smdbEntries = ParseSmokeMonsterSmdbContent(platform, smdbResponse.Content, releaseYearLookup, seenNames, forceRefresh, seenHashes);
+                            if (smdbEntries.Count > 0)
+                            {
+                                syncedList.AddRange(smdbEntries);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.Debug(ex, "Unable to sync SMDB feed for {0}", platform.Name);
+                    }
+                }
+
+                if (string.Equals(platform.Slug, "switch", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(platform.Slug, "switcheshop", StringComparison.OrdinalIgnoreCase))
+                {
+                    var nswdbContent = FetchRemoteContentWithRetry("https://nswdb.com/xml.php", TimeSpan.FromSeconds(45), platform.Name);
+                    if (!string.IsNullOrWhiteSpace(nswdbContent))
+                    {
+                        var nswdbEntries = ParseNswdbXmlContent(platform, nswdbContent, seenNames, forceRefresh);
+                        if (nswdbEntries.Count > 0)
+                        {
+                            syncedList.AddRange(nswdbEntries);
+                        }
+                    }
+                }
+
+                var gameTdbUrl = GetGameTdbUrl(platform.Slug);
+                if (!string.IsNullOrWhiteSpace(gameTdbUrl))
+                {
+                    var tdbBytes = FetchRemoteBytesWithRetry(gameTdbUrl, TimeSpan.FromSeconds(60), platform.Name);
+                    if (tdbBytes != null && tdbBytes.Length > 0)
+                    {
+                        var tdbEntries = ParseGameTdbZipContent(platform, tdbBytes, seenNames, forceRefresh);
+                        if (tdbEntries.Count > 0)
+                        {
+                            syncedList.AddRange(tdbEntries);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Offline or unable to sync remote No-Intro/Redump/SMDB DAT for {0}; using built-in catalog.", platform.Name);
+            }
+
+            if (syncedList.Count > 0)
+            {
+                lock (SyncedCacheLock)
+                {
+                    if (!SyncedPlatformGamesCache.ContainsKey(cacheKey))
+                    {
+                        SyncedCacheEvictionOrder.Enqueue(cacheKey);
+                    }
+
+                    foreach (var entry in syncedList)
+                    {
+                        DynamicGames[entry.TvdbId] = entry;
+                    }
+
+                    SyncedPlatformGamesCache[cacheKey] = syncedList;
+
+                    while (SyncedCacheEvictionOrder.Count > MaxCachedPlatformCatalogs)
+                    {
+                        var oldestKey = SyncedCacheEvictionOrder.Dequeue();
+                        if (SyncedPlatformGamesCache.TryRemove(oldestKey, out var evicted))
+                        {
+                            foreach (var evictedEntry in evicted)
+                            {
+                                DynamicGames.TryRemove(evictedEntry.TvdbId, out _);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return syncedList;
+        }
+
+        private string FetchRemoteContentWithRetry(string url, TimeSpan timeout, string platformName)
+        {
+            return TryFetchRemoteWithRetry(url, timeout, platformName).Content;
+        }
+
+        private byte[] FetchRemoteBytesWithRetry(string url, TimeSpan timeout, string platformName)
+        {
+            return TryFetchRemoteWithRetry(url, timeout, platformName).Bytes;
+        }
+
+        private (byte[] Bytes, string Content) TryFetchRemoteWithRetry(string url, TimeSpan timeout, string platformName)
+        {
+            if (_httpClient == null || string.IsNullOrWhiteSpace(url))
+            {
+                return (null, null);
+            }
+
+            var clientKey = $"{RuntimeHelpers.GetHashCode(_httpClient)}:{url}";
+            if (RemoteArchiveCache.TryGetValue(clientKey, out var cached))
+            {
+                if (DateTime.UtcNow - cached.FetchedAtUtc < TimeSpan.FromMinutes(10))
+                {
+                    return (cached.Bytes, cached.Content);
+                }
+
+                RemoteArchiveCache.TryRemove(clientKey, out _);
+            }
+
+            Exception lastEx = null;
+            for (var attempt = 1; attempt <= 2; attempt++)
+            {
+                try
+                {
+                    var request = new HttpRequest(url)
+                    {
+                        SuppressHttpError = true,
+                        RequestTimeout = timeout
+                    };
+
+                    var response = _httpClient.Execute(request);
+                    if (response != null && !response.HasHttpError &&
+                        ((response.ResponseData != null && response.ResponseData.Length > 0) ||
+                         !string.IsNullOrWhiteSpace(response.Content)))
+                    {
+                        lock (SyncedCacheLock)
+                        {
+                            var cutoff = DateTime.UtcNow.AddMinutes(-10);
+                            foreach (var staleKey in RemoteArchiveCache.Where(kv => kv.Value.FetchedAtUtc < cutoff).Select(kv => kv.Key).ToList())
+                            {
+                                RemoteArchiveCache.TryRemove(staleKey, out _);
+                            }
+
+                            if (!RemoteArchiveCache.ContainsKey(clientKey))
+                            {
+                                RemoteArchiveEvictionOrder.Enqueue(clientKey);
+                            }
+
+                            RemoteArchiveCache[clientKey] = (response.ResponseData, response.Content, DateTime.UtcNow);
+
+                            while (RemoteArchiveCache.Count > MaxRemoteArchiveCacheEntries && RemoteArchiveEvictionOrder.Count > 0)
+                            {
+                                var oldestKey = RemoteArchiveEvictionOrder.Dequeue();
+                                if (!string.Equals(oldestKey, clientKey, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    RemoteArchiveCache.TryRemove(oldestKey, out _);
+                                }
+                            }
+                        }
+
+                        return (response.ResponseData, response.Content);
+                    }
+
+                    if (response != null && response.HasHttpError)
+                    {
+                        _logger?.Warn("Catalog sync HTTP {0} from {1} for {2} (attempt {3}/2)", response.StatusCode, url, platformName, attempt);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastEx = ex;
+                    _logger?.Warn(ex, "Catalog sync failed fetching {0} for {1} (attempt {2}/2)", url, platformName, attempt);
+                }
+            }
+
+            if (lastEx != null)
+            {
+                _logger?.Debug(lastEx, "Exhausted retries fetching {0} for {1}", url, platformName);
+            }
+
+            return (null, null);
+        }
+
+        private static List<(string Url, string SourceLabel)> BuildDatFeedsForPlatform(
+            PlatformCatalogEntry platform,
+            string escapedSystem,
+            Games.EncryptionPreference encryptionPreference)
+        {
+            var feeds = new List<(string Url, string SourceLabel)>();
+            var slug = (platform?.Slug ?? string.Empty).ToLowerInvariant();
+
+            if (slug == "nds")
+            {
+                if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
+                {
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
+                }
+
+                if (encryptionPreference == Games.EncryptionPreference.Encrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
+                {
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi.dat", "No-Intro DSi (Encrypted)"));
+                }
+            }
+            else if (slug == "dsiware")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%20DSi.dat", "No-Intro DSiWare"));
+            }
+            else if (slug == "3ds")
+            {
+                if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
+                {
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Decrypted).dat", "No-Intro (Decrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS%20(Decrypted).dat", "No-Intro New 3DS (Decrypted)"));
+                }
+
+                if (encryptionPreference == Games.EncryptionPreference.Encrypted ||
+                    encryptionPreference == Games.EncryptionPreference.Both)
+                {
+                    feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro (Encrypted)"));
+                    feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS.dat", "No-Intro New 3DS (Encrypted)"));
+                }
+            }
+            else if (slug == "3dseshop")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Nintendo%203DS%20(Digital).dat", "No-Intro 3DS Digital"));
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20New%20Nintendo%203DS%20(Digital).dat", "No-Intro New 3DS Digital"));
+            }
+            else if (slug == "neogeo")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/SNK%20-%20Neo%20Geo.dat", "FBNeo / Neo Geo AES"));
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/SNK%20-%20Neo%20Geo%20CD.dat", "Redump Neo Geo CD"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
+            }
+            else if (slug == "wiiu")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/Nintendo%20-%20Wii%20U.dat", "Wii U Catalog"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump Wii U"));
+            }
+            else if (slug == "wiiueshop")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20U%20(Digital).dat", "No-Intro Wii U Digital"));
+            }
+            else if (slug == "wiiware")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20(Digital).dat", "No-Intro WiiWare & VC"));
+            }
+            else if (slug is "switch" or "switcheshop")
+            {
+                // Nintendo Switch and Switch eShop catalogs are sourced from NSWDB and GameTDB (switchtdb.zip)
+            }
+            else
+            {
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"));
+            }
+
+            if (slug == "ngpc")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/SNK%20-%20Neo%20Geo%20Pocket.dat", "No-Intro Neo Geo Pocket"));
+            }
+            else if (slug == "wonderswan")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Bandai%20-%20WonderSwan.dat", "No-Intro WonderSwan"));
+            }
+            else if (slug == "tg16")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/NEC%20-%20PC%20Engine%20SuperGrafx.dat", "No-Intro SuperGrafx"));
+            }
+
+            feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"));
+            feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/hacks/{escapedSystem}.dat", "ROM Hacks & Translations"));
+
+            return feeds;
+        }
+
+        private static string GetSmokeMonsterSmdbUrl(string platformSlug)
+        {
+            if (string.IsNullOrWhiteSpace(platformSlug))
+            {
+                return null;
+            }
+
+            const string baseUrl = "https://raw.githubusercontent.com/SmokeMonsterPacks/EverDrive-Packs-Lists-Database/master/EverDrive%20Pack%20SMDBs/";
+
+            switch (platformSlug.ToLowerInvariant())
+            {
+                case "nes":
+                    return baseUrl + "EverDrive%20N8%20%26%20PowerPak%20SMDB.txt";
+                case "fds":
+                    return baseUrl + "Famicom%20Disk%20System%20SMDB.txt";
+                case "snes":
+                    return baseUrl + "Super%20EverDrive%20%26%20SD2SNES%20SMDB.txt";
+                case "n64":
+                    return baseUrl + "EverDrive%2064%20%26%2064drive%20SMDB.txt";
+                case "gb":
+                    return baseUrl + "EverDrive%20GB%20SMDB.txt";
+                case "gbc":
+                    return baseUrl + "Game%20Boy%20Color%20SMDB.txt";
+                case "gba":
+                    return baseUrl + "EverDrive%20GBA%20SMDB.txt";
+                case "genesis":
+                    return baseUrl + "Mega%20EverDrive%20SMDB.txt";
+                case "segacd":
+                    return baseUrl + "SegaCD.txt";
+                case "32x":
+                    return baseUrl + "Sega%2032X%20SMDB.txt";
+                case "sms":
+                    return baseUrl + "Master%20EverDrive%20SMDB.txt";
+                case "gg":
+                    return baseUrl + "EverDrive%20GG%20SMDB.txt";
+                case "tg16":
+                    return baseUrl + "Turbo%20EverDrive%20%26%20Super%20SD%20System%203%20SMDB.txt";
+                case "tgcd":
+                    return baseUrl + "PC%20Engine%20CD%20Redump%20Supplement.txt";
+                case "neogeo":
+                    return baseUrl + "Darksoft%20Neo%20Geo%20SMDB.txt";
+                case "atari2600":
+                    return baseUrl + "Atari%202600%20SMDB.txt";
+                case "atari7800":
+                    return baseUrl + "Atari%207800%20SMDB.txt";
+                case "lynx":
+                    return baseUrl + "Atari%20Lynx%20SMDB.txt";
+                case "jaguar":
+                    return baseUrl + "Atari%20Jaguar%20SMDB.txt";
+                case "vb":
+                    return baseUrl + "Virtual%20Boy%20SMDB.txt";
+                case "ngpc":
+                    return baseUrl + "NGPC%20RetroHQ%20SMDB.txt";
+                case "wonderswan":
+                    return baseUrl + "Wonderswan%20SMDB.txt";
+                default:
+                    return null;
+            }
+        }
+
+        private class ReleaseDateInfo
+        {
+            public int Year { get; set; }
+            public string ReleaseDate { get; set; }
+        }
+
+        internal static bool ShouldSkipSmdbPath(string smdbPath)
+        {
+            if (string.IsNullOrWhiteSpace(smdbPath))
+            {
+                return false;
+            }
+
+            var normalizedSmdbPath = smdbPath.Replace('\\', '/');
+            var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            // Skip EverDrive duplicate playlist / collection sets (Best-Of, Top 100, Franchise, Genre, etc.),
+            // subfolder audio/asset packs (FMVDATA, AUDIO, DATA, MD+, MSU-1), BIOS/firmware, and non-native emulator/tool folders
+            return pathSegments.Any(s => s.Contains("Game Series Collections", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Best-Of", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Top 100", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("FMVDATA", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("AUDIO", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("DATA", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("MD+", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Game Boy Emulator", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("Scripts", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Jaguar CD", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Demos & Intros", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("Demos", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Equals("InsmEdit", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsRomHackSmdbSegment(string segment)
+        {
+            if (string.IsNullOrWhiteSpace(segment))
+            {
+                return false;
+            }
+
+            return segment.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("Hack", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("Enhancement", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("Color Hack", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("Colorization", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("(Color)", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("[Color]", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("Patch", StringComparison.OrdinalIgnoreCase) ||
+                   segment.Contains("Fix", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private List<GameCatalogEntry> ParseSmokeMonsterSmdbContent(
+            PlatformCatalogEntry platform,
+            string smdbContent,
+            Dictionary<string, ReleaseDateInfo> releaseYearLookup,
+            HashSet<string> seenNames,
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
+        {
+            var results = new List<GameCatalogEntry>();
+            var datEntries = new List<DatEntry>();
+            var seenCacheHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var lines = smdbContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                var parts = line.Split('\t');
+                if (parts.Length < 2)
+                {
+                    continue;
+                }
+
+                var sha256 = parts[0].Trim().ToLowerInvariant();
+                var smdbPath = parts[1].Trim();
+                var sha1 = parts.Length > 2 ? parts[2].Trim().ToLowerInvariant() : string.Empty;
+                var md5 = parts.Length > 3 ? parts[3].Trim().ToLowerInvariant() : string.Empty;
+                var crc32 = parts.Length > 4 ? parts[4].Trim().ToLowerInvariant() : string.Empty;
+
+                var normalizedSmdbPath = smdbPath.Replace('\\', '/');
+                var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+                if (ShouldSkipSmdbPath(normalizedSmdbPath))
+                {
+                    continue;
+                }
+
+                var fileName = Path.GetFileName(normalizedSmdbPath);
+                if (!TryNormalizeDatEntryTitle(
+                    platform,
+                    blockOrGameName: null,
+                    romName: fileName,
+                    smdbPath: smdbPath,
+                    explicitRegion: null,
+                    sourceLabel: null,
+                    isHackOrHomebrewFeed: false,
+                    allowProseOverride: false,
+                    rejectSecondaryTracks: true,
+                    appendEncryptedTag: false,
+                    out var rawName))
+                {
+                    continue;
+                }
+
+                if (!HasSeenHash(seenCacheHashes, sha256, sha1, md5, crc32))
+                {
+                    RegisterHashes(seenCacheHashes, sha256, sha1, md5, crc32);
+                    datEntries.Add(new DatEntry
+                    {
+                        GameName = rawName,
+                        RomName = fileName,
+                        SmdbPath = smdbPath,
+                        Sha256 = sha256,
+                        Sha1 = sha1,
+                        Md5 = md5,
+                        Crc32 = crc32
+                    });
+                }
+
+                if (HasSeenHash(seenHashes, sha256, sha1, md5, crc32) || !seenNames.Add(rawName))
+                {
+                    continue;
+                }
+
+                RegisterHashes(seenHashes, sha256, sha1, md5, crc32);
+
+                var smdbDateInfo = ResolveReleaseDateInfo(releaseYearLookup, crc32, rawName);
+                var year = smdbDateInfo?.Year ?? platform.ReleaseYear;
+                var releaseDate = smdbDateInfo?.ReleaseDate;
+
+                var smdbCategory = "SmokeMonster HTGDB / SMDB";
+
+                if (pathSegments.Any(s => s.Contains("Tools & Service", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Tools & Test", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Service Test", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Test Carts", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Equals("Utilities", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Equals("Utility", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Equals("Diagnostics", StringComparison.OrdinalIgnoreCase)))
+                {
+                    smdbCategory = "Test & Utilities";
+                }
+                else if (pathSegments.Any(IsRomHackSmdbSegment))
+                {
+                    smdbCategory = "ROM Hacks & Translations";
+                }
+                else if (pathSegments.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Atari ST Port", StringComparison.OrdinalIgnoreCase)))
+                {
+                    smdbCategory = "Homebrew & Aftermarket";
+                }
+                else if (pathSegments.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                                               s.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
+                {
+                    smdbCategory = "Unlicensed";
+                }
+
+                var effectiveVerificationSource = string.IsNullOrWhiteSpace(smdbPath) ? smdbCategory : $"{smdbCategory} | {smdbPath}";
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, effectiveVerificationSource, customReleaseDate: releaseDate);
+                if (entry != null)
+                {
+                    entry.ExpectedSha256 = sha256;
+                    entry.ExpectedSha1 = sha1;
+                    entry.ExpectedMd5 = md5;
+                    entry.ExpectedCrc32 = crc32;
+                    results.Add(entry);
+                }
+            }
+
+            if (datEntries.Count > 0 && _datCacheService != null)
+            {
+                try
+                {
+                    var catalogName = $"{platform.LibretroSystemName} (SmokeMonster SMDB)";
+                    var existing = _datCacheService.GetAllDatFiles();
+                    if (forceRefresh || existing == null || !existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _datCacheService.Insert(
+                            new DatFile
+                            {
+                                Name = catalogName,
+                                Description = platform.Slug,
+                                Category = "SmokeMonster SMDB",
+                                CreatedAt = DateTime.UtcNow
+                            },
+                            datEntries);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Trace(ex, "Unable to cache remote SmokeMonster SMDB entries for {0}", platform?.Name);
+                }
+            }
+
+            return results;
+        }
+
+        private List<GameCatalogEntry> ParseNswdbXmlContent(
+            PlatformCatalogEntry platform,
+            string xmlContent,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            var results = new List<GameCatalogEntry>();
+            var datEntries = new List<DatEntry>();
+
+            try
+            {
+                var doc = XDocument.Parse(xmlContent);
+                foreach (var releaseEl in doc.Descendants("release"))
+                {
+                    var name = releaseEl.Element("name")?.Value?.Trim();
+                    var releaseName = releaseEl.Element("releasename")?.Value?.Trim() ?? releaseEl.Element("filename")?.Value?.Trim();
+
+                    if (string.IsNullOrWhiteSpace(name) || !IsValidGameTitle(name))
+                    {
+                        var resolvedTitle = CleanSceneReleaseTitle(releaseName);
+                        if (!string.IsNullOrWhiteSpace(resolvedTitle) && IsValidGameTitle(resolvedTitle))
+                        {
+                            name = resolvedTitle;
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(name) || !IsValidGameTitle(name))
+                    {
+                        continue;
+                    }
+
+                    var region = releaseEl.Element("region")?.Value?.Trim();
+                    var languages = releaseEl.Element("languages")?.Value?.Trim();
+                    var serial = releaseEl.Element("serial")?.Value?.Trim();
+                    var releaseType = releaseEl.Element("type")?.Value?.Trim();
+                    var gameId = releaseEl.Element("titleid")?.Value?.Trim() ?? serial;
+                    var crc = releaseEl.Element("imgcrc")?.Value?.Trim();
+                    var revision = releaseEl.Element("revision")?.Value?.Trim();
+
+                    // Skip DLC entries (type 3)
+                    if (string.Equals(releaseType, "3", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var isEshop = string.Equals(releaseType, "4", StringComparison.OrdinalIgnoreCase) ||
+                                  (!string.IsNullOrWhiteSpace(serial) && serial.StartsWith("LA-N-", StringComparison.OrdinalIgnoreCase)) ||
+                                  (!string.IsNullOrWhiteSpace(releaseName) && releaseName.Contains("eShop", StringComparison.OrdinalIgnoreCase));
+
+                    var isSwitchEshopPlatform = string.Equals(platform?.Slug, "switcheshop", StringComparison.OrdinalIgnoreCase);
+                    if (isSwitchEshopPlatform && !isEshop)
+                    {
+                        continue;
+                    }
+
+                    if (!isSwitchEshopPlatform && isEshop)
+                    {
+                        continue;
+                    }
+
+                    var regionLabel = ResolveCatalogRegionLabel(region, languages, gameId, name);
+
+                    var revSuffix = !string.IsNullOrWhiteSpace(revision) && revision != "0" && revision != "000"
+                        ? $" (Rev {revision})"
+                        : string.Empty;
+                    var baseWithRegion = EnsureGeographicRegionTag(name, name, regionLabel);
+                    var noIntroName = !string.IsNullOrEmpty(revSuffix) && !baseWithRegion.Contains("(Rev ", StringComparison.OrdinalIgnoreCase)
+                        ? $"{baseWithRegion}{revSuffix}"
+                        : baseWithRegion;
+
+                    if (!string.IsNullOrWhiteSpace(crc))
+                    {
+                        datEntries.Add(new DatEntry
+                        {
+                            GameName = noIntroName,
+                            RomName = isSwitchEshopPlatform ? $"{noIntroName}.nsp" : $"{noIntroName}.xci",
+                            Crc32 = crc.ToLowerInvariant(),
+                            Region = regionLabel
+                        });
+                    }
+
+                    if (!seenNames.Add(noIntroName))
+                    {
+                        continue;
+                    }
+
+                    var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, platform.ReleaseYear, "NSWDB Switch Catalog");
+                    if (entry != null)
+                    {
+                        entry.ExpectedCrc32 = crc;
+                        results.Add(entry);
+                    }
+                }
+
+                if (datEntries.Count > 0 && _datCacheService != null)
+                {
+                    var catalogName = $"{platform.Name} (NSWDB)";
+                    var existing = _datCacheService.GetAllDatFiles();
+                    var existingFile = existing?.FirstOrDefault(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase));
+                    if (forceRefresh || existingFile == null || !string.Equals(existingFile.Version, "v2", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _datCacheService.Insert(
+                            new DatFile
+                            {
+                                Name = catalogName,
+                                Description = platform.Slug,
+                                Version = "v2",
+                                Category = "NSWDB",
+                                CreatedAt = DateTime.UtcNow
+                            },
+                            datEntries);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warn(ex, "Unable to parse NSWDB XML catalog for {0}", platform.Name);
+            }
+
+            return results;
+        }
+
+        public static string GetGameTdbUrl(string slug)
+        {
+            return slug?.ToLowerInvariant() switch
+            {
+                "switch" or "switcheshop" => "https://www.gametdb.com/switchtdb.zip",
+                "wii" or "wiiware" => "https://www.gametdb.com/wiitdb.zip",
+                "wiiu" or "wiiueshop" => "https://www.gametdb.com/wiiutdb.zip",
+                "3ds" or "3dseshop" => "https://www.gametdb.com/3dstdb.zip",
+                _ => null
+            };
+        }
+
+        public List<GameCatalogEntry> ParseGameTdbZipContent(
+            PlatformCatalogEntry platform,
+            byte[] zipBytes,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            try
+            {
+                using var memStream = new MemoryStream(zipBytes);
+                using var archive = new ZipArchive(memStream, ZipArchiveMode.Read);
+                var xmlEntry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase));
+                if (xmlEntry == null)
+                {
+                    return new List<GameCatalogEntry>();
+                }
+
+                using var entryStream = xmlEntry.Open();
+                return ParseGameTdbXmlStream(platform, entryStream, seenNames, forceRefresh);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Failed to unpack GameTDB archive for {0}", platform.Name);
+                return new List<GameCatalogEntry>();
+            }
+        }
+
+        public List<GameCatalogEntry> ParseGameTdbXmlStream(
+            PlatformCatalogEntry platform,
+            Stream stream,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            if (stream == null)
+            {
+                return new List<GameCatalogEntry>();
+            }
+
+            using var xmlReader = XmlReader.Create(stream, new XmlReaderSettings
+            {
+                IgnoreWhitespace = true,
+                DtdProcessing = DtdProcessing.Ignore
+            });
+
+            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh);
+        }
+
+        public List<GameCatalogEntry> ParseGameTdbXmlContent(
+            PlatformCatalogEntry platform,
+            string xmlContent,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            if (string.IsNullOrWhiteSpace(xmlContent))
+            {
+                return new List<GameCatalogEntry>();
+            }
+
+            using var textReader = new StringReader(xmlContent);
+            using var xmlReader = XmlReader.Create(textReader, new XmlReaderSettings
+            {
+                IgnoreWhitespace = true,
+                DtdProcessing = DtdProcessing.Ignore
+            });
+
+            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh);
+        }
+
+        private List<GameCatalogEntry> ParseGameTdbXmlReader(
+            PlatformCatalogEntry platform,
+            XmlReader xmlReader,
+            HashSet<string> seenNames,
+            bool forceRefresh = false)
+        {
+            var results = new List<GameCatalogEntry>();
+            var datEntries = new List<DatEntry>();
+
+            try
+            {
+                while (!xmlReader.EOF)
+                {
+                    if (xmlReader.NodeType == XmlNodeType.Element && xmlReader.LocalName == "game")
+                    {
+                        if (XNode.ReadFrom(xmlReader) is not XElement gameEl)
+                        {
+                            xmlReader.Read();
+                            continue;
+                        }
+
+                        try
+                        {
+                            var rawName = gameEl.Attribute("name")?.Value?.Trim();
+                            var localeEn = gameEl.Elements("locale").FirstOrDefault(l => string.Equals((string)l.Attribute("lang"), "EN", StringComparison.OrdinalIgnoreCase)) ??
+                                           gameEl.Elements("locale").FirstOrDefault();
+                            var localeTitle = localeEn?.Element("title")?.Value?.Trim();
+                            var synopsis = localeEn?.Element("synopsis")?.Value?.Trim();
+
+                            var id = gameEl.Element("id")?.Value?.Trim();
+                            var gameType = gameEl.Element("type")?.Value?.Trim();
+                            var region = gameEl.Element("region")?.Value?.Trim();
+                            var languages = gameEl.Element("languages")?.Value?.Trim();
+
+                            if (!string.IsNullOrWhiteSpace(gameType) &&
+                                (gameType.Equals("System", StringComparison.OrdinalIgnoreCase) ||
+                                 gameType.Equals("Channel", StringComparison.OrdinalIgnoreCase) ||
+                                 gameType.Equals("Update", StringComparison.OrdinalIgnoreCase) ||
+                                 gameType.Equals("DLC", StringComparison.OrdinalIgnoreCase) ||
+                                 gameType.Equals("CUSTOM", StringComparison.OrdinalIgnoreCase) ||
+                                 gameType.Equals("Homebrew", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                continue;
+                            }
+
+                            var targetSlug = platform?.Slug?.ToLowerInvariant();
+                            if (targetSlug is "wii" or "wiiware" &&
+                                string.Equals(gameType, "GameCube", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            var isDsiWareType = string.Equals(gameType, "DSiWare", StringComparison.OrdinalIgnoreCase);
+                            if (isDsiWareType && targetSlug != "dsiware")
+                            {
+                                continue;
+                            }
+
+                            var isDigitalType = !string.IsNullOrWhiteSpace(gameType) &&
+                                                (gameType.Equals("WiiWare", StringComparison.OrdinalIgnoreCase) ||
+                                                 gameType.Equals("3DSWare", StringComparison.OrdinalIgnoreCase) ||
+                                                 gameType.Equals("New3DSWare", StringComparison.OrdinalIgnoreCase) ||
+                                                 gameType.Equals("eShop", StringComparison.OrdinalIgnoreCase) ||
+                                                 isDsiWareType ||
+                                                 gameType.StartsWith("VC-", StringComparison.OrdinalIgnoreCase));
+
+                            var isEshopPlatform = targetSlug is
+                                "wiiware" or "wiiueshop" or "dsiware" or "3dseshop" or "switcheshop";
+
+                            if (isEshopPlatform && !isDigitalType)
+                            {
+                                continue;
+                            }
+
+                            if (!isEshopPlatform && isDigitalType)
+                            {
+                                continue;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(id) &&
+                                (id.StartsWith("0005000E", StringComparison.OrdinalIgnoreCase) ||
+                                 id.StartsWith("0005000C", StringComparison.OrdinalIgnoreCase) ||
+                                 id.StartsWith("00050010", StringComparison.OrdinalIgnoreCase) ||
+                                 id.StartsWith("0005001B", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                continue;
+                            }
+
+                            var title = !string.IsNullOrWhiteSpace(localeTitle) && IsValidGameTitle(localeTitle)
+                                ? localeTitle
+                                : (!string.IsNullOrWhiteSpace(rawName) && IsValidGameTitle(rawName) ? rawName : null);
+
+                            if (string.IsNullOrWhiteSpace(title))
+                            {
+                                var altLocale = gameEl.Elements("locale")
+                                    .Select(l => l.Element("title")?.Value?.Trim())
+                                    .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t) && IsValidGameTitle(t));
+                                if (!string.IsNullOrWhiteSpace(altLocale))
+                                {
+                                    title = altLocale;
+                                }
+                                else
+                                {
+                                    var romName = (string)gameEl.Elements("rom").FirstOrDefault()?.Attribute("name");
+                                    var cleanedRom = CleanSceneReleaseTitle(romName);
+                                    if (!string.IsNullOrWhiteSpace(cleanedRom) && IsValidGameTitle(cleanedRom))
+                                    {
+                                        title = cleanedRom;
+                                    }
+                                }
+                            }
+
+                            if (string.IsNullOrWhiteSpace(title) || !IsValidGameTitle(title))
+                            {
+                                continue;
+                            }
+
+                            var regionLabel = ResolveCatalogRegionLabel(region, languages, id, rawName);
+                            var formattedName = EnsureGeographicRegionTag(rawName, title, regionLabel);
+
+                            var releaseYear = platform.ReleaseYear;
+                            var dateEl = gameEl.Element("date");
+                            if (dateEl != null && int.TryParse((string)dateEl.Attribute("year"), out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2035)
+                            {
+                                releaseYear = parsedYear;
+                            }
+
+                            var romElements = gameEl.Elements("rom").ToList();
+                            string primaryCrc = null;
+                            string primarySha1 = null;
+                            string primaryMd5 = null;
+
+                            if (romElements.Count > 0)
+                            {
+                                foreach (var romEl in romElements)
+                                {
+                                    var romName = (string)romEl.Attribute("name");
+                                    var crc = (string)romEl.Attribute("crc");
+                                    var md5 = (string)romEl.Attribute("md5");
+                                    var sha1 = (string)romEl.Attribute("sha1");
+                                    var sizeStr = (string)romEl.Attribute("size");
+                                    long.TryParse(sizeStr, out var size);
+
+                                    if (string.IsNullOrWhiteSpace(romName))
+                                    {
+                                        var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
+                                        romName = $"{formattedName}{defaultExt}";
+                                    }
+
+                                    if (primaryCrc == null && !string.IsNullOrWhiteSpace(crc))
+                                    {
+                                        primaryCrc = crc;
+                                        primarySha1 = sha1;
+                                        primaryMd5 = md5;
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(crc) || !string.IsNullOrWhiteSpace(sha1) || !string.IsNullOrWhiteSpace(md5))
+                                    {
+                                        datEntries.Add(new DatEntry
+                                        {
+                                            GameName = formattedName,
+                                            RomName = romName,
+                                            Crc32 = crc?.ToLowerInvariant(),
+                                            Md5 = md5?.ToLowerInvariant(),
+                                            Sha1 = sha1?.ToLowerInvariant(),
+                                            Size = size > 0 ? size : 0,
+                                            Region = regionLabel
+                                        });
+                                    }
+                                }
+                            }
+                            else if (!string.IsNullOrWhiteSpace(id))
+                            {
+                                var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
+                                datEntries.Add(new DatEntry
+                                {
+                                    GameName = formattedName,
+                                    RomName = $"{formattedName}{defaultExt}",
+                                    Region = regionLabel
+                                });
+                            }
+
+                            if (!seenNames.Add(formattedName))
+                            {
+                                continue;
+                            }
+
+                            var entry = CreateCatalogEntryFromNoIntroName(platform, formattedName, releaseYear, $"GameTDB {platform.Name}");
+                            if (entry != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(synopsis))
+                                {
+                                    entry.Overview = synopsis;
+                                }
+
+                                entry.ExpectedCrc32 = primaryCrc;
+                                entry.ExpectedSha1 = primarySha1;
+                                entry.ExpectedMd5 = primaryMd5;
+                                results.Add(entry);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.Trace(ex, "Skipping malformed GameTDB entry for {0}", platform?.Name);
+                        }
+                    }
+                    else
+                    {
+                        xmlReader.Read();
+                    }
+                }
+
+                if (datEntries.Count > 0 && _datCacheService != null)
+                {
+                    var catalogName = $"{platform.Name} (GameTDB)";
+                    var existing = _datCacheService.GetAllDatFiles();
+                    var existingFile = existing?.FirstOrDefault(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase));
+                    if (forceRefresh || existingFile == null || !string.Equals(existingFile.Version, "v2", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _datCacheService.Insert(
+                            new DatFile
+                            {
+                                Name = catalogName,
+                                Description = platform.Slug,
+                                Version = "v2",
+                                Category = "GameTDB",
+                                CreatedAt = DateTime.UtcNow
+                            },
+                            datEntries);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warn(ex, "Unable to parse GameTDB XML catalog for {0}", platform.Name);
+            }
+
+            return results;
+        }
+
+        private static ReleaseDateInfo ResolveReleaseDateInfo(
+            Dictionary<string, ReleaseDateInfo> releaseYearLookup,
+            string crc32,
+            params string[] candidateNames)
+        {
+            if (releaseYearLookup == null || releaseYearLookup.Count == 0)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(crc32) &&
+                releaseYearLookup.TryGetValue($"crc:{crc32.ToUpperInvariant()}", out var crcDateInfo))
+            {
+                return crcDateInfo;
+            }
+
+            if (candidateNames != null)
+            {
+                foreach (var candidate in candidateNames)
+                {
+                    if (string.IsNullOrWhiteSpace(candidate))
+                    {
+                        continue;
+                    }
+
+                    if (releaseYearLookup.TryGetValue(candidate, out var directMatch))
+                    {
+                        return directMatch;
+                    }
+
+                    var cleaned = RomParser.CleanIndexPrefix(candidate);
+                    if (!string.IsNullOrWhiteSpace(cleaned) && releaseYearLookup.TryGetValue(cleaned, out var cleanedMatch))
+                    {
+                        return cleanedMatch;
+                    }
+
+                    var normalizedTitle = RomParser.ParseRomName(cleaned)?.GameTitle;
+                    if (!string.IsNullOrWhiteSpace(normalizedTitle) && releaseYearLookup.TryGetValue(normalizedTitle, out var titleMatch))
+                    {
+                        return titleMatch;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private Dictionary<string, ReleaseDateInfo> FetchReleaseYearLookup(string escapedSystem, bool forceRefresh = false)
+        {
+            if (string.IsNullOrWhiteSpace(escapedSystem))
+            {
+                return new Dictionary<string, ReleaseDateInfo>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (!forceRefresh && ReleaseYearLookupCache.TryGetValue(escapedSystem, out var cachedLookup))
+            {
+                return cachedLookup;
+            }
+
+            var lookup = new Dictionary<string, ReleaseDateInfo>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var url = $"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/releaseyear/{escapedSystem}.dat";
+                var request = new HttpRequest(url)
+                {
+                    SuppressHttpError = true,
+                    RequestTimeout = TimeSpan.FromSeconds(10)
+                };
+
+                var response = _httpClient.Execute(request);
+                if (response != null && !response.HasHttpError && !string.IsNullOrWhiteSpace(response.Content))
+                {
+                    foreach (Match match in DatReleaseYearBlockRegex.Matches(response.Content))
+                    {
+                        var body = match.Groups["body"].Value;
+                        var yearMatch = DatReleaseYearRegex.Match(body);
+                        if (!yearMatch.Success ||
+                            !int.TryParse(yearMatch.Groups["year"].Value, out var year) ||
+                            year < 1970 ||
+                            year > 2035)
+                        {
+                            continue;
+                        }
+
+                        var releaseDate = $"{year:D4}";
+                        var monthMatch = DatReleaseMonthRegex.Match(body);
+                        if (monthMatch.Success &&
+                            int.TryParse(monthMatch.Groups["month"].Value, out var month) &&
+                            month >= 1 && month <= 12)
+                        {
+                            var dayMatch = DatReleaseDayRegex.Match(body);
+                            if (dayMatch.Success &&
+                                int.TryParse(dayMatch.Groups["day"].Value, out var day) &&
+                                day >= 1 && day <= 31)
+                            {
+                                releaseDate = $"{year:D4}-{month:D2}-{day:D2}";
+                            }
+                            else
+                            {
+                                releaseDate = $"{year:D4}-{month:D2}";
+                            }
+                        }
+
+                        var dateInfo = new ReleaseDateInfo { Year = year, ReleaseDate = releaseDate };
+
+                        var nameMatch = DatNameOrCommentRegex.Match(body);
+                        if (nameMatch.Success)
+                        {
+                            var name = nameMatch.Groups["name"].Value.Trim();
+                            if (!string.IsNullOrWhiteSpace(name))
+                            {
+                                lookup[name] = dateInfo;
+                                var cleanName = RomParser.CleanIndexPrefix(name);
+                                lookup[cleanName] = dateInfo;
+                                var normalized = RomParser.ParseRomName(cleanName)?.GameTitle;
+                                if (!string.IsNullOrWhiteSpace(normalized))
+                                {
+                                    lookup[normalized] = dateInfo;
+                                }
+                            }
+                        }
+
+                        var crcMatch = DatCrcRegex.Match(body);
+                        if (crcMatch.Success)
+                        {
+                            lookup[$"crc:{crcMatch.Groups[1].Value.ToUpperInvariant()}"] = dateInfo;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Trace(ex, "Unable to fetch releaseyear DAT metadata for {0}", escapedSystem);
+            }
+
+            if (lookup.Count > 0)
+            {
+                lock (SyncedCacheLock)
+                {
+                    if (!ReleaseYearLookupCache.ContainsKey(escapedSystem))
+                    {
+                        ReleaseYearEvictionOrder.Enqueue(escapedSystem);
+                    }
+
+                    ReleaseYearLookupCache[escapedSystem] = lookup;
+
+                    while (ReleaseYearLookupCache.Count > MaxReleaseYearLookupCacheEntries && ReleaseYearEvictionOrder.Count > 0)
+                    {
+                        var oldestSystem = ReleaseYearEvictionOrder.Dequeue();
+                        if (!string.Equals(oldestSystem, escapedSystem, StringComparison.OrdinalIgnoreCase))
+                        {
+                            ReleaseYearLookupCache.TryRemove(oldestSystem, out _);
+                        }
+                    }
+                }
+            }
+
+            return lookup;
+        }
+
+        private void TryCacheRemoteDatContent(PlatformCatalogEntry platform, string sourceLabel, string datContent, bool forceRefresh = false)
+        {
+            if (_datCacheService == null || _datParserService == null || string.IsNullOrWhiteSpace(datContent))
+            {
+                return;
+            }
+
+            try
+            {
+                var catalogName = $"{platform.Name} ({sourceLabel})";
+                var existing = _datCacheService.GetAllDatFiles();
+                if (!forceRefresh && existing != null && existing.Any(d => string.Equals(d.Name, catalogName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return;
+                }
+
+                var (datFile, entries) = _datParserService.Parse(datContent);
+                if (entries != null && string.Equals(platform.Slug, "dsiware", StringComparison.OrdinalIgnoreCase))
+                {
+                    entries = entries
+                        .Where(e => !string.IsNullOrWhiteSpace(e?.RomName) && !e.RomName.EndsWith(".nds", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+                else if (entries != null &&
+                         string.Equals(platform.Slug, "nds", StringComparison.OrdinalIgnoreCase) &&
+                         sourceLabel != null &&
+                         sourceLabel.Contains("DSi", StringComparison.OrdinalIgnoreCase))
+                {
+                    entries = entries
+                        .Where(e => !string.IsNullOrWhiteSpace(e?.RomName) && e.RomName.EndsWith(".nds", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+
+                if (entries != null && entries.Count > 0)
+                {
+                    datFile.Name = catalogName;
+                    datFile.Description = platform.Slug;
+                    datFile.Category = sourceLabel;
+                    _datCacheService.Insert(datFile, entries);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Trace(ex, "Unable to persist remote DAT hash cache for {0}", platform?.Name);
+            }
+        }
+
+        private static List<GameCatalogEntry> ParseLibretroDatContent(
+            PlatformCatalogEntry platform,
+            string datContent,
+            string sourceLabel,
+            Dictionary<string, ReleaseDateInfo> releaseYearLookup,
+            HashSet<string> seenNames,
+            HashSet<string> seenHashes = null)
+        {
+            var results = new List<GameCatalogEntry>();
+            var matches = DatGameBlockRegex.Matches(datContent);
+
+            foreach (Match match in matches)
+            {
+                var blockName = match.Groups["name"].Value.Trim();
+                var body = match.Groups["body"].Value;
+
+                var romMatch = DatRomNameRegex.Match(body);
+                var romFileName = romMatch.Success ? romMatch.Groups["rom"].Value.Trim() : null;
+
+                var isHackOrHomebrewFeed =
+                    sourceLabel != null &&
+                    (sourceLabel.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Hacks", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                     sourceLabel.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase));
+
+                if (!TryNormalizeDatEntryTitle(
+                    platform,
+                    blockName,
+                    romFileName,
+                    smdbPath: null,
+                    explicitRegion: null,
+                    sourceLabel: sourceLabel,
+                    isHackOrHomebrewFeed: isHackOrHomebrewFeed,
+                    allowProseOverride: false,
+                    rejectSecondaryTracks: false,
+                    appendEncryptedTag: true,
+                    out var rawName))
+                {
+                    continue;
+                }
+
+                blockName = StripTrackOne(blockName);
+
+                var crcMatch = DatCrcRegex.Match(body);
+                var crc32 = crcMatch.Success ? crcMatch.Groups[1].Value.ToLowerInvariant() : null;
+                var md5Match = DatMd5Regex.Match(body);
+                var md5 = md5Match.Success ? md5Match.Groups[1].Value.ToLowerInvariant() : null;
+                var sha1Match = DatSha1Regex.Match(body);
+                var sha1 = sha1Match.Success ? sha1Match.Groups[1].Value.ToLowerInvariant() : null;
+                var sha256Match = DatSha256Regex.Match(body);
+                var sha256 = sha256Match.Success ? sha256Match.Groups[1].Value.ToLowerInvariant() : null;
+
+                if (HasSeenHash(seenHashes, sha256, sha1, md5, crc32) || !seenNames.Add(rawName))
+                {
+                    continue;
+                }
+
+                RegisterHashes(seenHashes, sha256, sha1, md5, crc32);
+
+                var year = platform.ReleaseYear;
+                string releaseDate = null;
+                var mappedDateInfo = ResolveReleaseDateInfo(releaseYearLookup, crc32, rawName, blockName);
+                if (mappedDateInfo != null)
+                {
+                    year = mappedDateInfo.Year;
+                    releaseDate = mappedDateInfo.ReleaseDate;
+                }
+                else
+                {
+                    var yearMatch = DatReleaseYearRegex.Match(body);
+                    if (yearMatch.Success && int.TryParse(yearMatch.Groups["year"].Value, out var parsedYear) && parsedYear >= 1970 && parsedYear <= 2030)
+                    {
+                        year = parsedYear;
+                        releaseDate = $"{parsedYear:D4}";
+                        var monthMatch = DatReleaseMonthRegex.Match(body);
+                        if (monthMatch.Success && int.TryParse(monthMatch.Groups["month"].Value, out var month) && month >= 1 && month <= 12)
+                        {
+                            var dayMatch = DatReleaseDayRegex.Match(body);
+                            if (dayMatch.Success && int.TryParse(dayMatch.Groups["day"].Value, out var day) && day >= 1 && day <= 31)
+                            {
+                                releaseDate = $"{parsedYear:D4}-{month:D2}-{day:D2}";
+                            }
+                            else
+                            {
+                                releaseDate = $"{parsedYear:D4}-{month:D2}";
+                            }
+                        }
+                    }
+                }
+
+                var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, year, sourceLabel, customReleaseDate: releaseDate);
+                if (entry != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(crc32))
+                    {
+                        entry.ExpectedCrc32 = crc32;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(md5))
+                    {
+                        entry.ExpectedMd5 = md5;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(sha1))
+                    {
+                        entry.ExpectedSha1 = sha1;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(sha256))
+                    {
+                        entry.ExpectedSha256 = sha256;
+                    }
+
+                    results.Add(entry);
+                }
+            }
+
+            return results;
+        }
+
+        private static bool TryNormalizeDatEntryTitle(
+            PlatformCatalogEntry platform,
+            string blockOrGameName,
+            string romName,
+            string smdbPath,
+            string explicitRegion,
+            string sourceLabel,
+            bool isHackOrHomebrewFeed,
+            bool allowProseOverride,
+            bool rejectSecondaryTracks,
+            bool appendEncryptedTag,
+            out string rawName)
+        {
+            rawName = null;
+            var slug = platform?.Slug;
+
+            if (!string.IsNullOrWhiteSpace(romName))
+            {
+                var romFileName = Path.GetFileName(romName.Replace('\\', '/'));
+                var romExt = Path.GetExtension(romFileName);
+
+                if (!isHackOrHomebrewFeed)
+                {
+                    if (romName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+
+                    if (string.Equals(slug, "dsiware", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(romExt, ".nds", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+
+                    if (string.Equals(slug, "nds", StringComparison.OrdinalIgnoreCase) &&
+                        sourceLabel != null &&
+                        sourceLabel.Contains("DSi", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(romExt, ".nds", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+
+                if (allowProseOverride || rejectSecondaryTracks)
+                {
+                    if (!string.IsNullOrWhiteSpace(romExt) && NonRomOrAudioExtensions.Contains(romExt))
+                    {
+                        return false;
+                    }
+                }
+
+                if (rejectSecondaryTracks && SecondaryTrackRegex.IsMatch(romFileName))
+                {
+                    return false;
+                }
+            }
+
+            if (allowProseOverride)
+            {
+                rawName = blockOrGameName;
+                if (!string.IsNullOrWhiteSpace(romName))
+                {
+                    var romClean = StripKnownRomExtension(Path.GetFileName(romName.Replace('\\', '/')));
+                    if (string.IsNullOrWhiteSpace(rawName) ||
+                        DatParserService.LooksLikeProseDescription(rawName) ||
+                        (!rawName.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) &&
+                         (romClean.Contains("(Aftermarket)", StringComparison.OrdinalIgnoreCase) ||
+                          romClean.Contains("(Unl)", StringComparison.OrdinalIgnoreCase) ||
+                          romClean.Contains("(Pirate)", StringComparison.OrdinalIgnoreCase) ||
+                          romClean.Contains("(Homebrew)", StringComparison.OrdinalIgnoreCase))))
+                    {
+                        rawName = romClean;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(rawName))
+                {
+                    rawName = StripKnownRomExtension(Path.GetFileName(rawName.Replace('\\', '/')));
+                }
+            }
+            else if (rejectSecondaryTracks)
+            {
+                rawName = StripKnownRomExtension(romName);
+            }
+            else
+            {
+                rawName = blockOrGameName;
+                if (!isHackOrHomebrewFeed && !string.IsNullOrWhiteSpace(romName))
+                {
+                    var strippedRomName = StripKnownRomExtension(romName);
+                    if (!string.IsNullOrWhiteSpace(strippedRomName) &&
+                        !string.IsNullOrWhiteSpace(blockOrGameName) &&
+                        strippedRomName.Length >= blockOrGameName.Length &&
+                        (strippedRomName.Contains(' ') || strippedRomName.Contains('(')) &&
+                        IsValidGameTitle(strippedRomName) &&
+                        !strippedRomName.Contains("(Track", StringComparison.OrdinalIgnoreCase) &&
+                        !strippedRomName.Contains("[Track", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rawName = strippedRomName;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(rawName))
+            {
+                return false;
+            }
+
+            rawName = StripTrackOne(rawName);
+            if (rawName.EndsWith("_pad", StringComparison.OrdinalIgnoreCase))
+            {
+                rawName = rawName.Substring(0, rawName.Length - 4).TrimEnd();
+            }
+
+            rawName = RomParser.CleanIndexPrefix(rawName);
+
+            if (!string.IsNullOrWhiteSpace(explicitRegion))
+            {
+                var resolvedDatRegion = ResolveCatalogRegionLabel(explicitRegion, null, null, rawName);
+                rawName = EnsureGeographicRegionTag(rawName, rawName, resolvedDatRegion);
+            }
+
+            var blockClean = !string.IsNullOrWhiteSpace(blockOrGameName) ? StripTrackOne(blockOrGameName) : null;
+
+            if (string.IsNullOrWhiteSpace(rawName) ||
+                rawName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                RegionHelper.IsBios(rawName) ||
+                !IsValidGameTitle(rawName))
+            {
+                return false;
+            }
+
+            if (allowProseOverride && DatParserService.LooksLikeProseDescription(rawName))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(blockClean))
+            {
+                if (blockClean.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                    RegionHelper.IsBios(blockOrGameName))
+                {
+                    return false;
+                }
+
+                if ((!allowProseOverride || !DatParserService.LooksLikeProseDescription(blockOrGameName)) &&
+                    !IsValidGameTitle(blockClean))
+                {
+                    return false;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(romName) &&
+                (RegionHelper.IsBios(romName) || (rejectSecondaryTracks && !IsValidGameTitle(romName))))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(smdbPath) &&
+                (RegionHelper.IsBios(smdbPath) || (rejectSecondaryTracks && !IsValidGameTitle(smdbPath))))
+            {
+                return false;
+            }
+
+            if (appendEncryptedTag &&
+                sourceLabel != null &&
+                sourceLabel.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase) &&
+                !rawName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase))
+            {
+                rawName = $"{rawName} (Encrypted)";
+            }
+
+            return true;
+        }
+
+        internal static bool IsValidCrc32(string crc32)
+        {
+            var trimmed = crc32?.Trim();
+            return !string.IsNullOrWhiteSpace(trimmed) &&
+                   trimmed.Length == 8 &&
+                   !string.Equals(trimmed, "00000000", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static bool HasSeenHash(HashSet<string> seenHashes, string sha256, string sha1, string md5, string crc32)
+        {
+            if (seenHashes == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha256) && seenHashes.Contains($"sha256:{sha256.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha1) && seenHashes.Contains($"sha1:{sha1.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(md5) && seenHashes.Contains($"md5:{md5.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (IsValidCrc32(crc32) && seenHashes.Contains($"crc:{crc32.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool HasAnyHash(GameCatalogEntry entry)
+        {
+            return entry != null &&
+                   (!string.IsNullOrWhiteSpace(entry.ExpectedSha256) ||
+                    !string.IsNullOrWhiteSpace(entry.ExpectedSha1) ||
+                    !string.IsNullOrWhiteSpace(entry.ExpectedMd5) ||
+                    IsValidCrc32(entry.ExpectedCrc32));
+        }
+
+        private static bool HasMatchingHash(GameCatalogEntry a, GameCatalogEntry b)
+        {
+            if (a == null || b == null)
+            {
+                return false;
+            }
+
+            return HasMatchingHash(a.ExpectedSha256, a.ExpectedSha1, a.ExpectedMd5, a.ExpectedCrc32, b);
+        }
+
+        internal static bool HasMatchingHash(string sha256, string sha1, string md5, string crc32, GameCatalogEntry b)
+        {
+            if (b == null)
+            {
+                return false;
+            }
+
+            var aSha256 = sha256?.Trim();
+            var bSha256 = b.ExpectedSha256?.Trim();
+            if (!string.IsNullOrWhiteSpace(aSha256) && !string.IsNullOrWhiteSpace(bSha256))
+            {
+                return string.Equals(aSha256, bSha256, StringComparison.OrdinalIgnoreCase);
+            }
+
+            var aSha1 = sha1?.Trim();
+            var bSha1 = b.ExpectedSha1?.Trim();
+            if (!string.IsNullOrWhiteSpace(aSha1) && !string.IsNullOrWhiteSpace(bSha1))
+            {
+                return string.Equals(aSha1, bSha1, StringComparison.OrdinalIgnoreCase);
+            }
+
+            var aMd5 = md5?.Trim();
+            var bMd5 = b.ExpectedMd5?.Trim();
+            if (!string.IsNullOrWhiteSpace(aMd5) && !string.IsNullOrWhiteSpace(bMd5))
+            {
+                return string.Equals(aMd5, bMd5, StringComparison.OrdinalIgnoreCase);
+            }
+
+            var aCrc = crc32?.Trim();
+            var bCrc = b.ExpectedCrc32?.Trim();
+            return IsValidCrc32(aCrc) &&
+                   IsValidCrc32(bCrc) &&
+                   string.Equals(aCrc, bCrc, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public bool TryFindGameByHash(int platformTvdbId, string sha256, string sha1, string md5, string crc32, out GameCatalogEntry entry)
+        {
+            entry = null;
+            if (string.IsNullOrWhiteSpace(sha256) &&
+                string.IsNullOrWhiteSpace(sha1) &&
+                string.IsNullOrWhiteSpace(md5) &&
+                !IsValidCrc32(crc32))
+            {
+                return false;
+            }
+
+            foreach (var candidate in DynamicGames.Values)
+            {
+                if (candidate != null &&
+                    candidate.PlatformTvdbId == platformTvdbId &&
+                    HasMatchingHash(sha256, sha1, md5, crc32, candidate))
+                {
+                    entry = candidate;
+                    return true;
+                }
+            }
+
+            lock (SyncedCacheLock)
+            {
+                foreach (var kvp in SyncedPlatformGamesCache)
+                {
+                    if (kvp.Key != null && kvp.Key.StartsWith($"{platformTvdbId}:", StringComparison.Ordinal) && kvp.Value != null)
+                    {
+                        foreach (var candidate in kvp.Value)
+                        {
+                            if (candidate != null && HasMatchingHash(sha256, sha1, md5, crc32, candidate))
+                            {
+                                entry = candidate;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        internal static void RegisterHashes(HashSet<string> seenHashes, string sha256, string sha1, string md5, string crc32)
+        {
+            if (seenHashes == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha256))
+            {
+                seenHashes.Add($"sha256:{sha256.Trim().ToLowerInvariant()}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha1))
+            {
+                seenHashes.Add($"sha1:{sha1.Trim().ToLowerInvariant()}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(md5))
+            {
+                seenHashes.Add($"md5:{md5.Trim().ToLowerInvariant()}");
+            }
+
+            if (IsValidCrc32(crc32))
+            {
+                seenHashes.Add($"crc:{crc32.Trim().ToLowerInvariant()}");
+            }
+        }
+
+        internal static string StripKnownRomExtension(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            var ext = Path.GetExtension(fileName);
+            if (!string.IsNullOrWhiteSpace(ext) && KnownRomExtensions.Contains(ext))
+            {
+                return fileName.Substring(0, fileName.Length - ext.Length).Trim();
+            }
+
+            return fileName.Trim();
+        }
+
+        public static bool IsNonRomOrAudioExtension(string ext)
+        {
+            return !string.IsNullOrWhiteSpace(ext) && NonRomOrAudioExtensions.Contains(ext);
+        }
+
+        public static bool IsSecondaryDiscTrack(string title)
+        {
+            return !string.IsNullOrWhiteSpace(title) && SecondaryTrackRegex.IsMatch(title);
+        }
+
+        public static string StripTrackOne(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            return TrackOneRegex.Replace(title, string.Empty).Trim();
+        }
+
+        public static bool IsValidGameTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return false;
+            }
+
+            var trimmed = title.Trim();
+            if (trimmed.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("_", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                RegionHelper.IsBios(trimmed))
+            {
+                return false;
+            }
+
+            if (trimmed.IndexOf("Pack Here", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (trimmed.IndexOf("Place ", StringComparison.OrdinalIgnoreCase) >= 0 && trimmed.IndexOf(" Here", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return false;
+            }
+
+            if (trimmed.IndexOf("(loop)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("(noloopneeded)", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("(loopneeded)", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(trimmed);
+            if (!string.IsNullOrWhiteSpace(ext) && NonRomOrAudioExtensions.Contains(ext))
+            {
+                return false;
+            }
+
+            // Reject disc/console bootstrap executables, Wii U NUS content files, and raw machine/title/content IDs
+            var lowerTrimmed = trimmed.ToLowerInvariant();
+            if (lowerTrimmed is "eboot" or "eboot.bin" or "eboot.pbp" or "1st_read" or "1st_read.bin" or "ip.bin" or "boot.bin" or "boot.dol" or "default.xex" or "default.xbe" or "title.tmd" or "title.tik" or "title.cert" or "nxeart" or "systemupdate" or "$systemupdate")
+            {
+                return false;
+            }
+
+            if (ext.Equals(".app", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".tmd", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".tik", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".cert", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals(".h3", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (ArtifactTitleIdRegex.IsMatch(trimmed) || OpaqueTokenTitleRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            if (SecondaryTrackRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            if (StandaloneTrackRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            if (AudioStemRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            var textOutsideBrackets = BracketedTextRegex.Replace(trimmed, " ").Trim();
+            if (string.IsNullOrWhiteSpace(textOutsideBrackets) || !textOutsideBrackets.Any(char.IsLetterOrDigit))
+            {
+                return false;
+            }
+
+            if (StandaloneRegionOrRevTagRegex.IsMatch(trimmed))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        internal static GameCatalogEntry CreateCatalogEntryFromNoIntroName(
+            PlatformCatalogEntry platform,
+            string noIntroName,
+            int year,
+            string verificationSource,
+            string customSummary = null,
+            string customReleaseDate = null)
+        {
+            if (!IsValidGameTitle(noIntroName))
+            {
+                return null;
+            }
+
+            if (platform?.Slug != null &&
+                !platform.Slug.Equals("wii", StringComparison.OrdinalIgnoreCase) &&
+                !platform.Slug.Equals("wiiu", StringComparison.OrdinalIgnoreCase) &&
+                !platform.Slug.Equals("3ds", StringComparison.OrdinalIgnoreCase) &&
+                VirtualConsoleTagRegex.IsMatch(noIntroName))
+            {
+                return null;
+            }
+
+            var cleanNoIntroForParse = RomParser.CleanIndexPrefix(noIntroName.Replace(" (Encrypted)", string.Empty, StringComparison.OrdinalIgnoreCase).Trim());
+            if (!IsValidGameTitle(cleanNoIntroForParse))
+            {
+                return null;
+            }
+
+            var parsed = RomParser.ParseRomName(cleanNoIntroForParse);
+            var baseTitle = !string.IsNullOrWhiteSpace(parsed?.GameTitle)
+                ? NormalizeTitleArticle(parsed.GameTitle)
+                : NormalizeTitleArticle(StripParentheses(cleanNoIntroForParse));
+
+            baseTitle = RomParser.CleanIndexPrefix(baseTitle);
+            baseTitle = CleanResidualRevisions(baseTitle);
+
+            if (!IsValidGameTitle(baseTitle))
+            {
+                return null;
+            }
+
+            var allowMagazinesAndBooks = platform?.Slug is not ("switch" or "switcheshop");
+            var regionNumber = ClassifyRegionAndCategory(cleanNoIntroForParse, parsed, verificationSource, allowMagazinesAndBooks);
+            var revisionTag = ExtractRevisionTag(noIntroName, parsed, regionNumber, verificationSource);
+
+            var tvdbId = ComputeDeterministicGameId(platform.Slug, noIntroName);
+            var regionName = GetRegionDisplayName(regionNumber);
+            var isPreRelease = IsPreReleaseVersion(revisionTag, noIntroName);
+            var isEncrypted = IsEncryptedVersion(revisionTag, noIntroName);
+            var isValidYear = year >= 1970 && year <= 2035;
+            var effectiveYear = isValidYear ? year : platform.ReleaseYear;
+            var releaseDateString = !string.IsNullOrWhiteSpace(customReleaseDate)
+                ? customReleaseDate
+                : (isValidYear ? year.ToString() : (platform.ReleaseYear >= 1970 ? platform.ReleaseYear.ToString() : null));
+
+            DateTime firstAired;
+            if (!string.IsNullOrWhiteSpace(releaseDateString) && DateTime.TryParse(releaseDateString, out var parsedDate))
+            {
+                firstAired = new DateTime(parsedDate.Year, parsedDate.Month, parsedDate.Day, 12, 0, 0, DateTimeKind.Utc);
+            }
+            else if (isValidYear)
+            {
+                firstAired = new DateTime(year, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            }
+            else if (platform.ReleaseYear >= 1970)
+            {
+                firstAired = new DateTime(platform.ReleaseYear, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+            }
+            else
+            {
+                firstAired = DateTime.MinValue;
+            }
+
+            return new GameCatalogEntry
+            {
+                TvdbId = tvdbId,
+                Title = baseTitle,
+                BaseTitle = baseTitle,
+                RevisionTag = revisionTag,
+                IsLatestRevision = !isPreRelease && !isEncrypted,
+                IsInitialRelease = !isPreRelease && !isEncrypted && revisionTag == "Retail (v1.0)",
+                NoIntroName = noIntroName,
+                PlatformTvdbId = platform.TvdbId,
+                PlatformSlug = platform.Slug,
+                PlatformName = platform.Name,
+                PlatformShortName = platform.ShortName,
+                Manufacturer = platform.Manufacturer,
+                RegionNumber = regionNumber,
+                RegionName = regionName,
+                GameNumber = 1,
+                ReleaseYear = effectiveYear,
+                ReleaseDateString = releaseDateString,
+                FirstAired = firstAired,
+                Overview = !string.IsNullOrWhiteSpace(customSummary)
+                    ? $"{customSummary} ({verificationSource}: {noIntroName})"
+                    : $"Verified {platform.Name} release ({noIntroName}) [{regionName} • {revisionTag}].",
+                PosterUrl = BuildLibretroBoxartUrl(platform.LibretroSystemName, cleanNoIntroForParse),
+                VerificationSource = verificationSource
+            };
+        }
+
+        public static bool IsEncryptedVersion(string revisionTag, string noIntroNameOrTitle = null)
+        {
+            if (!string.IsNullOrWhiteSpace(revisionTag) &&
+                revisionTag.Contains("Encrypted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(noIntroNameOrTitle) &&
+                noIntroNameOrTitle.Contains("(Encrypted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsUpdateVersion(string revisionTag, string noIntroNameOrTitle = null)
+        {
+            if (!string.IsNullOrWhiteSpace(revisionTag) && UpdateTagRegex.IsMatch(revisionTag))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(noIntroNameOrTitle) && UpdateTagRegex.IsMatch(noIntroNameOrTitle))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsPatchUpdateVersion(string revisionTag, string noIntroNameOrTitle = null)
+        {
+            if (!string.IsNullOrWhiteSpace(revisionTag) && PatchUpdateTagRegex.IsMatch(revisionTag))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(noIntroNameOrTitle) && PatchUpdateTagRegex.IsMatch(noIntroNameOrTitle))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int? ExtractDiscNumber(string revisionTag, string noIntroName)
+        {
+            var match = DiscTagRegex.Match(noIntroName ?? string.Empty);
+            if (!match.Success && !string.IsNullOrWhiteSpace(revisionTag))
+            {
+                match = DiscTagRegex.Match(revisionTag);
+            }
+
+            if (match.Success)
+            {
+                var numStr = match.Groups["num"].Value;
+                if (int.TryParse(numStr, out var num))
+                {
+                    return num;
+                }
+
+                if (!string.IsNullOrWhiteSpace(numStr) && numStr.Length == 1 && char.IsLetter(numStr[0]))
+                {
+                    return char.ToUpperInvariant(numStr[0]) - 'A' + 1;
+                }
+
+                return 1;
+            }
+
+            return null;
+        }
+
+        internal static string ExtractVersionOnly(string revisionTag, string noIntroName = null)
+        {
+            var raw = revisionTag ?? string.Empty;
+            var withoutDisc = DiscTagRegex.Replace(raw, string.Empty).Trim(' ', ',', '-', '•');
+            if (string.IsNullOrWhiteSpace(withoutDisc))
+            {
+                if (!string.IsNullOrWhiteSpace(noIntroName))
+                {
+                    var cleanNoIntro = DiscTagRegex.Replace(noIntroName, string.Empty);
+                    var updMatch = UpdateTagRegex.Match(cleanNoIntro);
+                    if (updMatch.Success)
+                    {
+                        return updMatch.Groups["upd"].Value.Trim();
+                    }
+
+                    var revMatch = RevisionTagRegex.Match(cleanNoIntro);
+                    if (revMatch.Success)
+                    {
+                        return revMatch.Groups["rev"].Value.Trim();
+                    }
+                }
+
+                return "Retail (v1.0)";
+            }
+
+            return withoutDisc;
+        }
+
+        private static HashSet<int> GetDefaultMonitoredGameIds(
+            List<GameCatalogEntry> games,
+            Games.EncryptionPreference encryptionPreference)
+        {
+            var monitoredIds = new HashSet<int>();
+
+            foreach (var group in games.GroupBy(g => $"{g.RegionNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
+            {
+                var retailItems = group
+                    .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
+
+                if (retailItems.Count == 0)
+                {
+                    continue;
+                }
+
+                void MonitorPreferredVersion(List<GameCatalogEntry> items)
+                {
+                    if (items.Count == 0)
+                    {
+                        return;
+                    }
+
+                    var versionGroups = items
+                        .GroupBy(i => ExtractVersionOnly(i.RevisionTag, i.NoIntroName))
+                        .OrderBy(vg => GetRevisionSortOrder(vg.Key))
+                        .ToList();
+
+                    var preferredVersionItems = versionGroups.Last();
+                    foreach (var game in preferredVersionItems)
+                    {
+                        monitoredIds.Add(game.TvdbId);
+                    }
+                }
+
+                void ProcessPool(List<GameCatalogEntry> poolItems)
+                {
+                    if (poolItems.Count == 0)
+                    {
+                        return;
+                    }
+
+                    var unencryptedRetail = poolItems
+                        .Where(i => !IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
+                        .ToList();
+                    var encryptedRetail = poolItems
+                        .Where(i => IsEncryptedVersion(i.RevisionTag, i.NoIntroName))
+                        .ToList();
+
+                    if (encryptionPreference == Games.EncryptionPreference.NotEncrypted ||
+                        encryptionPreference == Games.EncryptionPreference.Both)
+                    {
+                        if (unencryptedRetail.Count > 0)
+                        {
+                            MonitorPreferredVersion(unencryptedRetail);
+                        }
+                        else if (encryptionPreference == Games.EncryptionPreference.NotEncrypted && encryptedRetail.Count > 0)
+                        {
+                            MonitorPreferredVersion(encryptedRetail);
+                        }
+                    }
+
+                    if (encryptionPreference == Games.EncryptionPreference.Encrypted ||
+                        encryptionPreference == Games.EncryptionPreference.Both)
+                    {
+                        if (encryptedRetail.Count > 0)
+                        {
+                            MonitorPreferredVersion(encryptedRetail);
+                        }
+                        else if (encryptionPreference == Games.EncryptionPreference.Encrypted && unencryptedRetail.Count > 0)
+                        {
+                            MonitorPreferredVersion(unencryptedRetail);
+                        }
+                    }
+                }
+
+                var baseGamePool = retailItems.Where(i => !IsUpdateVersion(i.RevisionTag, i.NoIntroName)).ToList();
+                var patchUpdatePool = retailItems.Where(i => IsPatchUpdateVersion(i.RevisionTag, i.NoIntroName)).ToList();
+                var dlcPool = retailItems.Where(i => IsUpdateVersion(i.RevisionTag, i.NoIntroName) && !IsPatchUpdateVersion(i.RevisionTag, i.NoIntroName)).ToList();
+
+                if (baseGamePool.Count > 0)
+                {
+                    ProcessPool(baseGamePool);
+                }
+                else if (patchUpdatePool.Count == 0 && dlcPool.Count == 0)
+                {
+                    ProcessPool(retailItems);
+                }
+
+                if (patchUpdatePool.Count > 0)
+                {
+                    ProcessPool(patchUpdatePool);
+                }
+
+                if (dlcPool.Count > 0)
+                {
+                    ProcessPool(dlcPool);
+                }
+            }
+
+            return monitoredIds;
+        }
+
+        public static bool IsPreReleaseVersion(string revisionTag, string noIntroName = null)
+        {
+            if (!string.IsNullOrWhiteSpace(revisionTag))
+            {
+                if (revisionTag.Contains("Proto", StringComparison.OrdinalIgnoreCase) ||
+                    revisionTag.Contains("Beta", StringComparison.OrdinalIgnoreCase) ||
+                    revisionTag.Contains("Sample", StringComparison.OrdinalIgnoreCase) ||
+                    revisionTag.Contains("Demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(noIntroName))
+            {
+                if (noIntroName.Contains("(Proto", StringComparison.OrdinalIgnoreCase) ||
+                    noIntroName.Contains("(Beta", StringComparison.OrdinalIgnoreCase) ||
+                    noIntroName.Contains("(Sample", StringComparison.OrdinalIgnoreCase) ||
+                    noIntroName.Contains("(Demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal static void PairDlcWithBaseGames(List<GameCatalogEntry> games)
+        {
+            if (games == null || games.Count == 0)
+            {
+                return;
+            }
+
+            var baseTitleByCanonicalKey = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var baseTitleByTitleId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var baseBuckets = new Dictionary<string, List<(string Key, string Title)>>(StringComparer.OrdinalIgnoreCase);
+            var orphanTitleIdCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var game in games)
+            {
+                if (game == null)
+                {
+                    continue;
+                }
+
+                if (IsUpdateVersion(game.RevisionTag, game.NoIntroName))
+                {
+                    var addonTid = ExtractTitleIdTag(game.NoIntroName);
+                    if (!string.IsNullOrWhiteSpace(addonTid))
+                    {
+                        orphanTitleIdCounts.TryGetValue(addonTid, out var count);
+                        orphanTitleIdCounts[addonTid] = count + 1;
+                    }
+
+                    continue;
+                }
+
+                var candidateTitle = (game.BaseTitle ?? game.Title)?.Trim();
+                if (string.IsNullOrWhiteSpace(candidateTitle))
+                {
+                    continue;
+                }
+
+                var baseTid = ExtractTitleIdTag(game.NoIntroName);
+                if (!string.IsNullOrWhiteSpace(baseTid) && !baseTitleByTitleId.ContainsKey(baseTid))
+                {
+                    baseTitleByTitleId[baseTid] = candidateTitle;
+                }
+
+                var key = NormalizeCanonicalCrossRefTitle(candidateTitle);
+                if (!string.IsNullOrWhiteSpace(key) && !baseTitleByCanonicalKey.ContainsKey(key))
+                {
+                    baseTitleByCanonicalKey[key] = candidateTitle;
+                    if (key.Length >= 4)
+                    {
+                        var bucketKey = key.Substring(0, 4);
+                        if (!baseBuckets.TryGetValue(bucketKey, out var bucket))
+                        {
+                            bucket = new List<(string Key, string Title)>();
+                            baseBuckets[bucketKey] = bucket;
+                        }
+
+                        bucket.Add((key, candidateTitle));
+                    }
+                }
+            }
+
+            foreach (var entry in games)
+            {
+                if (entry == null || !IsUpdateVersion(entry.RevisionTag, entry.NoIntroName))
+                {
+                    continue;
+                }
+
+                var currentTitle = (entry.BaseTitle ?? entry.Title)?.Trim();
+                if (string.IsNullOrWhiteSpace(currentTitle))
+                {
+                    continue;
+                }
+
+                var currentKey = NormalizeCanonicalCrossRefTitle(currentTitle);
+                if (!string.IsNullOrWhiteSpace(currentKey) && baseTitleByCanonicalKey.TryGetValue(currentKey, out var directBaseTitle))
+                {
+                    entry.Title = directBaseTitle;
+                    entry.BaseTitle = directBaseTitle;
+                    continue;
+                }
+
+                if (TryPairBySeparatorPrefix(entry, currentTitle, (prefix, prefixKey) =>
+                    !string.IsNullOrWhiteSpace(prefixKey) && baseTitleByCanonicalKey.TryGetValue(prefixKey, out var exactTitle) ? exactTitle : null))
+                {
+                    continue;
+                }
+
+                if (TryPairBySeparatorPrefix(entry, currentTitle, (prefix, prefixKey) =>
+                    FindFuzzyPrefixBaseTitle(prefix, prefixKey, baseBuckets)))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(currentKey) && currentKey.Length >= 8)
+                {
+                    var fullMatch = FindContainedBaseTitle(currentKey, baseBuckets);
+                    if (!string.IsNullOrWhiteSpace(fullMatch))
+                    {
+                        entry.Title = fullMatch;
+                        entry.BaseTitle = fullMatch;
+                        continue;
+                    }
+                }
+
+                var entryTid = ExtractTitleIdTag(entry.NoIntroName);
+                if (!string.IsNullOrWhiteSpace(entryTid) && baseTitleByTitleId.TryGetValue(entryTid, out var titleIdBaseTitle))
+                {
+                    var suffix = currentTitle.StartsWith(titleIdBaseTitle, StringComparison.OrdinalIgnoreCase)
+                        ? currentTitle.Substring(titleIdBaseTitle.Length).TrimStart(' ', '-', ':')
+                        : currentTitle;
+                    if (string.IsNullOrWhiteSpace(suffix))
+                    {
+                        suffix = currentTitle;
+                    }
+
+                    ApplyPairedDlcMetadata(entry, titleIdBaseTitle, suffix);
+                    continue;
+                }
+
+                // Group orphaned DLCs (when no base game entry is present in the DAT) under their shared game prefix or Title ID
+                var lastSepIdx = currentTitle.LastIndexOf(" - ", StringComparison.Ordinal);
+                if (lastSepIdx > 0)
+                {
+                    var orphanBase = currentTitle.Substring(0, lastSepIdx).Trim();
+                    var orphanSuffix = currentTitle.Substring(lastSepIdx + 3).Trim();
+                    if (!string.IsNullOrWhiteSpace(orphanBase) && !string.IsNullOrWhiteSpace(orphanSuffix))
+                    {
+                        ApplyPairedDlcMetadata(entry, orphanBase, orphanSuffix);
+                        continue;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(entryTid))
+                {
+                    if (string.Equals(entryTid, "373907D1", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(entryTid, "FFFE07D1", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ApplyPairedDlcMetadata(entry, "Xbox 360 Avatar & Marketplace Items", currentTitle);
+                        continue;
+                    }
+
+                    if (orphanTitleIdCounts.TryGetValue(entryTid, out var tidCount) && tidCount >= 2)
+                    {
+                        ApplyPairedDlcMetadata(entry, $"Xbox 360 Addons ({entryTid.ToUpperInvariant()})", currentTitle);
+                    }
+                }
+            }
+        }
+
+        private static string ExtractTitleIdTag(string noIntroName)
+        {
+            if (string.IsNullOrWhiteSpace(noIntroName))
+            {
+                return null;
+            }
+
+            var match = TitleIdTagRegex.Match(noIntroName);
+            return match.Success ? match.Groups["tid"].Value.ToUpperInvariant() : null;
+        }
+
+        private static bool TryPairBySeparatorPrefix(
+            GameCatalogEntry entry,
+            string currentTitle,
+            Func<string, string, string> resolver)
+        {
+            var searchEnd = currentTitle.Length;
+            while (searchEnd > 0)
+            {
+                var sepIdx = currentTitle.LastIndexOf(" - ", searchEnd - 1, StringComparison.Ordinal);
+                if (sepIdx <= 0)
+                {
+                    break;
+                }
+
+                var prefix = currentTitle.Substring(0, sepIdx).Trim();
+                var dlcSuffix = currentTitle.Substring(sepIdx + 3).Trim();
+                var prefixKey = NormalizeCanonicalCrossRefTitle(prefix);
+
+                if (!string.IsNullOrWhiteSpace(prefixKey) && !string.IsNullOrWhiteSpace(dlcSuffix))
+                {
+                    var matchedBaseTitle = resolver(prefix, prefixKey);
+                    if (!string.IsNullOrWhiteSpace(matchedBaseTitle))
+                    {
+                        ApplyPairedDlcMetadata(entry, matchedBaseTitle, dlcSuffix);
+                        return true;
+                    }
+                }
+
+                searchEnd = sepIdx;
+            }
+
+            return false;
+        }
+
+        private static string FindFuzzyPrefixBaseTitle(
+            string prefix,
+            string prefixKey,
+            Dictionary<string, List<(string Key, string Title)>> baseBuckets)
+        {
+            if (string.IsNullOrWhiteSpace(prefixKey) ||
+                prefixKey.Length < 8 ||
+                !baseBuckets.TryGetValue(prefixKey.Substring(0, 4), out var candidates))
+            {
+                return null;
+            }
+
+            string bestBaseStartsWithPrefix = null;
+            var bestBaseStartsWithLen = int.MaxValue;
+            string bestPrefixStartsWithBase = null;
+            var bestPrefixStartsWithLen = 0;
+
+            foreach (var (baseKey, baseTitle) in candidates)
+            {
+                if (baseKey.Length > prefixKey.Length &&
+                    baseKey.StartsWith(prefixKey, StringComparison.Ordinal) &&
+                    !IsSequelExtension(baseTitle, prefix) &&
+                    baseKey.Length < bestBaseStartsWithLen)
+                {
+                    bestBaseStartsWithLen = baseKey.Length;
+                    bestBaseStartsWithPrefix = baseTitle;
+                }
+                else if (baseKey.Length >= 8 &&
+                         prefixKey.Length > baseKey.Length &&
+                         prefixKey.StartsWith(baseKey, StringComparison.Ordinal) &&
+                         baseKey.Length > bestPrefixStartsWithLen)
+                {
+                    bestPrefixStartsWithLen = baseKey.Length;
+                    bestPrefixStartsWithBase = baseTitle;
+                }
+            }
+
+            return bestPrefixStartsWithBase ?? bestBaseStartsWithPrefix;
+        }
+
+        private static string FindContainedBaseTitle(
+            string fullKey,
+            Dictionary<string, List<(string Key, string Title)>> baseBuckets)
+        {
+            if (!baseBuckets.TryGetValue(fullKey.Substring(0, 4), out var candidates))
+            {
+                return null;
+            }
+
+            string bestMatch = null;
+            var bestLen = 0;
+            foreach (var (baseKey, baseTitle) in candidates)
+            {
+                if (baseKey.Length >= 8 &&
+                    fullKey.Length > baseKey.Length &&
+                    fullKey.StartsWith(baseKey, StringComparison.Ordinal) &&
+                    baseKey.Length > bestLen)
+                {
+                    bestLen = baseKey.Length;
+                    bestMatch = baseTitle;
+                }
+            }
+
+            return bestMatch;
+        }
+
+        private static bool IsSequelExtension(string baseTitle, string prefix)
+        {
+            if (string.IsNullOrWhiteSpace(baseTitle) || string.IsNullOrWhiteSpace(prefix))
+            {
+                return false;
+            }
+
+            if (baseTitle.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var remainder = baseTitle.Substring(prefix.Length).TrimStart(' ', '-', ':');
+                if (remainder.Length > 0 && char.IsDigit(remainder[0]))
+                {
+                    return true;
+                }
+
+                if (Regex.IsMatch(remainder, @"^(?:II|III|IV|V|VI)\b", RegexOptions.CultureInvariant))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void ApplyPairedDlcMetadata(GameCatalogEntry entry, string matchedBaseTitle, string dlcSuffix)
+        {
+            entry.Title = matchedBaseTitle;
+            entry.BaseTitle = matchedBaseTitle;
+
+            if (string.IsNullOrWhiteSpace(entry.RevisionTag) ||
+                string.Equals(entry.RevisionTag, "Retail (v1.0)", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "DLC", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "Add-on", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "Addon", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "Unlock Key", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "Theme", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "Avatar", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entry.RevisionTag, "Soundtrack", StringComparison.OrdinalIgnoreCase))
+            {
+                entry.RevisionTag = $"DLC • {dlcSuffix}";
+            }
+            else if (!entry.RevisionTag.Contains(dlcSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                if (entry.RevisionTag.Contains("DLC", StringComparison.OrdinalIgnoreCase))
+                {
+                    entry.RevisionTag = Regex.Replace(
+                        entry.RevisionTag,
+                        @"\bDLC\b",
+                        $"DLC • {dlcSuffix}",
+                        RegexOptions.IgnoreCase);
+                }
+                else
+                {
+                    entry.RevisionTag = $"DLC • {dlcSuffix} • {entry.RevisionTag}";
+                }
+            }
+        }
+
+        private static void MarkLatestAndInitialRevisions(List<GameCatalogEntry> games)
+        {
+            foreach (var group in games.GroupBy(g => $"{g.RegionNumber}:{DiscTagRegex.Replace(g.BaseTitle ?? g.Title, string.Empty).Trim(' ', '-', ':').ToLowerInvariant()}"))
+            {
+                var items = group.ToList();
+
+                // Prototypes, Betas, Encrypted variants, and Updates do not replace the primary unencrypted retail entry in search
+                var retailItems = items
+                    .Where(i => !IsPreReleaseVersion(i.RevisionTag, i.NoIntroName) &&
+                                !IsEncryptedVersion(i.RevisionTag, i.NoIntroName) &&
+                                !IsUpdateVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
+                var nonPrimaryItems = items
+                    .Where(i => IsPreReleaseVersion(i.RevisionTag, i.NoIntroName) ||
+                                IsEncryptedVersion(i.RevisionTag, i.NoIntroName) ||
+                                IsUpdateVersion(i.RevisionTag, i.NoIntroName))
+                    .ToList();
+
+                foreach (var nonPrimary in nonPrimaryItems)
+                {
+                    nonPrimary.IsInitialRelease = false;
+                    nonPrimary.IsLatestRevision = false;
+                }
+
+                if (retailItems.Count == 0)
+                {
+                    continue;
+                }
+
+                if (retailItems.Count == 1)
+                {
+                    retailItems[0].IsInitialRelease = true;
+                    retailItems[0].IsLatestRevision = true;
+                    continue;
+                }
+
+                var versionGroups = retailItems
+                    .GroupBy(i => ExtractVersionOnly(i.RevisionTag, i.NoIntroName))
+                    .OrderBy(vg => GetRevisionSortOrder(vg.Key))
+                    .ToList();
+
+                for (var vIdx = 0; vIdx < versionGroups.Count; vIdx++)
+                {
+                    var isLatestVersion = vIdx == versionGroups.Count - 1;
+                    var isInitialVersion = vIdx == 0;
+                    var vItems = versionGroups[vIdx].ToList();
+
+                    var orderedDiscs = vItems
+                        .OrderBy(i => ExtractDiscNumber(i.RevisionTag, i.NoIntroName) ?? 1)
+                        .ThenBy(i => i.NoIntroName, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    for (var dIdx = 0; dIdx < orderedDiscs.Count; dIdx++)
+                    {
+                        var isFirstDisc = dIdx == 0;
+                        orderedDiscs[dIdx].IsLatestRevision = isLatestVersion && isFirstDisc;
+                        orderedDiscs[dIdx].IsInitialRelease = isInitialVersion && isFirstDisc;
+                    }
+                }
+            }
+        }
+
+        internal static int GetRevisionSortOrder(string revisionTag)
+        {
+            if (string.IsNullOrWhiteSpace(revisionTag))
+            {
+                return 0;
+            }
+
+            var clean = DiscTagRegex.Replace(revisionTag, string.Empty).Trim(' ', ',', '-', '•');
+            if (string.IsNullOrWhiteSpace(clean) || clean == "Retail (v1.0)")
+            {
+                return 0;
+            }
+
+            if (IsPreReleaseVersion(clean))
+            {
+                return 10000;
+            }
+
+            var match = Regex.Match(clean, @"(?:Rev\.?\s*([A-Za-z0-9.]+)|Title\s+Update\s*#?\s*v?([0-9.]+)|TU\s*#?\s*([0-9.]+)|Update\s*#?\s*v?([0-9.]+)|Patch\s*#?\s*v?([0-9.]+)|DLC\s*#?\s*v?([0-9.]+)|v([0-9.]+))", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                var val = match.Groups[1].Success ? match.Groups[1].Value :
+                          match.Groups[2].Success ? match.Groups[2].Value :
+                          match.Groups[3].Success ? match.Groups[3].Value :
+                          match.Groups[4].Success ? match.Groups[4].Value :
+                          match.Groups[5].Success ? match.Groups[5].Value :
+                          match.Groups[6].Success ? match.Groups[6].Value :
+                          match.Groups[7].Value;
+
+                if (Version.TryParse(val, out var semVer))
+                {
+                    return 1000 + (semVer.Major * 1000000) + (Math.Max(0, semVer.Minor) * 10000) + (Math.Max(0, semVer.Build) * 100) + Math.Max(0, semVer.Revision);
+                }
+
+                if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
+                {
+                    return 100 + (int)(num * 100);
+                }
+
+                if (val.Length == 1 && char.IsLetter(val[0]))
+                {
+                    return 200 + (char.ToUpperInvariant(val[0]) - 'A');
+                }
+            }
+
+            if (clean.StartsWith("Rev ", StringComparison.OrdinalIgnoreCase) ||
+                clean.StartsWith("v", StringComparison.OrdinalIgnoreCase) ||
+                clean.StartsWith("Update", StringComparison.OrdinalIgnoreCase) ||
+                clean.StartsWith("Patch", StringComparison.OrdinalIgnoreCase))
+            {
+                return 10 + clean.Length;
+            }
+
+            return 1;
+        }
+
+        internal static string NormalizeCanonicalCrossRefTitle(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var unaccented = value.RemoveDiacritics();
+            var articleNormalized = NormalizeTitleArticle(StripParentheses(unaccented));
+            articleNormalized = articleNormalized.Replace("&", " and ");
+            articleNormalized = Regex.Replace(articleNormalized, @"\bjr\.?\b", "junior", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bsr\.?\b", "senior", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bdr\.?\b", "doctor", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bmr\.?\b", "mister", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bst\.?\b", "saint", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bmt\.?\b", "mount", RegexOptions.IgnoreCase);
+            articleNormalized = Regex.Replace(articleNormalized, @"\bvs\.?\b", "versus", RegexOptions.IgnoreCase);
+            var sb = new System.Text.StringBuilder(articleNormalized.Length);
+            foreach (var ch in articleNormalized)
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(char.ToLowerInvariant(ch));
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        internal static string ExtractRevisionTag(
+            string noIntroName,
+            Parser.Model.ParsedRomInfo parsed,
+            int regionNumber,
+            string verificationSource = null)
+        {
+            var parts = new List<string>();
+
+            var discMatch = DiscTagRegex.Match(noIntroName);
+            if (discMatch.Success)
+            {
+                parts.Add(discMatch.Groups["disc"].Value.Trim());
+            }
+
+            var preMatch = PreReleaseTagRegex.Match(noIntroName);
+            if (preMatch.Success)
+            {
+                parts.Add(preMatch.Groups["pre"].Value.Trim());
+            }
+
+            var updMatch = UpdateTagRegex.Match(noIntroName);
+            if (updMatch.Success)
+            {
+                parts.Add(updMatch.Groups["upd"].Value.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(parsed?.Revision))
+            {
+                if (parsed.Revision.StartsWith("Rev", StringComparison.OrdinalIgnoreCase) ||
+                    IsUpdateVersion(parsed.Revision))
+                {
+                    parts.Add(parsed.Revision);
+                }
+                else
+                {
+                    parts.Add($"Rev {parsed.Revision}");
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(parsed?.Version))
+            {
+                parts.Add($"v{parsed.Version}");
+            }
+            else
+            {
+                var revMatch = RevisionTagRegex.Match(noIntroName);
+                if (revMatch.Success)
+                {
+                    parts.Add(revMatch.Groups["rev"].Value.Trim());
+                }
+            }
+
+            if (VirtualConsoleTagRegex.IsMatch(noIntroName))
+            {
+                parts.Add("Virtual Console");
+            }
+            else if (noIntroName.Contains("(Classic Mini)", StringComparison.OrdinalIgnoreCase) ||
+                     noIntroName.Contains("(Switch Online)", StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add("Re-Release");
+            }
+
+            if (noIntroName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(verificationSource) &&
+                 verificationSource.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase)))
+            {
+                parts.Add("Encrypted");
+            }
+
+            if (parts.Count > 0)
+            {
+                if (regionNumber == RegionRomHacks)
+                {
+                    var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
+                                        noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
+                                        noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                        noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
+                    parts.Add(isTranslation ? "Translation" : "ROM Hack");
+                }
+
+                return string.Join(" • ", parts.Distinct(StringComparer.OrdinalIgnoreCase));
+            }
+
+            if (regionNumber == RegionHomebrew)
+            {
+                return "Homebrew";
+            }
+
+            if (regionNumber == RegionRomHacks)
+            {
+                var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
+                                    noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
+                                    noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                    noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
+                return isTranslation ? "Translation" : "ROM Hack";
+            }
+
+            if (regionNumber == RegionUnlicensed)
+            {
+                return "Unlicensed";
+            }
+
+            if (regionNumber == RegionTestAndUtilities)
+            {
+                return "Test & Utility";
+            }
+
+            return "Retail (v1.0)";
+        }
+
+        internal static int ClassifyRegionAndCategory(string noIntroName, Parser.Model.ParsedRomInfo parsed, string verificationSource = null, bool allowMagazinesAndBooks = true)
+        {
+            if (RegionHelper.IsBios(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionBios;
+            }
+
+            if (RegionHelper.IsTestOrUtility(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionTestAndUtilities;
+            }
+
+            if (allowMagazinesAndBooks && RegionHelper.IsMagazineOrBook(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionMagazinesAndBooks;
+            }
+
+            if (RegionHelper.IsRomHackOrTranslation(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionRomHacks;
+            }
+
+            if (RegionHelper.IsHomebrewOrAftermarket(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionHomebrew;
+            }
+
+            if (RegionHelper.IsUnlicensed(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionUnlicensed;
+            }
+
+            // Note: Prototypes, Betas, Demos, and Samples stay in their geographic region
+            // so they appear as versions of the game itself rather than in a separate region.
+            if (parsed?.Regions != null && parsed.Regions.Count > 0)
+            {
+                var regionTokens = parsed.Regions
+                    .SelectMany(r => r.Split(new[] { ',', ';', '/' }, StringSplitOptions.RemoveEmptyEntries))
+                    .Select(t => t.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .ToList();
+
+                if (regionTokens.Any(t => WorldRegionTokens.Contains(t)))
+                {
+                    return RegionWorld;
+                }
+
+                if (regionTokens.Any(t => UsaRegionTokens.Contains(t)))
+                {
+                    return RegionUsa;
+                }
+
+                if (regionTokens.Any(t => JapanRegionTokens.Contains(t)))
+                {
+                    return RegionJapan;
+                }
+
+                if (regionTokens.Any(t => EuropeRegionTokens.Contains(t)))
+                {
+                    return RegionEurope;
+                }
+            }
+
+            var regionStr = parsed?.Regions != null && parsed.Regions.Count > 0
+                ? string.Join(",", parsed.Regions)
+                : noIntroName;
+
+            if (regionStr.Contains("World", StringComparison.OrdinalIgnoreCase))
+            {
+                return RegionWorld;
+            }
+
+            if (regionStr.Contains("USA", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(US", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(U)", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(regionStr, @"(?:^|[_\-\s])(US|USA)(?:[_\-\s.]|$)", RegexOptions.IgnoreCase) ||
+                regionStr.Contains("Canada", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Brazil", StringComparison.OrdinalIgnoreCase))
+            {
+                return RegionUsa;
+            }
+
+            if (regionStr.Contains("Japan", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Korea", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Asia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Taiwan", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("China", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Hong Kong", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("NTSC-J", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("NTSC-K", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(JP", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(J)", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(regionStr, @"(?:^|[_\-\s])(JP|JPN)(?:[_\-\s.]|$)", RegexOptions.IgnoreCase))
+            {
+                return RegionJapan;
+            }
+
+            if (regionStr.Contains("Europe", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Australia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("UK", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("United Kingdom", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Germany", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("France", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Spain", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Italy", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Netherlands", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Sweden", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Russia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Poland", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Denmark", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Finland", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Norway", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Portugal", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Greece", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Belgium", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Austria", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Switzerland", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("Scandinavia", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("PAL", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(EU", StringComparison.OrdinalIgnoreCase) ||
+                regionStr.Contains("(E)", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(regionStr, @"(?:^|[_\-\s])(EU|EUR)(?:[_\-\s.]|$)", RegexOptions.IgnoreCase))
+            {
+                return RegionEurope;
+            }
+
+            var langTokens = ExtractLanguageTokens(null, noIntroName);
+            if (langTokens.Count > 0)
+            {
+                if (langTokens.All(l => AsianLanguageTokens.Contains(l)))
+                {
+                    return RegionJapan;
+                }
+
+                if (!langTokens.Contains("EN", StringComparer.OrdinalIgnoreCase) &&
+                    langTokens.All(l => EuropeanNonEnglishLanguageTokens.Contains(l)))
+                {
+                    return RegionEurope;
+                }
+
+                if (langTokens.Count >= 2)
+                {
+                    return RegionWorld;
+                }
+            }
+
+            if ((parsed?.Regions == null || parsed.Regions.Count == 0) && !string.IsNullOrWhiteSpace(verificationSource))
+            {
+                var pathSegments = verificationSource.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var segment in pathSegments)
+                {
+                    if (segment.Contains("Japan", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("Korea", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("Asia", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("PC Engine", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("SuperGrafx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionJapan;
+                    }
+
+                    if (segment.Contains("Europe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionEurope;
+                    }
+
+                    if (segment.Contains("World", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionWorld;
+                    }
+
+                    if (segment.Contains("USA", StringComparison.OrdinalIgnoreCase) ||
+                        segment.Contains("TurboGrafx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RegionUsa;
+                    }
+                }
+            }
+
+            return RegionUsa;
+        }
+
+        public static string ResolveCatalogRegionLabel(string region, string languages = null, string gameId = null, string rawName = null)
+        {
+            var tokens = string.IsNullOrWhiteSpace(region)
+                ? Array.Empty<string>()
+                : region.Split(new[] { ',', ';', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .ToArray();
+
+            var specificTokens = tokens.Where(t => !WorldRegionTokens.Contains(t)).ToList();
+
+            var hasUsa = specificTokens.Any(t => UsaRegionTokens.Contains(t));
+            var hasEur = specificTokens.Any(t => EuropeRegionTokens.Contains(t));
+            var hasJpn = specificTokens.Any(t => JapanRegionTokens.Contains(t));
+
+            if (hasUsa && hasEur && hasJpn)
+            {
+                return "World";
+            }
+
+            foreach (var token in specificTokens)
+            {
+                if (UsaRegionTokens.Contains(token))
+                {
+                    return "USA";
+                }
+
+                if (EuropeRegionTokens.Contains(token))
+                {
+                    return "Europe";
+                }
+
+                if (JapanRegionTokens.Contains(token))
+                {
+                    return "Japan";
+                }
+            }
+
+            if (specificTokens.Count == 0 && !string.IsNullOrWhiteSpace(gameId))
+            {
+                var trimmedId = gameId.Trim();
+                if (trimmedId.Length == 4 || trimmedId.Length == 6)
+                {
+                    var regionChar = char.ToUpperInvariant(trimmedId[3]);
+                    if (regionChar == 'E' || regionChar == 'N')
+                    {
+                        return "USA";
+                    }
+
+                    if (regionChar == 'J' || regionChar == 'K' || regionChar == 'W' || regionChar == 'C')
+                    {
+                        return "Japan";
+                    }
+
+                    if (regionChar == 'P' || regionChar == 'D' || regionChar == 'F' || regionChar == 'S' ||
+                        regionChar == 'I' || regionChar == 'H' || regionChar == 'U' || regionChar == 'X' ||
+                        regionChar == 'Y' || regionChar == 'Z' || regionChar == 'R')
+                    {
+                        return "Europe";
+                    }
+                }
+            }
+
+            var langTokens = ExtractLanguageTokens(languages, rawName);
+            if (langTokens.Count > 0)
+            {
+                if (langTokens.All(l => AsianLanguageTokens.Contains(l)))
+                {
+                    return "Japan";
+                }
+
+                if (!langTokens.Contains("EN", StringComparer.OrdinalIgnoreCase) &&
+                    langTokens.All(l => EuropeanNonEnglishLanguageTokens.Contains(l)))
+                {
+                    return "Europe";
+                }
+            }
+
+            return "World";
+        }
+
+        public static string EnsureGeographicRegionTag(string rawName, string fallbackTitle, string regionLabel)
+        {
+            var candidate = !string.IsNullOrWhiteSpace(rawName) ? rawName.Trim() : fallbackTitle?.Trim();
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return string.Empty;
+            }
+
+            if (GeographicRegionTagRegex.IsMatch(candidate))
+            {
+                return candidate;
+            }
+
+            var effectiveRegion = string.IsNullOrWhiteSpace(regionLabel) ? "World" : regionLabel.Trim();
+            var openParenIndex = candidate.IndexOf('(');
+            if (openParenIndex > 0)
+            {
+                var prefix = candidate.Substring(0, openParenIndex).TrimEnd();
+                var suffix = candidate.Substring(openParenIndex).TrimStart();
+                return $"{prefix} ({effectiveRegion}) {suffix}";
+            }
+
+            return $"{candidate} ({effectiveRegion})";
+        }
+
+        private static List<string> ExtractLanguageTokens(string languages, string rawName)
+        {
+            var list = new List<string>();
+            if (!string.IsNullOrWhiteSpace(languages))
+            {
+                foreach (var part in languages.Split(new[] { ',', ';', '/', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var trimmed = part.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed))
+                    {
+                        list.Add(trimmed.ToUpperInvariant());
+                    }
+                }
+            }
+
+            if (list.Count == 0 && !string.IsNullOrWhiteSpace(rawName))
+            {
+                var match = TrailingLanguageTagRegex.Match(rawName);
+                if (match.Success)
+                {
+                    foreach (var part in match.Groups["langs"].Value.Split(new[] { ',', '+' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var trimmed = part.Trim();
+                        if (!string.IsNullOrWhiteSpace(trimmed))
+                        {
+                            list.Add(trimmed.ToUpperInvariant());
+                        }
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        private static string NormalizeTitleArticle(string title)
+        {
+            return RomParser.NormalizeTitleArticle(title);
+        }
+
+        public static string CleanSceneReleaseTitle(string releaseName)
+        {
+            if (string.IsNullOrWhiteSpace(releaseName))
+            {
+                return string.Empty;
+            }
+
+            var clean = releaseName.Trim();
+            var ext = Path.GetExtension(clean);
+            if (!string.IsNullOrWhiteSpace(ext) && Regex.IsMatch(ext, @"^\.[A-Za-z0-9]{1,5}$"))
+            {
+                clean = Path.GetFileNameWithoutExtension(clean);
+            }
+
+            clean = Regex.Replace(clean, @"-[A-Za-z0-9_]+$", string.Empty);
+            clean = Regex.Replace(clean, @"[._-](?:NSW|SWITCH|NINTENDO[._-]SWITCH|INTERNAL)(?=[._-]|$)", string.Empty, RegexOptions.IgnoreCase);
+            clean = clean.Replace('_', ' ').Replace('.', ' ');
+            clean = Regex.Replace(clean, @"\b(?:USA|EUR|JPN|JAP|ASIA|WORLD|NSW|GLOBAL|MULTI\d*)\b", string.Empty, RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"\bv?\d+(?:\.\d+)+\b", string.Empty, RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"\([^\)]*\)|\[[^\]]*\]", " ");
+            clean = Regex.Replace(clean, @"\s+", " ").Trim();
+
+            return clean;
+        }
+
+        private static string StripParentheses(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return string.Empty;
+            }
+
+            var stripped = Regex.Replace(name, @"\([^\)]*\)|\[[^\]]*\]", " ").Trim();
+            stripped = Regex.Replace(stripped, @"\s+", " ");
+            return stripped;
+        }
+
+        public static string ExtractBaseTitle(string title, string finaleType = null)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var clean = title;
+            if (!string.IsNullOrWhiteSpace(finaleType) &&
+                !string.Equals(finaleType, "Retail (v1.0)", StringComparison.OrdinalIgnoreCase) &&
+                clean.EndsWith($"({finaleType})", StringComparison.OrdinalIgnoreCase))
+            {
+                clean = clean.Substring(0, clean.Length - finaleType.Length - 2).Trim();
+            }
+
+            var parenIdx = clean.IndexOf(" (", StringComparison.Ordinal);
+            var bracketIdx = clean.IndexOf(" [", StringComparison.Ordinal);
+            var cutIdx = -1;
+            if (parenIdx > 0 && bracketIdx > 0)
+            {
+                cutIdx = Math.Min(parenIdx, bracketIdx);
+            }
+            else if (parenIdx > 0)
+            {
+                cutIdx = parenIdx;
+            }
+            else if (bracketIdx > 0)
+            {
+                cutIdx = bracketIdx;
+            }
+
+            if (cutIdx > 0)
+            {
+                clean = clean.Substring(0, cutIdx).Trim();
+            }
+
+            clean = DiscTagRegex.Replace(clean, string.Empty).Trim(' ', '-', ':');
+            return clean;
+        }
+
+        private static string CleanResidualRevisions(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = ResidualRevisionRegex.Replace(title, string.Empty).Trim();
+            cleaned = RomParser.CleanIndexPrefix(cleaned);
+            return cleaned.Trim().TrimStart('-', ':', '.', '\'', '"', '!');
+        }
+
+        private static string StripArticle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = title.Trim();
+            if (trimmed.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed.Substring(4).Trim();
+            }
+
+            if (trimmed.StartsWith("A ", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed.Substring(2).Trim();
+            }
+
+            if (trimmed.StartsWith("An ", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed.Substring(3).Trim();
+            }
+
+            return trimmed;
+        }
+
+        private List<GameCatalogEntry> SearchGamesCatalog(string rawQuery, string normalizedQuery, string[] queryTokens)
+        {
+            var candidates = new List<Tuple<GameCatalogEntry, int>>();
+
+            foreach (var game in BuiltInGames.Where(g => g.IsLatestRevision))
+            {
+                var score = ScoreGameMatch(game, rawQuery, normalizedQuery, queryTokens);
+                if (score > 0)
+                {
+                    candidates.Add(Tuple.Create(game, score));
+                }
+            }
+
+            foreach (var dynGame in DynamicGames.Values.Where(g => g.IsLatestRevision))
+            {
+                var score = ScoreGameMatch(dynGame, rawQuery, normalizedQuery, queryTokens);
+                if (score > 0 && candidates.All(c => c.Item1.TvdbId != dynGame.TvdbId))
+                {
+                    candidates.Add(Tuple.Create(dynGame, score));
+                }
+            }
+
+            try
+            {
+                var datMatches = _datCacheService?.SearchByName(rawQuery, 40);
+                if (datMatches != null)
+                {
+                    foreach (var datEntry in datMatches)
+                    {
+                        var converted = ConvertDatEntryToGameCatalogEntry(datEntry);
+                        if (converted != null && candidates.All(c => !string.Equals(c.Item1.NoIntroName, converted.NoIntroName, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            DynamicGames[converted.TvdbId] = converted;
+                            candidates.Add(Tuple.Create(converted, 85));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Skipping local DAT search fallback during catalog lookup.");
+            }
+
+            return candidates
+                .OrderByDescending(c => c.Item2)
+                .ThenBy(c => c.Item1.ReleaseYear)
+                .ThenBy(c => c.Item1.Title)
+                .Select(c => c.Item1)
+                .Take(50)
+                .ToList();
+        }
+
+        private static int ScorePlatformMatch(PlatformCatalogEntry platform, string rawQuery, string normalizedQuery, string[] queryTokens)
+        {
+            var normName = NormalizeSearchText(platform.Name);
+            var normShort = NormalizeSearchText(platform.ShortName);
+            var normSlug = NormalizeSearchText(platform.Slug);
+            var normMfg = NormalizeSearchText(platform.Manufacturer);
+
+            if (string.Equals(normName, normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normShort, normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normSlug, normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
+                platform.Aliases.Any(a => string.Equals(NormalizeSearchText(a), normalizedQuery, StringComparison.OrdinalIgnoreCase)))
+            {
+                return 100;
+            }
+
+            if (normName.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
+                platform.Aliases.Any(a => NormalizeSearchText(a).Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase)))
+            {
+                return 85;
+            }
+
+            if (string.Equals(normMfg, normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                return 80;
+            }
+
+            if (queryTokens.Length > 0 && queryTokens.All(t =>
+                normName.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                normShort.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                normMfg.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                platform.Aliases.Any(a => NormalizeSearchText(a).Contains(t, StringComparison.OrdinalIgnoreCase))))
+            {
+                return 70;
+            }
+
+            return 0;
+        }
+
+        private static int ScoreGameMatch(GameCatalogEntry game, string rawQuery, string normalizedQuery, string[] queryTokens)
+        {
+            var normTitle = NormalizeSearchText(game.Title);
+            var normNoIntro = NormalizeSearchText(game.NoIntroName);
+            var normPlatform = NormalizeSearchText(game.PlatformName);
+            var normShortPlatform = NormalizeSearchText(game.PlatformShortName);
+            var normSlug = NormalizeSearchText(game.PlatformSlug);
+
+            if (string.Equals(normTitle, normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normNoIntro, normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                return 100;
+            }
+
+            if (normTitle.StartsWith(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                return 92;
+            }
+
+            if (normTitle.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase) ||
+                normNoIntro.Contains(normalizedQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                return 85;
+            }
+
+            var platformAliases = BuiltInPlatforms
+                .FirstOrDefault(p => string.Equals(p.Slug, game.PlatformSlug, StringComparison.OrdinalIgnoreCase))
+                ?.Aliases ?? new List<string>();
+            var normAliases = string.Join(" ", platformAliases.Select(NormalizeSearchText));
+
+            var combinedSearchable = $"{normTitle} {normNoIntro} {normPlatform} {normShortPlatform} {normSlug} {normAliases}";
+            if (queryTokens.Length > 0 && queryTokens.All(t => combinedSearchable.Contains(t, StringComparison.OrdinalIgnoreCase)))
+            {
+                var titleTokenMatches = queryTokens.Count(t => normTitle.Contains(t, StringComparison.OrdinalIgnoreCase));
+                if (titleTokenMatches > 0)
+                {
+                    return 65 + (titleTokenMatches * 5);
+                }
+            }
+
+            return 0;
+        }
+
+        private Series MapPlatformToSeries(PlatformCatalogEntry platform)
+        {
+            var seasons = BuildDefaultRegions();
+            var firstAired = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var consoleImageUrl = $"/Content/Images/Consoles/{platform.Slug}.png";
+            var images = new List<MediaCover.MediaCover>
+            {
+                new MediaCover.MediaCover(MediaCoverTypes.Poster, consoleImageUrl)
+                {
+                    RemoteUrl = consoleImageUrl
+                }
+            };
+
+            return new Series
+            {
+                TvdbId = platform.TvdbId,
+                Title = platform.Name,
+                CleanTitle = platform.Name.CleanSeriesTitle(),
+                SortTitle = SeriesTitleNormalizer.Normalize(platform.Name, platform.TvdbId),
+                TitleSlug = platform.Slug,
+                Overview = platform.Overview,
+                Year = platform.ReleaseYear,
+                FirstAired = firstAired,
+                Network = $"{platform.Manufacturer} (Platform)",
+                Status = SeriesStatusType.Continuing,
+                SeriesType = SeriesTypes.Standard,
+                Runtime = 0,
+                Monitored = true,
+                SeasonFolder = true,
+                PreferredArchiveFormat = "auto",
+                OriginalLanguage = Language.English,
+                Genres = new List<string> { "Platform", platform.Manufacturer },
+                Ratings = new Ratings { Votes = 500, Value = 9.5m },
+                Seasons = seasons,
+                Images = images
+            };
+        }
+
+        private Series MapGameToLookupSeries(GameCatalogEntry game)
+        {
+            var seasons = BuildDefaultRegions();
+            foreach (var season in seasons)
+            {
+                season.Monitored = season.SeasonNumber == game.RegionNumber;
+            }
+
+            var displayTitle = $"{game.Title} [{game.PlatformShortName}]";
+            var images = new List<MediaCover.MediaCover>();
+
+            if (!string.IsNullOrWhiteSpace(game.PosterUrl))
+            {
+                images.Add(new MediaCover.MediaCover(MediaCoverTypes.Poster, game.PosterUrl)
+                {
+                    RemoteUrl = game.PosterUrl
+                });
+            }
+
+            return new Series
+            {
+                TvdbId = game.TvdbId,
+                Title = displayTitle,
+                CleanTitle = game.Title.CleanSeriesTitle(),
+                SortTitle = SeriesTitleNormalizer.Normalize(displayTitle, game.TvdbId),
+                TitleSlug = $"{game.PlatformSlug}-{Parser.Parser.CleanSeriesTitle(game.Title)}-{game.TvdbId}",
+                Overview = $"{game.Overview} — Adding this game will automatically configure the {game.PlatformName} platform (if not already in your library) and monitor '{game.Title}' under {game.RegionName}.",
+                Year = game.ReleaseYear,
+                FirstAired = game.FirstAired,
+                Network = $"{game.PlatformName} • {game.RegionName} • {game.VerificationSource}",
+                Status = SeriesStatusType.Ended,
+                SeriesType = SeriesTypes.Standard,
+                Runtime = 0,
+                Monitored = true,
+                SeasonFolder = true,
+                PreferredArchiveFormat = "auto",
+                OriginalLanguage = Language.English,
+                Genres = new List<string> { "Game", game.PlatformShortName, game.RegionName, game.VerificationSource },
+                Ratings = new Ratings { Votes = 250, Value = 9.2m },
+                Seasons = seasons,
+                Images = images
+            };
+        }
+
+        private static List<Season> BuildDefaultRegions()
+        {
+            return new List<Season>
+            {
+                new Season { SeasonNumber = RegionUnlicensed, Title = "Unlicensed", Monitored = false },
+                new Season { SeasonNumber = RegionUsa, Title = "USA", Monitored = true },
+                new Season { SeasonNumber = RegionEurope, Title = "Europe", Monitored = true },
+                new Season { SeasonNumber = RegionJapan, Title = "Japan", Monitored = true },
+                new Season { SeasonNumber = RegionWorld, Title = "World", Monitored = true },
+                new Season { SeasonNumber = RegionHomebrew, Title = "Homebrew", Monitored = false },
+                new Season { SeasonNumber = RegionRomHacks, Title = "ROM Hacks", Monitored = false },
+                new Season { SeasonNumber = RegionTestAndUtilities, Title = "Test & Utilities", Monitored = false },
+                new Season { SeasonNumber = RegionMagazinesAndBooks, Title = "Magazines & Books", Monitored = false }
+            };
+        }
+
+        private GameCatalogEntry ConvertDatEntryToGameCatalogEntry(DatEntry datEntry)
+        {
+            if (datEntry == null)
+            {
+                return null;
+            }
+
+            var rawName = !string.IsNullOrWhiteSpace(datEntry.GameName) ? datEntry.GameName : datEntry.RomName;
+            if (string.IsNullOrWhiteSpace(rawName))
+            {
+                return null;
+            }
+
+            var platform = InferPlatformFromText($"{datEntry.SmdbPath} {datEntry.RomName}") ?? BuiltInPlatforms.First(p => p.Slug == "snes");
+            var sourceLabel = "No-Intro / Redump DAT";
+            if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
+            {
+                var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (smdbParts.Any(IsRomHackSmdbSegment))
+                {
+                    sourceLabel = "ROM Hacks & Translations";
+                }
+                else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
+                {
+                    sourceLabel = "Homebrew & Aftermarket";
+                }
+                else if (smdbParts.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
+                                           s.Contains("Bootleg", StringComparison.OrdinalIgnoreCase)))
+                {
+                    sourceLabel = "Unlicensed";
+                }
+            }
+
+            var entry = CreateCatalogEntryFromNoIntroName(platform, rawName, platform.ReleaseYear, sourceLabel);
+            if (entry != null)
+            {
+                entry.ExpectedCrc32 = datEntry.Crc32;
+                entry.ExpectedMd5 = datEntry.Md5;
+                entry.ExpectedSha1 = datEntry.Sha1;
+                entry.ExpectedSha256 = datEntry.Sha256;
+            }
+
+            return entry;
+        }
+
+        private static PlatformCatalogEntry InferPlatformFromText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var normalized = NormalizeSearchText(text);
+            var padded = $" {normalized} ";
+            var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            var candidates = BuiltInPlatforms
+                .SelectMany(platform =>
+                    new[] { platform.Name, platform.LibretroSystemName, platform.Slug, platform.ShortName }
+                        .Concat(platform.Aliases ?? Enumerable.Empty<string>())
+                        .Where(label => !string.IsNullOrWhiteSpace(label))
+                        .Select(label => (Platform: platform, NormalizedLabel: NormalizeSearchText(label))))
+                .Where(x => !string.IsNullOrWhiteSpace(x.NormalizedLabel))
+                .OrderByDescending(x => x.NormalizedLabel.Length);
+
+            foreach (var candidate in candidates)
+            {
+                if (candidate.NormalizedLabel.Contains(' '))
+                {
+                    if (padded.Contains($" {candidate.NormalizedLabel} ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return candidate.Platform;
+                    }
+                }
+                else if (tokens.Any(t => string.Equals(t, candidate.NormalizedLabel, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return candidate.Platform;
+                }
+            }
+
+            return null;
+        }
+
+        public static string GetRegionDisplayName(int seasonNumber)
+        {
+            return seasonNumber switch
+            {
+                RegionUsa => "USA",
+                RegionEurope => "Europe",
+                RegionJapan => "Japan",
+                RegionWorld => "World",
+                RegionUnlicensed => "Unlicensed",
+                RegionRomHacks => "ROM Hacks & Translations",
+                RegionHomebrew => "Homebrew & Aftermarket",
+                RegionTestAndUtilities => "Test & Utilities",
+                RegionMagazinesAndBooks => "Magazines & Books",
+                _ => $"Region {seasonNumber}"
+            };
+        }
+
+        public static int GetRegionPriority(int seasonNumber)
+        {
+            return seasonNumber switch
+            {
+                RegionUsa => 1,
+                RegionEurope => 2,
+                RegionJapan => 3,
+                RegionWorld => 4,
+                _ => 10 + seasonNumber
+            };
+        }
+
+        private static int ComputeDeterministicGameId(string platformSlug, string title)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var ch in $"{platformSlug}:{title}".ToLowerInvariant())
+                {
+                    hash = (hash * 31) + ch;
+                }
+
+                return 200000 + (Math.Abs(hash) % 700000);
+            }
+        }
+
+        private static string NormalizeSearchText(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
+
+            var replaced = input
+                .Replace("é", "e", StringComparison.OrdinalIgnoreCase)
+                .Replace("É", "e", StringComparison.OrdinalIgnoreCase)
+                .Replace("-", " ", StringComparison.Ordinal)
+                .Replace(":", " ", StringComparison.Ordinal)
+                .Replace("'", string.Empty, StringComparison.Ordinal)
+                .Replace(".", " ", StringComparison.Ordinal)
+                .Replace("&", " and ", StringComparison.Ordinal);
+
+            return string.Join(" ", replaced.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+        }
+
+        private static string BuildLibretroBoxartUrl(string libretroSystem, string noIntroName)
+        {
+            if (string.IsNullOrWhiteSpace(libretroSystem) || string.IsNullOrWhiteSpace(noIntroName))
+            {
+                return null;
+            }
+
+            var safeName = noIntroName.Replace("&", "_").Replace("/", "_").Replace(":", "_");
+            return $"https://thumbnails.libretro.com/{Uri.EscapeDataString(libretroSystem)}/Named_Boxarts/{Uri.EscapeDataString(safeName)}.png";
+        }
+
+        public static string GetRegionFolderName(int regionNumber)
+        {
+            return regionNumber switch
+            {
+                RegionUnlicensed => "Unlicensed",
+                RegionUsa => "USA",
+                RegionEurope => "Europe",
+                RegionJapan => "Japan",
+                RegionWorld => "World",
+                RegionHomebrew => "Homebrew",
+                RegionRomHacks => "ROM Hacks",
+                RegionTestAndUtilities => "Test & Utilities",
+                RegionMagazinesAndBooks => "Magazines & Books",
+                RegionBios => "BIOS",
+                _ => "USA"
+            };
+        }
+
+        public static string ResolveCanonicalRegionFolderForRom(string relativeOrFullPath, string fileName)
+        {
+            var effectiveFileName = !string.IsNullOrWhiteSpace(fileName)
+                ? fileName
+                : Path.GetFileName(relativeOrFullPath ?? string.Empty);
+
+            if (!string.IsNullOrWhiteSpace(effectiveFileName) &&
+                (effectiveFileName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
+                 RegionHelper.IsBios(effectiveFileName, null, null, relativeOrFullPath)))
+            {
+                return "BIOS";
+            }
+
+            if (!string.IsNullOrWhiteSpace(relativeOrFullPath))
+            {
+                var segments = relativeOrFullPath
+                    .Replace('\\', '/')
+                    .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+                if (segments.Any(s => s.Equals("BIOS", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return "BIOS";
+                }
+            }
+
+            var noIntroBase = Path.GetFileNameWithoutExtension(effectiveFileName ?? string.Empty);
+            var parsed = RomParser.ParseRomName(effectiveFileName ?? string.Empty);
+            var regionNumber = ClassifyRegionAndCategory(noIntroBase, parsed, relativeOrFullPath);
+
+            return GetRegionFolderName(regionNumber);
+        }
+
+        public static string GetPlatformOverview(string slug, int tvdbId = 0)
+        {
+            var entry = BuiltInPlatforms.FirstOrDefault(p =>
+                (tvdbId > 0 && p.TvdbId == tvdbId) ||
+                (!string.IsNullOrWhiteSpace(slug) && string.Equals(p.Slug, slug.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+            return entry?.Overview;
+        }
+
+        private static List<PlatformCatalogEntry> BuildPlatforms()
+        {
+            return new List<PlatformCatalogEntry>
+            {
+                CreatePlatform(
+                    1001,
+                    "Nintendo Entertainment System",
+                    "NES",
+                    "nes",
+                    "Nintendo",
+                    1985,
+                    "Nintendo - Nintendo Entertainment System",
+                    "Super Mario Bros. 3 (USA)",
+                    new[] { "NES", "Famicom", "FC", "Nintendo NES" },
+                    new[] { ".nes", ".unf", ".zip", ".7z" },
+                    "Nintendo's landmark 8-bit home console (released in Japan as the Family Computer in 1983 and North America in 1985) revitalized the video game industry. Powered by the Ricoh 2A03 processor and custom cartridge mapper chips (MMC1–MMC5), it introduced foundational franchises including Super Mario Bros., The Legend of Zelda, Metroid, Castlevania, and Mega Man."),
+                CreatePlatform(
+                    1002,
+                    "Nintendo Famicom Disk System",
+                    "FDS",
+                    "fds",
+                    "Nintendo",
+                    1986,
+                    "Nintendo - Family Computer Disk System",
+                    "Zelda no Densetsu - The Hyrule Fantasy (Japan)",
+                    new[] { "FDS", "Disk System" },
+                    new[] { ".fds", ".zip", ".7z" },
+                    "Released exclusively in Japan in 1986 as a peripheral for the Family Computer, the Famicom Disk System used proprietary Quick Disk media with 112 KB of rewritable storage and an extra wavetable audio channel. It debuted The Legend of Zelda, Metroid, Kid Icarus, and Super Mario Bros.: The Lost Levels with native save functionality andDisk Writer kiosk support."),
+                CreatePlatform(
+                    1003,
+                    "Super Nintendo Entertainment System",
+                    "SNES",
+                    "snes",
+                    "Nintendo",
+                    1990,
+                    "Nintendo - Super Nintendo Entertainment System",
+                    "Super Mario World (USA)",
+                    new[] { "SNES", "Super NES", "Super Nintendo", "Super Famicom", "SFC" },
+                    new[] { ".sfc", ".smc", ".zip", ".7z" },
+                    "Nintendo's 16-bit flagship console (known as the Super Famicom in Japan) defined an era of pixel art and orchestral chip music via its Ricoh 5A22 CPU, Mode 7 affine background scaling, and Sony SPC700 8-channel ADPCM sound processor. Enhancement chips like the Super FX and SA-1 powered classics such as Super Mario World, Chrono Trigger, Super Metroid, and Star Fox."),
+                CreatePlatform(
+                    1004,
+                    "Nintendo Satellaview",
+                    "BS-X",
+                    "satellaview",
+                    "Nintendo",
+                    1995,
+                    "Nintendo - Satellaview",
+                    "BS Zelda no Densetsu (Japan)",
+                    new[] { "BSX", "BS-X" },
+                    new[] { ".bs", ".sfc", ".zip" },
+                    "A satellite modem peripheral for the Japanese Super Famicom operated by Nintendo and St.GIGA between 1995 and 2000. Players tuned into live 'SoundLink' broadcasts through the BS-X town hub to download episodic remakes and exclusives such as BS Zelda no Densetsu, Radical Dreamers, and BS F-Zero Grand Prix onto rewritable 8M Memory Packs."),
+                CreatePlatform(
+                    1005,
+                    "Nintendo 64",
+                    "N64",
+                    "n64",
+                    "Nintendo",
+                    1996,
+                    "Nintendo - Nintendo 64",
+                    "Super Mario 64 (USA)",
+                    new[] { "N64", "Ultra 64" },
+                    new[] { ".z64", ".n64", ".v64", ".zip", ".7z" },
+                    "Engineered with Silicon Graphics around a 64-bit NEC VR4300 CPU and Reality Coprocessor, the Nintendo 64 pioneered 3D camera control, analog thumbstick movement, force-feedback Rumble Pak peripherals, and four-player built-in multiplayer. Its cartridge library features all-time classics including Super Mario 64, The Legend of Zelda: Ocarina of Time, and GoldenEye 007."),
+                CreatePlatform(
+                    1006,
+                    "Nintendo 64DD",
+                    "64DD",
+                    "64dd",
+                    "Nintendo",
+                    1999,
+                    "Nintendo - Nintendo 64DD",
+                    "F-Zero X Expansion Kit (Japan)",
+                    new[] { "N64DD" },
+                    new[] { ".ndd", ".zip" },
+                    "A magnetic disk drive attachment for the Nintendo 64 released in Japan in 1999 using 64 MB rewritable magneto-optical disks and a built-in real-time clock. Celebrated by preservationists for creative suites and expansions like the Mario Artist series, Doshin the Giant, SimCity 64, and the F-Zero X Expansion Kit."),
+                CreatePlatform(
+                    1007,
+                    "Nintendo GameCube",
+                    "GCN",
+                    "gamecube",
+                    "Nintendo",
+                    2001,
+                    "Nintendo - GameCube",
+                    "Super Smash Bros. Melee (USA)",
+                    new[] { "GCN", "NGC", "Nintendo GameCube" },
+                    new[] { ".rvz", ".iso", ".gcm", ".ciso" },
+                    "Nintendo's sixth-generation compact console combined an IBM PowerPC 'Gekko' processor and ATI 'Flipper' GPU with 1.5 GB miniDVD optical discs and the iconic WaveBird wireless controller. Home to Super Smash Bros. Melee, Metroid Prime, The Legend of Zelda: The Wind Waker, and Luigi's Mansion."),
+                CreatePlatform(
+                    1008,
+                    "Nintendo Wii",
+                    "Wii",
+                    "wii",
+                    "Nintendo",
+                    2006,
+                    "Nintendo - Wii",
+                    "Super Mario Galaxy (USA)",
+                    new[] { "Nintendo Wii", "RVL" },
+                    new[] { ".rvz", ".wbfs", ".iso" },
+                    "Revolutionizing home gaming with the motion-sensing Wii Remote and Nunchuk, the Nintendo Wii brought accessible multiplayer and innovative 3D design to over 100 million households while maintaining full hardware backward compatibility with the GameCube. Highlights include Super Mario Galaxy, Wii Sports, Xenoblade Chronicles, and Metroid Prime Trilogy."),
+                CreatePlatform(
+                    1009,
+                    "Nintendo Game Boy",
+                    "GB",
+                    "gb",
+                    "Nintendo",
+                    1989,
+                    "Nintendo - Game Boy",
+                    "Tetris (World) (Rev A)",
+                    new[] { "GB", "GameBoy", "DMG" },
+                    new[] { ".gb", ".zip", ".7z" },
+                    "Designed by Gunpei Yokoi and Nintendo R&D1, the original dot-matrix Game Boy (DMG-01) paired a Sharp LR35902 8-bit processor and four-shade reflective LCD with legendary battery life. Bundled with Tetris and later igniting the global Pokémon phenomenon, it established portable gaming as a cornerstone of the medium."),
+                CreatePlatform(
+                    1010,
+                    "Nintendo Game Boy Color",
+                    "GBC",
+                    "gbc",
+                    "Nintendo",
+                    1998,
+                    "Nintendo - Game Boy Color",
+                    "Pokemon - Crystal Version (USA, Europe)",
+                    new[] { "GBC", "GameBoy Color", "CGB" },
+                    new[] { ".gbc", ".zip", ".7z" },
+                    "Doubling the clock speed and memory of the original Game Boy while adding a 56-color simultaneous palette from 32,768 colors and an infrared communications port, the Game Boy Color bridged Nintendo's 8-bit handheld era with titles like Pokémon Gold, Silver & Crystal, The Legend of Zelda: Oracle of Ages & Seasons, and Shantae."),
+                CreatePlatform(
+                    1011,
+                    "Nintendo Game Boy Advance",
+                    "GBA",
+                    "gba",
+                    "Nintendo",
+                    2001,
+                    "Nintendo - Game Boy Advance",
+                    "Pokemon - Emerald Version (USA, Europe)",
+                    new[] { "GBA", "GameBoy Advance", "AGB" },
+                    new[] { ".gba", ".zip", ".7z" },
+                    "Powered by a 32-bit ARM7TDMI processor alongside a Z80 coprocessor for backward compatibility, the Game Boy Advance delivered supercharged 2D sprite scaling and affine effects in the palm of your hand. Its library represents a golden age of 2D craftsmanship including Metroid Fusion, Castlevania: Aria of Sorrow, Pokémon Emerald, and Mother 3."),
+                CreatePlatform(
+                    1012,
+                    "Nintendo DS",
+                    "NDS",
+                    "nds",
+                    "Nintendo",
+                    2004,
+                    "Nintendo - Nintendo DS",
+                    "Pokemon - HeartGold Version (USA)",
+                    new[] { "NDS", "DS", "Nintendo DSi" },
+                    new[] { ".nds", ".zip", ".7z" },
+                    "Featuring a clamshell dual-screen layout with a resistive lower touchscreen, built-in microphone, and IEEE 802.11 wireless connectivity, the Nintendo DS became the best-selling handheld console in history. Its diverse library spans Pokémon HeartGold & SoulSilver, Mario Kart DS, The World Ends with You, and Chrono Trigger."),
+                CreatePlatform(
+                    1013,
+                    "Nintendo 3DS",
+                    "3DS",
+                    "3ds",
+                    "Nintendo",
+                    2011,
+                    "Nintendo - Nintendo 3DS",
+                    "Pokemon X (USA)",
+                    new[] { "3DS", "N3DS", "New 3DS" },
+                    new[] { ".3ds", ".cia", ".cci", ".zip" },
+                    "Nintendo's glasses-free autostereoscopic 3D handheld introduced the Circle Pad, StreetPass/SpotPass social connectivity, and a custom PICA200 GPU. Its catalog blends landmark first-party entries and RPGs such as The Legend of Zelda: A Link Between Worlds, Fire Emblem: Awakening, Super Mario 3D Land, and Pokémon X & Y."),
+                CreatePlatform(
+                    1014,
+                    "Nintendo Switch",
+                    "Switch",
+                    "switch",
+                    "Nintendo",
+                    2017,
+                    "Nintendo - Switch",
+                    "Pokemon Legends - Arceus (World)",
+                    new[] { "Switch", "NSW", "NX" },
+                    new[] { ".nsp", ".xci", ".nsz" },
+                    "Combining home console dock output with portable handheld play and detachable Joy-Con controllers around a custom NVIDIA Tegra processor, the Nintendo Switch unified Nintendo's console and portable software pipelines. Acclaimed for The Legend of Zelda: Breath of the Wild, Super Mario Odyssey, Metroid Dread, and Super Smash Bros. Ultimate."),
+                CreatePlatform(
+                    1015,
+                    "Sega Genesis",
+                    "Genesis",
+                    "genesis",
+                    "Sega",
+                    1988,
+                    "Sega - Mega Drive - Genesis",
+                    "Sonic The Hedgehog 2 (World)",
+                    new[] { "Genesis", "Mega Drive", "MD", "Sega Mega Drive" },
+                    new[] { ".md", ".gen", ".bin", ".zip", ".7z" },
+                    "Known internationally as the Mega Drive, Sega's 16-bit powerhouse paired a 7.6 MHz Motorola 68000 CPU and Zilog Z80 sound controller with the unmistakable grit of the Yamaha YM2612 FM synthesizer. Famous for 'Blast Processing' speed, arcade conversions, Sonic the Hedgehog, Streets of Rage 2, Gunstar Heroes, and Phantasy Star IV."),
+                CreatePlatform(
+                    1016,
+                    "Sega CD",
+                    "Sega CD",
+                    "segacd",
+                    "Sega",
+                    1991,
+                    "Sega - Mega-CD - Sega CD",
+                    "Sonic CD (USA)",
+                    new[] { "Sega CD", "Mega CD", "Mega-CD", "SCD" },
+                    new[] { ".chd", ".cue", ".bin", ".iso" },
+                    "Sega's CD-ROM expansion for the Genesis / Mega Drive added a faster 12.5 MHz Motorola 68000 coprocessor, hardware sprite scaling and rotation, Red Book CD audio, and 8-channel Ricoh PCM sound. Best known for Sonic CD, Snatcher, Lunar: Eternal Blue, Final Fight CD, and Popful Mail."),
+                CreatePlatform(
+                    1017,
+                    "Sega 32X",
+                    "32X",
+                    "32x",
+                    "Sega",
+                    1994,
+                    "Sega - 32X",
+                    "Knuckles' Chaotix (Japan, USA)",
+                    new[] { "32X", "Super 32X" },
+                    new[] { ".32x", ".zip", ".7z" },
+                    "Codenamed Project Mars, the Sega 32X cartridge add-on upgraded the Genesis with dual 32-bit Hitachi SH-2 RISC processors, a 32,768-color palette, and PWM digital audio. Though short-lived, it delivered standout 32-bit arcade ports including Virtua Racing Deluxe, Star Wars Arcade, Doom, and Knuckles' Chaotix."),
+                CreatePlatform(
+                    1018,
+                    "Sega Saturn",
+                    "Saturn",
+                    "saturn",
+                    "Sega",
+                    1994,
+                    "Sega - Saturn",
+                    "Nights into Dreams... (USA)",
+                    new[] { "Saturn", "SS" },
+                    new[] { ".chd", ".cue", ".bin", ".iso" },
+                    "Engineered with a complex dual-SH-2 CPU and dual-VDP video architecture alongside RAM expansion cartridge slot support, the Sega Saturn became an unmatched powerhouse for 2D fighting games, shoot-'em-ups, and distinctive 3D classics like Panzer Dragoon Saga, Radiant Silvergun, Nights into Dreams, and Saturn Bomberman."),
+                CreatePlatform(
+                    1019,
+                    "Sega Dreamcast",
+                    "Dreamcast",
+                    "dreamcast",
+                    "Sega",
+                    1998,
+                    "Sega - Dreamcast",
+                    "Sonic Adventure (USA)",
+                    new[] { "Dreamcast", "DC" },
+                    new[] { ".chd", ".gdi", ".cdi", ".cue" },
+                    "Sega's final home console was ahead of its time, introducing a built-in modem for online play, 1 GB GD-ROM optical discs, 480p VGA crispness via its Hitachi SH-4 CPU and PowerVR2 GPU, and the interactive Visual Memory Unit (VMU). Beloved for Soulcalibur, Jet Set Radio, Shenmue, Phantasy Star Online, and Marvel vs. Capcom 2."),
+                CreatePlatform(
+                    1020,
+                    "NEC TurboGrafx-16",
+                    "TG16",
+                    "tg16",
+                    "NEC",
+                    1987,
+                    "NEC - PC Engine - TurboGrafx 16",
+                    "Bonk's Adventure (USA)",
+                    new[] { "TG16", "PC Engine", "PCE", "TurboGrafx" },
+                    new[] { ".pce", ".sgx", ".zip", ".7z" },
+                    "Co-developed by Hudson Soft and NEC (released in Japan as the PC Engine), the TurboGrafx-16 combined an efficient 8-bit HuC6280 CPU with dual 16-bit graphics processors and credit-card-sized HuCard ROM media. Celebrated for its vibrant color palettes and legendary scrolling shooters like Blazing Lazers, R-Type, Soldier Blade, and Bonk's Adventure."),
+                CreatePlatform(
+                    1021,
+                    "NEC TurboGrafx-CD",
+                    "TG-CD",
+                    "tgcd",
+                    "NEC",
+                    1988,
+                    "NEC - PC Engine CD - TurboGrafx-CD",
+                    "Akumajou Dracula X - Chi no Rondo (Japan)",
+                    new[] { "TGCD", "PC Engine CD", "PCECD" },
+                    new[] { ".chd", ".cue", ".bin" },
+                    "The world's first CD-ROM video game console peripheral (later integrated into the TurboDuo and PC Engine Duo), evolving across System Card 1.0, 2.0, 3.0, and Arcade Card RAM upgrades. Home to Castlevania: Rondo of Blood, Ys Book I & II, Lords of Thunder, and Gate of Thunder."),
+                CreatePlatform(
+                    1022,
+                    "Sony PlayStation",
+                    "PS1",
+                    "ps1",
+                    "Sony",
+                    1994,
+                    "Sony - PlayStation",
+                    "Castlevania - Symphony of the Night (USA)",
+                    new[] { "PS1", "PSX", "PSOne", "Sony PlayStation" },
+                    new[] { ".chd", ".pbp", ".cue", ".bin", ".iso" },
+                    "Sony's debut home console ushered in the 3D CD-ROM revolution with its 32-bit MIPS R3000A CPU, Geometry Transformation Engine, and DualShock analog controller. Becoming the first console to ship 100 million units, it hosted Final Fantasy VII, Metal Gear Solid, Castlevania: Symphony of the Night, Gran Turismo, and Resident Evil 2."),
+                CreatePlatform(
+                    1023,
+                    "Sony PlayStation 2",
+                    "PS2",
+                    "ps2",
+                    "Sony",
+                    2000,
+                    "Sony - PlayStation 2",
+                    "Shadow of the Colossus (USA)",
+                    new[] { "PS2", "Sony PlayStation 2" },
+                    new[] { ".chd", ".iso", ".cso", ".bin" },
+                    "Powered by the custom 128-bit 'Emotion Engine' CPU, 'Graphics Synthesizer' GPU, and DVD-ROM drive with hardware PS1 backward compatibility, the PlayStation 2 stands as the best-selling home console in gaming history. Its vast catalog spans Shadow of the Colossus, Metal Gear Solid 3: Snake Eater, God of War II, Final Fantasy X, and Silent Hill 2."),
+                CreatePlatform(
+                    1024,
+                    "Sony PlayStation Portable",
+                    "PSP",
+                    "psp",
+                    "Sony",
+                    2004,
+                    "Sony - PlayStation Portable",
+                    "Crisis Core - Final Fantasy VII (USA)",
+                    new[] { "PSP", "Sony PSP" },
+                    new[] { ".iso", ".cso", ".pbp", ".chd" },
+                    "Sony's first handheld system brought console-grade 3D graphics to a 4.3-inch widescreen LCD using Universal Media Disc (UMD) optical media and Memory Stick PRO Duo storage. Standout releases include Crisis Core: Final Fantasy VII, Monster Hunter Freedom Unite, Metal Gear Solid: Peace Walker, God of War: Ghost of Sparta, and Tactics Ogre."),
+                CreatePlatform(
+                    1025,
+                    "Atari Jaguar CD",
+                    "Jaguar CD",
+                    "jaguarcd",
+                    "Atari",
+                    1995,
+                    "Atari - Jaguar CD",
+                    "Tempest 2000 (USA)",
+                    new[] { "Atari Jaguar CD" },
+                    new[] { ".chd", ".cue", ".bin" },
+                    "Atari's top-mounted 2x CD-ROM attachment for the Atari Jaguar featured a built-in cartridge pass-through port, Jeff Minter's Virtual Light Machine (VLM) audio-visual synthesizer, and Memory Track save cartridge support for titles such as Battlemorph, Primal Rage, and Myst."),
+                CreatePlatform(
+                    1026,
+                    "Nintendo Wii U",
+                    "Wii U",
+                    "wiiu",
+                    "Nintendo",
+                    2012,
+                    "Nintendo - Wii U",
+                    "Mario Kart 8 (USA)",
+                    new[] { "WiiU", "Nintendo Wii U" },
+                    new[] { ".wua", ".wux", ".wud", ".rpx" },
+                    "Nintendo's first high-definition console introduced asymmetric second-screen gameplay and off-TV streaming via the Wii U GamePad tablet controller. Its first-party library laid the groundwork for the modern era with Mario Kart 8, Splatoon, Super Mario Maker, Xenoblade Chronicles X, and The Legend of Zelda: The Wind Waker HD."),
+                CreatePlatform(
+                    1027,
+                    "Nintendo Virtual Boy",
+                    "VB",
+                    "vb",
+                    "Nintendo",
+                    1995,
+                    "Nintendo - Virtual Boy",
+                    "Virtual Boy Wario Land (Japan, USA)",
+                    new[] { "VB" },
+                    new[] { ".vb", ".zip" },
+                    "Gunpei Yokoi's tabletop 32-bit stereoscopic 3D system used oscillating dual red LED linear arrays and a dual-D-pad controller to render true parallax depth around an NEC V810 RISC processor. Though only 22 official titles were released, Virtual Boy Wario Land, Jack Bros., and Galactic Pinball remain cult favorites."),
+                CreatePlatform(
+                    1028,
+                    "Sega Master System",
+                    "SMS",
+                    "sms",
+                    "Sega",
+                    1985,
+                    "Sega - Master System - Mark III",
+                    "Phantasy Star (USA, Europe)",
+                    new[] { "SMS", "Master System", "Mark III" },
+                    new[] { ".sms", ".zip", ".7z" },
+                    "Evolved from the Japanese Sega Mark III, the 8-bit Master System boasted a Zilog Z80 CPU, rich color hardware, both Sega Card and Mega Cartridge slots, and optional FM Synthesis audio (YM2413). A massive hit across Europe and Brazil, it debuted Phantasy Star, Alex Kidd in Miracle World, Wonder Boy III: The Dragon's Trap, and Master of Darkness."),
+                CreatePlatform(
+                    1029,
+                    "Sega Game Gear",
+                    "GG",
+                    "gg",
+                    "Sega",
+                    1990,
+                    "Sega - Game Gear",
+                    "Sonic The Hedgehog (World)",
+                    new[] { "GG", "Game Gear" },
+                    new[] { ".gg", ".zip", ".7z" },
+                    "Sega's full-color backlit 8-bit handheld shared core architecture with the Master System while expanding the color palette to 4,096 colors in a comfortable landscape grip. Its portable library includes Shinobi, Sonic Chaos, Defenders of Oasis, Ristar, and Tails Adventure."),
+                CreatePlatform(
+                    1030,
+                    "Sony PlayStation 3",
+                    "PS3",
+                    "ps3",
+                    "Sony",
+                    2006,
+                    "Sony - PlayStation 3",
+                    "Demon's Souls (USA)",
+                    new[] { "PS3", "Sony PlayStation 3" },
+                    new[] { ".iso", ".pkg" },
+                    "Built around the multi-core Cell Broadband Engine, NVIDIA RSX 'Reality Synthesizer' GPU, and high-capacity Blu-ray Disc drive, the PlayStation 3 ushered Sony into the HD era and free PlayStation Network online play. Iconic titles include The Last of Us, Demon's Souls, Metal Gear Solid 4: Guns of the Patriots, and Uncharted 2: Among Thieves."),
+                CreatePlatform(
+                    1031,
+                    "Sony PlayStation Vita",
+                    "PS Vita",
+                    "psvita",
+                    "Sony",
+                    2011,
+                    "Sony - PlayStation Vita",
+                    "Persona 4 Golden (USA)",
+                    new[] { "Vita", "PSV", "PS Vita" },
+                    new[] { ".vpk", ".zip" },
+                    "Featuring a vibrant 5-inch OLED display (on original PCH-1000 models), dual analog sticks, front touchscreen, and rear touchpad powered by a quad-core ARM Cortex-A9 CPU, the PlayStation Vita became a beloved haven for JRPGs and indie classics led by Persona 4 Golden, Gravity Rush, Tearaway, and Uncharted: Golden Abyss."),
+                CreatePlatform(
+                    1032,
+                    "Microsoft Xbox",
+                    "Xbox",
+                    "xbox",
+                    "Microsoft",
+                    2001,
+                    "Microsoft - Xbox",
+                    "Halo - Combat Evolved (USA)",
+                    new[] { "Original Xbox", "OG Xbox" },
+                    new[] { ".iso", ".xiso" },
+                    "Microsoft's debut sixth-generation console brought PC-class architecture to the living room with a 733 MHz Intel Pentium III CPU, custom NVIDIA NV2A GPU, built-in internal hard drive for save data and custom soundtracks, and broadband Ethernet for Xbox Live. Home to Halo: Combat Evolved, Ninja Gaiden Black, Panzer Dragoon Orta, and Star Wars: Knights of the Old Republic."),
+                CreatePlatform(
+                    1033,
+                    "Microsoft Xbox 360",
+                    "Xbox 360",
+                    "xbox360",
+                    "Microsoft",
+                    2005,
+                    "Microsoft - Xbox 360",
+                    "Halo 3 (USA)",
+                    new[] { "X360", "360" },
+                    new[] { ".iso", ".xex", ".god" },
+                    "Powered by a triple-core IBM PowerPC 'Xenon' CPU and ATI 'Xenos' GPU with unified shaders, the Xbox 360 defined modern online multiplayer, Achievements, and digital indie distribution via Xbox Live Arcade. Its acclaim spans Halo 3, Gears of War, Forza Horizon, Lost Odyssey, and Red Dead Redemption."),
+                CreatePlatform(
+                    1034,
+                    "Atari 2600",
+                    "2600",
+                    "atari2600",
+                    "Atari",
+                    1977,
+                    "Atari - 2600",
+                    "Pitfall! - Pitfall Harry's Jungle Adventure (USA)",
+                    new[] { "2600", "VCS" },
+                    new[] { ".a26", ".bin", ".zip" },
+                    "Originally launched in 1977 as the Atari Video Computer System (VCS), the Atari 2600 popularized microprocessor-based ROM cartridges and the iconic single-button CX40 joystick. With just 128 bytes of RAM on its MOS 6507/TIA chipset, developers crafted enduring classics like Pitfall!, Adventure, Yars' Revenge, River Raid, and Space Invaders."),
+                CreatePlatform(
+                    1035,
+                    "Atari 7800",
+                    "7800",
+                    "atari7800",
+                    "Atari",
+                    1986,
+                    "Atari - 7800",
+                    "Food Fight (USA)",
+                    new[] { "7800" },
+                    new[] { ".a78", ".bin", ".zip" },
+                    "Designed by General Computer Corporation with full hardware backward compatibility for Atari 2600 cartridges, the Atari 7800 ProSystem used its custom MARIA graphics chip to move dozens of colorful sprites simultaneously without flicker in arcade hits like Food Fight, Centipede, Ballblazer, and Ninja Golf."),
+                CreatePlatform(
+                    1036,
+                    "Atari Lynx",
+                    "Lynx",
+                    "lynx",
+                    "Atari",
+                    1989,
+                    "Atari - Lynx",
+                    "California Games (USA, Europe)",
+                    new[] { "Lynx" },
+                    new[] { ".lnx", ".zip" },
+                    "Originally engineered by Epyx as the 'Handy', the Atari Lynx was the world's first handheld console with a color backlit LCD, hardware sprite scaling and distortion, ambidextrous flip-screen play, and up to 17-player ComLynx networking. Highlights include California Games, Chip's Challenge, Todd's Adventures in Slime World, and Blue Lightning."),
+                CreatePlatform(
+                    1037,
+                    "Atari Jaguar",
+                    "Jaguar",
+                    "jaguar",
+                    "Atari",
+                    1993,
+                    "Atari - Jaguar",
+                    "Alien vs Predator (World)",
+                    new[] { "Jaguar" },
+                    new[] { ".j64", ".jag", ".zip" },
+                    "Marketed as the first 64-bit home console, the Atari Jaguar utilized a multi-chip architecture featuring the custom 'Tom' and 'Jerry' RISC processors alongside a Motorola 68000 controller. Its library is headlined by Jeff Minter's Tempest 2000, Rebellion's Alien vs Predator, Rayman, and Iron Soldier."),
+                CreatePlatform(
+                    1038,
+                    "SNK Neo Geo",
+                    "Neo Geo",
+                    "neogeo",
+                    "SNK",
+                    1990,
+                    "SNK - Neo Geo",
+                    "Metal Slug 3 (World)",
+                    new[] { "AES", "MVS", "Neo-Geo", "NGCD" },
+                    new[] { ".zip", ".7z", ".neo", ".chd" },
+                    "SNK's legendary 24-bit arcade and home console platform (spanning MVS arcade cabinets, AES home cartridges, and Neo Geo CD) paired a Motorola 68000 CPU and Z80 audio processor with massive multi-hundred-megabit ROM cartridges. Revered for peerless 2D pixel art in Metal Slug, The King of Fighters '98, Garou: Mark of the Wolves, and Samurai Shodown II."),
+                CreatePlatform(
+                    1039,
+                    "SNK Neo Geo Pocket Color",
+                    "NGPC",
+                    "ngpc",
+                    "SNK",
+                    1999,
+                    "SNK - Neo Geo Pocket Color",
+                    "SNK vs. Capcom - The Match of the Millennium (World)",
+                    new[] { "NGPC", "NGP" },
+                    new[] { ".ngc", ".ngp", ".zip" },
+                    "SNK's 16-bit color handheld (powered by a Toshiba TLCS-900/H CPU) is celebrated for its crisp reflective screen, 40-hour battery life, and tactile microswitch 8-way thumbstick. Its compact library boasts masterpieces like SNK vs. Capcom: The Match of the Millennium, Sonic the Hedgehog Pocket Adventure, and Metal Slug: 1st & 2nd Mission."),
+                CreatePlatform(
+                    1040,
+                    "Bandai WonderSwan Color",
+                    "WSC",
+                    "wonderswan",
+                    "Bandai",
+                    2000,
+                    "Bandai - WonderSwan Color",
+                    "Final Fantasy (Japan)",
+                    new[] { "WonderSwan", "WSC", "WS" },
+                    new[] { ".wsc", ".ws", ".zip" },
+                    "Conceived by Game Boy creator Gunpei Yokoi's company Koto Laboratory and published by Bandai in Japan, the WonderSwan and WonderSwan Color feature dual directional button layouts for both horizontal and vertical play on a single AA battery. Famous for Squaresoft's remakes of Final Fantasy I, II, and IV, Judgement Silversword, and Gunpey."),
+                CreatePlatform(
+                    1041,
+                    "3DO Interactive Multiplayer",
+                    "3DO",
+                    "3do",
+                    "The 3DO Company",
+                    1993,
+                    "The 3DO Company - 3DO",
+                    "Road Rash (USA)",
+                    new[] { "3DO", "3DO Interactive Multiplayer", "The 3DO Company - 3DO" },
+                    new[] { ".chd", ".iso", ".cue", ".bin" },
+                    "Conceived by EA founder Trip Hawkins and licensed to Panasonic, Sanyo, and GoldStar, the 3DO Interactive Multiplayer brought 32-bit CD-ROM gaming into living rooms in 1993. Remembered for Road Rash, Star Control II, Need for Speed, and Return Fire."),
+                CreatePlatform(
+                    1042,
+                    "Atari 5200",
+                    "5200",
+                    "atari5200",
+                    "Atari",
+                    1982,
+                    "Atari - 5200",
+                    "Missile Command (USA)",
+                    new[] { "Atari 5200", "A5200", "5200" },
+                    new[] { ".a52", ".bin", ".zip" },
+                    "Atari's 1982 SuperSystem adapted the Atari 400/800 home computer architecture into a dedicated home console with enhanced ANTIC/GTIA graphics and four-port analog controllers. Notable for faithful arcade ports including Star Raiders, Missile Command, and Berzerk."),
+                CreatePlatform(
+                    1043,
+                    "ColecoVision",
+                    "ColecoVision",
+                    "colecovision",
+                    "Coleco",
+                    1982,
+                    "Coleco - ColecoVision",
+                    "Donkey Kong (USA, Europe)",
+                    new[] { "ColecoVision", "Coleco" },
+                    new[] { ".col", ".rom", ".bin", ".zip" },
+                    "Powered by a Zilog Z80A CPU and Texas Instruments TMS9918A video chip, ColecoVision delivered near-arcade-quality visuals in 1982 with its iconic Donkey Kong pack-in, Expansion Module #1 Atari 2600 adapter, and hits like Zaxxon and Smurf: Rescue in Gargamel's Castle."),
+                CreatePlatform(
+                    1044,
+                    "Mattel Intellivision",
+                    "Intellivision",
+                    "intellivision",
+                    "Mattel",
+                    1979,
+                    "Mattel - Intellivision",
+                    "Astrosmash (USA, Europe)",
+                    new[] { "Intellivision", "Mattel Intellivision", "INTV" },
+                    new[] { ".int", ".rom", ".bin", ".zip" },
+                    "Mattel's 16-bit Intellivision pioneered realistic sports simulations, voice synthesis with the Intellivoice module, and deep strategy titles like Utopia, Tron: Deadly Discs, and Advanced Dungeons & Dragons."),
+                CreatePlatform(
+                    1045,
+                    "GCE Vectrex",
+                    "Vectrex",
+                    "vectrex",
+                    "GCE",
+                    1982,
+                    "GCE - Vectrex",
+                    "Mine Storm (World)",
+                    new[] { "Vectrex", "GCE Vectrex" },
+                    new[] { ".vec", ".gam", ".bin", ".zip" },
+                    "The only home console with a built-in monochrome vector CRT monitor, the GCE Vectrex rendered razor-sharp glowing vector graphics without pixelation, complete with translucent color screen overlays and built-in Mine Storm."),
+                CreatePlatform(
+                    1046,
+                    "NEC PC-FX",
+                    "PC-FX",
+                    "pcfx",
+                    "NEC",
+                    1994,
+                    "NEC - PC-FX",
+                    "Team Innocent - The Point of No Return (Japan)",
+                    new[] { "PC-FX", "NEC PC-FX" },
+                    new[] { ".chd", ".cue", ".ccd", ".iso" },
+                    "NEC's 32-bit CD-ROM successor to the PC Engine/TurboGrafx-16 featured a tower-PC form factor and hardware Motion JPEG playback for full-motion video RPGs, visual novels, and shooters like Zenki FX and Chip-Chan Kick!."),
+                CreatePlatform(
+                    1047,
+                    "Nintendo Pokemon Mini",
+                    "Pokemon Mini",
+                    "pokemonmini",
+                    "Nintendo",
+                    2001,
+                    "Nintendo - Pokemon Mini",
+                    "Pokemon Party Mini (USA)",
+                    new[] { "Pokemon Mini", "Pokemini" },
+                    new[] { ".min", ".zip" },
+                    "Nintendo's ultra-compact handheld cartridge system—smaller than a deck of cards—featured a monochrome LCD, built-in rumble, real-time clock, shock sensor, and infrared link for bite-sized Pokemon minigames."),
+                CreatePlatform(
+                    1048,
+                    "Magnavox Odyssey 2",
+                    "Odyssey 2",
+                    "odyssey2",
+                    "Magnavox",
+                    1978,
+                    "Magnavox - Odyssey2",
+                    "K.C. Munchkin! (USA)",
+                    new[] { "Odyssey 2", "Magnavox Odyssey 2", "Odyssey2", "Videopac" },
+                    new[] { ".bin", ".o2", ".zip" },
+                    "Known as the Philips Videopac G7000 in Europe, the Magnavox Odyssey 2 paired a full alphanumeric membrane keyboard with cartridge gaming and optional The Voice speech synthesis for classics like K.C. Munchkin! and Quest for the Rings."),
+                CreatePlatform(
+                    1049,
+                    "Fairchild Channel F",
+                    "Channel F",
+                    "channelf",
+                    "Fairchild",
+                    1976,
+                    "Fairchild - Channel F",
+                    "Videocart-01 - Tic-Tac-Toe + Shooting Gallery + Doodle + Quadra-Doodle (USA)",
+                    new[] { "Channel F", "Fairchild Channel F" },
+                    new[] { ".chf", ".bin", ".zip" },
+                    "Released in 1976 as the first programmable ROM cartridge video game console, the Fairchild Channel F introduced the pause button, microprocessor-driven AI, and 8-way twistable joystick controllers."),
+                CreatePlatform(
+                    1050,
+                    "Philips CD-i",
+                    "CD-i",
+                    "cdi",
+                    "Philips",
+                    1991,
+                    "Philips - CD-i",
+                    "Hotel Mario (USA)",
+                    new[] { "CD-i", "Philips CD-i", "CDi" },
+                    new[] { ".chd", ".cue", ".iso", ".bin" },
+                    "Philips' interactive multimedia CD player gained cult fame in gaming history for its full-motion video titles and licensed Nintendo collaborations including Hotel Mario, Link: The Faces of Evil, and Zelda: The Wand of Gamelon."),
+                CreatePlatform(
+                    1051,
+                    "Nintendo WiiWare",
+                    "WiiWare",
+                    "wiiware",
+                    "Nintendo",
+                    2008,
+                    "Nintendo - Wii (Digital)",
+                    "Cave Story (USA) (WiiWare)",
+                    new[] { "WiiWare", "Wii eShop", "Nintendo WiiWare", "Wii Shop Channel" },
+                    new[] { ".wad", ".zip" },
+                    "Nintendo's Wii Shop Channel digital storefront delivered original downloadable WiiWare games and Virtual Console classics directly to the Wii's internal storage, featuring highlights such as Cave Story, World of Goo, LostWinds, and Mega Man 9."),
+                CreatePlatform(
+                    1052,
+                    "Nintendo Wii U eShop",
+                    "Wii U eShop",
+                    "wiiueshop",
+                    "Nintendo",
+                    2012,
+                    "Nintendo - Wii U (Digital)",
+                    "Fast Racing NEO (USA) (eShop)",
+                    new[] { "Wii U eShop", "WiiU eShop", "Nintendo Wii U eShop", "Wii U Digital" },
+                    new[] { ".wua", ".wux", ".wud", ".rpx", ".zip" },
+                    "The Nintendo Wii U eShop offered digital-only indie and first-party releases alongside Virtual Console titles, highlighted by Fast Racing NEO, Pullblox World, NES Remix, and Shovel Knight."),
+                CreatePlatform(
+                    1053,
+                    "Nintendo DSi Shop",
+                    "DSiWare",
+                    "dsiware",
+                    "Nintendo",
+                    2008,
+                    "Nintendo - Nintendo DSi",
+                    "Shantae - Risky's Revenge (USA) (DSiWare)",
+                    new[] { "DSiWare", "DSi Shop", "Nintendo DSi Shop", "Nintendo DSiWare" },
+                    new[] { ".nds", ".dsi", ".zip", ".7z" },
+                    "Nintendo's DSiWare storefront brought downloadable bite-sized and full-featured experiences to the Nintendo DSi and 3DS family, including Shantae: Risky's Revenge, Mario vs. Donkey Kong: Minis March Again!, and Boxlife."),
+                CreatePlatform(
+                    1054,
+                    "Nintendo 3DS eShop",
+                    "3DS eShop",
+                    "3dseshop",
+                    "Nintendo",
+                    2011,
+                    "Nintendo - Nintendo 3DS (Digital)",
+                    "Pushmo (USA) (eShop)",
+                    new[] { "3DS eShop", "Nintendo 3DS eShop", "3DS Digital", "eShop 3DS" },
+                    new[] { ".cia", ".3ds", ".cci", ".zip" },
+                    "The Nintendo 3DS eShop hosted hundreds of digital-exclusive games, 3D Classics, and indie standouts such as Pushmo, BoxBoy!, Attack of the Friday Monsters!, and SteamWorld Dig."),
+                CreatePlatform(
+                    1055,
+                    "Nintendo Switch eShop",
+                    "Switch eShop",
+                    "switcheshop",
+                    "Nintendo",
+                    2017,
+                    "Nintendo - Switch",
+                    "Golf Story (World) (eShop)",
+                    new[] { "Switch eShop", "Nintendo Switch eShop", "NSW eShop", "Switch Digital" },
+                    new[] { ".nsp", ".nsz" },
+                    "The Nintendo Switch eShop serves as Nintendo's digital marketplace for Switch, featuring digital-first indie darlings and eShop exclusives including Golf Story, Tetris 99, Snipperclips, and Baba Is You.")
+            };
+        }
+
+        private static PlatformCatalogEntry CreatePlatform(
+            int tvdbId,
+            string name,
+            string shortName,
+            string slug,
+            string manufacturer,
+            int year,
+            string libretroSystem,
+            string representativeBoxart,
+            string[] aliases,
+            string[] extensions,
+            string overview = null)
+        {
+            return new PlatformCatalogEntry
+            {
+                TvdbId = tvdbId,
+                Name = name,
+                ShortName = shortName,
+                Slug = slug,
+                Manufacturer = manufacturer,
+                ReleaseYear = year,
+                LibretroSystemName = libretroSystem,
+                RepresentativeBoxartName = representativeBoxart,
+                Overview = !string.IsNullOrWhiteSpace(overview) ? overview : $"{manufacturer} hardware platform ({year}).",
+                Aliases = aliases.ToList(),
+                Extensions = extensions.ToList()
+            };
+        }
+
+        private static List<GameCatalogEntry> BuildGames()
+        {
+            var games = new List<GameCatalogEntry>();
+            var id = 100001;
+
+            void Add(string slug, string noIntroName, int year, string summary, string source = "No-Intro")
+            {
+                var platform = BuiltInPlatforms.First(p => p.Slug == slug);
+                var isDualEncryptionPlatform = slug == "nds" || slug == "3ds";
+                var effectiveSource = isDualEncryptionPlatform && source == "No-Intro" ? "No-Intro (Decrypted)" : source;
+                var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, year, effectiveSource, summary);
+                if (entry != null)
+                {
+                    entry.TvdbId = id++;
+                    games.Add(entry);
+                }
+
+                if (isDualEncryptionPlatform && !noIntroName.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase))
+                {
+                    var encryptedEntry = CreateCatalogEntryFromNoIntroName(
+                        platform,
+                        $"{noIntroName} (Encrypted)",
+                        year,
+                        "No-Intro (Encrypted)",
+                        $"{summary} (Encrypted ROM dump)");
+
+                    if (encryptedEntry != null)
+                    {
+                        encryptedEntry.TvdbId = id++;
+                        games.Add(encryptedEntry);
+                    }
+                }
+            }
+
+            // Pokémon Series (GB, GBC, GBA, N64, GCN, NDS, 3DS, Switch)
+            Add("gb", "Pokemon - Red Version (USA, Europe)", 1998, "Begin your journey in the Kanto region to catch all 151 original Pokemon and defeat the Elite Four.");
+            Add("gb", "Pokemon - Blue Version (USA, Europe)", 1998, "Classic Kanto RPG adventure featuring version-exclusive Pokemon and link cable trading.");
+            Add("gb", "Pokemon - Yellow Version - Special Pikachu Edition (USA, Europe)", 1999, "Travel across Kanto with Pikachu following right behind you and obtain Bulbasaur, Charmander, and Squirtle.");
+            Add("gb", "Pocket Monsters - Aka (Japan)", 1996, "Original Japanese release of Pocket Monsters Red Version for Game Boy.");
+            Add("gb", "Pocket Monsters - Aka (Japan) (Rev A)", 1996, "Revised Japanese release of Pocket Monsters Red Version for Game Boy.");
+            Add("gb", "Pocket Monsters - Midori (Japan)", 1996, "Original Japanese release of Pocket Monsters Green Version for Game Boy.");
+            Add("gb", "Pokemon - Brown Version (USA) (Hack)", 2014, "Acclaimed full-scale Game Boy ROM hack by Koolboyman set in the Rijon region with new Pokemon, types, and Gym Badges.", "SmokeMonster HTGDB / SMDB");
+            Add("gbc", "Pokemon - Gold Version (USA, Europe)", 2000, "Explore the Johto and Kanto regions, discover 100 new Pokemon, and encounter the legendary Ho-Oh.");
+            Add("gbc", "Pokemon - Silver Version (USA, Europe)", 2000, "Journey through Johto with a real-time clock, day/night cycle, and the legendary Lugia.");
+            Add("gbc", "Pokemon - Crystal Version (USA, Europe)", 2001, "Initial retail release of Pokemon Crystal featuring Suicune and the Battle Tower.");
+            Add("gbc", "Pokemon - Crystal Version (USA, Europe) (Rev A)", 2001, "Updated revision (Rev A / v1.1) of Pokemon Crystal Version.");
+            Add("gbc", "Pokemon Trading Card Game (USA, Australia)", 2000, "Collect cards, build decks, and defeat the eight Club Masters to inherit the Legendary Pokemon Cards.");
+            Add("gbc", "Pokemon Pinball (USA, Australia)", 1999, "Catch 'em all on Red and Blue pinball tables with built-in Rumble Pak support.");
+            Add("gbc", "Pokemon Puzzle Challenge (USA, Australia)", 2000, "Fast-paced puzzle action set in the Johto region based on Panel de Pon.");
+            Add("gbc", "Pokemon Prism (USA) (Hack)", 2016, "Acclaimed full-scale GBC ROM hack set in the Naljo region.", "HTGDB / SMDB");
+            Add("gba", "Pokemon - Emerald Version (USA, Europe)", 2005, "Definitive Hoenn adventure featuring Rayquaza, both Team Magma and Team Aqua, and the Battle Frontier.");
+            Add("gba", "Pokemon - FireRed Version (USA, Europe)", 2004, "Initial retail release (v1.0) of Pokemon FireRed Version.");
+            Add("gba", "Pokemon - FireRed Version (USA, Europe) (Rev 1)", 2004, "Updated retail revision (Rev 1 / v1.1) of Pokemon FireRed Version.");
+            Add("gba", "Pokemon - LeafGreen Version (USA, Europe)", 2004, "Initial retail release (v1.0) of Pokemon LeafGreen Version.");
+            Add("gba", "Pokemon - LeafGreen Version (USA, Europe) (Rev 1)", 2004, "Updated retail revision (Rev 1 / v1.1) of Pokemon LeafGreen Version.");
+            Add("gba", "Pokemon - Ruby Version (USA)", 2003, "Initial retail release of Pokemon Ruby Version in Hoenn.");
+            Add("gba", "Pokemon - Ruby Version (USA, Europe) (Rev 2)", 2004, "Latest retail revision (Rev 2 / v1.2) of Pokemon Ruby Version with RTC Berry glitch fix.");
+            Add("gba", "Pokemon - Sapphire Version (USA)", 2003, "Initial retail release of Pokemon Sapphire Version in Hoenn.");
+            Add("gba", "Pokemon - Sapphire Version (USA, Europe) (Rev 2)", 2004, "Latest retail revision (Rev 2 / v1.2) of Pokemon Sapphire Version with RTC Berry glitch fix.");
+            Add("gba", "Pokemon Mystery Dungeon - Red Rescue Team (USA, Australia)", 2006, "Wake up transformed into a Pokemon and form a rescue team to explore shifting mystery dungeons.");
+            Add("gba", "Pokemon Pinball - Ruby & Sapphire (USA)", 2003, "Capture over 200 Hoenn Pokemon across Ruby and Sapphire pinball tables.");
+            Add("gba", "Pokemon Unbound (USA) (Hack)", 2022, "Feature-packed GBA ROM hack set in the Borrius region.", "HTGDB / SMDB");
+            Add("n64", "Pokemon Stadium (USA)", 2000, "Initial retail release of Pokemon Stadium for Nintendo 64.");
+            Add("n64", "Pokemon Stadium (USA) (Rev 2)", 2000, "Latest retail revision (Rev 2) of Pokemon Stadium.");
+            Add("n64", "Pokemon Stadium 2 (USA)", 2001, "3D tournament battles supporting all 251 Generation I and II Pokemon plus Earl's Pokemon Academy.");
+            Add("n64", "Pokemon Snap (USA)", 1999, "Ride the ZERO-ONE across Pokemon Island and photograph wild Pokemon in their natural habitats.");
+            Add("n64", "Pokemon Puzzle League (USA)", 2000, "Fast-paced 2D and 3D puzzle battles starring Ash Ketchum and the Indigo Plateau Masters.");
+            Add("gamecube", "Pokemon Colosseum (USA)", 2004, "Explore the Orre region and snag Shadow Pokemon to purify their hearts in full 3D Double Battles.", "Redump");
+            Add("gamecube", "Pokemon XD - Gale of Darkness (USA)", 2005, "Return to the Orre region to confront Cipher and rescue Shadow Lugia (XD001).", "Redump");
+            Add("nds", "Pokemon - Platinum Version (USA)", 2009, "Initial retail release of Pokemon Platinum Version.");
+            Add("nds", "Pokemon - Platinum Version (USA) (Rev 1)", 2009, "Latest retail revision (Rev 1) of Pokemon Platinum Version.");
+            Add("nds", "Pokemon - HeartGold Version (USA)", 2010, "DS remake of Pokemon Gold featuring Johto & Kanto, walking partner Pokemon, and Pokewalker support.");
+            Add("nds", "Pokemon - SoulSilver Version (USA)", 2010, "DS remake of Pokemon Silver featuring Lugia, walking partner Pokemon, and 16 Gym Badges.");
+            Add("nds", "Pokemon - Diamond Version (USA, Europe) (Rev 5)", 2007, "Journey across the Sinnoh region, battle Team Galactic, and encounter the temporal Pokemon Dialga.");
+            Add("nds", "Pokemon - Pearl Version (USA, Europe) (Rev 5)", 2007, "Journey across the Sinnoh region, battle Team Galactic, and encounter the spatial Pokemon Palkia.");
+            Add("nds", "Pokemon - Black Version (USA, Europe)", 2011, "Explore the Unova region with 156 brand-new Pokemon and confront Team Plasma and Reshiram.");
+            Add("nds", "Pokemon - White Version (USA, Europe)", 2011, "Explore the Unova region, White Forest, and encounter the legendary Pokemon Zekrom.");
+            Add("nds", "Pokemon - Black Version 2 (USA, Europe)", 2012, "Direct sequel set two years later in Unova featuring Black Kyurem and the Pokemon World Tournament.");
+            Add("nds", "Pokemon - White Version 2 (USA, Europe)", 2012, "Direct sequel set two years later in Unova featuring White Kyurem and the Pokemon World Tournament.");
+            Add("nds", "Pokemon Mystery Dungeon - Explorers of Sky (USA)", 2009, "Expanded edition of Explorers of Time & Darkness with Special Episodes and additional starter Pokemon.");
+            Add("nds", "Pokemon Conquest (USA)", 2012, "Tactical turn-based strategy crossover between Pokemon and Nobunaga's Ambition in the Ransei region.");
+            Add("3ds", "Pokemon X (USA)", 2013, "First full 3D main-series adventure set in the Kalos region introducing Mega Evolution and Xerneas.");
+            Add("3ds", "Pokemon Y (USA)", 2013, "Explore the Kalos region, master Mega Evolution, and encounter the Destruction Pokemon Yveltal.");
+            Add("3ds", "Pokemon Omega Ruby (USA)", 2014, "3DS reimagining of Pokemon Ruby featuring Primal Groudon, Mega Evolution, and Soaring in the sky.");
+            Add("3ds", "Pokemon Alpha Sapphire (USA)", 2014, "3DS reimagining of Pokemon Sapphire featuring Primal Kyogre, Mega Evolution, and the Delta Episode.");
+            Add("3ds", "Pokemon Sun (USA)", 2016, "Explore the tropical Alola region with legendary Solgaleo and regional Alolan variants.");
+            Add("3ds", "Pokemon Moon (USA)", 2016, "Explore the tropical Alola region with legendary Lunala and island challenge trials.");
+            Add("3ds", "Pokemon Ultra Sun (USA)", 2017, "Expanded Alola adventure featuring Dusk Mane Necrozma, Ultra Wormholes, and Team Rainbow Rocket.");
+            Add("3ds", "Pokemon Ultra Moon (USA)", 2017, "Expanded Alola adventure featuring Dawn Wings Necrozma, Ultra Wormholes, and Team Rainbow Rocket.");
+            Add("switch", "Pokemon Legends - Arceus (World)", 2022, "Action-RPG set in the ancient Hisui region where you survey wild Pokemon to create the first Pokedex.");
+            Add("switch", "Pokemon Sword (World)", 2019, "Explore the Galar region, challenge Dynamax Gym Leaders, and encounter the legendary Zacian.");
+            Add("switch", "Pokemon Shield (World)", 2019, "Explore the Galar region, Wild Area, and encounter the legendary Zamazenta.");
+            Add("switch", "Pokemon Scarlet (World)", 2022, "Open-world adventure across the Paldea region with Terastal phenomenon and Koraidon.");
+            Add("switch", "Pokemon Violet (World)", 2022, "Open-world adventure across the Paldea region with Terastal phenomenon and Miraidon.");
+
+            // NES (Expanded Retail, Revisions, Europe, Japan, Homebrew, Hacks, Unlicensed)
+            Add("nes", "Super Mario Bros. (World)", 1985, "Side-scrolling platformer masterpiece where Mario and Luigi rescue Princess Toadstool from Bowser.");
+            Add("nes", "Super Mario Bros. (Europe) (Rev A)", 1987, "PAL European release of Super Mario Bros.");
+            Add("nes", "Super Mario Bros. 2 (USA)", 1988, "Initial USA retail release of Super Mario Bros. 2 set in Subcon.");
+            Add("nes", "Super Mario Bros. 2 (USA) (Rev A)", 1988, "Latest retail revision (Rev A) of Super Mario Bros. 2.");
+            Add("nes", "Super Mario Bros. 3 (USA)", 1990, "Initial USA retail release (PRG0) of Super Mario Bros. 3.");
+            Add("nes", "Super Mario Bros. 3 (USA) (Rev A)", 1990, "Updated USA retail revision (Rev A / PRG1) of Super Mario Bros. 3.");
+            Add("nes", "Super Mario Bros. 3 (Europe)", 1991, "European PAL release of Super Mario Bros. 3.");
+            Add("nes", "Super Mario Bros. 3 (Japan) (Rev A)", 1988, "Japanese Famicom release of Super Mario Bros. 3.");
+            Add("nes", "Super Mario Bros. (Japan)", 1985, "Original Japanese Nintendo Family Computer (Famicom) cartridge release of Super Mario Bros.");
+            Add("nes", "Dragon Quest (Japan)", 1986, "Original Japanese Famicom release of Dragon Quest.");
+            Add("nes", "Final Fantasy III (Japan)", 1990, "Classic Famicom RPG introducing the job-change system.");
+            Add("nes", "Fire Emblem - Ankoku Ryuu to Hikari no Tsurugi (Japan)", 1990, "Inaugural Famicom tactical RPG starring Prince Marth.");
+            Add("nes", "Mother (Japan)", 1989, "Shigesato Itoi's original Japanese Famicom RPG.");
+            Add("nes", "Legend of Zelda, The (USA)", 1987, "Initial USA release (PRG0) of The Legend of Zelda.");
+            Add("nes", "Legend of Zelda, The (USA) (Rev A)", 1987, "Updated USA revision (Rev A / PRG1) of The Legend of Zelda with TM screen & bug fixes.");
+            Add("nes", "Legend of Zelda, The (Europe) (Rev A)", 1987, "European PAL release of The Legend of Zelda.");
+            Add("nes", "Zelda II - The Adventure of Link (USA)", 1988, "Action-RPG sequel featuring side-scrolling combat, magic spells, and the Triforce of Courage.");
+            Add("nes", "Metroid (USA)", 1987, "Non-linear sci-fi exploration on Planet Zebes as bounty hunter Samus Aran battles Mother Brain.");
+            Add("nes", "Metroid (Europe)", 1988, "European PAL release of Metroid.");
+            Add("nes", "Mega Man (USA)", 1987, "Battle Dr. Wily's six original Robot Masters including Cut Man, Elec Man, and Guts Man.");
+            Add("nes", "Mega Man 2 (USA)", 1989, "Battle eight Robot Masters including Metal Man and Quick Man before storming Dr. Wily's fortress.");
+            Add("nes", "Mega Man 3 (USA)", 1990, "Introduces Proto Man, Rush the robotic dog, and the slide maneuver.");
+            Add("nes", "Mega Man 4 (USA)", 1992, "Introduces the Mega Buster charge shot against Dr. Cossack's Robot Masters.");
+            Add("nes", "Mega Man 4 (USA) (Rev A)", 1992, "Updated retail revision (Rev A) of Mega Man 4.");
+            Add("nes", "Mega Man 5 (USA)", 1992, "Battle Proto Man's army of Robot Masters and collect the BEAT letters.");
+            Add("nes", "Mega Man 6 (USA)", 1994, "Global Robot Master tournament featuring Rush Jet and Power Armor adapters.");
+            Add("nes", "Castlevania (USA)", 1987, "Initial USA release (PRG0) of Castlevania.");
+            Add("nes", "Castlevania (USA) (Rev A)", 1987, "Updated USA revision (Rev A / PRG1) of Castlevania fixing late-game crash bugs.");
+            Add("nes", "Castlevania II - Simon's Quest (USA)", 1988, "Non-linear RPG-platformer with day-to-night cycle as Simon lifts Dracula's curse.");
+            Add("nes", "Castlevania III - Dracula's Curse (USA)", 1990, "Branching-path gothic platformer starring Trevor Belmont, Sypha, Grant, and Alucard.");
+            Add("nes", "Akumajou Densetsu (Japan)", 1989, "Japanese Famicom release of Castlevania III featuring the VRC6 expansion audio chip.");
+            Add("nes", "Contra (USA)", 1988, "Run-and-gun co-op action classic featuring the Spread Gun and the Konami Code.");
+            Add("nes", "Super C (USA)", 1990, "Explosive NES sequel to Contra featuring overhead and side-scrolling stages.");
+            Add("nes", "Mike Tyson's Punch-Out!! (Japan, USA)", 1987, "Initial retail release of Mike Tyson's Punch-Out!!.");
+            Add("nes", "Mike Tyson's Punch-Out!! (Japan, USA) (Rev A)", 1987, "Updated retail revision (Rev A) of Mike Tyson's Punch-Out!!.");
+            Add("nes", "Punch-Out!! (USA)", 1990, "Re-issued edition featuring Mr. Dream as the final WVBA champion.");
+            Add("nes", "Kirby's Adventure (USA)", 1993, "Initial USA release of Kirby's Adventure.");
+            Add("nes", "Kirby's Adventure (USA) (Rev A)", 1993, "Updated retail revision (Rev A) of Kirby's Adventure.");
+            Add("nes", "Final Fantasy (USA)", 1990, "Lead the four Light Warriors to restore the elemental Orbs in the RPG that launched a franchise.");
+            Add("nes", "Dragon Warrior (USA)", 1989, "Initial USA release of Dragon Warrior (Dragon Quest).");
+            Add("nes", "Dragon Warrior (USA) (Rev A)", 1989, "Updated USA revision (Rev A) of Dragon Warrior.");
+            Add("nes", "Dragon Warrior III (USA)", 1992, "Epic class-based RPG prequel tracing the legend of Erdrick.");
+            Add("nes", "Dragon Warrior IV (USA)", 1992, "Five-chapter story-driven RPG classic on the NES.");
+            Add("nes", "Ninja Gaiden (USA)", 1989, "Fast-paced wall-clinging ninja action starring Ryu Hayabusa with cinematic cutscenes.");
+            Add("nes", "Ninja Gaiden II - The Dark Sword of Chaos (USA)", 1990, "Introduces shadow clone techniques and elemental ninpo arts.");
+            Add("nes", "DuckTales (USA)", 1989, "Scrooge McDuck pogo-jumps around the globe (and the Moon) in Capcom's platformer.");
+            Add("nes", "Chip 'n Dale Rescue Rangers (USA)", 1990, "Co-op crate-throwing platformer from Capcom based on the Disney series.");
+            Add("nes", "Bionic Commando (USA)", 1988, "Grappling-hook swing action starring Ladd Spencer.");
+            Add("nes", "Blaster Master (USA)", 1988, "Explore cavernous worlds inside the SOPHIA III tank and on foot.");
+            Add("nes", "Batman - The Video Game (USA)", 1990, "Dark, wall-jumping action platformer from Sunsoft with an iconic soundtrack.");
+            Add("nes", "River City Ransom (USA)", 1989, "Open-ended co-op beat-'em-up RPG as Alex and Ryan battle Slick's gangs.");
+            Add("nes", "Double Dragon II - The Revenge (USA) (Rev A)", 1990, "Co-op martial arts brawler starring Billy and Jimmy Lee.");
+            Add("nes", "Teenage Mutant Ninja Turtles II - The Arcade Game (USA)", 1990, "Four-turtle arcade beat-'em-up action against the Foot Clan.");
+            Add("nes", "Teenage Mutant Ninja Turtles III - The Manhattan Project (USA)", 1992, "Original NES beat-'em-up adventure with signature Turtle special moves.");
+            Add("nes", "Battletoads (USA)", 1991, "Notoriously challenging brawler/action game from Rare.");
+            Add("nes", "Tetris (USA)", 1989, "Nintendo's official NES Tetris used in the Classic Tetris World Championship.");
+            Add("nes", "Tetris (USA) (Unl)", 1989, "Tengen unlicensed NES release of Tetris.");
+            Add("nes", "Micro Machines (USA) (Unl)", 1991, "Camerica/Codemasters unlicensed miniature racing classic for the NES.");
+            Add("nes", "Bible Adventures (USA) (Unl)", 1991, "Wisdom Tree unlicensed NES platformer.");
+            Add("nes", "Dr. Mario (Japan, USA) (Rev A)", 1990, "Clear viruses with vitamin capsules in Nintendo's addictive puzzle classic.");
+            Add("nes", "Excitebike (Japan, USA)", 1985, "Motocross racing and track design launch title.");
+            Add("nes", "Balloon Fight (USA)", 1986, "Arcade-style flight action and Balloon Trip survival mode.");
+            Add("nes", "Ice Climber (USA, Europe)", 1985, "Scale 32 icy mountain peaks as Popo and Nana.");
+            Add("nes", "Kid Icarus (USA, Europe) (Rev A)", 1987, "Ascend from the Underworld to Skyworld as Pit to rescue Palutena.");
+            Add("nes", "StarTropics (USA)", 1990, "Island-hopping action-adventure starring Mike Jones and his Island Yo-Yo.");
+            Add("nes", "Crystalis (USA)", 1990, "Post-apocalyptic action-RPG from SNK featuring four elemental swords.");
+            Add("nes", "Ghosts'n Goblins (USA)", 1986, "Challenging arcade platformer starring Sir Arthur.");
+            Add("nes", "Life Force (USA)", 1988, "Horizontal and vertical scrolling shoot-'em-up spin-off of Gradius.");
+            Add("nes", "Gradius (USA)", 1986, "Pilot the Vic Viper using the iconic power-up meter bar.");
+            Add("nes", "Jackal (USA)", 1988, "Top-down armed jeep rescue action from Konami.");
+            Add("nes", "Micro Mages (World) (Aftermarket)", 2019, "Modern four-player cooperative NES homebrew platformer crammed into 40 KB.", "HTGDB / SMDB");
+            Add("nes", "Alwa's Awakening - The 8-Bit Edition (World) (Aftermarket)", 2021, "Full-featured Metroidvania homebrew crafted specifically for the NES.", "HTGDB / SMDB");
+            Add("nes", "Super Mario Bros. 3Mix (USA) (Hack)", 2014, "Expansive ROM hack of Super Mario Bros. 3 featuring worlds from across Mario history.", "HTGDB / SMDB");
+            Add("nes", "EarthBound Beginnings (USA)", 2015, "Official English release of Mother.");
+            Add("nes", "EarthBound Beginnings (USA) (Proto)", 1990, "Official English localization prototype of Mother (EarthBound Zero).");
+
+            // SNES
+            Add("snes", "Super Mario World (USA)", 1991, "Explore Dinosaur Land with Yoshi across 96 exits in Nintendo's flagship 16-bit platformer.");
+            Add("snes", "Legend of Zelda, The - A Link to the Past (USA)", 1992, "Journey between the Light World and Dark World to rescue the descendants of the Seven Sages.");
+            Add("snes", "Super Metroid (Japan, USA)", 1994, "Atmospheric action-exploration masterpiece as Samus returns to Planet Zebes to rescue the last Metroid.");
+            Add("snes", "Chrono Trigger (USA)", 1995, "Time-traveling RPG created by the Dream Team to stop Lavos across multiple eras and endings.");
+            Add("snes", "Final Fantasy III (USA)", 1994, "Initial USA release (v1.0) of Final Fantasy III (Final Fantasy VI).");
+            Add("snes", "Final Fantasy III (USA) (Rev 1)", 1994, "Updated USA revision (Rev 1 / v1.1) of Final Fantasy III (Final Fantasy VI).");
+            Add("snes", "Donkey Kong Country (USA)", 1994, "Initial USA release of Donkey Kong Country.");
+            Add("snes", "Donkey Kong Country (USA) (Rev 2)", 1994, "Latest USA revision (Rev 2 / v1.2) of Donkey Kong Country.");
+            Add("snes", "Donkey Kong Country 2 - Diddy's Kong Quest (USA) (En,Fr) (Rev 1)", 1995, "Diddy and Dixie Kong storm Crocodile Isle in one of the finest platformers ever made.");
+            Add("snes", "EarthBound (USA)", 1995, "Quirky modern-day RPG following Ness and friends on a cosmic journey against Giygas.");
+            Add("snes", "Super Mario RPG - Legend of the Seven Stars (USA)", 1996, "Isometric turn-based RPG collaboration between Nintendo and Square.");
+            Add("snes", "Super Mario World 2 - Yoshi's Island (USA) (Rev 1)", 1995, "Hand-drawn Super FX2 platformer where the Yoshi clan protects Baby Mario.");
+            Add("snes", "Mega Man X (USA) (Rev 1)", 1994, "Fast-paced 16-bit action introducing X, Zero, wall-jumping, and hidden armor upgrades.");
+            Add("snes", "Super Mario Kart (USA)", 1992, "Mode 7 kart racing classic featuring Battle Mode and four Cup circuits.");
+            Add("snes", "Super Castlevania IV (USA)", 1991, "16-bit reimagining of Simon Belmont's quest with eight-directional whip control.");
+            Add("snes", "Secret of Mana (USA)", 1993, "Real-time action RPG with three-player cooperative Ring Command combat.");
+            Add("snes", "Street Fighter II Turbo (USA) (Rev 1)", 1993, "High-speed 16-bit conversion of Capcom's arcade fighting phenomenon.");
+            Add("snes", "Star Fox 2 (USA, Europe) (Classic Mini)", 2017, "Completed official release of the previously unreleased Argonaut/Nintendo Super FX sequel.");
+            Add("snes", "Star Fox 2 (USA) (Proto)", 1995, "Original 1995 Super FX2 development prototype of Star Fox 2.");
+            Add("snes", "Final Fantasy V (Japan)", 1992, "Super Famicom RPG featuring the Job & Ability mastery system.");
+            Add("snes", "Seiken Densetsu 3 (Japan)", 1995, "Super Famicom action-RPG sequel to Secret of Mana (Trials of Mana).");
+            Add("snes", "Fire Emblem - Seisen no Keifu (Japan)", 1996, "Two-generation Super Famicom tactical RPG epic (Genealogy of the Holy War).");
+            Add("snes", "Chrono Trigger (Japan)", 1995, "Original Japanese Super Famicom release of Chrono Trigger.");
+
+            // Nintendo 64
+            Add("n64", "Super Mario 64 (USA)", 1996, "Landmark 3D platformer where Mario collects 120 Power Stars inside Princess Peach's castle.");
+            Add("n64", "Legend of Zelda, The - Ocarina of Time (USA)", 1998, "Initial Gold Cart release (v1.0) of Ocarina of Time.");
+            Add("n64", "Legend of Zelda, The - Ocarina of Time (USA) (Rev 2)", 1998, "Latest retail revision (Rev 2 / v1.2) of Ocarina of Time.");
+            Add("n64", "Legend of Zelda, The - Majora's Mask (USA)", 2000, "Relive a three-day cycle in Termina using transformation masks to stop the falling moon.");
+            Add("n64", "Super Smash Bros. (USA)", 1999, "Four-player crossover platform fighter starring Nintendo's iconic characters.");
+            Add("n64", "Mario Kart 64 (USA)", 1997, "3D kart racing classic featuring four-player split-screen Grand Prix and Block Fort battles.");
+            Add("n64", "GoldenEye 007 (USA)", 1997, "Stealth and objective-based FPS with legendary four-player split-screen multiplayer.");
+            Add("n64", "Perfect Dark (USA) (Rev 1)", 2000, "Sci-fi stealth shooter starring Joanna Dark with customizable Combat Simulator bots.");
+            Add("n64", "Banjo-Kazooie (USA) (Rev 1)", 1998, "Collectathon 3D platformer from Rare starring Banjo the bear and Kazooie the breegull.");
+            Add("n64", "Star Fox 64 (USA) (Rev 1)", 1997, "Branching-route 3D rail shooter with Rumble Pak support across the Lylat System.");
+            Add("n64", "Paper Mario (USA)", 2001, "Storybook RPG adventure with timed action commands and partner abilities.");
+
+            // GameCube & Wii
+            Add("gamecube", "Super Smash Bros. Melee (USA) (En,Ja) (Rev 2)", 2001, "High-speed technical platform fighter featuring 26 Nintendo fighters and Adventure Mode.", "Redump");
+            Add("gamecube", "Legend of Zelda, The - The Wind Waker (USA)", 2003, "Cel-shaded seafaring adventure across the Great Sea with the Wind Waker baton.", "Redump");
+            Add("gamecube", "Metroid Prime (USA)", 2002, "First-person adventure on Tallon IV blending visor scanning, morph ball puzzles, and exploration.", "Redump");
+            Add("gamecube", "Paper Mario - The Thousand-Year Door (USA)", 2004, "Search for the seven Crystal Stars around Rogueport in a beloved turn-based RPG.", "Redump");
+            Add("gamecube", "Super Mario Sunshine (USA)", 2002, "Clean up Isle Delfino using the water-powered F.L.U.D.D. pack to collect Shine Sprites.", "Redump");
+            Add("gamecube", "Luigi's Mansion (USA)", 2001, "Capture ghosts with the Poltergust 3000 to rescue Mario from King Boo.", "Redump");
+            Add("gamecube", "Mario Kart - Double Dash!! (USA)", 2003, "Two-character co-op kart racing with character-specific Special Items.", "Redump");
+            Add("gamecube", "Fire Emblem - Path of Radiance (USA)", 2005, "Tactical RPG following Ike and the Greil Mercenaries across the continent of Tellius.", "Redump");
+            Add("wii", "Super Mario Galaxy (USA)", 2007, "Gravity-defying 3D platforming across cosmic galaxies with Rosalina and the Lumas.", "Redump");
+            Add("wii", "Super Mario Galaxy 2 (USA)", 2010, "Expanded cosmic platforming sequel featuring Yoshi and Starship Mario.", "Redump");
+            Add("wii", "Legend of Zelda, The - Twilight Princess (USA)", 2006, "Dark fantasy adventure where Link transforms into a wolf to save Hyrule from the Twilight Realm.", "Redump");
+            Add("wii", "Xenoblade Chronicles (USA)", 2012, "Massive JRPG set on the frozen bodies of two giant titans, the Bionis and the Mechonis.", "Redump");
+
+            // Game Boy / GBC / GBA / DS
+            Add("gb", "Legend of Zelda, The - Link's Awakening (USA, Europe) (Rev B)", 1993, "Stranded on Koholint Island, Link must collect the eight Instruments of the Sirens to awaken the Wind Fish.");
+            Add("gb", "Tetris (World) (Rev A)", 1989, "The iconic pack-in puzzle phenomenon with Type-A Korobeiniki music and two-player link battles.");
+            Add("gb", "Super Mario Land 2 - 6 Golden Coins (USA, Europe) (Rev B)", 1992, "Reclaim Mario's castle from Wario across six themed zones.");
+            Add("gb", "Super Mario Land 2 DX (USA) (Hack)", 2017, "Full color DX hack by toruzz of Super Mario Land 2 with enhanced Luigi gameplay and color graphics.", "SmokeMonster HTGDB / SMDB");
+            Add("gbc", "Legend of Zelda, The - Oracle of Ages (USA, Australia)", 2001, "Time-bending handheld Zelda adventure in Labrynna that links with Oracle of Seasons.");
+            Add("gbc", "Legend of Zelda, The - Oracle of Seasons (USA, Australia)", 2001, "Change the four seasons with the Rod of Seasons in Holodrum and link with Oracle of Ages.");
+            Add("gba", "Metroid Fusion (USA)", 2002, "Investigate the Biologic Space Labs station while hunted by the deadly SA-X parasite.");
+            Add("gba", "Metroid - Zero Mission (USA)", 2004, "Expanded GBA reimagining of Samus Aran's original mission on Planet Zebes.");
+            Add("gba", "Castlevania - Aria of Sorrow (USA)", 2003, "Explore Dracula's castle in 2035 as Soma Cruz using the Tactical Soul system.");
+            Add("gba", "Legend of Zelda, The - The Minish Cap (USA)", 2005, "Shrink to microscopic size with the talking cap Ezlo to restore the Picori Blade.");
+            Add("gba", "Golden Sun (USA, Europe)", 2001, "Command Psynergy and elemental Djinn in Camelot's acclaimed handheld RPG.");
+            Add("gba", "Advance Wars (USA) (Rev 1)", 2001, "Turn-based tactical warfare from Intelligent Systems featuring CO Powers and map design.");
+            Add("gba", "Fire Emblem (USA, Australia)", 2003, "Lead Lyn, Eliwood, and Hector in the first Fire Emblem released in North America.");
+            Add("gba", "Mother 3 (Japan)", 2006, "Emotional RPG masterpiece starring Lucas and Flint in the Nowhere Islands.");
+            Add("gba", "Mother 3 (Japan) [T+Eng v1.3] (Hack)", 2008, "Fan-translated English edition of Mother 3.", "HTGDB / SMDB");
+            Add("nds", "Mario Kart DS (USA)", 2005, "Dual-screen kart racing introducing retro tracks and Mission Mode.");
+            Add("nds", "New Super Mario Bros. (USA)", 2006, "2.5D side-scrolling Mario platformer with Mega Mushroom and multiplayer mini-games.");
+            Add("nds", "Castlevania - Dawn of Sorrow (USA)", 2005, "Direct DS sequel to Aria of Sorrow featuring Soul synthesis and gothic exploration.");
+            Add("nds", "World Ends with You, The (USA)", 2008, "Dual-screen action RPG set in modern Shibuya during the seven-day Reapers' Game.");
+
+            // Sega Genesis / Saturn / Dreamcast
+            Add("genesis", "Sonic The Hedgehog 2 (World) (Rev A)", 1992, "High-speed 16-bit platforming introducing Miles 'Tails' Prower and the Spin Dash.");
+            Add("genesis", "Sonic & Knuckles + Sonic The Hedgehog 3 (World)", 1994, "Complete lock-on adventure across Angel Island with Sonic, Tails, and Knuckles.");
+            Add("genesis", "Streets of Rage 2 (USA)", 1992, "Legendary 16-bit beat-'em-up featuring an iconic Yuzo Koshiro soundtrack.");
+            Add("genesis", "Phantasy Star IV (USA)", 1995, "Culmination of the Algol Star System sci-fi RPG saga with manga-style cutscenes.");
+            Add("genesis", "Shining Force II (USA)", 1994, "Tactical fantasy RPG with free-roaming town exploration and class promotions.");
+            Add("genesis", "Gunstar Heroes (USA)", 1993, "Explosive run-and-gun action from Treasure with combinable weapon types.");
+            Add("genesis", "Castlevania - Bloodlines (USA)", 1994, "Globe-trotting 16-bit Castlevania starring John Morris and Eric Lecarde.");
+            Add("genesis", "Castlevania - The New Generation (Europe)", 1994, "European PAL Sega Mega Drive release of Castlevania: Bloodlines.");
+            Add("genesis", "Vampire Killer (Japan)", 1994, "Japanese Sega Mega Drive release of Castlevania: Bloodlines.");
+            Add("genesis", "Alien Soldier (Europe)", 1995, "Boss-rush run-and-gun tour de force from Treasure for the Sega Mega Drive.");
+            Add("genesis", "Bare Knuckle II - Shitou e no Requiem (Japan)", 1993, "Japanese Sega Mega Drive release of Streets of Rage 2.");
+            Add("saturn", "Panzer Dragoon Saga (USA) (Disc 1)", 1998, "Four-disc tactical dragon-riding RPG set in a post-apocalyptic world.", "Redump");
+            Add("saturn", "Nights into Dreams... (USA)", 1996, "Acrobatic 3D flight score-attack adventure from Sonic Team.", "Redump");
+            Add("dreamcast", "Sonic Adventure (USA)", 1999, "Full 3D high-speed adventure across six interwoven character campaigns and Chao Gardens.", "Redump");
+            Add("dreamcast", "Shenmue (USA) (Disc 1)", 2000, "Open-world cinematic adventure following Ryo Hazuki across 1986 Yokosuka.", "Redump");
+            Add("dreamcast", "SoulCalibur (USA)", 1999, "Eight-way run weapon fighter widely hailed as one of the greatest launch-era titles ever.", "Redump");
+            Add("dreamcast", "Jet Grind Radio (USA)", 2000, "Cel-shaded inline-skating graffiti action across Tokyo-to.", "Redump");
+            Add("dreamcast", "Marvel vs. Capcom 2 (USA)", 2000, "Arcade-perfect 3v3 tag-team fighting game with a 56-character roster.", "Redump");
+
+            // PlayStation 1 / PlayStation 2 / PSP
+            Add("ps1", "Final Fantasy VII (USA) (Disc 1)", 1997, "Join Cloud Strife and AVALANCHE against Shinra and Sephiroth in Square's landmark RPG.", "Redump");
+            Add("ps1", "Castlevania - Symphony of the Night (USA)", 1997, "Explore Dracula's inverted castle as Alucard in the genre-defining Metroidvania masterpiece.", "Redump");
+            Add("ps1", "Metal Gear Solid (USA) (Disc 1) (Rev 1)", 1998, "Tactical espionage action as Solid Snake infiltrates Shadow Moses Island.", "Redump");
+            Add("ps1", "Resident Evil 2 (USA) (Disc 1)", 1998, "Survive the Raccoon City outbreak as Leon S. Kennedy and Claire Redfield.", "Redump");
+            Add("ps1", "Silent Hill (USA)", 1999, "Psychological survival horror as Harry Mason searches the fog-shrouded town for his daughter.", "Redump");
+            Add("ps1", "Chrono Cross (USA) (Disc 1)", 2000, "Parallel-dimension RPG sequel to Chrono Trigger featuring over 40 recruitable characters.", "Redump");
+            Add("ps1", "Crash Bandicoot - Warped (USA)", 1998, "Time-traveling 3D platforming adventure from Naughty Dog.", "Redump");
+            Add("ps1", "Spyro the Dragon (USA)", 1998, "Glide and flame across the Dragon Realms in Insomniac's colorful 3D platformer.", "Redump");
+            Add("ps1", "Gran Turismo 2 (USA) (Simulation Mode) (Rev 1)", 1999, "The Real Driving Simulator featuring over 600 licensed vehicles and endurance racing.", "Redump");
+            Add("ps2", "Shadow of the Colossus (USA)", 2005, "Scale and defeat sixteen towering Colossi across a forbidden land to restore Mono.", "Redump");
+            Add("ps2", "Metal Gear Solid 3 - Snake Eater (USA)", 2004, "Cold War jungle survival stealth starring Naked Snake and The Boss.", "Redump");
+            Add("ps2", "Final Fantasy X (USA)", 2001, "Journey across Spira with Tidus and Yuna to defeat Sin.", "Redump");
+            Add("ps2", "Kingdom Hearts II (USA)", 2006, "Action-RPG crossover uniting Sora, Donald, and Goofy against Organization XIII.", "Redump");
+            Add("ps2", "God of War II (USA)", 2007, "Mythological hack-and-slash spectacle as Kratos defies the Olympian gods.", "Redump");
+            Add("ps2", "Shin Megami Tensei - Persona 4 (USA)", 2008, "Solve a supernatural murder mystery in Inaba while balancing high school life and dungeon crawling.", "Redump");
+            Add("psp", "Crisis Core - Final Fantasy VII (USA)", 2008, "Action-RPG prequel to Final Fantasy VII starring SOLDIER operative Zack Fair.", "Redump");
+            Add("psp", "Monster Hunter Freedom Unite (USA)", 2009, "Hunt colossal wyverns solo or in four-player ad-hoc co-op.", "Redump");
+
+            // TurboGrafx-16 / Neo Geo / Xbox
+            Add("tgcd", "Akumajou Dracula X - Chi no Rondo (Japan)", 1993, "Richter Belmont and Maria Renard battle Dracula in the acclaimed PC Engine Super CD-ROM2 classic.", "Redump");
+            Add("neogeo", "Metal Slug 3 (World)", 2000, "Masterpiece 2D run-and-gun arcade action with branching paths and vehicles.");
+            Add("xbox", "Halo - Combat Evolved (USA)", 2001, "Sci-fi FPS landmark as Master Chief battles the Covenant and the Flood on Installation 04.", "Redump");
+            Add("xbox", "Star Wars - Knights of the Old Republic (USA)", 2003, "BioWare's epic RPG set 4,000 years before the Galactic Empire.", "Redump");
+
+            // Nintendo Digital Storefronts (WiiWare / Wii U eShop / DSi Shop / 3DS eShop / Switch eShop)
+            Add("wiiware", "Cave Story (USA)", 2010, "Expanded WiiWare edition of Studio Pixel's beloved subterranean action-adventure.");
+            Add("wiiware", "World of Goo (USA)", 2008, "Physics-based puzzle construction classic built by 2D Boy.");
+            Add("wiiueshop", "Fast Racing NEO (USA)", 2015, "High-speed anti-gravity racer exclusive to Wii U eShop.");
+            Add("wiiueshop", "NES Remix (USA)", 2013, "Bite-sized remixed challenges spanning classic 8-bit Nintendo games.");
+            Add("dsiware", "Shantae - Risky's Revenge (USA)", 2010, "Fan-favorite half-genie Metroidvania debuting on Nintendo DSi Shop.");
+            Add("dsiware", "Mario vs. Donkey Kong - Minis March Again! (USA)", 2009, "Touchscreen puzzle-platformer featuring Mini Mario construction levels.");
+            Add("3dseshop", "Pushmo (USA)", 2011, "3D block-pulling puzzle standout created by Intelligent Systems.");
+            Add("3dseshop", "BoxBoy! (USA)", 2015, "Minimalist puzzle-platformer by HAL Laboratory built around box-generating mechanics.");
+            Add("switcheshop", "Golf Story (World)", 2017, "Comedy-driven golf RPG from Sidebar Games crafted exclusively for Nintendo Switch eShop.");
+            Add("switcheshop", "Golf Story (Europe)", 2017, "European digital release of Sidebar Games' Nintendo Switch eShop golf RPG.");
+            Add("switcheshop", "Snipperclips - Cut it out, together! (World)", 2017, "Co-op paper-cutting puzzle launch showcase for Joy-Con multiplayer.");
+
+            MarkLatestAndInitialRevisions(games);
+            return games;
+        }
+    }
+}

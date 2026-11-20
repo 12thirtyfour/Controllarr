@@ -1,0 +1,56 @@
+.coreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+
+  margin-top: 8px;
+}
+
+.coreCard {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--borderColor);
+  border-radius: 6px;
+  background-color: var(--cardBackgroundColor);
+  gap: 10px;
+}
+
+.coreCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.platformName {
+  color: var(--textColor);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.coreCardControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coreSelectWrapper {
+  flex: 1;
+}
+
+.resetButton {
+  padding: 5px 10px;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  background-color: var(--inputBackgroundColor);
+  color: var(--textSecondaryColor);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.resetButton:hover {
+  border-color: var(--colorPrimary);
+  color: var(--textColor);
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1234,
+    "name": "Deus.Ex.Mankind.Divided-CPY",
+    "imdb": "tt1232322",
+    "freeleech": 0,
+    "upload_date": "2019-01-22 22:20:19",
+    "download_link": "https://filelist.io/download.php?id=1234&passkey=somepass",
+    "size": 830512414,
+    "internal": 0,
+    "moderated": 1,
+    "category": "Jocuri PC",
+    "seeders": 12,
+    "leechers": 2,
+    "times_completed": 11,
+    "comments": 0,
+    "files": 3,
+    "small_description": "Much anticipated game"
+  },
+  {
+    "id": 1235,
+    "name": "Deus.Ex.Mankind.Divided.A.Criminal.Past-CPY",
+    "imdb": "tt9999999",
+    "freeleech": 0,
+    "upload_date": "2019-01-22 22:19:37",
+    "download_link": "https://filelist.io/download.php?id=1235&passkey=somepass",
+    "size": 473149881,
+    "internal": 0,
+    "moderated": 1,
+    "category": "Jocuri PC",
+    "seeders": 9,
+    "leechers": 1,
+    "times_completed": 8,
+    "comments": 0,
+    "files": 3,
+    "small_description": "DLC pack"
+  }
+]

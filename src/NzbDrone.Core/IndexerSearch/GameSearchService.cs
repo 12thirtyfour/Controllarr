@@ -1,0 +1,210 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Queue;
+using NzbDrone.Core.Tv;
+
+namespace NzbDrone.Core.IndexerSearch
+{
+    public class GameSearchService : IExecute<GameSearchCommand>,
+                                        IExecute<MissingGameSearchCommand>,
+                                        IExecute<CutoffUnmetGameSearchCommand>
+    {
+        private readonly ISearchForReleases _releaseSearchService;
+        private readonly IProcessDownloadDecisions _processDownloadDecisions;
+        private readonly IEpisodeService _episodeService;
+        private readonly IGameCutoffService _episodeCutoffService;
+        private readonly IQueueService _queueService;
+        private readonly ISeriesService _seriesService;
+        private readonly Logger _logger;
+
+        public GameSearchService(ISearchForReleases releaseSearchService,
+                                    IProcessDownloadDecisions processDownloadDecisions,
+                                    IEpisodeService episodeService,
+                                    IGameCutoffService episodeCutoffService,
+                                    IQueueService queueService,
+                                    Logger logger,
+                                    ISeriesService seriesService = null)
+        {
+            _releaseSearchService = releaseSearchService;
+            _processDownloadDecisions = processDownloadDecisions;
+            _episodeService = episodeService;
+            _episodeCutoffService = episodeCutoffService;
+            _queueService = queueService;
+            _seriesService = seriesService;
+            _logger = logger;
+        }
+
+        private async Task SearchForBulkEpisodes(List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch)
+        {
+            _logger.ProgressInfo("Performing search for {0} games", episodes.Count);
+            var downloadedCount = 0;
+
+            foreach (var episode in episodes.OrderBy(e => e.LastSearchTime ?? DateTime.MinValue))
+            {
+                try
+                {
+                    var decisions = await _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false);
+                    var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
+
+                    downloadedCount += processed.Grabbed.Count;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Unable to search for game: [{0}]", episode);
+                }
+            }
+
+            _logger.ProgressInfo("Completed search for {0} games. {1} releases downloaded.", episodes.Count, downloadedCount);
+        }
+
+        private bool IsMonitored(bool episodeMonitored, bool seriesMonitored)
+        {
+            return episodeMonitored && seriesMonitored;
+        }
+
+        public void Execute(GameSearchCommand message)
+        {
+            foreach (var episodeId in message.GameIds)
+            {
+                var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
+                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+
+                _logger.ProgressInfo("Game search completed. {0} releases downloaded.", processed.Grabbed.Count);
+            }
+        }
+
+        public void Execute(MissingGameSearchCommand message)
+        {
+            var userInvokedSearch = message.Trigger == CommandTrigger.Manual;
+
+            var targetSeries = message.SeriesId.HasValue ? _seriesService?.GetSeries(message.SeriesId.Value) : null;
+            var isDiscBasedPlatform = targetSeries != null && Games.PlatformCatalogService.IsDiscBasedPlatform(targetSeries.TitleSlug, targetSeries.Title);
+
+            if (message.SearchCollectionFirst &&
+                message.SeriesId.HasValue &&
+                !isDiscBasedPlatform &&
+                CollectionSearchHelper.TryGrabCollection(_releaseSearchService, _processDownloadDecisions, _logger, message.SeriesId.Value, userInvokedSearch))
+            {
+                return;
+            }
+
+            var monitored = message.Monitored;
+            List<Episode> episodes;
+
+            if (message.SeriesId.HasValue)
+            {
+                episodes = _episodeService.GetEpisodeBySeries(message.SeriesId.Value)
+                                          .Where(e => e.Monitored == monitored &&
+                                                 !e.HasFile &&
+                                                 (!e.AirDateUtc.HasValue || e.AirDateUtc.Value.Before(DateTime.UtcNow)))
+                                          .ToList();
+            }
+            else
+            {
+                var pagingSpec = new PagingSpec<Episode>
+                                 {
+                                     Page = 1,
+                                     PageSize = 1000000,
+                                     SortDirection = SortDirection.Ascending,
+                                     SortKey = "Id"
+                                 };
+
+                if (monitored)
+                {
+                    pagingSpec.FilterExpressions.Add(v => v.Monitored == true && v.Series.Monitored == true);
+                }
+                else
+                {
+                    pagingSpec.FilterExpressions.Add(v => v.Monitored == false || v.Series.Monitored == false);
+                }
+
+                if (message.SeriesIds?.Any() == true)
+                {
+                    pagingSpec.FilterExpressions.Add(e => message.SeriesIds.Contains(e.SeriesId));
+                }
+
+                if (message.QualityProfileIds?.Any() == true)
+                {
+                    pagingSpec.FilterExpressions.Add(e => message.QualityProfileIds.Contains(e.Series.QualityProfileId));
+                }
+
+                if (message.SeriesType?.Any() == true)
+                {
+                    pagingSpec.FilterExpressions.Add(e => message.SeriesType.Contains(e.Series.SeriesType));
+                }
+
+                episodes = _episodeService.EpisodesWithoutFiles(pagingSpec, true, message.SeriesTags).Records.ToList();
+            }
+
+            var queue = GetQueuedEpisodeIds();
+            var missing = episodes.Where(e => !queue.Contains(e.Id)).ToList();
+
+            SearchForBulkEpisodes(missing, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+        }
+
+        public void Execute(CutoffUnmetGameSearchCommand message)
+        {
+            var monitored = message.Monitored;
+
+            var pagingSpec = new PagingSpec<Episode>
+                             {
+                                 Page = 1,
+                                 PageSize = 100000,
+                                 SortDirection = SortDirection.Ascending,
+                                 SortKey = "Id"
+                             };
+
+            if (message.SeriesId.HasValue)
+            {
+                var seriesId = message.SeriesId.Value;
+                pagingSpec.FilterExpressions.Add(v => v.SeriesId == seriesId);
+            }
+
+            if (monitored)
+            {
+                pagingSpec.FilterExpressions.Add(v => v.Monitored == true && v.Series.Monitored == true);
+            }
+            else
+            {
+                pagingSpec.FilterExpressions.Add(v => v.Monitored == false || v.Series.Monitored == false);
+            }
+
+            if (message.SeriesIds?.Any() == true)
+            {
+                pagingSpec.FilterExpressions.Add(e => message.SeriesIds.Contains(e.SeriesId));
+            }
+
+            if (message.QualityProfileIds?.Any() == true)
+            {
+                pagingSpec.FilterExpressions.Add(e => message.QualityProfileIds.Contains(e.Series.QualityProfileId));
+            }
+
+            if (message.SeriesType?.Any() == true)
+            {
+                pagingSpec.FilterExpressions.Add(e => message.SeriesType.Contains(e.Series.SeriesType));
+            }
+
+            var episodes = _episodeCutoffService.EpisodesWhereCutoffUnmet(pagingSpec, message.SeriesTags, message.Quality).Records.ToList();
+            var queue = GetQueuedEpisodeIds();
+            var cutoffUnmet = episodes.Where(e => !queue.Contains(e.Id)).ToList();
+
+            SearchForBulkEpisodes(cutoffUnmet, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+        }
+
+        private List<int> GetQueuedEpisodeIds()
+        {
+            return _queueService.GetQueue()
+                .Where(q => q.Episodes.Any())
+                .SelectMany(q => q.Episodes.Select(e => e.Id))
+                .ToList();
+        }
+    }
+}

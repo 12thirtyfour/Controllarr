@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NzbDrone.Core\Controllarr.Core.csproj" />
+    <ProjectReference Include="..\Controllarr.Common\Controllarr.Common.csproj" />
+  </ItemGroup>
+</Project>

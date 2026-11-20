@@ -1,0 +1,55 @@
+import ModelBase from 'App/ModelBase';
+import DownloadProtocol from 'DownloadClient/DownloadProtocol';
+import Game from 'Game/Game';
+import Language from 'Language/Language';
+import { QualityModel } from 'Quality/Quality';
+import { CustomFormat } from 'Settings/CustomFormats/CustomFormats/useCustomFormats';
+
+export type QueueTrackedDownloadStatus = 'ok' | 'warning' | 'error';
+
+export type QueueTrackedDownloadState =
+  | 'downloading'
+  | 'importBlocked'
+  | 'importPending'
+  | 'importing'
+  | 'imported'
+  | 'failedPending'
+  | 'failed'
+  | 'ignored';
+
+export interface StatusMessage {
+  title: string;
+  messages: string[];
+}
+
+interface Queue extends ModelBase {
+  languages: Language[];
+  quality: QualityModel;
+  customFormats: CustomFormat[];
+  customFormatScore: number;
+  size: number;
+  title: string;
+  sizeLeft: number;
+  timeLeft: string;
+  estimatedCompletionTime: string;
+  added?: string;
+  status: string;
+  trackedDownloadStatus: QueueTrackedDownloadStatus;
+  trackedDownloadState: QueueTrackedDownloadState;
+  importingActivity?: string;
+  statusMessages: StatusMessage[];
+  errorMessage: string;
+  downloadId: string;
+  protocol: DownloadProtocol;
+  downloadClient: string;
+  outputPath: string;
+  gamesWithFilesCount: number;
+  seriesId?: number;
+  gameIds: number[];
+  seasonNumbers: number[];
+  downloadClientHasPostImportCategory: boolean;
+  isFullSeason: boolean;
+  games?: Game[];
+}
+
+export default Queue;
