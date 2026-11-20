@@ -1604,7 +1604,7 @@ namespace NzbDrone.Core.Organizer
                 slug == "saturn" || slug == "dreamcast" || slug == "segacd" ||
                 slug == "gamecube" || slug == "wii" || slug == "wiiu" ||
                 slug == "tgcd" || slug == "jaguarcd" || slug == "xbox" || slug == "xbox360" ||
-                slug == "3do" || slug == "neogeocd" || slug == "cdi")
+                slug == "3do" || slug == "neogeocd" || slug == "cdi" || slug == "pcfx")
             {
                 return true;
             }
@@ -1614,7 +1614,8 @@ namespace NzbDrone.Core.Organizer
                 seriesTitle.Contains("dreamcast") || seriesTitle.Contains("sega cd") ||
                 seriesTitle.Contains("mega cd") || seriesTitle.Contains("gamecube") ||
                 seriesTitle.Contains("turbografx-cd") || seriesTitle.Contains("pc engine cd") ||
-                seriesTitle.Contains("jaguar cd") || seriesTitle.Contains("xbox"))
+                seriesTitle.Contains("jaguar cd") || seriesTitle.Contains("xbox") ||
+                seriesTitle.Contains("3do") || seriesTitle.Contains("pc-fx"))
             {
                 return true;
             }

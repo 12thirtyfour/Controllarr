@@ -8,6 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Extras;
 using NzbDrone.Core.History;
+using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
@@ -248,7 +249,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 return true;
             }
 
-            if (!shouldCompress && ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            if (ArchiveRepackService.IsArchiveExtension(ext) &&
+                RomFileMovingService.ShouldUnwrapArchiveBeforeMove(localGame.Path, ext, shouldCompress, localGame.Series))
             {
                 return true;
             }

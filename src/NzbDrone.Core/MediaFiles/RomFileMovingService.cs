@@ -8,6 +8,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.Events;
@@ -163,6 +164,7 @@ namespace NzbDrone.Core.MediaFiles
                 : ImportMode.Move;
 
             var stagedPreprocessed = false;
+            var discCompressionAttempted = false;
             var originalRomFilePath = romFilePath;
             string tempStagingDir = null;
 
@@ -187,7 +189,7 @@ namespace NzbDrone.Core.MediaFiles
                     var transferSourcePath = romFilePath;
                     var transferMode = mode;
 
-                    if (TryStagePreMoveChanges(romFilePath, ref destinationFilePath, romFile, platform, out var stagedPath, out tempStagingDir))
+                    if (TryStagePreMoveChanges(romFilePath, ref destinationFilePath, romFile, platform, out var stagedPath, out tempStagingDir, out discCompressionAttempted))
                     {
                         transferSourcePath = stagedPath;
                         transferMode = TransferMode.Move;
@@ -195,7 +197,18 @@ namespace NzbDrone.Core.MediaFiles
                     }
 
                     _importActivityService?.SetCurrentActivity(mode == TransferMode.Move ? "Moving..." : "Copying...");
-                    _diskTransferService.TransferFile(transferSourcePath, destinationFilePath, transferMode, File.Exists(destinationFilePath));
+                    if (DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(transferSourcePath)) && File.Exists(transferSourcePath))
+                    {
+                        TransferDiscSheetAndTracks(transferSourcePath, destinationFilePath, transferMode);
+                        if (File.Exists(destinationFilePath))
+                        {
+                            romFile.Size = new FileInfo(destinationFilePath).Length;
+                        }
+                    }
+                    else
+                    {
+                        _diskTransferService.TransferFile(transferSourcePath, destinationFilePath, transferMode, File.Exists(destinationFilePath));
+                    }
 
                     if (stagedPreprocessed && mode == TransferMode.Move)
                     {
@@ -220,7 +233,7 @@ namespace NzbDrone.Core.MediaFiles
 
             _sidecarSaveService?.RenameAdjacentSaves(originalRomFilePath, destinationFilePath, sidecarMode);
 
-            PostProcessRomFile(ref destinationFilePath, romFile, platform);
+            PostProcessRomFile(ref destinationFilePath, romFile, platform, discCompressionAttempted);
 
             _updateRomFileService.ChangeFileDateForFile(romFile, platform, games);
 
@@ -287,6 +300,11 @@ namespace NzbDrone.Core.MediaFiles
 
             if (ext.Equals(".bin", StringComparison.OrdinalIgnoreCase))
             {
+                if (PlatformCatalogService.IsDiscBasedPlatform(platform?.TitleSlug, platform?.Title))
+                {
+                    return false;
+                }
+
                 var slug = platform?.TitleSlug ?? string.Empty;
                 if (slug.Equals("genesis", StringComparison.OrdinalIgnoreCase) ||
                     slug.Equals("atari2600", StringComparison.OrdinalIgnoreCase) ||
@@ -320,10 +338,18 @@ namespace NzbDrone.Core.MediaFiles
             return false;
         }
 
-        private bool TryStagePreMoveChanges(string sourceFilePath, ref string destinationFilePath, EpisodeFile romFile, Series platform, out string stagedPath, out string tempStagingDir)
+        private bool TryStagePreMoveChanges(
+            string sourceFilePath,
+            ref string destinationFilePath,
+            EpisodeFile romFile,
+            Series platform,
+            out string stagedPath,
+            out string tempStagingDir,
+            out bool discCompressionAttempted)
         {
             stagedPath = null;
             tempStagingDir = null;
+            discCompressionAttempted = false;
 
             if (string.IsNullOrWhiteSpace(sourceFilePath) || !File.Exists(sourceFilePath))
             {
@@ -336,17 +362,24 @@ namespace NzbDrone.Core.MediaFiles
             try
             {
                 if (ArchiveRepackService.IsArchiveExtension(ext) &&
-                    ShouldUnwrapArchiveBeforeMove(sourceFilePath, ext, shouldCompress))
+                    ShouldUnwrapArchiveBeforeMove(sourceFilePath, ext, shouldCompress, platform))
                 {
                     _importActivityService?.SetCurrentActivity("Extracting...");
                     tempStagingDir = Path.Combine(Path.GetTempPath(), "controllarr_stage_" + Guid.NewGuid().ToString("N"));
                     var unwrapDir = Path.Combine(tempStagingDir, "unwrapped");
                     Directory.CreateDirectory(unwrapDir);
 
-                    if (ArchiveRepackService.TryUnwrapSingleRomFromArchive(sourceFilePath, unwrapDir, out var unwrappedRomPath))
+                    if (ArchiveRepackService.TryUnwrapGameFromArchive(sourceFilePath, unwrapDir, out var unwrappedRomPath, out var unwrappedCompanionTracks))
                     {
                         var innerExt = Path.GetExtension(unwrappedRomPath)?.ToLowerInvariant() ?? string.Empty;
-                        if (shouldCompress && IsZipCompressibleRom(innerExt, platform, unwrappedRomPath))
+                        if (DiscSheetHelper.IsDiscSheetExtension(innerExt))
+                        {
+                            DiscSheetHelper.RepairSheetInPlaceIfNeeded(unwrappedRomPath);
+                        }
+
+                        if (shouldCompress &&
+                            unwrappedCompanionTracks.Count == 0 &&
+                            IsZipCompressibleRom(innerExt, platform, unwrappedRomPath))
                         {
                             _importActivityService?.SetCurrentActivity("Compressing...");
                             var stagedZipPath = Path.Combine(tempStagingDir, Path.ChangeExtension(Path.GetFileName(destinationFilePath), ".zip"));
@@ -362,17 +395,18 @@ namespace NzbDrone.Core.MediaFiles
                             }
                         }
                         else if (shouldCompress &&
-                                 (innerExt == ".cue" || innerExt == ".iso" || innerExt == ".gdi") &&
-                                 TryStageDiscCompression(unwrappedRomPath, romFile, platform, ref tempStagingDir, ref destinationFilePath, out stagedPath))
+                                 (innerExt == ".cue" || innerExt == ".iso" || innerExt == ".gdi"))
                         {
-                            return true;
+                            discCompressionAttempted = true;
+                            if (TryStageDiscCompression(unwrappedRomPath, romFile, platform, ref tempStagingDir, ref destinationFilePath, out stagedPath))
+                            {
+                                return true;
+                            }
                         }
-                        else
-                        {
-                            stagedPath = unwrappedRomPath;
-                            UpdateRomFileDestination(romFile, platform, ref destinationFilePath, unwrappedRomPath, innerExt);
-                            return true;
-                        }
+
+                        stagedPath = unwrappedRomPath;
+                        UpdateRomFileDestination(romFile, platform, ref destinationFilePath, unwrappedRomPath, innerExt);
+                        return true;
                     }
                 }
 
@@ -399,19 +433,87 @@ namespace NzbDrone.Core.MediaFiles
                         return true;
                     }
                 }
-                else if ((ext == ".cue" || ext == ".iso" || ext == ".gdi") &&
-                         TryStageDiscCompression(sourceFilePath, romFile, platform, ref tempStagingDir, ref destinationFilePath, out stagedPath))
+                else if (ext == ".cue" || ext == ".iso" || ext == ".gdi")
                 {
-                    return true;
+                    discCompressionAttempted = true;
+                    if (TryStageDiscCompression(sourceFilePath, romFile, platform, ref tempStagingDir, ref destinationFilePath, out stagedPath))
+                    {
+                        return true;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.Warn(ex, "Pre-move compression failed for {0}; falling back to transferring original file", sourceFilePath);
+                _logger.Warn(ex, "Pre-move staging failed for {0}; falling back to transferring original file", sourceFilePath);
                 stagedPath = null;
             }
 
             return false;
+        }
+
+        private void TransferDiscSheetAndTracks(string sourceSheetPath, string destinationSheetPath, TransferMode transferMode)
+        {
+            var tracks = DiscSheetHelper.ResolveTrackFiles(sourceSheetPath);
+            var sourceBaseName = Path.GetFileNameWithoutExtension(sourceSheetPath);
+            var destBaseName = Path.GetFileNameWithoutExtension(destinationSheetPath);
+            var destDir = Path.GetDirectoryName(destinationSheetPath);
+            var sheetExt = Path.GetExtension(sourceSheetPath) ?? string.Empty;
+
+            var shouldRenameTracks = !string.Equals(sourceBaseName, destBaseName, StringComparison.Ordinal);
+            var needsRewrite = shouldRenameTracks || DiscSheetHelper.NeedsTrackReferenceRewrite(sourceSheetPath);
+
+            var trackNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var plannedTransfers = new List<(string SourcePath, string DestPath)>(tracks.Count);
+
+            for (var i = 0; i < tracks.Count; i++)
+            {
+                var trackPath = tracks[i];
+                var destTrackFileName = shouldRenameTracks
+                    ? DiscSheetHelper.BuildRenamedTrackFileName(destBaseName, trackPath, i + 1, tracks.Count, sheetExt)
+                    : Path.GetFileName(trackPath);
+
+                var destTrackPath = Path.Combine(destDir, destTrackFileName);
+                trackNameMap[trackPath] = destTrackFileName;
+                plannedTransfers.Add((trackPath, destTrackPath));
+            }
+
+            var willWriteRewrittenSheet = (sheetExt.Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
+                                           sheetExt.Equals(".gdi", StringComparison.OrdinalIgnoreCase)) &&
+                                          tracks.Count > 0 &&
+                                          needsRewrite;
+
+            var rewrittenSheetContent = willWriteRewrittenSheet
+                ? DiscSheetHelper.RewriteSheetContent(sourceSheetPath, trackNameMap)
+                : null;
+
+            foreach (var (trackPath, destTrackPath) in plannedTransfers)
+            {
+                if (!trackPath.PathEquals(destTrackPath))
+                {
+                    _diskTransferService.TransferFile(trackPath, destTrackPath, transferMode, File.Exists(destTrackPath));
+                }
+            }
+
+            if (willWriteRewrittenSheet)
+            {
+                if (!string.IsNullOrWhiteSpace(destDir) && !Directory.Exists(destDir))
+                {
+                    Directory.CreateDirectory(destDir);
+                }
+
+                File.WriteAllText(destinationSheetPath, rewrittenSheetContent, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+                if (transferMode == TransferMode.Move &&
+                    !sourceSheetPath.PathEquals(destinationSheetPath) &&
+                    File.Exists(sourceSheetPath))
+                {
+                    File.Delete(sourceSheetPath);
+                }
+            }
+            else if (!sourceSheetPath.PathEquals(destinationSheetPath))
+            {
+                _diskTransferService.TransferFile(sourceSheetPath, destinationSheetPath, transferMode, File.Exists(destinationSheetPath));
+            }
         }
 
         private static void UpdateRomFileDestination(EpisodeFile romFile, Series platform, ref string destinationFilePath, string actualFilePath, string newExtension = null)
@@ -465,7 +567,7 @@ namespace NzbDrone.Core.MediaFiles
             return false;
         }
 
-        private static bool ShouldUnwrapArchiveBeforeMove(string sourceFilePath, string ext, bool shouldCompress)
+        public static bool ShouldUnwrapArchiveBeforeMove(string sourceFilePath, string ext, bool shouldCompress, Series platform = null)
         {
             if (ext == ".7z" || ext == ".rar")
             {
@@ -497,7 +599,10 @@ namespace NzbDrone.Core.MediaFiles
                 var onlyEntry = nonDirEntries[0];
                 var onlyExt = Path.GetExtension(onlyEntry.Name);
                 return ArchiveRepackService.IsJunkEntry(onlyEntry.FullName, onlyEntry.Name) ||
-                       ArchiveRepackService.IsArchiveExtension(onlyExt);
+                       ArchiveRepackService.IsArchiveExtension(onlyExt) ||
+                       onlyEntry.FullName.Contains('/') ||
+                       onlyEntry.FullName.Contains('\\') ||
+                       !IsZipCompressibleRom(onlyExt, platform);
             }
             catch
             {
@@ -532,50 +637,15 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var ext = Path.GetExtension(sourceFilePath)?.ToLowerInvariant() ?? string.Empty;
-            var sourceDir = Path.GetDirectoryName(sourceFilePath);
             var filesToDelete = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { sourceFilePath };
 
-            if (!string.IsNullOrWhiteSpace(sourceDir) && File.Exists(sourceFilePath) && (ext == ".cue" || ext == ".gdi"))
+            if (DiscSheetHelper.IsDiscSheetExtension(ext) && File.Exists(sourceFilePath))
             {
                 try
                 {
-                    foreach (var line in File.ReadLines(sourceFilePath))
+                    foreach (var trackPath in DiscSheetHelper.ResolveTrackFiles(sourceFilePath))
                     {
-                        var trimmed = line.Trim();
-                        if (ext == ".cue" && trimmed.StartsWith("FILE", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var firstQuote = trimmed.IndexOf('"');
-                            var lastQuote = trimmed.LastIndexOf('"');
-                            if (firstQuote >= 0 && lastQuote > firstQuote)
-                            {
-                                var trackName = trimmed.Substring(firstQuote + 1, lastQuote - firstQuote - 1);
-                                var trackPath = Path.Combine(sourceDir, Path.GetFileName(trackName));
-                                filesToDelete.Add(trackPath);
-                            }
-                        }
-                        else if (ext == ".gdi")
-                        {
-                            var firstQuote = trimmed.IndexOf('"');
-                            var lastQuote = trimmed.LastIndexOf('"');
-                            string trackName = null;
-                            if (firstQuote >= 0 && lastQuote > firstQuote)
-                            {
-                                trackName = trimmed.Substring(firstQuote + 1, lastQuote - firstQuote - 1);
-                            }
-                            else
-                            {
-                                var parts = trimmed.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                                if (parts.Length >= 5)
-                                {
-                                    trackName = parts[4];
-                                }
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(trackName))
-                            {
-                                filesToDelete.Add(Path.Combine(sourceDir, Path.GetFileName(trackName)));
-                            }
-                        }
+                        filesToDelete.Add(trackPath);
                     }
                 }
                 catch (Exception ex)
@@ -610,7 +680,13 @@ namespace NzbDrone.Core.MediaFiles
                 return true;
             }
 
-            if (!shouldCompress && ext == ".zip")
+            if (ArchiveRepackService.IsArchiveExtension(ext) &&
+                ShouldUnwrapArchiveBeforeMove(filePath, ext, shouldCompress, platform))
+            {
+                return true;
+            }
+
+            if (shouldCompress && (ext == ".cue" || ext == ".iso" || ext == ".gdi"))
             {
                 return true;
             }
@@ -618,7 +694,7 @@ namespace NzbDrone.Core.MediaFiles
             return false;
         }
 
-        private void PostProcessRomFile(ref string destinationFilePath, EpisodeFile romFile, Series platform)
+        private void PostProcessRomFile(ref string destinationFilePath, EpisodeFile romFile, Series platform, bool discCompressionAttempted = false)
         {
             if (string.IsNullOrWhiteSpace(destinationFilePath))
             {
@@ -640,18 +716,117 @@ namespace NzbDrone.Core.MediaFiles
                     }
                 }
 
-                if (ext == ".zip")
+                if (ArchiveRepackService.IsArchiveExtension(ext) && File.Exists(destinationFilePath))
                 {
-                    if (!shouldCompress && _archiveExtractionService != null && File.Exists(destinationFilePath))
+                    if (ShouldUnwrapArchiveBeforeMove(destinationFilePath, ext, shouldCompress, platform))
                     {
+                        var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_post_" + Guid.NewGuid().ToString("N"));
                         var destDir = Path.GetDirectoryName(destinationFilePath);
-                        if (!string.IsNullOrWhiteSpace(destDir))
+                        var destBaseName = Path.GetFileNameWithoutExtension(destinationFilePath);
+                        var originalArchivePath = destinationFilePath;
+
+                        try
                         {
-                            _importActivityService?.SetCurrentActivity("Extracting...");
-                            _archiveExtractionService.ExtractArchive(destinationFilePath, destDir, false);
+                            Directory.CreateDirectory(tempDir);
+                            if (!string.IsNullOrWhiteSpace(destDir) &&
+                                ArchiveRepackService.TryUnwrapGameFromArchive(originalArchivePath, tempDir, out var unwrappedRomPath, out var companionTracks))
+                            {
+                                var innerExt = Path.GetExtension(unwrappedRomPath)?.ToLowerInvariant() ?? string.Empty;
+                                if (DiscSheetHelper.IsDiscSheetExtension(innerExt))
+                                {
+                                    DiscSheetHelper.RepairSheetInPlaceIfNeeded(unwrappedRomPath);
+                                }
+
+                                if (shouldCompress &&
+                                    companionTracks.Count == 0 &&
+                                    IsZipCompressibleRom(innerExt, platform, unwrappedRomPath))
+                                {
+                                    var finalZipPath = Path.Combine(destDir, destBaseName + ".zip");
+                                    var stagedZipPath = Path.Combine(tempDir, destBaseName + ".zip");
+                                    CreateSingleRomZip(unwrappedRomPath, stagedZipPath, destBaseName + innerExt, innerExt);
+                                    File.Copy(stagedZipPath, finalZipPath, overwrite: true);
+                                    UpdateRomFileDestination(romFile, platform, ref destinationFilePath, finalZipPath);
+                                    ext = ".zip";
+                                    if (File.Exists(originalArchivePath) && !originalArchivePath.PathEquals(destinationFilePath))
+                                    {
+                                        File.Delete(originalArchivePath);
+                                    }
+                                }
+                                else if (shouldCompress &&
+                                         (innerExt == ".cue" || innerExt == ".iso" || innerExt == ".gdi") &&
+                                         _discCompressionService != null)
+                                {
+                                    discCompressionAttempted = true;
+                                    var tempStaging = tempDir;
+                                    var compressedTarget = Path.Combine(destDir, destBaseName + ".chd");
+                                    if (TryStageDiscCompression(unwrappedRomPath, romFile, platform, ref tempStaging, ref compressedTarget, out var stagedDiscPath))
+                                    {
+                                        var finalDiscPath = Path.Combine(destDir, Path.GetFileName(compressedTarget));
+                                        _diskTransferService.TransferFile(stagedDiscPath, finalDiscPath, TransferMode.Move, File.Exists(finalDiscPath));
+                                        UpdateRomFileDestination(romFile, platform, ref destinationFilePath, finalDiscPath);
+                                        ext = Path.GetExtension(destinationFilePath)?.ToLowerInvariant() ?? ext;
+                                        if (File.Exists(originalArchivePath) && !originalArchivePath.PathEquals(destinationFilePath))
+                                        {
+                                            File.Delete(originalArchivePath);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var finalUncompressedPath = Path.Combine(destDir, destBaseName + innerExt);
+                                        if (DiscSheetHelper.IsDiscSheetExtension(innerExt))
+                                        {
+                                            TransferDiscSheetAndTracks(unwrappedRomPath, finalUncompressedPath, TransferMode.Move);
+                                        }
+                                        else
+                                        {
+                                            _diskTransferService.TransferFile(unwrappedRomPath, finalUncompressedPath, TransferMode.Move, File.Exists(finalUncompressedPath));
+                                        }
+
+                                        UpdateRomFileDestination(romFile, platform, ref destinationFilePath, finalUncompressedPath);
+                                        ext = innerExt;
+                                        if (File.Exists(originalArchivePath) && !originalArchivePath.PathEquals(destinationFilePath))
+                                        {
+                                            File.Delete(originalArchivePath);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    var finalUncompressedPath = Path.Combine(destDir, destBaseName + innerExt);
+                                    if (DiscSheetHelper.IsDiscSheetExtension(innerExt))
+                                    {
+                                        TransferDiscSheetAndTracks(unwrappedRomPath, finalUncompressedPath, TransferMode.Move);
+                                    }
+                                    else
+                                    {
+                                        _diskTransferService.TransferFile(unwrappedRomPath, finalUncompressedPath, TransferMode.Move, File.Exists(finalUncompressedPath));
+                                    }
+
+                                    UpdateRomFileDestination(romFile, platform, ref destinationFilePath, finalUncompressedPath);
+                                    ext = innerExt;
+                                    if (File.Exists(originalArchivePath) && !originalArchivePath.PathEquals(destinationFilePath))
+                                    {
+                                        File.Delete(originalArchivePath);
+                                    }
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (Directory.Exists(tempDir))
+                            {
+                                try
+                                {
+                                    Directory.Delete(tempDir, true);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Debug(ex, "Unable to clean up temp post-process folder {0}", tempDir);
+                                }
+                            }
                         }
                     }
-                    else if (shouldCompress && _archiveRepackService != null && File.Exists(destinationFilePath))
+                    else if (shouldCompress && ext == ".zip" && _archiveRepackService != null)
                     {
                         _importActivityService?.SetCurrentActivity("Compressing...");
                         _archiveRepackService.SyncSingleRomEntryName(destinationFilePath);
@@ -668,7 +843,7 @@ namespace NzbDrone.Core.MediaFiles
                         ext = ".zip";
                     }
                 }
-                else if (shouldCompress && _discCompressionService != null && (ext == ".cue" || ext == ".iso" || ext == ".gdi"))
+                else if (shouldCompress && !discCompressionAttempted && _discCompressionService != null && (ext == ".cue" || ext == ".iso" || ext == ".gdi"))
                 {
                     _importActivityService?.SetCurrentActivity("Compressing...");
                     var platformSlug = platform?.TitleSlug ?? platform?.Title ?? string.Empty;

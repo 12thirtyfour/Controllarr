@@ -1,4 +1,7 @@
+using System;
 using System.IO;
+using System.IO.Compression;
+using System.Text;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
@@ -89,6 +92,99 @@ namespace NzbDrone.Core.Test.Platforms
             var decision = Subject.IsSatisfiedBy(_localEpisode, null);
             decision.Accepted.Should().BeFalse();
             decision.Reason.Should().Be(ImportRejectionReason.PlatformFormatRejected);
+        }
+
+        [Test]
+        public void should_accept_small_cue_sheet_when_referenced_bin_track_exceeds_1kb()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "pfs_cue_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var cuePath = Path.Combine(tempDir, "Crash 'n Burn (USA).cue");
+                var binPath = Path.Combine(tempDir, "Crash 'n Burn (USA).bin");
+
+                File.WriteAllText(cuePath, "FILE \"Crash 'n Burn (USA).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n");
+                File.WriteAllBytes(binPath, new byte[4096]);
+
+                _localEpisode.Path = cuePath;
+                _localEpisode.Series = new Series { Title = "3DO Interactive Multiplayer", TitleSlug = "3do" };
+
+                Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_reject_orphan_small_cue_sheet_without_bin_track()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "pfs_orphan_cue_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var cuePath = Path.Combine(tempDir, "Orphan (USA).cue");
+                File.WriteAllText(cuePath, "FILE \"Missing.bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n");
+
+                _localEpisode.Path = cuePath;
+                _localEpisode.Series = new Series { Title = "3DO Interactive Multiplayer", TitleSlug = "3do" };
+
+                var decision = Subject.IsSatisfiedBy(_localEpisode, null);
+                decision.Accepted.Should().BeFalse();
+                decision.Reason.Should().Be(ImportRejectionReason.PlatformFormatRejected);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_reject_archive_containing_only_junk_files()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "pfs_junk_zip_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var zipPath = Path.Combine(tempDir, "Junk (USA).zip");
+                using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    using (var s = archive.CreateEntry("item_meta.xml").Open())
+                    {
+                        s.Write(Encoding.UTF8.GetBytes(new string('a', 1500)));
+                    }
+
+                    using (var s = archive.CreateEntry("readme.txt").Open())
+                    {
+                        s.Write(Encoding.UTF8.GetBytes(new string('b', 1500)));
+                    }
+                }
+
+                _localEpisode.Path = zipPath;
+                _localEpisode.Series = new Series { Title = "3DO Interactive Multiplayer", TitleSlug = "3do" };
+
+                var decision = Subject.IsSatisfiedBy(_localEpisode, null);
+                decision.Accepted.Should().BeFalse();
+                decision.Reason.Should().Be(ImportRejectionReason.PlatformFormatRejected);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
         }
     }
 }

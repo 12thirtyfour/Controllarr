@@ -6,6 +6,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using NzbDrone.Core.Games;
+using NzbDrone.Core.MediaFiles.Archive;
+using SharpCompress.Archives;
 
 namespace NzbDrone.Core.Parser
 {
@@ -541,35 +543,67 @@ namespace NzbDrone.Core.Parser
             {
                 ext = ext.ToLowerInvariant();
 
-                if (ext == ".zip" && File.Exists(filePathOrName))
+                if ((ext == ".zip" || ext == ".7z" || ext == ".rar") && File.Exists(filePathOrName))
                 {
                     try
                     {
-                        using var archive = ZipFile.OpenRead(filePathOrName);
-                        foreach (var entry in archive.Entries)
+                        if (ext == ".zip")
                         {
-                            if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
+                            using var archive = ZipFile.OpenRead(filePathOrName);
+                            foreach (var entry in archive.Entries)
                             {
-                                continue;
-                            }
+                                if (ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name))
+                                {
+                                    continue;
+                                }
 
-                            var innerExt = Path.GetExtension(entry.Name);
-                            if (string.IsNullOrWhiteSpace(innerExt) ||
-                                innerExt.Equals(".zip", StringComparison.OrdinalIgnoreCase) ||
-                                innerExt.Equals(".7z", StringComparison.OrdinalIgnoreCase))
-                            {
-                                continue;
-                            }
+                                var innerExt = Path.GetExtension(entry.Name);
+                                if (string.IsNullOrWhiteSpace(innerExt) ||
+                                    ArchiveRepackService.IsArchiveExtension(innerExt))
+                                {
+                                    continue;
+                                }
 
-                            if (!IsExtensionCompatibleWithPlatform(innerExt, targetSlug, isCartridge))
+                                if (!IsExtensionCompatibleWithPlatform(innerExt, targetSlug, isCartridge))
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            using var archive = ArchiveFactory.OpenArchive(filePathOrName);
+                            foreach (var entry in archive.Entries)
                             {
-                                return false;
+                                if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                                {
+                                    continue;
+                                }
+
+                                var entryKey = entry.Key.Replace('\\', '/');
+                                var entryName = Path.GetFileName(entryKey);
+                                if (ArchiveRepackService.IsJunkEntry(entryKey, entryName))
+                                {
+                                    continue;
+                                }
+
+                                var innerExt = Path.GetExtension(entryName);
+                                if (string.IsNullOrWhiteSpace(innerExt) ||
+                                    ArchiveRepackService.IsArchiveExtension(innerExt))
+                                {
+                                    continue;
+                                }
+
+                                if (!IsExtensionCompatibleWithPlatform(innerExt, targetSlug, isCartridge))
+                                {
+                                    return false;
+                                }
                             }
                         }
                     }
                     catch
                     {
-                        // Ignore unreadable/non-zip files and fall back to outer extension check
+                        // Ignore unreadable/non-archive files and fall back to outer extension check
                     }
                 }
                 else if (!IsExtensionCompatibleWithPlatform(ext, targetSlug, isCartridge))

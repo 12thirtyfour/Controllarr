@@ -172,5 +172,36 @@ namespace NzbDrone.Core.Test.Extras.Others
             results.Count.Should().Be(1);
             results[0].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("Season 1", "Series Title - S01E01.mka").AsOsAgnostic()).Should().Be(true);
         }
+
+        [Test]
+        public void should_import_and_rename_single_game_rom_extras_and_ignore_os_junk()
+        {
+            var romPath = Path.Combine(_episodeFolder, "Crash 'n Burn (USA).cue").AsOsAgnostic();
+            var romFile = Builder<EpisodeFile>.CreateNew()
+                .With(f => f.Path = Path.Combine(_series.Path, "USA", "Crash 'n Burn (USA)", "Crash 'n Burn (USA).chd").AsOsAgnostic())
+                .With(f => f.RelativePath = @"USA\Crash 'n Burn (USA)\Crash 'n Burn (USA).chd")
+                .Build();
+
+            var localRom = Builder<LocalEpisode>.CreateNew()
+                .With(l => l.Series = _series)
+                .With(l => l.Episodes = _localEpisode.Episodes)
+                .With(l => l.Path = romPath)
+                .With(l => l.OtherVideoFiles = false)
+                .With(l => l.FileEpisodeInfo = null)
+                .Build();
+
+            var files = new List<string>
+            {
+                Path.Combine(_episodeFolder, "readme.txt").AsOsAgnostic(),
+                Path.Combine(_episodeFolder, "cover.jpg").AsOsAgnostic(),
+                Path.Combine(_episodeFolder, "Thumbs.db").AsOsAgnostic()
+            };
+
+            var results = Subject.ImportFiles(localRom, romFile, files, false).ToList();
+
+            results.Should().HaveCount(2);
+            results[0].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("USA", "Crash 'n Burn (USA)", "Crash 'n Burn (USA).1.txt").AsOsAgnostic()).Should().BeTrue();
+            results[1].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("USA", "Crash 'n Burn (USA)", "Crash 'n Burn (USA).2.jpg").AsOsAgnostic()).Should().BeTrue();
+        }
     }
 }

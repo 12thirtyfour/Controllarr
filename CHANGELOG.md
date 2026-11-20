@@ -23,6 +23,15 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-20
+
+### Fixed
+- **Verified Archive Extraction, Junk Filtering, Renaming & Disc Compression on Download Import (`DownloadedGamesImportService`, `RomFileMovingService`, `DiscSheetHelper`, `ArchiveRepackService`, `UnmanagedDiskScanner`, `PlatformFormatSpecification`, `PlatformCompatibilityValidator`, `DiskScanService`, `ExtraService`, `OtherExtraService`, `ImportApprovedGames`, `ImportDecisionMaker`, `FileNameBuilder`)**:
+  - Verified ROM/disc hashes inside `.zip`, `.7z`, and `.rar` archives before extraction (ignoring Internet Archive/OS junk, prioritizing binary data tracks ahead of `.cue`/`.gdi`/`.ccd` sheets, rejecting junk-only or unverified archives without extracting, and falling back to referenced `.bin` tracks when hashing loose disc sheets).
+  - Extracted verified single-game compressed archives during download import into isolated temporary directories so unwanted junk files are discarded on cleanup while approved user-configured extra files (`ImportExtraFiles` / `ExtraFileExtensions`, case-insensitive) are preserved and renamed alongside the imported game.
+  - Added `DiscSheetHelper` and upgraded `RomFileMovingService` so extracted optical disc games (3DO, PS1, Saturn, Sega CD, Dreamcast, PC-FX, etc.) and cartridge ROMs honor user renaming and compression settings: optical discs compress to `.chd`/`.rvz` when enabled or move/rename `.cue`/`.gdi`/`.ccd` + all companion tracks with rewritten track references when compression is disabled or `chdman` is unavailable; cartridge ROMs repack into clean single-ROM `.zip` or raw ROMs; `.bin` disc images are never re-zipped; and `DiskScanService` suppresses duplicate companion track discovery when referenced by a disc sheet.
+  - Replaced remaining TV subtitle wording in `en.json` (`ImportExtraFiles` help text) with gaming extra-file terminology.
+
 ## [1.0.0-rc.2] - 2026-11-20
 
 ### Changed

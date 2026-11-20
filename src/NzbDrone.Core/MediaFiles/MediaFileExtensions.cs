@@ -51,6 +51,7 @@ namespace NzbDrone.Core.MediaFiles
             { ".cdi", Quality.Unknown },
             { ".gdi", Quality.Unknown },
             { ".cue", Quality.Unknown },
+            { ".ccd", Quality.Unknown },
             { ".gg", Quality.Unknown },
             { ".pbp", Quality.Unknown },
             { ".cso", Quality.Unknown },
@@ -94,7 +95,7 @@ namespace NzbDrone.Core.MediaFiles
         [
             ".zip", ".7z", ".chd", ".rvz", ".ciso", ".gcm", ".wbfs", ".wux", ".wud", ".wua", ".rpx", ".xci", ".nsp", ".nsz",
             ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd", ".gb", ".gbc", ".gba", ".nds", ".dsi",
-            ".3ds", ".cia", ".cci", ".vb", ".sg", ".sms", ".md", ".smd", ".gen", ".32x", ".cdi", ".gdi", ".cue",
+            ".3ds", ".cia", ".cci", ".vb", ".sg", ".sms", ".md", ".smd", ".gen", ".32x", ".cdi", ".gdi", ".cue", ".ccd",
             ".gg", ".pbp", ".cso", ".vpk", ".xbe", ".xex", ".pce", ".sgx", ".neo", ".ngp", ".ngc", ".a26", ".a52",
             ".a78", ".j64", ".jag", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec", ".iso", ".bin", ".img", ".nrg", ".pkg",
             ".ips", ".bps", ".xdelta", ".vcdiff"

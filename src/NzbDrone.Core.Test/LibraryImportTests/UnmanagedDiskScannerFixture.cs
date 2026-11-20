@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -413,6 +415,141 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             item.Episodes.Should().ContainSingle();
             item.Episodes[0].Id.Should().Be(1002);
             item.Episodes[0].FinaleType.Should().Be("Rev 1");
+        }
+
+        [Test]
+        public void ComputeFileOrArchiveHashes_3doZipWithCueBinAndIaJunk_ShouldVerifyBinTrackAgainstDatWithoutExtracting()
+        {
+            var zipPath = Path.Combine(_tempPath, "Crash 'n Burn (USA).zip");
+            var cueBytes = Encoding.UTF8.GetBytes("FILE \"Crash 'n Burn (USA).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n");
+            var binBytes = new byte[4096];
+            new Random(42).NextBytes(binBytes);
+
+            using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                using (var s = archive.CreateEntry("crash_n_burn_meta.xml").Open())
+                {
+                    s.Write(Encoding.UTF8.GetBytes("<metadata><title>Crash 'n Burn</title></metadata>"));
+                }
+
+                using (var s = archive.CreateEntry("Crash 'n Burn (USA).cue").Open())
+                {
+                    s.Write(cueBytes, 0, cueBytes.Length);
+                }
+
+                using (var s = archive.CreateEntry("Crash 'n Burn (USA).bin").Open())
+                {
+                    s.Write(binBytes, 0, binBytes.Length);
+                }
+
+                using (var s = archive.CreateEntry("crash_n_burn_files.xml").Open())
+                {
+                    s.Write(Encoding.UTF8.GetBytes("<files/>"));
+                }
+
+                using (var s = archive.CreateEntry("crash_n_burn_archive.torrent").Open())
+                {
+                    s.Write(new byte[] { 1, 2, 3 });
+                }
+
+                using (var s = archive.CreateEntry("cover.jpg").Open())
+                {
+                    s.Write(new byte[] { 0xFF, 0xD8, 0xFF });
+                }
+
+                using (var s = archive.CreateEntry("readme.txt").Open())
+                {
+                    s.Write(Encoding.UTF8.GetBytes("Uploaded to Internet Archive"));
+                }
+            }
+
+            string binCrc;
+            string binSha1;
+            string binMd5;
+            using (var reopened = ZipFile.OpenRead(zipPath))
+            {
+                binCrc = reopened.GetEntry("Crash 'n Burn (USA).bin").Crc32.ToString("x8").ToLowerInvariant();
+            }
+
+            using (var sha1 = System.Security.Cryptography.SHA1.Create())
+            {
+                binSha1 = BitConverter.ToString(sha1.ComputeHash(binBytes)).Replace("-", string.Empty).ToLowerInvariant();
+            }
+
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                binMd5 = BitConverter.ToString(md5.ComputeHash(binBytes)).Replace("-", string.Empty).ToLowerInvariant();
+            }
+
+            var datCache = Mocker.GetMock<IDatCacheService>();
+            datCache.Setup(d => d.FindByCrc32(binCrc)).Returns(new DatEntry
+            {
+                GameName = "Crash 'n Burn (USA)",
+                RomName = "Crash 'n Burn (USA).bin",
+                Crc32 = binCrc,
+                Sha1 = binSha1,
+                Md5 = binMd5
+            });
+
+            var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(zipPath, new[] { ".chd", ".iso", ".cue", ".bin" }, datCache.Object);
+
+            hashes.Should().ContainKey("CRC32").WhoseValue.Should().Be(binCrc);
+            hashes.Should().ContainKey("SHA-1").WhoseValue.Should().Be(binSha1);
+            hashes.Should().ContainKey("MD5").WhoseValue.Should().Be(binMd5);
+            hashes.Should().ContainKey("ROM_NAME").WhoseValue.Should().Be("Crash 'n Burn (USA).bin");
+            Directory.GetFiles(_tempPath).Should().ContainSingle().Which.Should().Be(zipPath);
+        }
+
+        [Test]
+        public void ComputeFileOrArchiveHashes_JunkOnlyZip_ShouldReturnEmptyHashes()
+        {
+            var zipPath = Path.Combine(_tempPath, "JunkOnly (USA).zip");
+            using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                using (var s = archive.CreateEntry("item_meta.xml").Open())
+                {
+                    s.Write(Encoding.UTF8.GetBytes("<metadata/>"));
+                }
+
+                using (var s = archive.CreateEntry("readme.txt").Open())
+                {
+                    s.Write(Encoding.UTF8.GetBytes("Just text"));
+                }
+            }
+
+            var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(zipPath);
+            hashes.Should().BeEmpty();
+        }
+
+        [Test]
+        public void ComputeFileOrArchiveHashes_LooseCueWithUnmatchedCueHash_ShouldFallbackToReferencedBinTrack()
+        {
+            var cuePath = Path.Combine(_tempPath, "Road Rash (USA).cue");
+            var binPath = Path.Combine(_tempPath, "Road Rash (USA).bin");
+            var binPayload = new byte[2048];
+            new Random(7).NextBytes(binPayload);
+
+            File.WriteAllText(cuePath, "FILE \"Road Rash (USA).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n");
+            File.WriteAllBytes(binPath, binPayload);
+
+            string binSha1;
+            using (var sha1 = System.Security.Cryptography.SHA1.Create())
+            {
+                binSha1 = BitConverter.ToString(sha1.ComputeHash(binPayload)).Replace("-", string.Empty).ToLowerInvariant();
+            }
+
+            var datCache = Mocker.GetMock<IDatCacheService>();
+            datCache.Setup(d => d.FindBySha1(binSha1)).Returns(new DatEntry
+            {
+                GameName = "Road Rash (USA)",
+                RomName = "Road Rash (USA).bin",
+                Sha1 = binSha1
+            });
+
+            var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(cuePath, new[] { ".chd", ".iso", ".cue", ".bin" }, datCache.Object);
+
+            hashes.Should().ContainKey("SHA-1").WhoseValue.Should().Be(binSha1);
+            hashes.Should().ContainKey("ROM_NAME").WhoseValue.Should().Be("Road Rash (USA).cue");
         }
     }
 }

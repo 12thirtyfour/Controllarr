@@ -13,6 +13,7 @@ using NzbDrone.Core.Dat;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.MediaFiles.Patching;
@@ -321,7 +322,7 @@ namespace NzbDrone.Core.MediaFiles
 
             _importActivityService?.SetCurrentActivity("Verifying...");
             var decisions = _importDecisionMaker.GetImportDecisions(remainingVideoFiles, series, downloadClientItem, downloadClientItemInfo, folderInfo, true);
-            var importResults = _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+            var importResults = ImportDecisionsWithArchiveExtraction(decisions, importMode, series, downloadClientItem);
             importResults.AddRange(patchResults);
 
             if (importMode == ImportMode.Auto)
@@ -506,7 +507,413 @@ namespace NzbDrone.Core.MediaFiles
                 }
             }
 
-            return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+            return ImportDecisionsWithArchiveExtraction(decisions, importMode, series, downloadClientItem);
+        }
+
+        private List<ImportResult> ImportDecisionsWithArchiveExtraction(
+            List<ImportDecision> decisions,
+            ImportMode importMode,
+            Series series,
+            DownloadClientItem downloadClientItem)
+        {
+            if (decisions == null || decisions.Count == 0)
+            {
+                return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+            }
+
+            var archiveDecisionsToExtract = new List<ImportDecision>();
+            var directDecisions = new List<ImportDecision>();
+
+            foreach (var decision in decisions)
+            {
+                if (decision != null &&
+                    decision.Approved &&
+                    decision.LocalEpisode != null &&
+                    ShouldExtractSingleGameArchiveForImport(decision.LocalEpisode.Path, decision.LocalEpisode.Series ?? series))
+                {
+                    archiveDecisionsToExtract.Add(decision);
+                }
+                else
+                {
+                    directDecisions.Add(decision);
+                }
+            }
+
+            if (archiveDecisionsToExtract.Count == 0)
+            {
+                return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+            }
+
+            var allResults = new List<ImportResult>();
+
+            if (directDecisions.Count > 0)
+            {
+                allResults.AddRange(_importApprovedEpisodes.Import(directDecisions, true, downloadClientItem, importMode));
+            }
+
+            var effectiveImportMode = importMode == ImportMode.Auto
+                ? ((downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy)
+                : importMode;
+
+            foreach (var archiveDecision in archiveDecisionsToExtract)
+            {
+                allResults.AddRange(ImportExtractedSingleGameArchive(
+                    archiveDecision,
+                    effectiveImportMode,
+                    archiveDecision.LocalEpisode.Series ?? series,
+                    downloadClientItem));
+            }
+
+            return allResults;
+        }
+
+        private static bool ShouldExtractSingleGameArchiveForImport(string archivePath, Series series)
+        {
+            if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(archivePath)?.ToLowerInvariant() ?? string.Empty;
+            if (!ArchiveRepackService.IsArchiveExtension(ext))
+            {
+                return false;
+            }
+
+            var shouldCompress = RomFileMovingService.IsPlatformCompressionEnabled(series);
+            return RomFileMovingService.ShouldUnwrapArchiveBeforeMove(archivePath, ext, shouldCompress, series);
+        }
+
+        private List<ImportResult> ImportExtractedSingleGameArchive(
+            ImportDecision archiveDecision,
+            ImportMode effectiveImportMode,
+            Series targetSeries,
+            DownloadClientItem downloadClientItem)
+        {
+            var archivePath = archiveDecision.LocalEpisode.Path;
+            var baseDir = Path.GetDirectoryName(archivePath);
+            var folderPrefix = Path.GetFileNameWithoutExtension(archivePath) + "_extract_" + Guid.NewGuid().ToString("N")[..8];
+            var extractDir = !string.IsNullOrWhiteSpace(baseDir)
+                ? Path.Combine(baseDir, folderPrefix)
+                : Path.Combine(Path.GetTempPath(), folderPrefix);
+
+            try
+            {
+                _importActivityService?.SetCurrentActivity("Extracting...");
+                _logger.Info("Extracting verified single-game archive {0} to {1}", archivePath, extractDir);
+
+                try
+                {
+                    Directory.CreateDirectory(extractDir);
+                }
+                catch
+                {
+                    extractDir = Path.Combine(Path.GetTempPath(), folderPrefix);
+                    Directory.CreateDirectory(extractDir);
+                }
+
+                var rejectedExtensions = FileExtensions.ParseUserRejectedExtensions(_configService?.UserRejectedExtensions ?? string.Empty);
+                var extractedFiles = new List<string>();
+                ExtractArchiveEntriesForSingleGame(archivePath, extractDir, 0, 5, rejectedExtensions, extractedFiles);
+
+                var biosFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var extractedFile in extractedFiles)
+                {
+                    var fileName = Path.GetFileName(extractedFile);
+                    var isBios = (targetSeries != null && _biosService != null && _biosService.IsKnownBiosFileName(fileName)) ||
+                                 RegionHelper.IsBios(fileName, null, null, extractedFile);
+                    if (isBios)
+                    {
+                        biosFiles.Add(extractedFile);
+                        if (_biosService != null && targetSeries != null)
+                        {
+                            _biosService.ProcessCandidateBiosFile(extractedFile, targetSeries, move: effectiveImportMode == ImportMode.Move);
+                        }
+                    }
+                }
+
+                var romCandidates = extractedFiles
+                    .Where(f => !biosFiles.Contains(f))
+                    .Where(f =>
+                    {
+                        var ext = Path.GetExtension(f);
+                        return MediaFileExtensions.RomExtensions.Contains(ext) ||
+                               DiscSheetHelper.IsCompanionTrackExtension(ext);
+                    })
+                    .ToList();
+
+                var primaryRomPath = ArchiveRepackService.ResolvePrimaryRomFile(romCandidates);
+                if (string.IsNullOrWhiteSpace(primaryRomPath) || !File.Exists(primaryRomPath))
+                {
+                    return new List<ImportResult>
+                    {
+                        new ImportResult(
+                            new ImportDecision(
+                                archiveDecision.LocalEpisode,
+                                new ImportRejection(ImportRejectionReason.ArchiveFile, "Extracted archive did not contain a valid single-game ROM set")),
+                            "Extracted archive did not contain a valid single-game ROM set")
+                    };
+                }
+
+                if (DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(primaryRomPath)))
+                {
+                    DiscSheetHelper.RepairSheetInPlaceIfNeeded(primaryRomPath);
+                }
+
+                var primaryDir = Path.GetDirectoryName(primaryRomPath);
+                if (_configService != null &&
+                    _configService.ImportExtraFiles &&
+                    !string.IsNullOrWhiteSpace(primaryDir))
+                {
+                    foreach (var extractedFile in extractedFiles)
+                    {
+                        if (biosFiles.Contains(extractedFile))
+                        {
+                            continue;
+                        }
+
+                        var ext = Path.GetExtension(extractedFile);
+                        if (MediaFileExtensions.RomExtensions.Contains(ext) ||
+                            DiscSheetHelper.IsCompanionTrackExtension(ext) ||
+                            !File.Exists(extractedFile))
+                        {
+                            continue;
+                        }
+
+                        var fileDir = Path.GetDirectoryName(extractedFile);
+                        if (!string.Equals(fileDir, primaryDir, StringComparison.OrdinalIgnoreCase))
+                        {
+                            var adjacentPath = Path.Combine(primaryDir, Path.GetFileName(extractedFile));
+                            if (!File.Exists(adjacentPath))
+                            {
+                                File.Copy(extractedFile, adjacentPath, overwrite: false);
+                            }
+                        }
+                    }
+                }
+
+                var orig = archiveDecision.LocalEpisode;
+                var extractedLocalEpisode = new LocalEpisode
+                {
+                    Path = primaryRomPath,
+                    Size = DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(primaryRomPath))
+                        ? DiscSheetHelper.GetEffectiveFileSize(primaryRomPath)
+                        : new FileInfo(primaryRomPath).Length,
+                    FileEpisodeInfo = orig.FileEpisodeInfo,
+                    DownloadClientEpisodeInfo = orig.DownloadClientEpisodeInfo,
+                    DownloadItem = orig.DownloadItem,
+                    FolderEpisodeInfo = orig.FolderEpisodeInfo ?? new ParsedEpisodeInfo { ReleaseTitle = Path.GetFileName(extractDir) },
+                    Series = targetSeries,
+                    Episodes = orig.Episodes,
+                    Quality = orig.Quality,
+                    Languages = orig.Languages,
+                    IndexerFlags = orig.IndexerFlags,
+                    ReleaseType = orig.ReleaseType,
+                    MediaInfo = orig.MediaInfo,
+                    ExistingFile = false,
+                    SceneSource = orig.SceneSource,
+                    ReleaseGroup = orig.ReleaseGroup,
+                    ReleaseHash = orig.ReleaseHash,
+                    SceneName = !string.IsNullOrWhiteSpace(orig.SceneName) ? orig.SceneName : Path.GetFileNameWithoutExtension(primaryRomPath),
+                    OtherVideoFiles = false,
+                    CustomFormats = orig.CustomFormats,
+                    CustomFormatScore = orig.CustomFormatScore,
+                    OriginalFileNameCustomFormats = orig.OriginalFileNameCustomFormats,
+                    OriginalFileNameCustomFormatScore = orig.OriginalFileNameCustomFormatScore,
+                    Release = orig.Release,
+                    ShouldImportExtras = orig.ShouldImportExtras,
+                    PossibleExtraFiles = orig.PossibleExtraFiles,
+                    SubtitleInfo = orig.SubtitleInfo,
+                    RomHashVerified = orig.RomHashVerified,
+                    RomHashes = orig.RomHashes
+                };
+
+                var extractedResults = _importApprovedEpisodes.Import(
+                    new List<ImportDecision> { new ImportDecision(extractedLocalEpisode) },
+                    true,
+                    downloadClientItem,
+                    effectiveImportMode);
+
+                if (effectiveImportMode == ImportMode.Move &&
+                    extractedResults.Any(r => r.Result == ImportResultType.Imported) &&
+                    !extractedResults.Any(r => r.Result == ImportResultType.Rejected))
+                {
+                    if (_diskProvider.FileExists(archivePath))
+                    {
+                        _diskProvider.DeleteFile(archivePath);
+                    }
+                    else if (File.Exists(archivePath))
+                    {
+                        File.Delete(archivePath);
+                    }
+                }
+
+                return extractedResults;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to extract verified single-game archive {0}", archivePath);
+                return new List<ImportResult>
+                {
+                    new ImportResult(
+                        new ImportDecision(
+                            archiveDecision.LocalEpisode,
+                            new ImportRejection(ImportRejectionReason.ArchiveFile, $"Failed to extract archive: {ex.Message}")),
+                        $"Failed to extract archive: {ex.Message}")
+                };
+            }
+            finally
+            {
+                if (Directory.Exists(extractDir))
+                {
+                    try
+                    {
+                        Directory.Delete(extractDir, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Unable to clean up temporary extraction folder {0}", extractDir);
+                    }
+                }
+            }
+        }
+
+        private static void ExtractArchiveEntriesForSingleGame(
+            string archivePath,
+            string targetDir,
+            int depth,
+            int maxDepth,
+            HashSet<string> rejectedExtensions,
+            List<string> collectedFiles)
+        {
+            if (depth > maxDepth || !File.Exists(archivePath))
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(targetDir);
+            var targetDirFull = Path.GetFullPath(targetDir);
+            if (!targetDirFull.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                targetDirFull += Path.DirectorySeparatorChar;
+            }
+
+            var ext = Path.GetExtension(archivePath);
+            var newlyExtracted = new List<string>();
+
+            if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                using var archive = ZipFile.OpenRead(archivePath);
+                foreach (var entry in archive.Entries)
+                {
+                    if (ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name))
+                    {
+                        continue;
+                    }
+
+                    var entryExt = Path.GetExtension(entry.Name);
+                    if (ShouldSkipExtractedExtension(entryExt, rejectedExtensions))
+                    {
+                        continue;
+                    }
+
+                    var relativePath = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativePath));
+                    if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var destParent = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(destParent) && !Directory.Exists(destParent))
+                    {
+                        Directory.CreateDirectory(destParent);
+                    }
+
+                    entry.ExtractToFile(destPath, overwrite: true);
+                    newlyExtracted.Add(destPath);
+                }
+            }
+            else if (ArchiveRepackService.IsArchiveExtension(ext))
+            {
+                using var archive = ArchiveFactory.OpenArchive(archivePath);
+                foreach (var entry in archive.Entries)
+                {
+                    if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                    {
+                        continue;
+                    }
+
+                    var entryKey = entry.Key.Replace('\\', '/');
+                    var entryName = Path.GetFileName(entryKey);
+                    if (ArchiveRepackService.IsJunkEntry(entryKey, entryName))
+                    {
+                        continue;
+                    }
+
+                    var entryExt = Path.GetExtension(entryName);
+                    if (ShouldSkipExtractedExtension(entryExt, rejectedExtensions))
+                    {
+                        continue;
+                    }
+
+                    var relativePath = entryKey.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativePath));
+                    if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var destParent = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(destParent) && !Directory.Exists(destParent))
+                    {
+                        Directory.CreateDirectory(destParent);
+                    }
+
+                    entry.WriteToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
+                    newlyExtracted.Add(destPath);
+                }
+            }
+
+            foreach (var extractedPath in newlyExtracted)
+            {
+                var extractedExt = Path.GetExtension(extractedPath);
+                if (ArchiveRepackService.IsArchiveExtension(extractedExt))
+                {
+                    if (depth < maxDepth)
+                    {
+                        var nestedDir = Path.Combine(Path.GetDirectoryName(extractedPath) ?? targetDir, "nested_" + Guid.NewGuid().ToString("N")[..8]);
+                        ExtractArchiveEntriesForSingleGame(extractedPath, nestedDir, depth + 1, maxDepth, rejectedExtensions, collectedFiles);
+                    }
+
+                    try
+                    {
+                        if (File.Exists(extractedPath))
+                        {
+                            File.Delete(extractedPath);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+                else
+                {
+                    collectedFiles.Add(extractedPath);
+                }
+            }
+        }
+
+        private static bool ShouldSkipExtractedExtension(string ext, HashSet<string> rejectedExtensions)
+        {
+            if (string.IsNullOrWhiteSpace(ext))
+            {
+                return false;
+            }
+
+            return FileExtensions.DangerousExtensions.Contains(ext) ||
+                   FileExtensions.ExecutableExtensions.Contains(ext) ||
+                   (rejectedExtensions != null && rejectedExtensions.Contains(ext));
         }
 
         private List<ImportResult> TryHandleNoWastedDownload(FileInfo fileInfo, Series targetSeries, ImportMode importMode, DownloadClientItem downloadClientItem, LocalEpisode existingLocalEpisode)
@@ -588,7 +995,11 @@ namespace NzbDrone.Core.MediaFiles
                         RomHashVerified = true
                     };
 
-                    var importResults = _importApprovedEpisodes.Import(new List<ImportDecision> { new ImportDecision(matchedLocalEpisode) }, true, downloadClientItem, importMode);
+                    var importResults = ImportDecisionsWithArchiveExtraction(
+                        new List<ImportDecision> { new ImportDecision(matchedLocalEpisode) },
+                        importMode,
+                        matchedPlatform,
+                        downloadClientItem);
                     if (importResults.Any(r => r.Result == ImportResultType.Imported))
                     {
                         var crossMessage = $"Imported as '{matchedEpisode.Title}' ({matchedPlatform.Title}); failing original request so search continues.";
@@ -775,7 +1186,7 @@ namespace NzbDrone.Core.MediaFiles
                                 continue;
                             }
 
-                            if (entry.FullName.Contains("__MACOSX") || entry.Name.StartsWith(".") || entry.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            if (ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name))
                             {
                                 continue;
                             }
@@ -809,7 +1220,7 @@ namespace NzbDrone.Core.MediaFiles
 
                             var entryKey = entry.Key.Replace('\\', '/');
                             var entryName = Path.GetFileName(entryKey);
-                            if (entryKey.Contains("__MACOSX") || entryName.StartsWith(".") || entryName.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                            if (ArchiveRepackService.IsJunkEntry(entryKey, entryName))
                             {
                                 continue;
                             }

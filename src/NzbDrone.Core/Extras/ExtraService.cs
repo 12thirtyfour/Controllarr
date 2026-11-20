@@ -4,11 +4,14 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Extras.Files;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
@@ -78,8 +81,21 @@ namespace NzbDrone.Core.Extras
 
             foreach (var file in files)
             {
+                if (file.PathEquals(localEpisode.Path))
+                {
+                    continue;
+                }
+
                 var extension = Path.GetExtension(file);
-                var matchingExtension = wantedExtensions.FirstOrDefault(e => e.Equals(extension));
+                if (string.IsNullOrWhiteSpace(extension) ||
+                    MediaFileExtensions.RomExtensions.Contains(extension) ||
+                    DiscSheetHelper.IsCompanionTrackExtension(extension) ||
+                    ArchiveRepackService.IsJunkEntry(file, Path.GetFileName(file)))
+                {
+                    continue;
+                }
+
+                var matchingExtension = wantedExtensions.FirstOrDefault(e => e.Equals(extension, StringComparison.OrdinalIgnoreCase));
 
                 if (matchingExtension == null)
                 {

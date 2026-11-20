@@ -9,6 +9,8 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Extras.Files;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
 
@@ -119,10 +121,23 @@ namespace NzbDrone.Core.Extras.Others
                         continue;
                     }
 
+                    // Single-game ROM imports may bundle differently named manuals/docs/art from the same game release
+                    var fileExt = Path.GetExtension(file);
+                    if (!localEpisode.OtherVideoFiles &&
+                        !string.IsNullOrWhiteSpace(sourcePath) &&
+                        MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(sourcePath)) &&
+                        !MediaFileExtensions.RomExtensions.Contains(fileExt) &&
+                        !DiscSheetHelper.IsCompanionTrackExtension(fileExt) &&
+                        !ArchiveRepackService.IsJunkEntry(file, Path.GetFileName(file)))
+                    {
+                        matchingFiles.Add(file);
+                        continue;
+                    }
+
                     // Season and episode match
                     var fileEpisodeInfo = Parser.Parser.ParsePath(file) ?? new ParsedEpisodeInfo();
 
-                    if (fileEpisodeInfo.EpisodeNumbers.Length == 0)
+                    if (fileEpisodeInfo.EpisodeNumbers.Length == 0 || localEpisode.FileEpisodeInfo == null)
                     {
                         continue;
                     }

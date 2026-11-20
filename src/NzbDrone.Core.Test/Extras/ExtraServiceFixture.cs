@@ -248,5 +248,29 @@ namespace NzbDrone.Core.Test.Extras
             Mocker.GetMock<IDiskProvider>().Verify(v => v.GetFiles(_episodeFolder, true), Times.Never);
             Mocker.GetMock<IDiskProvider>().Verify(v => v.GetFiles(_episodeFolder, false), Times.Once);
         }
+
+        [Test]
+        public void should_match_extra_extensions_case_insensitively_and_skip_rom_and_track_files()
+        {
+            Mocker.GetMock<IConfigService>().Setup(v => v.ExtraFileExtensions).Returns("txt,jpg");
+
+            var romCue = Path.Combine(_episodeFolder, "Crash 'n Burn (USA).cue").AsOsAgnostic();
+            var romBin = Path.Combine(_episodeFolder, "Crash 'n Burn (USA).bin").AsOsAgnostic();
+            var manualTxt = Path.Combine(_episodeFolder, "manual.TXT").AsOsAgnostic();
+            var metaXml = Path.Combine(_episodeFolder, "item_meta.xml").AsOsAgnostic();
+
+            _localEpisode.Path = romCue;
+            WithExistingFiles(new List<string> { romCue, romBin, manualTxt, metaXml });
+
+            Subject.ImportEpisode(_localEpisode, _episodeFile, true);
+
+            _otherExtraService.Verify(
+                v => v.ImportFiles(
+                    _localEpisode,
+                    _episodeFile,
+                    It.Is<List<string>>(list => list.Count == 1 && list.Contains(manualTxt)),
+                    true),
+                Times.Once());
+        }
     }
 }

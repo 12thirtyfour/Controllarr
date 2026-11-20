@@ -15,6 +15,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.Commands;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MediaFiles.MediaInfo;
@@ -344,6 +345,32 @@ namespace NzbDrone.Core.MediaFiles
 
                 return true;
             }).ToList();
+
+            var discSheets = mediaFileList
+                .Where(f => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(f)) && File.Exists(f))
+                .ToList();
+
+            if (discSheets.Count > 0)
+            {
+                var companionTracks = new HashSet<string>(PathEqualityComparer.Instance);
+                foreach (var sheet in discSheets)
+                {
+                    foreach (var track in DiscSheetHelper.ResolveTrackFiles(sheet))
+                    {
+                        if (!string.Equals(track, sheet, StringComparison.OrdinalIgnoreCase))
+                        {
+                            companionTracks.Add(track);
+                        }
+                    }
+                }
+
+                if (companionTracks.Count > 0)
+                {
+                    mediaFileList = mediaFileList
+                        .Where(f => !companionTracks.Contains(f))
+                        .ToList();
+                }
+            }
 
             _logger.Trace("{0} files were found in {1}", filesOnDisk.Count, path);
             _logger.Debug("{0} ROM files were found in {1}", mediaFileList.Count, path);

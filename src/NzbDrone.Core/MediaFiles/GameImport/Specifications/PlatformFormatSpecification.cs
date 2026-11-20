@@ -2,6 +2,8 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Platforms;
@@ -24,15 +26,23 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
         public ImportSpecDecision IsSatisfiedBy(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
         {
             var fileInfo = new FileInfo(localEpisode.Path);
+            var extension = Path.GetExtension(localEpisode.Path)?.ToLowerInvariant() ?? string.Empty;
+            var effectiveLength = fileInfo.Exists ? DiscSheetHelper.GetEffectiveFileSize(localEpisode.Path) : fileInfo.Length;
 
             // Zero-byte/corrupt stub rejection
-            if (fileInfo.Length < 1024)
+            if (effectiveLength < 1024)
             {
-                _logger.Debug("Rejecting file {0}: Size is less than 1KB ({1} bytes)", localEpisode.Path, fileInfo.Length);
+                _logger.Debug("Rejecting file {0}: Size is less than 1KB ({1} bytes)", localEpisode.Path, effectiveLength);
                 return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, "File is less than 1KB (corrupt/stub)");
             }
 
-            var extension = Path.GetExtension(localEpisode.Path).ToLowerInvariant();
+            if (ArchiveRepackService.IsArchiveExtension(extension) &&
+                fileInfo.Exists &&
+                !ArchiveRepackService.HasValidRomEntries(localEpisode.Path))
+            {
+                _logger.Debug("Rejecting archive {0}: No valid ROM files found inside archive", localEpisode.Path);
+                return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, "Archive contains no valid ROM files");
+            }
 
             if (localEpisode.Series != null &&
                 !PlatformCompatibilityValidator.IsLocalFileCompatible(localEpisode.Path, localEpisode.Series.TitleSlug, localEpisode.Series.Title))
@@ -50,14 +60,14 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                     return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"Extension {extension} not allowed for platform");
                 }
 
-                if (fileInfo.Length < profile.MinimumSizeBytes)
+                if (effectiveLength < profile.MinimumSizeBytes)
                 {
-                    return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"File smaller than allowed minimum: {fileInfo.Length} < {profile.MinimumSizeBytes}");
+                    return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"File smaller than allowed minimum: {effectiveLength} < {profile.MinimumSizeBytes}");
                 }
 
-                if (fileInfo.Length > profile.MaximumSizeBytes)
+                if (effectiveLength > profile.MaximumSizeBytes)
                 {
-                    return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"File larger than allowed maximum: {fileInfo.Length} > {profile.MaximumSizeBytes}");
+                    return ImportSpecDecision.Reject(ImportRejectionReason.PlatformFormatRejected, $"File larger than allowed maximum: {effectiveLength} > {profile.MaximumSizeBytes}");
                 }
             }
 

@@ -10,12 +10,15 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
+using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.GameImport.Manual;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
+using SharpCompress.Archives;
 
 namespace NzbDrone.Core.MediaFiles.LibraryImport
 {
@@ -563,10 +566,23 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 if (gameEntries.Count == 1 || isSingleMultiTrack)
                 {
                     var primaryEntry = gameEntries.FirstOrDefault(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                                                                       Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase)) ?? gameEntries[0];
+                                                                       Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                                                                       Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)) ?? gameEntries[0];
 
-                    var (primaryName, crc32) = GetInnerRomDetails(primaryEntry);
-                    var hashes = new Dictionary<string, string> { ["CRC32"] = crc32 };
+                    var orderedHashEntries = gameEntries
+                        .OrderBy(e => GetCandidateHashPriority(e.Name))
+                        .ThenBy(e => GetTrackPriorityBoost(e.Name))
+                        .ThenByDescending(e => e.Length)
+                        .ToList();
+
+                    var selectedEntry = orderedHashEntries.FirstOrDefault(e =>
+                    {
+                        var (_, candidateCrc) = GetInnerRomDetails(e);
+                        return IsMeaningfulDatMatch(_datCacheService?.FindByCrc32(candidateCrc));
+                    }) ?? orderedHashEntries[0];
+
+                    var (resolvedName, crc32) = GetInnerRomDetails(selectedEntry);
+                    var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["CRC32"] = crc32 };
 
                     var datMatch = _datCacheService?.FindByCrc32(crc32);
                     if (datMatch != null && (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5)))
@@ -590,7 +606,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     {
                         try
                         {
-                            using var entryStream = primaryEntry.Open();
+                            using var entryStream = selectedEntry.Open();
                             ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
                         }
                         catch
@@ -598,7 +614,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         }
                     }
 
-                    var (series, episode, highConfidence, matchedDat) = ResolvePlatformAndGame(crc32, primaryName, filePath, hashes);
+                    var (series, episode, highConfidence, matchedDat) = ResolvePlatformAndGame(crc32, isSingleMultiTrack ? primaryEntry.Name : resolvedName, filePath, hashes);
                     var hasDatIdentity = !string.IsNullOrWhiteSpace(matchedDat?.GameName) || !string.IsNullOrWhiteSpace(matchedDat?.RomName);
 
                     results.Add(new ManualImportItem
@@ -1212,57 +1228,9 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 }
             }
 
-            if (ArchiveExtensions.Contains(extension))
+            if (ArchiveRepackService.IsArchiveExtension(extension))
             {
-                try
-                {
-                    var validExtensionSet = validExtensions != null
-                        ? new HashSet<string>(validExtensions, StringComparer.OrdinalIgnoreCase)
-                        : null;
-
-                    using var archive = ZipFile.OpenRead(filePath);
-                    var romEntry = archive.Entries.FirstOrDefault(e =>
-                        !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\") &&
-                        ((validExtensionSet != null && validExtensionSet.Contains(Path.GetExtension(e.Name))) ||
-                         MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(e.Name)))) ??
-                        archive.Entries.FirstOrDefault(e => !e.FullName.EndsWith("/") && !e.FullName.EndsWith("\\"));
-                    if (romEntry != null)
-                    {
-                        var crc32Hex = romEntry.Crc32.ToString("x8").ToLowerInvariant();
-                        hashes["CRC32"] = crc32Hex;
-                        hashes["ROM_NAME"] = romEntry.Name;
-
-                        var datMatch = datCacheService?.FindByCrc32(crc32Hex);
-                        if (datMatch != null && (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5)))
-                        {
-                            if (!string.IsNullOrWhiteSpace(datMatch.Sha1))
-                            {
-                                hashes["SHA-1"] = datMatch.Sha1.ToLowerInvariant();
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(datMatch.Md5))
-                            {
-                                hashes["MD5"] = datMatch.Md5.ToLowerInvariant();
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(datMatch.Sha256))
-                            {
-                                hashes["SHA-256"] = datMatch.Sha256.ToLowerInvariant();
-                            }
-                        }
-                        else
-                        {
-                            using (var entryStream = romEntry.Open())
-                            {
-                                ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger?.Error(ex, $"Failed to inspect archive hashes for {filePath}");
-                }
+                ComputeArchiveHashes(filePath, extension, validExtensions, datCacheService, logger, hashes);
             }
             else
             {
@@ -1274,6 +1242,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 catch (Exception ex)
                 {
                     logger?.Error(ex, $"Failed to compute hashes for {filePath}");
+                }
+
+                if (DiscSheetHelper.IsDiscSheetExtension(extension))
+                {
+                    EnrichDiscSheetHashesFromTracks(filePath, datCacheService, logger, hashes);
                 }
             }
 
@@ -1297,6 +1270,392 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
 
             return hashes;
+        }
+
+        private static void ComputeArchiveHashes(
+            string filePath,
+            string extension,
+            IEnumerable<string> validExtensions,
+            IDatCacheService datCacheService,
+            Logger logger,
+            Dictionary<string, string> hashes)
+        {
+            var validExtensionSet = validExtensions != null
+                ? new HashSet<string>(validExtensions, StringComparer.OrdinalIgnoreCase)
+                : null;
+
+            try
+            {
+                if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    ComputeZipArchiveHashes(filePath, validExtensionSet, datCacheService, hashes);
+                    return;
+                }
+
+                ComputeSharpCompressArchiveHashes(filePath, validExtensionSet, datCacheService, hashes);
+            }
+            catch (Exception ex)
+            {
+                logger?.Error(ex, $"Failed to inspect archive hashes for {filePath}");
+            }
+        }
+
+        private static void ComputeZipArchiveHashes(
+            string filePath,
+            HashSet<string> validExtensionSet,
+            IDatCacheService datCacheService,
+            Dictionary<string, string> hashes)
+        {
+            using var archive = ZipFile.OpenRead(filePath);
+            var romEntries = archive.Entries
+                .Where(e => IsValidArchiveHashCandidate(e.FullName, e.Name, validExtensionSet, allowNestedArchives: false))
+                .OrderBy(e => GetCandidateHashPriority(e.Name))
+                .ThenBy(e => GetTrackPriorityBoost(e.Name))
+                .ThenByDescending(e => e.Length)
+                .ToList();
+
+            if (romEntries.Count == 0)
+            {
+                var nestedZip = archive.Entries.FirstOrDefault(e =>
+                    !ArchiveRepackService.IsJunkEntry(e.FullName, e.Name) &&
+                    !RegionHelper.IsBios(e.Name, null, null, e.FullName) &&
+                    Path.GetExtension(e.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase));
+
+                if (nestedZip != null)
+                {
+                    var (innerName, innerCrc) = GetInnerRomDetails(nestedZip);
+                    hashes["CRC32"] = innerCrc;
+                    hashes["ROM_NAME"] = innerName;
+                    var nestedDat = datCacheService?.FindByCrc32(innerCrc);
+                    if (nestedDat != null)
+                    {
+                        CopyHashesFromDatEntry(nestedDat, hashes);
+                    }
+                }
+
+                return;
+            }
+
+            if (datCacheService != null)
+            {
+                foreach (var candidate in romEntries)
+                {
+                    var crc32Hex = candidate.Crc32.ToString("x8").ToLowerInvariant();
+                    var datMatch = datCacheService.FindByCrc32(crc32Hex);
+                    if (!IsMeaningfulDatMatch(datMatch))
+                    {
+                        continue;
+                    }
+
+                    hashes["CRC32"] = crc32Hex;
+                    hashes["ROM_NAME"] = candidate.Name;
+                    if (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5))
+                    {
+                        CopyHashesFromDatEntry(datMatch, hashes);
+                    }
+                    else
+                    {
+                        using var entryStream = candidate.Open();
+                        ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
+                    }
+
+                    return;
+                }
+            }
+
+            var primary = romEntries[0];
+            hashes["CRC32"] = primary.Crc32.ToString("x8").ToLowerInvariant();
+            hashes["ROM_NAME"] = primary.Name;
+
+            var primaryDat = datCacheService?.FindByCrc32(hashes["CRC32"]);
+            if (primaryDat != null && (!string.IsNullOrWhiteSpace(primaryDat.Sha1) || !string.IsNullOrWhiteSpace(primaryDat.Md5)))
+            {
+                CopyHashesFromDatEntry(primaryDat, hashes);
+            }
+            else
+            {
+                using var entryStream = primary.Open();
+                ComputeStreamHashes(entryStream, hashes, computeCrc32: false);
+            }
+
+            if (datCacheService != null && !MatchesAnyDatHash(datCacheService, hashes) && romEntries.Count > 1)
+            {
+                var fallbackCandidates = new List<ZipArchiveEntry>();
+                fallbackCandidates.AddRange(romEntries.Skip(1).Where(e => !DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(e.Name))).Take(2));
+                var sheetFallback = romEntries.Skip(1).FirstOrDefault(e => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(e.Name)));
+                if (sheetFallback != null)
+                {
+                    fallbackCandidates.Add(sheetFallback);
+                }
+
+                foreach (var fallback in fallbackCandidates)
+                {
+                    var candidateHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["CRC32"] = fallback.Crc32.ToString("x8").ToLowerInvariant(),
+                        ["ROM_NAME"] = fallback.Name
+                    };
+
+                    using (var fallbackStream = fallback.Open())
+                    {
+                        ComputeStreamHashes(fallbackStream, candidateHashes, computeCrc32: false);
+                    }
+
+                    if (MatchesAnyDatHash(datCacheService, candidateHashes))
+                    {
+                        foreach (var kvp in candidateHashes)
+                        {
+                            hashes[kvp.Key] = kvp.Value;
+                        }
+
+                        return;
+                    }
+                }
+            }
+        }
+
+        private static void ComputeSharpCompressArchiveHashes(
+            string filePath,
+            HashSet<string> validExtensionSet,
+            IDatCacheService datCacheService,
+            Dictionary<string, string> hashes)
+        {
+            using var archive = ArchiveFactory.OpenArchive(filePath);
+            var romEntries = archive.Entries
+                .Where(e => !e.IsDirectory && !string.IsNullOrWhiteSpace(e.Key))
+                .Select(e =>
+                {
+                    var fullKey = e.Key.Replace('\\', '/');
+                    return (Entry: e, FullName: fullKey, Name: Path.GetFileName(fullKey));
+                })
+                .Where(x => IsValidArchiveHashCandidate(x.FullName, x.Name, validExtensionSet, allowNestedArchives: false))
+                .OrderBy(x => GetCandidateHashPriority(x.Name))
+                .ThenBy(x => GetTrackPriorityBoost(x.Name))
+                .ThenByDescending(x => x.Entry.Size)
+                .ToList();
+
+            if (romEntries.Count == 0)
+            {
+                return;
+            }
+
+            var primary = romEntries[0];
+            hashes["ROM_NAME"] = primary.Name;
+            using (var entryStream = primary.Entry.OpenEntryStream())
+            {
+                ComputeStreamHashes(entryStream, hashes, computeCrc32: true);
+            }
+
+            if (datCacheService != null && !MatchesAnyDatHash(datCacheService, hashes) && romEntries.Count > 1)
+            {
+                var fallbackCandidates = romEntries.Skip(1).Where(x => !DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(x.Name))).Take(2).ToList();
+                var sheetFallback = romEntries.Skip(1).FirstOrDefault(x => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(x.Name)));
+                if (sheetFallback.Entry != null)
+                {
+                    fallbackCandidates.Add(sheetFallback);
+                }
+
+                foreach (var fallback in fallbackCandidates)
+                {
+                    var candidateHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["ROM_NAME"] = fallback.Name
+                    };
+
+                    using (var fallbackStream = fallback.Entry.OpenEntryStream())
+                    {
+                        ComputeStreamHashes(fallbackStream, candidateHashes, computeCrc32: true);
+                    }
+
+                    if (MatchesAnyDatHash(datCacheService, candidateHashes))
+                    {
+                        foreach (var kvp in candidateHashes)
+                        {
+                            hashes[kvp.Key] = kvp.Value;
+                        }
+
+                        return;
+                    }
+                }
+            }
+        }
+
+        private static void EnrichDiscSheetHashesFromTracks(
+            string sheetPath,
+            IDatCacheService datCacheService,
+            Logger logger,
+            Dictionary<string, string> hashes)
+        {
+            if (datCacheService != null && MatchesAnyDatHash(datCacheService, hashes))
+            {
+                return;
+            }
+
+            var tracks = DiscSheetHelper.ResolveTrackFiles(sheetPath);
+            if (tracks.Count == 0)
+            {
+                return;
+            }
+
+            var maxTracksToCheck = datCacheService == null ? 1 : Math.Min(3, tracks.Count);
+            for (var i = 0; i < maxTracksToCheck; i++)
+            {
+                var trackPath = tracks[i];
+                if (!File.Exists(trackPath))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var trackHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    using (var stream = new FileStream(trackPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 2 * 1024 * 1024, FileOptions.SequentialScan))
+                    {
+                        ComputeStreamHashes(stream, trackHashes, computeCrc32: true);
+                    }
+
+                    if (datCacheService == null || MatchesAnyDatHash(datCacheService, trackHashes))
+                    {
+                        foreach (var kvp in trackHashes)
+                        {
+                            hashes[kvp.Key] = kvp.Value;
+                        }
+
+                        hashes["ROM_NAME"] = Path.GetFileName(sheetPath);
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.Debug(ex, "Unable to compute track hashes for {0}", trackPath);
+                }
+            }
+        }
+
+        private static bool IsValidArchiveHashCandidate(string fullName, string name, HashSet<string> validExtensionSet, bool allowNestedArchives)
+        {
+            if (ArchiveRepackService.IsJunkEntry(fullName, name))
+            {
+                return false;
+            }
+
+            var ext = Path.GetExtension(name);
+            if (string.IsNullOrWhiteSpace(ext) || ExcludedNonGameExtensions.Contains(ext))
+            {
+                return false;
+            }
+
+            if (!allowNestedArchives && ArchiveRepackService.IsArchiveExtension(ext))
+            {
+                return false;
+            }
+
+            if (RegionHelper.IsBios(name, null, null, fullName))
+            {
+                return false;
+            }
+
+            return (validExtensionSet != null && validExtensionSet.Contains(ext)) ||
+                   MediaFileExtensions.RomExtensions.Contains(ext) ||
+                   DiscSheetHelper.IsCompanionTrackExtension(ext);
+        }
+
+        private static int GetCandidateHashPriority(string fileName)
+        {
+            var ext = Path.GetExtension(fileName);
+            if (DiscSheetHelper.IsDiscSheetExtension(ext))
+            {
+                return 2;
+            }
+
+            if (ArchiveRepackService.IsArchiveExtension(ext))
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        private static int GetTrackPriorityBoost(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return 1;
+            }
+
+            if (fileName.Contains("(Track 01)", StringComparison.OrdinalIgnoreCase) ||
+                fileName.Contains("(Track 1)", StringComparison.OrdinalIgnoreCase) ||
+                fileName.Contains("Track 01", StringComparison.OrdinalIgnoreCase) ||
+                fileName.Contains("Track 1", StringComparison.OrdinalIgnoreCase))
+            {
+                return 0;
+            }
+
+            return 1;
+        }
+
+        private static bool IsMeaningfulDatMatch(DatEntry datEntry)
+        {
+            return datEntry != null &&
+                   (!string.IsNullOrWhiteSpace(datEntry.GameName) ||
+                    !string.IsNullOrWhiteSpace(datEntry.RomName) ||
+                    !string.IsNullOrWhiteSpace(datEntry.Sha1) ||
+                    !string.IsNullOrWhiteSpace(datEntry.Md5) ||
+                    !string.IsNullOrWhiteSpace(datEntry.Sha256) ||
+                    !string.IsNullOrWhiteSpace(datEntry.Crc32));
+        }
+
+        private static bool MatchesAnyDatHash(IDatCacheService datCacheService, Dictionary<string, string> hashes)
+        {
+            if (datCacheService == null || hashes == null || hashes.Count == 0)
+            {
+                return false;
+            }
+
+            if (hashes.TryGetValue("SHA-256", out var sha256) && !string.IsNullOrWhiteSpace(sha256) && IsMeaningfulDatMatch(datCacheService.FindBySha256(sha256)))
+            {
+                return true;
+            }
+
+            if (hashes.TryGetValue("SHA-1", out var sha1) && !string.IsNullOrWhiteSpace(sha1) && IsMeaningfulDatMatch(datCacheService.FindBySha1(sha1)))
+            {
+                return true;
+            }
+
+            if (hashes.TryGetValue("MD5", out var md5) && !string.IsNullOrWhiteSpace(md5) && IsMeaningfulDatMatch(datCacheService.FindByMd5(md5)))
+            {
+                return true;
+            }
+
+            if (hashes.TryGetValue("CRC32", out var crc32) && !string.IsNullOrWhiteSpace(crc32) && IsMeaningfulDatMatch(datCacheService.FindByCrc32(crc32)))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void CopyHashesFromDatEntry(DatEntry datMatch, Dictionary<string, string> hashes)
+        {
+            if (datMatch == null || hashes == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(datMatch.Sha1))
+            {
+                hashes["SHA-1"] = datMatch.Sha1.ToLowerInvariant();
+            }
+
+            if (!string.IsNullOrWhiteSpace(datMatch.Md5))
+            {
+                hashes["MD5"] = datMatch.Md5.ToLowerInvariant();
+            }
+
+            if (!string.IsNullOrWhiteSpace(datMatch.Sha256))
+            {
+                hashes["SHA-256"] = datMatch.Sha256.ToLowerInvariant();
+            }
         }
 
         private static void ComputeStreamHashes(Stream stream, Dictionary<string, string> hashes, bool computeCrc32)

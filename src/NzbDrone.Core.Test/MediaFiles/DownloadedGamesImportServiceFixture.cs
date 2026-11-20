@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
@@ -620,6 +622,193 @@ namespace NzbDrone.Core.Test.MediaFiles
         {
             Mocker.GetMock<IImportApprovedGames>().Verify(c => c.Import(It.IsAny<List<ImportDecision>>(), true, null, ImportMode.Auto),
                 Times.Once());
+        }
+
+        [Test]
+        public void should_not_extract_3do_zip_when_verification_decision_is_rejected()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_reject_zip_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var zipPath = Path.Combine(tempDir, "Crash 'n Burn (USA).zip");
+                CreateTest3doZip(zipPath);
+
+                var platform = new Series { Id = 5, Title = "3DO Interactive Multiplayer", TitleSlug = "3do" };
+                var downloadItem = new DownloadClientItem { DownloadId = "ia-1", Title = "Crash 'n Burn (USA)", CanMoveFiles = true };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(zipPath)).Returns(false);
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(zipPath)).Returns(true);
+
+                var rejectedDecision = new ImportDecision(
+                    new LocalEpisode { Path = zipPath, Series = platform },
+                    new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM Hash"));
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Setup(s => s.GetImportDecisions(It.Is<List<string>>(l => l.Contains(zipPath)), platform, downloadItem, It.IsAny<ParsedEpisodeInfo>(), null, true))
+                    .Returns(new List<ImportDecision> { rejectedDecision });
+
+                var expectedRejectedResult = new List<ImportResult> { new ImportResult(rejectedDecision, "Unverified ROM Hash") };
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.Is<List<ImportDecision>>(d => d.Count == 1 && !d[0].Approved), true, downloadItem, ImportMode.Auto))
+                    .Returns(expectedRejectedResult);
+
+                var results = Subject.ProcessPath(zipPath, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().ContainSingle().Which.Result.Should().Be(ImportResultType.Rejected);
+                File.Exists(zipPath).Should().BeTrue();
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_extract_verified_3do_zip_import_cue_trash_temp_junk_and_delete_archive_on_move()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_move_zip_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var zipPath = Path.Combine(tempDir, "Crash 'n Burn (USA).zip");
+                CreateTest3doZip(zipPath);
+
+                var platform = new Series { Id = 5, Title = "3DO Interactive Multiplayer", TitleSlug = "3do", PreferredArchiveFormat = "auto" };
+                var game = new Episode { Id = 10, SeasonNumber = 1, EpisodeNumber = 1, Title = "Crash 'n Burn" };
+                var downloadItem = new DownloadClientItem { DownloadId = "ia-2", Title = "Crash 'n Burn (USA)", CanMoveFiles = true };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(zipPath)).Returns(false);
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(zipPath)).Returns(true);
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.DeleteFile(zipPath)).Callback<string>(p => File.Delete(p));
+
+                var verifiedDecision = new ImportDecision(new LocalEpisode
+                {
+                    Path = zipPath,
+                    Series = platform,
+                    Episodes = new List<Episode> { game },
+                    RomHashVerified = true
+                });
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Setup(s => s.GetImportDecisions(It.Is<List<string>>(l => l.Contains(zipPath)), platform, downloadItem, It.IsAny<ParsedEpisodeInfo>(), null, true))
+                    .Returns(new List<ImportDecision> { verifiedDecision });
+
+                string importedCuePath = null;
+                var binExistedDuringImport = false;
+                var metaXmlExistedDuringImport = false;
+
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, downloadItem, ImportMode.Move))
+                    .Returns<List<ImportDecision>, bool, DownloadClientItem, ImportMode>((decisions, newDl, item, mode) =>
+                    {
+                        var local = decisions.Single().LocalEpisode;
+                        importedCuePath = local.Path;
+                        var extractFolder = Path.GetDirectoryName(importedCuePath);
+                        binExistedDuringImport = File.Exists(Path.Combine(extractFolder, "Crash 'n Burn (USA).bin"));
+                        metaXmlExistedDuringImport = Directory.GetFiles(extractFolder, "*_meta.xml", SearchOption.AllDirectories).Any();
+                        return new List<ImportResult> { new ImportResult(decisions.Single()) };
+                    });
+
+                var results = Subject.ProcessPath(zipPath, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().ContainSingle().Which.Result.Should().Be(ImportResultType.Imported);
+                importedCuePath.Should().NotBeNull();
+                Path.GetExtension(importedCuePath).Should().Be(".cue");
+                binExistedDuringImport.Should().BeTrue();
+                metaXmlExistedDuringImport.Should().BeTrue();
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+                File.Exists(zipPath).Should().BeFalse();
+                Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(zipPath), Times.Once());
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_extract_verified_3do_zip_and_preserve_original_archive_on_copy()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_copy_zip_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var zipPath = Path.Combine(tempDir, "Crash 'n Burn (USA).zip");
+                CreateTest3doZip(zipPath);
+
+                var platform = new Series { Id = 5, Title = "3DO Interactive Multiplayer", TitleSlug = "3do", PreferredArchiveFormat = "auto" };
+                var game = new Episode { Id = 10, SeasonNumber = 1, EpisodeNumber = 1, Title = "Crash 'n Burn" };
+                var downloadItem = new DownloadClientItem { DownloadId = "ia-3", Title = "Crash 'n Burn (USA)", CanMoveFiles = false };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(zipPath)).Returns(false);
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(zipPath)).Returns(true);
+
+                var verifiedDecision = new ImportDecision(new LocalEpisode
+                {
+                    Path = zipPath,
+                    Series = platform,
+                    Episodes = new List<Episode> { game },
+                    RomHashVerified = true
+                });
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Setup(s => s.GetImportDecisions(It.Is<List<string>>(l => l.Contains(zipPath)), platform, downloadItem, It.IsAny<ParsedEpisodeInfo>(), null, true))
+                    .Returns(new List<ImportDecision> { verifiedDecision });
+
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, downloadItem, ImportMode.Copy))
+                    .Returns<List<ImportDecision>, bool, DownloadClientItem, ImportMode>((decisions, newDl, item, mode) =>
+                        new List<ImportResult> { new ImportResult(decisions.Single()) });
+
+                var results = Subject.ProcessPath(zipPath, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().ContainSingle().Which.Result.Should().Be(ImportResultType.Imported);
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+                File.Exists(zipPath).Should().BeTrue();
+                Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(zipPath), Times.Never());
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        private static void CreateTest3doZip(string zipPath)
+        {
+            using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+            using (var s = archive.CreateEntry("Crash 'n Burn (USA).cue").Open())
+            {
+                s.Write(Encoding.UTF8.GetBytes("FILE \"Crash 'n Burn (USA).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n"));
+            }
+
+            using (var s = archive.CreateEntry("Crash 'n Burn (USA).bin").Open())
+            {
+                s.Write(new byte[2048]);
+            }
+
+            using (var s = archive.CreateEntry("crash_n_burn_meta.xml").Open())
+            {
+                s.Write(Encoding.UTF8.GetBytes("<metadata/>"));
+            }
+
+            using (var s = archive.CreateEntry("readme.txt").Open())
+            {
+                s.Write(Encoding.UTF8.GetBytes("IA readme"));
+            }
         }
     }
 }

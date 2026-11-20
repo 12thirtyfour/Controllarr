@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using FizzWare.NBuilder;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
@@ -606,6 +607,42 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
                   .Verify(v => v.RemoveEmptySubfolders(It.IsAny<string>()), Times.Never());
             Mocker.GetMock<IDiskProvider>()
                   .Verify(v => v.DeleteFolder(It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        [Test]
+        public void should_suppress_companion_bin_tracks_referenced_by_cue_sheet()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "disk_scan_cue_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var cuePath = Path.Combine(tempDir, "Crash 'n Burn (USA).cue");
+                var bin1Path = Path.Combine(tempDir, "Crash 'n Burn (USA) (Track 1).bin");
+                var bin2Path = Path.Combine(tempDir, "Crash 'n Burn (USA) (Track 2).bin");
+
+                File.WriteAllText(
+                    cuePath,
+                    "FILE \"Crash 'n Burn (USA) (Track 1).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n" +
+                    "FILE \"Crash 'n Burn (USA) (Track 2).bin\" BINARY\r\n  TRACK 02 AUDIO\r\n");
+                File.WriteAllBytes(bin1Path, new byte[2048]);
+                File.WriteAllBytes(bin2Path, new byte[1024]);
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(s => s.GetFiles(tempDir, true))
+                    .Returns(new[] { cuePath, bin1Path, bin2Path });
+
+                var files = Subject.GetVideoFiles(tempDir, true);
+
+                files.Should().ContainSingle().Which.Should().Be(cuePath);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
         }
     }
 }

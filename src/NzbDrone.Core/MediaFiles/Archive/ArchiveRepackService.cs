@@ -6,6 +6,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Games;
+using NzbDrone.Core.MediaFiles.Disc;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 
@@ -81,6 +82,157 @@ namespace NzbDrone.Core.MediaFiles.Archive
         public static bool IsArchiveExtension(string extension)
         {
             return !string.IsNullOrWhiteSpace(extension) && ArchiveExtensions.Contains(extension);
+        }
+
+        public static bool HasValidRomEntries(string archivePath, IBiosService biosService = null)
+        {
+            if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+            {
+                return false;
+            }
+
+            try
+            {
+                var extension = Path.GetExtension(archivePath);
+                if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var zipArchive = ZipFile.OpenRead(archivePath);
+                    foreach (var entry in zipArchive.Entries)
+                    {
+                        if (IsJunkEntry(entry.FullName, entry.Name))
+                        {
+                            continue;
+                        }
+
+                        if ((biosService != null && biosService.IsKnownBiosFileName(entry.Name)) ||
+                            RegionHelper.IsBios(entry.Name, null, null, entry.FullName))
+                        {
+                            continue;
+                        }
+
+                        var ext = Path.GetExtension(entry.Name);
+                        if (MediaFileExtensions.RomExtensions.Contains(ext) || IsArchiveExtension(ext))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                if (IsArchiveExtension(extension))
+                {
+                    using var archive = ArchiveFactory.OpenArchive(archivePath);
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                        {
+                            continue;
+                        }
+
+                        var fullName = entry.Key.Replace('\\', '/');
+                        var name = Path.GetFileName(fullName);
+                        if (IsJunkEntry(fullName, name))
+                        {
+                            continue;
+                        }
+
+                        if ((biosService != null && biosService.IsKnownBiosFileName(name)) ||
+                            RegionHelper.IsBios(name, null, null, fullName))
+                        {
+                            continue;
+                        }
+
+                        var ext = Path.GetExtension(name);
+                        if (MediaFileExtensions.RomExtensions.Contains(ext) || IsArchiveExtension(ext))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        public static string ResolvePrimaryRomFile(IEnumerable<string> romFiles)
+        {
+            if (romFiles == null)
+            {
+                return null;
+            }
+
+            var list = romFiles
+                .Where(f => !string.IsNullOrWhiteSpace(f) && File.Exists(f))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (list.Count == 0)
+            {
+                return null;
+            }
+
+            var sheets = list
+                .Where(f => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(f)))
+                .ToList();
+
+            var preferredSheet = SelectPreferredSingleSheet(sheets);
+            if (!string.IsNullOrWhiteSpace(preferredSheet))
+            {
+                return preferredSheet;
+            }
+
+            if (sheets.Count > 1)
+            {
+                return null;
+            }
+
+            if (list.Count == 1)
+            {
+                return list[0];
+            }
+
+            return null;
+        }
+
+        private static string SelectPreferredSingleSheet(List<string> sheets)
+        {
+            if (sheets == null || sheets.Count == 0)
+            {
+                return null;
+            }
+
+            if (sheets.Count == 1)
+            {
+                return sheets[0];
+            }
+
+            var distinctDirs = sheets
+                .Select(s => Path.GetDirectoryName(s) ?? string.Empty)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            var distinctBaseNames = sheets
+                .Select(s => Path.GetFileNameWithoutExtension(s) ?? string.Empty)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+
+            if (distinctDirs != 1 || distinctBaseNames != 1)
+            {
+                return null;
+            }
+
+            return sheets
+                .OrderBy(s =>
+                {
+                    var ext = Path.GetExtension(s)?.ToLowerInvariant();
+                    return ext == ".cue" ? 0 : (ext == ".gdi" ? 1 : 2);
+                })
+                .First();
         }
 
         public static bool IsMultiGameArchive(string archivePath, IBiosService biosService = null)
@@ -296,7 +448,7 @@ namespace NzbDrone.Core.MediaFiles.Archive
             }
 
             var romFiles = new List<string>();
-            ExtractArchiveRecursive(archivePath, workingDirectory, 0, maxDepth, romFiles);
+            ExtractArchiveRecursive(archivePath, workingDirectory, 0, maxDepth, romFiles, preserveRelativePaths: false, includeCompanionTracks: false);
 
             if (romFiles.Count != 1)
             {
@@ -305,6 +457,91 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
             extractedRomPath = romFiles[0];
             return true;
+        }
+
+        public static bool TryUnwrapGameFromArchive(
+            string archivePath,
+            string workingDirectory,
+            out string primaryRomPath,
+            out List<string> companionTrackPaths,
+            int maxDepth = 5)
+        {
+            primaryRomPath = null;
+            companionTrackPaths = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath) || string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                return false;
+            }
+
+            var extractedFiles = new List<string>();
+            ExtractArchiveRecursive(archivePath, workingDirectory, 0, maxDepth, extractedFiles, preserveRelativePaths: true, includeCompanionTracks: true);
+
+            if (extractedFiles.Count == 0)
+            {
+                return false;
+            }
+
+            var sheets = extractedFiles
+                .Where(f => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(f)))
+                .ToList();
+
+            var candidateSheet = SelectPreferredSingleSheet(sheets);
+            if (!string.IsNullOrWhiteSpace(candidateSheet))
+            {
+                var sheetDir = Path.GetDirectoryName(candidateSheet) ?? string.Empty;
+                var resolvedTracks = DiscSheetHelper.ResolveTrackFiles(candidateSheet);
+                var resolvedTrackSet = new HashSet<string>(resolvedTracks.Select(Path.GetFullPath), StringComparer.OrdinalIgnoreCase);
+
+                var hasForeignFiles = extractedFiles.Any(f =>
+                    !string.Equals(f, candidateSheet, StringComparison.OrdinalIgnoreCase) &&
+                    !resolvedTrackSet.Contains(Path.GetFullPath(f)) &&
+                    !string.Equals(Path.GetDirectoryName(f) ?? string.Empty, sheetDir, StringComparison.OrdinalIgnoreCase));
+
+                if (!hasForeignFiles)
+                {
+                    primaryRomPath = candidateSheet;
+                    var trackSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var track in resolvedTracks)
+                    {
+                        if (!string.Equals(track, primaryRomPath, StringComparison.OrdinalIgnoreCase) && trackSet.Add(track))
+                        {
+                            companionTrackPaths.Add(track);
+                        }
+                    }
+
+                    foreach (var file in extractedFiles)
+                    {
+                        if (!string.Equals(file, primaryRomPath, StringComparison.OrdinalIgnoreCase) &&
+                            DiscSheetHelper.IsCompanionTrackExtension(Path.GetExtension(file)) &&
+                            trackSet.Add(file))
+                        {
+                            companionTrackPaths.Add(file);
+                        }
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (sheets.Count > 1)
+            {
+                return false;
+            }
+
+            var romCandidates = extractedFiles
+                .Where(f => MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(f)))
+                .ToList();
+
+            if (romCandidates.Count == 1)
+            {
+                primaryRomPath = romCandidates[0];
+                return true;
+            }
+
+            return false;
         }
 
         public static bool TryCompressFileToZipInPlace(string sourceFilePath, out string zipFilePath, Logger logger = null)
@@ -361,7 +598,14 @@ namespace NzbDrone.Core.MediaFiles.Archive
             return false;
         }
 
-        private static void ExtractArchiveRecursive(string archivePath, string targetDir, int depth, int maxDepth, List<string> collectedRomFiles)
+        private static void ExtractArchiveRecursive(
+            string archivePath,
+            string targetDir,
+            int depth,
+            int maxDepth,
+            List<string> collectedRomFiles,
+            bool preserveRelativePaths = false,
+            bool includeCompanionTracks = false)
         {
             if (depth > maxDepth || !File.Exists(archivePath))
             {
@@ -383,18 +627,26 @@ namespace NzbDrone.Core.MediaFiles.Archive
                 using var archive = ZipFile.OpenRead(archivePath);
                 foreach (var entry in archive.Entries)
                 {
-                    if (IsJunkEntry(entry.FullName, entry.Name))
+                    if (IsJunkEntry(entry.FullName, entry.Name) ||
+                        (includeCompanionTracks && RegionHelper.IsBios(entry.Name, null, null, entry.FullName)))
                     {
                         continue;
                     }
 
                     var entryExt = Path.GetExtension(entry.Name);
-                    if (!IsArchiveExtension(entryExt) && !MediaFileExtensions.RomExtensions.Contains(entryExt))
+                    var isSupportedContent = IsArchiveExtension(entryExt) ||
+                                             MediaFileExtensions.RomExtensions.Contains(entryExt) ||
+                                             (includeCompanionTracks && DiscSheetHelper.IsCompanionTrackExtension(entryExt));
+                    if (!isSupportedContent)
                     {
                         continue;
                     }
 
-                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, entry.Name));
+                    var relativeOrName = preserveRelativePaths
+                        ? entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar)
+                        : entry.Name;
+
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativeOrName));
                     if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
@@ -402,7 +654,14 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
                     if (File.Exists(destPath))
                     {
-                        destPath = Path.Combine(targetDirFull, Guid.NewGuid().ToString("N") + "_" + entry.Name);
+                        var destParent = Path.GetDirectoryName(destPath) ?? targetDirFull;
+                        destPath = Path.Combine(destParent, Guid.NewGuid().ToString("N") + "_" + entry.Name);
+                    }
+
+                    var parentDir = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(parentDir) && !Directory.Exists(parentDir))
+                    {
+                        Directory.CreateDirectory(parentDir);
                     }
 
                     entry.ExtractToFile(destPath, overwrite: true);
@@ -421,18 +680,26 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
                     var entryKey = entry.Key.Replace('\\', '/');
                     var entryName = Path.GetFileName(entryKey);
-                    if (IsJunkEntry(entryKey, entryName))
+                    if (IsJunkEntry(entryKey, entryName) ||
+                        (includeCompanionTracks && RegionHelper.IsBios(entryName, null, null, entryKey)))
                     {
                         continue;
                     }
 
                     var entryExt = Path.GetExtension(entryName);
-                    if (!IsArchiveExtension(entryExt) && !MediaFileExtensions.RomExtensions.Contains(entryExt))
+                    var isSupportedContent = IsArchiveExtension(entryExt) ||
+                                             MediaFileExtensions.RomExtensions.Contains(entryExt) ||
+                                             (includeCompanionTracks && DiscSheetHelper.IsCompanionTrackExtension(entryExt));
+                    if (!isSupportedContent)
                     {
                         continue;
                     }
 
-                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, entryName));
+                    var relativeOrName = preserveRelativePaths
+                        ? entryKey.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar)
+                        : entryName;
+
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativeOrName));
                     if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
@@ -440,7 +707,14 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
                     if (File.Exists(destPath))
                     {
-                        destPath = Path.Combine(targetDirFull, Guid.NewGuid().ToString("N") + "_" + entryName);
+                        var destParent = Path.GetDirectoryName(destPath) ?? targetDirFull;
+                        destPath = Path.Combine(destParent, Guid.NewGuid().ToString("N") + "_" + entryName);
+                    }
+
+                    var parentDir = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(parentDir) && !Directory.Exists(parentDir))
+                    {
+                        Directory.CreateDirectory(parentDir);
                     }
 
                     entry.WriteToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
@@ -456,10 +730,11 @@ namespace NzbDrone.Core.MediaFiles.Archive
                     if (depth < maxDepth)
                     {
                         var nestedDir = Path.Combine(targetDir, "nested_" + Guid.NewGuid().ToString("N"));
-                        ExtractArchiveRecursive(extractedPath, nestedDir, depth + 1, maxDepth, collectedRomFiles);
+                        ExtractArchiveRecursive(extractedPath, nestedDir, depth + 1, maxDepth, collectedRomFiles, preserveRelativePaths, includeCompanionTracks);
                     }
                 }
-                else if (MediaFileExtensions.RomExtensions.Contains(extractedExt))
+                else if (MediaFileExtensions.RomExtensions.Contains(extractedExt) ||
+                         (includeCompanionTracks && DiscSheetHelper.IsCompanionTrackExtension(extractedExt)))
                 {
                     collectedRomFiles.Add(extractedPath);
                 }

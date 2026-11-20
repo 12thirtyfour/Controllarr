@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
+using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.MediaFiles.Archive;
@@ -205,6 +207,125 @@ namespace NzbDrone.Core.Test.MediaFiles
                 if (File.Exists(archivePath))
                 {
                     File.Delete(archivePath);
+                }
+            }
+        }
+
+        [Test]
+        public void should_unwrap_3do_multi_track_cue_bin_zip_and_ignore_ia_junk()
+        {
+            var workDir = Path.Combine(Path.GetTempPath(), "ars_3do_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(workDir);
+            var zipPath = Path.Combine(workDir, "Crash 'n Burn (USA).zip");
+            var extractDir = Path.Combine(workDir, "extracted");
+
+            try
+            {
+                using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    using (var s = zip.CreateEntry("Crash 'n Burn (USA)/Crash 'n Burn (USA).cue").Open())
+                    {
+                        s.Write(Encoding.UTF8.GetBytes("FILE \"Crash 'n Burn (USA) (Track 1).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\nFILE \"Crash 'n Burn (USA) (Track 2).bin\" BINARY\r\n  TRACK 02 AUDIO\r\n"));
+                    }
+
+                    using (var s = zip.CreateEntry("Crash 'n Burn (USA)/Crash 'n Burn (USA) (Track 1).bin").Open())
+                    {
+                        s.Write(new byte[] { 1, 2, 3, 4 });
+                    }
+
+                    using (var s = zip.CreateEntry("Crash 'n Burn (USA)/Crash 'n Burn (USA) (Track 2).bin").Open())
+                    {
+                        s.Write(new byte[] { 5, 6, 7, 8 });
+                    }
+
+                    using (var s = zip.CreateEntry("crash_meta.xml").Open())
+                    {
+                        s.Write(Encoding.UTF8.GetBytes("<metadata/>"));
+                    }
+
+                    using (var s = zip.CreateEntry("crash_files.xml").Open())
+                    {
+                        s.Write(Encoding.UTF8.GetBytes("<files/>"));
+                    }
+
+                    using (var s = zip.CreateEntry("readme.txt").Open())
+                    {
+                        s.Write(Encoding.UTF8.GetBytes("info"));
+                    }
+
+                    using (var s = zip.CreateEntry("cover.jpg").Open())
+                    {
+                        s.Write(new byte[] { 0xFF, 0xD8 });
+                    }
+                }
+
+                var result = ArchiveRepackService.TryUnwrapGameFromArchive(zipPath, extractDir, out var primaryRomPath, out var companionTracks);
+
+                result.Should().BeTrue();
+                Path.GetFileName(primaryRomPath).Should().Be("Crash 'n Burn (USA).cue");
+                companionTracks.Should().HaveCount(2);
+                companionTracks.Select(Path.GetFileName).Should().BeEquivalentTo(new[]
+                {
+                    "Crash 'n Burn (USA) (Track 1).bin",
+                    "Crash 'n Burn (USA) (Track 2).bin"
+                });
+
+                Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories)
+                    .Should().NotContain(f => f.EndsWith(".xml") || f.EndsWith(".txt") || f.EndsWith(".jpg"));
+            }
+            finally
+            {
+                if (Directory.Exists(workDir))
+                {
+                    Directory.Delete(workDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_detect_whether_archive_has_valid_rom_entries()
+        {
+            var workDir = Path.Combine(Path.GetTempPath(), "ars_valid_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(workDir);
+            var validZip = Path.Combine(workDir, "valid.zip");
+            var junkZip = Path.Combine(workDir, "junk.zip");
+
+            try
+            {
+                using (var zip = ZipFile.Open(validZip, ZipArchiveMode.Create))
+                {
+                    using (var s = zip.CreateEntry("readme.txt").Open())
+                    {
+                        s.Write(new byte[] { 1, 2 });
+                    }
+
+                    using (var s = zip.CreateEntry("Game (USA).cue").Open())
+                    {
+                        s.Write(new byte[] { 3, 4 });
+                    }
+                }
+
+                using (var zip = ZipFile.Open(junkZip, ZipArchiveMode.Create))
+                {
+                    using (var s = zip.CreateEntry("item_meta.xml").Open())
+                    {
+                        s.Write(new byte[] { 1, 2 });
+                    }
+
+                    using (var s = zip.CreateEntry("readme.txt").Open())
+                    {
+                        s.Write(new byte[] { 3, 4 });
+                    }
+                }
+
+                ArchiveRepackService.HasValidRomEntries(validZip).Should().BeTrue();
+                ArchiveRepackService.HasValidRomEntries(junkZip).Should().BeFalse();
+            }
+            finally
+            {
+                if (Directory.Exists(workDir))
+                {
+                    Directory.Delete(workDir, true);
                 }
             }
         }

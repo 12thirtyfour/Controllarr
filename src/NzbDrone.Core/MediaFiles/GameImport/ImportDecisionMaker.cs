@@ -7,6 +7,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.GameImport.Aggregation;
 using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Parser;
@@ -152,7 +153,9 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 }
 
                 localEpisode.FileEpisodeInfo = fileEpisodeInfo;
-                localEpisode.Size = _diskProvider.GetFileSize(localEpisode.Path);
+                localEpisode.Size = DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(localEpisode.Path)) && File.Exists(localEpisode.Path)
+                    ? DiscSheetHelper.GetEffectiveFileSize(localEpisode.Path)
+                    : _diskProvider.GetFileSize(localEpisode.Path);
                 localEpisode.ReleaseType = localEpisode.DownloadClientEpisodeInfo?.ReleaseType ??
                                            localEpisode.FolderEpisodeInfo?.ReleaseType ??
                                            localEpisode.FileEpisodeInfo?.ReleaseType ??
