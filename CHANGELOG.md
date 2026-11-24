@@ -30,6 +30,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Automatically extracts downloaded archive files (`.rar`, multi-part `.part1.rar`/`.r00`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tbz2`, `.tb2`, `.gz`, `.bz2`, and any unhandled `.zip`/`.7z`) during folder and single-file import using Zip-Slip path guards and junk filtering, validating and importing extracted ROMs without blocking on `"Found archive file, might need to be extracted"`.
   - Cleans up source archive volumes after a verified `Move` import while preserving source archives on `Copy` or partial rejections, and cleans up temporary extraction folders automatically.
   - Marked `ImportRejectionReason.ArchiveFile` (and multi-file all-rejected downloads consisting of auto-fail reasons) as an automatic download failure in `RejectedImportService` and `CompletedDownloadService` so unreadable or non-ROM archives fail cleanly and search moves on without awaiting manual user interaction.
+- **Atari Jaguar CD Web Player & Launcher Routing (`GameLauncherService`, `WebPlayerPage`, `LibretroSettings`)**:
+  - Separated Atari Jaguar CD (`Atari Jaguar CD` / `jaguarcd`) from the cartridge-only `virtualjaguar` WebAssembly definition in `GameLauncherService` so Jaguar CD games are no longer loaded into EmulatorJS's cartridge-only `jaguar` WASM core and instead surface `WebAssemblyUnsupportedReason` guiding users to Desktop RetroArch (`virtualjaguar` v3+) or standalone BigPEmu (`.cue`/`.bin`, `.cdi`, or multi-session `.chd`).
+  - Added Jaguar CD `jagcd.rom` / `[BIOS] Atari Jaguar CD (World).j64` BIOS resolution, preserved multi-file `.cue`/`.bin` `.zip` archives for `jaguarcd`, forwarded launch query parameters in `WebPlayerPage` desktop launches, and exposed `Atari Jaguar CD` as Desktop Only in `LibretroSettings`.
 
 ---
 

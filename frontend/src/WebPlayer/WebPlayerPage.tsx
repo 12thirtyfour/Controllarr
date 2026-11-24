@@ -35,6 +35,7 @@ export interface GameLaunchDescriptor {
   libretroCore: string;
   emulatorJsCore: string;
   supportsWebAssembly: boolean;
+  webAssemblyUnsupportedReason?: string;
   preferredLaunchMode: string;
   shader: string;
   emulatorJsDataPath: string;
@@ -145,6 +146,7 @@ function WebPlayerPage() {
     useApiMutation<DesktopLaunchResult, void>({
       path: `/gamelauncher/${descriptor?.gameId || gameIdParam}/launch`,
       method: 'POST',
+      queryParams: descriptorQueryParams,
       mutationOptions: {
         onSuccess: (res) => {
           setDesktopLaunchMessage(res.message);
@@ -349,7 +351,8 @@ function WebPlayerPage() {
     );
   } else {
     const desktopReasonMessage = effectiveConfig.enableWebPlayer
-      ? `${descriptor.platformTitle} uses the native "${descriptor.libretroCore}" core, which requires Desktop RetroArch or a standalone hardware-accelerated emulator.`
+      ? descriptor.webAssemblyUnsupportedReason ||
+        `${descriptor.platformTitle} uses the native "${descriptor.libretroCore}" core, which requires Desktop RetroArch or a standalone hardware-accelerated emulator.`
       : 'The In-Browser Libretro Web Player is currently disabled in Settings -> Libretro.';
 
     bodyContent = (

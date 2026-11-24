@@ -55,6 +55,7 @@ namespace NzbDrone.Core.Games.Launcher
         public string LibretroCore { get; set; } = string.Empty;
         public string EmulatorJsCore { get; set; } = string.Empty;
         public bool SupportsWebAssembly { get; set; }
+        public string WebAssemblyUnsupportedReason { get; set; } = string.Empty;
         public string PreferredLaunchMode { get; set; } = "web";
         public string Shader { get; set; } = "none";
         public string EmulatorJsDataPath { get; set; } = "https://cdn.emulatorjs.org/stable/data/";
@@ -94,6 +95,7 @@ namespace NzbDrone.Core.Games.Launcher
             public string DefaultCore { get; set; }
             public string[] AvailableCores { get; set; }
             public bool SupportsWasm { get; set; }
+            public string WasmUnsupportedReason { get; set; } = string.Empty;
             public string EmulatorJsCore { get; set; }
         }
 
@@ -331,9 +333,20 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Atari Jaguar CD",
+                PlatformName = "Atari Jaguar CD",
+                Aliases = new[] { "Atari Jaguar CD", "Atari - Jaguar CD", "Jaguar CD", "jaguarcd", "jagcd" },
+                DefaultCore = "virtualjaguar",
+                AvailableCores = new[] { "virtualjaguar" },
+                SupportsWasm = false,
+                WasmUnsupportedReason = "Atari Jaguar CD is not supported by EmulatorJS's current browser WebAssembly virtualjaguar core (which only runs Atari Jaguar cartridge ROMs). Launch in Desktop RetroArch using the upstream virtualjaguar v3+ core or standalone BigPEmu with .cue/.bin, .cdi, or multi-session .chd disc images (bare .iso is not supported).",
+                EmulatorJsCore = "jaguarcd"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Atari Jaguar",
                 PlatformName = "Atari Jaguar",
-                Aliases = new[] { "Atari Jaguar", "Atari - Jaguar", "Jaguar CD", "jaguar", "jaguarcd" },
+                Aliases = new[] { "Atari Jaguar", "Atari - Jaguar", "jaguar" },
                 DefaultCore = "virtualjaguar",
                 AvailableCores = new[] { "virtualjaguar" },
                 SupportsWasm = true,
@@ -798,6 +811,9 @@ namespace NzbDrone.Core.Games.Launcher
                 LibretroCore = core,
                 EmulatorJsCore = emulatorJsCore,
                 SupportsWebAssembly = supportsWasm,
+                WebAssemblyUnsupportedReason = matchedDef != null && !matchedDef.SupportsWasm
+                    ? (matchedDef.WasmUnsupportedReason ?? string.Empty)
+                    : string.Empty,
                 PreferredLaunchMode = config.PreferredLaunchMode ?? "web",
                 Shader = config.DefaultShader ?? "none",
                 EmulatorJsDataPath = config.EmulatorJsDataPath ?? "https://cdn.emulatorjs.org/stable/data/",
@@ -1052,6 +1068,11 @@ namespace NzbDrone.Core.Games.Launcher
                 {
                     searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "64dd"));
                 }
+
+                if (candidates.Contains("jagcd.rom", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "jaguarcd"));
+                }
             }
 
             foreach (var dir in searchDirs.Where(d => !string.IsNullOrWhiteSpace(d)).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -1158,6 +1179,11 @@ namespace NzbDrone.Core.Games.Launcher
             if (emulatorJsCore.Equals("arcade", StringComparison.OrdinalIgnoreCase))
             {
                 return new List<string> { "neogeo.zip" };
+            }
+
+            if (emulatorJsCore.Equals("jaguarcd", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "jagcd.rom", "[BIOS] Atari Jaguar CD (World).j64" };
             }
 
             return new List<string>();
@@ -1283,7 +1309,8 @@ namespace NzbDrone.Core.Games.Launcher
                  emulatorJsCore.Equals("3do", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("pce", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase) ||
-                 emulatorJsCore.Equals("jaguar", StringComparison.OrdinalIgnoreCase)) &&
+                 emulatorJsCore.Equals("jaguar", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("jaguarcd", StringComparison.OrdinalIgnoreCase)) &&
                 File.Exists(romPath))
             {
                 try

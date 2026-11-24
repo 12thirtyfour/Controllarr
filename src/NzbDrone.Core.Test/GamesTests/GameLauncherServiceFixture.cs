@@ -317,5 +317,93 @@ namespace NzbDrone.Core.Test.GamesTests
                 }
             }
         }
+
+        [TestCase("jaguarcd")]
+        [TestCase("Jaguar CD")]
+        [TestCase("Atari - Jaguar CD")]
+        [TestCase("Atari Jaguar CD")]
+        public void should_mark_jaguar_cd_as_desktop_only_and_preserve_cartridge_jaguar_wasm(string platform)
+        {
+            var cdDescriptor = _subject.BuildLaunchDescriptor(120, platform, $"/roms/{platform}/Blue Lightning (World).cue");
+
+            cdDescriptor.LibretroCore.Should().Be("virtualjaguar");
+            cdDescriptor.EmulatorJsCore.Should().Be("jaguarcd");
+            cdDescriptor.SupportsWebAssembly.Should().BeFalse();
+            cdDescriptor.WebAssemblyUnsupportedReason.Should().Contain("Desktop RetroArch");
+            cdDescriptor.WebAssemblyUnsupportedReason.Should().Contain("BigPEmu");
+
+            var cartDescriptor = _subject.BuildLaunchDescriptor(121, "Atari Jaguar", "/roms/jaguar/Tempest 2000 (World).j64");
+
+            cartDescriptor.LibretroCore.Should().Be("virtualjaguar");
+            cartDescriptor.EmulatorJsCore.Should().Be("jaguar");
+            cartDescriptor.SupportsWebAssembly.Should().BeTrue();
+            cartDescriptor.WebAssemblyUnsupportedReason.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_resolve_jaguar_cd_bios_and_keep_cue_bin_zip_intact()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_jaguarcd_test_" + Guid.NewGuid().ToString("N"));
+            var biosDir = Path.Combine(tempDir, "BIOS");
+            Directory.CreateDirectory(biosDir);
+
+            try
+            {
+                var biosPath = Path.Combine(biosDir, "jagcd.rom");
+                File.WriteAllBytes(biosPath, new byte[] { 1, 2, 3, 4 });
+
+                var zipPath = Path.Combine(tempDir, "Battlemorph (World).zip");
+                using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    var cueEntry = archive.CreateEntry("Battlemorph (World).cue");
+                    using (var s = cueEntry.Open())
+                    {
+                        var bytes = Encoding.ASCII.GetBytes("FILE \"Battlemorph (World) (Track 01).bin\" BINARY\n");
+                        s.Write(bytes, 0, bytes.Length);
+                    }
+
+                    var binEntry = archive.CreateEntry("Battlemorph (World) (Track 01).bin");
+                    using (var s = binEntry.Open())
+                    {
+                        s.Write(new byte[] { 0xAA, 0xBB }, 0, 2);
+                    }
+                }
+
+                var descriptor = _subject.BuildLaunchDescriptor(56, "jaguarcd", zipPath);
+                descriptor.EmulatorJsCore.Should().Be("jaguarcd");
+                descriptor.SupportsWebAssembly.Should().BeFalse();
+                descriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/56/bios/jagcd.rom");
+                descriptor.RomStreamUrl.Should().StartWith("/api/v5/gamelauncher/56/rom/Battlemorph%20%28World%29.zip");
+
+                using var biosStream = _subject.OpenBiosStream(56, out var biosFileName, "jaguarcd", zipPath);
+                biosStream.Should().NotBeNull();
+                biosFileName.Should().Be("jagcd.rom");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_expose_jaguar_cd_and_jaguar_separately_in_platform_core_options()
+        {
+            var coreOptions = _subject.GetPlatformCoreOptions();
+
+            coreOptions.Should().Contain(o =>
+                o.PlatformKey == "Atari Jaguar CD" &&
+                o.DefaultCore == "virtualjaguar" &&
+                !o.SupportsWebAssembly &&
+                o.EmulatorJsCoreName == "jaguarcd");
+
+            coreOptions.Should().Contain(o =>
+                o.PlatformKey == "Atari Jaguar" &&
+                o.DefaultCore == "virtualjaguar" &&
+                o.SupportsWebAssembly &&
+                o.EmulatorJsCoreName == "jaguar");
+        }
     }
 }

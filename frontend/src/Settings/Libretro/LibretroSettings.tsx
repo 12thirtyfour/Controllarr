@@ -213,6 +213,15 @@ const FALLBACK_PLATFORMS: LibretroPlatformCoreOption[] = [
     emulatorJsCoreName: 'atari2600',
   },
   {
+    platformKey: 'Atari Jaguar CD',
+    platformName: 'Atari Jaguar CD',
+    defaultCore: 'virtualjaguar',
+    selectedCore: 'virtualjaguar',
+    availableCores: ['virtualjaguar'],
+    supportsWebAssembly: false,
+    emulatorJsCoreName: 'jaguarcd',
+  },
+  {
     platformKey: 'PlayStation 2',
     platformName: 'Sony PlayStation 2 (PS2)',
     defaultCore: 'pcsx2',
