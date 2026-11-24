@@ -4,8 +4,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Games.Launcher;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.GamesTests
 {
@@ -267,6 +269,45 @@ namespace NzbDrone.Core.Test.GamesTests
                 using var romStream = _subject.OpenRomStream(88, out var romFileName, "Nintendo - Nintendo 64DD", zipPath);
                 romStream.Should().NotBeNull();
                 romFileName.Should().Be("F-Zero X Expansion Kit (Japan).ndd");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_block_rom_stream_outside_configured_library_folders()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_launcher_confinement_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var platformDir = Path.Combine(tempDir, "Library", "SNES");
+                Directory.CreateDirectory(platformDir);
+
+                var validRomPath = Path.Combine(platformDir, "Chrono Trigger (USA).sfc");
+                var secretFilePath = Path.Combine(tempDir, "config.xml");
+                File.WriteAllBytes(validRomPath, Encoding.ASCII.GetBytes("SNES_ROM"));
+                File.WriteAllText(secretFilePath, "<Config><ApiKey>secret</ApiKey></Config>");
+
+                var seriesServiceMock = new Mock<ISeriesService>();
+                seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+                {
+                    new Series { Id = 1, Title = "Super Nintendo", TitleSlug = "snes", Path = platformDir }
+                });
+
+                var confinedSubject = new GameLauncherService(seriesService: seriesServiceMock.Object);
+
+                confinedSubject.OpenRomStream(0, out _, "snes", secretFilePath).Should().BeNull();
+
+                using var allowedStream = confinedSubject.OpenRomStream(0, out var fileName, "snes", validRomPath);
+                allowedStream.Should().NotBeNull();
+                fileName.Should().Be("Chrono Trigger (USA).sfc");
             }
             finally
             {

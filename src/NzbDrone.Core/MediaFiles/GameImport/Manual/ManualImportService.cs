@@ -14,6 +14,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.GameImport.Aggregation;
 using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Messaging.Commands;
@@ -574,7 +575,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             var imported = new List<ImportResult>();
             var importedTrackedDownload = new List<ManuallyImportedFile>();
             var importedUntrackedDownload = new List<ImportResult>();
-            var importedZipArchives = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var importedZipEntriesByArchive = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             var importedSourceDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             for (var i = 0; i < message.Files.Count; i++)
@@ -608,6 +609,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                 var actualPath = file.Path;
                 string tempExtractDir = null;
+                string currentZipPath = null;
+                string currentZipEntryName = null;
 
                 if (file.Path.Contains(".zip#"))
                 {
@@ -617,7 +620,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                     if (File.Exists(zipPath))
                     {
-                        importedZipArchives.Add(zipPath);
+                        currentZipPath = zipPath;
+                        currentZipEntryName = entryName;
                         var zipDir = Path.GetDirectoryName(zipPath);
                         if (!string.IsNullOrWhiteSpace(zipDir))
                         {
@@ -782,6 +786,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                 var importDecision = new ImportDecision(localGame);
 
+                bool entryImported;
                 if (trackedDownload == null)
                 {
                     var effectiveImportMode = isInLibraryPath && !existingFile
@@ -792,6 +797,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 
                     imported.AddRange(importResult);
                     importedUntrackedDownload.AddRange(importResult);
+                    entryImported = importResult.Any(r => r.Result == ImportResultType.Imported);
                 }
                 else
                 {
@@ -804,6 +810,18 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                         TrackedDownload = trackedDownload,
                         ImportResult = importResult
                     });
+                    entryImported = importResult.Result == ImportResultType.Imported;
+                }
+
+                if (entryImported && !string.IsNullOrWhiteSpace(currentZipPath) && !string.IsNullOrWhiteSpace(currentZipEntryName))
+                {
+                    if (!importedZipEntriesByArchive.TryGetValue(currentZipPath, out var entrySet))
+                    {
+                        entrySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        importedZipEntriesByArchive[currentZipPath] = entrySet;
+                    }
+
+                    entrySet.Add(currentZipEntryName);
                 }
 
                 if (tempExtractDir != null && Directory.Exists(tempExtractDir))
@@ -825,9 +843,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                 if (message.ImportMode != ImportMode.Copy &&
                     (_configService == null || _configService.DeleteOriginalAfterConversion))
                 {
-                    foreach (var zipArchive in importedZipArchives)
+                    foreach (var pair in importedZipEntriesByArchive)
                     {
-                        if (_diskProvider.FileExists(zipArchive))
+                        var zipArchive = pair.Key;
+                        if (_diskProvider.FileExists(zipArchive) &&
+                            ShouldDeleteSourceZipArchive(zipArchive, pair.Value))
                         {
                             try
                             {
@@ -911,6 +931,50 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     trackedDownload.State = TrackedDownloadState.Imported;
                     _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, importedPlatform.Id, romFiles, importedResults.First().ImportDecision.LocalEpisode.Release));
                 }
+            }
+        }
+
+        private bool ShouldDeleteSourceZipArchive(string zipArchive, HashSet<string> importedEntries)
+        {
+            if (importedEntries == null || importedEntries.Count == 0)
+            {
+                return false;
+            }
+
+            if (!ArchiveRepackService.IsMultiGameArchive(zipArchive))
+            {
+                return true;
+            }
+
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipArchive);
+                foreach (var entry in archive.Entries)
+                {
+                    if (ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name))
+                    {
+                        continue;
+                    }
+
+                    var ext = Path.GetExtension(entry.Name);
+                    if (string.IsNullOrWhiteSpace(ext) || !MediaFileExtensions.RomExtensions.Contains(ext))
+                    {
+                        continue;
+                    }
+
+                    if (!importedEntries.Contains(entry.FullName) && !importedEntries.Contains(entry.Name))
+                    {
+                        _logger.Debug("Preserving multi-game archive '{0}' because entry '{1}' was not imported.", zipArchive, entry.FullName);
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to verify imported entries in '{0}'; preserving archive.", zipArchive);
+                return false;
             }
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
@@ -208,6 +209,62 @@ namespace NzbDrone.Core.Test.MediaFiles
             Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
 
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Delete(_localEpisode.Episodes.Single().EpisodeFile, It.IsAny<DeleteMediaFileReason>()), Times.Never());
+        }
+
+        [Test]
+        public void should_delete_companion_tracks_when_upgrading_disc_sheet()
+        {
+            var tempRoot = Path.Combine(Path.GetTempPath(), "controllarr_upgrade_disc_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var platformDir = Path.Combine(tempRoot, "Saturn");
+                var gameDir = Path.Combine(platformDir, "Panzer");
+                Directory.CreateDirectory(gameDir);
+
+                var cuePath = Path.Combine(gameDir, "Panzer.cue");
+                var binPath = Path.Combine(gameDir, "Panzer (Track 01).bin");
+                File.WriteAllText(cuePath, "FILE \"Panzer (Track 01).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n");
+                File.WriteAllBytes(binPath, new byte[64]);
+
+                _localEpisode.Series = new Series { Path = platformDir };
+                _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
+                    .All()
+                    .With(e => e.EpisodeFileId = 1)
+                    .With(e => e.EpisodeFile = new EpisodeFile
+                    {
+                        Id = 1,
+                        RelativePath = Path.Combine("Panzer", "Panzer.cue")
+                    })
+                    .Build()
+                    .ToList();
+
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(c => c.FolderExists(tempRoot))
+                      .Returns(true);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(c => c.GetParentFolder(platformDir))
+                      .Returns(tempRoot);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(c => c.GetParentFolder(cuePath))
+                      .Returns(gameDir);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(c => c.GetParentFolder(binPath))
+                      .Returns(gameDir);
+
+                Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+
+                Mocker.GetMock<IRecycleBinProvider>()
+                      .Verify(v => v.DeleteFile(cuePath, Path.Combine("Saturn", "Panzer")), Times.Once());
+                Mocker.GetMock<IRecycleBinProvider>()
+                      .Verify(v => v.DeleteFile(binPath, Path.Combine("Saturn", "Panzer")), Times.Once());
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
         }
     }
 }

@@ -5825,12 +5825,13 @@ namespace NzbDrone.Core.Bios
                     var sha1HashBytes = sha1.ComputeHash(stream);
                     var sha1Hash = BitConverter.ToString(sha1HashBytes).Replace("-", "").ToLowerInvariant();
 
+                    var hasExpectedHash = !string.IsNullOrWhiteSpace(expectedMd5) || !string.IsNullOrWhiteSpace(expectedSha1);
                     var md5Match = string.IsNullOrWhiteSpace(expectedMd5) ||
                                    string.Equals(md5Hash, expectedMd5, StringComparison.InvariantCultureIgnoreCase);
                     var sha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
                                     string.Equals(sha1Hash, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
 
-                    if ((md5Match && sha1Match) ||
+                    if ((hasExpectedHash && md5Match && sha1Match) ||
                         IsMatchingAlternateBiosHash(fileName, expectedMd5, expectedSha1, md5Hash, sha1Hash))
                     {
                         _logger.Debug($"BIOS Verified successfully: {filePath}");
@@ -5857,7 +5858,7 @@ namespace NzbDrone.Core.Bios
                             var swappedSha1Match = string.IsNullOrWhiteSpace(expectedSha1) ||
                                                    string.Equals(swappedSha1, expectedSha1, StringComparison.InvariantCultureIgnoreCase);
 
-                            if ((swappedMd5Match && swappedSha1Match) ||
+                            if ((hasExpectedHash && swappedMd5Match && swappedSha1Match) ||
                                 IsMatchingAlternateBiosHash(fileName, expectedMd5, expectedSha1, swappedMd5, swappedSha1))
                             {
                                 _logger.Debug($"BIOS Verified successfully (16-bit byte-swapped): {filePath}");
@@ -6556,28 +6557,9 @@ namespace NzbDrone.Core.Bios
                         }
                         else
                         {
-                            _logger.Warn("BIOS file {0} at {1} failed hash verification. Discarding invalid file and replacing with verified copy.", entry.FileName, foundPath);
-                            try
-                            {
-                                File.Delete(foundPath);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.Error(ex, "Failed to discard invalid BIOS file at {0}", foundPath);
-                            }
-
-                            var targetDir = Path.GetDirectoryName(foundPath) ?? biosDir;
-                            var replaced = TryDownloadAndVerifyBios(entry, targetDir, requestedPlatformSlug);
-                            if (replaced)
-                            {
-                                entry.IsVerified = true;
-                                entry.Status = 1;
-                            }
-                            else
-                            {
-                                entry.IsVerified = false;
-                                entry.Status = 2;
-                            }
+                            _logger.Debug("BIOS file {0} at {1} failed hash verification; marking as mismatched.", entry.FileName, foundPath);
+                            entry.IsVerified = false;
+                            entry.Status = 2;
                         }
                     }
                 }

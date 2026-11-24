@@ -128,7 +128,7 @@ namespace NzbDrone.Core.Test.BiosTests
         }
 
         [Test]
-        public void Should_discard_invalid_existing_file_in_platform_bios_directory_on_catalog_check()
+        public void Should_mark_invalid_existing_file_as_mismatched_without_deleting_on_catalog_check()
         {
             Mocker.GetMock<IAppFolderInfo>()
                   .SetupGet(a => a.AppDataFolder)
@@ -141,7 +141,8 @@ namespace NzbDrone.Core.Test.BiosTests
 
             var catalog = Subject.GetCatalog("fds");
 
-            File.Exists(corruptPath).Should().BeFalse("existing corrupt BIOS file must be discarded upon hash verification failure");
+            File.Exists(corruptPath).Should().BeTrue("read-only GetCatalog() must not delete existing files from disk");
+            Mocker.GetMock<IHttpClient>().Verify(c => c.Get(It.IsAny<HttpRequest>()), Times.Never());
             var entry = catalog.FirstOrDefault(b => b.FileName == "disksys.rom");
             entry.Should().NotBeNull();
             entry.IsVerified.Should().BeFalse();
@@ -677,6 +678,17 @@ namespace NzbDrone.Core.Test.BiosTests
 
             Directory.Exists(seriesBiosDir).Should().BeFalse();
             Directory.Exists(appDataBiosDir).Should().BeFalse();
+        }
+
+        [Test]
+        public void Should_reject_bios_verification_when_expected_hashes_are_empty()
+        {
+            var payload = Encoding.UTF8.GetBytes("arbitrary_payload");
+            var biosPath = Path.Combine(_tempDir, "unknown.bin");
+            File.WriteAllBytes(biosPath, payload);
+
+            Subject.VerifyBios(biosPath, null, null).Should().BeFalse();
+            Subject.VerifyBios(biosPath, string.Empty, "   ").Should().BeFalse();
         }
     }
 }

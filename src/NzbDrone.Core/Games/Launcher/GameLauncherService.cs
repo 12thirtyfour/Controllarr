@@ -686,9 +686,13 @@ namespace NzbDrone.Core.Games.Launcher
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(safeRomPath) && resolvedRomFileId > 0 && _mediaFileService != null)
+            if (resolvedRomFileId > 0 && _mediaFileService != null)
             {
-                safeRomPath = ResolveRomFilePath(resolvedRomFileId, ref series, ref seriesId, ref safePlatform, ref platformTitle);
+                var dbRomPath = ResolveRomFilePath(resolvedRomFileId, ref series, ref seriesId, ref safePlatform, ref platformTitle);
+                if (!string.IsNullOrWhiteSpace(dbRomPath))
+                {
+                    safeRomPath = dbRomPath;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(safeRomPath) && !Path.IsPathRooted(safeRomPath) && series != null && !string.IsNullOrWhiteSpace(series.Path))
@@ -889,6 +893,12 @@ namespace NzbDrone.Core.Games.Launcher
                 return null;
             }
 
+            if (!IsPathWithinConfiguredLibrary(descriptor.RomPath))
+            {
+                _logger?.Warn("Blocked ROM stream request outside configured library folders: {0}", descriptor.RomPath);
+                return null;
+            }
+
             if (ShouldExtractZipForWebPlayer(descriptor.RomPath, descriptor.EmulatorJsCore))
             {
                 var extracted = TryOpenZipRomStream(descriptor.RomPath, out var innerFileName);
@@ -901,6 +911,58 @@ namespace NzbDrone.Core.Games.Launcher
 
             fileName = Path.GetFileName(descriptor.RomPath);
             return new FileStream(descriptor.RomPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        private bool IsPathWithinConfiguredLibrary(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return false;
+            }
+
+            string fullPath;
+            try
+            {
+                fullPath = Path.GetFullPath(filePath);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (_seriesService == null)
+            {
+                return !filePath.Contains("..", StringComparison.Ordinal);
+            }
+
+            var allSeries = _seriesService.GetAllSeries();
+            if (allSeries == null)
+            {
+                return false;
+            }
+
+            foreach (var s in allSeries)
+            {
+                if (!string.IsNullOrWhiteSpace(s?.Path) && IsUnderDirectory(fullPath, s.Path))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsUnderDirectory(string candidateFullPath, string dirPath)
+        {
+            try
+            {
+                var normalizedDir = Path.TrimEndingDirectorySeparator(Path.GetFullPath(dirPath)) + Path.DirectorySeparatorChar;
+                return candidateFullPath.StartsWith(normalizedDir, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public Stream OpenBiosStream(int gameId, out string fileName, string platformFolder = "", string romPath = "", int romFileId = 0)

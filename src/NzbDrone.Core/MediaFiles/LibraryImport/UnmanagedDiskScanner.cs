@@ -1203,29 +1203,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             if (!string.IsNullOrWhiteSpace(sfvCrc))
             {
                 hashes["SFV_CRC32"] = sfvCrc;
-                hashes["CRC32"] = sfvCrc;
-
-                var datMatch = datCacheService?.FindByCrc32(sfvCrc);
-                if (datMatch != null)
-                {
-                    if (!string.IsNullOrWhiteSpace(datMatch.Sha1))
-                    {
-                        hashes["SHA-1"] = datMatch.Sha1.ToLowerInvariant();
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(datMatch.Md5))
-                    {
-                        hashes["MD5"] = datMatch.Md5.ToLowerInvariant();
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(datMatch.Sha256))
-                    {
-                        hashes["SHA-256"] = datMatch.Sha256.ToLowerInvariant();
-                    }
-
-                    logger?.Debug("Fast-path hash resolution from release SFV and DAT catalog for {0}: CRC32={1}", filePath, sfvCrc);
-                    return hashes;
-                }
             }
 
             if (ArchiveRepackService.IsArchiveExtension(extension))
@@ -1262,10 +1239,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     {
                         logger?.Warn("Checksum MISMATCH with release SFV for {0}! Computed: {1}, Expected SFV: {2}", filePath, computedCrc, sfvCrc);
                     }
-                }
-                else
-                {
-                    hashes["CRC32"] = sfvCrc;
                 }
             }
 

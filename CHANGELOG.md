@@ -33,6 +33,13 @@ All notable changes to **Controllarr** are documented in this file.
 - **Rename Folder Structure Cleanup (`RenameRomFileService`, `MovePlatformService`, `RenameFolderCleanupHelper`)**:
   - Moved empty-subfolder cleanup in `RenameRomFileService` after `PlatformRenamedEvent` so extra/metadata files are relocated before old folders are pruned.
   - Added `RenameFolderCleanupHelper` to recursively delete vacated old game/region/manufacturer folders (including empty directories or OS-generated junk such as `Thumbs.db`, `desktop.ini`, `.DS_Store`, `._*`, `@eaDir`, and `.@__thumb`) below the platform or root folder boundary while preserving real files, without altering configured import/download cleanup rules.
+- **Security & Data-Safety Hardening (`GameLauncherService`, `ManualImportService`, `AddPlatformService`, `BiosService`, `UnmanagedDiskScanner`, `MediaFileDeletionService`, `UpgradeMediaFileService`)**:
+  - Confined `GameLauncherService.OpenRomStream` to configured platform library folders and prioritized DB-owned ROM file paths when `romFileId` is provided, preventing arbitrary file reads via `romPath`.
+  - Tracked successfully imported zip entries per archive in `ManualImportService.Execute` so multi-game `.zip` archives are preserved when only a subset of entries is imported or any entry fails.
+  - Prevented `AddPlatformService.CleanupSourceDirectoryAfterMove` from deleting source directories that still contain files when `DeleteEmptyFolders` is enabled.
+  - Made `BiosService.GetCatalog()` strictly read-only (removing file deletion and synchronous download side effects from `PopulatePlatformBiosStatus`) and required at least one non-empty expected hash in `BiosService.VerifyBios()`.
+  - Removed the `.sfv` DAT-hash bypass and fallback in `UnmanagedDiskScanner.ComputeFileOrArchiveHashes` so ROM bytes are always cryptographically hashed before verification.
+  - Updated `MediaFileDeletionService` and `UpgradeMediaFileService` to also recycle companion track files (`.bin`, `.raw`, `.wav`, `.img`, `.sub`, etc.) when deleting or upgrading `.cue`/`.gdi`/`.ccd` disc sheets.
 
 ## [Unreleased] - 2026-11-20
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using NLog;
@@ -9,6 +10,7 @@ using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MediaFiles.Commands;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging;
 using NzbDrone.Core.Messaging.Commands;
@@ -88,7 +90,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 try
                 {
-                    _recycleBinProvider.DeleteFile(fullPath, subfolder);
+                    DeleteRomAndCompanionTracks(series, fullPath, subfolder);
                 }
                 catch (Exception e)
                 {
@@ -157,7 +159,7 @@ namespace NzbDrone.Core.MediaFiles
 
                             try
                             {
-                                _recycleBinProvider.DeleteFile(fullPath, subfolder);
+                                DeleteRomAndCompanionTracks(series, fullPath, subfolder);
                             }
                             catch (Exception e)
                             {
@@ -266,6 +268,42 @@ namespace NzbDrone.Core.MediaFiles
             if (_diskProvider.FolderEmpty(seriesPath))
             {
                 _diskProvider.DeleteFolder(seriesPath, true);
+            }
+        }
+
+        private void DeleteRomAndCompanionTracks(Series series, string fullPath, string subfolder)
+        {
+            List<string> companionTracks = null;
+            if (DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(fullPath)) && File.Exists(fullPath))
+            {
+                companionTracks = DiscSheetHelper.ResolveTrackFiles(fullPath);
+            }
+
+            _recycleBinProvider.DeleteFile(fullPath, subfolder);
+
+            if (companionTracks == null || companionTracks.Count == 0)
+            {
+                return;
+            }
+
+            var seriesParentFolder = _diskProvider.GetParentFolder(series.Path);
+            foreach (var trackPath in companionTracks)
+            {
+                if (string.IsNullOrWhiteSpace(trackPath) ||
+                    trackPath.PathEquals(fullPath) ||
+                    (!_diskProvider.FileExists(trackPath) && !File.Exists(trackPath)))
+                {
+                    continue;
+                }
+
+                var trackParent = _diskProvider.GetParentFolder(trackPath);
+                var trackSubfolder = !string.IsNullOrWhiteSpace(trackParent) &&
+                                     !string.IsNullOrWhiteSpace(seriesParentFolder) &&
+                                     seriesParentFolder.IsParentPath(trackParent)
+                    ? seriesParentFolder.GetRelativePath(trackParent)
+                    : subfolder;
+
+                _recycleBinProvider.DeleteFile(trackPath, trackSubfolder);
             }
         }
     }

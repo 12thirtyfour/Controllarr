@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using FizzWare.NBuilder;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
@@ -226,6 +228,75 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
             Subject.Execute(new DeletePlatformFilesCommand { SeriesIds = new List<int> { _series.Id } });
 
             Mocker.GetMock<IBiosService>().Verify(v => v.DeletePlatformBiosFiles(_series), Times.Once());
+        }
+
+        [Test]
+        public void should_delete_companion_tracks_when_deleting_disc_sheet()
+        {
+            var tempRoot = Path.Combine(Path.GetTempPath(), "controllarr_delete_disc_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var platformDir = Path.Combine(tempRoot, "3DO");
+                var gameDir = Path.Combine(platformDir, "Crash");
+                Directory.CreateDirectory(gameDir);
+
+                var cuePath = Path.Combine(gameDir, "Crash.cue");
+                var binPath = Path.Combine(gameDir, "Crash (Track 01).bin");
+                File.WriteAllText(cuePath, "FILE \"Crash (Track 01).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n");
+                File.WriteAllBytes(binPath, new byte[64]);
+
+                var series = Builder<Series>.CreateNew()
+                    .With(s => s.Path = platformDir)
+                    .Build();
+                var episodeFile = Builder<EpisodeFile>.CreateNew()
+                    .With(f => f.RelativePath = Path.Combine("Crash", "Crash.cue"))
+                    .Build();
+
+                Mocker.GetMock<IRootFolderService>()
+                      .Setup(s => s.GetBestRootFolderPath(platformDir))
+                      .Returns(tempRoot);
+
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.FolderExists(tempRoot))
+                      .Returns(true);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.GetDirectories(tempRoot))
+                      .Returns(new[] { platformDir });
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.FolderExists(platformDir))
+                      .Returns(true);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.FileExists(cuePath))
+                      .Returns(true);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.FileExists(binPath))
+                      .Returns(true);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.GetParentFolder(platformDir))
+                      .Returns(tempRoot);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.GetParentFolder(cuePath))
+                      .Returns(gameDir);
+                Mocker.GetMock<IDiskProvider>()
+                      .Setup(s => s.GetParentFolder(binPath))
+                      .Returns(gameDir);
+
+                Subject.DeleteEpisodeFile(series, episodeFile);
+
+                Mocker.GetMock<IRecycleBinProvider>()
+                      .Verify(v => v.DeleteFile(cuePath, Path.Combine("3DO", "Crash")), Times.Once());
+                Mocker.GetMock<IRecycleBinProvider>()
+                      .Verify(v => v.DeleteFile(binPath, Path.Combine("3DO", "Crash")), Times.Once());
+                Mocker.GetMock<IMediaFileService>()
+                      .Verify(v => v.Delete(episodeFile, DeleteMediaFileReason.Manual), Times.Once());
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
         }
     }
 }

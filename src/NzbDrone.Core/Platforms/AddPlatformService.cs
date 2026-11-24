@@ -789,15 +789,9 @@ namespace NzbDrone.Core.Tv
         {
             try
             {
-                var deleteLeftovers = _configService != null && _configService.DeleteEmptyFolders;
-                if (deleteLeftovers)
-                {
-                    _diskProvider.DeleteFolder(sourceDirectory, true);
-                    return;
-                }
-
-                var remainingFiles = _diskProvider.GetFiles(sourceDirectory, true);
-                if (remainingFiles.Empty())
+                if (_configService != null &&
+                    _configService.DeleteEmptyFolders &&
+                    _diskProvider.GetFiles(sourceDirectory, true).Empty())
                 {
                     _diskProvider.DeleteFolder(sourceDirectory, true);
                 }

@@ -551,5 +551,33 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             hashes.Should().ContainKey("SHA-1").WhoseValue.Should().Be(binSha1);
             hashes.Should().ContainKey("ROM_NAME").WhoseValue.Should().Be("Road Rash (USA).cue");
         }
+
+        [Test]
+        public void ComputeFileOrArchiveHashes_CorruptRomWithMatchingSfv_ShouldComputeActualFileHash()
+        {
+            var romPath = Path.Combine(_tempPath, "Super Mario World (USA).sfc");
+            var sfvPath = Path.Combine(_tempPath, "release.sfv");
+
+            var actualBytes = Encoding.ASCII.GetBytes("CORRUPTED_ROM_PAYLOAD");
+            File.WriteAllBytes(romPath, actualBytes);
+
+            var fakeSfvCrc = "b19ed489";
+            File.WriteAllText(sfvPath, $"Super Mario World (USA).sfc {fakeSfvCrc}\r\n");
+
+            var datCache = Mocker.GetMock<IDatCacheService>();
+            datCache.Setup(d => d.FindByCrc32(fakeSfvCrc)).Returns(new DatEntry
+            {
+                GameName = "Super Mario World (USA)",
+                RomName = "Super Mario World (USA).sfc",
+                Crc32 = fakeSfvCrc,
+                Sha1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+            });
+
+            var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(romPath, new[] { ".sfc" }, datCache.Object);
+
+            hashes.Should().ContainKey("SFV_CRC32").WhoseValue.Should().Be(fakeSfvCrc);
+            hashes.Should().ContainKey("CRC32").WhoseValue.Should().NotBe(fakeSfvCrc);
+            hashes.Should().ContainKey("SHA-1").WhoseValue.Should().NotBe("da39a3ee5e6b4b0d3255bfef95601890afd80709");
+        }
     }
 }

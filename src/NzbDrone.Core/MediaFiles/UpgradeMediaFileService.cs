@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.Parser.Model;
 
@@ -62,7 +64,33 @@ namespace NzbDrone.Core.MediaFiles
                 if (_diskProvider.FileExists(episodeFilePath))
                 {
                     _logger.Debug("Removing existing episode file: {0}", file);
+                    List<string> companionTracks = null;
+                    if (DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(episodeFilePath)) && File.Exists(episodeFilePath))
+                    {
+                        companionTracks = DiscSheetHelper.ResolveTrackFiles(episodeFilePath);
+                    }
+
                     recycleBinPath = _recycleBinProvider.DeleteFile(episodeFilePath, subfolder);
+
+                    if (companionTracks != null)
+                    {
+                        foreach (var trackPath in companionTracks)
+                        {
+                            if (string.IsNullOrWhiteSpace(trackPath) ||
+                                trackPath.PathEquals(episodeFilePath) ||
+                                (!_diskProvider.FileExists(trackPath) && !File.Exists(trackPath)))
+                            {
+                                continue;
+                            }
+
+                            var trackParent = _diskProvider.GetParentFolder(trackPath);
+                            var trackSubfolder = !string.IsNullOrWhiteSpace(trackParent) && rootFolder.IsParentPath(trackParent)
+                                ? rootFolder.GetRelativePath(trackParent)
+                                : subfolder;
+
+                            _recycleBinProvider.DeleteFile(trackPath, trackSubfolder);
+                        }
+                    }
                 }
                 else
                 {
