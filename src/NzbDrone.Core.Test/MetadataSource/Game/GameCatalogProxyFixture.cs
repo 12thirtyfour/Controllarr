@@ -1741,5 +1741,75 @@ game (
             NzbDrone.Core.Games.RegionHelper.IsTestOrUtility("Photographic Memory Test (World)").Should().BeFalse();
             NzbDrone.Core.Games.RegionHelper.IsTestOrUtility("Memory Test").Should().BeTrue();
         }
+
+        [Test]
+        public void should_provide_gametdb_urls_for_gamecube_nds_and_ps3_and_filter_gamecube_from_wiitdb()
+        {
+            GameCatalogProxy.GetGameTdbUrl("gamecube").Should().Be("https://www.gametdb.com/wiitdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("nds").Should().Be("https://www.gametdb.com/dstdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("dsiware").Should().Be("https://www.gametdb.com/dstdb.zip");
+            GameCatalogProxy.GetGameTdbUrl("ps3").Should().Be("https://www.gametdb.com/ps3tdb.zip");
+
+            Subject.TryGetPlatformEntry(1007, out var gamecubePlatform).Should().BeTrue();
+            Subject.TryGetPlatformEntry(1008, out var wiiPlatform).Should().BeTrue();
+
+            const string wiiAndGcXml = @"<xml>
+  <game name=""Super Mario Sunshine (USA)"">
+    <id>GMSE01</id>
+    <type>GameCube</type>
+    <region>USA</region>
+    <locale lang=""EN""><title>Super Mario Sunshine</title></locale>
+  </game>
+  <game name=""Super Mario Galaxy (USA)"">
+    <id>RMGE01</id>
+    <type>Wii</type>
+    <region>USA</region>
+    <locale lang=""EN""><title>Super Mario Galaxy</title></locale>
+  </game>
+</xml>";
+
+            var gcGames = Subject.ParseGameTdbXmlContent(gamecubePlatform, wiiAndGcXml, new HashSet<string>());
+            gcGames.Should().ContainSingle(g => g.Title == "Super Mario Sunshine");
+            gcGames.Should().NotContain(g => g.Title == "Super Mario Galaxy");
+
+            var wiiGames = Subject.ParseGameTdbXmlContent(wiiPlatform, wiiAndGcXml, new HashSet<string>());
+            wiiGames.Should().ContainSingle(g => g.Title == "Super Mario Galaxy");
+            wiiGames.Should().NotContain(g => g.Title == "Super Mario Sunshine");
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Verify(d => d.Insert(Moq.It.IsAny<NzbDrone.Core.Dat.DatFile>(), Moq.It.IsAny<List<NzbDrone.Core.Dat.DatEntry>>()), Moq.Times.Never());
+        }
+
+        [Test]
+        public void should_bypass_remote_archive_cache_when_force_refresh_is_requested()
+        {
+            Subject.InvalidatePlatformCache();
+            Subject.TryGetPlatformEntry(1014, out var switchPlatform).Should().BeTrue();
+
+            var nswdbXmlV1 = @"<releases><release><name>Test Switch Game One</name><region>USA</region><imgcrc>11223344</imgcrc><type>1</type></release></releases>";
+            var nswdbXmlV2 = @"<releases><release><name>Test Switch Game Two</name><region>USA</region><imgcrc>55667788</imgcrc><type>1</type></release></releases>";
+
+            var nswdbFetches = 0;
+            Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>()
+                .Setup(c => c.Execute(Moq.It.IsAny<NzbDrone.Common.Http.HttpRequest>()))
+                .Returns((NzbDrone.Common.Http.HttpRequest req) =>
+                {
+                    if (req.Url.ToString().Contains("nswdb.com"))
+                    {
+                        nswdbFetches++;
+                        var payload = nswdbFetches == 1 ? nswdbXmlV1 : nswdbXmlV2;
+                        return new NzbDrone.Common.Http.HttpResponse(req, new NzbDrone.Common.Http.HttpHeader(), System.Text.Encoding.UTF8.GetBytes(payload));
+                    }
+
+                    return new NzbDrone.Common.Http.HttpResponse(req, new NzbDrone.Common.Http.HttpHeader(), System.Array.Empty<byte>(), System.Net.HttpStatusCode.NotFound);
+                });
+
+            Subject.SyncPlatformDatCatalogs(switchPlatform.TvdbId, forceRefresh: false);
+            Subject.SyncPlatformDatCatalogs(switchPlatform.TvdbId, forceRefresh: true);
+
+            nswdbFetches.Should().Be(2);
+            var refreshed = Subject.GetSeriesInfo(switchPlatform.TvdbId, Language.English, null);
+            refreshed.Item2.Should().Contain(g => g.Title == "Test Switch Game Two");
+        }
     }
 }

@@ -60,6 +60,11 @@ All notable changes to **Controllarr** are documented in this file.
   - Removed the dead no-op `ArchiveRepackService.ModernizeINesHeader` method, unused `.nes` byte-read branches and `_archiveExtractionService` field in `RomFileMovingService`, and deleted the unused `ExportEngine` stub.
   - Replaced `O(N×M)` per-file episode scans in `ExtraService.GetEpisodeFiles` and `RenameRomFileService.GetPreviews` with `ToLookup` indexing.
   - Removed unused local variables and redundant calls in `RefreshGameService`, `AddPlatformService`, and `NewznabRequestGenerator`, and updated leftover `"Sonarr"` warning/debug strings in `CompletedDownloadService` and `TorrentClientBase` to `"Controllarr"`.
+- **Unified Hash Database Gathering, Uniqueness Merging & Refresh (`DatEntryHashHelper`, `DatCacheService`, `DatParserService`, `DatCatalogUpdateService`, `GameCatalogProxy`, `VerifiedRomHashSpecification`, `UnmanagedDiskScanner`)**:
+  - Added `DatEntryHashHelper` and updated `DatParserService` and `DatCacheService.Insert` to normalize hashes (`SHA-256`, `SHA-1`, `MD5`, `CRC32`), self-heal pre-existing duplicates within the same platform, and merge complementary hashes/SMDB paths across No-Intro, Redump, TOSEC, SMDB, NSWDB, GameTDB, and manual imports so entries per platform remain unique.
+  - Added Libretro `metadat/tosec/` and `dat/` DAT feeds plus GameTDB coverage for `gamecube`, `nds`/`dsiware`, and `ps3` in `GameCatalogProxy`, eliminated hashless GameTDB `DatEntry` inserts, enforced hash deduplication/merging across NSWDB/GameTDB/BuiltInGames, and prioritized data tracks ahead of `.cue` sheets in `ParseLibretroDatContent`.
+  - Removed the `.sfv` bypass in `VerifiedRomHashSpecification` and aligned `UnmanagedDiskScanner` archive probes with `FindBestMatch` so library creation, import, and download verification all enforce the unified DAT database.
+  - Updated `GameCatalogProxy.TryFetchRemoteWithRetry` to bypass `RemoteArchiveCache` on `forceRefresh`, and propagated NDS/3DS `EncryptionPreference` in `DatCatalogUpdateService.SyncLibraryDatCatalogs` so scheduled and manual DAT updates refresh all enabled verification catalogs.
 
 ## [Unreleased] - 2026-11-20
 

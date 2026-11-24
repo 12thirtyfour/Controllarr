@@ -46,6 +46,10 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"rom\s*\(\s*name\s+""(?<rom>[^""]+)""",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex DatRomBlockRegex = new Regex(
+            @"rom\s*\((?<rombody>(?:""[^""]*""|[^""\)])*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex DatReleaseYearBlockRegex = new Regex(
             @"game\s*\((?<body>[\s\S]*?)\n\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -619,8 +623,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             var episodes = new List<Episode>();
 
             var platformGames = new List<GameCatalogEntry>();
-            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var seenIds = new HashSet<int>();
+            var seenNames = new Dictionary<string, GameCatalogEntry>(StringComparer.OrdinalIgnoreCase);
+            var seenIds = new Dictionary<int, GameCatalogEntry>();
             var seenCanonicalEntries = new Dictionary<string, GameCatalogEntry>(StringComparer.OrdinalIgnoreCase);
             var seenHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var seenSpecialCategoryTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -657,6 +661,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     {
                         existingRetail.RegionNumber = candidate.RegionNumber;
                         existingRetail.RegionName = candidate.RegionName;
+                        MergeMissingHashes(existingRetail, candidate, seenHashes);
                         seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(existingRetail.BaseTitle ?? existingRetail.Title));
                     }
 
@@ -669,18 +674,29 @@ namespace NzbDrone.Core.MetadataSource.Game
                     return false;
                 }
 
-                if (seenIds.Contains(candidate.TvdbId) ||
-                    seenNames.Contains(candidate.NoIntroName ?? candidate.Title))
+                if (seenIds.TryGetValue(candidate.TvdbId, out var existingById))
                 {
+                    MergeMissingHashes(existingById, candidate, seenHashes);
+                    return false;
+                }
+
+                var candidateKeyName = candidate.NoIntroName ?? candidate.Title;
+                if (seenNames.TryGetValue(candidateKeyName, out var existingByName))
+                {
+                    MergeMissingHashes(existingByName, candidate, seenHashes);
                     return false;
                 }
 
                 // Cross-reference verification hashes so identical ROM dumps with scrambled/alternate titles (e.g. "Action Replay Pro" vs "Pro Action Replay") do not double up,
                 // while distinct ROMs with conflicting stronger hashes are never merged on a CRC32 collision alone.
-                if (HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32) &&
-                    platformGames.Any(g => HasMatchingHash(g, candidate)))
+                if (HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32))
                 {
-                    return false;
+                    var hashMatched = platformGames.FirstOrDefault(g => HasMatchingHash(g, candidate));
+                    if (hashMatched != null)
+                    {
+                        MergeMissingHashes(hashMatched, candidate, seenHashes);
+                        return false;
+                    }
                 }
 
                 if (seenCanonicalEntries.TryGetValue(canonicalKey, out var existingCanonical))
@@ -688,6 +704,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var bothHaveHashes = HasAnyHash(existingCanonical) && HasAnyHash(candidate);
                     if (!bothHaveHashes || HasMatchingHash(existingCanonical, candidate))
                     {
+                        MergeMissingHashes(existingCanonical, candidate, seenHashes);
                         return false;
                     }
                 }
@@ -702,8 +719,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 seenCanonicalEntries.TryAdd(canonicalKey, candidate);
-                seenIds.Add(candidate.TvdbId);
-                seenNames.Add(candidate.NoIntroName ?? candidate.Title);
+                seenIds.TryAdd(candidate.TvdbId, candidate);
+                seenNames.TryAdd(candidateKeyName, candidate);
 
                 RegisterHashes(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32);
 
@@ -806,7 +823,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                                                 effectiveCategory == "Unlicensed";
 
                         if (!isSpecialCategory &&
-                            HasSeenHash(seenHashes, datEntry.Sha256, datEntry.Sha1, datEntry.Md5, datEntry.Crc32))
+                            HasSeenHash(seenHashes, datEntry.Sha256, datEntry.Sha1, datEntry.Md5, datEntry.Crc32) &&
+                            !HasUnseenHash(seenHashes, datEntry.Sha256, datEntry.Sha1, datEntry.Md5, datEntry.Crc32))
                         {
                             continue;
                         }
@@ -990,10 +1008,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (string.Equals(platform.Slug, "switch", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(platform.Slug, "switcheshop", StringComparison.OrdinalIgnoreCase))
                 {
-                    var nswdbContent = FetchRemoteContentWithRetry("https://nswdb.com/xml.php", TimeSpan.FromSeconds(45), platform.Name);
+                    var nswdbContent = FetchRemoteContentWithRetry("https://nswdb.com/xml.php", TimeSpan.FromSeconds(45), platform.Name, forceRefresh);
                     if (!string.IsNullOrWhiteSpace(nswdbContent))
                     {
-                        var nswdbEntries = ParseNswdbXmlContent(platform, nswdbContent, seenNames, forceRefresh);
+                        var nswdbEntries = ParseNswdbXmlContent(platform, nswdbContent, seenNames, forceRefresh, seenHashes);
                         if (nswdbEntries.Count > 0)
                         {
                             syncedList.AddRange(nswdbEntries);
@@ -1004,10 +1022,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var gameTdbUrl = GetGameTdbUrl(platform.Slug);
                 if (!string.IsNullOrWhiteSpace(gameTdbUrl))
                 {
-                    var tdbBytes = FetchRemoteBytesWithRetry(gameTdbUrl, TimeSpan.FromSeconds(60), platform.Name);
+                    var tdbBytes = FetchRemoteBytesWithRetry(gameTdbUrl, TimeSpan.FromSeconds(60), platform.Name, forceRefresh);
                     if (tdbBytes != null && tdbBytes.Length > 0)
                     {
-                        var tdbEntries = ParseGameTdbZipContent(platform, tdbBytes, seenNames, forceRefresh);
+                        var tdbEntries = ParseGameTdbZipContent(platform, tdbBytes, seenNames, forceRefresh, seenHashes);
                         if (tdbEntries.Count > 0)
                         {
                             syncedList.AddRange(tdbEntries);
@@ -1053,17 +1071,17 @@ namespace NzbDrone.Core.MetadataSource.Game
             return syncedList;
         }
 
-        private string FetchRemoteContentWithRetry(string url, TimeSpan timeout, string platformName)
+        private string FetchRemoteContentWithRetry(string url, TimeSpan timeout, string platformName, bool forceRefresh = false)
         {
-            return TryFetchRemoteWithRetry(url, timeout, platformName).Content;
+            return TryFetchRemoteWithRetry(url, timeout, platformName, forceRefresh).Content;
         }
 
-        private byte[] FetchRemoteBytesWithRetry(string url, TimeSpan timeout, string platformName)
+        private byte[] FetchRemoteBytesWithRetry(string url, TimeSpan timeout, string platformName, bool forceRefresh = false)
         {
-            return TryFetchRemoteWithRetry(url, timeout, platformName).Bytes;
+            return TryFetchRemoteWithRetry(url, timeout, platformName, forceRefresh).Bytes;
         }
 
-        private (byte[] Bytes, string Content) TryFetchRemoteWithRetry(string url, TimeSpan timeout, string platformName)
+        private (byte[] Bytes, string Content) TryFetchRemoteWithRetry(string url, TimeSpan timeout, string platformName, bool forceRefresh = false)
         {
             if (_httpClient == null || string.IsNullOrWhiteSpace(url))
             {
@@ -1071,7 +1089,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             var clientKey = $"{RuntimeHelpers.GetHashCode(_httpClient)}:{url}";
-            if (RemoteArchiveCache.TryGetValue(clientKey, out var cached))
+            if (!forceRefresh && RemoteArchiveCache.TryGetValue(clientKey, out var cached))
             {
                 if (DateTime.UtcNow - cached.FetchedAtUtc < TimeSpan.FromMinutes(10))
                 {
@@ -1220,6 +1238,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
                 feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/tosec/{escapedSystem}.dat", "TOSEC"));
+                feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/dat/{escapedSystem}.dat", "Libretro DAT"));
             }
 
             if (slug == "ngpc")
@@ -1506,10 +1526,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             PlatformCatalogEntry platform,
             string xmlContent,
             HashSet<string> seenNames,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
         {
             var results = new List<GameCatalogEntry>();
             var datEntries = new List<DatEntry>();
+            var seenCacheHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
@@ -1538,7 +1560,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var serial = releaseEl.Element("serial")?.Value?.Trim();
                     var releaseType = releaseEl.Element("type")?.Value?.Trim();
                     var gameId = releaseEl.Element("titleid")?.Value?.Trim() ?? serial;
-                    var crc = releaseEl.Element("imgcrc")?.Value?.Trim();
+                    var normalizedCrc = DatEntryHashHelper.NormalizeHash(releaseEl.Element("imgcrc")?.Value, isCrc32: true);
                     var revision = releaseEl.Element("revision")?.Value?.Trim();
 
                     // Skip DLC entries (type 3)
@@ -1572,26 +1594,29 @@ namespace NzbDrone.Core.MetadataSource.Game
                         ? $"{baseWithRegion}{revSuffix}"
                         : baseWithRegion;
 
-                    if (!string.IsNullOrWhiteSpace(crc))
+                    if (normalizedCrc != null && !HasSeenHash(seenCacheHashes, null, null, null, normalizedCrc))
                     {
+                        RegisterHashes(seenCacheHashes, null, null, null, normalizedCrc);
                         datEntries.Add(new DatEntry
                         {
                             GameName = noIntroName,
                             RomName = isSwitchEshopPlatform ? $"{noIntroName}.nsp" : $"{noIntroName}.xci",
-                            Crc32 = crc.ToLowerInvariant(),
+                            Crc32 = normalizedCrc,
                             Region = regionLabel
                         });
                     }
 
-                    if (!seenNames.Add(noIntroName))
+                    if (HasSeenHash(seenHashes, null, null, null, normalizedCrc) || !seenNames.Add(noIntroName))
                     {
                         continue;
                     }
 
+                    RegisterHashes(seenHashes, null, null, null, normalizedCrc);
+
                     var entry = CreateCatalogEntryFromNoIntroName(platform, noIntroName, platform.ReleaseYear, "NSWDB Switch Catalog");
                     if (entry != null)
                     {
-                        entry.ExpectedCrc32 = crc;
+                        entry.ExpectedCrc32 = normalizedCrc;
                         results.Add(entry);
                     }
                 }
@@ -1629,9 +1654,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             return slug?.ToLowerInvariant() switch
             {
                 "switch" or "switcheshop" => "https://www.gametdb.com/switchtdb.zip",
-                "wii" or "wiiware" => "https://www.gametdb.com/wiitdb.zip",
+                "wii" or "wiiware" or "gamecube" => "https://www.gametdb.com/wiitdb.zip",
                 "wiiu" or "wiiueshop" => "https://www.gametdb.com/wiiutdb.zip",
                 "3ds" or "3dseshop" => "https://www.gametdb.com/3dstdb.zip",
+                "nds" or "dsiware" => "https://www.gametdb.com/dstdb.zip",
+                "ps3" => "https://www.gametdb.com/ps3tdb.zip",
                 _ => null
             };
         }
@@ -1640,7 +1667,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             PlatformCatalogEntry platform,
             byte[] zipBytes,
             HashSet<string> seenNames,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
         {
             try
             {
@@ -1653,7 +1681,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 using var entryStream = xmlEntry.Open();
-                return ParseGameTdbXmlStream(platform, entryStream, seenNames, forceRefresh);
+                return ParseGameTdbXmlStream(platform, entryStream, seenNames, forceRefresh, seenHashes);
             }
             catch (Exception ex)
             {
@@ -1666,7 +1694,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             PlatformCatalogEntry platform,
             Stream stream,
             HashSet<string> seenNames,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
         {
             if (stream == null)
             {
@@ -1679,14 +1708,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                 DtdProcessing = DtdProcessing.Ignore
             });
 
-            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh);
+            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh, seenHashes);
         }
 
         public List<GameCatalogEntry> ParseGameTdbXmlContent(
             PlatformCatalogEntry platform,
             string xmlContent,
             HashSet<string> seenNames,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
         {
             if (string.IsNullOrWhiteSpace(xmlContent))
             {
@@ -1700,17 +1730,19 @@ namespace NzbDrone.Core.MetadataSource.Game
                 DtdProcessing = DtdProcessing.Ignore
             });
 
-            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh);
+            return ParseGameTdbXmlReader(platform, xmlReader, seenNames, forceRefresh, seenHashes);
         }
 
         private List<GameCatalogEntry> ParseGameTdbXmlReader(
             PlatformCatalogEntry platform,
             XmlReader xmlReader,
             HashSet<string> seenNames,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            HashSet<string> seenHashes = null)
         {
             var results = new List<GameCatalogEntry>();
             var datEntries = new List<DatEntry>();
+            var seenCacheHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
@@ -1749,6 +1781,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                             }
 
                             var targetSlug = platform?.Slug?.ToLowerInvariant();
+                            if (targetSlug == "gamecube" &&
+                                !string.Equals(gameType, "GameCube", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
                             if (targetSlug is "wii" or "wiiware" &&
                                 string.Equals(gameType, "GameCube", StringComparison.OrdinalIgnoreCase))
                             {
@@ -1840,9 +1878,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                                 foreach (var romEl in romElements)
                                 {
                                     var romName = (string)romEl.Attribute("name");
-                                    var crc = (string)romEl.Attribute("crc");
-                                    var md5 = (string)romEl.Attribute("md5");
-                                    var sha1 = (string)romEl.Attribute("sha1");
+                                    var rawCrc = (string)romEl.Attribute("crc");
+                                    var rawMd5 = (string)romEl.Attribute("md5");
+                                    var rawSha1 = (string)romEl.Attribute("sha1");
+                                    var crc = DatEntryHashHelper.NormalizeHash(rawCrc, isCrc32: true);
+                                    var md5 = DatEntryHashHelper.NormalizeHash(rawMd5);
+                                    var sha1 = DatEntryHashHelper.NormalizeHash(rawSha1);
                                     var sizeStr = (string)romEl.Attribute("size");
                                     long.TryParse(sizeStr, out var size);
 
@@ -1852,43 +1893,39 @@ namespace NzbDrone.Core.MetadataSource.Game
                                         romName = $"{formattedName}{defaultExt}";
                                     }
 
-                                    if (primaryCrc == null && !string.IsNullOrWhiteSpace(crc))
+                                    if (primaryCrc == null && primarySha1 == null && primaryMd5 == null &&
+                                        (!string.IsNullOrWhiteSpace(rawCrc) || !string.IsNullOrWhiteSpace(rawSha1) || !string.IsNullOrWhiteSpace(rawMd5)))
                                     {
-                                        primaryCrc = crc;
-                                        primarySha1 = sha1;
-                                        primaryMd5 = md5;
+                                        primaryCrc = rawCrc;
+                                        primarySha1 = rawSha1;
+                                        primaryMd5 = rawMd5;
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(crc) || !string.IsNullOrWhiteSpace(sha1) || !string.IsNullOrWhiteSpace(md5))
+                                    if ((crc != null || sha1 != null || md5 != null) &&
+                                        !HasSeenHash(seenCacheHashes, null, sha1, md5, crc))
                                     {
+                                        RegisterHashes(seenCacheHashes, null, sha1, md5, crc);
                                         datEntries.Add(new DatEntry
                                         {
                                             GameName = formattedName,
                                             RomName = romName,
-                                            Crc32 = crc?.ToLowerInvariant(),
-                                            Md5 = md5?.ToLowerInvariant(),
-                                            Sha1 = sha1?.ToLowerInvariant(),
+                                            Crc32 = crc,
+                                            Md5 = md5,
+                                            Sha1 = sha1,
                                             Size = size > 0 ? size : 0,
                                             Region = regionLabel
                                         });
                                     }
                                 }
                             }
-                            else if (!string.IsNullOrWhiteSpace(id))
-                            {
-                                var defaultExt = platform.Extensions?.FirstOrDefault() ?? ".bin";
-                                datEntries.Add(new DatEntry
-                                {
-                                    GameName = formattedName,
-                                    RomName = $"{formattedName}{defaultExt}",
-                                    Region = regionLabel
-                                });
-                            }
 
-                            if (!seenNames.Add(formattedName))
+                            if (HasSeenHash(seenHashes, null, primarySha1, primaryMd5, primaryCrc) ||
+                                !seenNames.Add(formattedName))
                             {
                                 continue;
                             }
+
+                            RegisterHashes(seenHashes, null, primarySha1, primaryMd5, primaryCrc);
 
                             var entry = CreateCatalogEntryFromNoIntroName(platform, formattedName, releaseYear, $"GameTDB {platform.Name}");
                             if (entry != null)
@@ -2166,8 +2203,55 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var blockName = match.Groups["name"].Value.Trim();
                 var body = match.Groups["body"].Value;
 
-                var romMatch = DatRomNameRegex.Match(body);
-                var romFileName = romMatch.Success ? romMatch.Groups["rom"].Value.Trim() : null;
+                var romBlockMatches = DatRomBlockRegex.Matches(body);
+                var preferredRomBody = body;
+                string romFileName = null;
+
+                foreach (Match rb in romBlockMatches)
+                {
+                    var romBody = rb.Groups["rombody"].Value;
+                    var rm = DatRomNameRegex.Match("rom ( " + romBody);
+                    var candidateName = rm.Success ? rm.Groups["rom"].Value.Trim() : null;
+                    if (romFileName == null && candidateName != null)
+                    {
+                        romFileName = candidateName;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(candidateName) &&
+                        candidateName.EndsWith(".unh", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var hasHashInRom = DatSha256Regex.IsMatch(romBody) ||
+                                       DatSha1Regex.IsMatch(romBody) ||
+                                       DatMd5Regex.IsMatch(romBody) ||
+                                       DatCrcRegex.IsMatch(romBody);
+                    if (!hasHashInRom)
+                    {
+                        continue;
+                    }
+
+                    var isSheet = !string.IsNullOrWhiteSpace(candidateName) &&
+                                  (candidateName.EndsWith(".cue", StringComparison.OrdinalIgnoreCase) ||
+                                   candidateName.EndsWith(".gdi", StringComparison.OrdinalIgnoreCase) ||
+                                   candidateName.EndsWith(".ccd", StringComparison.OrdinalIgnoreCase));
+                    if (!isSheet)
+                    {
+                        preferredRomBody = romBody;
+                        if (candidateName != null)
+                        {
+                            romFileName = candidateName;
+                        }
+
+                        break;
+                    }
+
+                    if (preferredRomBody == body)
+                    {
+                        preferredRomBody = romBody;
+                    }
+                }
 
                 var isHackOrHomebrewFeed =
                     sourceLabel != null &&
@@ -2195,13 +2279,13 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 blockName = StripTrackOne(blockName);
 
-                var crcMatch = DatCrcRegex.Match(body);
-                var crc32 = crcMatch.Success ? crcMatch.Groups[1].Value.ToLowerInvariant() : null;
-                var md5Match = DatMd5Regex.Match(body);
+                var crcMatch = DatCrcRegex.Match(preferredRomBody);
+                var crc32 = crcMatch.Success ? DatEntryHashHelper.NormalizeHash(crcMatch.Groups[1].Value, isCrc32: true) : null;
+                var md5Match = DatMd5Regex.Match(preferredRomBody);
                 var md5 = md5Match.Success ? md5Match.Groups[1].Value.ToLowerInvariant() : null;
-                var sha1Match = DatSha1Regex.Match(body);
+                var sha1Match = DatSha1Regex.Match(preferredRomBody);
                 var sha1 = sha1Match.Success ? sha1Match.Groups[1].Value.ToLowerInvariant() : null;
-                var sha256Match = DatSha256Regex.Match(body);
+                var sha256Match = DatSha256Regex.Match(preferredRomBody);
                 var sha256 = sha256Match.Success ? sha256Match.Groups[1].Value.ToLowerInvariant() : null;
 
                 if (HasSeenHash(seenHashes, sha256, sha1, md5, crc32) || !seenNames.Add(rawName))
@@ -2608,6 +2692,71 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 seenHashes.Add($"crc:{crc32.Trim().ToLowerInvariant()}");
             }
+        }
+
+        private static bool HasUnseenHash(HashSet<string> seenHashes, string sha256, string sha1, string md5, string crc32)
+        {
+            if (seenHashes == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha256) && !seenHashes.Contains($"sha256:{sha256.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(sha1) && !seenHashes.Contains($"sha1:{sha1.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(md5) && !seenHashes.Contains($"md5:{md5.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            if (IsValidCrc32(crc32) && !seenHashes.Contains($"crc:{crc32.Trim().ToLowerInvariant()}"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void MergeMissingHashes(GameCatalogEntry target, GameCatalogEntry source, HashSet<string> seenHashes)
+        {
+            if (target == null || source == null || ReferenceEquals(target, source))
+            {
+                return;
+            }
+
+            if (HasAnyHash(target) && HasAnyHash(source) && !HasMatchingHash(target, source))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(target.ExpectedSha256) && !string.IsNullOrWhiteSpace(source.ExpectedSha256))
+            {
+                target.ExpectedSha256 = source.ExpectedSha256;
+            }
+
+            if (string.IsNullOrWhiteSpace(target.ExpectedSha1) && !string.IsNullOrWhiteSpace(source.ExpectedSha1))
+            {
+                target.ExpectedSha1 = source.ExpectedSha1;
+            }
+
+            if (string.IsNullOrWhiteSpace(target.ExpectedMd5) && !string.IsNullOrWhiteSpace(source.ExpectedMd5))
+            {
+                target.ExpectedMd5 = source.ExpectedMd5;
+            }
+
+            if (!IsValidCrc32(target.ExpectedCrc32) && IsValidCrc32(source.ExpectedCrc32))
+            {
+                target.ExpectedCrc32 = source.ExpectedCrc32;
+            }
+
+            RegisterHashes(seenHashes, target.ExpectedSha256, target.ExpectedSha1, target.ExpectedMd5, target.ExpectedCrc32);
         }
 
         internal static string StripKnownRomExtension(string fileName)

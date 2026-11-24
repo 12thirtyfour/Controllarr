@@ -1296,7 +1296,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     var (innerName, innerCrc) = GetInnerRomDetails(nestedZip);
                     hashes["CRC32"] = innerCrc;
                     hashes["ROM_NAME"] = innerName;
-                    var nestedDat = datCacheService?.FindByCrc32(innerCrc);
+                    var nestedDat = datCacheService?.FindBestMatch(innerCrc) ?? datCacheService?.FindByCrc32(innerCrc);
                     if (nestedDat != null)
                     {
                         CopyHashesFromDatEntry(nestedDat, hashes);
@@ -1311,7 +1311,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 foreach (var candidate in romEntries)
                 {
                     var crc32Hex = candidate.Crc32.ToString("x8").ToLowerInvariant();
-                    var datMatch = datCacheService.FindByCrc32(crc32Hex);
+                    var datMatch = datCacheService.FindBestMatch(crc32Hex) ?? datCacheService.FindByCrc32(crc32Hex);
                     if (!IsMeaningfulDatMatch(datMatch))
                     {
                         continue;
@@ -1319,7 +1319,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                     hashes["CRC32"] = crc32Hex;
                     hashes["ROM_NAME"] = candidate.Name;
-                    if (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5))
+                    if (!string.IsNullOrWhiteSpace(datMatch.Sha1) || !string.IsNullOrWhiteSpace(datMatch.Md5) || !string.IsNullOrWhiteSpace(datMatch.Sha256))
                     {
                         CopyHashesFromDatEntry(datMatch, hashes);
                     }
@@ -1337,8 +1337,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             hashes["CRC32"] = primary.Crc32.ToString("x8").ToLowerInvariant();
             hashes["ROM_NAME"] = primary.Name;
 
-            var primaryDat = datCacheService?.FindByCrc32(hashes["CRC32"]);
-            if (primaryDat != null && (!string.IsNullOrWhiteSpace(primaryDat.Sha1) || !string.IsNullOrWhiteSpace(primaryDat.Md5)))
+            var primaryDat = datCacheService?.FindBestMatch(hashes["CRC32"]) ?? datCacheService?.FindByCrc32(hashes["CRC32"]);
+            if (primaryDat != null && (!string.IsNullOrWhiteSpace(primaryDat.Sha1) || !string.IsNullOrWhiteSpace(primaryDat.Md5) || !string.IsNullOrWhiteSpace(primaryDat.Sha256)))
             {
                 CopyHashesFromDatEntry(primaryDat, hashes);
             }
@@ -1582,22 +1582,32 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 return false;
             }
 
-            if (hashes.TryGetValue("SHA-256", out var sha256) && !string.IsNullOrWhiteSpace(sha256) && IsMeaningfulDatMatch(datCacheService.FindBySha256(sha256)))
+            hashes.TryGetValue("SHA-256", out var sha256);
+            hashes.TryGetValue("SHA-1", out var sha1);
+            hashes.TryGetValue("MD5", out var md5);
+            hashes.TryGetValue("CRC32", out var crc32);
+
+            if (IsMeaningfulDatMatch(datCacheService.FindBestMatch(crc32, md5, sha1, sha256)))
             {
                 return true;
             }
 
-            if (hashes.TryGetValue("SHA-1", out var sha1) && !string.IsNullOrWhiteSpace(sha1) && IsMeaningfulDatMatch(datCacheService.FindBySha1(sha1)))
+            if (!string.IsNullOrWhiteSpace(sha256) && IsMeaningfulDatMatch(datCacheService.FindBySha256(sha256)))
             {
                 return true;
             }
 
-            if (hashes.TryGetValue("MD5", out var md5) && !string.IsNullOrWhiteSpace(md5) && IsMeaningfulDatMatch(datCacheService.FindByMd5(md5)))
+            if (!string.IsNullOrWhiteSpace(sha1) && IsMeaningfulDatMatch(datCacheService.FindBySha1(sha1)))
             {
                 return true;
             }
 
-            if (hashes.TryGetValue("CRC32", out var crc32) && !string.IsNullOrWhiteSpace(crc32) && IsMeaningfulDatMatch(datCacheService.FindByCrc32(crc32)))
+            if (!string.IsNullOrWhiteSpace(md5) && IsMeaningfulDatMatch(datCacheService.FindByMd5(md5)))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(crc32) && IsMeaningfulDatMatch(datCacheService.FindByCrc32(crc32)))
             {
                 return true;
             }

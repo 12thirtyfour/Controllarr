@@ -147,6 +147,7 @@ namespace NzbDrone.Core.Dat
 
             using (var reader = XmlReader.Create(streamReader, settings))
             {
+                var hashIndex = new Dictionary<string, DatEntry>(StringComparer.OrdinalIgnoreCase);
                 reader.ReadToFollowing("datafile");
 
                 if (reader.ReadToDescendant("header"))
@@ -182,13 +183,13 @@ namespace NzbDrone.Core.Dat
                                 GameName = effectiveGameName,
                                 RomName = romName,
                                 Size = long.TryParse((string)rom.Attribute("size"), out var size) ? size : 0,
-                                Crc32 = ((string)rom.Attribute("crc"))?.ToLowerInvariant(),
-                                Md5 = ((string)rom.Attribute("md5"))?.ToLowerInvariant(),
-                                Sha1 = ((string)rom.Attribute("sha1"))?.ToLowerInvariant(),
-                                Sha256 = ((string)rom.Attribute("sha256"))?.ToLowerInvariant(),
+                                Crc32 = (string)rom.Attribute("crc"),
+                                Md5 = (string)rom.Attribute("md5"),
+                                Sha1 = (string)rom.Attribute("sha1"),
+                                Sha256 = (string)rom.Attribute("sha256"),
                                 Status = (string)rom.Attribute("status")
                             };
-                            datEntries.Add(entry);
+                            AddOrMergeEntry(datEntries, hashIndex, entry);
                         }
                     }
                     else
@@ -204,6 +205,7 @@ namespace NzbDrone.Core.Dat
 
         private static void ParseClrMamePro(string content, DatFile datFile, List<DatEntry> datEntries)
         {
+            var hashIndex = new Dictionary<string, DatEntry>(StringComparer.OrdinalIgnoreCase);
             var headerMatch = ClrHeaderBlockRegex.Match(content);
             if (headerMatch.Success)
             {
@@ -238,10 +240,10 @@ namespace NzbDrone.Core.Dat
                     }
 
                     var sizeStr = ExtractClrToken(romBody, "size");
-                    var crc = ExtractClrToken(romBody, "crc")?.ToLowerInvariant();
-                    var md5 = ExtractClrToken(romBody, "md5")?.ToLowerInvariant();
-                    var sha1 = ExtractClrToken(romBody, "sha1")?.ToLowerInvariant();
-                    var sha256 = ExtractClrToken(romBody, "sha256")?.ToLowerInvariant();
+                    var crc = ExtractClrToken(romBody, "crc");
+                    var md5 = ExtractClrToken(romBody, "md5");
+                    var sha1 = ExtractClrToken(romBody, "sha1");
+                    var sha256 = ExtractClrToken(romBody, "sha256");
                     var status = ExtractClrToken(romBody, "status");
 
                     var baseRomName = !string.IsNullOrWhiteSpace(romName) ? Path.GetFileNameWithoutExtension(romName) : null;
@@ -256,7 +258,7 @@ namespace NzbDrone.Core.Dat
                         effectiveGameName = baseRomName;
                     }
 
-                    datEntries.Add(new DatEntry
+                    AddOrMergeEntry(datEntries, hashIndex, new DatEntry
                     {
                         GameName = effectiveGameName,
                         RomName = !string.IsNullOrWhiteSpace(romName) ? romName : gameName,
@@ -269,6 +271,29 @@ namespace NzbDrone.Core.Dat
                     });
                 }
             }
+        }
+
+        private static void AddOrMergeEntry(
+            List<DatEntry> datEntries,
+            Dictionary<string, DatEntry> hashIndex,
+            DatEntry incoming)
+        {
+            if (incoming == null)
+            {
+                return;
+            }
+
+            DatEntryHashHelper.NormalizeEntryHashes(incoming);
+
+            if (DatEntryHashHelper.HasAnyHash(incoming) &&
+                DatEntryHashHelper.TryFindMatchingEntry(hashIndex, incoming, out var existing))
+            {
+                DatEntryHashHelper.MergeDatEntry(existing, incoming, hashIndex);
+                return;
+            }
+
+            datEntries.Add(incoming);
+            DatEntryHashHelper.IndexEntryHashes(hashIndex, incoming);
         }
 
         private static string ExtractClrField(string text, string fieldName)

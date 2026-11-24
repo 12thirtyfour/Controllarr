@@ -116,5 +116,29 @@ namespace NzbDrone.Core.Test.DatTests
                 q => q.Push(It.IsAny<RefreshPlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()),
                 Times.Never);
         }
+
+        [Test]
+        public void should_pass_effective_encryption_preference_for_nds_and_3ds_during_dat_sync()
+        {
+            _seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series
+                {
+                    Id = 2,
+                    TvdbId = 1012,
+                    Title = "Nintendo DS",
+                    TitleSlug = "nds",
+                    SeasonType = "official",
+                    EncryptionPreference = NzbDrone.Core.Games.EncryptionPreference.Both
+                }
+            });
+
+            _gameCatalogServiceMock.Setup(g => g.SyncPlatformDatCatalogs(1012, true, "both")).Returns(500);
+
+            var result = _subject.SyncLibraryDatCatalogs();
+
+            result.TotalEntriesSynced.Should().Be(500);
+            _gameCatalogServiceMock.Verify(g => g.SyncPlatformDatCatalogs(1012, true, "both"), Times.Once);
+        }
     }
 }

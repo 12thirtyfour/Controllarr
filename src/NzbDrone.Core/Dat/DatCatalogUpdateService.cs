@@ -115,8 +115,21 @@ namespace NzbDrone.Core.Dat
                 {
                     foreach (var series in targetSeries)
                     {
+                        var hasEncryptedCatalog = series.TvdbId == 1012 ||
+                                                  series.TvdbId == 1013 ||
+                                                  string.Equals(series.TitleSlug, "nds", StringComparison.OrdinalIgnoreCase) ||
+                                                  string.Equals(series.TitleSlug, "3ds", StringComparison.OrdinalIgnoreCase);
+                        var effectiveSeasonType = hasEncryptedCatalog
+                            ? series.EncryptionPreference switch
+                            {
+                                Games.EncryptionPreference.Encrypted => "encrypted",
+                                Games.EncryptionPreference.Both => "both",
+                                _ => series.SeasonType
+                            }
+                            : series.SeasonType;
+
                         _logger?.ProgressInfo("Updating No-Intro / Redump / TOSEC / SMDB DAT catalogs for {0}", series.Title);
-                        var syncedCount = _gameCatalogService?.SyncPlatformDatCatalogs(series.TvdbId, true, series.SeasonType) ?? 0;
+                        var syncedCount = _gameCatalogService?.SyncPlatformDatCatalogs(series.TvdbId, true, effectiveSeasonType) ?? 0;
                         result.PlatformsSynced++;
                         result.TotalEntriesSynced += syncedCount;
                         result.SyncedPlatformNames.Add(series.Title);

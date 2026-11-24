@@ -240,5 +240,102 @@ namespace NzbDrone.Core.Test.DatTests
             match.Should().NotBeNull();
             match.GameName.Should().Be("Exact Strong Hash SNES");
         }
+
+        [Test]
+        public void Should_deduplicate_and_merge_hashes_across_sources_for_same_platform()
+        {
+            var noIntroDat = new DatFile
+            {
+                Name = "Super Nintendo Entertainment System (No-Intro)",
+                Description = "snes",
+                Category = "No-Intro"
+            };
+
+            var smdbDat = new DatFile
+            {
+                Name = "Super Nintendo Entertainment System (SmokeMonster SMDB)",
+                Description = "snes",
+                Category = "SmokeMonster SMDB"
+            };
+
+            Subject.Insert(noIntroDat, new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Super Mario World (USA)",
+                    RomName = "Super Mario World (USA).sfc",
+                    Size = 524288,
+                    Crc32 = "B19ED489",
+                    Md5 = "CDB36225DD1E7C4F22CDE6924DD79669",
+                    Sha1 = "6B47BB75D16514B6A476AA0C73A683A2A4C18765"
+                }
+            });
+
+            Subject.Insert(smdbDat, new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Super Mario World (USA)",
+                    RomName = "Super Mario World (USA).sfc",
+                    SmdbPath = "1 US/Super Mario World (USA).sfc",
+                    Sha256 = "AABBCCDD11223344AABBCCDD11223344AABBCCDD11223344AABBCCDD11223344",
+                    Sha1 = "6b47bb75d16514b6a476aa0c73a683a2a4c18765"
+                },
+                new DatEntry
+                {
+                    GameName = "SMDB Exclusive Hack (USA)",
+                    RomName = "SMDB Exclusive Hack (USA).sfc",
+                    SmdbPath = "4 Hacks/SMDB Exclusive Hack (USA).sfc",
+                    Sha256 = "1111222233334444111122223333444411112222333344441111222233334444",
+                    Sha1 = "0000111122223333444455556666777788889999"
+                }
+            });
+
+            var snesEntries = Subject.GetEntriesForPlatform("snes", "Super Nintendo Entertainment System");
+            snesEntries.Should().HaveCount(2);
+
+            var mario = snesEntries.Find(e => e.GameName == "Super Mario World (USA)");
+            mario.Should().NotBeNull();
+            mario.Crc32.Should().Be("b19ed489");
+            mario.Md5.Should().Be("cdb36225dd1e7c4f22cde6924dd79669");
+            mario.Sha1.Should().Be("6b47bb75d16514b6a476aa0c73a683a2a4c18765");
+            mario.Sha256.Should().Be("aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344");
+            mario.SmdbPath.Should().Be("1 US/Super Mario World (USA).sfc");
+        }
+
+        [Test]
+        public void Should_deduplicate_and_merge_within_single_insert_batch()
+        {
+            var dat = new DatFile
+            {
+                Name = "Super Nintendo Entertainment System (Combined)",
+                Description = "snes"
+            };
+
+            Subject.Insert(dat, new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Chrono Trigger (USA)",
+                    RomName = "Chrono Trigger (USA).sfc",
+                    Crc32 = "2D206BF7",
+                    Sha1 = "AAAA111122223333444455556666777788889999"
+                },
+                new DatEntry
+                {
+                    GameName = "Chrono Trigger (USA) Alt",
+                    RomName = "Chrono Trigger (USA) Alt.sfc",
+                    Md5 = "BBBB1111222233334444555566667777",
+                    Sha1 = "aaaa111122223333444455556666777788889999",
+                    Sha256 = "CCCC111122223333444455556666777788889999000011112222333344445555"
+                }
+            });
+
+            var snesEntries = Subject.GetEntriesForPlatform("snes", "Super Nintendo Entertainment System");
+            snesEntries.Should().ContainSingle();
+            snesEntries[0].Crc32.Should().Be("2d206bf7");
+            snesEntries[0].Md5.Should().Be("bbbb1111222233334444555566667777");
+            snesEntries[0].Sha256.Should().Be("cccc111122223333444455556666777788889999000011112222333344445555");
+        }
     }
 }

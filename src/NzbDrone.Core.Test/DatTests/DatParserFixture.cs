@@ -155,5 +155,33 @@ game (
                 datEntries[0].GameName.Should().Be("Metal Slug - Super Vehicle-001");
             }
         }
+
+        [Test]
+        public void Should_deduplicate_and_merge_entries_sharing_hashes_within_dat_file()
+        {
+            const string duplicateXmlDat = @"<?xml version=""1.0""?>
+<datafile>
+	<header>
+		<name>Nintendo - Super Nintendo Entertainment System</name>
+	</header>
+	<game name=""Super Mario World (USA)"">
+		<rom name=""Super Mario World (USA).sfc"" size=""524288"" crc=""B19ED489"" sha1=""6B47BB75D16514B6A476AA0C73A683A2A4C18765"" />
+	</game>
+	<game name=""Super Mario World (USA) (Alt)"">
+		<rom name=""Super Mario World (USA) (Alt).sfc"" size=""524288"" md5=""CDB36225DD1E7C4F22CDE6924DD79669"" sha1=""6b47bb75d16514b6a476aa0c73a683a2a4c18765"" sha256=""0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"" />
+	</game>
+</datafile>";
+
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(duplicateXmlDat)))
+            {
+                var (_, datEntries) = Subject.Parse(stream);
+
+                datEntries.Should().ContainSingle();
+                datEntries[0].Crc32.Should().Be("b19ed489");
+                datEntries[0].Md5.Should().Be("cdb36225dd1e7c4f22cde6924dd79669");
+                datEntries[0].Sha1.Should().Be("6b47bb75d16514b6a476aa0c73a683a2a4c18765");
+                datEntries[0].Sha256.Should().Be("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+            }
+        }
     }
 }

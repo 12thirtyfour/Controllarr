@@ -1,4 +1,3 @@
-using System;
 using NLog;
 using NzbDrone.Core.Dat;
 using NzbDrone.Core.Download;
@@ -44,15 +43,6 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                     (md5 != null && _datCacheService.FindByMd5(md5) != null) ||
                     (crc32 != null && _datCacheService.FindByCrc32(crc32) != null))
                 {
-                    localEpisode.RomHashVerified = true;
-                    return ImportSpecDecision.Accept();
-                }
-
-                if (localEpisode.RomHashes.TryGetValue("SFV_CRC32", out var sfvCrc) &&
-                    !string.IsNullOrWhiteSpace(crc32) &&
-                    string.Equals(sfvCrc, crc32, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.Info("ROM file verified against release SFV checksum: {0}", localEpisode.Path);
                     localEpisode.RomHashVerified = true;
                     return ImportSpecDecision.Accept();
                 }

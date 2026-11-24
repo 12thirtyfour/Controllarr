@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
@@ -46,6 +47,37 @@ namespace NzbDrone.Core.Dat
                     }
                 }
 
+                var siblingDatFileIds = GetSiblingPlatformDatFileIds(connection, transaction, datFile);
+                var hashIndex = new Dictionary<string, DatEntry>(StringComparer.OrdinalIgnoreCase);
+                var entriesToUpdate = new HashSet<DatEntry>();
+                var duplicateIdsToDelete = new List<int>();
+
+                if (siblingDatFileIds.Count > 0)
+                {
+                    var siblingIdList = string.Join(",", siblingDatFileIds);
+                    var existingSiblingEntries = connection.Query<DatEntry>(
+                        $@"SELECT * FROM ""DatEntries"" WHERE ""DatFileId"" IN ({siblingIdList}) ORDER BY ""Id""",
+                        transaction: transaction).ToList();
+
+                    foreach (var siblingEntry in existingSiblingEntries)
+                    {
+                        DatEntryHashHelper.NormalizeEntryHashes(siblingEntry);
+                        if (DatEntryHashHelper.HasAnyHash(siblingEntry) &&
+                            DatEntryHashHelper.TryFindMatchingEntry(hashIndex, siblingEntry, out var canonicalSibling))
+                        {
+                            if (DatEntryHashHelper.MergeDatEntry(canonicalSibling, siblingEntry, hashIndex))
+                            {
+                                entriesToUpdate.Add(canonicalSibling);
+                            }
+
+                            duplicateIdsToDelete.Add(siblingEntry.Id);
+                            continue;
+                        }
+
+                        DatEntryHashHelper.IndexEntryHashes(hashIndex, siblingEntry);
+                    }
+                }
+
                 var datFileSql = _database.DatabaseType == DatabaseType.PostgreSQL
                     ? @"INSERT INTO ""DatFiles"" (""Name"", ""Description"", ""Version"", ""Author"", ""Category"", ""CreatedAt"")
                         VALUES (@Name, @Description, @Version, @Author, @Category, @CreatedAt)
@@ -57,22 +89,114 @@ namespace NzbDrone.Core.Dat
                 var datFileId = connection.ExecuteScalar<int>(datFileSql, datFile, transaction);
                 datFile.Id = datFileId;
 
-                foreach (var entry in datEntries)
+                var entriesToInsert = new List<DatEntry>();
+                if (datEntries != null)
                 {
-                    entry.DatFileId = datFileId;
+                    foreach (var entry in datEntries)
+                    {
+                        if (entry == null)
+                        {
+                            continue;
+                        }
+
+                        DatEntryHashHelper.NormalizeEntryHashes(entry);
+                        entry.DatFileId = datFileId;
+
+                        if (DatEntryHashHelper.HasAnyHash(entry) &&
+                            DatEntryHashHelper.TryFindMatchingEntry(hashIndex, entry, out var existing))
+                        {
+                            if (DatEntryHashHelper.MergeDatEntry(existing, entry, hashIndex) && existing.Id > 0)
+                            {
+                                entriesToUpdate.Add(existing);
+                            }
+
+                            continue;
+                        }
+
+                        entriesToInsert.Add(entry);
+                        DatEntryHashHelper.IndexEntryHashes(hashIndex, entry);
+                    }
                 }
 
-                var datEntrySql = @"
-                    INSERT INTO ""DatEntries"" (""DatFileId"", ""GameName"", ""RomName"", ""Size"", ""Crc32"", ""Md5"", ""Sha1"", ""Sha256"", ""SmdbPath"", ""Region"", ""Status"")
-                    VALUES (@DatFileId, @GameName, @RomName, @Size, @Crc32, @Md5, @Sha1, @Sha256, @SmdbPath, @Region, @Status);";
+                if (duplicateIdsToDelete.Count > 0)
+                {
+                    foreach (var batch in duplicateIdsToDelete.Chunk(500))
+                    {
+                        var batchIdList = string.Join(",", batch);
+                        connection.Execute(
+                            $@"DELETE FROM ""DatEntries"" WHERE ""Id"" IN ({batchIdList})",
+                            transaction: transaction);
+                    }
+                }
 
-                connection.Execute(datEntrySql, datEntries, transaction);
+                if (entriesToUpdate.Count > 0)
+                {
+                    var updateSql = @"
+                        UPDATE ""DatEntries""
+                        SET ""GameName"" = @GameName,
+                            ""RomName"" = @RomName,
+                            ""Size"" = @Size,
+                            ""Crc32"" = @Crc32,
+                            ""Md5"" = @Md5,
+                            ""Sha1"" = @Sha1,
+                            ""Sha256"" = @Sha256,
+                            ""SmdbPath"" = @SmdbPath,
+                            ""Region"" = @Region,
+                            ""Status"" = @Status
+                        WHERE ""Id"" = @Id;";
+
+                    connection.Execute(updateSql, entriesToUpdate.ToList(), transaction);
+                }
+
+                if (entriesToInsert.Count > 0)
+                {
+                    var datEntrySql = @"
+                        INSERT INTO ""DatEntries"" (""DatFileId"", ""GameName"", ""RomName"", ""Size"", ""Crc32"", ""Md5"", ""Sha1"", ""Sha256"", ""SmdbPath"", ""Region"", ""Status"")
+                        VALUES (@DatFileId, @GameName, @RomName, @Size, @Crc32, @Md5, @Sha1, @Sha256, @SmdbPath, @Region, @Status);";
+
+                    connection.Execute(datEntrySql, entriesToInsert, transaction);
+                }
+
+                var syncedEntryCount = entriesToInsert.Count + entriesToUpdate.Count;
                 transaction.Commit();
+                _eventAggregator?.PublishEvent(new DatDatabaseUpdatedEvent(datFile, syncedEntryCount));
             }
 
-            _eventAggregator?.PublishEvent(new DatDatabaseUpdatedEvent(datFile, datEntries?.Count ?? 0));
-
             return datFile;
+        }
+
+        private static List<int> GetSiblingPlatformDatFileIds(
+            System.Data.IDbConnection connection,
+            System.Data.IDbTransaction transaction,
+            DatFile datFile)
+        {
+            var desc = (datFile?.Description ?? string.Empty).Trim();
+            var name = (datFile?.Name ?? string.Empty).Trim();
+            var slug = !string.IsNullOrWhiteSpace(desc) && KnownPlatformSlugs.Contains(desc)
+                ? desc.ToLowerInvariant()
+                : PlatformCompatibilityValidator.NormalizePlatformSlug(null, string.IsNullOrWhiteSpace(desc) ? name : $"{desc} {name}");
+
+            var allFiles = connection.Query<DatFile>(
+                @"SELECT ""Id"", ""Name"", ""Description"" FROM ""DatFiles""",
+                transaction: transaction).ToList();
+
+            if (!string.IsNullOrWhiteSpace(slug))
+            {
+                return allFiles
+                    .Where(f => IsDatFilePlatformMatch(f, slug, slug, slug))
+                    .Select(f => f.Id)
+                    .ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(desc))
+            {
+                return allFiles
+                    .Where(f => string.Equals((f.Description ?? string.Empty).Trim(), desc, StringComparison.OrdinalIgnoreCase))
+                    .Select(f => f.Id)
+                    .ToList();
+            }
+
+            return new List<int>();
         }
 
         public List<DatFile> GetAllDatFiles()
