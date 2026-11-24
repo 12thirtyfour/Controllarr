@@ -45,5 +45,38 @@ namespace NzbDrone.Core.Test.Download
             trackedDownload.SkipBlocklist.Should().BeTrue();
             trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
         }
+
+        [Test]
+        public void should_fail_download_when_rejection_is_archive_file()
+        {
+            var trackedDownload = new TrackedDownload
+            {
+                DownloadItem = new DownloadClientItem
+                {
+                    Title = "Corrupt.Game.Archive",
+                    DownloadId = "dl-archive-1"
+                },
+                RemoteEpisode = new RemoteEpisode
+                {
+                    Release = new ReleaseInfo
+                    {
+                        IndexerId = 1,
+                        Title = "Corrupt.Game.Archive"
+                    }
+                }
+            };
+
+            var importDecision = new ImportDecision(
+                new LocalEpisode { Path = @"C:\Downloads\Corrupt.Game.rar" },
+                new ImportRejection(ImportRejectionReason.ArchiveFile, "Failed to extract archive"));
+
+            var importResult = new ImportResult(importDecision, "Failed to extract archive");
+
+            var handled = Subject.Process(trackedDownload, importResult);
+
+            handled.Should().BeTrue();
+            trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
+            trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
+        }
     }
 }

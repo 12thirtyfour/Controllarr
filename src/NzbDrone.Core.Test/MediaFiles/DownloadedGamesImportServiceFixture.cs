@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Formats.Tar;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -808,6 +809,160 @@ namespace NzbDrone.Core.Test.MediaFiles
             using (var s = archive.CreateEntry("readme.txt").Open())
             {
                 s.Write(Encoding.UTF8.GetBytes("IA readme"));
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void should_extract_tar_gz_archive_in_folder_import_valid_rom_and_respect_move_or_copy(bool canMoveFiles)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_targz_ok_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var tarGzPath = Path.Combine(tempDir, "Super Mario World (USA).tar.gz");
+                CreateTestTarGz(tarGzPath, ("Super Mario World (USA).sfc", new byte[] { 1, 2, 3, 4 }));
+
+                var platform = new Series { Id = 8, Title = "Super Nintendo Entertainment System", TitleSlug = "snes", Path = Path.Combine(tempDir, "Library") };
+                var game = new Episode { Id = 22, SeasonNumber = 1, EpisodeNumber = 1, Title = "Super Mario World" };
+                var downloadItem = new DownloadClientItem { DownloadId = "dl-targz", Title = "Super Mario World (USA)", CanMoveFiles = canMoveFiles };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(It.IsAny<string>())).Returns<string>(p => Directory.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(It.IsAny<string>())).Returns<string>(p => File.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(tempDir, true)).Returns(new[] { tarGzPath });
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(It.Is<string>(p => p != tempDir), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly) : Array.Empty<string>());
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.DeleteFile(It.IsAny<string>())).Callback<string>(p =>
+                {
+                    if (File.Exists(p))
+                    {
+                        File.Delete(p);
+                    }
+                });
+
+                Mocker.GetMock<IDiskScanService>().Setup(c => c.GetVideoFiles(tempDir, It.IsAny<bool>())).Returns(Array.Empty<string>());
+                Mocker.GetMock<IDiskScanService>().Setup(c => c.GetVideoFiles(It.Is<string>(p => p != tempDir), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*.sfc", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly) : Array.Empty<string>());
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Setup(s => s.GetImportDecisions(It.Is<List<string>>(l => l.Any(f => f.EndsWith(".sfc", StringComparison.OrdinalIgnoreCase))), platform, downloadItem, It.IsAny<ParsedEpisodeInfo>(), It.IsAny<ParsedEpisodeInfo>(), true))
+                    .Returns<List<string>, Series, DownloadClientItem, ParsedEpisodeInfo, ParsedEpisodeInfo, bool>((paths, ser, item, dlInfo, folderInfo, check) =>
+                        paths.Select(p => new ImportDecision(new LocalEpisode { Path = p, Series = ser, Episodes = new List<Episode> { game }, RomHashVerified = true })).ToList());
+
+                var expectedMode = canMoveFiles ? ImportMode.Move : ImportMode.Copy;
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, downloadItem, expectedMode))
+                    .Returns<List<ImportDecision>, bool, DownloadClientItem, ImportMode>((d, newDl, item, mode) =>
+                        d.Where(x => x.Approved).Select(x => new ImportResult(x)).ToList());
+
+                var results = Subject.ProcessPath(tempDir, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().ContainSingle().Which.Result.Should().Be(ImportResultType.Imported);
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+                File.Exists(tarGzPath).Should().Be(!canMoveFiles);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_reject_with_archive_file_when_corrupt_rar_cannot_be_extracted()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_bad_rar_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var badRarPath = Path.Combine(tempDir, "Corrupt Game (USA).rar");
+                File.WriteAllBytes(badRarPath, Encoding.UTF8.GetBytes("not a valid rar payload"));
+
+                var platform = new Series { Id = 8, Title = "Super Nintendo Entertainment System", TitleSlug = "snes", Path = Path.Combine(tempDir, "Library") };
+                var downloadItem = new DownloadClientItem { DownloadId = "dl-badrar", Title = "Corrupt Game (USA)", CanMoveFiles = true };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(tempDir)).Returns(true);
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(tempDir, true)).Returns(new[] { badRarPath });
+                Mocker.GetMock<IDiskScanService>().Setup(c => c.GetVideoFiles(tempDir, It.IsAny<bool>())).Returns(Array.Empty<string>());
+
+                var results = Subject.ProcessPath(tempDir, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().ContainSingle();
+                results[0].Result.Should().Be(ImportResultType.Rejected);
+                results[0].ImportDecision.Rejections.Should().ContainSingle()
+                    .Which.Reason.Should().Be(ImportRejectionReason.ArchiveFile);
+                results[0].Errors.First().Should().NotContain("might need to be extracted");
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+                ExceptionVerification.ExpectedWarns(1);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_reject_with_archive_file_when_extracted_archive_contains_no_valid_roms()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_empty_targz_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var tarGzPath = Path.Combine(tempDir, "OnlyDocs (USA).tar.gz");
+                CreateTestTarGz(tarGzPath, ("readme.txt", Encoding.UTF8.GetBytes("no rom here")));
+
+                var platform = new Series { Id = 8, Title = "Super Nintendo Entertainment System", TitleSlug = "snes", Path = Path.Combine(tempDir, "Library") };
+                var downloadItem = new DownloadClientItem { DownloadId = "dl-emptytargz", Title = "OnlyDocs (USA)", CanMoveFiles = true };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(It.IsAny<string>())).Returns<string>(p => Directory.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(tempDir, true)).Returns(new[] { tarGzPath });
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(It.Is<string>(p => p != tempDir), true))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*", SearchOption.AllDirectories) : Array.Empty<string>());
+                Mocker.GetMock<IDiskScanService>().Setup(c => c.GetVideoFiles(It.IsAny<string>(), It.IsAny<bool>())).Returns(Array.Empty<string>());
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, downloadItem, It.IsAny<ImportMode>()))
+                    .Returns(new List<ImportResult>());
+
+                var results = Subject.ProcessPath(tempDir, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().ContainSingle();
+                results[0].Result.Should().Be(ImportResultType.Rejected);
+                results[0].ImportDecision.Rejections.Should().ContainSingle()
+                    .Which.Reason.Should().Be(ImportRejectionReason.ArchiveFile);
+                results[0].Errors.First().Should().Contain("did not contain any valid importable ROM files");
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+                ExceptionVerification.ExpectedWarns(1);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        private static void CreateTestTarGz(string tarGzPath, params (string Name, byte[] Data)[] entries)
+        {
+            using var fileStream = File.Create(tarGzPath);
+            using var gzipStream = new GZipStream(fileStream, CompressionMode.Compress);
+            using var tarWriter = new TarWriter(gzipStream, TarEntryFormat.Pax);
+
+            foreach (var (name, data) in entries)
+            {
+                var entry = new PaxTarEntry(TarEntryType.RegularFile, name)
+                {
+                    DataStream = new MemoryStream(data)
+                };
+                tarWriter.WriteEntry(entry);
             }
         }
     }

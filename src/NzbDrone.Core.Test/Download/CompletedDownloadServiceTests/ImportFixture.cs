@@ -503,6 +503,38 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
                   .Verify(v => v.GetFiles(It.IsAny<DownloadClientItem>()), Times.Never());
         }
 
+        [Test]
+        public void should_fail_download_when_multiple_files_all_fail_with_auto_fail_reasons()
+        {
+            Mocker.GetMock<IDownloadedGamesImportService>()
+                  .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>()))
+                  .Returns(new List<ImportResult>
+                           {
+                               new ImportResult(
+                                   new ImportDecision(
+                                       new LocalEpisode { Path = @"C:\TestPath\part1.rar" },
+                                       new ImportRejection(ImportRejectionReason.ArchiveFile, "Failed to extract archive")),
+                                   "Failed to extract archive"),
+                               new ImportResult(
+                                   new ImportDecision(
+                                       new LocalEpisode { Path = @"C:\TestPath\bad.sfc" },
+                                       new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM hash")),
+                                   "Unverified ROM hash")
+                           });
+
+            Mocker.GetMock<IRejectedImportService>()
+                  .Setup(s => s.Process(It.IsAny<TrackedDownload>(), It.IsAny<ImportResult>()))
+                  .Callback<TrackedDownload, ImportResult>((td, _) => td.Fail())
+                  .Returns(true);
+
+            Subject.Import(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
+            _trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(v => v.PublishEvent(It.IsAny<ManualInteractionRequiredEvent>()), Times.Never());
+        }
+
         private void GivenNoFilesToImport()
         {
             Mocker.GetMock<IDownloadedGamesImportService>()

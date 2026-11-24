@@ -236,10 +236,21 @@ namespace NzbDrone.Core.Download
                     return;
                 }
             }
+            else if (importResults.Count > 1 &&
+                     importResults.All(r => r.Result == ImportResultType.Rejected &&
+                                            IsAutoFailRejectionReason(r.ImportDecision?.Rejections.FirstOrDefault()?.Reason)))
+            {
+                var firstRejected = importResults.First();
+                if (_rejectedImportService.Process(trackedDownload, firstRejected) &&
+                    trackedDownload.State == TrackedDownloadState.FailedPending)
+                {
+                    return;
+                }
+            }
 
             var statusMessages = new List<TrackedDownloadStatusMessage>
                                  {
-                                    new TrackedDownloadStatusMessage("One or more episodes expected in this release were not imported or missing from the release", new List<string>())
+                                    new TrackedDownloadStatusMessage("One or more games expected in this release were not imported or missing from the release", new List<string>())
                                  };
 
             if (importResults.Any(c => c.Result != ImportResultType.Imported))
@@ -342,6 +353,16 @@ namespace NzbDrone.Core.Download
 
             _logger.Debug("Not all games have been imported for the release '{0}'", trackedDownload.DownloadItem.Title);
             return false;
+        }
+
+        private static bool IsAutoFailRejectionReason(ImportRejectionReason? reason)
+        {
+            return reason is ImportRejectionReason.ArchiveFile or
+                ImportRejectionReason.UnverifiedRomHash or
+                ImportRejectionReason.PlatformFormatRejected or
+                ImportRejectionReason.UnsupportedExtension or
+                ImportRejectionReason.DuplicateLibraryHash or
+                ImportRejectionReason.CrossPlatformMatchImported;
         }
 
         private bool ProcessRejectedDownloadClientFiles(TrackedDownload trackedDownload)

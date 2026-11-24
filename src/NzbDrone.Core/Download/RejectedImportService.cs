@@ -60,6 +60,7 @@ public class RejectedImportService : IRejectedImportService
         }
 
         if (rejectionReason == ImportRejectionReason.CrossPlatformMatchImported ||
+            rejectionReason == ImportRejectionReason.ArchiveFile ||
             rejectionReason == ImportRejectionReason.UnverifiedRomHash ||
             rejectionReason == ImportRejectionReason.PlatformFormatRejected ||
             rejectionReason == ImportRejectionReason.UnsupportedExtension)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
@@ -23,6 +24,7 @@ using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
 using SharpCompress.Archives;
 using SharpCompress.Common;
+using SharpCompress.Readers;
 
 namespace NzbDrone.Core.MediaFiles
 {
@@ -35,6 +37,20 @@ namespace NzbDrone.Core.MediaFiles
 
     public class DownloadedGamesImportService : IDownloadedGamesImportService
     {
+        private const int MaxArchiveExtractionDepth = 3;
+
+        private static readonly Regex SecondaryPartRarRegex = new Regex(
+            @"\.part(?!0*1\.rar$)\d+\.rar$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex MultiPartRarRegex = new Regex(
+            @"^(?<base>.+?)\.part\d+\.rar$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex LegacyRarPartRegex = new Regex(
+            @"\.(?:rar|r\d{2,})$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private readonly IDiskProvider _diskProvider;
         private readonly IDiskScanService _diskScanService;
         private readonly ISeriesService _seriesService;
@@ -217,7 +233,7 @@ namespace NzbDrone.Core.MediaFiles
             return ProcessFolder(directoryInfo, importMode, series, downloadClientItem);
         }
 
-        private List<ImportResult> ProcessFolder(DirectoryInfo directoryInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem)
+        private List<ImportResult> ProcessFolder(DirectoryInfo directoryInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem, int archiveDepth = 0, ParsedEpisodeInfo overrideFolderInfo = null)
         {
             if (_seriesService.SeriesPathExists(directoryInfo.FullName))
             {
@@ -228,7 +244,7 @@ namespace NzbDrone.Core.MediaFiles
                 };
             }
 
-            var folderInfo = Parser.Parser.ParseTitle(directoryInfo.Name);
+            var folderInfo = overrideFolderInfo ?? Parser.Parser.ParseTitle(directoryInfo.Name);
             var videoFiles = _diskScanService.FilterPaths(directoryInfo.FullName, _diskScanService.GetVideoFiles(directoryInfo.FullName));
             var downloadClientItemInfo = downloadClientItem == null ? null : Parser.Parser.ParseTitle(downloadClientItem.Title);
 
@@ -290,6 +306,7 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var remainingVideoFiles = new List<string>();
+            var handledPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var candidateFile in videoFiles)
             {
@@ -297,6 +314,7 @@ namespace NzbDrone.Core.MediaFiles
                 if (IsSupportedMultiGameArchiveExtension(ext) &&
                     IsMultiGameZipArchive(candidateFile))
                 {
+                    handledPaths.Add(candidateFile);
                     patchResults.AddRange(ProcessMultiGameZipArchive(new FileInfo(candidateFile), importMode, series, downloadClientItem));
                     continue;
                 }
@@ -308,6 +326,7 @@ namespace NzbDrone.Core.MediaFiles
                     var patchOutcome = _romPatchingService.TryApplyPatchFileForSeries(candidateFile, series);
                     if (patchOutcome != null && patchOutcome.Success)
                     {
+                        handledPaths.Add(candidateFile);
                         patchResults.Add(new ImportResult(new ImportDecision(new LocalEpisode
                         {
                             Path = patchOutcome.OutputRomPath ?? candidateFile,
@@ -322,8 +341,31 @@ namespace NzbDrone.Core.MediaFiles
 
             _importActivityService?.SetCurrentActivity("Verifying...");
             var decisions = _importDecisionMaker.GetImportDecisions(remainingVideoFiles, series, downloadClientItem, downloadClientItemInfo, folderInfo, true);
-            var importResults = ImportDecisionsWithArchiveExtraction(decisions, importMode, series, downloadClientItem);
+            if (decisions != null && decisions.Count > 0)
+            {
+                foreach (var remainingFile in remainingVideoFiles)
+                {
+                    handledPaths.Add(remainingFile);
+                }
+            }
+
+            var importResults = ImportDecisionsWithArchiveExtraction(decisions, importMode, series, downloadClientItem) ?? new List<ImportResult>();
             importResults.AddRange(patchResults);
+
+            if (archiveDepth < MaxArchiveExtractionDepth)
+            {
+                var unhandledArchives = GetUnhandledArchiveFiles(directoryInfo.FullName, handledPaths);
+                foreach (var archivePath in unhandledArchives)
+                {
+                    importResults.AddRange(ProcessExtractedArchiveFile(
+                        new FileInfo(archivePath),
+                        importMode,
+                        series,
+                        downloadClientItem,
+                        folderInfo,
+                        archiveDepth));
+                }
+            }
 
             if (importMode == ImportMode.Auto)
             {
@@ -378,7 +420,7 @@ namespace NzbDrone.Core.MediaFiles
             return ProcessFile(fileInfo, importMode, series, downloadClientItem);
         }
 
-        private List<ImportResult> ProcessFile(FileInfo fileInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem)
+        private List<ImportResult> ProcessFile(FileInfo fileInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem, int archiveDepth = 0)
         {
             if (Path.GetFileNameWithoutExtension(fileInfo.Name).StartsWith("._"))
             {
@@ -444,6 +486,13 @@ namespace NzbDrone.Core.MediaFiles
 
             if (extension.IsNullOrWhiteSpace() || !MediaFileExtensions.Extensions.Contains(extension))
             {
+                if (archiveDepth < MaxArchiveExtractionDepth &&
+                    IsExtractableArchiveFile(fileInfo.FullName) &&
+                    File.Exists(fileInfo.FullName))
+                {
+                    return ProcessExtractedArchiveFile(fileInfo, importMode, series, downloadClientItem, null, archiveDepth);
+                }
+
                 var crossMatch = TryHandleNoWastedDownload(fileInfo, series, importMode, downloadClientItem, null);
                 if (crossMatch != null)
                 {
@@ -518,7 +567,7 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (decisions == null || decisions.Count == 0)
             {
-                return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode);
+                return _importApprovedEpisodes.Import(decisions, true, downloadClientItem, importMode) ?? new List<ImportResult>();
             }
 
             var archiveDecisionsToExtract = new List<ImportDecision>();
@@ -1365,10 +1414,361 @@ namespace NzbDrone.Core.MediaFiles
 
             if (files.Any(file => FileExtensions.ArchiveExtensions.Contains(Path.GetExtension(file))))
             {
-                return RejectionResult(ImportRejectionReason.ArchiveFile, "Found archive file, might need to be extracted");
+                return RejectionResult(ImportRejectionReason.ArchiveFile, "Archive file could not be extracted or contained no valid ROM files");
             }
 
             return null;
+        }
+
+        private static bool IsExtractableArchiveFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return false;
+            }
+
+            if (filePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ||
+                filePath.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var ext = Path.GetExtension(filePath);
+            return !string.IsNullOrWhiteSpace(ext) && FileExtensions.ArchiveExtensions.Contains(ext);
+        }
+
+        private List<string> GetUnhandledArchiveFiles(string folderPath, IEnumerable<string> alreadyHandledFiles)
+        {
+            var allFiles = (_diskProvider.GetFiles(folderPath, true) ?? Array.Empty<string>()).ToList();
+            if (allFiles.Count == 0)
+            {
+                return new List<string>();
+            }
+
+            var handledSet = alreadyHandledFiles != null
+                ? new HashSet<string>(alreadyHandledFiles, StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var allFileSet = new HashSet<string>(allFiles, StringComparer.OrdinalIgnoreCase);
+            var archives = new List<string>();
+
+            foreach (var file in allFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(file) ||
+                    handledSet.Contains(file) ||
+                    !IsExtractableArchiveFile(file) ||
+                    !File.Exists(file))
+                {
+                    continue;
+                }
+
+                if (SecondaryPartRarRegex.IsMatch(file))
+                {
+                    continue;
+                }
+
+                var ext = Path.GetExtension(file);
+                if (string.Equals(ext, ".r00", StringComparison.OrdinalIgnoreCase))
+                {
+                    var matchingRar = Path.ChangeExtension(file, ".rar");
+                    if (allFileSet.Contains(matchingRar))
+                    {
+                        continue;
+                    }
+                }
+
+                archives.Add(file);
+            }
+
+            return archives;
+        }
+
+        private static List<FileInfo> GetArchiveVolumeFiles(FileInfo archiveFile)
+        {
+            var dir = archiveFile.DirectoryName;
+            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+            {
+                return new List<FileInfo> { archiveFile };
+            }
+
+            var partMatch = MultiPartRarRegex.Match(archiveFile.Name);
+            if (partMatch.Success)
+            {
+                var baseName = partMatch.Groups["base"].Value;
+                return Directory.GetFiles(dir)
+                    .Where(f =>
+                    {
+                        var m = MultiPartRarRegex.Match(Path.GetFileName(f));
+                        return m.Success && string.Equals(m.Groups["base"].Value, baseName, StringComparison.OrdinalIgnoreCase);
+                    })
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .Select(f => new FileInfo(f))
+                    .ToList();
+            }
+
+            if (string.Equals(archiveFile.Extension, ".rar", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(archiveFile.Extension, ".r00", StringComparison.OrdinalIgnoreCase))
+            {
+                var stem = Path.GetFileNameWithoutExtension(archiveFile.Name);
+                var volumes = Directory.GetFiles(dir)
+                    .Where(f => string.Equals(Path.GetFileNameWithoutExtension(f), stem, StringComparison.OrdinalIgnoreCase) &&
+                                LegacyRarPartRegex.IsMatch(f))
+                    .OrderBy(f => string.Equals(Path.GetExtension(f), ".rar", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                    .ThenBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .Select(f => new FileInfo(f))
+                    .ToList();
+
+                if (volumes.Count > 0)
+                {
+                    return volumes;
+                }
+            }
+
+            return new List<FileInfo> { archiveFile };
+        }
+
+        private List<ImportResult> ProcessExtractedArchiveFile(
+            FileInfo archiveFile,
+            ImportMode importMode,
+            Series series,
+            DownloadClientItem downloadClientItem,
+            ParsedEpisodeInfo parentFolderInfo,
+            int archiveDepth)
+        {
+            var baseDir = archiveFile.DirectoryName;
+            var folderPrefix = Path.GetFileNameWithoutExtension(archiveFile.Name) + "_extract_" + Guid.NewGuid().ToString("N")[..8];
+            var extractDir = !string.IsNullOrWhiteSpace(baseDir)
+                ? Path.Combine(baseDir, folderPrefix)
+                : Path.Combine(Path.GetTempPath(), folderPrefix);
+
+            var effectiveImportMode = importMode == ImportMode.Auto
+                ? ((downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy)
+                : importMode;
+
+            try
+            {
+                _importActivityService?.SetCurrentActivity("Extracting...");
+                _logger.Info("Extracting archive {0} to {1} for automatic import verification", archiveFile.FullName, extractDir);
+
+                try
+                {
+                    Directory.CreateDirectory(extractDir);
+                }
+                catch
+                {
+                    extractDir = Path.Combine(Path.GetTempPath(), folderPrefix);
+                    Directory.CreateDirectory(extractDir);
+                }
+
+                var volumeFiles = GetArchiveVolumeFiles(archiveFile);
+                ExtractArchiveToDirectory(archiveFile, volumeFiles, extractDir);
+
+                var parsedArchiveInfo = parentFolderInfo ?? Parser.Parser.ParseTitle(Path.GetFileNameWithoutExtension(archiveFile.Name));
+                var folderResults = ProcessFolder(new DirectoryInfo(extractDir), effectiveImportMode, series, downloadClientItem, archiveDepth + 1, parsedArchiveInfo);
+
+                if (folderResults == null || folderResults.Count == 0)
+                {
+                    var emptyMessage = $"Extracted archive '{archiveFile.Name}' did not contain any valid importable ROM files";
+                    _logger.Warn(emptyMessage);
+                    return new List<ImportResult>
+                    {
+                        RejectionResult(ImportRejectionReason.ArchiveFile, emptyMessage)
+                    };
+                }
+
+                if (effectiveImportMode == ImportMode.Move &&
+                    folderResults.Any(r => r.Result == ImportResultType.Imported) &&
+                    !folderResults.Any(r => r.Result == ImportResultType.Rejected))
+                {
+                    foreach (var volume in volumeFiles)
+                    {
+                        try
+                        {
+                            if (_diskProvider.FileExists(volume.FullName))
+                            {
+                                _diskProvider.DeleteFile(volume.FullName);
+                            }
+                            else if (File.Exists(volume.FullName))
+                            {
+                                File.Delete(volume.FullName);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug(ex, "Unable to delete source archive volume {0} after successful import", volume.FullName);
+                        }
+                    }
+                }
+
+                return folderResults;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Failed to extract archive '{archiveFile.Name}': {ex.Message}";
+                _logger.Warn(ex, "Failed to extract archive {0}", archiveFile.FullName);
+                return new List<ImportResult>
+                {
+                    RejectionResult(ImportRejectionReason.ArchiveFile, errorMessage)
+                };
+            }
+            finally
+            {
+                if (Directory.Exists(extractDir))
+                {
+                    try
+                    {
+                        Directory.Delete(extractDir, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Unable to clean up temporary extraction folder {0}", extractDir);
+                    }
+                }
+            }
+        }
+
+        private static void ExtractArchiveToDirectory(FileInfo archiveFile, IReadOnlyList<FileInfo> volumeFiles, string destinationDirectory)
+        {
+            var destRootFull = Path.GetFullPath(destinationDirectory);
+            if (!destRootFull.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                destRootFull += Path.DirectorySeparatorChar;
+            }
+
+            var fileName = archiveFile.Name;
+            var ext = archiveFile.Extension?.ToLowerInvariant() ?? string.Empty;
+
+            if (ext == ".zip")
+            {
+                try
+                {
+                    using var zipArchive = ZipFile.OpenRead(archiveFile.FullName);
+                    foreach (var entry in zipArchive.Entries)
+                    {
+                        if (entry.FullName.EndsWith("/") ||
+                            entry.FullName.EndsWith("\\") ||
+                            ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name))
+                        {
+                            continue;
+                        }
+
+                        var relativePath = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                        var destPath = Path.GetFullPath(Path.Combine(destRootFull, relativePath));
+                        if (!destPath.StartsWith(destRootFull, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var destParent = Path.GetDirectoryName(destPath);
+                        if (!string.IsNullOrWhiteSpace(destParent))
+                        {
+                            Directory.CreateDirectory(destParent);
+                        }
+
+                        entry.ExtractToFile(destPath, true);
+                    }
+
+                    return;
+                }
+                catch (InvalidDataException)
+                {
+                    // Fall through to SharpCompress for ZIP variants unsupported by System.IO.Compression
+                }
+            }
+
+            var isStreamReaderFormat = fileName.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ||
+                                       fileName.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase) ||
+                                       ext is ".tgz" or ".tbz2" or ".tb2" or ".gz" or ".bz2" or ".tar";
+
+            if (isStreamReaderFormat)
+            {
+                try
+                {
+                    using var fs = File.OpenRead(archiveFile.FullName);
+                    using var reader = ReaderFactory.OpenReader(fs);
+                    while (reader.MoveToNextEntry())
+                    {
+                        if (reader.Entry.IsDirectory)
+                        {
+                            continue;
+                        }
+
+                        var rawKey = (reader.Entry.Key ?? string.Empty).Replace('\\', '/');
+                        var entryName = Path.GetFileName(rawKey);
+                        if (string.IsNullOrWhiteSpace(rawKey) || (string.Equals(entryName, "data", StringComparison.OrdinalIgnoreCase) && ext is ".gz" or ".bz2"))
+                        {
+                            var fallbackName = Path.GetFileNameWithoutExtension(archiveFile.Name);
+                            if (string.IsNullOrWhiteSpace(fallbackName))
+                            {
+                                continue;
+                            }
+
+                            rawKey = fallbackName;
+                            entryName = fallbackName;
+                        }
+
+                        if (ArchiveRepackService.IsJunkEntry(rawKey, entryName))
+                        {
+                            continue;
+                        }
+
+                        var relativePath = rawKey.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                        var destPath = Path.GetFullPath(Path.Combine(destRootFull, relativePath));
+                        if (!destPath.StartsWith(destRootFull, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var destParent = Path.GetDirectoryName(destPath);
+                        if (!string.IsNullOrWhiteSpace(destParent))
+                        {
+                            Directory.CreateDirectory(destParent);
+                        }
+
+                        reader.WriteEntryToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
+                    }
+
+                    return;
+                }
+                catch when (ext == ".tar")
+                {
+                    // Fall back to ArchiveFactory for plain .tar if reader fails
+                }
+            }
+
+            using var archive = volumeFiles != null && volumeFiles.Count > 1
+                ? ArchiveFactory.OpenArchive(volumeFiles)
+                : ArchiveFactory.OpenArchive(archiveFile.FullName);
+
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                {
+                    continue;
+                }
+
+                var entryKey = entry.Key.Replace('\\', '/');
+                var entryName = Path.GetFileName(entryKey);
+                if (ArchiveRepackService.IsJunkEntry(entryKey, entryName))
+                {
+                    continue;
+                }
+
+                var relativePath = entryKey.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                var destPath = Path.GetFullPath(Path.Combine(destRootFull, relativePath));
+                if (!destPath.StartsWith(destRootFull, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var destParent = Path.GetDirectoryName(destPath);
+                if (!string.IsNullOrWhiteSpace(destParent))
+                {
+                    Directory.CreateDirectory(destParent);
+                }
+
+                entry.WriteToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
+            }
         }
 
         private void LogInaccessiblePathError(string path)

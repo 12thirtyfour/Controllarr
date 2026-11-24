@@ -23,6 +23,16 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-24
+
+### Fixed
+- **Automatic Archive Extraction on Import (`DownloadedGamesImportService`, `RejectedImportService`, `CompletedDownloadService`)**:
+  - Automatically extracts downloaded archive files (`.rar`, multi-part `.part1.rar`/`.r00`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tbz2`, `.tb2`, `.gz`, `.bz2`, and any unhandled `.zip`/`.7z`) during folder and single-file import using Zip-Slip path guards and junk filtering, validating and importing extracted ROMs without blocking on `"Found archive file, might need to be extracted"`.
+  - Cleans up source archive volumes after a verified `Move` import while preserving source archives on `Copy` or partial rejections, and cleans up temporary extraction folders automatically.
+  - Marked `ImportRejectionReason.ArchiveFile` (and multi-file all-rejected downloads consisting of auto-fail reasons) as an automatic download failure in `RejectedImportService` and `CompletedDownloadService` so unreadable or non-ROM archives fail cleanly and search moves on without awaiting manual user interaction.
+
+---
+
 ## [1.0.0-rc.3] - 2026-11-24
 
 ### Added
