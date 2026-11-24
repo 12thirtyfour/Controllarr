@@ -30,6 +30,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Prevented `RefreshPlatformCommand` and `RescanPlatformCommand` from executing while `UpdateDatCatalogsCommand` is queued or active (or during direct DAT catalog sync scopes), and ensured `UpdateDatCatalogsCommand` waits if a library refresh/scan is already running.
   - Deferred per-DAT `DatDatabaseUpdatedEvent` refreshes in `DatDatabaseUpdatedHandler` while `DatCatalogUpdateService.IsUpdating` is active, queuing a single consolidated `RefreshPlatformCommand` across updated library platforms only after all DAT catalogs and firmware updates finish syncing.
   - Prioritized `UpdateDatCatalogsCommand` ahead of `RefreshPlatformCommand` in `TaskManager` and `Scheduler` when both tasks are pending simultaneously.
+- **Rename Folder Structure Cleanup (`RenameRomFileService`, `MovePlatformService`, `RenameFolderCleanupHelper`)**:
+  - Moved empty-subfolder cleanup in `RenameRomFileService` after `PlatformRenamedEvent` so extra/metadata files are relocated before old folders are pruned.
+  - Added `RenameFolderCleanupHelper` to recursively delete vacated old game/region/manufacturer folders (including empty directories or OS-generated junk such as `Thumbs.db`, `desktop.ini`, `.DS_Store`, `._*`, `@eaDir`, and `.@__thumb`) below the platform or root folder boundary while preserving real files, without altering configured import/download cleanup rules.
 
 ## [Unreleased] - 2026-11-20
 

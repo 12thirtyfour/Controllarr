@@ -1,11 +1,14 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Organizer;
+using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.Commands;
@@ -223,6 +226,94 @@ namespace NzbDrone.Core.Test.PlatformTests
 
             Mocker.GetMock<ISeriesService>()
                   .Verify(v => v.UpdateSeries(It.Is<Series>(s => s.PendingPath == null), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
+        }
+
+        [Test]
+        public void should_clean_up_empty_old_manufacturer_folder_after_moving_platform()
+        {
+            var rootDir = Path.Combine(Path.GetTempPath(), "controllarr_move_platform_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var oldManufacturer = Path.Combine(rootDir, "Panasonic");
+                var sourceDir = Path.Combine(oldManufacturer, "3DO");
+                var destDir = Path.Combine(rootDir, "3DO");
+                Directory.CreateDirectory(sourceDir);
+                File.WriteAllText(Path.Combine(sourceDir, "game.chd"), "rom");
+                File.WriteAllText(Path.Combine(oldManufacturer, "Thumbs.db"), "junk");
+
+                Mocker.GetMock<IRootFolderService>()
+                      .Setup(s => s.GetBestRootFolderPath(sourceDir))
+                      .Returns(rootDir);
+
+                Mocker.GetMock<IDiskTransferService>()
+                      .Setup(s => s.TransferFolder(sourceDir, destDir, TransferMode.Move))
+                      .Callback(() => Directory.Move(sourceDir, destDir))
+                      .Returns(TransferMode.Move);
+
+                Subject.Execute(new MovePlatformCommand
+                {
+                    SeriesId = _series.Id,
+                    SourcePath = sourceDir,
+                    DestinationPath = destDir
+                });
+
+                Directory.Exists(oldManufacturer).Should().BeFalse();
+                Directory.Exists(rootDir).Should().BeTrue();
+                Directory.Exists(destDir).Should().BeTrue();
+                File.Exists(Path.Combine(destDir, "game.chd")).Should().BeTrue();
+            }
+            finally
+            {
+                if (Directory.Exists(rootDir))
+                {
+                    Directory.Delete(rootDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_preserve_old_parent_folder_when_another_platform_exists_inside_it()
+        {
+            var rootDir = Path.Combine(Path.GetTempPath(), "controllarr_move_platform_keep_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var oldManufacturer = Path.Combine(rootDir, "Panasonic");
+                var sourceDir = Path.Combine(oldManufacturer, "3DO");
+                var destDir = Path.Combine(rootDir, "3DO");
+                var siblingDir = Path.Combine(oldManufacturer, "OtherPlatform");
+                var siblingFile = Path.Combine(siblingDir, "game.rom");
+                Directory.CreateDirectory(sourceDir);
+                Directory.CreateDirectory(siblingDir);
+                File.WriteAllText(Path.Combine(sourceDir, "game.chd"), "rom");
+                File.WriteAllText(siblingFile, "other");
+
+                Mocker.GetMock<IRootFolderService>()
+                      .Setup(s => s.GetBestRootFolderPath(sourceDir))
+                      .Returns(rootDir);
+
+                Mocker.GetMock<IDiskTransferService>()
+                      .Setup(s => s.TransferFolder(sourceDir, destDir, TransferMode.Move))
+                      .Callback(() => Directory.Move(sourceDir, destDir))
+                      .Returns(TransferMode.Move);
+
+                Subject.Execute(new MovePlatformCommand
+                {
+                    SeriesId = _series.Id,
+                    SourcePath = sourceDir,
+                    DestinationPath = destDir
+                });
+
+                Directory.Exists(oldManufacturer).Should().BeTrue();
+                File.Exists(siblingFile).Should().BeTrue();
+                Directory.Exists(destDir).Should().BeTrue();
+            }
+            finally
+            {
+                if (Directory.Exists(rootDir))
+                {
+                    Directory.Delete(rootDir, true);
+                }
+            }
         }
     }
 }

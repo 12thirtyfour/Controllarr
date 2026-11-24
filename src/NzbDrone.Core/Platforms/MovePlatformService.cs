@@ -4,9 +4,11 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
+using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Core.Tv.Events;
 
@@ -18,6 +20,7 @@ namespace NzbDrone.Core.Tv
         private readonly IBuildFileNames _filenameBuilder;
         private readonly IDiskProvider _diskProvider;
         private readonly IDiskTransferService _diskTransferService;
+        private readonly IRootFolderService _rootFolderService;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
@@ -25,6 +28,7 @@ namespace NzbDrone.Core.Tv
                                  IBuildFileNames filenameBuilder,
                                  IDiskProvider diskProvider,
                                  IDiskTransferService diskTransferService,
+                                 IRootFolderService rootFolderService,
                                  IEventAggregator eventAggregator,
                                  Logger logger)
         {
@@ -32,6 +36,7 @@ namespace NzbDrone.Core.Tv
             _filenameBuilder = filenameBuilder;
             _diskProvider = diskProvider;
             _diskTransferService = diskTransferService;
+            _rootFolderService = rootFolderService;
             _eventAggregator = eventAggregator;
             _logger = logger;
         }
@@ -83,6 +88,12 @@ namespace NzbDrone.Core.Tv
                 // in cases where people are using subfolders for first letter (etc) it may not yet exist.
                 _diskProvider.CreateFolder(new DirectoryInfo(destinationPath).Parent.FullName);
                 _diskTransferService.TransferFolder(sourcePath, destinationPath, TransferMode.Move);
+
+                var rootFolderPath = _rootFolderService?.GetBestRootFolderPath(sourcePath);
+                if (!string.IsNullOrWhiteSpace(rootFolderPath))
+                {
+                    RenameFolderCleanupHelper.CleanupVacatedDirectories(new[] { sourcePath }, rootFolderPath, new[] { destinationPath }, _logger);
+                }
 
                 _logger.ProgressInfo("{0} moved successfully to {1}", series.Title, destinationPath);
 

@@ -170,9 +170,36 @@ namespace NzbDrone.Core.MediaFiles
 
             if (renamed.Any())
             {
-                _diskProvider.RemoveEmptySubfolders(series.Path);
-
                 _eventAggregator.PublishEvent(new PlatformRenamedEvent(series, renamed));
+
+                var vacatedDirs = new List<string>();
+                var currentDirs = new List<string>();
+
+                foreach (var item in renamed)
+                {
+                    var previousDir = Path.GetDirectoryName(item.PreviousPath);
+                    var currentPath = Path.Combine(series.Path, item.EpisodeFile.RelativePath);
+                    var currentDir = Path.GetDirectoryName(currentPath);
+
+                    if (!string.IsNullOrWhiteSpace(currentDir))
+                    {
+                        currentDirs.Add(currentDir);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(previousDir) &&
+                        !string.IsNullOrWhiteSpace(currentDir) &&
+                        !previousDir.PathEquals(currentDir))
+                    {
+                        vacatedDirs.Add(previousDir);
+                    }
+                }
+
+                if (vacatedDirs.Count > 0)
+                {
+                    RenameFolderCleanupHelper.CleanupVacatedDirectories(vacatedDirs, series.Path, currentDirs, _logger);
+                }
+
+                _diskProvider.RemoveEmptySubfolders(series.Path);
             }
 
             return renamed;
