@@ -45,6 +45,7 @@ function upsertLibraryItem(item: RetroAchievementsGameProgress): void {
 
   if (existing) {
     const idx = libraryItems.indexOf(existing);
+
     if (idx >= 0) {
       libraryItems[idx] = item;
     }

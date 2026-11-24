@@ -125,6 +125,7 @@ function WebPlayerPage() {
     }
 
     const descriptorKey = `${descriptor.gameId}:${descriptor.romPath}:${descriptor.libretroCore}:${descriptor.shader}`;
+
     if (appliedDescriptorKeyRef.current === descriptorKey) {
       return;
     }

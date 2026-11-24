@@ -20,9 +20,9 @@
 
 ---
 
-## Active Phase: Release Candidate Verification & Multi-Platform Testing (`v1.0.0-rc.2`)
+## Active Phase: Release Candidate Verification & Multi-Platform Testing (`v1.0.0-rc.3`)
 
-Controllarr has entered **Release Candidate** (`v1.0.0-rc.2`). All 10 OS/architecture binary distributions and multi-arch Docker images are built from `main` for end-to-end validation:
+Controllarr has entered **Release Candidate** (`v1.0.0-rc.3`). All 10 OS/architecture binary distributions and multi-arch Docker images are built from `main` for end-to-end validation:
 * **First-Run Setup & Guided Onboarding Wizard**:
   * Interactive first-run setup wizard launching on initial boot before handing off to the dashboard (Authentication, Root Folders, Metadata Scrapers, Indexers).
 * **Multi-OS Live Testing**:
@@ -38,7 +38,7 @@ Controllarr has entered **Release Candidate** (`v1.0.0-rc.2`). All 10 OS/archite
 ### Phase: Release Candidate (RC) & Production Distribution
 *Once features work fully as expected in Beta, advance to Release Candidate:*
 * **v1.0.0 Release Candidate (RC)**:
-  * Maintain pre-release tag `v1.0.0-rc.2` to build and validate all 10 OS/arch binary distributions and multi-arch Docker image (`ghcr.io/12thirtyfour/controllarr`) via the production release pipeline.
+  * Maintain pre-release tag `v1.0.0-rc.3` to build and validate all 10 OS/arch binary distributions and multi-arch Docker image (`ghcr.io/12thirtyfour/controllarr`) via the production release pipeline.
 * **Stable Production Release (v1.0.0)**:
   * Merge validated RC state into `main` and publish official `v1.0.0` release.
 

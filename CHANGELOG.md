@@ -3,7 +3,7 @@
 All notable changes to **Controllarr** are documented in this file.
 
 > [!NOTE]
-> **Project Lifecycle & Versioning Model: Release Candidate (`v1.0.0-rc.2`)**
+> **Project Lifecycle & Versioning Model: Release Candidate (`v1.0.0-rc.3`)**
 > Controllarr is currently in active **Alpha** development as core architecture, platform models, and media acquisition workflows are built and stabilized. Formal versioned releases (Beta, RC, and 1.0.0) will begin once the baseline feature set is verified. During Alpha, all changes are tracked chronologically by **Date**.
 >
 > **Beta Readiness Gate (Baseline Capabilities Required)**:
@@ -23,7 +23,7 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
-## [Unreleased] - 2026-11-24
+## [1.0.0-rc.3] - 2026-11-24
 
 ### Added
 - **Expanded Console, Handheld & Add-On Catalog (+36 Verified Platforms in `GameCatalogProxy`, `PlatformCatalogService`, `PlatformCompatibilityValidator`, `DatCacheService`, `GameMediaAssetService`, `RetroAchievementsService`, `VirtualLibraryService`, `gameAchievementsHelper`)**:
@@ -36,6 +36,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Added sibling DAT collision exclusions in `DatCacheService`, shortest-prefix overrides in `GameCatalogProxy.InferPlatformForText`, shared extension handling and sibling disambiguation in `PlatformCompatibilityValidator`, console-only exceptions for `Commodore - CD32` and `Amstrad - GX4000` in `GameMediaAssetService`, RetroAchievements console ID mappings, and MiSTer/RetroArch/Analogue Pocket/OnionOS/Batocera/EverDrive preset folder mappings in `VirtualLibraryService`.
 
 ### Fixed
+- **Newznab Rate-Limit & Capabilities Failure Propagation (`NewznabRequestGenerator`)**:
+  - Restored `_capabilitiesProvider.GetCapabilities(Settings)` preflight invocation in `GetRecentRequests`, `GetSearchRequests(SingleEpisodeSearchCriteria)`, and `GetSearchRequests(SeasonSearchCriteria)` so HTTP `429` (`TooManyRequestsException`) and `Retry-After` backoff intervals propagate to `HttpIndexerBase` instead of being swallowed in page-size resolution.
 - **DAT Update & Library Refresh Sequencing (`DatCatalogUpdateService`, `DatDatabaseUpdatedHandler`, `CommandQueue`, `RefreshPlatformService`, `DiskScanService`, `TaskManager`, `Scheduler`)**:
   - Prevented `RefreshPlatformCommand` and `RescanPlatformCommand` from executing while `UpdateDatCatalogsCommand` is queued or active (or during direct DAT catalog sync scopes), and ensured `UpdateDatCatalogsCommand` waits if a library refresh/scan is already running.
   - Deferred per-DAT `DatDatabaseUpdatedEvent` refreshes in `DatDatabaseUpdatedHandler` while `DatCatalogUpdateService.IsUpdating` is active, queuing a single consolidated `RefreshPlatformCommand` across updated library platforms only after all DAT catalogs and firmware updates finish syncing.
