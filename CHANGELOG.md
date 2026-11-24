@@ -40,6 +40,12 @@ All notable changes to **Controllarr** are documented in this file.
   - Made `BiosService.GetCatalog()` strictly read-only (removing file deletion and synchronous download side effects from `PopulatePlatformBiosStatus`) and required at least one non-empty expected hash in `BiosService.VerifyBios()`.
   - Removed the `.sfv` DAT-hash bypass and fallback in `UnmanagedDiskScanner.ComputeFileOrArchiveHashes` so ROM bytes are always cryptographically hashed before verification.
   - Updated `MediaFileDeletionService` and `UpgradeMediaFileService` to also recycle companion track files (`.bin`, `.raw`, `.wav`, `.img`, `.sub`, etc.) when deleting or upgrading `.cue`/`.gdi`/`.ccd` disc sheets.
+- **Acquisition, Release Decisioning & Parser Accuracy (`DownloadDecisionComparer`, `DownloadDecisionMaker`, `TorrentClientBase`, `RomParser`, `InternetArchive`, `InternetArchiveIndexer`, `InternetArchiveParser`, `InternetArchiveRequestGenerator`, `PlatformCompatibilityValidator`, `FailedDownloadService`)**:
+  - Fixed inverted sorting signs in `DownloadDecisionComparer.CompareCollectionStrategy` (so pinned versions, retail ROMs over pre-releases, and preferred revisions win under `OrderByDescending`) and null-guarded `CompareSize`.
+  - Fixed inverted magnet fallback logic, added a 10-hop redirect limit, and added HTTP 307/308 handling in `TorrentClientBase.Download`.
+  - Narrowed `RomParser.FullSetRegex` to DAT timestamps (`YYYYMMDD-HHMMSS`) instead of any parenthesized year/date or parent directory segment, and prioritized single-game matching ahead of archive/pack context in `DownloadDecisionMaker.TryParseRomRelease`.
+  - Removed exception swallowing in `InternetArchiveIndexer.FetchPage`, confined S3 `Authorization` headers across redirects and threw `DownloadClientException` on auth/empty failures in `InternetArchive`, made extension matching case-insensitive and guarded invalid `mtime` values in `InternetArchiveParser`, and null-guarded `BaseUrl` in `InternetArchiveRequestGenerator`.
+  - Fixed false TV/Switch/Dreamcast rejections in `PlatformCompatibilityValidator` (titles with `S1`–`S99`, `"Switch"`, or `"DC"`), and propagated `skipRedownload` and `FailedPending` state consistently in `FailedDownloadService.MarkAsFailed`.
 
 ## [Unreleased] - 2026-11-20
 

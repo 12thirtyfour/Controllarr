@@ -42,6 +42,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Super Mario Galaxy (Switch)", "switch", "Nintendo Switch", null, true)]
         [TestCase("Super Mario Galaxy [Nintendo Switch].nsp", "switch", "Nintendo Switch", null, true)]
         [TestCase("Super Mario Galaxy [Nintendo Switch].xci", "switch", "Nintendo Switch", null, true)]
+        [TestCase("Kill Switch (USA) (PS2).iso", "ps2", "Sony PlayStation 2", null, true)]
+        [TestCase("Batman Begins (DC Comics) (PS2).iso", "ps2", "Sony PlayStation 2", null, true)]
         [TestCase("Super Mario Galaxy (Wii).iso", "wii", "Nintendo Wii", null, true)]
         [TestCase("Super Mario Galaxy (Switch)", "wii", "Nintendo Wii", null, false)]
         [TestCase("Sonic the Hedgehog (Genesis).zip", "sms", "Sega Master System", null, false)]
@@ -92,6 +94,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Chrono Trigger (USA).sfc", false)]
         [TestCase("Pokemon - Emerald Version (USA, Europe).gba", false)]
         [TestCase("Metal Gear Solid (USA) (Disc 1).chd", false)]
+        [TestCase("Persona S1 Edition (USA).bin", false)]
+        [TestCase("Racing S2 Championship (Europe).iso", false)]
         public void should_identify_tv_or_video_releases(string releaseTitle, bool expected)
         {
             var result = PlatformCompatibilityValidator.IsTvOrVideoRelease(releaseTitle);

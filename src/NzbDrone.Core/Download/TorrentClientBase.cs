@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Download
                     }
                     catch (Exception ex)
                     {
-                        if (!magnetUrl.IsNullOrWhiteSpace())
+                        if (magnetUrl.IsNullOrWhiteSpace())
                         {
                             throw;
                         }
@@ -136,12 +136,17 @@ namespace NzbDrone.Core.Download
             return null;
         }
 
-        private async Task<string> DownloadFromWebUrl(RemoteEpisode remoteEpisode, IIndexer indexer, string torrentUrl)
+        private async Task<string> DownloadFromWebUrl(RemoteEpisode remoteEpisode, IIndexer indexer, string torrentUrl, int redirectDepth = 0)
         {
             byte[] torrentFile = null;
 
             try
             {
+                if (redirectDepth >= 10)
+                {
+                    throw new WebException("Too many redirects while downloading torrent file.");
+                }
+
                 var request = indexer?.GetDownloadRequest(torrentUrl) ?? new HttpRequest(torrentUrl);
                 request.RateLimitKey = remoteEpisode?.Release?.IndexerId.ToString();
                 request.Headers.Accept = "application/x-bittorrent";
@@ -153,7 +158,9 @@ namespace NzbDrone.Core.Download
 
                 if (response.StatusCode == HttpStatusCode.MovedPermanently ||
                     response.StatusCode == HttpStatusCode.Found ||
-                    response.StatusCode == HttpStatusCode.SeeOther)
+                    response.StatusCode == HttpStatusCode.SeeOther ||
+                    response.StatusCode == HttpStatusCode.TemporaryRedirect ||
+                    response.StatusCode == HttpStatusCode.PermanentRedirect)
                 {
                     var locationHeader = response.Headers.GetSingleValue("Location");
 
@@ -168,7 +175,7 @@ namespace NzbDrone.Core.Download
 
                         request.Url += new HttpUri(locationHeader);
 
-                        return await DownloadFromWebUrl(remoteEpisode, indexer, request.Url.ToString());
+                        return await DownloadFromWebUrl(remoteEpisode, indexer, request.Url.ToString(), redirectDepth + 1);
                     }
 
                     throw new WebException("Remote website tried to redirect without providing a location.");

@@ -87,8 +87,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
             });
 
-            _comparer.Compare(_decisionPinned, otherDecision).Should().BeLessThan(0); // Pinned wins
-            _comparer.Compare(otherDecision, _decisionPinned).Should().BeGreaterThan(0);
+            _comparer.Compare(_decisionPinned, otherDecision).Should().BeGreaterThan(0); // Pinned wins under OrderByDescending
+            _comparer.Compare(otherDecision, _decisionPinned).Should().BeLessThan(0);
         }
 
         [Test]
@@ -102,7 +102,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
             });
 
-            _comparer.Compare(_decisionLatestRev, olderDecision).Should().BeLessThan(0); // RevB wins over RevA
+            _comparer.Compare(_decisionLatestRev, olderDecision).Should().BeGreaterThan(0); // RevB wins over RevA under OrderByDescending
         }
 
         [Test]
@@ -116,7 +116,59 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
             });
 
-            _comparer.Compare(_decisionInitialRelease, laterDecision).Should().BeLessThan(0); // Initial (null) wins over RevA
+            _comparer.Compare(_decisionInitialRelease, laterDecision).Should().BeGreaterThan(0); // Initial (null) wins over RevA under OrderByDescending
+        }
+
+        [Test]
+        public void should_prioritize_retail_over_prerelease_and_sort_winner_first_in_prioritization_service()
+        {
+            var configServiceMock = new Mock<IConfigService>();
+            configServiceMock.Setup(c => c.DownloadPropersAndRepacks).Returns(ProperDownloadTypes.PreferAndUpgrade);
+            var prioritizationService = new DownloadDecisionPriorizationService(configServiceMock.Object, _delayProfileServiceMock.Object);
+
+            var series = new Series
+            {
+                Id = 1,
+                CollectionStrategy = CollectionStrategy.OneGameOneRom,
+                RevisionPreference = RevisionPreference.LatestRevision,
+                PinnedVersion = "1.1",
+                QualityProfile = _decisionLatestRev.RemoteEpisode.Series.QualityProfile
+            };
+
+            var betaDecision = new DownloadDecision(new RemoteEpisode
+            {
+                Series = series,
+                ParsedRomInfo = new ParsedRomInfo { DumpTags = new List<string> { "Beta" }, ReleaseTitle = "Game (USA) (Beta).sfc" },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.Unknown) },
+                Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
+            });
+
+            var unpinnedRev0Decision = new DownloadDecision(new RemoteEpisode
+            {
+                Series = series,
+                ParsedRomInfo = new ParsedRomInfo { ReleaseTitle = "Game (USA).sfc" },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.Unknown) },
+                Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
+            });
+
+            var pinnedDecision = new DownloadDecision(new RemoteEpisode
+            {
+                Series = series,
+                ParsedRomInfo = new ParsedRomInfo { Version = "1.1", ReleaseTitle = "Game (USA) (v1.1).sfc" },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.Unknown) },
+                Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet }
+            });
+
+            var sorted = prioritizationService.PrioritizeDecisions(new List<DownloadDecision>
+            {
+                betaDecision,
+                unpinnedRev0Decision,
+                pinnedDecision
+            });
+
+            sorted[0].Should().BeSameAs(pinnedDecision);
+            sorted[1].Should().BeSameAs(unpinnedRev0Decision);
+            sorted[2].Should().BeSameAs(betaDecision);
         }
 
         [Test]

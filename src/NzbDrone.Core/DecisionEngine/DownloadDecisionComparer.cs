@@ -79,12 +79,12 @@ namespace NzbDrone.Core.DecisionEngine
 
                 if (xIsPinned && !yIsPinned)
                 {
-                    return -1;
+                    return 1;
                 }
 
                 if (yIsPinned && !xIsPinned)
                 {
-                    return 1;
+                    return -1;
                 }
             }
 
@@ -95,7 +95,7 @@ namespace NzbDrone.Core.DecisionEngine
                 var yPreRelease = IsPreReleaseRom(yRomInfo);
                 if (xPreRelease != yPreRelease)
                 {
-                    return xPreRelease ? 1 : -1;
+                    return xPreRelease ? -1 : 1;
                 }
             }
 
@@ -114,10 +114,10 @@ namespace NzbDrone.Core.DecisionEngine
                         var comparison = string.Compare(xRev, yRev, StringComparison.OrdinalIgnoreCase);
                         if (series.RevisionPreference == Games.RevisionPreference.LatestRevision)
                         {
-                            return comparison * -1; // Highest revision wins
+                            return comparison; // Highest revision wins under OrderByDescending
                         }
 
-                        return comparison; // Initial release wins
+                        return comparison * -1; // Initial release wins under OrderByDescending
                     }
                 }
                 else if (string.IsNullOrWhiteSpace(xRomInfo.Revision) != string.IsNullOrWhiteSpace(yRomInfo.Revision))
@@ -127,10 +127,10 @@ namespace NzbDrone.Core.DecisionEngine
 
                     if (series.RevisionPreference == Games.RevisionPreference.LatestRevision)
                     {
-                        return xHasRevision ? -1 : 1;
+                        return xHasRevision ? 1 : -1;
                     }
 
-                    return xHasRevision ? 1 : -1;
+                    return xHasRevision ? -1 : 1;
                 }
             }
 
@@ -357,27 +357,41 @@ namespace NzbDrone.Core.DecisionEngine
 
         private int CompareSize(DownloadDecision x, DownloadDecision y)
         {
-            var sizeCompare =  CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
+            var sizeCompare = CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
             {
-                var qualityProfile = remoteEpisode.Series.QualityProfile.Value;
-                var qualityIndex = qualityProfile.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality, true);
-                var qualityOrGroup = qualityProfile.Items[qualityIndex.Index];
-                var item = qualityOrGroup.Quality == null ? qualityOrGroup.Items[qualityIndex.GroupIndex] : qualityOrGroup;
-                var preferredSize = item.PreferredSize;
-                var runtime = GetRuntime(remoteEpisode);
+                var qualityProfile = remoteEpisode?.Series?.QualityProfile?.Value;
+                var releaseSize = remoteEpisode?.Release?.Size ?? 0;
 
-                // If no value for preferred it means unlimited so fallback to sort largest is best
-                if (preferredSize.HasValue && runtime > 0)
+                if (qualityProfile?.Items != null &&
+                    qualityProfile.Items.Count > 0 &&
+                    remoteEpisode?.ParsedEpisodeInfo?.Quality?.Quality != null)
                 {
-                    var preferredReleaseSize = runtime * preferredSize.Value.Megabytes();
+                    var qualityIndex = qualityProfile.GetIndex(remoteEpisode.ParsedEpisodeInfo.Quality.Quality, true);
+                    if (qualityIndex.Index >= 0 && qualityIndex.Index < qualityProfile.Items.Count)
+                    {
+                        var qualityOrGroup = qualityProfile.Items[qualityIndex.Index];
+                        var item = qualityOrGroup?.Quality == null &&
+                                   qualityOrGroup?.Items != null &&
+                                   qualityIndex.GroupIndex >= 0 &&
+                                   qualityIndex.GroupIndex < qualityOrGroup.Items.Count
+                            ? qualityOrGroup.Items[qualityIndex.GroupIndex]
+                            : qualityOrGroup;
 
-                    // Calculate closest to the preferred size
-                    return Math.Abs((remoteEpisode.Release.Size - preferredReleaseSize).Round(200.Megabytes())) * (-1);
+                        var preferredSize = item?.PreferredSize;
+                        var runtime = GetRuntime(remoteEpisode);
+
+                        // If no value for preferred it means unlimited so fallback to sort largest is best
+                        if (preferredSize.HasValue && runtime > 0)
+                        {
+                            var preferredReleaseSize = runtime * preferredSize.Value.Megabytes();
+
+                            // Calculate closest to the preferred size
+                            return Math.Abs((releaseSize - preferredReleaseSize).Round(200.Megabytes())) * (-1);
+                        }
+                    }
                 }
-                else
-                {
-                    return remoteEpisode.Release.Size.Round(200.Megabytes());
-                }
+
+                return releaseSize.Round(200.Megabytes());
             });
 
             return sizeCompare;

@@ -13,6 +13,7 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Clients.InternetArchive;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.InternetArchive;
@@ -204,10 +205,10 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
             var release = new ReleaseInfo { DownloadUrl = "https://archive.org/download/test.zip", Title = "Test Game" };
             var remoteEpisode = new RemoteEpisode { Release = release };
 
-            var result = await Subject.Download(remoteEpisode, null);
+            Func<Task> act = async () => await Subject.Download(remoteEpisode, null);
 
+            await act.Should().ThrowAsync<DownloadClientException>().WithMessage("*403*");
             requests.Should().HaveCount(1);
-            result.Should().BeNull();
         }
 
         [Test]

@@ -349,17 +349,37 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     authHeader = $"LOW {s3AccessKey}:{s3SecretKey}";
                 }
 
+                static bool ShouldSendAuthHeader(string targetUrl, string initialHost)
+                {
+                    if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var targetUri) || string.IsNullOrWhiteSpace(targetUri.Host))
+                    {
+                        return false;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(initialHost) &&
+                        string.Equals(targetUri.Host, initialHost, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    return string.Equals(targetUri.Host, "archive.org", StringComparison.OrdinalIgnoreCase) ||
+                           targetUri.Host.EndsWith(".archive.org", StringComparison.OrdinalIgnoreCase);
+                }
+
                 static async Task<System.Net.Http.HttpResponseMessage> SendWithRedirectsAsync(
                     System.Net.Http.HttpClient httpClient,
                     string requestUrl,
                     string auth)
                 {
+                    var initialHost = Uri.TryCreate(requestUrl, UriKind.Absolute, out var initialUri)
+                        ? initialUri.Host
+                        : null;
                     var currentUrl = requestUrl;
                     const int maxRedirects = 10;
                     for (var i = 0; i < maxRedirects; i++)
                     {
                         using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, currentUrl);
-                        if (!string.IsNullOrWhiteSpace(auth))
+                        if (!string.IsNullOrWhiteSpace(auth) && ShouldSendAuthHeader(currentUrl, initialHost))
                         {
                             req.Headers.TryAddWithoutValidation("Authorization", auth);
                         }
@@ -372,7 +392,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                             response.Dispose();
                             if (location == null)
                             {
-                                break;
+                                throw new System.Net.Http.HttpRequestException("Redirect response did not include a Location header.");
                             }
 
                             if (!location.IsAbsoluteUri)
@@ -532,7 +552,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                             state.Status = DownloadItemStatus.Failed;
                             state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
                             TrackedItems.TryRemove(downloadPath, out _);
-                            return null;
+                            throw new DownloadClientException(state.ErrorMessage);
                         }
                     }
                     else
@@ -541,7 +561,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                         state.Status = DownloadItemStatus.Failed;
                         state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
                         TrackedItems.TryRemove(downloadPath, out _);
-                        return null;
+                        throw new DownloadClientException(state.ErrorMessage);
                     }
                 }
 
@@ -570,7 +590,8 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
                 state.Status = DownloadItemStatus.Failed;
                 state.ErrorMessage = "Empty response from HTTPS server";
-                return null;
+                TrackedItems.TryRemove(downloadPath, out _);
+                throw new DownloadClientException(state.ErrorMessage);
             }
             catch (Exception ex)
             {

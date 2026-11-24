@@ -82,6 +82,28 @@ namespace NzbDrone.Core.Test.Download.FailedDownloadServiceTests
             AssertDownloadFailed();
         }
 
+        [Test]
+        public void should_propagate_skip_redownload_when_marking_history_item_with_download_id_as_failed()
+        {
+            var history = Builder<GameHistory>.CreateNew()
+                .With(h => h.Id = 99)
+                .With(h => h.EventType = GameHistoryEventType.Grabbed)
+                .With(h => h.DownloadId = "dl-99")
+                .Build();
+
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.Get(99))
+                  .Returns(history);
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.Find("dl-99", GameHistoryEventType.Grabbed))
+                  .Returns(new List<GameHistory> { history });
+
+            Subject.MarkAsFailed(99, "Manual failure", skipRedownload: true);
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(v => v.PublishEvent(It.Is<DownloadFailedEvent>(e => e.SkipRedownload)), Times.Once());
+        }
+
         private void AssertDownloadNotFailed()
         {
             Mocker.GetMock<IEventAggregator>()

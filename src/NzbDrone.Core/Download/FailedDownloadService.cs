@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Download
 
             if (grabbedHistory.Any())
             {
-                PublishDownloadFailedEvent(grabbedHistory.First(), GetEpisodeIds(grabbedHistory), message, source);
+                PublishDownloadFailedEvent(grabbedHistory.First(), GetEpisodeIds(grabbedHistory), message, source, skipRedownload: skipRedownload);
                 return;
             }
 
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Download
                 Data = history.Data ?? new Dictionary<string, string>()
             };
 
-            PublishDownloadFailedEvent(fallback, new List<int> { history.EpisodeId }, message, source);
+            PublishDownloadFailedEvent(fallback, new List<int> { history.EpisodeId }, message, source, skipRedownload: skipRedownload);
         }
 
         public void MarkAsFailed(TrackedDownload trackedDownload, string message, string source = null, bool skipRedownload = false)
@@ -91,6 +91,7 @@ namespace NzbDrone.Core.Download
 
             if (history.Any())
             {
+                trackedDownload.State = TrackedDownloadState.FailedPending;
                 PublishDownloadFailedEvent(history.First(), GetEpisodeIds(history), message ?? "Manually marked as failed", source, trackedDownload, skipRedownload: skipRedownload);
                 return;
             }

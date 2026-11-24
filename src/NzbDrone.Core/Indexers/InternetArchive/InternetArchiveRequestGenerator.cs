@@ -386,7 +386,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             bool titleScoped = false)
         {
             var query = BuildQuery(term, ignorePrimaryArchives, isCollectionSearch, platformLuceneClause, titleScoped);
-            var baseUrl = Settings.BaseUrl.TrimEnd('/');
+            var baseUrl = (Settings?.BaseUrl ?? "https://archive.org").TrimEnd('/');
             var totalPages = maxPagesOverride ?? MaxPages;
 
             for (var page = 1; page <= totalPages; page++)

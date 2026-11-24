@@ -1,10 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
@@ -203,6 +208,47 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TorrentClientBaseTests
 
             Mocker.GetMock<IBlocklistService>()
                   .Verify(s => s.Block(It.IsAny<RemoteEpisode>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public async Task should_fallback_to_magnet_when_torrent_download_fails_and_magnet_is_available()
+        {
+            Subject.Definition = new DownloadClientDefinition { Name = "Test Torrent Client" };
+            Subject.SetPreferTorrentFile(true);
+
+            var remoteEpisode = CreateRemoteEpisode();
+            remoteEpisode.Release = new TorrentInfo
+            {
+                Title = _title,
+                DownloadUrl = _downloadUrl,
+                MagnetUrl = "magnet:?xt=urn:btih:c12fe1c06bba254a9dc9f519b335aa7c1367a88a",
+                DownloadProtocol = Subject.Protocol
+            };
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ThrowsAsync(new HttpException(new HttpRequest(_downloadUrl), new HttpResponse(new HttpRequest(_downloadUrl), new HttpHeader(), System.Array.Empty<byte>(), HttpStatusCode.BadRequest)));
+
+            var hash = await Subject.Download(remoteEpisode, CreateIndexer());
+
+            hash.Should().Be("C12FE1C06BBA254A9DC9F519B335AA7C1367A88A");
+            ExceptionVerification.ExpectedErrors(1);
+        }
+
+        [Test]
+        public void should_rethrow_when_torrent_download_fails_and_no_magnet_is_available()
+        {
+            Subject.Definition = new DownloadClientDefinition { Name = "Test Torrent Client" };
+            Subject.SetPreferTorrentFile(true);
+
+            var remoteEpisode = CreateRemoteEpisode();
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ThrowsAsync(new HttpException(new HttpRequest(_downloadUrl), new HttpResponse(new HttpRequest(_downloadUrl), new HttpHeader(), System.Array.Empty<byte>(), HttpStatusCode.BadRequest)));
+
+            Assert.ThrowsAsync<ReleaseDownloadException>(async () => await Subject.Download(remoteEpisode, CreateIndexer()));
+            ExceptionVerification.ExpectedErrors(1);
         }
     }
 }

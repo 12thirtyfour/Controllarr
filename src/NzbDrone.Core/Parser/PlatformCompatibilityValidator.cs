@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:(?:nintendo\s+)?switch\s*e\s*shop|nsw\s*e\s*shop|e\s*shop\s*nsw|switch\s*\(?(?:eshop|digital)\)?)(?:\b|_|\]|\))|(?:e\s*shop.*\b(?:switch|nsw|nx)\b|\b(?:switch|nsw|nx)\b.*e\s*shop)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "switcheshop"),
 
             // Nintendo Switch
-            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+switch|switch|nsw|nx)(?:\b|_|\]|\))|\bHAC-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "switch"),
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s+switch|nsw|nx)(?:\b|_|\]|\))|(?:\[|\()switch(?:\]|\))|\bHAC-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "switch"),
 
             // Nintendo Wii U eShop (must precede Nintendo Wii U)
             (new Regex(@"(?:\b|_|\[|\()(?:(?:nintendo\s+)?wii\s*u\s*(?:e\s*shop|digital)|wiiu\s*(?:e\s*shop|digital)|wii\s*u\s*\(?(?:eshop|digital)\)?)(?:\b|_|\]|\))|(?:e\s*shop.*\bwii\s*u\b|\bwii\s*u\b.*e\s*shop)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "wiiueshop"),
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s+saturn)(?:\b|_|\]|\))|(?:\[|\(|\.|_|-)\s*saturn\s*(?:\]|\)|\.|_|-)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "saturn"),
 
             // Sega Dreamcast
-            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+dreamcast|dreamcast|dc)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "dreamcast"),
+            (new Regex(@"(?:\b|_|\[|\()(?:sega\s+dreamcast|dreamcast)(?:\b|_|\]|\))|(?:\[|\()dc(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "dreamcast"),
 
             // Sega Master System
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s+master\s+system|master\s+system|sms)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "sms"),
@@ -840,7 +840,7 @@ namespace NzbDrone.Core.Parser
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex TvSeasonPattern = new(
-            @"\b(season\s*\d{1,2}|s\d{1,2}\s*(complete|pack)?|complete\s*season)\b",
+            @"\b(season\s*\d{1,2}|s\d{1,2}\s*(?:complete|pack)|complete\s*season)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex VideoCodecOrSourcePattern = new(

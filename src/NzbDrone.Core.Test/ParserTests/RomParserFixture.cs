@@ -153,5 +153,14 @@ namespace NzbDrone.Core.Test.ParserTests
             var result = RomParser.ParseRomName(title);
             result.IsFullSetArchive.Should().BeTrue();
         }
+
+        [TestCase("Super Mario World (USA) (1991).sfc")]
+        [TestCase("Street Fighter Alpha 3 (USA) (1998-05-12).bin")]
+        [TestCase("No-Intro/SNES/Super Mario World (USA).sfc")]
+        public void Should_not_treat_single_rom_with_year_date_or_pack_folder_as_full_set_archive(string title)
+        {
+            var result = RomParser.ParseRomName(title);
+            result.IsFullSetArchive.Should().BeFalse();
+        }
     }
 }

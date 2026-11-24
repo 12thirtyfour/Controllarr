@@ -44,19 +44,6 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             return new InternetArchiveParser(Settings);
         }
 
-        protected override async Task<IList<Parser.Model.ReleaseInfo>> FetchPage(IndexerRequest request, IParseIndexerResponse parser)
-        {
-            try
-            {
-                return await base.FetchPage(request, parser);
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn(ex, "Internet Archive request failed for {0}; continuing with remaining search queries.", request?.Url);
-                return Array.Empty<Parser.Model.ReleaseInfo>();
-            }
-        }
-
         protected override async Task<ValidationFailure> TestConnection()
         {
             try

@@ -350,8 +350,38 @@ namespace NzbDrone.Core.DecisionEngine
                         return null;
                     }
 
-                    // Check if this is a platform full set or collection pack BEFORE matching individual games
                     var isCollectionSearch = searchCriteria is SeasonSearchCriteria { IsPlatformCollectionSearch: true };
+
+                    // Check single game matches before pack/archive context matching so individual ROMs
+                    // sourced from collection archives (HTGDB/No-Intro/Redump) are not rejected as full packs.
+                    if (!isCollectionSearch && !romInfoIsFullSet && episodeLookup != null)
+                    {
+                        var matchingEp = episodeLookup.FindMatch(cleanRomGameTitle);
+
+                        if (matchingEp != null)
+                        {
+                            var romQuality = romInfo?.Quality ?? report?.ParsedRomInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
+                            if (romQuality.Quality == Quality.Unknown)
+                            {
+                                romQuality = new QualityModel(Quality.VerifiedGoodDump);
+                            }
+
+                            return new ParsedEpisodeInfo
+                            {
+                                SeriesTitle = series.Title,
+                                SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
+                                SeasonNumber = matchingEp.SeasonNumber,
+                                SeasonNumbers = new List<int> { matchingEp.SeasonNumber },
+                                EpisodeNumbers = new[] { matchingEp.EpisodeNumber },
+                                AbsoluteEpisodeNumbers = new[] { matchingEp.AbsoluteEpisodeNumber ?? matchingEp.EpisodeNumber },
+                                ReleaseTitle = releaseTitle,
+                                Languages = LanguageParser.ParseLanguages(releaseTitle),
+                                Quality = romQuality
+                            };
+                        }
+                    }
+
+                    // Check if this is a platform full set or collection pack
                     var isPackMatch = IsPlatformPackMatch(releaseTitle, fullContext, cleanRomGameTitle, series, compatibilityAlreadyVerified: true);
                     if (isPackMatch || isCollectionSearch || romInfoIsFullSet)
                     {
@@ -386,34 +416,6 @@ namespace NzbDrone.Core.DecisionEngine
                                 FullSeason = true,
                                 SeasonNumber = seasonNumbers.First(),
                                 SeasonNumbers = seasonNumbers,
-                                ReleaseTitle = releaseTitle,
-                                Languages = LanguageParser.ParseLanguages(releaseTitle),
-                                Quality = romQuality
-                            };
-                        }
-                    }
-
-                    // Check if this is a single game search and the release title matches the searched episode
-                    if (!isCollectionSearch && !romInfoIsFullSet && episodeLookup != null)
-                    {
-                        var matchingEp = episodeLookup.FindMatch(cleanRomGameTitle);
-
-                        if (matchingEp != null)
-                        {
-                            var romQuality = romInfo?.Quality ?? report?.ParsedRomInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
-                            if (romQuality.Quality == Quality.Unknown)
-                            {
-                                romQuality = new QualityModel(Quality.VerifiedGoodDump);
-                            }
-
-                            return new ParsedEpisodeInfo
-                            {
-                                SeriesTitle = series.Title,
-                                SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
-                                SeasonNumber = matchingEp.SeasonNumber,
-                                SeasonNumbers = new List<int> { matchingEp.SeasonNumber },
-                                EpisodeNumbers = new[] { matchingEp.EpisodeNumber },
-                                AbsoluteEpisodeNumbers = new[] { matchingEp.AbsoluteEpisodeNumber ?? matchingEp.EpisodeNumber },
                                 ReleaseTitle = releaseTitle,
                                 Languages = LanguageParser.ParseLanguages(releaseTitle),
                                 Quality = romQuality

@@ -567,11 +567,10 @@ namespace NzbDrone.Core.Indexers.InternetArchive
 
                     var fileNameOnly = Path.GetFileName(file.Name);
                     var isCollectionSearch = requestUrl.IndexOf("_collection=true", StringComparison.OrdinalIgnoreCase) >= 0;
-                    var isPackFile = IsCollectionPackFile(fileNameOnly, file.Name, archiveId, platformSlug, platformName);
 
                     if (isCollectionSearch)
                     {
-                        var isArchiveFile = ext is ".zip" or ".7z" or ".rar" or ".tar" or ".gz" or ".tgz";
+                        var isArchiveFile = ext?.ToLowerInvariant() is ".zip" or ".7z" or ".rar" or ".tar" or ".gz" or ".tgz";
                         if (!isArchiveFile)
                         {
                             continue;
@@ -583,6 +582,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                             continue;
                         }
 
+                        var isPackFile = IsCollectionPackFile(fileNameOnly, file.Name, archiveId, platformSlug, platformName);
                         if (!isPackFile)
                         {
                             continue;
@@ -597,7 +597,9 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     }
 
                     var size = long.TryParse(file.Size, out var parsedSize) ? parsedSize : 0;
-                    var publishDate = file.Mtime.HasValue
+                    var publishDate = file.Mtime.HasValue &&
+                                      file.Mtime.Value >= DateTimeOffset.MinValue.ToUnixTimeSeconds() &&
+                                      file.Mtime.Value <= DateTimeOffset.MaxValue.ToUnixTimeSeconds()
                         ? DateTimeOffset.FromUnixTimeSeconds(file.Mtime.Value).UtcDateTime
                         : DateTime.UtcNow;
                     var requiresCredentials = file.IsPrivate() || (_settings != null && _settings.RequireCredentials);
