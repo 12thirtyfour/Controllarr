@@ -273,11 +273,7 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'wonderswan';
   }
 
-  // Other classic systems supported on RetroAchievements
-  if (c.includes('arcade') || c.includes('mame') || c.includes('fbneo')) {
-    return 'arcade';
-  }
-
+  // Other classic consoles and add-ons supported on RetroAchievements
   if (c.includes('3do')) {
     return '3do';
   }
@@ -296,14 +292,6 @@ export function resolveConsoleKey(consoleName?: string): string {
 
   if (c.includes('odyssey')) {
     return 'odyssey2';
-  }
-
-  if (c.includes('msx')) {
-    return 'msx';
-  }
-
-  if (c.includes('commodore') || c === 'c64' || c.includes('amiga')) {
-    return 'c64';
   }
 
   return '';

@@ -285,5 +285,44 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
                 }
             }
         }
+
+        [TestCase("MAME 2003-Plus Reference Set", "mame2003.dat")]
+        [TestCase("Commodore - Amiga", "amiga.dat")]
+        [TestCase("Microsoft - MSX2", "msx2.dat")]
+        [TestCase("IBM PC / MS-DOS", "msdos.dat")]
+        public void should_reject_manual_import_for_arcade_and_computer_dats(string catalogName, string fileName)
+        {
+            const string datXml = @"<?xml version=""1.0""?>
+<datafile>
+  <header>
+    <name>{0}</name>
+    <description>{0}</description>
+  </header>
+  <game name=""Sample"">
+    <rom name=""sample.bin"" size=""16"" crc=""12345678"" />
+  </game>
+</datafile>";
+
+            var formatted = string.Format(datXml, catalogName);
+            var datFile = new NzbDrone.Core.Dat.DatFile { Name = catalogName, Description = catalogName };
+            var entries = new List<NzbDrone.Core.Dat.DatEntry>
+            {
+                new NzbDrone.Core.Dat.DatEntry { GameName = "Sample", RomName = "sample.bin", Crc32 = "12345678" }
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatParserService>()
+                .Setup(p => p.Parse(It.IsAny<Stream>()))
+                .Returns((datFile, entries));
+
+            var result = Subject.ImportDatOrSmdb(new DatImportRequestModel
+            {
+                FileName = fileName,
+                Content = formatted
+            });
+
+            result.EntryCount.Should().Be(0);
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Verify(c => c.Insert(It.IsAny<NzbDrone.Core.Dat.DatFile>(), It.IsAny<List<NzbDrone.Core.Dat.DatEntry>>()), Times.Never());
+        }
     }
 }

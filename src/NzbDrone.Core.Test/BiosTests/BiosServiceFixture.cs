@@ -690,5 +690,18 @@ namespace NzbDrone.Core.Test.BiosTests
             Subject.VerifyBios(biosPath, null, null).Should().BeFalse();
             Subject.VerifyBios(biosPath, string.Empty, "   ").Should().BeFalse();
         }
+
+        [Test]
+        public void Should_exclude_arcade_and_computer_platforms_from_bios_catalog()
+        {
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetAllSeries())
+                  .Returns(new List<Series>());
+
+            var catalog = Subject.GetCatalog();
+            var excludedGroups = new[] { "naomi", "msx", "amiga", "x68000", "pc98" };
+
+            catalog.Select(g => g.GamePlatform).Should().NotContain(excludedGroups);
+        }
     }
 }

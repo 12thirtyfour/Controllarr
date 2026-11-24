@@ -859,7 +859,7 @@ namespace NzbDrone.Core.Games
             "segacd", "saturn", "dreamcast",
             "gamecube", "wii", "wiiu",
             "tgcd", "jaguarcd", "xbox", "xbox360", "xboxone", "xboxseriesx",
-            "3do", "neogeocd", "cdi", "pcfx", "cd32", "cdtv", "fmtowns", "pippin"
+            "3do", "neogeocd", "cdi", "pcfx", "cd32", "pippin"
         };
 
         public static bool IsDiscBasedPlatform(string platformSlug, string platformTitle = null)

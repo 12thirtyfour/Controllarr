@@ -110,8 +110,6 @@ const DISC_BASED_PLATFORM_SLUGS = new Set([
   'cdi',
   'pcfx',
   'cd32',
-  'cdtv',
-  'fmtowns',
   'pippin',
 ]);
 

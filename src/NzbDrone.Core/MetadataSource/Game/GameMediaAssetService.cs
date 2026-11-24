@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
@@ -118,6 +119,10 @@ namespace NzbDrone.Core.MetadataSource.Game
         IHandle<RomFileDeletedEvent>,
         IHandle<GameImportedEvent>
     {
+        private static readonly Regex UnsupportedArcadeOrComputerPlatformRegex = new Regex(
+            @"\b(?:mame\w*|fbneo|finalburn(?:\s+neo)?|arcade|naomi|atomiswave|cps[- ]?[123]|ms[- ]?dos|dosbox|commodore|c(?:bm\s*)?(?:64|128)|vic[- ]?20|amiga\d*(?!\s*cd32)|amstrad|atari\s*(?:st|400|800|xl|xe)|msx(?:\s*[2+]|\d*)|pc[- ]?(?:88|98)\w*|x68000|zx\s*spectrum(?:\s*next)?|apple\s*(?:ii|2)[egs]?|fm\s*towns|fmtowns|scummvm|trs[- ]?80|bbc\s*micro|cdtv|ibm\s*pc|microsoft\s*-?\s*windows)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         private static readonly ConcurrentDictionary<string, Queue<DateTime>> ScraperRequestWindows =
             new ConcurrentDictionary<string, Queue<DateTime>>(StringComparer.OrdinalIgnoreCase);
 
@@ -499,7 +504,14 @@ namespace NzbDrone.Core.MetadataSource.Game
                     datFile.Name = Path.GetFileNameWithoutExtension(effectiveName);
                 }
 
-                var matchedPlatform = _gameCatalogService?.InferPlatformForText($"{datFile.Name} {datFile.Description} {effectiveName}");
+                var metadataText = $"{datFile.Name} {datFile.Description} {effectiveName}";
+                var matchedPlatform = _gameCatalogService?.InferPlatformForText(metadataText);
+                if (matchedPlatform == null && IsUnsupportedArcadeOrComputerPlatform(metadataText))
+                {
+                    _logger?.Warn("Skipping manual DAT/SMDB import '{0}': arcade and computer platforms are not supported.", effectiveName);
+                    return new DatImportResultModel { EntryCount = 0 };
+                }
+
                 if (matchedPlatform != null)
                 {
                     datFile.Description = matchedPlatform.Slug;
@@ -514,6 +526,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                     EntryCount = entries.Count
                 };
             }
+        }
+
+        public static bool IsUnsupportedArcadeOrComputerPlatform(string text)
+        {
+            return !string.IsNullOrWhiteSpace(text) && UnsupportedArcadeOrComputerPlatformRegex.IsMatch(text);
         }
 
         public void ScrapeMediaAssetsForImportedRom(Series platform, EpisodeFile romFile, Episode game)

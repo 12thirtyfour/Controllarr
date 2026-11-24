@@ -65,6 +65,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Added Libretro `metadat/tosec/` and `dat/` DAT feeds plus GameTDB coverage for `gamecube`, `nds`/`dsiware`, and `ps3` in `GameCatalogProxy`, eliminated hashless GameTDB `DatEntry` inserts, enforced hash deduplication/merging across NSWDB/GameTDB/BuiltInGames, and prioritized data tracks ahead of `.cue` sheets in `ParseLibretroDatContent`.
   - Removed the `.sfv` bypass in `VerifiedRomHashSpecification` and aligned `UnmanagedDiskScanner` archive probes with `FindBestMatch` so library creation, import, and download verification all enforce the unified DAT database.
   - Updated `GameCatalogProxy.TryFetchRemoteWithRetry` to bypass `RemoteArchiveCache` on `forceRefresh`, and propagated NDS/3DS `EncryptionPreference` in `DatCatalogUpdateService.SyncLibraryDatCatalogs` so scheduled and manual DAT updates refresh all enabled verification catalogs.
+- **Strict Console, Handheld & Add-On Scope (`BiosService`, `PlatformCatalogService`, `RetroAchievementsService`, `GameLauncherService`, `GameMediaAssetService`, `BiosSettings`, `PlatformDetails`, `gameAchievementsHelper`)**:
+  - Removed all arcade (`naomi`, `awbios`, `arcade`) and home/personal computer (`msx`, `amiga`, `x68000`, `pc98`, `c64`, `cdtv`, `fmtowns`) entries and aliases from BIOS catalogs/URLs, disc platform sets, RetroAchievements mappers, Neo Geo launcher aliases, and frontend UI selectors so only video game consoles, handhelds, and console add-ons are supported.
+  - Added manual DAT/SMDB import validation in `GameMediaAssetService.ImportDatOrSmdb` (`IsUnsupportedArcadeOrComputerPlatform`) to reject MAME/FBNeo/Arcade and computer DAT/SMDB uploads cleanly without writing into `DatEntries`.
 
 ## [Unreleased] - 2026-11-20
 

@@ -54,7 +54,6 @@ namespace NzbDrone.Core.Bios
             { "segacd", "Sega - Mega CD - Sega CD" },
             { "saturn", "Sega - Saturn" },
             { "dreamcast", "Sega - Dreamcast" },
-            { "naomi", "Sega - Naomi" },
             { "sms", "Sega - Master System - Mark III" },
             { "gamegear", "Sega - Game Gear" },
             { "fds", "Nintendo - Family Computer Disk System" },
@@ -82,10 +81,6 @@ namespace NzbDrone.Core.Bios
             { "odyssey2", "Magnavox - Odyssey2" },
             { "vectrex", "GCE - Vectrex" },
             { "channelf", "Fairchild - Channel F" },
-            { "msx", "Microsoft - MSX" },
-            { "amiga", "Commodore - Amiga" },
-            { "x68000", "Sharp - X68000" },
-            { "pc98", "NEC - PC-98" },
             { "cdi", "Philips - CD-i" }
         };
 
@@ -174,21 +169,6 @@ namespace NzbDrone.Core.Bios
                     ("00dad01abdbf8ea9e79ad2fe11bdb182", "deb62b0074b8cae4f162c257662136733cfc76ad"),
                     ("dffb72f116d36d025068b23970a4f6df", string.Empty),
                     ("fc7599f3f871578fe9a0453662d1c966", "5992277debadeb64d1c1c64b0a92d9293eaf7e4a") // Inner 000-lo.lo
-                }
-            },
-            {
-                "naomi.zip",
-                new[]
-                {
-                    ("eb4099aeb42ef089cfe94f8fe95e51f6", "d7ef86bd03de7c1d0e2b0762e04b6f8f8d26dbdb"),
-                    ("526eda1e2a7920c92c88178789d71d84", "c96711c01c0158f161791d6fbe75d88329e8ac0a")
-                }
-            },
-            {
-                "awbios.zip",
-                new[]
-                {
-                    ("85254fbe320ca82a768ec2c26bb08def", "7940c7bf29eee85a5b2fdec78750b19aa22895dc")
                 }
             },
             {
@@ -1007,7 +987,6 @@ namespace NzbDrone.Core.Bios
             { "segacd", "Sega CD / Mega-CD" },
             { "saturn", "Sega Saturn" },
             { "dreamcast", "Sega Dreamcast" },
-            { "naomi", "Sega NAOMI / Atomiswave" },
             { "sms", "Sega Master System / Mark III" },
             { "gamegear", "Sega Game Gear" },
             { "fds", "Nintendo Famicom Disk System" },
@@ -1037,10 +1016,6 @@ namespace NzbDrone.Core.Bios
             { "odyssey2", "Magnavox Odyssey² / Videopac" },
             { "vectrex", "GCE Vectrex" },
             { "channelf", "Fairchild Channel F" },
-            { "msx", "MSX / MSX2 / MSX2+" },
-            { "amiga", "Commodore Amiga / CD32 / CDTV" },
-            { "x68000", "Sharp X68000" },
-            { "pc98", "NEC PC-98" },
             { "cdi", "Philips CD-i" }
         };
 
@@ -1847,26 +1822,6 @@ namespace NzbDrone.Core.Bios
                 Description = "Dreamcast Flash ROM",
                 IsRequired = true,
                 DownloadUrl = "https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/Sega/Dreamcast/dc_flash.bin"
-            },
-
-            // Sega NAOMI / Atomiswave
-            new BiosFile
-            {
-                GamePlatform = "naomi",
-                FileName = "naomi.zip",
-                ExpectedMd5 = "eb4099aeb42ef089cfe94f8fe95e51f6",
-                ExpectedSha1 = "d7ef86bd03de7c1d0e2b0762e04b6f8f8d26dbdb",
-                Description = "Sega NAOMI Arcade System BIOS Pack",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "naomi",
-                FileName = "awbios.zip",
-                ExpectedMd5 = "85254fbe320ca82a768ec2c26bb08def",
-                ExpectedSha1 = "7940c7bf29eee85a5b2fdec78750b19aa22895dc",
-                Description = "Sammy Atomiswave Arcade BIOS",
-                IsRequired = false
             },
 
             // Sega Master System & Game Gear
@@ -4795,70 +4750,7 @@ namespace NzbDrone.Core.Bios
                 IsRequired = true
             },
 
-            // MSX / Amiga / Sharp X68000 / NEC PC-98 / Philips CD-i
-            new BiosFile
-            {
-                GamePlatform = "msx",
-                FileName = "MSX.ROM",
-                ExpectedMd5 = "aa95aea2563cd5ec0a0919b44cc17d47",
-                ExpectedSha1 = "409e82adac40f6bdd18eb6c84e8b2fbdc7fb5498",
-                Description = "MSX1 System BIOS",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "msx",
-                FileName = "MSX2.ROM",
-                ExpectedMd5 = "ec3a01c91f24fbddcbcab0ad301bc9ef",
-                ExpectedSha1 = "6103b39f1e38d1aa2d84b1c3219c44f1abb5436e",
-                Description = "MSX2 System BIOS",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "amiga",
-                FileName = "kick34005.A500",
-                ExpectedMd5 = "82a21c1890cae844b3df741f2762d48d",
-                ExpectedSha1 = "891e9a547772fe0c6c19b610baf8bc4ea7fcb785",
-                Description = "Amiga 500 Kickstart v1.3 (Rev 34.5)",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "amiga",
-                FileName = "kick40068.A1200",
-                ExpectedMd5 = "646773759326fbac3b2311fd8c8793ee",
-                ExpectedSha1 = "e21545723fe8374e91342617604f1b3d703094f1",
-                Description = "Amiga 1200 Kickstart v3.1 (Rev 40.68)",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "x68000",
-                FileName = "iplrom.dat",
-                ExpectedMd5 = "7fd4caabac1d9169e289f0f7bbf71d8e",
-                ExpectedSha1 = "0ed038ed2133b9f78c6e37256807424e0d927560",
-                Description = "Sharp X68000 IPL ROM v1.0",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "x68000",
-                FileName = "cgrom.dat",
-                ExpectedMd5 = "cb0a5cfcf7247a7eab74bb2716260269",
-                ExpectedSha1 = "8d72c5b4d63bb14c5dbdac495244d659aa1498b6",
-                Description = "Sharp X68000 Character Generator Font ROM",
-                IsRequired = true
-            },
-            new BiosFile
-            {
-                GamePlatform = "pc98",
-                FileName = "bios.rom",
-                ExpectedMd5 = "cd237e16e7e77c06bb58540e9e9fca68",
-                ExpectedSha1 = "76a7360502fa0296ea93b4c537174610a834d367",
-                Description = "NEC PC-9801VX System BIOS",
-                IsRequired = true
-            },
+            // Philips CD-i
             new BiosFile
             {
                 GamePlatform = "cdi",
@@ -6069,12 +5961,6 @@ namespace NzbDrone.Core.Bios
                 {
                     urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/Nintendo%20-%20GameCube%20-%20Wii/GC/USA/IPL.bin");
                 }
-                else if (string.Equals(entry.GamePlatform, "pc98", StringComparison.OrdinalIgnoreCase) &&
-                         string.Equals(entry.FileName, "bios.rom", StringComparison.OrdinalIgnoreCase))
-                {
-                    urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/NEC%20-%20PC-98/np2kai/bios.rom");
-                    urls.Add("https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/np2kai/bios.rom");
-                }
                 else if (string.Equals(entry.FileName, "cdimono1.zip", StringComparison.OrdinalIgnoreCase))
                 {
                     urls.Add("https://raw.githubusercontent.com/Abdess/retroarch_system/main/bios/Philips%20-%20CD-i/same_cdi/bios/cdimono1.zip");
@@ -6082,8 +5968,7 @@ namespace NzbDrone.Core.Bios
 
                 urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/{escapedFile}");
 
-                if (string.Equals(entry.GamePlatform, "dreamcast", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(entry.GamePlatform, "naomi", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(entry.GamePlatform, "dreamcast", StringComparison.OrdinalIgnoreCase))
                 {
                     urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/dc/{escapedFile}");
                 }
@@ -6098,10 +5983,6 @@ namespace NzbDrone.Core.Bios
                 else if (string.Equals(entry.FileName, "coleco.rom", StringComparison.OrdinalIgnoreCase))
                 {
                     urls.Add("https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/colecovision.rom");
-                }
-                else if (string.Equals(entry.GamePlatform, "x68000", StringComparison.OrdinalIgnoreCase))
-                {
-                    urls.Add($"https://raw.githubusercontent.com/archtaurus/RetroPieBIOS/master/BIOS/keropi/{escapedFile}");
                 }
 
                 if (AbdessSystemFolderByBiosGroup.TryGetValue(entry.GamePlatform, out var legacyAbdessFolder))
@@ -6128,8 +6009,7 @@ namespace NzbDrone.Core.Bios
 
                 urls.Add($"https://archive.org/download/github.com-BatoceraPLUS-Batocera.PLUS-UPDATE-bios_-_2023-08-09_14-37-07/bios/{escapedFile}");
 
-                if (string.Equals(entry.GamePlatform, "dreamcast", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(entry.GamePlatform, "naomi", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(entry.GamePlatform, "dreamcast", StringComparison.OrdinalIgnoreCase))
                 {
                     urls.Add($"https://archive.org/download/github.com-BatoceraPLUS-Batocera.PLUS-UPDATE-bios_-_2023-08-09_14-37-07/bios/dc/{escapedFile}");
                 }

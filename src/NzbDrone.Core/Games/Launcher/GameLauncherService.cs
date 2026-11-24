@@ -272,8 +272,8 @@ namespace NzbDrone.Core.Games.Launcher
             new PlatformCoreDef
             {
                 PlatformKey = "Neo Geo",
-                PlatformName = "SNK Neo Geo / Arcade",
-                Aliases = new[] { "Neo Geo", "Neo Geo AES", "Neo Geo MVS", "Neo Geo CD", "Arcade", "neogeo", "arcade" },
+                PlatformName = "SNK Neo Geo",
+                Aliases = new[] { "Neo Geo", "Neo Geo AES", "Neo Geo MVS", "Neo Geo CD", "SNK - Neo Geo", "neogeo", "neogeocd" },
                 DefaultCore = "fbneo",
                 AvailableCores = new[] { "fbneo", "mame2003_plus", "neocd" },
                 SupportsWasm = true,
