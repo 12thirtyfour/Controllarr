@@ -75,14 +75,8 @@ namespace NzbDrone.Core.Parser
             // Nintendo 64
             (new Regex(@"(?:\b|_|\[|\()(?:nintendo\s*64|ultra\s*64|n64)(?:\b|_|\]|\))|\bNUS-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "n64"),
 
-            // Super Nintendo / Super Famicom
-            (new Regex(@"(?:\b|_|\[|\()(?:super\s+nintendo(?:\s+entertainment\s+system)?|super\s+nes|super\s+famicom|snes|sfc)(?:\b|_|\]|\))|\b(?:SHVC|SNS)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "snes"),
-
-            // Famicom Disk System
-            (new Regex(@"(?:\b|_|\[|\()(?:famicom\s+disk\s+system|fds)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "fds"),
-
-            // NES / Famicom
-            (new Regex(@"(?:\b|_|\[|\(|@)(?:nintendo\s+entertainment\s+system|nes(?:\s*2\.0)?|famicom)(?:\b|_|\]|\))|\b(?:NES|HVC)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "nes"),
+            // Nintendo e-Reader (must precede GBA)
+            (new Regex(@"(?:\b|_|\[|\()(?:nintendo[\s._-]*e-?reader|card[\s._-]*e-?reader)(?:\b|_|\]|\))|(?:\[|\()e-?reader(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ereader"),
 
             // Game Boy Advance
             (new Regex(@"(?:\b|_|\[|\()(?:game\s*boy\s+advance|gba|agb)(?:\b|_|\]|\))|\bAGB-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gba"),
@@ -92,6 +86,22 @@ namespace NzbDrone.Core.Parser
 
             // Game Boy
             (new Regex(@"(?:\b|_|\[|\()(?:game\s*boy|gameboy|dmg)(?:\b|_|\]|\))|(?<![0-9]\s*)(?:\b|_|\[|\()gb(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gb"),
+
+            // Nintendo Game & Watch
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:nintendo\s+)?game\s*(?:&|and)\s*watch|handheld\s+electronic\s+game)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gameandwatch"),
+
+            // Bandai Sufami Turbo (must precede SNES)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:bandai|nintendo)?[\s._-]*sufami[\s._-]*turbo)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "sufamiturbo"),
+
+            // Super Nintendo / Super Famicom (keep pattern index below Sufami Turbo & Satellaview)
+            (new Regex(@"(?:\b|_|\[|\()(?:super\s+nintendo(?:\s+entertainment\s+system)?|super\s+nes|super\s+famicom|snes|sfc)(?:\b|_|\]|\))|\b(?:SHVC|SNS)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "snes"),
+
+            // Super Nintendo already above; keep FDS and NES immediately below:
+            // Famicom Disk System
+            (new Regex(@"(?:\b|_|\[|\()(?:famicom\s+disk\s+system|fds)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "fds"),
+
+            // NES / Famicom
+            (new Regex(@"(?:\b|_|\[|\(|@)(?:nintendo\s+entertainment\s+system|nes(?:\s*2\.0)?|famicom)(?:\b|_|\]|\))|\b(?:NES|HVC)-[A-Za-z0-9\-]{3,12}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "nes"),
 
             // Nintendo 3DS eShop (must precede Nintendo 3DS)
             (new Regex(@"(?:\b|_|\[|\()(?:(?:nintendo\s+)?(?:new\s+)?3ds\s*(?:e\s*shop|digital)|3ds\s*\(?(?:eshop|digital)\)?)(?:\b|_|\]|\))|(?:e\s*shop.*\b3ds\b|\b3ds\b.*e\s*shop)", RegexOptions.IgnoreCase | RegexOptions.Compiled), "3dseshop"),
@@ -114,6 +124,9 @@ namespace NzbDrone.Core.Parser
             // Sony PlayStation 4
             (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*4|playstation\s*4|ps4)(?:\b|_|\]|\))|\bCUSA-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps4"),
 
+            // Sony PlayStation 3 PSN (must precede Sony PlayStation 3)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:sony\s+)?playstation\s*3[\s._-]*\(?psn\)?|ps3[\s._-]*(?:psn|digital))(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps3psn"),
+
             // Sony PlayStation 3
             (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation\s*3|playstation\s*3|ps3)(?:\b|_|\]|\))|\b(?:BLUS|BLES|BCUS|BCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps3"),
 
@@ -123,14 +136,20 @@ namespace NzbDrone.Core.Parser
             // Sony PlayStation 1 / PSX
             (new Regex(@"(?:\b|_|\[|\()(?:sony\s+playstation|playstation\s*1|playstation|ps1|psx|psone)(?:\b|_|\]|\))|\b(?:SLUS|SLES|SCES|SCUS|SLPS)-0\d{4}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ps1"),
 
+            // Sony PlayStation Portable PSN (must precede PSP)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:sony\s+)?playstation\s+portable[\s._-]*\(?psn\)?|psp[\s._-]*(?:psn|digital))(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psppsn"),
+
             // PlayStation Portable
             (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+portable|sony\s+psp|psp|psx2psp|ps2psp)(?:\b|_|\]|\))|\b(?:ULUS|ULES|UCUS|UCES)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psp"),
 
             // PlayStation Vita
             (new Regex(@"(?:\b|_|\[|\()(?:playstation\s+vita|ps\s*vita|psvita|psv)(?:\b|_|\]|\))|\b(?:PCSB|PCSE|PCSG|PCSF)-\d{5}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled), "psvita"),
 
+            // Xbox 360 Digital / XBLA (must precede Xbox 360)
+            (new Regex(@"(?:\b|_|\[|\()(?:xbox[\s._-]*360[\s._-]*(?:\(?(?:digital|xbla)\)?|games\s+on\s+demand|title\s+updates)|xbla|xbox\s+live\s+arcade)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox360digital"),
+
             // Xbox 360
-            (new Regex(@"(?:\b|_|\[|\()(?:xbox\s*360|x360|xbla|xbox\s+live\s+arcade)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox360"),
+            (new Regex(@"(?:\b|_|\[|\()(?:xbox\s*360|x360)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xbox360"),
 
             // Xbox One
             (new Regex(@"(?:\b|_|\[|\()(?:xbox\s*one|xbo|xb1)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "xboxone"),
@@ -159,14 +178,32 @@ namespace NzbDrone.Core.Parser
             // Sega Game Gear
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s+game\s+gear|game\s+gear|gg)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gg"),
 
+            // Sega SG-1000
+            (new Regex(@"(?:\b|_|\[|\()(?:sega[\s._-]*sg-?1000|sg-?1000|sc-?3000)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "sg1000"),
+
+            // Sega Advanced Pico Beena (must precede Sega Pico)
+            (new Regex(@"(?:\b|_|\[|\()(?:sega[\s._-]*(?:advanced[\s._-]*pico[\s._-]*)?beena|advanced[\s._-]*pico[\s._-]*beena)(?:\b|_|\]|\))|(?:\[|\()beena(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "beena"),
+
+            // Sega Pico
+            (new Regex(@"(?:\b|_|\[|\()sega[\s._-]*pico(?:\b|_|\]|\))|(?:\[|\()pico(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "pico"),
+
+            // NEC PC Engine SuperGrafx (must precede TurboGrafx-16 / PC Engine)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:nec\s+)?(?:pc\s*engine\s+)?super\s*grafx|supergrafx|sgx)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "supergrafx"),
+
             // TurboGrafx-16 / PC Engine
             (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:-16|\s*16)?|pc\s*engine|tg16|pce)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tg16"),
 
             // TurboGrafx-CD / PC Engine CD
             (new Regex(@"(?:\b|_|\[|\()(?:turbografx\s*cd|pc\s*engine\s*cd|tgcd|pcecd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
 
-            // Neo Geo Pocket
-            (new Regex(@"(?:\b|_|\[|\()(?:neo\s*geo\s*pocket(?:\s*color)?|ngpc|ngp)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ngpc"),
+            // Neo Geo Pocket Color (must precede Neo Geo Pocket and Neo Geo)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:snk\s+)?neo\s*geo\s*pocket\s*color|ngpc)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ngpc"),
+
+            // Neo Geo Pocket (must precede Neo Geo)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:snk\s+)?neo\s*geo\s*pocket(?!\s*color)|ngp)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ngp"),
+
+            // Neo Geo CD (must precede Neo Geo)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:snk\s+)?neo\s*geo\s*cd|neogeocd|ngcd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "neogeocd"),
 
             // Neo Geo
             (new Regex(@"(?:\b|_|\[|\()(?:neo\s*geo|neogeo|aes|mvs)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "neogeo"),
@@ -178,11 +215,17 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar\s*cd|jaguar\s*cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguarcd"),
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar|jaguar)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguar"),
 
-            // WonderSwan
-            (new Regex(@"(?:\b|_|\[|\()(?:wonderswan(?:\s*color)?|wsc|ws)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "wonderswan"),
+            // WonderSwan Color (must precede WonderSwan)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:bandai\s+)?wonderswan\s*color|wsc)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "wonderswan"),
+
+            // Bandai WonderSwan
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:bandai\s+)?wonderswan(?!\s*color)|ws)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ws"),
 
             // 3DO
             (new Regex(@"(?:\b|_|\[|\()(?:3do(?:\s+interactive\s+multiplayer)?)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "3do"),
+
+            // Commodore Amiga CD32
+            (new Regex(@"(?:\b|_|\[|\()(?:commodore[\s._-]*(?:amiga[\s._-]*)?cd32|amiga[\s._-]*cd32|cd32)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "cd32"),
 
             // Atari 5200
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*5200|a5200)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "atari5200"),
@@ -202,14 +245,52 @@ namespace NzbDrone.Core.Parser
             // Nintendo Pokemon Mini
             (new Regex(@"(?:\b|_|\[|\()(?:pok[eé]mon\s*mini|pokemini)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "pokemonmini"),
 
+            // Philips Videopac+ G7400 (must precede Odyssey 2 / Videopac)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:philips[\s._-]*)?videopac\+|videopac[\s._-]*plus|g7400)(?=$|[\s_\]\).,-])", RegexOptions.IgnoreCase | RegexOptions.Compiled), "videopacplus"),
+
             // Magnavox Odyssey 2 / Videopac
-            (new Regex(@"(?:\b|_|\[|\()(?:odyssey\s*2|odyssey2|videopac)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "odyssey2"),
+            (new Regex(@"(?:\b|_|\[|\()(?:odyssey\s*2|odyssey2|videopac(?!\+))(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "odyssey2"),
 
             // Fairchild Channel F
             (new Regex(@"(?:\b|_|\[|\()(?:channel\s*f|channelf)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "channelf"),
 
             // Philips CD-i
             (new Regex(@"(?:\b|_|\[|\()(?:philips\s*cd-?i|cd-?i)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "cdi"),
+
+            // Emerson Arcadia 2001
+            (new Regex(@"(?:\b|_|\[|\()(?:emerson[\s._-]*arcadia[\s._-]*2001|arcadia[\s._-]*2001)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "arcadia2001"),
+
+            // Epoch Super Cassette Vision (must precede Epoch Cassette Vision)
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:epoch[\s._-]*)?super\s+cassette\s+vision)(?:\b|_|\]|\))|(?:\[|\()scv(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "scv"),
+
+            // Epoch Cassette Vision
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:epoch[\s._-]*)?cassette\s+vision)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "cassettevision"),
+
+            // Casio Loopy & PV-1000
+            (new Regex(@"(?:\b|_|\[|\()casio[\s._-]*loopy(?:\b|_|\]|\))|(?:\[|\()loopy(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "loopy"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:casio[\s._-]*)?pv-?1000)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "pv1000"),
+
+            // Funtech Super A'Can & Interton VC 4000 & RCA Studio II & Amstrad GX4000
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:funtech[\s._-]*)?super[\s._-]*a'?can)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "superacan"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:interton[\s._-]*)?vc[\s._-]*4000)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "vc4000"),
+            (new Regex(@"(?:\b|_|\[|\()(?:rca[\s._-]*studio[\s._-]*ii|studio[\s._-]*ii)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "studio2"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:amstrad[\s._-]*)?gx-?4000)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gx4000"),
+
+            // VTech CreatiVision / V.Smile / Zeebo / Konami Picno
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:vtech[\s._-]*)?creativision)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "creativision"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:vtech[\s._-]*)?v\.?smile)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "vsmile"),
+            (new Regex(@"(?:\b|_|\[|\()(?:mobile[\s._-]*zeebo|zeebo)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "zeebo"),
+            (new Regex(@"(?:\b|_|\[|\()(?:konami[\s._-]*picno)(?:\b|_|\]|\))|(?:\[|\()picno(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "picno"),
+
+            // Additional Handhelds: Supervision, Game.com, Adventure Vision, Game Master, GP32, Arduboy, Leapster, Pocket Challenge V2
+            (new Regex(@"(?:\b|_|\[|\()(?:watara[\s._-]*supervision)(?:\b|_|\]|\))|(?:\[|\()supervision(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "supervision"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:tiger[\s._-]*)?game\.com|gamecom)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gamecom"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:entex[\s._-]*)?adventure[\s._-]*vision)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "adventurevision"),
+            (new Regex(@"(?:\b|_|\[|\()(?:hartung[\s._-]*game[\s._-]*master)(?:\b|_|\]|\))|(?:\[|\()game[\s._-]*master(?:\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gamemaster"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:gamepark[\s._-]*)?gp32)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "gp32"),
+            (new Regex(@"(?:\b|_|\[|\()(?:arduboy)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "arduboy"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:leapfrog[\s._-]*)?leapster(?:\s+learning\s+game\s+system)?)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "leapster"),
+            (new Regex(@"(?:\b|_|\[|\()(?:(?:benesse[\s._-]*)?pocket[\s._-]*challenge[\s._-]*v2)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "pocketchallengev2"),
         };
 
         private static readonly Regex EshopTagRegex = new(@"(?:\b|_|\[|\()e\s*shop(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -297,9 +378,32 @@ namespace NzbDrone.Core.Parser
                 detected.Remove("wii");
             }
 
+            if (detected.Contains("xbox360digital"))
+            {
+                detected.Remove("xbox360");
+                detected.Remove("xbox");
+            }
+
+            if (detected.Contains("ps3psn"))
+            {
+                detected.Remove("ps3");
+                detected.Remove("ps1");
+            }
+
+            if (detected.Contains("psppsn"))
+            {
+                detected.Remove("psp");
+                detected.Remove("ps1");
+            }
+
             if (detected.Contains("ps5") || detected.Contains("ps4") || detected.Contains("ps3") || detected.Contains("ps2") || detected.Contains("psp") || detected.Contains("psvita"))
             {
                 detected.Remove("ps1");
+            }
+
+            if (detected.Contains("ereader"))
+            {
+                detected.Remove("gba");
             }
 
             if (detected.Contains("gba") || detected.Contains("gbc"))
@@ -310,6 +414,11 @@ namespace NzbDrone.Core.Parser
             if (detected.Contains("xbox360") || detected.Contains("xboxone"))
             {
                 detected.Remove("xbox");
+            }
+
+            if (detected.Contains("supergrafx"))
+            {
+                detected.Remove("tg16");
             }
 
             if (detected.Contains("tgcd"))
@@ -324,7 +433,24 @@ namespace NzbDrone.Core.Parser
 
             if (detected.Contains("ngpc"))
             {
+                detected.Remove("ngp");
                 detected.Remove("neogeo");
+            }
+
+            if (detected.Contains("neogeocd") || detected.Contains("ngp"))
+            {
+                detected.Remove("neogeo");
+            }
+
+            if (detected.Contains("pocketchallengev2"))
+            {
+                detected.Remove("ws");
+                detected.Remove("wonderswan");
+            }
+
+            if (detected.Contains("wonderswan"))
+            {
+                detected.Remove("ws");
             }
 
             if (detected.Contains("fds"))
@@ -337,9 +463,29 @@ namespace NzbDrone.Core.Parser
                 detected.Remove("n64");
             }
 
-            if (detected.Contains("32x") || detected.Contains("segacd"))
+            if (detected.Contains("32x") || detected.Contains("segacd") || detected.Contains("beena") || detected.Contains("pico"))
             {
                 detected.Remove("genesis");
+            }
+
+            if (detected.Contains("beena"))
+            {
+                detected.Remove("pico");
+            }
+
+            if (detected.Contains("sufamiturbo") || detected.Contains("gp32"))
+            {
+                detected.Remove("snes");
+            }
+
+            if (detected.Contains("videopacplus"))
+            {
+                detected.Remove("odyssey2");
+            }
+
+            if (detected.Contains("scv"))
+            {
+                detected.Remove("cassettevision");
             }
 
             if (detected.Contains("snes"))
@@ -378,7 +524,10 @@ namespace NzbDrone.Core.Parser
                 (targetSlug is "wiiueshop" && detectedSlug is "wiiu") ||
                 (targetSlug is "dsiware" && detectedSlug is "nds") ||
                 (targetSlug is "3dseshop" && detectedSlug is "3ds") ||
-                (targetSlug is "switcheshop" && detectedSlug is "switch"))
+                (targetSlug is "switcheshop" && detectedSlug is "switch") ||
+                (targetSlug is "xbox360digital" && detectedSlug is "xbox360") ||
+                (targetSlug is "ps3psn" && detectedSlug is "ps3") ||
+                (targetSlug is "psppsn" && detectedSlug is "psp"))
             {
                 return true;
             }
@@ -500,6 +649,23 @@ namespace NzbDrone.Core.Parser
 
             var fileNamePart = dirParts.Length > 0 ? dirParts[^1] : filePathOrName;
             var filePlatforms = DetectPlatforms(fileNamePart);
+            if (filePlatforms.Count > 0)
+            {
+                var fileExt = Path.GetExtension(fileNamePart);
+                var extSlug = !string.IsNullOrWhiteSpace(fileExt) ? GetPlatformByExtension(fileExt) : null;
+                if (!string.IsNullOrWhiteSpace(extSlug) &&
+                    filePlatforms.Contains(extSlug) &&
+                    ExclusiveExtensionsByPlatform.TryGetValue(targetSlug, out var targetAllowedExts) &&
+                    targetAllowedExts.Contains(fileExt))
+                {
+                    var nameOnlyPlatforms = DetectPlatforms(Path.GetFileNameWithoutExtension(fileNamePart));
+                    if (!nameOnlyPlatforms.Contains(extSlug))
+                    {
+                        filePlatforms.Remove(extSlug);
+                    }
+                }
+            }
+
             if (filePlatforms.Count > 0)
             {
                 var matchesTarget = filePlatforms.Any(p => IsPlatformMatch(p, targetSlug));

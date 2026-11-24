@@ -120,7 +120,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         IHandle<GameImportedEvent>
     {
         private static readonly Regex UnsupportedArcadeOrComputerPlatformRegex = new Regex(
-            @"\b(?:mame\w*|fbneo|finalburn(?:\s+neo)?|arcade|naomi|atomiswave|cps[- ]?[123]|ms[- ]?dos|dosbox|commodore|c(?:bm\s*)?(?:64|128)|vic[- ]?20|amiga\d*(?!\s*cd32)|amstrad|atari\s*(?:st|400|800|xl|xe)|msx(?:\s*[2+]|\d*)|pc[- ]?(?:88|98)\w*|x68000|zx\s*spectrum(?:\s*next)?|apple\s*(?:ii|2)[egs]?|fm\s*towns|fmtowns|scummvm|trs[- ]?80|bbc\s*micro|cdtv|ibm\s*pc|microsoft\s*-?\s*windows)\b",
+            @"\b(?:mame\w*|fbneo|finalburn(?:\s+neo)?|arcade|naomi|atomiswave|cps[- ]?[123]|ms[- ]?dos|dosbox|commodore(?!\s*[-–]?\s*(?:amiga\s+)?cd32)|c(?:bm\s*)?(?:64|128)|vic[- ]?20|amiga\d*(?!\s*cd32)|amstrad(?!\s*[-–]?\s*gx4000)|atari\s*(?:st|400|800|xl|xe)|msx(?:\s*[2+]|\d*)|pc[- ]?(?:88|98)\w*|x68000|zx\s*spectrum(?:\s*next)?|apple\s*(?:ii|2)[egs]?|fm\s*towns|fmtowns|scummvm|trs[- ]?80|bbc\s*micro|cdtv|ibm\s*pc|microsoft\s*-?\s*windows)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static readonly ConcurrentDictionary<string, Queue<DateTime>> ScraperRequestWindows =

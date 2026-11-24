@@ -321,28 +321,48 @@ namespace NzbDrone.Core.Dat
             {
                 case "nes":
                     return datFileName.Contains("super nintendo") || datFileName.Contains("snes") || datFileName.Contains("famicom disk system") || datFileName.Contains("fds");
+                case "snes":
+                    return datFileName.Contains("sufami turbo") || datFileName.Contains("satellaview");
                 case "gb":
                     return datFileName.Contains("game boy color") || datFileName.Contains("gbc") || datFileName.Contains("game boy advance") || datFileName.Contains("gba");
                 case "gbc":
                     return datFileName.Contains("game boy advance") || datFileName.Contains("gba");
+                case "gba":
+                    return datFileName.Contains("e-reader") || datFileName.Contains("ereader");
                 case "ps1":
                     return datFileName.Contains("playstation 2") || datFileName.Contains("ps2") ||
                            datFileName.Contains("playstation 3") || datFileName.Contains("ps3") ||
                            datFileName.Contains("psp") || datFileName.Contains("vita");
                 case "ps2":
                     return datFileName.Contains("playstation 3") || datFileName.Contains("ps3");
+                case "ps3":
+                    return datFileName.Contains("(psn)") || datFileName.Contains("ps3 psn") || datFileName.Contains("playstation 3 psn");
+                case "psp":
+                    return datFileName.Contains("(psn)") || datFileName.Contains("psp psn") || datFileName.Contains("playstation portable psn");
                 case "xbox":
                     return datFileName.Contains("360") || datFileName.Contains("one");
+                case "xbox360":
+                    return datFileName.Contains("(digital)") || datFileName.Contains("games on demand") || datFileName.Contains("title updates") || datFileName.Contains("xbla");
                 case "wii":
                     return datFileName.Contains("wii u") || datFileName.Contains("wiiu") || datFileName.Contains("wiiware") || datFileName.Contains("(digital)");
                 case "wiiu":
                     return datFileName.Contains("eshop") || datFileName.Contains("(digital)");
                 case "sms":
                     return datFileName.Contains("genesis") || datFileName.Contains("mega drive") || datFileName.Contains("sega cd") || datFileName.Contains("game gear");
+                case "pico":
+                    return datFileName.Contains("beena");
                 case "tg16":
-                    return datFileName.Contains("tgcd") || datFileName.Contains("turbografx-cd") || datFileName.Contains("pc engine cd");
+                    return datFileName.Contains("tgcd") || datFileName.Contains("turbografx-cd") || datFileName.Contains("pc engine cd") || datFileName.Contains("supergrafx");
                 case "neogeo":
-                    return datFileName.Contains("pocket") || datFileName.Contains("ngp");
+                    return datFileName.Contains("pocket") || datFileName.Contains("ngp") || datFileName.Contains("neo geo cd") || datFileName.Contains("neo-geo cd") || datFileName.Contains("neogeocd");
+                case "ngp":
+                    return datFileName.Contains("color") || datFileName.Contains("ngpc");
+                case "ws":
+                    return datFileName.Contains("color") || datFileName.Contains("wsc");
+                case "odyssey2":
+                    return datFileName.Contains("videopac+");
+                case "cassettevision":
+                    return datFileName.Contains("super cassette vision");
                 case "nds":
                     return datFileName.Contains("3ds") || datFileName.Contains("dsiware") || datFileName.Contains("dsi shop") || datFileName.Contains("(digital)");
                 case "3ds":

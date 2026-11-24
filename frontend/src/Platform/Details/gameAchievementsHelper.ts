@@ -196,12 +196,11 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'dreamcast';
   }
 
-  if (
-    c.includes('master system') ||
-    c === 'sms' ||
-    c.includes('sg-1000') ||
-    c.includes('sg1000')
-  ) {
+  if (c.includes('sg-1000') || c.includes('sg1000')) {
+    return 'sg1000';
+  }
+
+  if (c.includes('master system') || c === 'sms') {
     return 'sms';
   }
 
@@ -264,6 +263,10 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'ngpc';
   }
 
+  if (c.includes('neo geo cd') || c.includes('neogeocd') || c === 'ngcd') {
+    return 'neogeocd';
+  }
+
   if (c.includes('neo geo') || c.includes('neogeo')) {
     return 'neogeo';
   }
@@ -290,8 +293,24 @@ export function resolveConsoleKey(consoleName?: string): string {
     return 'vectrex';
   }
 
-  if (c.includes('odyssey')) {
+  if (c.includes('videopac') || c.includes('odyssey')) {
     return 'odyssey2';
+  }
+
+  if (c.includes('supervision')) {
+    return 'supervision';
+  }
+
+  if (c.includes('arduboy')) {
+    return 'arduboy';
+  }
+
+  if (c.includes('arcadia 2001') || c.includes('arcadia2001')) {
+    return 'arcadia2001';
+  }
+
+  if (c.includes('vc 4000') || c.includes('vc-4000') || c.includes('vc4000')) {
+    return 'vc4000';
   }
 
   return '';

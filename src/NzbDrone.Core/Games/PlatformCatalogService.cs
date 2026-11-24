@@ -519,7 +519,7 @@ namespace NzbDrone.Core.Games
                     { "EU", "Neo Geo Pocket Color" },
                     { "JP", "Neo Geo Pocket Color" }
                 },
-                RomFileExtensions = new List<string> { ".ngc", ".ngp" }
+                RomFileExtensions = new List<string> { ".ngc" }
             },
             new PlatformDefinition
             {
@@ -532,7 +532,7 @@ namespace NzbDrone.Core.Games
                     { "EU", "WonderSwan Color" },
                     { "JP", "WonderSwan Color" }
                 },
-                RomFileExtensions = new List<string> { ".wsc", ".ws" }
+                RomFileExtensions = new List<string> { ".wsc" }
             },
             new PlatformDefinition
             {
@@ -663,6 +663,474 @@ namespace NzbDrone.Core.Games
                     { "JP", "Philips CD-i" }
                 },
                 RomFileExtensions = new List<string> { ".chd", ".cue", ".iso", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "SNK Neo Geo CD",
+                Slug = "neogeocd",
+                Manufacturer = "SNK",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Neo Geo CD" },
+                    { "EU", "Neo Geo CD" },
+                    { "JP", "Neo Geo CD" }
+                },
+                RomFileExtensions = new List<string> { ".chd", ".cue", ".bin", ".iso" }
+            },
+            new PlatformDefinition
+            {
+                Name = "NEC PC Engine SuperGrafx",
+                Slug = "supergrafx",
+                Manufacturer = "NEC",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "SuperGrafx" },
+                    { "EU", "SuperGrafx" },
+                    { "JP", "PC Engine SuperGrafx" }
+                },
+                RomFileExtensions = new List<string> { ".sgx", ".pce" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Bandai WonderSwan",
+                Slug = "ws",
+                Manufacturer = "Bandai",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "WonderSwan" },
+                    { "EU", "WonderSwan" },
+                    { "JP", "WonderSwan" }
+                },
+                RomFileExtensions = new List<string> { ".ws" }
+            },
+            new PlatformDefinition
+            {
+                Name = "SNK Neo Geo Pocket",
+                Slug = "ngp",
+                Manufacturer = "SNK",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Neo Geo Pocket" },
+                    { "EU", "Neo Geo Pocket" },
+                    { "JP", "Neo Geo Pocket" }
+                },
+                RomFileExtensions = new List<string> { ".ngp" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sega SG-1000",
+                Slug = "sg1000",
+                Manufacturer = "Sega",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "SG-1000" },
+                    { "EU", "SG-1000" },
+                    { "JP", "SG-1000" }
+                },
+                RomFileExtensions = new List<string> { ".sg", ".sf", ".sc", ".sf7", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Commodore Amiga CD32",
+                Slug = "cd32",
+                Manufacturer = "Commodore",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Amiga CD32" },
+                    { "EU", "Amiga CD32" },
+                    { "JP", "Amiga CD32" }
+                },
+                RomFileExtensions = new List<string> { ".chd", ".cue", ".bin", ".iso" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sega Pico",
+                Slug = "pico",
+                Manufacturer = "Sega",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Sega Pico" },
+                    { "EU", "Sega Pico" },
+                    { "JP", "Sega Pico" }
+                },
+                RomFileExtensions = new List<string> { ".md", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sega Advanced Pico Beena",
+                Slug = "beena",
+                Manufacturer = "Sega",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Beena" },
+                    { "EU", "Beena" },
+                    { "JP", "Advanced Pico Beena" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Emerson Arcadia 2001",
+                Slug = "arcadia2001",
+                Manufacturer = "Emerson",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Arcadia 2001" },
+                    { "EU", "Arcadia 2001" },
+                    { "JP", "Arcadia 2001" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Epoch Super Cassette Vision",
+                Slug = "scv",
+                Manufacturer = "Epoch",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Super Cassette Vision" },
+                    { "EU", "Yeno Super Cassette Vision" },
+                    { "JP", "Super Cassette Vision" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Epoch Cassette Vision",
+                Slug = "cassettevision",
+                Manufacturer = "Epoch",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Cassette Vision" },
+                    { "EU", "Cassette Vision" },
+                    { "JP", "Cassette Vision" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Casio Loopy",
+                Slug = "loopy",
+                Manufacturer = "Casio",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Casio Loopy" },
+                    { "EU", "Casio Loopy" },
+                    { "JP", "Casio Loopy" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Casio PV-1000",
+                Slug = "pv1000",
+                Manufacturer = "Casio",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Casio PV-1000" },
+                    { "EU", "Casio PV-1000" },
+                    { "JP", "Casio PV-1000" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Funtech Super A'Can",
+                Slug = "superacan",
+                Manufacturer = "Funtech",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Super A'Can" },
+                    { "EU", "Super A'Can" },
+                    { "JP", "Super A'Can" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Interton VC 4000",
+                Slug = "vc4000",
+                Manufacturer = "Interton",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "VC 4000" },
+                    { "EU", "Interton VC 4000" },
+                    { "JP", "VC 4000" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "RCA Studio II",
+                Slug = "studio2",
+                Manufacturer = "RCA",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "RCA Studio II" },
+                    { "EU", "RCA Studio II" },
+                    { "JP", "RCA Studio II" }
+                },
+                RomFileExtensions = new List<string> { ".st2", ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Amstrad GX4000",
+                Slug = "gx4000",
+                Manufacturer = "Amstrad",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Amstrad GX4000" },
+                    { "EU", "Amstrad GX4000" },
+                    { "JP", "Amstrad GX4000" }
+                },
+                RomFileExtensions = new List<string> { ".cpr", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Philips Videopac+ G7400",
+                Slug = "videopacplus",
+                Manufacturer = "Philips",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Videopac+" },
+                    { "EU", "Philips Videopac+" },
+                    { "JP", "Videopac+" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".o2" }
+            },
+            new PlatformDefinition
+            {
+                Name = "VTech CreatiVision",
+                Slug = "creativision",
+                Manufacturer = "VTech",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "CreatiVision" },
+                    { "EU", "VTech CreatiVision" },
+                    { "JP", "CreatiVision" }
+                },
+                RomFileExtensions = new List<string> { ".rom", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "VTech V.Smile",
+                Slug = "vsmile",
+                Manufacturer = "VTech",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "V.Smile" },
+                    { "EU", "V.Smile" },
+                    { "JP", "V.Smile" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Zeebo",
+                Slug = "zeebo",
+                Manufacturer = "Tectoy / Qualcomm",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Zeebo" },
+                    { "EU", "Zeebo" },
+                    { "JP", "Zeebo" }
+                },
+                RomFileExtensions = new List<string> { ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Konami Picno",
+                Slug = "picno",
+                Manufacturer = "Konami",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Konami Picno" },
+                    { "EU", "Konami Picno" },
+                    { "JP", "Konami Picno" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Microsoft Xbox 360 Digital",
+                Slug = "xbox360digital",
+                Manufacturer = "Microsoft",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Xbox 360 Digital" },
+                    { "EU", "Xbox 360 Digital" },
+                    { "JP", "Xbox 360 Digital" }
+                },
+                RomFileExtensions = new List<string> { ".xex", ".god", ".iso" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sony PlayStation 3 PSN",
+                Slug = "ps3psn",
+                Manufacturer = "Sony",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "PS3 PSN" },
+                    { "EU", "PS3 PSN" },
+                    { "JP", "PS3 PSN" }
+                },
+                RomFileExtensions = new List<string> { ".pkg", ".rap", ".edat", ".iso" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Sony PlayStation Portable PSN",
+                Slug = "psppsn",
+                Manufacturer = "Sony",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "PSP PSN" },
+                    { "EU", "PSP PSN" },
+                    { "JP", "PSP PSN" }
+                },
+                RomFileExtensions = new List<string> { ".pkg", ".pbp", ".iso", ".cso" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Watara Supervision",
+                Slug = "supervision",
+                Manufacturer = "Watara",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Supervision" },
+                    { "EU", "Watara Supervision" },
+                    { "JP", "Supervision" }
+                },
+                RomFileExtensions = new List<string> { ".sv", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Tiger Game.com",
+                Slug = "gamecom",
+                Manufacturer = "Tiger Electronics",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Game.com" },
+                    { "EU", "Game.com" },
+                    { "JP", "Game.com" }
+                },
+                RomFileExtensions = new List<string> { ".tgc", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Entex Adventure Vision",
+                Slug = "adventurevision",
+                Manufacturer = "Entex",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Adventure Vision" },
+                    { "EU", "Adventure Vision" },
+                    { "JP", "Adventure Vision" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Hartung Game Master",
+                Slug = "gamemaster",
+                Manufacturer = "Hartung",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Game Master" },
+                    { "EU", "Hartung Game Master" },
+                    { "JP", "Game Master" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "GamePark GP32",
+                Slug = "gp32",
+                Manufacturer = "GamePark",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "GP32" },
+                    { "EU", "GP32" },
+                    { "JP", "GP32" }
+                },
+                RomFileExtensions = new List<string> { ".smc", ".fxe", ".gxb", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Arduboy",
+                Slug = "arduboy",
+                Manufacturer = "Arduboy Inc.",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Arduboy" },
+                    { "EU", "Arduboy" },
+                    { "JP", "Arduboy" }
+                },
+                RomFileExtensions = new List<string> { ".hex", ".arduboy" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Nintendo Game & Watch",
+                Slug = "gameandwatch",
+                Manufacturer = "Nintendo",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Game & Watch" },
+                    { "EU", "Game & Watch" },
+                    { "JP", "Game & Watch" }
+                },
+                RomFileExtensions = new List<string> { ".mgw" }
+            },
+            new PlatformDefinition
+            {
+                Name = "LeapFrog Leapster",
+                Slug = "leapster",
+                Manufacturer = "LeapFrog",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Leapster" },
+                    { "EU", "Leapster" },
+                    { "JP", "Leapster" }
+                },
+                RomFileExtensions = new List<string> { ".bin", ".rom" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Benesse Pocket Challenge V2",
+                Slug = "pocketchallengev2",
+                Manufacturer = "Benesse",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Pocket Challenge V2" },
+                    { "EU", "Pocket Challenge V2" },
+                    { "JP", "Pocket Challenge V2" }
+                },
+                RomFileExtensions = new List<string> { ".pc2", ".ws", ".bin" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Bandai Sufami Turbo",
+                Slug = "sufamiturbo",
+                Manufacturer = "Bandai",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "Sufami Turbo" },
+                    { "EU", "Sufami Turbo" },
+                    { "JP", "Sufami Turbo" }
+                },
+                RomFileExtensions = new List<string> { ".st", ".sfc", ".smc" }
+            },
+            new PlatformDefinition
+            {
+                Name = "Nintendo e-Reader",
+                Slug = "ereader",
+                Manufacturer = "Nintendo",
+                RegionalConsoleNames = new Dictionary<string, string>
+                {
+                    { "US", "e-Reader" },
+                    { "EU", "e-Reader" },
+                    { "JP", "Card e-Reader" }
+                },
+                RomFileExtensions = new List<string> { ".raw", ".bin", ".gba" }
             }
         };
 
@@ -670,34 +1138,41 @@ namespace NzbDrone.Core.Games
         {
             "nes", "fds", "snes", "satellaview", "n64", "64dd", "gamecube", "wii", "wiiware", "wiiu", "wiiueshop",
             "gb", "gbc", "gba", "nds", "dsiware", "3ds", "3dseshop", "switch", "switcheshop",
-            "genesis", "segacd", "32x", "saturn", "dreamcast", "sms", "gg",
-            "tg16", "tgcd",
-            "ps1", "ps2", "psp", "ps3", "psvita",
-            "xbox", "xbox360",
+            "genesis", "segacd", "32x", "saturn", "dreamcast", "sms", "gg", "sg1000", "pico", "beena",
+            "tg16", "supergrafx", "tgcd",
+            "ps1", "ps2", "psp", "psppsn", "ps3", "ps3psn", "psvita",
+            "xbox", "xbox360", "xbox360digital",
             "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "jaguarcd",
-            "neogeo", "ngpc", "wonderswan", "vb",
-            "3do", "colecovision", "intellivision", "vectrex", "pcfx", "pokemonmini", "odyssey2", "channelf", "cdi"
+            "neogeo", "neogeocd", "ngp", "ngpc", "ws", "wonderswan", "vb",
+            "3do", "cd32", "colecovision", "intellivision", "vectrex", "pcfx", "pokemonmini", "odyssey2", "videopacplus", "channelf", "cdi",
+            "arcadia2001", "scv", "cassettevision", "loopy", "pv1000", "superacan", "vc4000", "studio2", "gx4000", "creativision", "vsmile", "zeebo", "picno",
+            "supervision", "gamecom", "adventurevision", "gamemaster", "gp32", "arduboy", "gameandwatch", "leapster", "pocketchallengev2",
+            "sufamiturbo", "ereader"
         };
 
         public static readonly HashSet<string> CartridgePlatforms = new(StringComparer.OrdinalIgnoreCase)
         {
-            "nes", "fds", "snes", "satellaview", "n64", "64dd", "gb", "gbc", "gba", "nds", "dsiware", "3ds", "3dseshop", "switch", "switcheshop",
-            "genesis", "32x", "sms", "gg", "tg16", "pce", "atari2600", "atari5200", "atari7800", "lynx",
-            "jaguar", "neogeo", "ngpc", "wonderswan", "vb", "psvita",
-            "colecovision", "intellivision", "vectrex", "pokemonmini", "odyssey2", "channelf"
+            "nes", "fds", "snes", "satellaview", "sufamiturbo", "n64", "64dd", "gb", "gbc", "gba", "ereader", "nds", "dsiware", "3ds", "3dseshop", "switch", "switcheshop",
+            "genesis", "32x", "sms", "gg", "sg1000", "pico", "beena", "tg16", "pce", "supergrafx", "atari2600", "atari5200", "atari7800", "lynx",
+            "jaguar", "neogeo", "ngp", "ngpc", "ws", "wonderswan", "vb", "psvita",
+            "colecovision", "intellivision", "vectrex", "pokemonmini", "odyssey2", "videopacplus", "channelf",
+            "arcadia2001", "scv", "cassettevision", "loopy", "pv1000", "superacan", "vc4000", "studio2", "gx4000", "creativision", "vsmile", "zeebo", "picno",
+            "supervision", "gamecom", "adventurevision", "gamemaster", "gp32", "arduboy", "gameandwatch", "leapster", "pocketchallengev2"
         };
 
         public static readonly Dictionary<string, HashSet<string>> ExclusiveExtensionsByPlatform = new(StringComparer.OrdinalIgnoreCase)
         {
             ["nes"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nes", ".unf", ".fds" },
             ["fds"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".fds" },
-            ["snes"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sfc", ".smc", ".bs" },
+            ["snes"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sfc", ".smc", ".bs", ".st" },
             ["satellaview"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".bs" },
+            ["sufamiturbo"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".st", ".sfc", ".smc" },
             ["n64"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".z64", ".n64", ".v64", ".ndd" },
             ["64dd"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ndd" },
             ["gb"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gb" },
             ["gbc"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gbc" },
             ["gba"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gba" },
+            ["ereader"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".raw", ".gba" },
             ["nds"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nds", ".dsi" },
             ["dsiware"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nds", ".dsi" },
             ["3ds"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".3ds", ".cia", ".cci" },
@@ -705,11 +1180,14 @@ namespace NzbDrone.Core.Games
             ["switch"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nsp", ".xci", ".nsz" },
             ["switcheshop"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".nsp", ".nsz" },
             ["genesis"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md", ".gen", ".smd" },
+            ["pico"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".md" },
             ["32x"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".32x" },
             ["sms"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sms" },
             ["gg"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".gg" },
-            ["pce"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pce", ".sgx" },
-            ["tg16"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pce", ".sgx" },
+            ["sg1000"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sg", ".sf", ".sc", ".sf7" },
+            ["pce"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pce" },
+            ["tg16"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pce" },
+            ["supergrafx"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sgx", ".pce" },
             ["atari2600"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".a26" },
             ["atari5200"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".a52" },
             ["atari7800"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".a78" },
@@ -718,15 +1196,29 @@ namespace NzbDrone.Core.Games
             ["vectrex"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".vec" },
             ["pokemonmini"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".min" },
             ["odyssey2"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".o2" },
+            ["videopacplus"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".o2" },
             ["channelf"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".chf" },
+            ["studio2"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".st2" },
+            ["gx4000"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".cpr" },
             ["lynx"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".lnx" },
             ["jaguar"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".j64", ".jag" },
             ["neogeo"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".neo" },
-            ["ngpc"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ngc", ".ngp" },
-            ["wonderswan"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ws", ".wsc" },
+            ["ngp"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ngp" },
+            ["ngpc"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ngc" },
+            ["ws"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".ws" },
+            ["wonderswan"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".wsc" },
             ["vb"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".vb" },
+            ["supervision"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".sv" },
+            ["gamecom"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".tgc" },
+            ["gp32"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".smc", ".fxe", ".gxb" },
+            ["arduboy"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".hex", ".arduboy" },
+            ["gameandwatch"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mgw" },
+            ["pocketchallengev2"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pc2", ".ws" },
             ["ps1"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pbp" },
+            ["psp"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".cso", ".pbp" },
+            ["psppsn"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pkg", ".pbp", ".cso" },
             ["ps3"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pkg" },
+            ["ps3psn"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pkg", ".rap", ".edat" },
             ["psvita"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".vpk" },
             ["wiiu"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".wua", ".wux", ".wud", ".rpx" },
             ["wiiueshop"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".wua", ".wux", ".wud", ".rpx" },
@@ -741,6 +1233,7 @@ namespace NzbDrone.Core.Games
             ["fds"] = new[] { "fds", "famicom-disk-system", "famicom disk system", "disk system" },
             ["snes"] = new[] { "snes", "super-nintendo-entertainment-system", "super nintendo entertainment system", "super nintendo", "super nes", "super famicom", "sfc" },
             ["satellaview"] = new[] { "satellaview", "bs-x", "bsx" },
+            ["sufamiturbo"] = new[] { "sufamiturbo", "sufami-turbo", "sufami turbo", "bandai sufami turbo", "nintendo sufami turbo" },
             ["n64"] = new[] { "n64", "nintendo-64", "nintendo 64", "ultra 64" },
             ["64dd"] = new[] { "64dd", "nintendo-64dd", "nintendo 64dd" },
             ["gamecube"] = new[] { "gamecube", "nintendo-gamecube", "nintendo gamecube", "gcn", "ngc" },
@@ -751,6 +1244,7 @@ namespace NzbDrone.Core.Games
             ["gb"] = new[] { "game-boy", "game boy", "gameboy", "dmg" },
             ["gbc"] = new[] { "game-boy-color", "game boy color", "gameboy color", "cgb" },
             ["gba"] = new[] { "game-boy-advance", "game boy advance", "gameboy advance", "agb" },
+            ["ereader"] = new[] { "ereader", "e-reader", "nintendo-e-reader", "nintendo e-reader", "card e-reader" },
             ["nds"] = new[] { "nintendo-ds", "nintendo ds", "nds" },
             ["dsiware"] = new[] { "dsiware", "dsi-ware", "dsi shop", "nintendo dsi shop", "nintendo-dsi-shop", "nintendo dsiware" },
             ["3ds"] = new[] { "nintendo-3ds", "nintendo 3ds", "3ds", "n3ds" },
@@ -764,25 +1258,36 @@ namespace NzbDrone.Core.Games
             ["dreamcast"] = new[] { "sega-dreamcast", "sega dreamcast", "dreamcast", "dc" },
             ["sms"] = new[] { "sega-master-system", "sega master system", "master system", "sms" },
             ["gg"] = new[] { "sega-game-gear", "sega game gear", "game gear", "gamegear", "gg" },
+            ["sg1000"] = new[] { "sg1000", "sg-1000", "sega-sg-1000", "sega sg-1000", "sc-3000" },
+            ["pico"] = new[] { "pico", "sega-pico", "sega pico" },
+            ["beena"] = new[] { "beena", "sega-beena", "sega beena", "advanced pico beena" },
             ["tg16"] = new[] { "turbografx-16", "turbografx 16", "turbografx", "tg16", "pc-engine", "pc engine", "pce" },
+            ["supergrafx"] = new[] { "supergrafx", "pc-engine-supergrafx", "pc engine supergrafx", "nec pc engine supergrafx", "sgx" },
             ["tgcd"] = new[] { "turbografx-cd", "turbografx cd", "tg-cd", "tgcd", "pc-engine-cd", "pc engine cd", "pcecd" },
             ["ps1"] = new[] { "sony-playstation", "playstation", "ps1", "psx", "sony playstation", "psone" },
             ["ps2"] = new[] { "sony-playstation-2", "playstation-2", "playstation 2", "ps2", "sony playstation 2" },
             ["ps3"] = new[] { "sony-playstation-3", "playstation-3", "playstation 3", "ps3", "sony playstation 3" },
+            ["ps3psn"] = new[] { "ps3psn", "ps3-psn", "ps3 psn", "playstation 3 psn", "sony playstation 3 (psn)" },
             ["psp"] = new[] { "sony-playstation-portable", "playstation-portable", "playstation portable", "psp", "sony psp" },
+            ["psppsn"] = new[] { "psppsn", "psp-psn", "psp psn", "playstation portable psn", "sony playstation portable (psn)" },
             ["psvita"] = new[] { "sony-playstation-vita", "playstation-vita", "playstation vita", "ps vita", "psv", "vita" },
             ["xbox"] = new[] { "xbox", "original xbox", "og xbox" },
             ["xbox360"] = new[] { "xbox-360", "xbox 360", "xbox360", "x360" },
+            ["xbox360digital"] = new[] { "xbox360digital", "xbox-360-digital", "xbox 360 digital", "xbox 360 (digital)", "xbox live arcade", "xbla" },
             ["atari2600"] = new[] { "atari-2600", "atari 2600", "2600", "vcs" },
             ["atari7800"] = new[] { "atari-7800", "atari 7800", "7800" },
             ["lynx"] = new[] { "atari-lynx", "atari lynx", "lynx" },
             ["jaguar"] = new[] { "atari-jaguar", "atari jaguar", "jaguar" },
             ["jaguarcd"] = new[] { "atari-jaguar-cd", "atari jaguar cd", "jaguar cd" },
             ["neogeo"] = new[] { "neo-geo", "neo geo", "neogeo", "aes", "mvs" },
-            ["ngpc"] = new[] { "neo-geo-pocket-color", "neo geo pocket color", "ngpc", "ngp" },
-            ["wonderswan"] = new[] { "wonderswan", "wonderswan-color", "wonderswan color", "wsc", "ws" },
+            ["neogeocd"] = new[] { "neogeocd", "neo-geo-cd", "neo geo cd", "snk neo geo cd", "ngcd" },
+            ["ngp"] = new[] { "ngp", "neo-geo-pocket", "neo geo pocket", "snk neo geo pocket" },
+            ["ngpc"] = new[] { "neo-geo-pocket-color", "neo geo pocket color", "ngpc" },
+            ["ws"] = new[] { "ws", "wonderswan", "bandai-wonderswan", "bandai wonderswan" },
+            ["wonderswan"] = new[] { "wonderswan-color", "wonderswan color", "bandai wonderswan color", "wsc" },
             ["vb"] = new[] { "virtual-boy", "virtual boy", "vb" },
             ["3do"] = new[] { "3do", "3do interactive multiplayer", "the 3do company 3do" },
+            ["cd32"] = new[] { "cd32", "amiga-cd32", "amiga cd32", "commodore cd32", "commodore amiga cd32" },
             ["atari5200"] = new[] { "atari-5200", "atari 5200", "5200", "a5200" },
             ["colecovision"] = new[] { "colecovision", "coleco-colecovision", "coleco colecovision", "coleco" },
             ["intellivision"] = new[] { "intellivision", "mattel-intellivision", "mattel intellivision", "intv" },
@@ -790,8 +1295,31 @@ namespace NzbDrone.Core.Games
             ["pcfx"] = new[] { "pc-fx", "pcfx", "nec-pc-fx", "nec pc-fx" },
             ["pokemonmini"] = new[] { "pokemon-mini", "pokemon mini", "pokemonmini", "pokemini", "nintendo pokemon mini" },
             ["odyssey2"] = new[] { "odyssey-2", "odyssey 2", "odyssey2", "magnavox odyssey 2", "videopac" },
+            ["videopacplus"] = new[] { "videopacplus", "videopac+", "philips videopac+", "g7400", "videopac+ g7400" },
             ["channelf"] = new[] { "channel-f", "channel f", "channelf", "fairchild channel f" },
-            ["cdi"] = new[] { "cd-i", "cdi", "philips cd-i", "philips-cd-i" }
+            ["cdi"] = new[] { "cd-i", "cdi", "philips cd-i", "philips-cd-i" },
+            ["arcadia2001"] = new[] { "arcadia2001", "arcadia-2001", "arcadia 2001", "emerson arcadia 2001" },
+            ["scv"] = new[] { "scv", "super-cassette-vision", "super cassette vision", "epoch super cassette vision" },
+            ["cassettevision"] = new[] { "cassettevision", "cassette-vision", "cassette vision", "epoch cassette vision" },
+            ["loopy"] = new[] { "loopy", "casio-loopy", "casio loopy" },
+            ["pv1000"] = new[] { "pv1000", "pv-1000", "casio-pv-1000", "casio pv-1000" },
+            ["superacan"] = new[] { "superacan", "super-acan", "super acan", "super a'can", "funtech super acan", "funtech super a'can" },
+            ["vc4000"] = new[] { "vc4000", "vc-4000", "vc 4000", "interton vc 4000" },
+            ["studio2"] = new[] { "studio2", "studio-ii", "studio ii", "rca studio ii" },
+            ["gx4000"] = new[] { "gx4000", "amstrad-gx4000", "amstrad gx4000" },
+            ["creativision"] = new[] { "creativision", "vtech-creativision", "vtech creativision" },
+            ["vsmile"] = new[] { "vsmile", "v-smile", "v.smile", "vtech v.smile" },
+            ["zeebo"] = new[] { "zeebo", "mobile-zeebo", "mobile zeebo" },
+            ["picno"] = new[] { "picno", "konami-picno", "konami picno" },
+            ["supervision"] = new[] { "supervision", "watara-supervision", "watara supervision" },
+            ["gamecom"] = new[] { "gamecom", "game.com", "tiger-game.com", "tiger game.com" },
+            ["adventurevision"] = new[] { "adventurevision", "adventure-vision", "adventure vision", "entex adventure vision" },
+            ["gamemaster"] = new[] { "gamemaster", "game-master", "game master", "hartung game master" },
+            ["gp32"] = new[] { "gp32", "gamepark-gp32", "gamepark gp32" },
+            ["arduboy"] = new[] { "arduboy", "arduboy inc - arduboy" },
+            ["gameandwatch"] = new[] { "gameandwatch", "game-and-watch", "game & watch", "nintendo game & watch", "handheld electronic game" },
+            ["leapster"] = new[] { "leapster", "leapfrog-leapster", "leapfrog leapster", "leapster learning game system" },
+            ["pocketchallengev2"] = new[] { "pocketchallengev2", "pocket-challenge-v2", "pocket challenge v2", "benesse pocket challenge v2" }
         };
 
         public static readonly Dictionary<string, string> CanonicalPlatformNames = new(StringComparer.OrdinalIgnoreCase)
@@ -800,6 +1328,7 @@ namespace NzbDrone.Core.Games
             ["fds"] = "Nintendo Famicom Disk System",
             ["snes"] = "Super Nintendo Entertainment System",
             ["satellaview"] = "Nintendo Satellaview",
+            ["sufamiturbo"] = "Bandai Sufami Turbo",
             ["n64"] = "Nintendo 64",
             ["64dd"] = "Nintendo 64DD",
             ["gamecube"] = "Nintendo GameCube",
@@ -810,6 +1339,7 @@ namespace NzbDrone.Core.Games
             ["gb"] = "Nintendo Game Boy",
             ["gbc"] = "Nintendo Game Boy Color",
             ["gba"] = "Nintendo Game Boy Advance",
+            ["ereader"] = "Nintendo e-Reader",
             ["nds"] = "Nintendo DS",
             ["dsiware"] = "Nintendo DSi Shop",
             ["3ds"] = "Nintendo 3DS",
@@ -823,25 +1353,36 @@ namespace NzbDrone.Core.Games
             ["dreamcast"] = "Sega Dreamcast",
             ["sms"] = "Sega Master System",
             ["gg"] = "Sega Game Gear",
+            ["sg1000"] = "Sega SG-1000",
+            ["pico"] = "Sega Pico",
+            ["beena"] = "Sega Advanced Pico Beena",
             ["tg16"] = "NEC TurboGrafx-16",
+            ["supergrafx"] = "NEC PC Engine SuperGrafx",
             ["tgcd"] = "NEC TurboGrafx-CD",
             ["ps1"] = "Sony PlayStation",
             ["ps2"] = "Sony PlayStation 2",
             ["ps3"] = "Sony PlayStation 3",
+            ["ps3psn"] = "Sony PlayStation 3 PSN",
             ["psp"] = "Sony PlayStation Portable",
+            ["psppsn"] = "Sony PlayStation Portable PSN",
             ["psvita"] = "Sony PlayStation Vita",
             ["xbox"] = "Microsoft Xbox",
             ["xbox360"] = "Microsoft Xbox 360",
+            ["xbox360digital"] = "Microsoft Xbox 360 Digital",
             ["atari2600"] = "Atari 2600",
             ["atari7800"] = "Atari 7800",
             ["lynx"] = "Atari Lynx",
             ["jaguar"] = "Atari Jaguar",
             ["jaguarcd"] = "Atari Jaguar CD",
             ["neogeo"] = "SNK Neo Geo",
+            ["neogeocd"] = "SNK Neo Geo CD",
+            ["ngp"] = "SNK Neo Geo Pocket",
             ["ngpc"] = "SNK Neo Geo Pocket Color",
-            ["wonderswan"] = "Bandai WonderSwan",
+            ["ws"] = "Bandai WonderSwan",
+            ["wonderswan"] = "Bandai WonderSwan Color",
             ["vb"] = "Nintendo Virtual Boy",
             ["3do"] = "3DO Interactive Multiplayer",
+            ["cd32"] = "Commodore Amiga CD32",
             ["atari5200"] = "Atari 5200",
             ["colecovision"] = "ColecoVision",
             ["intellivision"] = "Mattel Intellivision",
@@ -849,8 +1390,31 @@ namespace NzbDrone.Core.Games
             ["pcfx"] = "NEC PC-FX",
             ["pokemonmini"] = "Nintendo Pokemon Mini",
             ["odyssey2"] = "Magnavox Odyssey 2",
+            ["videopacplus"] = "Philips Videopac+ G7400",
             ["channelf"] = "Fairchild Channel F",
-            ["cdi"] = "Philips CD-i"
+            ["cdi"] = "Philips CD-i",
+            ["arcadia2001"] = "Emerson Arcadia 2001",
+            ["scv"] = "Epoch Super Cassette Vision",
+            ["cassettevision"] = "Epoch Cassette Vision",
+            ["loopy"] = "Casio Loopy",
+            ["pv1000"] = "Casio PV-1000",
+            ["superacan"] = "Funtech Super A'Can",
+            ["vc4000"] = "Interton VC 4000",
+            ["studio2"] = "RCA Studio II",
+            ["gx4000"] = "Amstrad GX4000",
+            ["creativision"] = "VTech CreatiVision",
+            ["vsmile"] = "VTech V.Smile",
+            ["zeebo"] = "Zeebo",
+            ["picno"] = "Konami Picno",
+            ["supervision"] = "Watara Supervision",
+            ["gamecom"] = "Tiger Game.com",
+            ["adventurevision"] = "Entex Adventure Vision",
+            ["gamemaster"] = "Hartung Game Master",
+            ["gp32"] = "GamePark GP32",
+            ["arduboy"] = "Arduboy",
+            ["gameandwatch"] = "Nintendo Game & Watch",
+            ["leapster"] = "LeapFrog Leapster",
+            ["pocketchallengev2"] = "Benesse Pocket Challenge V2"
         };
 
         private static readonly HashSet<string> DiscBasedPlatformSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -882,9 +1446,14 @@ namespace NzbDrone.Core.Games
             { "Mega Drive", ".md" },
             { "Master System", ".sms" },
             { "Game Gear", ".gg" },
+            { "Sega SG-1000", ".sg" },
+            { "SG-1000", ".sg" },
+            { "Sega Pico", ".md" },
             { "Nintendo 64", ".z64" },
             { "Nintendo DS", ".nds" },
             { "TurboGrafx-16", ".pce" },
+            { "NEC PC Engine SuperGrafx", ".sgx" },
+            { "SuperGrafx", ".sgx" },
             { "Atari 5200", ".a52" },
             { "ColecoVision", ".col" },
             { "Mattel Intellivision", ".int" },
@@ -893,7 +1462,22 @@ namespace NzbDrone.Core.Games
             { "Vectrex", ".vec" },
             { "Pokemon Mini", ".min" },
             { "Magnavox Odyssey 2", ".bin" },
-            { "Fairchild Channel F", ".chf" }
+            { "Philips Videopac+ G7400", ".bin" },
+            { "Fairchild Channel F", ".chf" },
+            { "Bandai WonderSwan", ".ws" },
+            { "Bandai WonderSwan Color", ".wsc" },
+            { "SNK Neo Geo Pocket", ".ngp" },
+            { "SNK Neo Geo Pocket Color", ".ngc" },
+            { "RCA Studio II", ".st2" },
+            { "Amstrad GX4000", ".cpr" },
+            { "Watara Supervision", ".sv" },
+            { "Tiger Game.com", ".tgc" },
+            { "GamePark GP32", ".smc" },
+            { "Arduboy", ".hex" },
+            { "Nintendo Game & Watch", ".mgw" },
+            { "Benesse Pocket Challenge V2", ".pc2" },
+            { "Bandai Sufami Turbo", ".st" },
+            { "Nintendo e-Reader", ".raw" }
         };
 
         public List<PlatformDefinition> GetAll()

@@ -67,6 +67,16 @@ namespace NzbDrone.Core.Test.GamesTests
         [TestCase("gbc", 6)]
         [TestCase("n64", 2)]
         [TestCase("ps1", 12)]
+        [TestCase("sg1000", 33)]
+        [TestCase("neogeocd", 56)]
+        [TestCase("supervision", 63)]
+        [TestCase("arduboy", 71)]
+        [TestCase("arcadia2001", 73)]
+        [TestCase("vc4000", 74)]
+        [TestCase("supergrafx", 8)]
+        [TestCase("ws", 38)]
+        [TestCase("ngp", 14)]
+        [TestCase("videopacplus", 23)]
         public void should_resolve_console_id_accurately(string console, int expectedId)
         {
             RetroAchievementsService.ResolveConsoleId(console).Should().Be(expectedId);

@@ -324,5 +324,17 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
                 .Verify(c => c.Insert(It.IsAny<NzbDrone.Core.Dat.DatFile>(), It.IsAny<List<NzbDrone.Core.Dat.DatEntry>>()), Times.Never());
         }
+
+        [Test]
+        public void should_allow_console_dat_imports_for_cd32_and_gx4000_while_still_filtering_computers()
+        {
+            NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Commodore - CD32").Should().BeFalse();
+            NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Commodore - Amiga CD32").Should().BeFalse();
+            NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Amstrad - GX4000").Should().BeFalse();
+
+            NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Commodore - 64").Should().BeTrue();
+            NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Commodore - Amiga").Should().BeTrue();
+            NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Amstrad - CPC").Should().BeTrue();
+        }
     }
 }

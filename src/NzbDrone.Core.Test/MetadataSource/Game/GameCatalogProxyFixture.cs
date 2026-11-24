@@ -727,7 +727,7 @@ game (
         {
             var platforms = Subject.GetAllPlatforms(Language.English);
 
-            platforms.Should().HaveCount(55);
+            platforms.Should().HaveCount(91);
             platforms.Select(p => p.TvdbId).Should().OnlyHaveUniqueItems();
             platforms.Select(p => p.Title).Should().OnlyHaveUniqueItems();
             platforms.Select(p => p.TitleSlug).Should().OnlyHaveUniqueItems();
@@ -1810,6 +1810,68 @@ game (
             nswdbFetches.Should().Be(2);
             var refreshed = Subject.GetSeriesInfo(switchPlatform.TvdbId, Language.English, null);
             refreshed.Item2.Should().Contain(g => g.Title == "Test Switch Game Two");
+        }
+
+        [Test]
+        public void should_include_all_new_console_handheld_and_addon_platforms_with_dat_feeds()
+        {
+            var expectedNewSlugs = new[]
+            {
+                "neogeocd", "supergrafx", "ws", "ngp",
+                "sg1000", "cd32", "pico", "beena", "arcadia2001", "scv", "cassettevision",
+                "loopy", "pv1000", "superacan", "vc4000", "studio2", "gx4000", "videopacplus",
+                "creativision", "vsmile", "zeebo", "picno",
+                "xbox360digital", "ps3psn", "psppsn",
+                "supervision", "gamecom", "adventurevision", "gamemaster", "gp32",
+                "arduboy", "gameandwatch", "leapster", "pocketchallengev2",
+                "sufamiturbo", "ereader"
+            };
+
+            var proxySlugs = Subject.GetAllPlatforms(Language.English).Select(p => p.TitleSlug).ToHashSet();
+            var catalogServiceSlugs = new NzbDrone.Core.Games.PlatformCatalogService().GetAll().Select(p => p.Slug).ToHashSet();
+
+            foreach (var slug in expectedNewSlugs)
+            {
+                proxySlugs.Should().Contain(slug, $"GameCatalogProxy should define '{slug}'");
+                catalogServiceSlugs.Should().Contain(slug, $"PlatformCatalogService should define '{slug}'");
+                NzbDrone.Core.Games.PlatformCatalogService.KnownPlatformSlugs.Should().Contain(slug);
+            }
+
+            Subject.InferPlatformForText("Sony - PlayStation 3 (PSN)")?.Slug.Should().Be("ps3psn");
+            Subject.InferPlatformForText("SNK - Neo Geo CD")?.Slug.Should().Be("neogeocd");
+            Subject.InferPlatformForText("Microsoft - Xbox 360 (Digital)")?.Slug.Should().Be("xbox360digital");
+            Subject.InferPlatformForText("NEC - PC Engine SuperGrafx")?.Slug.Should().Be("supergrafx");
+            Subject.InferPlatformForText("Epoch - Super Cassette Vision")?.Slug.Should().Be("scv");
+            Subject.InferPlatformForText("Philips - Videopac+")?.Slug.Should().Be("videopacplus");
+
+            var requestedUrls = new List<string>();
+            Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>()
+                .Setup(c => c.Execute(Moq.It.IsAny<NzbDrone.Common.Http.HttpRequest>()))
+                .Returns((NzbDrone.Common.Http.HttpRequest req) =>
+                {
+                    requestedUrls.Add(req.Url.ToString());
+                    return new NzbDrone.Common.Http.HttpResponse(req, new NzbDrone.Common.Http.HttpHeader(), System.Array.Empty<byte>(), System.Net.HttpStatusCode.NotFound);
+                });
+
+            Subject.TryGetPlatformEntryBySlug("xbox360digital", out var x360d).Should().BeTrue();
+            Subject.SyncPlatformDatCatalogs(x360d.TvdbId, forceRefresh: true);
+            requestedUrls.Should().Contain(u => u.Contains("Microsoft%20-%20Xbox%20360%20(Digital).dat"));
+            requestedUrls.Should().Contain(u => u.Contains("Games%20on%20Demand).dat"));
+
+            requestedUrls.Clear();
+            Subject.TryGetPlatformEntryBySlug("neogeocd", out var ngcd).Should().BeTrue();
+            Subject.SyncPlatformDatCatalogs(ngcd.TvdbId, forceRefresh: true);
+            requestedUrls.Should().Contain(u => u.Contains("metadat/redump/SNK%20-%20Neo%20Geo%20CD.dat"));
+
+            requestedUrls.Clear();
+            Subject.TryGetPlatformEntryBySlug("gameandwatch", out var gw).Should().BeTrue();
+            Subject.SyncPlatformDatCatalogs(gw.TvdbId, forceRefresh: true);
+            requestedUrls.Should().Contain(u => u.Contains("dat/Handheld%20Electronic%20Game.dat"));
+
+            requestedUrls.Clear();
+            Subject.TryGetPlatformEntryBySlug("gx4000", out var gx).Should().BeTrue();
+            Subject.SyncPlatformDatCatalogs(gx.TvdbId, forceRefresh: true);
+            requestedUrls.Should().Contain(u => u.Contains("metadat/tosec/Amstrad%20-%20GX4000.dat"));
         }
     }
 }

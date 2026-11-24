@@ -203,10 +203,11 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             ".nes", ".unh", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd",
             ".gb", ".gbc", ".gba", ".nds", ".dsi", ".3ds", ".cia", ".cci", ".nsp", ".xci", ".nsz",
-            ".md", ".gen", ".smd", ".32x", ".sms", ".gg", ".pce", ".sgx", ".cue", ".bin", ".iso",
-            ".chd", ".rvz", ".gcm", ".ciso", ".wbfs", ".wua", ".wux", ".wud", ".rpx", ".gdi", ".cdi",
-            ".cso", ".pbp", ".pkg", ".vpk", ".xiso", ".xex", ".god", ".a26", ".a52", ".a78", ".lnx", ".j64",
-            ".jag", ".neo", ".ngp", ".ngc", ".ws", ".wsc", ".vb", ".col", ".int", ".vec", ".min", ".o2", ".chf", ".ccd", ".rom", ".gam", ".zip", ".7z"
+            ".md", ".gen", ".smd", ".32x", ".sms", ".gg", ".sg", ".sf", ".sc", ".sf7", ".pce", ".sgx", ".st", ".raw",
+            ".cue", ".bin", ".iso", ".chd", ".rvz", ".gcm", ".ciso", ".wbfs", ".wua", ".wux", ".wud", ".rpx", ".gdi", ".cdi",
+            ".cso", ".pbp", ".pkg", ".edat", ".rap", ".vpk", ".xiso", ".xex", ".god", ".gpd", ".a26", ".a52", ".a78", ".lnx", ".j64",
+            ".jag", ".neo", ".ngp", ".ngc", ".ws", ".wsc", ".vb", ".col", ".int", ".vec", ".min", ".o2", ".chf",
+            ".st2", ".cpr", ".sv", ".tgc", ".fxe", ".gxb", ".hex", ".arduboy", ".mgw", ".pc2", ".ccd", ".rom", ".gam", ".zip", ".7z"
         };
 
         private static readonly Regex OpaqueTokenTitleRegex = new Regex(
@@ -390,7 +391,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return exact;
             }
 
-            foreach (var platform in BuiltInPlatforms)
+            foreach (var platform in BuiltInPlatforms.OrderByDescending(p => Math.Max(p.LibretroSystemName?.Length ?? 0, p.Name?.Length ?? 0)))
             {
                 if ((!string.IsNullOrWhiteSpace(platform.LibretroSystemName) &&
                      text.Contains(platform.LibretroSystemName, StringComparison.OrdinalIgnoreCase)) ||
@@ -1214,7 +1215,6 @@ namespace NzbDrone.Core.MetadataSource.Game
             else if (slug == "neogeo")
             {
                 feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/dat/SNK%20-%20Neo%20Geo.dat", "FBNeo / Neo Geo AES"));
-                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/SNK%20-%20Neo%20Geo%20CD.dat", "Redump Neo Geo CD"));
                 feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/{escapedSystem}.dat", "No-Intro"));
             }
             else if (slug == "wiiu")
@@ -1230,6 +1230,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Nintendo%20-%20Wii%20(Digital).dat", "No-Intro WiiWare & VC"));
             }
+            else if (slug == "xbox360digital")
+            {
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Microsoft%20-%20Xbox%20360%20(Digital).dat", "No-Intro Xbox 360 Digital"));
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Microsoft%20-%20XBOX%20360%20(Games%20on%20Demand).dat", "No-Intro Xbox 360 Games on Demand"));
+                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Microsoft%20-%20XBOX%20360%20(Title%20Updates).dat", "No-Intro Xbox 360 Title Updates"));
+            }
             else if (slug is "switch" or "switcheshop")
             {
                 // Nintendo Switch and Switch eShop catalogs are sourced from NSWDB and GameTDB (switchtdb.zip)
@@ -1240,19 +1246,6 @@ namespace NzbDrone.Core.MetadataSource.Game
                 feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/redump/{escapedSystem}.dat", "Redump"));
                 feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/tosec/{escapedSystem}.dat", "TOSEC"));
                 feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/dat/{escapedSystem}.dat", "Libretro DAT"));
-            }
-
-            if (slug == "ngpc")
-            {
-                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/SNK%20-%20Neo%20Geo%20Pocket.dat", "No-Intro Neo Geo Pocket"));
-            }
-            else if (slug == "wonderswan")
-            {
-                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/Bandai%20-%20WonderSwan.dat", "No-Intro WonderSwan"));
-            }
-            else if (slug == "tg16")
-            {
-                feeds.Add(("https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/no-intro/NEC%20-%20PC%20Engine%20SuperGrafx.dat", "No-Intro SuperGrafx"));
             }
 
             feeds.Add(($"https://raw.githubusercontent.com/libretro/libretro-database/master/metadat/homebrew/{escapedSystem}.dat", "Homebrew & Aftermarket"));
@@ -1316,6 +1309,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                     return baseUrl + "NGPC%20RetroHQ%20SMDB.txt";
                 case "wonderswan":
                     return baseUrl + "Wonderswan%20SMDB.txt";
+                case "sg1000":
+                    return baseUrl + "Sega%20SG-1000%20SMDB.txt";
+                case "supervision":
+                    return baseUrl + "Watara%20Supervision%20SMDB.txt";
                 default:
                     return null;
             }
@@ -5134,9 +5131,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                     1990,
                     "SNK - Neo Geo",
                     "Metal Slug 3 (World)",
-                    new[] { "AES", "MVS", "Neo-Geo", "NGCD" },
-                    new[] { ".zip", ".7z", ".neo", ".chd" },
-                    "SNK's legendary 24-bit arcade and home console platform (spanning MVS arcade cabinets, AES home cartridges, and Neo Geo CD) paired a Motorola 68000 CPU and Z80 audio processor with massive multi-hundred-megabit ROM cartridges. Revered for peerless 2D pixel art in Metal Slug, The King of Fighters '98, Garou: Mark of the Wolves, and Samurai Shodown II."),
+                    new[] { "AES", "MVS", "Neo-Geo" },
+                    new[] { ".zip", ".7z", ".neo" },
+                    "SNK's legendary 24-bit arcade and home console platform (spanning MVS arcade cabinets and AES home cartridges) paired a Motorola 68000 CPU and Z80 audio processor with massive multi-hundred-megabit ROM cartridges. Revered for peerless 2D pixel art in Metal Slug, The King of Fighters '98, Garou: Mark of the Wolves, and Samurai Shodown II."),
                 CreatePlatform(
                     1039,
                     "SNK Neo Geo Pocket Color",
@@ -5146,8 +5143,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                     1999,
                     "SNK - Neo Geo Pocket Color",
                     "SNK vs. Capcom - The Match of the Millennium (World)",
-                    new[] { "NGPC", "NGP" },
-                    new[] { ".ngc", ".ngp", ".zip" },
+                    new[] { "NGPC" },
+                    new[] { ".ngc", ".zip", ".7z" },
                     "SNK's 16-bit color handheld (powered by a Toshiba TLCS-900/H CPU) is celebrated for its crisp reflective screen, 40-hour battery life, and tactile microswitch 8-way thumbstick. Its compact library boasts masterpieces like SNK vs. Capcom: The Match of the Millennium, Sonic the Hedgehog Pocket Adventure, and Metal Slug: 1st & 2nd Mission."),
                 CreatePlatform(
                     1040,
@@ -5158,9 +5155,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                     2000,
                     "Bandai - WonderSwan Color",
                     "Final Fantasy (Japan)",
-                    new[] { "WonderSwan", "WSC", "WS" },
-                    new[] { ".wsc", ".ws", ".zip" },
-                    "Conceived by Game Boy creator Gunpei Yokoi's company Koto Laboratory and published by Bandai in Japan, the WonderSwan and WonderSwan Color feature dual directional button layouts for both horizontal and vertical play on a single AA battery. Famous for Squaresoft's remakes of Final Fantasy I, II, and IV, Judgement Silversword, and Gunpey."),
+                    new[] { "WSC", "WonderSwan Color" },
+                    new[] { ".wsc", ".zip", ".7z" },
+                    "Conceived by Game Boy creator Gunpei Yokoi's company Koto Laboratory and published by Bandai in Japan, the WonderSwan Color expanded the original monochrome handheld with color graphics and increased RAM on a single AA battery. Famous for Squaresoft's remakes of Final Fantasy I, II, and IV, Judgement Silversword, and Golden Axe."),
                 CreatePlatform(
                     1041,
                     "3DO Interactive Multiplayer",
@@ -5340,7 +5337,439 @@ namespace NzbDrone.Core.MetadataSource.Game
                     "Golf Story (World) (eShop)",
                     new[] { "Switch eShop", "Nintendo Switch eShop", "NSW eShop", "Switch Digital" },
                     new[] { ".nsp", ".nsz" },
-                    "The Nintendo Switch eShop serves as Nintendo's digital marketplace for Switch, featuring digital-first indie darlings and eShop exclusives including Golf Story, Tetris 99, Snipperclips, and Baba Is You.")
+                    "The Nintendo Switch eShop serves as Nintendo's digital marketplace for Switch, featuring digital-first indie darlings and eShop exclusives including Golf Story, Tetris 99, Snipperclips, and Baba Is You."),
+                CreatePlatform(
+                    1056,
+                    "SNK Neo Geo CD",
+                    "Neo Geo CD",
+                    "neogeocd",
+                    "SNK",
+                    1994,
+                    "SNK - Neo Geo CD",
+                    "Metal Slug (World)",
+                    new[] { "Neo Geo CD", "SNK Neo Geo CD", "NGCD", "NeoGeo CD" },
+                    new[] { ".chd", ".cue", ".bin", ".iso", ".zip", ".7z" },
+                    "SNK's CD-ROM home console brought AES-grade 24-bit fighting and action titles to affordable optical media with arranged CD-DA soundtracks and console-exclusive modes in Ironclad, Samurai Shodown RPG, and Crossed Swords II."),
+                CreatePlatform(
+                    1057,
+                    "NEC PC Engine SuperGrafx",
+                    "SuperGrafx",
+                    "supergrafx",
+                    "NEC",
+                    1989,
+                    "NEC - PC Engine SuperGrafx",
+                    "Ghouls'n Ghosts (Japan)",
+                    new[] { "SuperGrafx", "PC Engine SuperGrafx", "NEC PC Engine SuperGrafx", "SGX" },
+                    new[] { ".sgx", ".pce", ".zip", ".7z" },
+                    "An upgraded 16-bit-graphics successor to NEC's PC Engine featuring twin HuC6270 video display controllers and expanded RAM. Released exclusively in Japan with seven dedicated titles including Dai Makaimura (Ghouls'n Ghosts) and Aldynes."),
+                CreatePlatform(
+                    1058,
+                    "Bandai WonderSwan",
+                    "WS",
+                    "ws",
+                    "Bandai",
+                    1999,
+                    "Bandai - WonderSwan",
+                    "Gunpey (Japan)",
+                    new[] { "WonderSwan", "Bandai WonderSwan", "WS" },
+                    new[] { ".ws", ".zip", ".7z" },
+                    "Bandai's original 16-bit monochrome LCD handheld designed by Gunpei Yokoi's Koto Laboratory featured ambidextrous horizontal/vertical play and 40-hour single-AA battery life across exclusives like Gunpey, Klonoa: Moonlight Museum, and Makaimura for WonderSwan."),
+                CreatePlatform(
+                    1059,
+                    "SNK Neo Geo Pocket",
+                    "NGP",
+                    "ngp",
+                    "SNK",
+                    1998,
+                    "SNK - Neo Geo Pocket",
+                    "King of Fighters R-1 (Japan, Europe)",
+                    new[] { "Neo Geo Pocket", "SNK Neo Geo Pocket", "NGP" },
+                    new[] { ".ngp", ".zip", ".7z" },
+                    "SNK's original 16-bit monochrome handheld introduced the signature microswitch 'clicky stick' before being succeeded by the Color model, featuring dedicated monochrome titles like King of Fighters R-1, Samurai Shodown!, and Melonchan's Growth Diary."),
+                CreatePlatform(
+                    1060,
+                    "Sega SG-1000",
+                    "SG-1000",
+                    "sg1000",
+                    "Sega",
+                    1983,
+                    "Sega - SG-1000",
+                    "Girl's Garden (Japan)",
+                    new[] { "SG-1000", "Sega SG-1000", "SC-3000" },
+                    new[] { ".sg", ".sc", ".sf7", ".bin", ".zip", ".7z" },
+                    "Released on the same day as Nintendo's Famicom in 1983, Sega's first cartridge home console used a Zilog Z80 CPU and TMS9918 video processor, laying the technical foundation for the Master System and Game Gear."),
+                CreatePlatform(
+                    1061,
+                    "Commodore Amiga CD32",
+                    "CD32",
+                    "cd32",
+                    "Commodore",
+                    1993,
+                    "Commodore - CD32",
+                    "Microcosm (Europe)",
+                    new[] { "Amiga CD32", "Commodore CD32", "CD32" },
+                    new[] { ".chd", ".cue", ".bin", ".iso", ".zip", ".7z" },
+                    "Released in 1993 as Europe's first 32-bit CD-ROM home game console, the Amiga CD32 paired Commodore's AGA chipset with an Akiko chunky-to-planar co-processor for titles like Banshee, Super Stardust, and Liberation: Captive 2."),
+                CreatePlatform(
+                    1062,
+                    "Sega Pico",
+                    "Pico",
+                    "pico",
+                    "Sega",
+                    1993,
+                    "Sega - PICO",
+                    "Sonic Gameworld (USA)",
+                    new[] { "Sega Pico", "Pico", "Sega - PICO" },
+                    new[] { ".md", ".bin", ".zip", ".7z" },
+                    "Built upon Sega Genesis/Mega Drive hardware inside a book-shaped console with stylus-sensitive storybooks, the Sega Pico delivered interactive edutainment titles starring Sonic, Mickey Mouse, and Pokemon."),
+                CreatePlatform(
+                    1063,
+                    "Sega Advanced Pico Beena",
+                    "Beena",
+                    "beena",
+                    "Sega",
+                    2005,
+                    "Sega - Beena",
+                    "Soreike! Anpanman - Wakuwaku Eigo Game! (Japan)",
+                    new[] { "Beena", "Sega Beena", "Advanced Pico Beena" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Sega Toys' ARM7-powered successor to the Sega Pico featured wireless dual-stylus storybooks and SD card expansion for educational titles across Japan."),
+                CreatePlatform(
+                    1064,
+                    "Emerson Arcadia 2001",
+                    "Arcadia 2001",
+                    "arcadia2001",
+                    "Emerson",
+                    1982,
+                    "Emerson - Arcadia 2001",
+                    "Cat Trax (USA, Europe)",
+                    new[] { "Arcadia 2001", "Emerson Arcadia 2001", "Leisure Vision" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "A compact second-generation Signetics 2650-based console licensed internationally under dozens of variants (including Schmidt TVG-2000 and Bandai Arcadia), notable for crisp arcade-style color cartridges."),
+                CreatePlatform(
+                    1065,
+                    "Epoch Super Cassette Vision",
+                    "SCV",
+                    "scv",
+                    "Epoch",
+                    1984,
+                    "Epoch - Super Cassette Vision",
+                    "Lupin III (Japan)",
+                    new[] { "Super Cassette Vision", "Epoch Super Cassette Vision", "SCV" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Epoch's 1984 Japanese and European third-generation home console built on an NEC uPD7801G CPU featured surprisingly capable multi-color sprite hardware and licensed Dragon Ball and Lupin III cartridges."),
+                CreatePlatform(
+                    1066,
+                    "Epoch Cassette Vision",
+                    "Cassette Vision",
+                    "cassettevision",
+                    "Epoch",
+                    1981,
+                    "Epoch - Cassette Vision",
+                    "Kikori no Yosaku (Japan)",
+                    new[] { "Cassette Vision", "Epoch Cassette Vision" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Japan's best-selling pre-Famicom programmable cartridge console housed a custom NEC processor directly inside each cartridge while keeping switches and dials on the console body."),
+                CreatePlatform(
+                    1067,
+                    "Casio Loopy",
+                    "Loopy",
+                    "loopy",
+                    "Casio",
+                    1995,
+                    "Casio - Loopy",
+                    "Anime Land (Japan)",
+                    new[] { "Casio Loopy", "Loopy" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Casio's unique 32-bit SuperH SH-1 console released in Japan in 1995 featured a built-in thermal color sticker printer, catering to creative, fashion, and romance simulation software."),
+                CreatePlatform(
+                    1068,
+                    "Casio PV-1000",
+                    "PV-1000",
+                    "pv1000",
+                    "Casio",
+                    1983,
+                    "Casio - PV-1000",
+                    "Pooyan (Japan)",
+                    new[] { "Casio PV-1000", "PV-1000" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Casio's short-lived 1983 Z80-powered home console delivered faithful conversions of early arcade hits like Pooyan, Tutankham, and Dig Dug during its brief Japanese run."),
+                CreatePlatform(
+                    1069,
+                    "Funtech Super A'Can",
+                    "Super A'Can",
+                    "superacan",
+                    "Funtech",
+                    1995,
+                    "Funtech - Super Acan",
+                    "Sango Fighter (Taiwan)",
+                    new[] { "Super A'Can", "Funtech Super Acan", "Funtech Super A'Can", "Super Acan" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Engineered in Taiwan with a Motorola 68000 and 6502 co-processor, Funtech's 1995 16-bit console supported 32,768 simultaneous colors and released twelve sought-after Taiwanese exclusives."),
+                CreatePlatform(
+                    1070,
+                    "Interton VC 4000",
+                    "VC 4000",
+                    "vc4000",
+                    "Interton",
+                    1978,
+                    "Interton - VC 4000",
+                    "Invaders (Europe)",
+                    new[] { "VC 4000", "Interton VC 4000" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Germany's landmark 1978 8-bit Signetics 2650 home console spawned numerous European compatibles across the Radofin/Acetronic family and featured keypad controllers for strategy and action games."),
+                CreatePlatform(
+                    1071,
+                    "RCA Studio II",
+                    "Studio II",
+                    "studio2",
+                    "RCA",
+                    1977,
+                    "RCA - Studio II",
+                    "Space War (USA)",
+                    new[] { "RCA Studio II", "Studio II", "RCA - Studio II" },
+                    new[] { ".st2", ".bin", ".rom", ".zip", ".7z" },
+                    "Released in early 1977 on the RCA CDP1802 COSMAC microprocessor, the Studio II utilized dual integrated 10-key keypads and monochrome RF graphics alongside five built-in games."),
+                CreatePlatform(
+                    1072,
+                    "Amstrad GX4000",
+                    "GX4000",
+                    "gx4000",
+                    "Amstrad",
+                    1990,
+                    "Amstrad - GX4000",
+                    "Burnin' Rubber (Europe)",
+                    new[] { "Amstrad GX4000", "GX4000" },
+                    new[] { ".cpr", ".bin", ".zip", ".7z" },
+                    "Amstrad's 1990 entry into the European cartridge console market packed the enhanced 4,096-color CPC Plus ASIC graphics and DMA sound hardware into a dedicated plug-and-play console."),
+                CreatePlatform(
+                    1073,
+                    "Philips Videopac+ G7400",
+                    "Videopac+",
+                    "videopacplus",
+                    "Philips",
+                    1983,
+                    "Philips - Videopac+",
+                    "Pick Axe Pete+ (Europe)",
+                    new[] { "Videopac+", "Philips Videopac+", "G7400", "Odyssey 3" },
+                    new[] { ".bin", ".o2", ".zip", ".7z" },
+                    "Philips' enhanced European successor to the Odyssey 2 / Videopac G7000 added an EF9340/EF9341 co-processor for high-resolution multi-color background graphics on compatible '+' cartridges."),
+                CreatePlatform(
+                    1074,
+                    "VTech CreatiVision",
+                    "CreatiVision",
+                    "creativision",
+                    "VTech",
+                    1981,
+                    "VTech - CreatiVision",
+                    "Sonic Invader (Europe)",
+                    new[] { "CreatiVision", "VTech CreatiVision", "FunVision", "Laser 2001" },
+                    new[] { ".rom", ".bin", ".zip", ".7z" },
+                    "VTech's 1981 6502/TMS9918 hybrid console combined dual joystick-keypad controllers with color arcade cartridges and optional computer expansion across Europe, Australia, and Asia."),
+                CreatePlatform(
+                    1075,
+                    "VTech V.Smile",
+                    "V.Smile",
+                    "vsmile",
+                    "VTech",
+                    2004,
+                    "VTech - V.Smile",
+                    "Spider-Man & Friends - Secret Missions (USA)",
+                    new[] { "V.Smile", "VTech V.Smile", "VSmile" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Designed around a 16-bit Sunplus SPG microprocessor, the VTech V.Smile brought interactive Smartridge educational adventures featuring Spider-Man, Toy Story, and Scooby-Doo to millions of homes."),
+                CreatePlatform(
+                    1076,
+                    "Zeebo",
+                    "Zeebo",
+                    "zeebo",
+                    "Tectoy / Qualcomm",
+                    2009,
+                    "Mobile - Zeebo",
+                    "Zeebo Extreme - Baja (Brazil)",
+                    new[] { "Zeebo", "Mobile - Zeebo" },
+                    new[] { ".bin", ".zip", ".7z" },
+                    "Developed by Tectoy and Qualcomm for emerging markets in Brazil and Mexico, the Zeebo delivered digital-only BREW console games over built-in 3G cellular connectivity."),
+                CreatePlatform(
+                    1077,
+                    "Konami Picno",
+                    "Picno",
+                    "picno",
+                    "Konami",
+                    1992,
+                    "Konami - Picno",
+                    "Shirayukihime Monogatari (Japan)",
+                    new[] { "Picno", "Konami Picno" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Konami's 1992 Japanese touch-pen creative and educational console allowed young players to draw, paint, and explore interactive story cartridges on a television."),
+                CreatePlatform(
+                    1078,
+                    "Microsoft Xbox 360 Digital",
+                    "Xbox 360 Digital",
+                    "xbox360digital",
+                    "Microsoft",
+                    2005,
+                    "Microsoft - Xbox 360 (Digital)",
+                    "Geometry Wars - Retro Evolved (World) (XBLA)",
+                    new[] { "Xbox 360 Digital", "Xbox Live Arcade", "XBLA", "Xbox 360 (Digital)" },
+                    new[] { ".xex", ".god", ".iso", ".zip", ".7z" },
+                    "Covering Microsoft's Xbox Live Arcade, Games on Demand, and digital title update packages, the Xbox 360 Digital catalog preserves landmark digital-first classics including Geometry Wars, Braid, Shadow Complex, and Castlevania: Harmony of Despair."),
+                CreatePlatform(
+                    1079,
+                    "Sony PlayStation 3 PSN",
+                    "PS3 PSN",
+                    "ps3psn",
+                    "Sony",
+                    2006,
+                    "Sony - PlayStation 3 (PSN)",
+                    "Journey (USA) (PSN)",
+                    new[] { "PS3 PSN", "PlayStation 3 PSN", "Sony PlayStation 3 (PSN)" },
+                    new[] { ".pkg", ".rap", ".zip", ".7z" },
+                    "Sony's PlayStation Network digital catalog for PS3 features digital-only releases, PSN exclusives, and HD downloadable titles led by Journey, Tokyo Jungle, Super Stardust HD, and Scott Pilgrim vs. The World."),
+                CreatePlatform(
+                    1080,
+                    "Sony PlayStation Portable PSN",
+                    "PSP PSN",
+                    "psppsn",
+                    "Sony",
+                    2008,
+                    "Sony - PlayStation Portable (PSN)",
+                    "Patapon 3 (USA) (PSN)",
+                    new[] { "PSP PSN", "PlayStation Portable PSN", "Sony PlayStation Portable (PSN)" },
+                    new[] { ".pkg", ".pbp", ".iso", ".cso", ".zip", ".7z" },
+                    "Covering digital PlayStation Store releases and PSP Minis distributed directly via PlayStation Network, the PSP PSN library includes LocoRoco, Patapon, PixelJunk Monsters Deluxe, and digital-only localizations."),
+                CreatePlatform(
+                    1081,
+                    "Watara Supervision",
+                    "Supervision",
+                    "supervision",
+                    "Watara",
+                    1992,
+                    "Watara - Supervision",
+                    "Crystball (USA, Europe)",
+                    new[] { "Supervision", "Watara Supervision", "QuickShot Supervision" },
+                    new[] { ".sv", ".bin", ".zip", ".7z" },
+                    "Released as a budget rival to the Nintendo Game Boy powered by a 65C02 CPU and larger 4-shade monochrome LCD, the Watara Supervision offered a tiltable screen and budget hits like Crystball and Sonny X'Press."),
+                CreatePlatform(
+                    1082,
+                    "Tiger Game.com",
+                    "Game.com",
+                    "gamecom",
+                    "Tiger Electronics",
+                    1997,
+                    "Tiger - Game.com",
+                    "Lights Out (USA)",
+                    new[] { "Game.com", "Tiger Game.com", "GameCom" },
+                    new[] { ".tgc", ".bin", ".zip", ".7z" },
+                    "Pioneering a touchscreen stylus interface, dual cartridge slots, and an internet modem cartridge years ahead of modern smartphones, Tiger's Game.com featured licensed conversions of Resident Evil 2, Sonic Jam, and Duke Nukem 3D."),
+                CreatePlatform(
+                    1083,
+                    "Entex Adventure Vision",
+                    "Adventure Vision",
+                    "adventurevision",
+                    "Entex",
+                    1982,
+                    "Entex - Adventure Vision",
+                    "Space Force (USA)",
+                    new[] { "Adventure Vision", "Entex Adventure Vision" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Entex's self-contained tabletop cartridge system used a single 40-LED array and spinning mirror inside a futuristic visor to display glowing red raster graphics across four arcade-inspired cartridges."),
+                CreatePlatform(
+                    1084,
+                    "Hartung Game Master",
+                    "Game Master",
+                    "gamemaster",
+                    "Hartung",
+                    1990,
+                    "Hartung - Game Master",
+                    "Falling Block (Europe)",
+                    new[] { "Game Master", "Hartung Game Master", "Systema 2000" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "Hartung's rare European handheld console used a built-in low-resolution dot-matrix LCD and oversized cartridges, distributed across Europe under brands including Systema 2000 and Delplay."),
+                CreatePlatform(
+                    1085,
+                    "GamePark GP32",
+                    "GP32",
+                    "gp32",
+                    "GamePark",
+                    2001,
+                    "GamePark - GP32",
+                    "Astonishia Story R (Korea)",
+                    new[] { "GP32", "GamePark GP32" },
+                    new[] { ".smc", ".fxe", ".gxb", ".bin", ".zip", ".7z" },
+                    "South Korea's open-architecture 32-bit ARM9 handheld utilized SmartMedia cards for both commercial Korean releases like Astonishia Story R and Mill, and a thriving early homebrew scene."),
+                CreatePlatform(
+                    1086,
+                    "Arduboy",
+                    "Arduboy",
+                    "arduboy",
+                    "Arduboy Inc.",
+                    2016,
+                    "Arduboy Inc - Arduboy",
+                    "MicroCity (World)",
+                    new[] { "Arduboy", "Arduboy Inc - Arduboy" },
+                    new[] { ".hex", ".arduboy", ".zip", ".7z" },
+                    "Credit-card-sized open-source miniature handheld powered by an ATmega32u4 microcontroller and sharp 128x64 monochrome OLED display with hundreds of community-built arcade and puzzle games."),
+                CreatePlatform(
+                    1087,
+                    "Nintendo Game & Watch",
+                    "Game & Watch",
+                    "gameandwatch",
+                    "Nintendo",
+                    1980,
+                    "Handheld Electronic Game",
+                    "Ball (World)",
+                    new[] { "Game & Watch", "Nintendo Game & Watch", "Handheld Electronic Game" },
+                    new[] { ".mgw", ".zip", ".7z" },
+                    "Gunpei Yokoi's iconic 1980–1991 series of microprocessor-driven segmented LCD electronic games that debuted Donkey Kong's D-pad, Balloon Fight, Oil Panic, and Mr. Game & Watch."),
+                CreatePlatform(
+                    1088,
+                    "LeapFrog Leapster",
+                    "Leapster",
+                    "leapster",
+                    "LeapFrog",
+                    2003,
+                    "LeapFrog - Leapster Learning Game System",
+                    "Sonic X (USA)",
+                    new[] { "Leapster", "LeapFrog Leapster", "Leapster Learning Game System" },
+                    new[] { ".bin", ".rom", ".zip", ".7z" },
+                    "LeapFrog's touchscreen ARM educational handheld launched in 2003 with stylus mini-games and licensed learning cartridges starring Sonic X, Spider-Man, and SpongeBob SquarePants."),
+                CreatePlatform(
+                    1089,
+                    "Benesse Pocket Challenge V2",
+                    "Pocket Challenge V2",
+                    "pocketchallengev2",
+                    "Benesse",
+                    2000,
+                    "Benesse - Pocket Challenge V2",
+                    "Shinken Zemi Chuu-1 Kouza - Eigo - New Horizon Taiou (Japan)",
+                    new[] { "Pocket Challenge V2", "Benesse Pocket Challenge V2" },
+                    new[] { ".pc2", ".ws", ".bin", ".zip", ".7z" },
+                    "Built upon WonderSwan monochrome hardware specifically for Benesse's Japanese Shinken Zemi correspondence learning courses with vertical/horizontal study cartridges."),
+                CreatePlatform(
+                    1090,
+                    "Bandai Sufami Turbo",
+                    "Sufami Turbo",
+                    "sufamiturbo",
+                    "Bandai",
+                    1996,
+                    "Nintendo - Sufami Turbo",
+                    "SD Ultra Battle - Ultraman Densetsu (Japan)",
+                    new[] { "Sufami Turbo", "Bandai Sufami Turbo", "Nintendo Sufami Turbo" },
+                    new[] { ".st", ".sfc", ".smc", ".zip", ".7z" },
+                    "Bandai's compact Super Famicom cartridge add-on featured twin mini-cartridge slots allowing two games (including SD Gundam Generations and poi-style linkable releases) to share saves and characters."),
+                CreatePlatform(
+                    1091,
+                    "Nintendo e-Reader",
+                    "e-Reader",
+                    "ereader",
+                    "Nintendo",
+                    2001,
+                    "Nintendo - e-Reader",
+                    "Mario Party-e (USA)",
+                    new[] { "e-Reader", "Nintendo e-Reader", "Card e-Reader" },
+                    new[] { ".raw", ".bin", ".gba", ".zip", ".7z" },
+                    "Nintendo's optical dot-code card scanner peripheral for Game Boy Advance unlocked NES classics, Super Mario Advance 4 bonus levels, Animal Crossing patterns, and standalone Pokemon mini-games.")
             };
         }
 

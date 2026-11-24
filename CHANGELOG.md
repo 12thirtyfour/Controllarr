@@ -25,6 +25,16 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-24
 
+### Added
+- **Expanded Console, Handheld & Add-On Catalog (+36 Verified Platforms in `GameCatalogProxy`, `PlatformCatalogService`, `PlatformCompatibilityValidator`, `DatCacheService`, `GameMediaAssetService`, `RetroAchievementsService`, `VirtualLibraryService`, `gameAchievementsHelper`)**:
+  - Added 36 dedicated console, handheld, digital storefront, and hardware add-on platforms (`TvdbId` 1056–1091) backed by live, cryptographically hashed No-Intro, Redump, TOSEC, Libretro DAT, and SmokeMonster SMDB feeds:
+    - **Split Sibling Hardware Platforms**: SNK Neo Geo CD (`neogeocd`), NEC PC Engine SuperGrafx (`supergrafx`), Bandai WonderSwan (`ws`), SNK Neo Geo Pocket (`ngp`).
+    - **Home Video Game Consoles**: Sega SG-1000 (`sg1000`), Commodore Amiga CD32 (`cd32`), Sega Pico (`pico`), Sega Advanced Pico Beena (`beena`), Emerson Arcadia 2001 (`arcadia2001`), Epoch Super Cassette Vision (`scv`), Epoch Cassette Vision (`cassettevision`), Casio Loopy (`loopy`), Casio PV-1000 (`pv1000`), Funtech Super A'Can (`superacan`), Interton VC 4000 (`vc4000`), RCA Studio II (`studio2`), Amstrad GX4000 (`gx4000`), Philips Videopac+ G7400 (`videopacplus`), VTech CreatiVision (`creativision`), VTech V.Smile (`vsmile`), Zeebo (`zeebo`), Konami Picno (`picno`).
+    - **Console Digital Storefronts**: Microsoft Xbox 360 Digital (`xbox360digital`), Sony PlayStation 3 PSN (`ps3psn`), Sony PlayStation Portable PSN (`psppsn`).
+    - **Handheld Consoles**: Watara Supervision (`supervision`), Tiger Game.com (`gamecom`), Entex Adventure Vision (`adventurevision`), Hartung Game Master (`gamemaster`), GamePark GP32 (`gp32`), Arduboy (`arduboy`), Nintendo Game & Watch (`gameandwatch`), LeapFrog Leapster (`leapster`), Benesse Pocket Challenge V2 (`pocketchallengev2`).
+    - **Console Add-Ons**: Bandai Sufami Turbo (`sufamiturbo`), Nintendo e-Reader (`ereader`).
+  - Added sibling DAT collision exclusions in `DatCacheService`, shortest-prefix overrides in `GameCatalogProxy.InferPlatformForText`, shared extension handling and sibling disambiguation in `PlatformCompatibilityValidator`, console-only exceptions for `Commodore - CD32` and `Amstrad - GX4000` in `GameMediaAssetService`, RetroAchievements console ID mappings, and MiSTer/RetroArch/Analogue Pocket/OnionOS/Batocera/EverDrive preset folder mappings in `VirtualLibraryService`.
+
 ### Fixed
 - **DAT Update & Library Refresh Sequencing (`DatCatalogUpdateService`, `DatDatabaseUpdatedHandler`, `CommandQueue`, `RefreshPlatformService`, `DiskScanService`, `TaskManager`, `Scheduler`)**:
   - Prevented `RefreshPlatformCommand` and `RescanPlatformCommand` from executing while `UpdateDatCatalogsCommand` is queued or active (or during direct DAT catalog sync scopes), and ensured `UpdateDatCatalogsCommand` waits if a library refresh/scan is already running.

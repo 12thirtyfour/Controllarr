@@ -122,7 +122,8 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("wiki-bloxcardswiki-20230101.zip", "fds", "Famicom Disk System", false)]
         [TestCase("My Game (Roblox).zip", "fds", "Famicom Disk System", false)]
         [TestCase("Castlevania Harmony of Despair (XBLA).zip", "fds", "Famicom Disk System", false)]
-        [TestCase("Castlevania Harmony of Despair (XBLA).zip", "xbox360", "Xbox 360", true)]
+        [TestCase("Castlevania Harmony of Despair (XBLA).zip", "xbox360digital", "Xbox 360 Digital", true)]
+        [TestCase("Castlevania Harmony of Despair (XBLA).zip", "xbox360", "Xbox 360", false)]
         [TestCase("Bonk's Adventure (PC Engine) (USA).zip", "tg16", "TurboGrafx-16", true)]
         [TestCase("PC Kid (Japan).pce", "tg16", "TurboGrafx-16", true)]
         [TestCase("Zeroigar (PC-FX) (Japan).chd", "pcfx", "PC-FX", true)]
@@ -168,6 +169,34 @@ namespace NzbDrone.Core.Test.ParserTests
                     System.IO.Directory.Delete(tempDir, true);
                 }
             }
+        }
+
+        [TestCase("SNK - Neo Geo CD - Metal Slug.chd", "neogeocd", "neogeo")]
+        [TestCase("NEC - PC Engine SuperGrafx - Aldynes.sgx", "supergrafx", "tg16")]
+        [TestCase("Microsoft - Xbox 360 (Digital) - Braid (XBLA).zip", "xbox360digital", "xbox360")]
+        [TestCase("Sony - PlayStation 3 (PSN) - Journey.pkg", "ps3psn", "ps3")]
+        [TestCase("Sony - PlayStation Portable (PSN) - Patapon.pkg", "psppsn", "psp")]
+        [TestCase("Philips - Videopac+ - Pick Axe Pete+.bin", "videopacplus", "odyssey2")]
+        [TestCase("Epoch - Super Cassette Vision - Lupin III.bin", "scv", "cassettevision")]
+        [TestCase("Bandai - WonderSwan Color - Final Fantasy.wsc", "wonderswan", "ws")]
+        [TestCase("SNK - Neo Geo Pocket Color - Match.ngc", "ngpc", "ngp")]
+        [TestCase("Sega - Beena - Anpanman.bin", "beena", "pico")]
+        [TestCase("Nintendo - e-Reader - Mario Party-e.raw", "ereader", "gba")]
+        [TestCase("Bandai - Sufami Turbo - Ultraman.st", "sufamiturbo", "snes")]
+        public void should_distinguish_sibling_and_new_console_platforms_on_detection(string input, string expectedSlug, string excludedParentSlug)
+        {
+            var detected = PlatformCompatibilityValidator.DetectPlatforms(input);
+            detected.Should().Contain(expectedSlug);
+            detected.Should().NotContain(excludedParentSlug);
+        }
+
+        [Test]
+        public void should_allow_shared_rom_extensions_for_new_platforms_when_untagged()
+        {
+            PlatformCompatibilityValidator.IsCompatible("Sega Pico/Sonic Gameworld (USA).md", "pico", "Sega Pico").Should().BeTrue();
+            PlatformCompatibilityValidator.IsCompatible("Sega Pico/Sonic (Genesis).md", "pico", "Sega Pico").Should().BeFalse();
+            PlatformCompatibilityValidator.IsCompatible("GamePark GP32/Astonishia Story R (Korea).smc", "gp32", "GamePark GP32").Should().BeTrue();
+            PlatformCompatibilityValidator.IsCompatible("GamePark GP32/Chrono Trigger (SNES).smc", "gp32", "GamePark GP32").Should().BeFalse();
         }
     }
 }

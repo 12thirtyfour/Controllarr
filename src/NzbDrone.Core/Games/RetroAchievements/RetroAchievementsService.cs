@@ -320,6 +320,10 @@ namespace NzbDrone.Core.Games.RetroAchievements
                 "vb" => 28,
                 "sg1000" => 33,
                 "wonderswan" => 38,
+                "ws" => 38,
+                "ngp" => 14,
+                "supergrafx" => 8,
+                "videopacplus" => 23,
                 "saturn" => 39,
                 "dreamcast" => 40,
                 "psp" => 41,
@@ -331,6 +335,10 @@ namespace NzbDrone.Core.Games.RetroAchievements
                 "atari7800" => 49,
                 "jaguarcd" => 51,
                 "neogeocd" => 56,
+                "supervision" => 63,
+                "arduboy" => 71,
+                "arcadia2001" => 73,
+                "vc4000" => 74,
                 _ => 0
             };
         }
@@ -577,6 +585,11 @@ namespace NzbDrone.Core.Games.RetroAchievements
                 return "dreamcast";
             }
 
+            if (c.Contains("sg-1000") || c.Contains("sg1000"))
+            {
+                return "sg1000";
+            }
+
             if (c.Contains("master system") || c == "sms")
             {
                 return "sms";
@@ -587,9 +600,59 @@ namespace NzbDrone.Core.Games.RetroAchievements
                 return "genesis";
             }
 
-            if (c.Contains("pc engine") || c.Contains("turbografx"))
+            if (c.Contains("turbografx-cd") || c.Contains("turbografx cd") || c.Contains("pc engine cd") || c == "tgcd")
+            {
+                return "tgcd";
+            }
+
+            if (c.Contains("pc engine") || c.Contains("turbografx") || c.Contains("supergrafx") || c == "tg16" || c == "pce")
             {
                 return "tg16";
+            }
+
+            if (c.Contains("neo geo pocket") || c.Contains("neogeo pocket") || c == "ngpc" || c == "ngp")
+            {
+                return "ngpc";
+            }
+
+            if (c.Contains("neo geo cd") || c.Contains("neogeocd") || c == "ngcd")
+            {
+                return "neogeocd";
+            }
+
+            if (c.Contains("neo geo") || c.Contains("neogeo"))
+            {
+                return "neogeo";
+            }
+
+            if (c.Contains("wonderswan") || c == "wsc" || c == "ws")
+            {
+                return "wonderswan";
+            }
+
+            if (c.Contains("videopac") || c.Contains("odyssey"))
+            {
+                return "odyssey2";
+            }
+
+            if (c.Contains("supervision"))
+            {
+                return "supervision";
+            }
+
+            if (c.Contains("arduboy"))
+            {
+                return "arduboy";
+            }
+
+            if (c.Contains("arcadia 2001") || c.Contains("arcadia2001"))
+            {
+                return "arcadia2001";
+            }
+
+            if (c.Contains("vc 4000") || c.Contains("vc-4000") || c.Contains("vc4000"))
+            {
+                return "vc4000";
             }
 
             if (c.Contains("2600"))
