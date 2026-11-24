@@ -25,6 +25,10 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-24
 
+### Added
+- **Console Hardware Imagery for All 36 Added Platforms (`frontend/public/Content/Images/Consoles/*.png`, `THIRD_PARTY_NOTICES.md`)**:
+  - Sourced, background-removed (with anti-aliased alpha matting and edge color-decontamination to `512x512` RGBA transparent PNGs), and visually QA'd authentic hardware photographs for all 36 added platforms (`neogeocd`, `supergrafx`, `ws`, `ngp`, `sg1000`, `cd32`, `gameandwatch`, `arcadia2001`, `scv`, `cassettevision`, `loopy`, `pv1000`, `superacan`, `vc4000`, `studio2`, `gx4000`, `creativision`, `supervision`, `gamecom`, `arduboy`, `gp32`, `pico`, `gamemaster`, `leapster`, `ereader`, `adventurevision`, `videopacplus`, `vsmile`, `zeebo`, `beena`, `picno`, `pocketchallengev2`, `sufamiturbo`, plus digital storefront entries `xbox360digital`, `ps3psn`, `psppsn`), primarily sourced from Evan-Amos / Wikimedia Commons and archival hardware repositories.
+
 ### Fixed
 - **Automatic Archive Extraction on Import (`DownloadedGamesImportService`, `RejectedImportService`, `CompletedDownloadService`)**:
   - Automatically extracts downloaded archive files (`.rar`, multi-part `.part1.rar`/`.r00`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tbz2`, `.tb2`, `.gz`, `.bz2`, and any unhandled `.zip`/`.7z`) during folder and single-file import using Zip-Slip path guards and junk filtering, validating and importing extracted ROMs without blocking on `"Found archive file, might need to be extracted"`.
