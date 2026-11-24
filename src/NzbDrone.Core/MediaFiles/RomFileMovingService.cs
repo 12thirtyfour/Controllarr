@@ -50,7 +50,6 @@ namespace NzbDrone.Core.MediaFiles
         private readonly ISidecarSaveService _sidecarSaveService;
         private readonly IDiscCompressionService _discCompressionService;
         private readonly IArchiveRepackService _archiveRepackService;
-        private readonly IArchiveExtractionService _archiveExtractionService;
         private readonly IImportActivityService _importActivityService;
         private readonly Logger _logger;
 
@@ -68,7 +67,6 @@ namespace NzbDrone.Core.MediaFiles
                                 ISidecarSaveService sidecarSaveService = null,
                                 IDiscCompressionService discCompressionService = null,
                                 IArchiveRepackService archiveRepackService = null,
-                                IArchiveExtractionService archiveExtractionService = null,
                                 IImportActivityService importActivityService = null)
         {
             _gameService = gameService;
@@ -85,7 +83,6 @@ namespace NzbDrone.Core.MediaFiles
             _sidecarSaveService = sidecarSaveService;
             _discCompressionService = discCompressionService;
             _archiveRepackService = archiveRepackService;
-            _archiveExtractionService = archiveExtractionService;
             _importActivityService = importActivityService;
         }
 
@@ -390,7 +387,7 @@ namespace NzbDrone.Core.MediaFiles
                             var stagedZipPath = Path.Combine(tempStagingDir, Path.ChangeExtension(Path.GetFileName(destinationFilePath), ".zip"));
                             var entryName = Path.ChangeExtension(Path.GetFileName(destinationFilePath), innerExt);
 
-                            CreateSingleRomZip(unwrappedRomPath, stagedZipPath, entryName, innerExt);
+                            CreateSingleRomZip(unwrappedRomPath, stagedZipPath, entryName);
 
                             if (File.Exists(stagedZipPath) && new FileInfo(stagedZipPath).Length > 0)
                             {
@@ -429,7 +426,7 @@ namespace NzbDrone.Core.MediaFiles
                     var stagedZipPath = Path.Combine(tempStagingDir, Path.ChangeExtension(Path.GetFileName(destinationFilePath), ".zip"));
                     var entryName = Path.ChangeExtension(Path.GetFileName(destinationFilePath), ext);
 
-                    CreateSingleRomZip(sourceFilePath, stagedZipPath, entryName, ext);
+                    CreateSingleRomZip(sourceFilePath, stagedZipPath, entryName);
 
                     if (File.Exists(stagedZipPath) && new FileInfo(stagedZipPath).Length > 0)
                     {
@@ -615,22 +612,9 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        private void CreateSingleRomZip(string sourceRomPath, string stagedZipPath, string entryName, string ext)
+        private static void CreateSingleRomZip(string sourceRomPath, string stagedZipPath, string entryName)
         {
             using var zipArchive = ZipFile.Open(stagedZipPath, ZipArchiveMode.Create);
-            if (ext == ".nes" && _archiveRepackService != null)
-            {
-                var romBytes = File.ReadAllBytes(sourceRomPath);
-                var modernized = _archiveRepackService.ModernizeINesHeader(romBytes);
-                if (modernized != null && !ReferenceEquals(romBytes, modernized))
-                {
-                    var entry = zipArchive.CreateEntry(entryName, CompressionLevel.Optimal);
-                    using var entryStream = entry.Open();
-                    entryStream.Write(modernized, 0, modernized.Length);
-                    return;
-                }
-            }
-
             zipArchive.CreateEntryFromFile(sourceRomPath, entryName, CompressionLevel.Optimal);
         }
 
@@ -711,16 +695,6 @@ namespace NzbDrone.Core.MediaFiles
 
             try
             {
-                if (ext == ".nes" && _archiveRepackService != null && File.Exists(destinationFilePath))
-                {
-                    var romBytes = File.ReadAllBytes(destinationFilePath);
-                    var modernized = _archiveRepackService.ModernizeINesHeader(romBytes);
-                    if (modernized != null && !ReferenceEquals(romBytes, modernized))
-                    {
-                        File.WriteAllBytes(destinationFilePath, modernized);
-                    }
-                }
-
                 if (ArchiveRepackService.IsArchiveExtension(ext) && File.Exists(destinationFilePath))
                 {
                     if (ShouldUnwrapArchiveBeforeMove(destinationFilePath, ext, shouldCompress, platform))
@@ -748,7 +722,7 @@ namespace NzbDrone.Core.MediaFiles
                                 {
                                     var finalZipPath = Path.Combine(destDir, destBaseName + ".zip");
                                     var stagedZipPath = Path.Combine(tempDir, destBaseName + ".zip");
-                                    CreateSingleRomZip(unwrappedRomPath, stagedZipPath, destBaseName + innerExt, innerExt);
+                                    CreateSingleRomZip(unwrappedRomPath, stagedZipPath, destBaseName + innerExt);
                                     File.Copy(stagedZipPath, finalZipPath, overwrite: true);
                                     UpdateRomFileDestination(romFile, platform, ref destinationFilePath, finalZipPath);
                                     ext = ".zip";

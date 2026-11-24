@@ -16,7 +16,6 @@ namespace NzbDrone.Core.MediaFiles.Archive
     {
         void RepackArchive(string archivePath);
         void SyncSingleRomEntryName(string archivePath);
-        byte[] ModernizeINesHeader(byte[] romBytes);
     }
 
     public class ArchiveRepackService : IArchiveRepackService
@@ -739,24 +738,6 @@ namespace NzbDrone.Core.MediaFiles.Archive
                     collectedRomFiles.Add(extractedPath);
                 }
             }
-        }
-
-        public byte[] ModernizeINesHeader(byte[] romBytes)
-        {
-            if (romBytes.Length > 4 &&
-                romBytes[0] == 'N' &&
-                romBytes[1] == 'E' &&
-                romBytes[2] == 'S' &&
-                romBytes[3] == 0x1A)
-            {
-                // Has iNES header, basic detection successful
-                _logger.Debug("Detected iNES header, modernization required.");
-
-                // For demonstration, we simply return it unmodified since actual NES 2.0 modernization requires PRG/CHR ROM chunk parsing.
-                return romBytes;
-            }
-
-            return romBytes;
         }
     }
 }

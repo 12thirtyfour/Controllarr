@@ -59,17 +59,6 @@ namespace NzbDrone.Core.Test.MediaFiles
         }
 
         [Test]
-        public void should_detect_ines_header()
-        {
-            var headerBytes = new byte[] { (byte)'N', (byte)'E', (byte)'S', 0x1A, 0x01, 0x02 };
-            var result = Subject.ModernizeINesHeader(headerBytes);
-
-            // For now our modernization method just returns the byte array unharmed,
-            // we're just testing it parses correctly without crashing
-            result.Should().BeEquivalentTo(headerBytes);
-        }
-
-        [Test]
         public void should_sync_single_rom_entry_name_to_match_renamed_archive()
         {
             var renamedArchivePath = Path.Combine(Path.GetTempPath(), "Super Mario Land.zip");

@@ -118,7 +118,6 @@ namespace NzbDrone.Core.Tv
             var seriesToAdd = new List<Series>();
             var incomingSourcePaths = new List<(Series Series, string IncomingPath)>();
             var existingSeriesToReturn = new List<Series>();
-            var existingSeriesTvdbIds = _seriesService.AllSeriesTvdbIds();
 
             foreach (var s in newSeries)
             {

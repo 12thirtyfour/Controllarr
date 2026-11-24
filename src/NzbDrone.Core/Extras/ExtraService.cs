@@ -209,12 +209,11 @@ namespace NzbDrone.Core.Extras
         private List<EpisodeFile> GetEpisodeFiles(int seriesId)
         {
             var episodeFiles = _mediaFileService.GetFilesBySeries(seriesId);
-            var episodes = _episodeService.GetEpisodeBySeries(seriesId);
+            var episodesByFileId = _episodeService.GetEpisodeBySeries(seriesId).ToLookup(e => e.EpisodeFileId);
 
             foreach (var episodeFile in episodeFiles)
             {
-                var localEpisodeFile = episodeFile;
-                episodeFile.Episodes = new List<Episode>(episodes.Where(e => e.EpisodeFileId == localEpisodeFile.Id));
+                episodeFile.Episodes = episodesByFileId[episodeFile.Id].ToList();
             }
 
             return episodeFiles;

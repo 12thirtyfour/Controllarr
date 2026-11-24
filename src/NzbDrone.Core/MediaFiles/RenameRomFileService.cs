@@ -97,10 +97,11 @@ namespace NzbDrone.Core.MediaFiles
 
         private IEnumerable<RenameRomFilePreview> GetPreviews(Series series, List<Episode> episodes, List<EpisodeFile> files)
         {
-            foreach (var f in files)
+            var episodesByFileId = episodes.ToLookup(e => e.EpisodeFileId);
+
+            foreach (var file in files)
             {
-                var file = f;
-                var episodesInFile = episodes.Where(e => e.EpisodeFileId == file.Id).ToList();
+                var episodesInFile = episodesByFileId[file.Id].ToList();
                 var episodeFilePath = Path.Combine(series.Path, file.RelativePath);
 
                 if (!episodesInFile.Any())

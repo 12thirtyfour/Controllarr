@@ -56,6 +56,10 @@ All notable changes to **Controllarr** are documented in this file.
   - Synced `SaveMetadataSources` and `SaveMediaAssetSettings` into `metadata_scrapers.json` and added thread-safe Twitch/IGDB OAuth2 token caching in `GameMediaAssetService`.
   - Replaced randomized `string.GetHashCode()` IDs in `UnmanagedDiskScanner` with a deterministic SHA-256 positive integer helper (`ComputeStablePositiveInt32`).
   - Prevented shader reset when choosing `None (Raw Pixels)` in `WebPlayerPage`, added `urlBase` prefix, empty-library settled tracking, and O(1) `Map` lookups in `gameAchievementsHelper`, guarded `MetadataSettings` against overwriting pending edits on background refetches, and saved validated `variables` in `RetroAchievementsSettings`.
+- **Dead Code Removal, Scan Optimization & Branding Cleanup (`ArchiveRepackService`, `RomFileMovingService`, `ExportEngine`, `ExtraService`, `RenameRomFileService`, `RefreshGameService`, `AddPlatformService`, `NewznabRequestGenerator`, `CompletedDownloadService`, `TorrentClientBase`)**:
+  - Removed the dead no-op `ArchiveRepackService.ModernizeINesHeader` method, unused `.nes` byte-read branches and `_archiveExtractionService` field in `RomFileMovingService`, and deleted the unused `ExportEngine` stub.
+  - Replaced `O(N×M)` per-file episode scans in `ExtraService.GetEpisodeFiles` and `RenameRomFileService.GetPreviews` with `ToLookup` indexing.
+  - Removed unused local variables and redundant calls in `RefreshGameService`, `AddPlatformService`, and `NewznabRequestGenerator`, and updated leftover `"Sonarr"` warning/debug strings in `CompletedDownloadService` and `TorrentClientBase` to `"Controllarr"`.
 
 ## [Unreleased] - 2026-11-20
 

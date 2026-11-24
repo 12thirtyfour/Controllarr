@@ -13,7 +13,6 @@ namespace NzbDrone.Core.Indexers.Newznab
     public class NewznabRequestGenerator : IIndexerRequestGenerator
     {
         private readonly Logger _logger;
-        private readonly INewznabCapabilitiesProvider _capabilitiesProvider;
 
         public ProviderDefinition Definition { get; set; }
         public int MaxPages { get; set; }
@@ -22,8 +21,8 @@ namespace NzbDrone.Core.Indexers.Newznab
 
         public NewznabRequestGenerator(INewznabCapabilitiesProvider capabilitiesProvider)
         {
+            _ = capabilitiesProvider;
             _logger = NzbDroneLogger.GetLogger(GetType());
-            _capabilitiesProvider = capabilitiesProvider;
 
             MaxPages = 30;
             PageSize = 100;
@@ -32,7 +31,6 @@ namespace NzbDrone.Core.Indexers.Newznab
         public virtual IndexerPageableRequestChain GetRecentRequests()
         {
             var pageableRequests = new IndexerPageableRequestChain();
-            var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
             var categories = GetSearchCategories(null);
 
             pageableRequests.Add(GetPagedRequests(MaxPages, categories, "search", ""));
@@ -43,7 +41,6 @@ namespace NzbDrone.Core.Indexers.Newznab
         public virtual IndexerPageableRequestChain GetSearchRequests(SingleEpisodeSearchCriteria searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
-            var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
             var categories = GetSearchCategories(searchCriteria);
             var queryTitles = new List<string>();
 
@@ -117,7 +114,6 @@ namespace NzbDrone.Core.Indexers.Newznab
         public virtual IndexerPageableRequestChain GetSearchRequests(SeasonSearchCriteria searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
-            var capabilities = _capabilitiesProvider.GetCapabilities(Settings);
             var categories = GetSearchCategories(searchCriteria);
             var terms = searchCriteria.SceneTitles?.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
 

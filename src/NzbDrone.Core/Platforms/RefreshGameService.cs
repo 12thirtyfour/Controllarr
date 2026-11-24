@@ -49,8 +49,6 @@ namespace NzbDrone.Core.Tv
 
             var filteredEpisodes = FilterEpisodesForCollectionStrategy(series, dupeFreeRemoteEpisodes, existingEpisodes);
             var orderedEpisodes = OrderEpisodes(series, filteredEpisodes.ToList()).ToList();
-            var episodesPerSeason = orderedEpisodes.GroupBy(s => s.SeasonNumber).ToDictionary(g => g.Key, g => g.Count());
-            var latestSeason = seasons.MaxBy(s => s.SeasonNumber);
 
             var validExisting = existingEpisodes
                 .Where(e => (string.IsNullOrWhiteSpace(e.Title) || GameCatalogProxy.IsValidGameTitle(e.Title)) &&
@@ -182,10 +180,6 @@ namespace NzbDrone.Core.Tv
             }
 
             UnmonitorReaddedEpisodes(series, newList, hasExisting);
-
-            var allEpisodes = new List<Episode>();
-            allEpisodes.AddRange(newList);
-            allEpisodes.AddRange(updateList);
 
             var unreferencedExisting = existingEpisodes
                 .Where(e => !claimedEpisodes.Contains(e))
