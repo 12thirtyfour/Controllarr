@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "SNES",
                 PlatformName = "Super Nintendo / Super Famicom",
-                Aliases = new[] { "SNES", "Super Nintendo Entertainment System", "Nintendo - Super Nintendo Entertainment System", "Super Nintendo", "Super Famicom", "sfc", "Satellaview", "satellaview" },
+                Aliases = new[] { "SNES", "Super Nintendo Entertainment System", "Nintendo - Super Nintendo Entertainment System", "Super Nintendo", "Super Famicom", "sfc", "Satellaview", "satellaview", "Bandai Sufami Turbo", "Sufami Turbo", "Bandai - Sufami Turbo", "sufamiturbo" },
                 DefaultCore = "snes9x",
                 AvailableCores = new[] { "snes9x", "snes9x2010", "bsnes", "mesen-s" },
                 SupportsWasm = true,
@@ -139,7 +139,7 @@ namespace NzbDrone.Core.Games.Launcher
                 DefaultCore = "sameboy",
                 AvailableCores = new[] { "sameboy", "gambatte", "mgba", "gearboy" },
                 SupportsWasm = true,
-                EmulatorJsCore = "gbc"
+                EmulatorJsCore = "gb"
             },
             new PlatformCoreDef
             {
@@ -163,9 +163,19 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Nintendo 64DD",
+                PlatformName = "Nintendo 64DD",
+                Aliases = new[] { "Nintendo 64DD", "Nintendo - Nintendo 64DD", "64DD", "64dd" },
+                DefaultCore = "parallel_n64",
+                AvailableCores = new[] { "parallel_n64", "mupen64plus_next" },
+                SupportsWasm = true,
+                EmulatorJsCore = "parallel_n64"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Nintendo 64",
                 PlatformName = "Nintendo 64",
-                Aliases = new[] { "Nintendo 64", "N64", "Nintendo - Nintendo 64", "64DD", "64dd" },
+                Aliases = new[] { "Nintendo 64", "N64", "Nintendo - Nintendo 64" },
                 DefaultCore = "mupen64plus_next",
                 AvailableCores = new[] { "mupen64plus_next", "parallel_n64" },
                 SupportsWasm = true,
@@ -243,6 +253,47 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "SG-1000",
+                PlatformName = "Sega SG-1000",
+                Aliases = new[] { "SG-1000", "Sega SG-1000", "Sega - SG-1000", "sg1000" },
+                DefaultCore = "genesis_plus_gx",
+                AvailableCores = new[] { "genesis_plus_gx", "gearsystem", "bluemsx" },
+                SupportsWasm = true,
+                EmulatorJsCore = "genesis_plus_gx"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Sega Pico",
+                PlatformName = "Sega Pico / Advanced Pico Beena",
+                Aliases = new[] { "Sega Pico", "Sega - Pico", "pico", "Sega Advanced Pico Beena", "beena" },
+                DefaultCore = "picodrive",
+                AvailableCores = new[] { "picodrive", "genesis_plus_gx" },
+                SupportsWasm = false,
+                WasmUnsupportedReason = "Sega Pico requires specialized stylus and storyware page controls not exposed by the browser Web Player. Launch in Desktop RetroArch using the picodrive or genesis_plus_gx core.",
+                EmulatorJsCore = "pico"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "PlayStation 3",
+                PlatformName = "Sony PlayStation 3 (PS3)",
+                Aliases = new[] { "PlayStation 3", "Sony PlayStation 3", "Sony - PlayStation 3", "PlayStation 3 PSN", "Sony PlayStation 3 PSN", "Sony - PlayStation 3 (PSN)", "PS3", "ps3", "ps3psn" },
+                DefaultCore = "rpcs3",
+                AvailableCores = new[] { "rpcs3" },
+                SupportsWasm = false,
+                EmulatorJsCore = "ps3"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "PlayStation Vita",
+                PlatformName = "Sony PlayStation Vita",
+                Aliases = new[] { "PlayStation Vita", "Sony PlayStation Vita", "Sony - PlayStation Vita", "PS Vita", "psvita" },
+                DefaultCore = "vita3k",
+                AvailableCores = new[] { "vita3k" },
+                SupportsWasm = false,
+                EmulatorJsCore = "psvita"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "PlayStation",
                 PlatformName = "Sony PlayStation (PS1)",
                 Aliases = new[] { "PlayStation", "Sony PlayStation", "Sony - PlayStation", "PS1", "PSX", "psx" },
@@ -255,17 +306,18 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "PSP",
                 PlatformName = "Sony PlayStation Portable (PSP)",
-                Aliases = new[] { "PlayStation Portable", "Sony PlayStation Portable", "Sony - PlayStation Portable", "PSP", "psp" },
+                Aliases = new[] { "PlayStation Portable", "Sony PlayStation Portable", "Sony - PlayStation Portable", "PlayStation Portable PSN", "Sony PlayStation Portable PSN", "Sony - PlayStation Portable (PSN)", "PSP", "psp", "psppsn" },
                 DefaultCore = "ppsspp",
                 AvailableCores = new[] { "ppsspp" },
-                SupportsWasm = true,
+                SupportsWasm = false,
+                WasmUnsupportedReason = "Sony PlayStation Portable (PPSSPP) requires WebAssembly multi-threading (SharedArrayBuffer with Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers) in EmulatorJS, which is not enabled in the embedded browser player. Launch in Desktop RetroArch using the ppsspp core or standalone PPSSPP.",
                 EmulatorJsCore = "psp"
             },
             new PlatformCoreDef
             {
                 PlatformKey = "TurboGrafx-16",
                 PlatformName = "NEC TurboGrafx-16 / PC Engine",
-                Aliases = new[] { "TurboGrafx-16", "PC Engine", "NEC - PC Engine - TurboGrafx 16", "TurboGrafx-CD", "PCE", "tg16", "tgcd", "pce" },
+                Aliases = new[] { "TurboGrafx-16", "PC Engine", "NEC - PC Engine - TurboGrafx 16", "TurboGrafx-CD", "SuperGrafx", "PC Engine SuperGrafx", "NEC PC Engine SuperGrafx", "NEC - PC Engine SuperGrafx", "PCE", "tg16", "tgcd", "pce", "supergrafx" },
                 DefaultCore = "mednafen_pce_fast",
                 AvailableCores = new[] { "mednafen_pce_fast", "mednafen_supergrafx" },
                 SupportsWasm = true,
@@ -273,11 +325,22 @@ namespace NzbDrone.Core.Games.Launcher
             },
             new PlatformCoreDef
             {
+                PlatformKey = "Neo Geo CD",
+                PlatformName = "SNK Neo Geo CD",
+                Aliases = new[] { "Neo Geo CD", "SNK Neo Geo CD", "SNK - Neo Geo CD", "neogeocd", "neocd" },
+                DefaultCore = "neocd",
+                AvailableCores = new[] { "neocd", "fbneo" },
+                SupportsWasm = false,
+                WasmUnsupportedReason = "SNK Neo Geo CD is not supported by EmulatorJS's browser WebAssembly arcade (fbneo) core, which only loads arcade .zip/.7z sets and does not include the neocd core. Launch in Desktop RetroArch using the neocd core with .chd or .cue/.bin disc images and neocd_z.rom / 000-lo.lo BIOS files.",
+                EmulatorJsCore = "neocd"
+            },
+            new PlatformCoreDef
+            {
                 PlatformKey = "Neo Geo",
                 PlatformName = "SNK Neo Geo",
-                Aliases = new[] { "Neo Geo", "Neo Geo AES", "Neo Geo MVS", "Neo Geo CD", "SNK - Neo Geo", "neogeo", "neogeocd" },
+                Aliases = new[] { "Neo Geo", "Neo Geo AES", "Neo Geo MVS", "SNK - Neo Geo", "neogeo" },
                 DefaultCore = "fbneo",
-                AvailableCores = new[] { "fbneo", "mame2003_plus", "neocd" },
+                AvailableCores = new[] { "fbneo", "mame2003_plus" },
                 SupportsWasm = true,
                 EmulatorJsCore = "arcade"
             },
@@ -295,7 +358,7 @@ namespace NzbDrone.Core.Games.Launcher
             {
                 PlatformKey = "WonderSwan",
                 PlatformName = "Bandai WonderSwan / Color",
-                Aliases = new[] { "WonderSwan Color", "WonderSwan", "Bandai - WonderSwan Color", "Bandai - WonderSwan", "wonderswan", "wsc", "ws" },
+                Aliases = new[] { "WonderSwan Color", "WonderSwan", "Bandai - WonderSwan Color", "Bandai - WonderSwan", "Pocket Challenge V2", "Benesse Pocket Challenge V2", "Benesse - Pocket Challenge V2", "wonderswan", "wsc", "ws", "pocketchallengev2" },
                 DefaultCore = "mednafen_wswan",
                 AvailableCores = new[] { "mednafen_wswan" },
                 SupportsWasm = true,
@@ -481,14 +544,85 @@ namespace NzbDrone.Core.Games.Launcher
                 AvailableCores = new[] { "dolphin" },
                 SupportsWasm = false,
                 EmulatorJsCore = "dolphin"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Wii U",
+                PlatformName = "Nintendo Wii U",
+                Aliases = new[] { "Wii U", "Nintendo Wii U", "Nintendo - Wii U", "wiiu" },
+                DefaultCore = "cemu",
+                AvailableCores = new[] { "cemu" },
+                SupportsWasm = false,
+                EmulatorJsCore = "wiiu"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Nintendo 3DS",
+                PlatformName = "Nintendo 3DS",
+                Aliases = new[] { "Nintendo 3DS", "Nintendo - Nintendo 3DS", "3DS", "3ds" },
+                DefaultCore = "azahar",
+                AvailableCores = new[] { "azahar", "citra" },
+                SupportsWasm = false,
+                WasmUnsupportedReason = "Nintendo 3DS requires WebAssembly multi-threading (SharedArrayBuffer with COOP/COEP headers) and WebGL2 in EmulatorJS. Launch in Desktop RetroArch using the azahar/citra core or standalone Azahar.",
+                EmulatorJsCore = "3ds"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Nintendo Switch",
+                PlatformName = "Nintendo Switch",
+                Aliases = new[] { "Nintendo Switch", "Nintendo - Nintendo Switch", "switch" },
+                DefaultCore = "ryujinx",
+                AvailableCores = new[] { "ryujinx" },
+                SupportsWasm = false,
+                EmulatorJsCore = "switch"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Xbox",
+                PlatformName = "Microsoft Xbox",
+                Aliases = new[] { "Xbox", "Microsoft Xbox", "Microsoft - Xbox", "xbox" },
+                DefaultCore = "xemu",
+                AvailableCores = new[] { "xemu" },
+                SupportsWasm = false,
+                EmulatorJsCore = "xbox"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Xbox 360",
+                PlatformName = "Microsoft Xbox 360",
+                Aliases = new[] { "Xbox 360", "Microsoft Xbox 360", "Microsoft - Xbox 360", "Xbox 360 Digital", "Microsoft Xbox 360 Digital", "xbox360", "xbox360digital" },
+                DefaultCore = "xenia",
+                AvailableCores = new[] { "xenia" },
+                SupportsWasm = false,
+                EmulatorJsCore = "xbox360"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "GamePark GP32",
+                PlatformName = "GamePark GP32",
+                Aliases = new[] { "GamePark GP32", "GamePark - GP32", "gp32" },
+                DefaultCore = "mame",
+                AvailableCores = new[] { "mame" },
+                SupportsWasm = false,
+                EmulatorJsCore = "gp32"
+            },
+            new PlatformCoreDef
+            {
+                PlatformKey = "Amiga CD32",
+                PlatformName = "Commodore Amiga CD32",
+                Aliases = new[] { "Amiga CD32", "Commodore Amiga CD32", "Commodore - Amiga CD32", "cd32" },
+                DefaultCore = "puae",
+                AvailableCores = new[] { "puae" },
+                SupportsWasm = false,
+                EmulatorJsCore = "cd32"
             }
         };
 
         private static readonly string[] PreferredRomEntryExtensions = new[]
         {
-            ".cue", ".gb", ".gbc", ".gba", ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs",
+            ".cue", ".gb", ".gbc", ".gba", ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs", ".st",
             ".z64", ".n64", ".v64", ".ndd", ".nds", ".dsi", ".md", ".gen", ".smd", ".32x",
-            ".sms", ".gg", ".pce", ".sgx", ".vb", ".ws", ".wsc", ".ngp", ".ngc", ".lnx",
+            ".sms", ".sg", ".gg", ".pce", ".sgx", ".vb", ".ws", ".wsc", ".pc2", ".ngp", ".ngc", ".lnx",
             ".a26", ".a52", ".a78", ".j64", ".jag", ".neo", ".iso", ".chd", ".pbp", ".cso", ".bin"
         };
 
@@ -723,10 +857,13 @@ namespace NzbDrone.Core.Games.Launcher
                 matchedDef = MatchPlatformDef(series.TitleSlug);
             }
 
-            if (matchedDef == null && !string.IsNullOrWhiteSpace(safeRomPath))
+            if (matchedDef == null &&
+                string.IsNullOrWhiteSpace(safePlatform) &&
+                (series == null || string.IsNullOrWhiteSpace(series.TitleSlug)) &&
+                !string.IsNullOrWhiteSpace(safeRomPath))
             {
                 matchedDef = InferPlatformDefFromRomFile(safeRomPath);
-                if (matchedDef != null && string.IsNullOrWhiteSpace(safePlatform))
+                if (matchedDef != null)
                 {
                     safePlatform = matchedDef.PlatformKey;
                 }
@@ -1073,6 +1210,21 @@ namespace NzbDrone.Core.Games.Launcher
                 {
                     searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "jaguarcd"));
                 }
+
+                if (candidates.Contains("BS-X.bin", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "satellaview"));
+                }
+
+                if (candidates.Contains("STBIOS.bin", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "sufamiturbo"));
+                }
+
+                if (candidates.Contains("neocd_z.rom", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "neogeocd"));
+                }
             }
 
             foreach (var dir in searchDirs.Where(d => !string.IsNullOrWhiteSpace(d)).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -1154,7 +1306,23 @@ namespace NzbDrone.Core.Games.Launcher
                 return new List<string> { "disksys.rom" };
             }
 
-            if (emulatorJsCore.Equals("n64", StringComparison.OrdinalIgnoreCase) &&
+            if (emulatorJsCore.Equals("snes", StringComparison.OrdinalIgnoreCase))
+            {
+                if ((romFileName ?? string.Empty).EndsWith(".bs", StringComparison.OrdinalIgnoreCase) ||
+                    IsSatellaviewPlatformHint(platformHint))
+                {
+                    return new List<string> { "BS-X.bin" };
+                }
+
+                if ((romFileName ?? string.Empty).EndsWith(".st", StringComparison.OrdinalIgnoreCase) ||
+                    IsSufamiTurboPlatformHint(platformHint))
+                {
+                    return new List<string> { "STBIOS.bin" };
+                }
+            }
+
+            if ((emulatorJsCore.Equals("parallel_n64", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("n64", StringComparison.OrdinalIgnoreCase)) &&
                 ((romFileName ?? string.Empty).EndsWith(".ndd", StringComparison.OrdinalIgnoreCase) ||
                  Is64ddPlatformHint(platformHint)))
             {
@@ -1181,12 +1349,39 @@ namespace NzbDrone.Core.Games.Launcher
                 return new List<string> { "neogeo.zip" };
             }
 
+            if (emulatorJsCore.Equals("neocd", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "neocd_z.rom", "neocdz.zip", "uni-bioscd.rom" };
+            }
+
             if (emulatorJsCore.Equals("jaguarcd", StringComparison.OrdinalIgnoreCase))
             {
                 return new List<string> { "jagcd.rom", "[BIOS] Atari Jaguar CD (World).j64" };
             }
 
             return new List<string>();
+        }
+
+        private static bool IsSatellaviewPlatformHint(string platformHint)
+        {
+            if (string.IsNullOrWhiteSpace(platformHint))
+            {
+                return false;
+            }
+
+            return platformHint.Equals("satellaview", StringComparison.OrdinalIgnoreCase) ||
+                   platformHint.Contains("satellaview", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSufamiTurboPlatformHint(string platformHint)
+        {
+            if (string.IsNullOrWhiteSpace(platformHint))
+            {
+                return false;
+            }
+
+            return platformHint.Equals("sufamiturbo", StringComparison.OrdinalIgnoreCase) ||
+                   platformHint.Contains("sufami turbo", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsFdsPlatformHint(string platformHint)
@@ -1512,16 +1707,18 @@ namespace NzbDrone.Core.Games.Launcher
                 ".gbc" => MatchPlatformDef("Game Boy Color"),
                 ".gba" => MatchPlatformDef("Game Boy Advance"),
                 ".nes" or ".unf" or ".fds" => MatchPlatformDef("NES"),
-                ".sfc" or ".smc" or ".bs" => MatchPlatformDef("SNES"),
-                ".z64" or ".n64" or ".v64" or ".ndd" => MatchPlatformDef("Nintendo 64"),
+                ".sfc" or ".smc" or ".bs" or ".st" => MatchPlatformDef("SNES"),
+                ".ndd" => MatchPlatformDef("Nintendo 64DD"),
+                ".z64" or ".n64" or ".v64" => MatchPlatformDef("Nintendo 64"),
                 ".nds" or ".dsi" => MatchPlatformDef("Nintendo DS"),
                 ".md" or ".gen" or ".smd" => MatchPlatformDef("Genesis"),
-                ".sms" or ".sg" => MatchPlatformDef("Master System"),
+                ".sms" => MatchPlatformDef("Master System"),
+                ".sg" => MatchPlatformDef("SG-1000"),
                 ".gg" => MatchPlatformDef("Game Gear"),
                 ".32x" => MatchPlatformDef("Sega 32X"),
                 ".pce" or ".sgx" => MatchPlatformDef("TurboGrafx-16"),
                 ".vb" => MatchPlatformDef("Virtual Boy"),
-                ".ws" or ".wsc" => MatchPlatformDef("WonderSwan"),
+                ".ws" or ".wsc" or ".pc2" => MatchPlatformDef("WonderSwan"),
                 ".ngp" or ".ngc" => MatchPlatformDef("Neo Geo Pocket"),
                 ".a26" => MatchPlatformDef("Atari 2600"),
                 ".a78" => MatchPlatformDef("Atari 7800"),
@@ -1551,15 +1748,24 @@ namespace NzbDrone.Core.Games.Launcher
                 }
             }
 
+            PlatformCoreDef bestMatch = null;
+            var bestAliasLength = 0;
+
             foreach (var def in PlatformDefs)
             {
-                if (def.Aliases.Any(a => a.Length >= 3 && trimmed.Contains(a, StringComparison.OrdinalIgnoreCase)))
+                foreach (var alias in def.Aliases)
                 {
-                    return def;
+                    if (alias.Length >= 3 &&
+                        trimmed.Contains(alias, StringComparison.OrdinalIgnoreCase) &&
+                        alias.Length > bestAliasLength)
+                    {
+                        bestMatch = def;
+                        bestAliasLength = alias.Length;
+                    }
                 }
             }
 
-            return null;
+            return bestMatch;
         }
 
         private string GetConfigFilePath()

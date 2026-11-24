@@ -112,24 +112,27 @@ namespace NzbDrone.Core.Test.GamesTests
         [TestCase("NES", "nes")]
         [TestCase("SNES", "snes")]
         [TestCase("Game Boy", "gb")]
-        [TestCase("Game Boy Color", "gbc")]
+        [TestCase("Game Boy Color", "gb")]
         [TestCase("Game Boy Advance", "gba")]
         [TestCase("Virtual Boy", "vb")]
         [TestCase("Nintendo 64", "n64")]
+        [TestCase("64dd", "parallel_n64")]
         [TestCase("Nintendo DS", "nds")]
         [TestCase("Genesis", "segaMD")]
         [TestCase("Master System", "segaMS")]
+        [TestCase("sg1000", "genesis_plus_gx")]
         [TestCase("Game Gear", "segaGG")]
         [TestCase("segacd", "segaCD")]
         [TestCase("sega32x", "sega32x")]
         [TestCase("saturn", "segaSaturn")]
         [TestCase("psx", "psx")]
-        [TestCase("psp", "psp")]
         [TestCase("tg16", "pce")]
         [TestCase("tgcd", "pce")]
+        [TestCase("supergrafx", "pce")]
         [TestCase("neogeo", "arcade")]
         [TestCase("ngp", "ngp")]
         [TestCase("ws", "ws")]
+        [TestCase("pocketchallengev2", "ws")]
         [TestCase("atari2600", "atari2600")]
         [TestCase("atari5200", "atari5200")]
         [TestCase("atari7800", "atari7800")]
@@ -257,7 +260,8 @@ namespace NzbDrone.Core.Test.GamesTests
                 }
 
                 var descriptor = _subject.BuildLaunchDescriptor(88, "Nintendo - Nintendo 64DD", zipPath);
-                descriptor.EmulatorJsCore.Should().Be("n64");
+                descriptor.LibretroCore.Should().Be("parallel_n64");
+                descriptor.EmulatorJsCore.Should().Be("parallel_n64");
                 descriptor.SupportsWebAssembly.Should().BeTrue();
                 descriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/88/bios/64DD_IPL.bin");
                 descriptor.RomStreamUrl.Should().StartWith("/api/v5/gamelauncher/88/rom/F-Zero%20X%20Expansion%20Kit%20%28Japan%29.ndd");
@@ -404,6 +408,118 @@ namespace NzbDrone.Core.Test.GamesTests
                 o.DefaultCore == "virtualjaguar" &&
                 o.SupportsWebAssembly &&
                 o.EmulatorJsCoreName == "jaguar");
+        }
+
+        [TestCase("neogeocd")]
+        [TestCase("Neo Geo CD")]
+        [TestCase("SNK - Neo Geo CD")]
+        public void should_mark_neo_geo_cd_as_desktop_only_and_preserve_arcade_neo_geo_wasm(string platform)
+        {
+            var cdDescriptor = _subject.BuildLaunchDescriptor(130, platform, $"/roms/{platform}/Metal Slug (Japan).chd");
+
+            cdDescriptor.LibretroCore.Should().Be("neocd");
+            cdDescriptor.EmulatorJsCore.Should().Be("neocd");
+            cdDescriptor.SupportsWebAssembly.Should().BeFalse();
+            cdDescriptor.WebAssemblyUnsupportedReason.Should().Contain("neocd");
+
+            var aesDescriptor = _subject.BuildLaunchDescriptor(131, "neogeo", "/roms/neogeo/mslug.zip");
+
+            aesDescriptor.LibretroCore.Should().Be("fbneo");
+            aesDescriptor.EmulatorJsCore.Should().Be("arcade");
+            aesDescriptor.SupportsWebAssembly.Should().BeTrue();
+            aesDescriptor.WebAssemblyUnsupportedReason.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_resolve_neogeocd_satellaview_and_sufami_turbo_bios_files()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_addon_bios_test_" + Guid.NewGuid().ToString("N"));
+            var biosDir = Path.Combine(tempDir, "BIOS");
+            Directory.CreateDirectory(biosDir);
+
+            try
+            {
+                File.WriteAllBytes(Path.Combine(biosDir, "neocd_z.rom"), new byte[] { 1, 2, 3, 4 });
+                File.WriteAllBytes(Path.Combine(biosDir, "BS-X.bin"), new byte[] { 5, 6, 7, 8 });
+                File.WriteAllBytes(Path.Combine(biosDir, "STBIOS.bin"), new byte[] { 9, 10, 11, 12 });
+
+                var neocdRom = Path.Combine(tempDir, "Metal Slug (Japan).chd");
+                var bsxRom = Path.Combine(tempDir, "BS Zelda no Densetsu (Japan).bs");
+                var sufamiRom = Path.Combine(tempDir, "SD Ultra Battle (Japan).st");
+                File.WriteAllBytes(neocdRom, new byte[] { 0x01 });
+                File.WriteAllBytes(bsxRom, new byte[] { 0x02 });
+                File.WriteAllBytes(sufamiRom, new byte[] { 0x03 });
+
+                var neocdDescriptor = _subject.BuildLaunchDescriptor(140, "neogeocd", neocdRom);
+                neocdDescriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/140/bios/neocd_z.rom");
+
+                var bsxDescriptor = _subject.BuildLaunchDescriptor(141, "satellaview", bsxRom);
+                bsxDescriptor.SupportsWebAssembly.Should().BeTrue();
+                bsxDescriptor.EmulatorJsCore.Should().Be("snes");
+                bsxDescriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/141/bios/BS-X.bin");
+
+                var sufamiDescriptor = _subject.BuildLaunchDescriptor(142, "sufamiturbo", sufamiRom);
+                sufamiDescriptor.SupportsWebAssembly.Should().BeTrue();
+                sufamiDescriptor.EmulatorJsCore.Should().Be("snes");
+                sufamiDescriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/142/bios/STBIOS.bin");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [TestCase("psp", "ppsspp")]
+        [TestCase("PlayStation Portable", "ppsspp")]
+        [TestCase("psppsn", "ppsspp")]
+        public void should_mark_psp_as_desktop_only_due_to_shared_array_buffer_threads(string platform, string expectedCore)
+        {
+            var descriptor = _subject.BuildLaunchDescriptor(150, platform, $"/roms/{platform}/Crisis Core.cso");
+
+            descriptor.LibretroCore.Should().Be(expectedCore);
+            descriptor.SupportsWebAssembly.Should().BeFalse();
+            descriptor.WebAssemblyUnsupportedReason.Should().Contain("SharedArrayBuffer");
+        }
+
+        [TestCase("PlayStation 3", "rpcs3", "/roms/ps3/Demon's Souls.iso")]
+        [TestCase("Sony PlayStation 3 PSN", "rpcs3", "/roms/ps3psn/Journey.pkg")]
+        [TestCase("PlayStation Vita", "vita3k", "/roms/psvita/Persona 4 Golden.vpk")]
+        [TestCase("Wii U", "cemu", "/roms/wiiu/Mario Kart 8.wua")]
+        [TestCase("Nintendo 3DS", "azahar", "/roms/3ds/Ocarina of Time 3D.3ds")]
+        [TestCase("gp32", "mame", "/roms/gp32/Astonishia Story R.smc")]
+        [TestCase("pico", "picodrive", "/roms/pico/Sonic the Hedgehog's Gameworld.md")]
+        public void should_not_hijack_desktop_only_platforms_via_substring_or_extension(string platform, string expectedCore, string romPath)
+        {
+            var descriptor = _subject.BuildLaunchDescriptor(160, platform, romPath);
+
+            descriptor.LibretroCore.Should().Be(expectedCore);
+            descriptor.SupportsWebAssembly.Should().BeFalse();
+        }
+
+        [TestCase("Nintendo - Game Boy Advance (No-Intro)", "gba")]
+        [TestCase("SNK - Neo Geo Pocket Color (No-Intro)", "ngp")]
+        [TestCase("Sony - PlayStation 2 (Redump)", "ps2")]
+        public void should_prefer_longest_matching_platform_alias_over_shorter_prefix(string platform, string expectedEjsCore)
+        {
+            var descriptor = _subject.BuildLaunchDescriptor(170, platform, "/roms/test/Game.bin");
+
+            descriptor.EmulatorJsCore.Should().Be(expectedEjsCore);
+        }
+
+        [Test]
+        public void should_not_infer_unrelated_wasm_platform_from_extension_when_platform_is_known()
+        {
+            var loopyDescriptor = _subject.BuildLaunchDescriptor(180, "loopy", "/roms/loopy/Anime Land (Japan).bin");
+            var ereaderDescriptor = _subject.BuildLaunchDescriptor(181, "Nintendo e-Reader", "/roms/ereader/Mario Party-e.gba");
+
+            loopyDescriptor.PlatformFolder.Should().Be("loopy");
+            loopyDescriptor.SupportsWebAssembly.Should().BeFalse();
+
+            ereaderDescriptor.PlatformFolder.Should().Be("Nintendo e-Reader");
+            ereaderDescriptor.SupportsWebAssembly.Should().BeFalse();
         }
     }
 }

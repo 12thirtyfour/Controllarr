@@ -33,6 +33,10 @@ All notable changes to **Controllarr** are documented in this file.
 - **Atari Jaguar CD Web Player & Launcher Routing (`GameLauncherService`, `WebPlayerPage`, `LibretroSettings`)**:
   - Separated Atari Jaguar CD (`Atari Jaguar CD` / `jaguarcd`) from the cartridge-only `virtualjaguar` WebAssembly definition in `GameLauncherService` so Jaguar CD games are no longer loaded into EmulatorJS's cartridge-only `jaguar` WASM core and instead surface `WebAssemblyUnsupportedReason` guiding users to Desktop RetroArch (`virtualjaguar` v3+) or standalone BigPEmu (`.cue`/`.bin`, `.cdi`, or multi-session `.chd`).
   - Added Jaguar CD `jagcd.rom` / `[BIOS] Atari Jaguar CD (World).j64` BIOS resolution, preserved multi-file `.cue`/`.bin` `.zip` archives for `jaguarcd`, forwarded launch query parameters in `WebPlayerPage` desktop launches, and exposed `Atari Jaguar CD` as Desktop Only in `LibretroSettings`.
+- **Full-Catalog Web Player & Launcher Platform Audit (`GameLauncherService`, `LibretroSettings`)**:
+  - Split `Neo Geo CD` (`neocd`, Desktop Only) from cartridge/arcade `Neo Geo` (`fbneo` / `arcade`) with `neocd_z.rom` BIOS resolution, and split `Nintendo 64DD` (`parallel_n64`, WASM-supported with `.ndd` + `64DD_IPL.bin`) from `Nintendo 64` (`mupen64plus_next`).
+  - Fixed `Game Boy Color` (`gb` instead of nonexistent EmulatorJS `gbc` key), marked `PSP` / `psppsn` and `Nintendo 3DS` as Desktop Only (`ppsspp`/`azahar` require `SharedArrayBuffer` COOP/COEP headers), added `SG-1000` (`genesis_plus_gx`), `SuperGrafx`, `Pocket Challenge V2`, `Sufami Turbo`, and explicit desktop-only definitions for `Sega Pico`, `PlayStation 3`, `PlayStation Vita`, `Wii U`, `Switch`, `Xbox`, `Xbox 360`, `GP32`, and `Amiga CD32`.
+  - Fixed `MatchPlatformDef` to select the longest matching alias (preventing `"PlayStation"`, `"Neo Geo"`, `"Game Boy"`, and `"Wii"` prefixes from hijacking sibling platforms), prevented extension inference from overriding explicitly known platforms (`GP32` `.smc`, `Sega Pico` `.md`, `e-Reader` `.gba`), and added `BS-X.bin` (Satellaview) and `STBIOS.bin` (Sufami Turbo) BIOS resolution.
 
 ---
 
