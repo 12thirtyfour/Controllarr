@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
@@ -60,6 +61,60 @@ namespace NzbDrone.Core.Test.DatTests
                     It.IsAny<CommandTrigger>()),
                 Times.Once);
             _biosServiceMock.Verify(b => b.SyncFirmwareUpdates(null), Times.Once);
+        }
+
+        [Test]
+        public void should_mark_is_updating_during_dat_and_bios_sync_and_queue_refresh_afterward()
+        {
+            var updatingDuringDatSync = false;
+            var updatingDuringBiosSync = false;
+            bool? updatingWhenRefreshQueued = null;
+
+            _seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 1, TvdbId = 1001, Title = "Nintendo Entertainment System", SeasonType = "official" }
+            });
+
+            _gameCatalogServiceMock
+                .Setup(g => g.SyncPlatformDatCatalogs(1001, true, "official"))
+                .Callback(() => updatingDuringDatSync = DatCatalogUpdateService.IsUpdating)
+                .Returns(120);
+
+            _biosServiceMock
+                .Setup(b => b.SyncFirmwareUpdates(null))
+                .Callback(() => updatingDuringBiosSync = DatCatalogUpdateService.IsUpdating)
+                .Returns(5);
+
+            _commandQueueMock
+                .Setup(q => q.Push(It.IsAny<RefreshPlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()))
+                .Callback(() => updatingWhenRefreshQueued = DatCatalogUpdateService.IsUpdating);
+
+            _subject.Execute(new UpdateDatCatalogsCommand());
+
+            updatingDuringDatSync.Should().BeTrue();
+            updatingDuringBiosSync.Should().BeTrue();
+            updatingWhenRefreshQueued.Should().BeFalse();
+            DatCatalogUpdateService.IsUpdating.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_clear_is_updating_if_dat_sync_throws()
+        {
+            _seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 1, TvdbId = 1001, Title = "Nintendo Entertainment System", SeasonType = "official" }
+            });
+
+            _gameCatalogServiceMock
+                .Setup(g => g.SyncPlatformDatCatalogs(1001, true, "official"))
+                .Throws(new InvalidOperationException("Network error"));
+
+            Assert.Throws<InvalidOperationException>(() => _subject.Execute(new UpdateDatCatalogsCommand()));
+
+            DatCatalogUpdateService.IsUpdating.Should().BeFalse();
+            _commandQueueMock.Verify(
+                q => q.Push(It.IsAny<RefreshPlatformCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()),
+                Times.Never);
         }
     }
 }

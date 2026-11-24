@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Bios;
@@ -25,6 +27,8 @@ namespace NzbDrone.Core.Dat
 
     public class DatCatalogUpdateService : IDatCatalogUpdateService, IExecute<UpdateDatCatalogsCommand>
     {
+        private static int _activeDatUpdates;
+
         private readonly ISeriesService _seriesService;
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IManageCommandQueue _commandQueueManager;
@@ -45,82 +49,106 @@ namespace NzbDrone.Core.Dat
             _biosService = biosService;
         }
 
+        public static bool IsUpdating => Volatile.Read(ref _activeDatUpdates) > 0;
+
+        internal static IDisposable BeginDatUpdateScope()
+        {
+            Interlocked.Increment(ref _activeDatUpdates);
+            return new DatUpdateScope();
+        }
+
+        private sealed class DatUpdateScope : IDisposable
+        {
+            private int _disposed;
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) == 0)
+                {
+                    Interlocked.Decrement(ref _activeDatUpdates);
+                }
+            }
+        }
+
         public DatCatalogSyncResultModel SyncLibraryDatCatalogs(List<int> platformTvdbIds = null)
         {
             var result = new DatCatalogSyncResultModel();
-            var allSeries = _seriesService?.GetAllSeries() ?? new List<Series>();
+            var refreshedSeriesIds = new List<int>();
 
-            var targetSeries = platformTvdbIds != null && platformTvdbIds.Count > 0
-                ? allSeries.Where(s => platformTvdbIds.Contains(s.TvdbId)).ToList()
-                : allSeries;
-
-            List<string> explicitPlatformSlugs = null;
-
-            if (targetSeries.Count == 0)
+            using (BeginDatUpdateScope())
             {
-                var idsToSync = platformTvdbIds != null && platformTvdbIds.Count > 0
-                    ? platformTvdbIds.Distinct().ToArray()
-                    : new[] { 1001, 1003, 1011, 1012 };
+                var allSeries = _seriesService?.GetAllSeries() ?? new List<Series>();
 
-                if (platformTvdbIds != null && platformTvdbIds.Count > 0)
-                {
-                    explicitPlatformSlugs = new List<string>();
-                }
+                var targetSeries = platformTvdbIds != null && platformTvdbIds.Count > 0
+                    ? allSeries.Where(s => platformTvdbIds.Contains(s.TvdbId)).ToList()
+                    : allSeries;
 
-                foreach (var tvdbId in idsToSync)
+                List<string> explicitPlatformSlugs = null;
+
+                if (targetSeries.Count == 0)
                 {
-                    var count = _gameCatalogService?.SyncPlatformDatCatalogs(tvdbId, true) ?? 0;
-                    result.PlatformsSynced++;
-                    result.TotalEntriesSynced += count;
-                    if (_gameCatalogService != null && _gameCatalogService.TryGetPlatformEntry(tvdbId, out var p))
+                    var idsToSync = platformTvdbIds != null && platformTvdbIds.Count > 0
+                        ? platformTvdbIds.Distinct().ToArray()
+                        : new[] { 1001, 1003, 1011, 1012 };
+
+                    if (platformTvdbIds != null && platformTvdbIds.Count > 0)
                     {
-                        result.SyncedPlatformNames.Add(p.Name);
-                        if (explicitPlatformSlugs != null && !string.IsNullOrWhiteSpace(p.Slug))
+                        explicitPlatformSlugs = new List<string>();
+                    }
+
+                    foreach (var tvdbId in idsToSync)
+                    {
+                        var count = _gameCatalogService?.SyncPlatformDatCatalogs(tvdbId, true) ?? 0;
+                        result.PlatformsSynced++;
+                        result.TotalEntriesSynced += count;
+                        if (_gameCatalogService != null && _gameCatalogService.TryGetPlatformEntry(tvdbId, out var p))
                         {
-                            explicitPlatformSlugs.Add(p.Slug);
+                            result.SyncedPlatformNames.Add(p.Name);
+                            if (explicitPlatformSlugs != null && !string.IsNullOrWhiteSpace(p.Slug))
+                            {
+                                explicitPlatformSlugs.Add(p.Slug);
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                var refreshedSeriesIds = new List<int>();
-
-                foreach (var series in targetSeries)
+                else
                 {
-                    _logger?.ProgressInfo("Updating No-Intro / Redump / TOSEC / SMDB DAT catalogs for {0}", series.Title);
-                    var syncedCount = _gameCatalogService?.SyncPlatformDatCatalogs(series.TvdbId, true, series.SeasonType) ?? 0;
-                    result.PlatformsSynced++;
-                    result.TotalEntriesSynced += syncedCount;
-                    result.SyncedPlatformNames.Add(series.Title);
-
-                    if (series.Id > 0)
+                    foreach (var series in targetSeries)
                     {
-                        refreshedSeriesIds.Add(series.Id);
+                        _logger?.ProgressInfo("Updating No-Intro / Redump / TOSEC / SMDB DAT catalogs for {0}", series.Title);
+                        var syncedCount = _gameCatalogService?.SyncPlatformDatCatalogs(series.TvdbId, true, series.SeasonType) ?? 0;
+                        result.PlatformsSynced++;
+                        result.TotalEntriesSynced += syncedCount;
+                        result.SyncedPlatformNames.Add(series.Title);
+
+                        if (series.Id > 0)
+                        {
+                            refreshedSeriesIds.Add(series.Id);
+                        }
+                    }
+
+                    if (platformTvdbIds != null && platformTvdbIds.Count > 0)
+                    {
+                        explicitPlatformSlugs = targetSeries
+                            .Select(s => s.TitleSlug)
+                            .Where(s => !string.IsNullOrWhiteSpace(s))
+                            .ToList();
                     }
                 }
 
-                if (refreshedSeriesIds.Count > 0 && _commandQueueManager != null)
+                if (_biosService != null)
                 {
-                    _commandQueueManager.Push(new RefreshPlatformCommand(refreshedSeriesIds, false));
-                }
-
-                if (platformTvdbIds != null && platformTvdbIds.Count > 0)
-                {
-                    explicitPlatformSlugs = targetSeries
-                        .Select(s => s.TitleSlug)
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .ToList();
+                    var syncedFirmwares = _biosService.SyncFirmwareUpdates(explicitPlatformSlugs);
+                    if (syncedFirmwares > 0)
+                    {
+                        _logger?.ProgressInfo("Checked Darthsternie firmware archive ({0} firmware entries indexed).", syncedFirmwares);
+                    }
                 }
             }
 
-            if (_biosService != null)
+            if (refreshedSeriesIds.Count > 0 && _commandQueueManager != null)
             {
-                var syncedFirmwares = _biosService.SyncFirmwareUpdates(explicitPlatformSlugs);
-                if (syncedFirmwares > 0)
-                {
-                    _logger?.ProgressInfo("Checked Darthsternie firmware archive ({0} firmware entries indexed).", syncedFirmwares);
-                }
+                _commandQueueManager.Push(new RefreshPlatformCommand(refreshedSeriesIds, false));
             }
 
             return result;

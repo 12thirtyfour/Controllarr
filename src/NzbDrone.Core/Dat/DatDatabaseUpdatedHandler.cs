@@ -79,8 +79,15 @@ namespace NzbDrone.Core.Dat
 
             foreach (var series in matchedSeries)
             {
-                _logger.Info("DAT database '{0}' was updated ({1} entries) for platform '{2}'; automatically refreshing library with new additions.", datName, message.EntryCount, series.Title);
                 _gameCatalogService?.InvalidatePlatformCache(series.TvdbId);
+
+                if (DatCatalogUpdateService.IsUpdating)
+                {
+                    _logger.Debug("DAT database '{0}' was updated ({1} entries) for platform '{2}' while a DAT catalog update is in progress; deferring library refresh until DAT updates finish.", datName, message.EntryCount, series.Title);
+                    continue;
+                }
+
+                _logger.Info("DAT database '{0}' was updated ({1} entries) for platform '{2}'; automatically refreshing library with new additions.", datName, message.EntryCount, series.Title);
                 _commandQueueManager.Push(new RefreshPlatformCommand(series.Id, false));
             }
         }

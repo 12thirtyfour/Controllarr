@@ -46,6 +46,8 @@ namespace NzbDrone.Core.Tv.Commands
 
         public override bool IsLongRunning => true;
 
+        public override bool IsLibraryRefreshOrScan => true;
+
         public override string CompletionMessage => "Completed";
     }
 }

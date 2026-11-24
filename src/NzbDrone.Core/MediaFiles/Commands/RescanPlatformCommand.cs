@@ -7,6 +7,7 @@ namespace NzbDrone.Core.MediaFiles.Commands
         public int? SeriesId { get; set; }
 
         public override bool SendUpdatesToClient => true;
+        public override bool IsLibraryRefreshOrScan => true;
 
         public RescanPlatformCommand()
         {

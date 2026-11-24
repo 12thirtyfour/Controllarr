@@ -12,6 +12,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Bios;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.Commands;
@@ -86,6 +87,12 @@ namespace NzbDrone.Core.MediaFiles
 
         public void Scan(Series series)
         {
+            if (DatCatalogUpdateService.IsUpdating)
+            {
+                _logger.Info("Skipping library disk scan because DAT catalogs are currently updating. The library will update automatically once DAT updates complete.");
+                return;
+            }
+
             if (series != null && series.Id > 0 && _seriesService.IsSeriesDeletedWithFiles(series.Id))
             {
                 if (!string.IsNullOrWhiteSpace(series.Path) && _diskProvider.FolderExists(series.Path))
@@ -928,6 +935,12 @@ namespace NzbDrone.Core.MediaFiles
 
         public void Execute(RescanPlatformCommand message)
         {
+            if (DatCatalogUpdateService.IsUpdating)
+            {
+                _logger.Info("Skipping library disk scan because DAT catalogs are currently updating. The library will update automatically once DAT updates complete.");
+                return;
+            }
+
             if (message.SeriesId.HasValue)
             {
                 var series = _seriesService.GetSeries(message.SeriesId.Value);

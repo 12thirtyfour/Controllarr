@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
@@ -245,6 +246,12 @@ namespace NzbDrone.Core.Tv
 
         public void Execute(RefreshPlatformCommand message)
         {
+            if (DatCatalogUpdateService.IsUpdating)
+            {
+                _logger.Info("Skipping library refresh and scan because DAT catalogs are currently updating. The library will update automatically once DAT updates complete.");
+                return;
+            }
+
             var trigger = message.Trigger;
             var isNew = message.IsNewSeries;
             _eventAggregator.PublishEvent(new PlatformRefreshStartingEvent(trigger == CommandTrigger.Manual));

@@ -7,6 +7,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.AutoTagging;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
@@ -294,6 +295,20 @@ namespace NzbDrone.Core.Test.PlatformTests
                   .Verify(v => v.Scan(_series), Times.Never());
 
             ExceptionVerification.ExpectedErrors(1);
+        }
+
+        [Test]
+        public void should_skip_refresh_and_scan_while_dat_catalogs_are_updating()
+        {
+            using (DatCatalogUpdateService.BeginDatUpdateScope())
+            {
+                Subject.Execute(new RefreshPlatformCommand(new List<int> { _series.Id }));
+            }
+
+            Mocker.GetMock<IProvidePlatformInfo>()
+                  .Verify(v => v.GetSeriesInfo(It.IsAny<int>(), It.IsAny<Language>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IDiskScanService>()
+                  .Verify(v => v.Scan(It.IsAny<Series>()), Times.Never());
         }
     }
 }

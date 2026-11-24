@@ -8,5 +8,7 @@ namespace NzbDrone.Core.Dat.Commands
         public List<int> PlatformTvdbIds { get; set; } = new List<int>();
 
         public override bool SendUpdatesToClient => true;
+        public override bool IsLongRunning => true;
+        public override bool BlocksLibraryRefresh => true;
     }
 }

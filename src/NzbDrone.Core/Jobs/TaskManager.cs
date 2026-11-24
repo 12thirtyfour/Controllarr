@@ -100,14 +100,14 @@ namespace NzbDrone.Core.Jobs
 
                     new ScheduledTask
                     {
-                        Interval = 12 * 60,
-                        TypeName = typeof(RefreshPlatformCommand).FullName
+                        Interval = 7 * 24 * 60,
+                        TypeName = typeof(UpdateDatCatalogsCommand).FullName
                     },
 
                     new ScheduledTask
                     {
-                        Interval = 7 * 24 * 60,
-                        TypeName = typeof(UpdateDatCatalogsCommand).FullName
+                        Interval = 12 * 60,
+                        TypeName = typeof(RefreshPlatformCommand).FullName
                     },
 
                     new ScheduledTask

@@ -85,5 +85,34 @@ namespace NzbDrone.Core.Test.DatTests
                     It.IsAny<CommandTrigger>()),
                 Times.Never);
         }
+
+        [Test]
+        public void should_defer_refresh_when_dat_catalog_update_is_in_progress()
+        {
+            _seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 42, TvdbId = 1003, Title = "Super Nintendo Entertainment System", TitleSlug = "snes" }
+            });
+
+            var datFile = new DatFile
+            {
+                Id = 1,
+                Name = "Nintendo - Super Nintendo Entertainment System (20261106-120000).dat",
+                Description = "snes"
+            };
+
+            using (DatCatalogUpdateService.BeginDatUpdateScope())
+            {
+                _subject.Handle(new DatDatabaseUpdatedEvent(datFile, 150));
+            }
+
+            _gameCatalogServiceMock.Verify(g => g.InvalidatePlatformCache(1003), Times.Once);
+            _commandQueueMock.Verify(
+                q => q.Push(
+                    It.IsAny<RefreshPlatformCommand>(),
+                    It.IsAny<CommandPriority>(),
+                    It.IsAny<CommandTrigger>()),
+                Times.Never);
+        }
     }
 }

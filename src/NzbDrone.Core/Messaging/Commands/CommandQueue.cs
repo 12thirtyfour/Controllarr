@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using NzbDrone.Core.Dat;
 
 namespace NzbDrone.Core.Messaging.Commands
 {
@@ -144,7 +145,7 @@ namespace NzbDrone.Core.Messaging.Commands
             }
         }
 
-        private bool TryGet(out CommandModel item)
+        internal bool TryGet(out CommandModel item)
         {
             var rval = true;
             item = default(CommandModel);
@@ -160,29 +161,50 @@ namespace NzbDrone.Core.Messaging.Commands
                     var startedCommands = _items.Where(c => c.Status == CommandStatus.Started)
                                                 .ToList();
 
+                    var datUpdateQueuedOrStarted = _items.Any(c =>
+                        (c.Status == CommandStatus.Queued || c.Status == CommandStatus.Started) &&
+                        c.Body.BlocksLibraryRefresh) ||
+                        DatCatalogUpdateService.IsUpdating;
+
+                    var libraryRefreshOrScanStarted = startedCommands.Any(c => c.Body.IsLibraryRefreshOrScan);
+
                     var localItem = _items.Where(c =>
                                           {
+                                              if (c.Status != CommandStatus.Queued)
+                                              {
+                                                  return false;
+                                              }
+
+                                              // Do not start library refresh or disk scan commands while a DAT update is queued or running.
+                                              if (datUpdateQueuedOrStarted && c.Body.IsLibraryRefreshOrScan)
+                                              {
+                                                  return false;
+                                              }
+
+                                              // Do not start a DAT update while a library refresh or disk scan is still executing.
+                                              if (libraryRefreshOrScanStarted && c.Body.BlocksLibraryRefresh)
+                                              {
+                                                  return false;
+                                              }
+
                                               // If an executing command requires disk access don't return a command that
                                               // requires disk access. A lower priority or later queued task could be returned
                                               // instead, but that will allow other tasks to execute while waiting for disk access.
                                               if (startedCommands.Any(x => x.Body.RequiresDiskAccess))
                                               {
-                                                  return c.Status == CommandStatus.Queued &&
-                                                         !c.Body.RequiresDiskAccess;
+                                                  return !c.Body.RequiresDiskAccess;
                                               }
 
                                               // If an executing command is long running then skip any exclusive commands until
                                               // they complete. A lower priority or later queued task could be returned
                                               // instead, but that will allow other tasks to execute while waiting for exclusive
                                               // execution.
-
                                               if (startedCommands.Any(x => x.Body.IsLongRunning))
                                               {
-                                                  return c.Status == CommandStatus.Queued &&
-                                                         !c.Body.IsExclusive;
+                                                  return !c.Body.IsExclusive;
                                               }
 
-                                              return c.Status == CommandStatus.Queued;
+                                              return true;
                                           })
                                           .OrderByDescending(c => c.Priority)
                                           .ThenBy(c => c.QueuedAt)

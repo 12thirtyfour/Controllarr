@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.TPL;
+using NzbDrone.Core.Dat.Commands;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
@@ -33,7 +34,9 @@ namespace NzbDrone.Core.Jobs
             {
                 Timer.Enabled = false;
 
-                var tasks = _taskManager.GetPending().ToList();
+                var tasks = _taskManager.GetPending()
+                    .OrderByDescending(t => t.TypeName == typeof(UpdateDatCatalogsCommand).FullName)
+                    .ToList();
 
                 _logger.Trace("Pending Tasks: {0}", tasks.Count);
 

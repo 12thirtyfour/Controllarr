@@ -23,6 +23,14 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-24
+
+### Fixed
+- **DAT Update & Library Refresh Sequencing (`DatCatalogUpdateService`, `DatDatabaseUpdatedHandler`, `CommandQueue`, `RefreshPlatformService`, `DiskScanService`, `TaskManager`, `Scheduler`)**:
+  - Prevented `RefreshPlatformCommand` and `RescanPlatformCommand` from executing while `UpdateDatCatalogsCommand` is queued or active (or during direct DAT catalog sync scopes), and ensured `UpdateDatCatalogsCommand` waits if a library refresh/scan is already running.
+  - Deferred per-DAT `DatDatabaseUpdatedEvent` refreshes in `DatDatabaseUpdatedHandler` while `DatCatalogUpdateService.IsUpdating` is active, queuing a single consolidated `RefreshPlatformCommand` across updated library platforms only after all DAT catalogs and firmware updates finish syncing.
+  - Prioritized `UpdateDatCatalogsCommand` ahead of `RefreshPlatformCommand` in `TaskManager` and `Scheduler` when both tasks are pending simultaneously.
+
 ## [Unreleased] - 2026-11-20
 
 ### Fixed
