@@ -579,5 +579,17 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             hashes.Should().ContainKey("CRC32").WhoseValue.Should().NotBe(fakeSfvCrc);
             hashes.Should().ContainKey("SHA-1").WhoseValue.Should().NotBe("da39a3ee5e6b4b0d3255bfef95601890afd80709");
         }
+
+        [Test]
+        public void ComputeStablePositiveInt32_ShouldBeDeterministicPositiveAndNonZero()
+        {
+            var id1 = UnmanagedDiskScanner.ComputeStablePositiveInt32("1002:1:Super Mario World (USA):Retail");
+            var id2 = UnmanagedDiskScanner.ComputeStablePositiveInt32("1002:1:Super Mario World (USA):Retail");
+            var other = UnmanagedDiskScanner.ComputeStablePositiveInt32("1002:1:Chrono Trigger (USA):Retail");
+
+            id1.Should().BeGreaterThan(0);
+            id1.Should().Be(id2);
+            id1.Should().NotBe(other);
+        }
     }
 }

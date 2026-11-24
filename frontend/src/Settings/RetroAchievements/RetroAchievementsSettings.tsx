@@ -49,10 +49,16 @@ function RetroAchievementsSettings() {
     path: '/retroachievements/credentials',
     method: 'POST',
     mutationOptions: {
-      onSuccess: (isValid) => {
+      onSuccess: (isValid, variables) => {
         if (isValid) {
-          window.localStorage.setItem(STORAGE_USERNAME_KEY, username.trim());
-          window.localStorage.setItem(STORAGE_APIKEY_KEY, webApiKey.trim());
+          window.localStorage.setItem(
+            STORAGE_USERNAME_KEY,
+            variables.username.trim()
+          );
+          window.localStorage.setItem(
+            STORAGE_APIKEY_KEY,
+            variables.webApiKey.trim()
+          );
           invalidateRetroAchievementsCache();
           setValidationStatus('valid');
         } else {

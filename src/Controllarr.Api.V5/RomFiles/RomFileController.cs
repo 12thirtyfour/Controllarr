@@ -63,7 +63,7 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
     [Produces("application/json")]
     public Results<Ok<List<EpisodeFileResource>>, BadRequest> GetEpisodeFiles(int? seriesId, [FromQuery] List<int>? romFileIds)
     {
-        if (!seriesId.HasValue && romFileIds?.Any() == false)
+        if (!seriesId.HasValue && (romFileIds == null || !romFileIds.Any()))
         {
             throw new BadRequestException("seriesId or romFileIds must be provided");
         }
@@ -85,8 +85,11 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
             var episodeFiles = _mediaFileService.Get(romFileIds);
 
             return TypedResults.Ok(episodeFiles.GroupBy(e => e.SeriesId)
-                               .SelectMany(f => f.ToList()
-                                                 .ConvertAll(e => e.ToResource(_seriesService.GetSeries(f.Key), _upgradableSpecification, _formatCalculator)))
+                               .SelectMany(f =>
+                               {
+                                   var series = _seriesService.GetSeries(f.Key);
+                                   return f.ToList().ConvertAll(e => e.ToResource(series, _upgradableSpecification, _formatCalculator));
+                               })
                                .ToList());
         }
     }
@@ -133,12 +136,25 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
     [Consumes("application/json")]
     public NoContent DeleteEpisodeFiles([FromBody] EpisodeFileListResource resource)
     {
-        var episodeFiles = _mediaFileService.GetFiles(resource.RomFileIds);
-        var series = _seriesService.GetSeries(episodeFiles.First().SeriesId);
-
-        foreach (var episodeFile in episodeFiles)
+        if (resource?.RomFileIds == null || !resource.RomFileIds.Any())
         {
-            _mediaFileDeletionService.DeleteEpisodeFile(series, episodeFile);
+            return TypedResults.NoContent();
+        }
+
+        var episodeFiles = _mediaFileService.GetFiles(resource.RomFileIds);
+        if (episodeFiles == null || episodeFiles.Count == 0)
+        {
+            return TypedResults.NoContent();
+        }
+
+        foreach (var group in episodeFiles.GroupBy(f => f.SeriesId))
+        {
+            var series = _seriesService.GetSeries(group.Key);
+
+            foreach (var episodeFile in group)
+            {
+                _mediaFileDeletionService.DeleteEpisodeFile(series, episodeFile);
+            }
         }
 
         return TypedResults.NoContent();
@@ -148,11 +164,22 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
     [Consumes("application/json")]
     public Ok<List<EpisodeFileResource>> SetPropertiesBulk([FromBody] List<EpisodeFileResource> resources)
     {
+        if (resources == null || resources.Count == 0)
+        {
+            return TypedResults.Ok(new List<EpisodeFileResource>());
+        }
+
         var episodeFiles = _mediaFileService.GetFiles(resources.Select(r => r.Id));
+        if (episodeFiles == null || episodeFiles.Count == 0)
+        {
+            return TypedResults.Ok(new List<EpisodeFileResource>());
+        }
+
+        var resourceById = resources.GroupBy(r => r.Id).ToDictionary(g => g.Key, g => g.First());
 
         foreach (var episodeFile in episodeFiles)
         {
-            var resourceEpisodeFile = resources.Single(r => r.Id == episodeFile.Id);
+            var resourceEpisodeFile = resourceById[episodeFile.Id];
 
             if (resourceEpisodeFile.Languages != null)
             {
@@ -188,9 +215,15 @@ public class RomFileController : RestControllerWithSignalR<EpisodeFileResource, 
 
         _mediaFileService.Update(episodeFiles);
 
-        var series = _seriesService.GetSeries(episodeFiles.First().SeriesId);
+        var updated = episodeFiles.GroupBy(f => f.SeriesId)
+                                  .SelectMany(group =>
+                                  {
+                                      var series = _seriesService.GetSeries(group.Key);
+                                      return group.Select(f => f.ToResource(series, _upgradableSpecification, _formatCalculator));
+                                  })
+                                  .ToList();
 
-        return TypedResults.Ok(episodeFiles.ConvertAll(f => f.ToResource(series, _upgradableSpecification, _formatCalculator)));
+        return TypedResults.Ok(updated);
     }
 
     [NonAction]

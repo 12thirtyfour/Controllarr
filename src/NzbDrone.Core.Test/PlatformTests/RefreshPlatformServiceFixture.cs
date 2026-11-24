@@ -310,5 +310,40 @@ namespace NzbDrone.Core.Test.PlatformTests
             Mocker.GetMock<IDiskScanService>()
                   .Verify(v => v.Scan(It.IsAny<Series>()), Times.Never());
         }
+
+        [Test]
+        public void should_pass_refreshed_platform_to_auto_tagging_and_handle_null_regions()
+        {
+            _series.Seasons = null;
+
+            var staleSeries = _series.JsonClone();
+            staleSeries.Title = "Super Nintendo (Stale Snapshot)";
+
+            var refreshedPlatform = _series.JsonClone();
+            refreshedPlatform.Title = "Super Nintendo Entertainment System (Updated)";
+            refreshedPlatform.Seasons = new List<Season>
+            {
+                Builder<Season>.CreateNew().With(s => s.SeasonNumber = 1).Build()
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetAllSeries())
+                  .Returns(new List<Series> { staleSeries });
+
+            Mocker.GetMock<ICheckIfSeriesShouldBeRefreshed>()
+                  .Setup(s => s.ShouldRefresh(It.IsAny<Series>()))
+                  .Returns(true);
+
+            Mocker.GetMock<IProvidePlatformInfo>()
+                  .Setup(s => s.GetSeriesInfo(_series.TvdbId, Language.English, SeasonType.Official))
+                  .Returns(new Tuple<Series, List<Episode>>(refreshedPlatform, new List<Episode>()));
+
+            Subject.Execute(new RefreshPlatformCommand());
+
+            Mocker.GetMock<ISeriesService>()
+                  .Verify(v => v.UpdateAutoTaggingTags(It.Is<Series>(s => ReferenceEquals(s, _series) && s.Title == "Super Nintendo Entertainment System (Updated)")), Times.Once());
+            Mocker.GetMock<ISeriesService>()
+                  .Verify(v => v.UpdateAutoTaggingTags(It.Is<Series>(s => ReferenceEquals(s, staleSeries))), Times.Never());
+        }
     }
 }

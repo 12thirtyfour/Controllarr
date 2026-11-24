@@ -345,6 +345,47 @@ namespace NzbDrone.Core.Test.MediaFiles.RomFileMovingServiceTests
             File.Exists(zipPath).Should().BeFalse();
         }
 
+        [Test]
+        public void should_group_only_matching_multidisc_titles_for_m3u_playlist_in_flat_region_folder()
+        {
+            _threeDoPlatform.PreferredArchiveFormat = "none";
+
+            var usaRegionDir = Path.Combine(_threeDoPlatform.Path, "USA");
+            Directory.CreateDirectory(usaRegionDir);
+
+            // An unrelated game in the same flat region folder and Disc 1 of the target multi-disc game
+            var unrelatedChd = Path.Combine(usaRegionDir, "Gex (USA).chd");
+            var disc1Chd = Path.Combine(usaRegionDir, "D (USA) (Disc 1).chd");
+            File.WriteAllBytes(unrelatedChd, new byte[64]);
+            File.WriteAllBytes(disc1Chd, new byte[64]);
+
+            var srcDisc2Chd = Path.Combine(_downloadsDir, "D_USA_Disc2.chd");
+            File.WriteAllBytes(srcDisc2Chd, new byte[64]);
+
+            Mocker.GetMock<IBuildFileNames>()
+                .Setup(s => s.BuildFilePath(It.IsAny<List<Episode>>(), _threeDoPlatform, It.IsAny<EpisodeFile>(), It.IsAny<string>(), It.IsAny<NamingConfig>(), It.IsAny<List<CustomFormat>>()))
+                .Returns((List<Episode> eps, Series ser, EpisodeFile ef, string ext, NamingConfig cfg, List<CustomFormat> cfs) => Path.Combine(usaRegionDir, "D (USA) (Disc 2)" + ext));
+
+            var generatedPlaylists = new List<(string[] Paths, string M3uPath)>();
+            Mocker.GetMock<IDiscCompressionService>()
+                .Setup(s => s.GenerateM3uPlaylist(It.IsAny<IEnumerable<string>>(), It.IsAny<string>()))
+                .Callback<IEnumerable<string>, string>((paths, m3uPath) => generatedPlaylists.Add((paths.ToArray(), m3uPath)));
+
+            var game = new Episode { Id = 9, SeasonNumber = 1, EpisodeNumber = 2, Title = "D" };
+            var localGame = new LocalEpisode { Path = srcDisc2Chd, Series = _threeDoPlatform, Episodes = new List<Episode> { game } };
+            var romFile = new EpisodeFile { Path = srcDisc2Chd, RelativePath = "D_USA_Disc2.chd" };
+
+            Subject.MoveEpisodeFile(romFile, localGame);
+
+            generatedPlaylists.Should().ContainSingle();
+            generatedPlaylists[0].M3uPath.Should().Be(Path.Combine(usaRegionDir, "D (USA).m3u"));
+            generatedPlaylists[0].Paths.Select(Path.GetFileName).Should().BeEquivalentTo(new[]
+            {
+                "D (USA) (Disc 1).chd",
+                "D (USA) (Disc 2).chd"
+            });
+        }
+
         private static void Create3doArchiveWithJunk(string zipPath)
         {
             using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);

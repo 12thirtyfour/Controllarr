@@ -354,37 +354,41 @@ namespace NzbDrone.Core.Dat
                 return null;
             }
 
-            var conditions = new List<string>(4);
-            var parameters = new DynamicParameters();
+            var hashQueries = new List<(string Sql, string Hash)>(4);
 
             if (normSha256 != null)
             {
-                conditions.Add(@"""Sha256"" = @normSha256");
-                parameters.Add("normSha256", normSha256);
+                hashQueries.Add((@"SELECT * FROM ""DatEntries"" WHERE ""Sha256"" = @hash LIMIT 100", normSha256));
             }
 
             if (normSha1 != null)
             {
-                conditions.Add(@"""Sha1"" = @normSha1");
-                parameters.Add("normSha1", normSha1);
+                hashQueries.Add((@"SELECT * FROM ""DatEntries"" WHERE ""Sha1"" = @hash LIMIT 100", normSha1));
             }
 
             if (normMd5 != null)
             {
-                conditions.Add(@"""Md5"" = @normMd5");
-                parameters.Add("normMd5", normMd5);
+                hashQueries.Add((@"SELECT * FROM ""DatEntries"" WHERE ""Md5"" = @hash LIMIT 100", normMd5));
             }
 
             if (normCrc32 != null)
             {
-                conditions.Add(@"""Crc32"" = @normCrc32");
-                parameters.Add("normCrc32", normCrc32);
+                hashQueries.Add((@"SELECT * FROM ""DatEntries"" WHERE ""Crc32"" = @hash LIMIT 100", normCrc32));
             }
 
-            var sql = $@"SELECT * FROM ""DatEntries"" WHERE {string.Join(" OR ", conditions)} LIMIT 25";
-            var candidates = connection.Query<DatEntry>(sql, parameters).ToList();
+            List<DatEntry> candidates = null;
 
-            if (candidates.Count == 0)
+            foreach (var (sql, hash) in hashQueries)
+            {
+                var tierMatches = connection.Query<DatEntry>(sql, new { hash }).ToList();
+                if (tierMatches.Count > 0)
+                {
+                    candidates = tierMatches;
+                    break;
+                }
+            }
+
+            if (candidates == null || candidates.Count == 0)
             {
                 return null;
             }
@@ -404,35 +408,14 @@ namespace NzbDrone.Core.Dat
                 }
             }
 
-            return candidates
-                .OrderByDescending(c => matchedFileIds != null && matchedFileIds.Contains(c.DatFileId) ? 1 : 0)
-                .ThenByDescending(c => ScoreHashStrength(c, normSha256, normSha1, normMd5, normCrc32))
-                .First();
-        }
-
-        private static int ScoreHashStrength(DatEntry candidate, string sha256, string sha1, string md5, string crc32)
-        {
-            if (sha256 != null && string.Equals(candidate.Sha256, sha256, System.StringComparison.OrdinalIgnoreCase))
+            if (matchedFileIds != null)
             {
-                return 4;
+                return candidates
+                    .OrderByDescending(c => matchedFileIds.Contains(c.DatFileId) ? 1 : 0)
+                    .First();
             }
 
-            if (sha1 != null && string.Equals(candidate.Sha1, sha1, System.StringComparison.OrdinalIgnoreCase))
-            {
-                return 3;
-            }
-
-            if (md5 != null && string.Equals(candidate.Md5, md5, System.StringComparison.OrdinalIgnoreCase))
-            {
-                return 2;
-            }
-
-            if (crc32 != null && string.Equals(candidate.Crc32, crc32, System.StringComparison.OrdinalIgnoreCase))
-            {
-                return 1;
-            }
-
-            return 0;
+            return candidates[0];
         }
 
         public List<DatEntry> SearchByName(string query, int limit = 50)

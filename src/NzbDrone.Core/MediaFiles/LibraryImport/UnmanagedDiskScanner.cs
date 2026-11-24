@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Bios;
@@ -1137,11 +1138,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         .DefaultIfEmpty(0)
                         .Max() + 1;
 
-                    var deterministicTvdbId = Math.Abs((series.TvdbId.ToString() + ":" + seasonNum + ":" + bestTitle + ":" + targetVersion).GetHashCode());
-                    if (deterministicTvdbId == 0)
-                    {
-                        deterministicTvdbId = 1;
-                    }
+                    var deterministicTvdbId = ComputeStablePositiveInt32(series.TvdbId + ":" + seasonNum + ":" + bestTitle + ":" + targetVersion);
 
                     var newEpisode = new Episode
                     {
@@ -1768,6 +1765,20 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
 
             return tables;
+        }
+
+        public static int ComputeStablePositiveInt32(string input)
+        {
+            var bytes = Encoding.UTF8.GetBytes(input ?? string.Empty);
+            Span<byte> hash = stackalloc byte[32];
+            SHA256.HashData(bytes, hash);
+
+            var value = ((hash[0] & 0x7F) << 24) |
+                        (hash[1] << 16) |
+                        (hash[2] << 8) |
+                        hash[3];
+
+            return value == 0 ? 1 : value;
         }
     }
 }

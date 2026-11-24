@@ -1,5 +1,11 @@
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useLocation } from 'react-router-dom';
 import Alert from 'Components/Alert';
 import Icon from 'Components/Icon';
@@ -111,17 +117,28 @@ function WebPlayerPage() {
 
   const effectiveConfig = remoteConfig ?? localConfig;
 
-  useEffect(() => {
-    if (descriptor) {
-      if (!selectedCore) {
-        setSelectedCore(descriptor.libretroCore || 'snes9x');
-      }
+  const appliedDescriptorKeyRef = useRef<string | null>(null);
 
-      if (descriptor.shader && selectedShader === 'none') {
-        setSelectedShader(descriptor.shader);
-      }
+  useEffect(() => {
+    if (!descriptor) {
+      return;
     }
-  }, [descriptor, selectedCore, selectedShader]);
+
+    const descriptorKey = `${descriptor.gameId}:${descriptor.romPath}:${descriptor.libretroCore}:${descriptor.shader}`;
+    if (appliedDescriptorKeyRef.current === descriptorKey) {
+      return;
+    }
+
+    appliedDescriptorKeyRef.current = descriptorKey;
+
+    if (!coreQueryParam) {
+      setSelectedCore(descriptor.libretroCore || 'snes9x');
+    }
+
+    if (descriptor.shader && selectedShader === 'none') {
+      setSelectedShader(descriptor.shader);
+    }
+  }, [coreQueryParam, descriptor, selectedShader]);
 
   const { mutate: triggerDesktopLaunch, isPending: isLaunchingDesktop } =
     useApiMutation<DesktopLaunchResult, void>({

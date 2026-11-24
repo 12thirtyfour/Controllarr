@@ -137,6 +137,11 @@ namespace NzbDrone.Core.MetadataSource.Game
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IProvidePlatformInfo _seriesInfo;
         private readonly Logger _logger;
+        private readonly object _igdbTokenLock = new object();
+        private string _cachedIgdbAccessToken;
+        private string _cachedIgdbClientId;
+        private string _cachedIgdbClientSecret;
+        private DateTime _cachedIgdbTokenExpiresUtc;
 
         public GameMediaAssetService(
             IConfigService configService,
@@ -278,28 +283,35 @@ namespace NzbDrone.Core.MetadataSource.Game
                 _configService.MetadataManualsPdf = model.Scrapers.Any(s => s.Enabled && s.ManualsPdf);
             }
 
-            var settingsPath = GetSettingsFilePath();
-            if (!string.IsNullOrWhiteSpace(settingsPath))
-            {
-                try
-                {
-                    var dir = Path.GetDirectoryName(settingsPath);
-                    if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
-                    {
-                        Directory.CreateDirectory(dir);
-                    }
-
-                    var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
-                    File.WriteAllText(settingsPath, json);
-                }
-                catch (Exception ex)
-                {
-                    _logger?.Warn(ex, "Unable to persist metadata_scrapers.json");
-                }
-            }
+            PersistUnifiedSettings(model);
 
             SyncAllPlatforms();
             return GetUnifiedSettings();
+        }
+
+        private void PersistUnifiedSettings(UnifiedMetadataSettingsModel model)
+        {
+            var settingsPath = GetSettingsFilePath();
+            if (string.IsNullOrWhiteSpace(settingsPath) || model == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var dir = Path.GetDirectoryName(settingsPath);
+                if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(settingsPath, json);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warn(ex, "Unable to persist metadata_scrapers.json");
+            }
         }
 
         public MetadataSourceConfigModel GetMetadataSources()
@@ -336,6 +348,41 @@ namespace NzbDrone.Core.MetadataSource.Game
             _configService.ScreenScraperPassword = config.ScreenScraperPassword?.Trim() ?? string.Empty;
             _configService.EnableTheGamesDb = config.EnableTheGamesDb;
             _configService.TheGamesDbApiKey = config.TheGamesDbApiKey?.Trim() ?? string.Empty;
+
+            var unified = GetUnifiedSettings();
+            if (unified.Scrapers != null)
+            {
+                var ss = unified.Scrapers.FirstOrDefault(s => string.Equals(s.Id, "screenscraper", StringComparison.OrdinalIgnoreCase));
+                if (ss != null)
+                {
+                    ss.Enabled = _configService.EnableScreenScraper;
+                    ss.Username = _configService.ScreenScraperUsername;
+                    ss.Password = _configService.ScreenScraperPassword;
+                }
+
+                var igdb = unified.Scrapers.FirstOrDefault(s => string.Equals(s.Id, "igdb", StringComparison.OrdinalIgnoreCase));
+                if (igdb != null)
+                {
+                    igdb.Enabled = _configService.EnableIgdb;
+                    igdb.ClientId = _configService.IgdbClientId;
+                    igdb.ClientSecret = _configService.IgdbClientSecret;
+                }
+
+                var tgdb = unified.Scrapers.FirstOrDefault(s => string.Equals(s.Id, "thegamesdb", StringComparison.OrdinalIgnoreCase));
+                if (tgdb != null)
+                {
+                    tgdb.Enabled = _configService.EnableTheGamesDb;
+                    tgdb.ApiKey = _configService.TheGamesDbApiKey;
+                }
+
+                var libretro = unified.Scrapers.FirstOrDefault(s => string.Equals(s.Id, "libretro_launchbox", StringComparison.OrdinalIgnoreCase));
+                if (libretro != null)
+                {
+                    libretro.Enabled = _configService.EnableLaunchBox;
+                }
+
+                PersistUnifiedSettings(unified);
+            }
 
             return GetMetadataSources();
         }
@@ -374,6 +421,25 @@ namespace NzbDrone.Core.MetadataSource.Game
             _configService.MetadataManualsPdf = settings.ManualsPdf;
             _configService.MetadataPublishingMetadata = settings.PublishingMetadata;
             _configService.MetadataGenerateGamelistXml = settings.GenerateGamelistXml;
+
+            var unified = GetUnifiedSettings();
+            unified.GenerateGamelistXml = settings.GenerateGamelistXml;
+            if (unified.Scrapers != null)
+            {
+                foreach (var scraper in unified.Scrapers)
+                {
+                    scraper.BoxArt2d = settings.BoxArt2d;
+                    scraper.BoxArt3d = settings.BoxArt3d;
+                    scraper.TitleScreens = settings.TitleScreens;
+                    scraper.Screenshots = settings.Screenshots;
+                    scraper.ClearLogos = settings.ClearLogos;
+                    scraper.VideoPreviews = settings.VideoPreviews;
+                    scraper.ManualsPdf = settings.ManualsPdf;
+                    scraper.PublishingMetadata = settings.PublishingMetadata;
+                }
+
+                PersistUnifiedSettings(unified);
+            }
 
             SyncAllPlatforms();
 
@@ -1048,79 +1114,60 @@ namespace NzbDrone.Core.MetadataSource.Game
                      !string.IsNullOrWhiteSpace(scraper.ClientId) &&
                      !string.IsNullOrWhiteSpace(scraper.ClientSecret))
             {
-                var tokenUrl = $"https://id.twitch.tv/oauth2/token?client_id={Uri.EscapeDataString(scraper.ClientId)}&client_secret={Uri.EscapeDataString(scraper.ClientSecret)}&grant_type=client_credentials";
-                var tokenReq = new HttpRequest(tokenUrl)
+                var accessToken = GetOrRefreshIgdbAccessToken(scraper.ClientId, scraper.ClientSecret);
+
+                if (!string.IsNullOrWhiteSpace(accessToken))
                 {
-                    Method = HttpMethod.Post,
-                    SuppressHttpError = true,
-                    RequestTimeout = TimeSpan.FromSeconds(10)
-                };
-
-                var tokenResp = _httpClient?.Execute(tokenReq);
-                if (tokenResp != null && !tokenResp.HasHttpError && !string.IsNullOrWhiteSpace(tokenResp.Content))
-                {
-                    string accessToken = null;
-                    using (var tokenDoc = JsonDocument.Parse(tokenResp.Content))
+                    var safeQuery = gameTitle.Replace("\"", string.Empty).Trim();
+                    var igdbReq = new HttpRequest("https://api.igdb.com/v4/games")
                     {
-                        if (tokenDoc.RootElement.TryGetProperty("access_token", out var atEl))
-                        {
-                            accessToken = atEl.GetString();
-                        }
-                    }
+                        Method = HttpMethod.Post,
+                        SuppressHttpError = true,
+                        RequestTimeout = TimeSpan.FromSeconds(10)
+                    };
+                    igdbReq.Headers.Set("Client-ID", scraper.ClientId);
+                    igdbReq.Headers.Set("Authorization", $"Bearer {accessToken}");
+                    igdbReq.SetContent($"search \"{safeQuery}\"; fields name,cover.image_id,screenshots.image_id,artworks.image_id; limit 1;");
 
-                    if (!string.IsNullOrWhiteSpace(accessToken))
+                    var igdbResp = _httpClient?.Execute(igdbReq);
+                    if (igdbResp != null && !igdbResp.HasHttpError && !string.IsNullOrWhiteSpace(igdbResp.Content))
                     {
-                        var safeQuery = gameTitle.Replace("\"", string.Empty).Trim();
-                        var igdbReq = new HttpRequest("https://api.igdb.com/v4/games")
+                        using (var igdbDoc = JsonDocument.Parse(igdbResp.Content))
                         {
-                            Method = HttpMethod.Post,
-                            SuppressHttpError = true,
-                            RequestTimeout = TimeSpan.FromSeconds(10)
-                        };
-                        igdbReq.Headers.Set("Client-ID", scraper.ClientId);
-                        igdbReq.Headers.Set("Authorization", $"Bearer {accessToken}");
-                        igdbReq.SetContent($"search \"{safeQuery}\"; fields name,cover.image_id,screenshots.image_id,artworks.image_id; limit 1;");
-
-                        var igdbResp = _httpClient.Execute(igdbReq);
-                        if (igdbResp != null && !igdbResp.HasHttpError && !string.IsNullOrWhiteSpace(igdbResp.Content))
-                        {
-                            using (var igdbDoc = JsonDocument.Parse(igdbResp.Content))
+                            if (igdbDoc.RootElement.ValueKind == JsonValueKind.Array)
                             {
-                                if (igdbDoc.RootElement.ValueKind == JsonValueKind.Array)
+                                var first = igdbDoc.RootElement.EnumerateArray().FirstOrDefault();
+                                if (first.ValueKind == JsonValueKind.Object)
                                 {
-                                    var first = igdbDoc.RootElement.EnumerateArray().FirstOrDefault();
-                                    if (first.ValueKind == JsonValueKind.Object)
+                                    if (first.TryGetProperty("cover", out var coverEl) &&
+                                        coverEl.ValueKind == JsonValueKind.Object &&
+                                        coverEl.TryGetProperty("image_id", out var covId) &&
+                                        !string.IsNullOrWhiteSpace(covId.GetString()))
                                     {
-                                        if (first.TryGetProperty("cover", out var coverEl) &&
-                                            coverEl.ValueKind == JsonValueKind.Object &&
-                                            coverEl.TryGetProperty("image_id", out var covId) &&
-                                            !string.IsNullOrWhiteSpace(covId.GetString()))
-                                        {
-                                            urls["box2d"] = $"https://images.igdb.com/igdb/image/upload/t_cover_big/{covId.GetString()}.png";
-                                        }
+                                        urls["box2d"] = $"https://images.igdb.com/igdb/image/upload/t_cover_big/{covId.GetString()}.png";
+                                    }
 
-                                        if (first.TryGetProperty("screenshots", out var ssArr) &&
-                                            ssArr.ValueKind == JsonValueKind.Array)
+                                    if (first.TryGetProperty("screenshots", out var ssArr) &&
+                                        ssArr.ValueKind == JsonValueKind.Array)
+                                    {
+                                        var firstSs = ssArr.EnumerateArray().FirstOrDefault();
+                                        if (firstSs.ValueKind == JsonValueKind.Object &&
+                                            firstSs.TryGetProperty("image_id", out var ssId) &&
+                                            !string.IsNullOrWhiteSpace(ssId.GetString()))
                                         {
-                                            var firstSs = ssArr.EnumerateArray().FirstOrDefault();
-                                            if (firstSs.ValueKind == JsonValueKind.Object &&
-                                                firstSs.TryGetProperty("image_id", out var ssId) &&
-                                                !string.IsNullOrWhiteSpace(ssId.GetString()))
-                                            {
-                                                urls["screenshots"] = $"https://images.igdb.com/igdb/image/upload/t_screenshot_big/{ssId.GetString()}.png";
-                                            }
+                                            urls["screenshots"] = $"https://images.igdb.com/igdb/image/upload/t_screenshot_big/{ssId.GetString()}.png";
                                         }
+                                    }
 
-                                        if (first.TryGetProperty("artworks", out var artArr) &&
-                                            artArr.ValueKind == JsonValueKind.Array)
+                                    if (first.TryGetProperty("artworks", out var artArr) &&
+                                        artArr.ValueKind == JsonValueKind.Array)
+                                    {
+                                        var firstArt = artArr.EnumerateArray().FirstOrDefault();
+                                        if (firstArt.ValueKind == JsonValueKind.Object &&
+                                            firstArt.TryGetProperty("image_id", out var artId) &&
+                                            !string.IsNullOrWhiteSpace(artId.GetString()))
                                         {
-                                            var firstArt = artArr.EnumerateArray().FirstOrDefault();
-                                            if (firstArt.ValueKind == JsonValueKind.Object &&
-                                                firstArt.TryGetProperty("image_id", out var artId) &&
-                                                !string.IsNullOrWhiteSpace(artId.GetString()))
-                                            {
-                                                urls["titlescreens"] = $"https://images.igdb.com/igdb/image/upload/t_screenshot_big/{artId.GetString()}.png";
-                                            }
+                                            urls["titlescreens"] = $"https://images.igdb.com/igdb/image/upload/t_screenshot_big/{artId.GetString()}.png";
                                         }
                                     }
                                 }
@@ -1131,6 +1178,74 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             return urls;
+        }
+
+        private string GetOrRefreshIgdbAccessToken(string clientId, string clientSecret)
+        {
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || _httpClient == null)
+            {
+                return null;
+            }
+
+            lock (_igdbTokenLock)
+            {
+                var now = DateTime.UtcNow;
+                if (!string.IsNullOrWhiteSpace(_cachedIgdbAccessToken) &&
+                    string.Equals(_cachedIgdbClientId, clientId, StringComparison.Ordinal) &&
+                    string.Equals(_cachedIgdbClientSecret, clientSecret, StringComparison.Ordinal) &&
+                    now < _cachedIgdbTokenExpiresUtc)
+                {
+                    return _cachedIgdbAccessToken;
+                }
+
+                var tokenUrl = $"https://id.twitch.tv/oauth2/token?client_id={Uri.EscapeDataString(clientId)}&client_secret={Uri.EscapeDataString(clientSecret)}&grant_type=client_credentials";
+                var tokenReq = new HttpRequest(tokenUrl)
+                {
+                    Method = HttpMethod.Post,
+                    SuppressHttpError = true,
+                    RequestTimeout = TimeSpan.FromSeconds(10)
+                };
+
+                var tokenResp = _httpClient.Execute(tokenReq);
+                if (tokenResp == null || tokenResp.HasHttpError || string.IsNullOrWhiteSpace(tokenResp.Content))
+                {
+                    return null;
+                }
+
+                string accessToken = null;
+                var expiresInSeconds = 3600;
+
+                using (var tokenDoc = JsonDocument.Parse(tokenResp.Content))
+                {
+                    if (tokenDoc.RootElement.TryGetProperty("access_token", out var atEl))
+                    {
+                        accessToken = atEl.GetString();
+                    }
+
+                    if (tokenDoc.RootElement.TryGetProperty("expires_in", out var expEl) &&
+                        expEl.TryGetInt32(out var parsedExp) &&
+                        parsedExp > 0)
+                    {
+                        expiresInSeconds = parsedExp;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(accessToken))
+                {
+                    return null;
+                }
+
+                var ttlSeconds = expiresInSeconds > 300
+                    ? expiresInSeconds - 300
+                    : Math.Max(1, expiresInSeconds / 2);
+
+                _cachedIgdbAccessToken = accessToken;
+                _cachedIgdbClientId = clientId;
+                _cachedIgdbClientSecret = clientSecret;
+                _cachedIgdbTokenExpiresUtc = now.AddSeconds(ttlSeconds);
+
+                return accessToken;
+            }
         }
 
         private HttpResponse ExecuteRateLimitedRequest(string scraperId, string url)

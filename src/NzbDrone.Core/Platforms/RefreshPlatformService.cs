@@ -172,7 +172,7 @@ namespace NzbDrone.Core.Tv
 
             foreach (var season in seasons)
             {
-                var existingSeason = series.Seasons.FirstOrDefault(s => s.SeasonNumber == season.SeasonNumber);
+                var existingSeason = series.Seasons?.FirstOrDefault(s => s.SeasonNumber == season.SeasonNumber);
 
                 if (existingSeason == null)
                 {
@@ -260,10 +260,11 @@ namespace NzbDrone.Core.Tv
             {
                 foreach (var seriesId in message.SeriesIds)
                 {
-                    var series = _seriesService.GetSeries(seriesId);
+                    Series series = null;
 
                     try
                     {
+                        series = _seriesService.GetSeries(seriesId);
                         series = RefreshSeriesInfo(seriesId);
                         if (_seriesService.IsSeriesDeletedWithFiles(seriesId))
                         {
@@ -276,7 +277,7 @@ namespace NzbDrone.Core.Tv
                     }
                     catch (SeriesNotFoundException)
                     {
-                        _logger.Error("Platform '{0}' (id {1}) was not found, it may have been removed from the game database.", series.Title, series.TvdbId);
+                        _logger.Error("Platform '{0}' (id {1}) was not found, it may have been removed from the game database.", series?.Title ?? seriesId.ToString(), series?.TvdbId ?? seriesId);
 
                         // Mark the result as indeterminate so it's not marked as a full success,
                         // but we can still process other series if needed.
@@ -286,13 +287,16 @@ namespace NzbDrone.Core.Tv
                     {
                         if (_seriesService.IsSeriesDeletedWithFiles(seriesId))
                         {
-                            _logger.Debug("Platform {0} was deleted during refresh; aborting rescan.", series.Title);
+                            _logger.Debug("Platform {0} was deleted during refresh; aborting rescan.", series?.Title ?? seriesId.ToString());
                             continue;
                         }
 
-                        _logger.Error(e, "Couldn't refresh info for {0}", series);
-                        UpdateTags(series);
-                        RescanSeries(series, isNew, trigger);
+                        _logger.Error(e, "Couldn't refresh info for {0}", series?.ToString() ?? seriesId.ToString());
+                        if (series != null)
+                        {
+                            UpdateTags(series);
+                            RescanSeries(series, isNew, trigger);
+                        }
 
                         // Mark the result as indeterminate so it's not marked as a full success,
                         // but we can still process other series if needed.
@@ -323,13 +327,13 @@ namespace NzbDrone.Core.Tv
                             _logger.Error(e, "Couldn't refresh info for {0}", seriesLocal);
                         }
 
-                        UpdateTags(series);
+                        UpdateTags(seriesLocal);
                         RescanSeries(seriesLocal, false, trigger);
                     }
                     else
                     {
                         _logger.Info("Skipping refresh of platform: {0}", seriesLocal.Title);
-                        UpdateTags(series);
+                        UpdateTags(seriesLocal);
                         RescanSeries(seriesLocal, false, trigger);
                     }
                 }

@@ -426,14 +426,29 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "NES";
             }
 
-            if (norm.Contains("famicom-disk"))
+            if (norm.Contains("famicom-disk") || norm == "fds")
             {
                 return "FDS";
+            }
+
+            if (norm == "satellaview")
+            {
+                return "Satellaview";
+            }
+
+            if (norm == "sgb")
+            {
+                return "SGB";
             }
 
             if (norm.Contains("nintendo-64") || norm == "n64")
             {
                 return "N64";
+            }
+
+            if (norm == "64dd")
+            {
+                return "64DD";
             }
 
             if (norm.Contains("game-boy-advance") || norm == "gba")
@@ -451,12 +466,12 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "Gameboy";
             }
 
-            if (norm.Contains("genesis") || norm.Contains("mega-drive"))
+            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive")
             {
                 return "Genesis";
             }
 
-            if (norm.Contains("sega-cd") || norm.Contains("mega-cd"))
+            if (norm.Contains("sega-cd") || norm.Contains("mega-cd") || norm == "segacd" || norm == "megacd" || norm == "scd")
             {
                 return "MegaCD";
             }
@@ -466,9 +481,19 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "S32X";
             }
 
-            if (norm.Contains("master-system"))
+            if (norm.Contains("master-system") || norm == "sms")
             {
                 return "SMS";
+            }
+
+            if (norm == "gg" || norm.Contains("gamegear") || norm.Contains("game-gear"))
+            {
+                return "GameGear";
+            }
+
+            if (norm == "sg1000")
+            {
+                return "SG1000";
             }
 
             if (norm.Contains("saturn"))
@@ -481,22 +506,32 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "PS2";
             }
 
-            if (norm.Contains("playstation") || norm == "ps1")
+            if (norm.Contains("playstation") || norm == "ps1" || norm == "psx")
             {
                 return "PSX";
             }
 
-            if (norm.Contains("turbografx-cd"))
+            if (norm.Contains("turbografx-cd") || norm == "tgcd" || norm == "pcecd")
             {
                 return "TGFX16-CD";
             }
 
-            if (norm.Contains("turbografx"))
+            if (norm.Contains("supergrafx"))
+            {
+                return "SuperGrafx";
+            }
+
+            if (norm.Contains("turbografx") || norm == "tg16" || norm == "pce")
             {
                 return "TGFX16";
             }
 
-            if (norm.Contains("neo-geo"))
+            if (norm.Contains("neo-geo-cd") || norm == "neogeocd")
+            {
+                return "NeoGeoCD";
+            }
+
+            if (norm.Contains("neo-geo") || norm == "neogeo")
             {
                 return "NeoGeo";
             }
@@ -514,6 +549,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             if (norm.Contains("nintendo-entertainment-system") || norm == "nes")
             {
                 return "Nintendo - Nintendo Entertainment System";
+            }
+
+            if (norm.Contains("famicom-disk") || norm == "fds")
+            {
+                return "Nintendo - Family Computer Disk System";
             }
 
             if (norm.Contains("nintendo-64") || norm == "n64")
@@ -536,14 +576,49 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "Nintendo - Game Boy";
             }
 
-            if (norm.Contains("genesis") || norm.Contains("mega-drive"))
+            if (norm == "nds" || norm == "ds")
+            {
+                return "Nintendo - Nintendo DS";
+            }
+
+            if (norm == "3ds")
+            {
+                return "Nintendo - Nintendo 3DS";
+            }
+
+            if (norm == "gamecube" || norm == "gc")
+            {
+                return "Nintendo - GameCube";
+            }
+
+            if (norm == "wii")
+            {
+                return "Nintendo - Wii";
+            }
+
+            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive")
             {
                 return "Sega - Mega Drive - Genesis";
             }
 
-            if (norm.Contains("sega-cd"))
+            if (norm.Contains("sega-cd") || norm.Contains("mega-cd") || norm == "segacd" || norm == "megacd" || norm == "scd")
             {
                 return "Sega - Mega-CD - Sega CD";
+            }
+
+            if (norm.Contains("32x"))
+            {
+                return "Sega - 32X";
+            }
+
+            if (norm.Contains("master-system") || norm == "sms")
+            {
+                return "Sega - Master System - Mark III";
+            }
+
+            if (norm == "gg" || norm.Contains("gamegear") || norm.Contains("game-gear"))
+            {
+                return "Sega - Game Gear";
             }
 
             if (norm.Contains("saturn"))
@@ -556,14 +631,59 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "Sega - Dreamcast";
             }
 
-            if (norm.Contains("playstation") && !norm.Contains('2') && !norm.Contains("portable"))
+            if (norm.Contains("playstation-2") || norm == "ps2")
+            {
+                return "Sony - PlayStation 2";
+            }
+
+            if (norm.Contains("playstation-portable") || norm == "psp")
+            {
+                return "Sony - PlayStation Portable";
+            }
+
+            if (norm == "ps1" || norm == "psx" || (norm.Contains("playstation") && !norm.Contains('2') && !norm.Contains('3') && !norm.Contains("portable") && !norm.Contains("vita")))
             {
                 return "Sony - PlayStation";
             }
 
-            if (norm.Contains("turbografx-16"))
+            if (norm.Contains("turbografx-cd") || norm == "tgcd" || norm == "pcecd")
+            {
+                return "NEC - PC Engine CD - TurboGrafx-CD";
+            }
+
+            if (norm.Contains("turbografx-16") || norm.Contains("turbografx") || norm == "tg16" || norm == "pce")
             {
                 return "NEC - PC Engine - TurboGrafx 16";
+            }
+
+            if (norm.Contains("neo-geo-pocket") || norm == "ngpc" || norm == "ngp")
+            {
+                return "SNK - Neo Geo Pocket Color";
+            }
+
+            if (norm.Contains("neo-geo") || norm == "neogeo")
+            {
+                return "SNK - Neo Geo";
+            }
+
+            if (norm == "3do")
+            {
+                return "The 3DO Company - 3DO";
+            }
+
+            if (norm == "atari2600")
+            {
+                return "Atari - 2600";
+            }
+
+            if (norm == "atari7800")
+            {
+                return "Atari - 7800";
+            }
+
+            if (norm == "lynx")
+            {
+                return "Atari - Lynx";
             }
 
             return norm;
@@ -581,9 +701,24 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "nes";
             }
 
-            if (norm.Contains("genesis") || norm.Contains("mega-drive"))
+            if (norm.Contains("famicom-disk") || norm == "fds")
+            {
+                return "fds";
+            }
+
+            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive")
             {
                 return "genesis";
+            }
+
+            if (norm.Contains("master-system") || norm == "sms")
+            {
+                return "sms";
+            }
+
+            if (norm == "gg" || norm.Contains("gamegear") || norm.Contains("game-gear"))
+            {
+                return "gg";
             }
 
             if (norm.Contains("game-boy-advance") || norm == "gba")
@@ -601,14 +736,59 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "gb";
             }
 
-            if (norm.Contains("turbografx"))
+            if (norm.Contains("turbografx") || norm == "tg16" || norm == "pce" || norm == "supergrafx")
             {
                 return "pce";
             }
 
-            if (norm.Contains("neo-geo"))
+            if (norm.Contains("neo-geo-pocket") || norm == "ngpc" || norm == "ngp")
+            {
+                return "ngp";
+            }
+
+            if (norm.Contains("neo-geo") || norm == "neogeo")
             {
                 return "ng";
+            }
+
+            if (norm.Contains("wonderswan") || norm == "ws" || norm == "wsc")
+            {
+                return "wonderswan";
+            }
+
+            if (norm == "atari2600" || norm.Contains("atari-2600"))
+            {
+                return "2600";
+            }
+
+            if (norm == "atari7800" || norm.Contains("atari-7800"))
+            {
+                return "7800";
+            }
+
+            if (norm.Contains("lynx"))
+            {
+                return "lynx";
+            }
+
+            if (norm.Contains("coleco") || norm == "colecovision")
+            {
+                return "coleco";
+            }
+
+            if (norm.Contains("intellivision"))
+            {
+                return "intv";
+            }
+
+            if (norm.Contains("pokemon-mini") || norm == "pokemonmini" || norm == "pokemini")
+            {
+                return "poke";
+            }
+
+            if (norm.Contains("virtual-boy") || norm == "vb" || norm == "virtualboy")
+            {
+                return "vb";
             }
 
             return norm;
@@ -616,9 +796,14 @@ namespace NzbDrone.Core.Games.VirtualLibrary
 
         private static string GetOnionSystemCode(string norm)
         {
-            if (norm.Contains("super-nintendo") || norm == "snes")
+            if (norm.Contains("super-nintendo") || norm == "snes" || norm == "satellaview")
             {
                 return "SFC";
+            }
+
+            if (norm.Contains("famicom-disk") || norm == "fds")
+            {
+                return "FDS";
             }
 
             if (norm.Contains("nintendo-entertainment-system") || norm == "nes")
@@ -626,14 +811,34 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "FC";
             }
 
-            if (norm.Contains("genesis") || norm.Contains("mega-drive"))
+            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive")
             {
                 return "MD";
             }
 
-            if (norm.Contains("sega-cd"))
+            if (norm.Contains("sega-cd") || norm.Contains("mega-cd") || norm == "segacd" || norm == "megacd" || norm == "scd")
             {
                 return "SEGACD";
+            }
+
+            if (norm.Contains("32x"))
+            {
+                return "THIRTYTWOX";
+            }
+
+            if (norm.Contains("master-system") || norm == "sms")
+            {
+                return "MS";
+            }
+
+            if (norm == "gg" || norm.Contains("gamegear") || norm.Contains("game-gear"))
+            {
+                return "GG";
+            }
+
+            if (norm == "sg1000")
+            {
+                return "SG";
             }
 
             if (norm.Contains("game-boy-advance") || norm == "gba")
@@ -651,14 +856,64 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "GB";
             }
 
-            if (norm.Contains("playstation"))
+            if (norm == "nds" || norm == "ds")
+            {
+                return "NDS";
+            }
+
+            if (norm.Contains("virtual-boy") || norm == "vb" || norm == "virtualboy")
+            {
+                return "VB";
+            }
+
+            if (norm.Contains("playstation") || norm == "ps1" || norm == "psx")
             {
                 return "PS";
             }
 
-            if (norm.Contains("turbografx"))
+            if (norm.Contains("turbografx-cd") || norm == "tgcd" || norm == "pcecd")
+            {
+                return "PCECD";
+            }
+
+            if (norm.Contains("turbografx") || norm == "tg16" || norm == "pce" || norm == "supergrafx")
             {
                 return "PCE";
+            }
+
+            if (norm.Contains("neo-geo-pocket") || norm == "ngpc" || norm == "ngp")
+            {
+                return "NGP";
+            }
+
+            if (norm.Contains("neo-geo-cd") || norm == "neogeocd")
+            {
+                return "NEOCD";
+            }
+
+            if (norm.Contains("neo-geo") || norm == "neogeo")
+            {
+                return "NEOGEO";
+            }
+
+            if (norm.Contains("wonderswan"))
+            {
+                return "WS";
+            }
+
+            if (norm == "atari2600" || norm.Contains("atari-2600"))
+            {
+                return "ATARI";
+            }
+
+            if (norm == "atari7800" || norm.Contains("atari-7800"))
+            {
+                return "SEVENTYEIGHTHUNDRED";
+            }
+
+            if (norm.Contains("lynx"))
+            {
+                return "LYNX";
             }
 
             return norm.ToUpperInvariant();
@@ -671,6 +926,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "snes";
             }
 
+            if (norm.Contains("famicom-disk") || norm == "fds")
+            {
+                return "fds";
+            }
+
             if (norm.Contains("nintendo-entertainment-system") || norm == "nes")
             {
                 return "nes";
@@ -681,24 +941,109 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "n64";
             }
 
-            if (norm.Contains("genesis") || norm.Contains("mega-drive"))
+            if (norm.Contains("game-boy-advance") || norm == "gba")
+            {
+                return "gba";
+            }
+
+            if (norm.Contains("game-boy-color") || norm == "gbc")
+            {
+                return "gbc";
+            }
+
+            if (norm.Contains("game-boy") || norm == "gb")
+            {
+                return "gb";
+            }
+
+            if (norm == "nds" || norm == "ds")
+            {
+                return "nds";
+            }
+
+            if (norm == "3ds")
+            {
+                return "3ds";
+            }
+
+            if (norm == "gamecube" || norm == "gc")
+            {
+                return "gc";
+            }
+
+            if (norm == "wii")
+            {
+                return "wii";
+            }
+
+            if (norm == "wiiu")
+            {
+                return "wiiu";
+            }
+
+            if (norm == "switch")
+            {
+                return "switch";
+            }
+
+            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive")
             {
                 return "megadrive";
             }
 
-            if (norm.Contains("sega-cd"))
+            if (norm.Contains("sega-cd") || norm.Contains("mega-cd") || norm == "segacd" || norm == "megacd" || norm == "scd")
             {
                 return "segacd";
             }
 
-            if (norm.Contains("playstation") && !norm.Contains('2'))
+            if (norm.Contains("32x"))
+            {
+                return "sega32x";
+            }
+
+            if (norm.Contains("master-system") || norm == "sms")
+            {
+                return "mastersystem";
+            }
+
+            if (norm == "gg" || norm.Contains("gamegear") || norm.Contains("game-gear"))
+            {
+                return "gamegear";
+            }
+
+            if (norm.Contains("playstation-2") || norm == "ps2")
+            {
+                return "ps2";
+            }
+
+            if (norm.Contains("playstation-3") || norm == "ps3")
+            {
+                return "ps3";
+            }
+
+            if (norm.Contains("playstation-portable") || norm == "psp")
+            {
+                return "psp";
+            }
+
+            if (norm == "ps1" || norm == "psx" || (norm.Contains("playstation") && !norm.Contains('2') && !norm.Contains('3') && !norm.Contains("portable") && !norm.Contains("vita")))
             {
                 return "psx";
             }
 
-            if (norm.Contains("turbografx-16"))
+            if (norm.Contains("turbografx-cd") || norm == "tgcd" || norm == "pcecd")
+            {
+                return "pcenginecd";
+            }
+
+            if (norm.Contains("turbografx-16") || norm.Contains("turbografx") || norm == "tg16" || norm == "pce")
             {
                 return "pcengine";
+            }
+
+            if (norm.Contains("neo-geo") || norm == "neogeo")
+            {
+                return "neogeo";
             }
 
             return norm;
@@ -809,14 +1154,13 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                         {
                             CreateNoWindow = true,
                             UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true
+                            RedirectStandardOutput = false,
+                            RedirectStandardError = false
                         };
 
                         using (var proc = Process.Start(psi))
                         {
-                            proc?.WaitForExit(3000);
-                            if (proc?.ExitCode == 0)
+                            if (proc != null && proc.WaitForExit(3000) && proc.ExitCode == 0)
                             {
                                 return true;
                             }

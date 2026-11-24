@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Extras.Others;
@@ -202,6 +203,73 @@ namespace NzbDrone.Core.Test.Extras.Others
             results.Should().HaveCount(2);
             results[0].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("USA", "Crash 'n Burn (USA)", "Crash 'n Burn (USA).1.txt").AsOsAgnostic()).Should().BeTrue();
             results[1].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("USA", "Crash 'n Burn (USA)", "Crash 'n Burn (USA).2.jpg").AsOsAgnostic()).Should().BeTrue();
+        }
+
+        [Test]
+        public void should_set_permissions_on_destination_extra_file_path()
+        {
+            var sourceExtra = Path.Combine(_episodeFolder, "manual.pdf").AsOsAgnostic();
+            var romPath = Path.Combine(_episodeFolder, "Chrono Trigger (USA).sfc").AsOsAgnostic();
+            var romFile = Builder<EpisodeFile>.CreateNew()
+                .With(f => f.Path = Path.Combine(_series.Path, "USA", "Chrono Trigger (USA).sfc").AsOsAgnostic())
+                .With(f => f.RelativePath = Path.Combine("USA", "Chrono Trigger (USA).sfc"))
+                .Build();
+
+            var localRom = Builder<LocalEpisode>.CreateNew()
+                .With(l => l.Series = _series)
+                .With(l => l.Episodes = _localEpisode.Episodes)
+                .With(l => l.Path = romPath)
+                .With(l => l.OtherVideoFiles = false)
+                .With(l => l.FileEpisodeInfo = null)
+                .Build();
+
+            var results = Subject.ImportFiles(localRom, romFile, new List<string> { sourceExtra }, false).ToList();
+
+            results.Should().ContainSingle();
+            var expectedDestPath = Path.Combine(_series.Path, "USA", "Chrono Trigger (USA).pdf").AsOsAgnostic();
+            Mocker.GetMock<IMediaFileAttributeService>()
+                .Verify(m => m.SetFilePermissions(It.Is<string>(p => p.PathEquals(expectedDestPath))), Times.Once());
+            Mocker.GetMock<IMediaFileAttributeService>()
+                .Verify(m => m.SetFilePermissions(It.Is<string>(p => p.PathEquals(sourceExtra))), Times.Never());
+        }
+
+        [Test]
+        public void should_preserve_distinct_suffixes_for_multiple_extras_when_moving_after_rename()
+        {
+            var romFile = Builder<EpisodeFile>.CreateNew()
+                .With(f => f.Id = 42)
+                .With(f => f.RelativePath = Path.Combine("USA", "Chrono Trigger (USA) [Rev 1].sfc"))
+                .Build();
+
+            var existingExtras = new List<OtherExtraFile>
+            {
+                new OtherExtraFile
+                {
+                    Id = 1,
+                    SeriesId = _series.Id,
+                    EpisodeFileId = romFile.Id,
+                    RelativePath = Path.Combine("USA", "Chrono Trigger (USA).1.txt"),
+                    Extension = ".txt"
+                },
+                new OtherExtraFile
+                {
+                    Id = 2,
+                    SeriesId = _series.Id,
+                    EpisodeFileId = romFile.Id,
+                    RelativePath = Path.Combine("USA", "Chrono Trigger (USA).2.txt"),
+                    Extension = ".txt"
+                }
+            };
+
+            Mocker.GetMock<IOtherExtraFileService>()
+                .Setup(s => s.GetFilesBySeries(_series.Id))
+                .Returns(existingExtras);
+
+            var moved = Subject.MoveFilesAfterRename(_series, new List<EpisodeFile> { romFile }).ToList();
+
+            moved.Should().HaveCount(2);
+            moved[0].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("USA", "Chrono Trigger (USA) [Rev 1].1.txt").AsOsAgnostic()).Should().BeTrue();
+            moved[1].RelativePath.AsOsAgnostic().PathEquals(Path.Combine("USA", "Chrono Trigger (USA) [Rev 1].2.txt").AsOsAgnostic()).Should().BeTrue();
         }
     }
 }

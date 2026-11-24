@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnsureThat;
@@ -32,6 +33,10 @@ namespace NzbDrone.Core.MediaFiles
 
     public class RomFileMovingService : IMoveRomFiles
     {
+        private static readonly Regex DiscSuffixRegex = new Regex(
+            @"\s*\(\s*(?:Disc|Disk|CD|Side|GD-ROM)\s*(?:\d+(?:\s*of\s*\d+)?|[A-Z])\s*\)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly IEpisodeService _gameService;
         private readonly IUpdateRomFileService _updateRomFileService;
         private readonly IBuildFileNames _buildFileNames;
@@ -862,23 +867,34 @@ namespace NzbDrone.Core.MediaFiles
                 if (_discCompressionService != null && (ext == ".chd" || ext == ".rvz" || ext == ".cue" || ext == ".iso"))
                 {
                     var targetDir = Path.GetDirectoryName(destinationFilePath);
-                    if (!string.IsNullOrWhiteSpace(targetDir) && Directory.Exists(targetDir))
-                    {
-                        var adjacentDiscs = Directory.GetFiles(targetDir)
-                            .Where(f =>
-                            {
-                                var e = Path.GetExtension(f)?.ToLowerInvariant();
-                                return e == ".chd" || e == ".rvz" || e == ".cue" || e == ".iso";
-                            })
-                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                            .ToArray();
+                    var rawBaseTitle = Path.GetFileNameWithoutExtension(destinationFilePath);
 
-                        if (adjacentDiscs.Length > 1)
+                    if (!string.IsNullOrWhiteSpace(targetDir) &&
+                        Directory.Exists(targetDir) &&
+                        DiscSuffixRegex.IsMatch(rawBaseTitle))
+                    {
+                        var strippedBaseTitle = StripDiscSuffix(rawBaseTitle);
+                        if (!string.IsNullOrWhiteSpace(strippedBaseTitle))
                         {
-                            var baseTitle = Path.GetFileNameWithoutExtension(destinationFilePath);
-                            var m3uPath = Path.Combine(targetDir, baseTitle + ".m3u");
-                            if (!File.Exists(m3uPath))
+                            var adjacentDiscs = Directory.GetFiles(targetDir)
+                                .Where(f =>
+                                {
+                                    var e = Path.GetExtension(f)?.ToLowerInvariant();
+                                    if (e != ".chd" && e != ".rvz" && e != ".cue" && e != ".iso")
+                                    {
+                                        return false;
+                                    }
+
+                                    var name = Path.GetFileNameWithoutExtension(f);
+                                    return DiscSuffixRegex.IsMatch(name) &&
+                                           string.Equals(StripDiscSuffix(name), strippedBaseTitle, StringComparison.OrdinalIgnoreCase);
+                                })
+                                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                .ToArray();
+
+                            if (adjacentDiscs.Length > 1)
                             {
+                                var m3uPath = Path.Combine(targetDir, strippedBaseTitle + ".m3u");
                                 _discCompressionService.GenerateM3uPlaylist(adjacentDiscs, m3uPath);
                             }
                         }
@@ -889,6 +905,17 @@ namespace NzbDrone.Core.MediaFiles
             {
                 _logger.Warn(ex, "Unable to complete ROM post-processing for {0}", destinationFilePath);
             }
+        }
+
+        private static string StripDiscSuffix(string fileNameWithoutExtension)
+        {
+            if (string.IsNullOrWhiteSpace(fileNameWithoutExtension))
+            {
+                return string.Empty;
+            }
+
+            var stripped = DiscSuffixRegex.Replace(fileNameWithoutExtension, string.Empty);
+            return Regex.Replace(stripped, @"\s{2,}", " ").Trim();
         }
 
         private void EnsureGameFolder(EpisodeFile romFile, LocalEpisode localGame, string filePath)

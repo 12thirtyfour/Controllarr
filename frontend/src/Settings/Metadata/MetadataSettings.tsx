@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
 import CheckInput from 'Components/Form/CheckInput';
@@ -307,6 +307,8 @@ function MetadataSettings() {
     loadLocalMetadataSettings
   );
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const hasPendingChangesRef = useRef(false);
+  hasPendingChangesRef.current = hasPendingChanges;
   const [savedNotice, setSavedNotice] = useState(false);
   const [editingScraperId, setEditingScraperId] = useState<string | null>(null);
   const [datServerPath, setDatServerPath] = useState('');
@@ -323,7 +325,7 @@ function MetadataSettings() {
   });
 
   useEffect(() => {
-    if (serverSettings) {
+    if (serverSettings && !hasPendingChangesRef.current) {
       const merged = mergeWithDefaults(serverSettings);
       setSettings(merged);
 

@@ -64,7 +64,7 @@ namespace Sonarr.Api.V3.RomFiles
         [Produces("application/json")]
         public List<EpisodeFileResource> GetEpisodeFiles(int? seriesId, [FromQuery] List<int> episodeFileIds)
         {
-            if (!seriesId.HasValue && !episodeFileIds.Any())
+            if (!seriesId.HasValue && (episodeFileIds == null || !episodeFileIds.Any()))
             {
                 throw new BadRequestException("seriesId or episodeFileIds must be provided");
             }
@@ -87,8 +87,11 @@ namespace Sonarr.Api.V3.RomFiles
                 var episodeFiles = _mediaFileService.Get(episodeFileIds);
 
                 return episodeFiles.GroupBy(e => e.SeriesId)
-                                   .SelectMany(f => f.ToList()
-                                                     .ConvertAll(e => e.ToResource(_seriesService.GetSeries(f.Key), _upgradableSpecification, _formatCalculator)))
+                                   .SelectMany(f =>
+                                   {
+                                       var series = _seriesService.GetSeries(f.Key);
+                                       return f.ToList().ConvertAll(e => e.ToResource(series, _upgradableSpecification, _formatCalculator));
+                                   })
                                    .ToList();
             }
         }
@@ -119,7 +122,16 @@ namespace Sonarr.Api.V3.RomFiles
         [Consumes("application/json")]
         public object SetQuality([FromBody] EpisodeFileListResource resource)
         {
+            if (resource?.EpisodeFileIds == null || !resource.EpisodeFileIds.Any())
+            {
+                return Accepted(new List<EpisodeFileResource>());
+            }
+
             var episodeFiles = _mediaFileService.GetFiles(resource.EpisodeFileIds);
+            if (episodeFiles == null || episodeFiles.Count == 0)
+            {
+                return Accepted(new List<EpisodeFileResource>());
+            }
 
             foreach (var episodeFile in episodeFiles)
             {
@@ -146,9 +158,15 @@ namespace Sonarr.Api.V3.RomFiles
 
             _mediaFileService.Update(episodeFiles);
 
-            var series = _seriesService.GetSeries(episodeFiles.First().SeriesId);
+            var updated = episodeFiles.GroupBy(f => f.SeriesId)
+                                      .SelectMany(group =>
+                                      {
+                                          var series = _seriesService.GetSeries(group.Key);
+                                          return group.Select(f => f.ToResource(series, _upgradableSpecification, _formatCalculator));
+                                      })
+                                      .ToList();
 
-            return Accepted(episodeFiles.ConvertAll(f => f.ToResource(series, _upgradableSpecification, _formatCalculator)));
+            return Accepted(updated);
         }
 
         [RestDeleteById]
@@ -170,12 +188,25 @@ namespace Sonarr.Api.V3.RomFiles
         [Consumes("application/json")]
         public object DeleteEpisodeFiles([FromBody] EpisodeFileListResource resource)
         {
-            var episodeFiles = _mediaFileService.GetFiles(resource.EpisodeFileIds);
-            var series = _seriesService.GetSeries(episodeFiles.First().SeriesId);
-
-            foreach (var episodeFile in episodeFiles)
+            if (resource?.EpisodeFileIds == null || !resource.EpisodeFileIds.Any())
             {
-                _mediaFileDeletionService.DeleteEpisodeFile(series, episodeFile);
+                return new { };
+            }
+
+            var episodeFiles = _mediaFileService.GetFiles(resource.EpisodeFileIds);
+            if (episodeFiles == null || episodeFiles.Count == 0)
+            {
+                return new { };
+            }
+
+            foreach (var group in episodeFiles.GroupBy(f => f.SeriesId))
+            {
+                var series = _seriesService.GetSeries(group.Key);
+
+                foreach (var episodeFile in group)
+                {
+                    _mediaFileDeletionService.DeleteEpisodeFile(series, episodeFile);
+                }
             }
 
             return new { };
@@ -185,11 +216,22 @@ namespace Sonarr.Api.V3.RomFiles
         [Consumes("application/json")]
         public object SetPropertiesBulk([FromBody] List<EpisodeFileResource> resources)
         {
+            if (resources == null || resources.Count == 0)
+            {
+                return Accepted(new List<EpisodeFileResource>());
+            }
+
             var episodeFiles = _mediaFileService.GetFiles(resources.Select(r => r.Id));
+            if (episodeFiles == null || episodeFiles.Count == 0)
+            {
+                return Accepted(new List<EpisodeFileResource>());
+            }
+
+            var resourceById = resources.GroupBy(r => r.Id).ToDictionary(g => g.Key, g => g.First());
 
             foreach (var episodeFile in episodeFiles)
             {
-                var resourceEpisodeFile = resources.Single(r => r.Id == episodeFile.Id);
+                var resourceEpisodeFile = resourceById[episodeFile.Id];
 
                 if (resourceEpisodeFile.Languages != null)
                 {
@@ -225,9 +267,15 @@ namespace Sonarr.Api.V3.RomFiles
 
             _mediaFileService.Update(episodeFiles);
 
-            var series = _seriesService.GetSeries(episodeFiles.First().SeriesId);
+            var updated = episodeFiles.GroupBy(f => f.SeriesId)
+                                      .SelectMany(group =>
+                                      {
+                                          var series = _seriesService.GetSeries(group.Key);
+                                          return group.Select(f => f.ToResource(series, _upgradableSpecification, _formatCalculator));
+                                      })
+                                      .ToList();
 
-            return Accepted(episodeFiles.ConvertAll(f => f.ToResource(series, _upgradableSpecification, _formatCalculator)));
+            return Accepted(updated);
         }
 
         [NonAction]

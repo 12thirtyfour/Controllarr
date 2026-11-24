@@ -22,12 +22,45 @@ export interface GameAchievementSummary {
 }
 
 const libraryItems: RetroAchievementsGameProgress[] = [];
+const libraryItemsByKey = new Map<string, RetroAchievementsGameProgress>();
+const libraryItemsByTitle = new Map<string, RetroAchievementsGameProgress>();
 let loadedUserKey = '';
+let hasLoadedLibrary = false;
 let inFlightPromise: Promise<void> | null = null;
 const loadedConsoles = new Set<string>();
 const inFlightConsoles = new Map<string, Promise<void>>();
 let cacheVersion = 0;
 const listeners = new Set<() => void>();
+
+function upsertLibraryItem(item: RetroAchievementsGameProgress): void {
+  const norm = normalizeGameTitle(item.gameTitle);
+  const cKey = resolveConsoleKey(item.consoleName);
+
+  if (!norm) {
+    return;
+  }
+
+  const compositeKey = `${cKey}::${norm}`;
+  const existing = libraryItemsByKey.get(compositeKey);
+
+  if (existing) {
+    const idx = libraryItems.indexOf(existing);
+    if (idx >= 0) {
+      libraryItems[idx] = item;
+    }
+  } else {
+    libraryItems.push(item);
+  }
+
+  libraryItemsByKey.set(compositeKey, item);
+  libraryItemsByTitle.set(norm, item);
+}
+
+function clearLibraryItems(): void {
+  libraryItems.length = 0;
+  libraryItemsByKey.clear();
+  libraryItemsByTitle.clear();
+}
 
 export function resolveConsoleKey(consoleName?: string): string {
   if (!consoleName) {
@@ -305,10 +338,11 @@ function notifyListeners() {
 
 export function invalidateRetroAchievementsCache(): void {
   loadedUserKey = '';
+  hasLoadedLibrary = false;
   inFlightPromise = null;
   loadedConsoles.clear();
   inFlightConsoles.clear();
-  libraryItems.length = 0;
+  clearLibraryItems();
   notifyListeners();
 }
 
@@ -329,16 +363,10 @@ export function findMatchingGameProgress(
       return undefined;
     }
 
-    return libraryItems.find(
-      (item) =>
-        normalizeGameTitle(item.gameTitle) === normTitle &&
-        resolveConsoleKey(item.consoleName) === targetConsoleKey
-    );
+    return libraryItemsByKey.get(`${targetConsoleKey}::${normTitle}`);
   }
 
-  return libraryItems.find(
-    (item) => normalizeGameTitle(item.gameTitle) === normTitle
-  );
+  return libraryItemsByTitle.get(normTitle);
 }
 
 function ensureLibraryLoaded(consoleName?: string): void {
@@ -355,11 +383,12 @@ function ensureLibraryLoaded(consoleName?: string): void {
   const currentKey = `${username}:${apiKey}`;
 
   if (!username) {
-    if (loadedUserKey !== '') {
+    if (loadedUserKey !== '' || hasLoadedLibrary) {
       loadedUserKey = '';
+      hasLoadedLibrary = false;
       loadedConsoles.clear();
       inFlightConsoles.clear();
-      libraryItems.length = 0;
+      clearLibraryItems();
       notifyListeners();
     }
 
@@ -368,25 +397,25 @@ function ensureLibraryLoaded(consoleName?: string): void {
 
   if (loadedUserKey !== currentKey) {
     loadedUserKey = currentKey;
+    hasLoadedLibrary = false;
     loadedConsoles.clear();
     inFlightConsoles.clear();
-    libraryItems.length = 0;
+    clearLibraryItems();
   }
 
+  const urlBase = window.Controllarr?.urlBase ?? '';
   const apiRoot = window.Controllarr?.apiRoot ?? '/api/v5';
+  const libraryEndpoint = `${urlBase}${apiRoot}/retroachievements/library`;
   const appApiKey = window.Controllarr?.apiKey ?? '';
   const query = new URLSearchParams({
     username,
     webApiKey: apiKey,
   });
 
-  if (!inFlightPromise && libraryItems.length === 0) {
-    inFlightPromise = fetch(
-      `${apiRoot}/retroachievements/library?${query.toString()}`,
-      {
-        headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
-      }
-    )
+  if (!inFlightPromise && !hasLoadedLibrary) {
+    inFlightPromise = fetch(`${libraryEndpoint}?${query.toString()}`, {
+      headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
+    })
       .then(async (response) => {
         if (!response.ok) {
           return;
@@ -396,21 +425,7 @@ function ensureLibraryLoaded(consoleName?: string): void {
           (await response.json()) as RetroAchievementsGameProgress[];
 
         if (Array.isArray(items)) {
-          items.forEach((item) => {
-            const norm = normalizeGameTitle(item.gameTitle);
-            const cKey = resolveConsoleKey(item.consoleName);
-            const existingIdx = libraryItems.findIndex(
-              (i) =>
-                normalizeGameTitle(i.gameTitle) === norm &&
-                resolveConsoleKey(i.consoleName) === cKey
-            );
-
-            if (existingIdx >= 0) {
-              libraryItems[existingIdx] = item;
-            } else {
-              libraryItems.push(item);
-            }
-          });
+          items.forEach(upsertLibraryItem);
         }
 
         notifyListeners();
@@ -419,6 +434,7 @@ function ensureLibraryLoaded(consoleName?: string): void {
         // Keep empty array on network error so fake badges are never shown
       })
       .finally(() => {
+        hasLoadedLibrary = true;
         inFlightPromise = null;
       });
   }
@@ -438,7 +454,7 @@ function ensureLibraryLoaded(consoleName?: string): void {
       });
 
       const consolePromise = fetch(
-        `${apiRoot}/retroachievements/library?${consoleQuery.toString()}`,
+        `${libraryEndpoint}?${consoleQuery.toString()}`,
         {
           headers: appApiKey ? { 'X-Api-Key': appApiKey } : undefined,
         }
@@ -452,30 +468,16 @@ function ensureLibraryLoaded(consoleName?: string): void {
             (await response.json()) as RetroAchievementsGameProgress[];
 
           if (Array.isArray(items)) {
-            items.forEach((newItem) => {
-              const normNew = normalizeGameTitle(newItem.gameTitle);
-              const cKey = resolveConsoleKey(newItem.consoleName);
-              const existingIdx = libraryItems.findIndex(
-                (i) =>
-                  normalizeGameTitle(i.gameTitle) === normNew &&
-                  resolveConsoleKey(i.consoleName) === cKey
-              );
-
-              if (existingIdx >= 0) {
-                libraryItems[existingIdx] = newItem;
-              } else {
-                libraryItems.push(newItem);
-              }
-            });
+            items.forEach(upsertLibraryItem);
           }
 
-          loadedConsoles.add(targetConsoleKey);
           notifyListeners();
         })
         .catch(() => {
           // Ignore network error
         })
         .finally(() => {
+          loadedConsoles.add(targetConsoleKey);
           inFlightConsoles.delete(targetConsoleKey);
         });
 

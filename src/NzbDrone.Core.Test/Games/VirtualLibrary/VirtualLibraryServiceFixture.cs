@@ -145,6 +145,53 @@ namespace NzbDrone.Core.Test.Games.VirtualLibrary
             VirtualLibraryService.IsPlatformSupportedByPreset(preset, slug).Should().Be(expected);
         }
 
+        [TestCase("retroarch", "ps1", "Sony - PlayStation")]
+        [TestCase("retroarch", "segacd", "Sega - Mega-CD - Sega CD")]
+        [TestCase("retroarch", "fds", "Nintendo - Family Computer Disk System")]
+        [TestCase("retroarch", "sms", "Sega - Master System - Mark III")]
+        [TestCase("retroarch", "tg16", "NEC - PC Engine - TurboGrafx 16")]
+        [TestCase("retroarch", "neogeo", "SNK - Neo Geo")]
+        [TestCase("batocera", "segacd", "segacd")]
+        [TestCase("batocera", "ps1", "psx")]
+        [TestCase("batocera", "sms", "mastersystem")]
+        [TestCase("batocera", "tg16", "pcengine")]
+        [TestCase("onionos", "fds", "FDS")]
+        [TestCase("onionos", "sms", "MS")]
+        [TestCase("onionos", "tg16", "PCE")]
+        [TestCase("everdrive", "segacd", "MegaCD")]
+        [TestCase("everdrive", "sms", "SMS")]
+        [TestCase("everdrive", "tg16", "TGFX16")]
+        public void should_map_short_canonical_slugs_for_hardware_presets(string preset, string slug, string expectedRelativeSegment)
+        {
+            var platformDir = CreatePlatformDir("Platform_" + slug);
+            _seriesService.Setup(x => x.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Title = slug, TitleSlug = slug, Path = platformDir }
+            });
+
+            var targetDir = Path.Combine(_virtualDir, preset + "_" + slug);
+            Directory.CreateDirectory(targetDir);
+
+            var profile = _subject.Save(new VirtualLibraryProfile
+            {
+                Name = "Test_" + preset + "_" + slug,
+                TargetPath = targetDir,
+                HardwarePreset = preset
+            });
+
+            var synced = _subject.SyncVirtualLibrary(profile.Id);
+
+            synced.LinkedConsoleCount.Should().Be(1);
+            var expectedPath = preset switch
+            {
+                "onionos" => Path.Combine(targetDir, "Roms", expectedRelativeSegment),
+                "batocera" => Path.Combine(targetDir, "roms", expectedRelativeSegment),
+                _ => Path.Combine(targetDir, expectedRelativeSegment)
+            };
+
+            Directory.Exists(expectedPath).Should().BeTrue($"expected virtual library link at '{expectedPath}'");
+        }
+
         private string CreatePlatformDir(string name)
         {
             var dir = Path.Combine(_libraryDir, name);

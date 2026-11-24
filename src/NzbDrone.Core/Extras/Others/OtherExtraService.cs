@@ -67,15 +67,19 @@ namespace NzbDrone.Core.Extras.Others
         public override IEnumerable<ExtraFile> MoveFilesAfterRename(Series series, List<EpisodeFile> episodeFiles)
         {
             var extraFiles = _otherExtraFileService.GetFilesBySeries(series.Id);
+            var extraFilesByEpisodeFileId = extraFiles.ToLookup(m => m.EpisodeFileId);
             var movedFiles = new List<OtherExtraFile>();
 
             foreach (var episodeFile in episodeFiles)
             {
-                var extraFilesForEpisodeFile = extraFiles.Where(m => m.EpisodeFileId == episodeFile.Id).ToList();
+                var extraFilesForEpisodeFile = extraFilesByEpisodeFileId[episodeFile.Id].ToList();
+                var copy = 1;
 
                 foreach (var extraFile in extraFilesForEpisodeFile)
                 {
-                    movedFiles.AddIfNotNull(MoveFile(series, episodeFile, extraFile));
+                    var suffix = GetSuffix(copy, extraFilesForEpisodeFile.Count > 1);
+                    movedFiles.AddIfNotNull(MoveFile(series, episodeFile, extraFile, suffix));
+                    copy++;
                 }
             }
 
@@ -162,7 +166,7 @@ namespace NzbDrone.Core.Extras.Others
                 {
                     var suffix = GetSuffix(copy, matchingFiles.Count > 1);
                     var extraFile = ImportFile(localEpisode.Series, episodeFile, file, isReadOnly, Path.GetExtension(file), suffix);
-                    _mediaFileAttributeService.SetFilePermissions(file);
+                    _mediaFileAttributeService.SetFilePermissions(Path.Combine(localEpisode.Series.Path, extraFile.RelativePath));
                     _otherExtraFileService.Upsert(extraFile);
                     importedFiles.Add(extraFile);
 

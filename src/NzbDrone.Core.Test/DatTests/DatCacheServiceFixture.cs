@@ -174,5 +174,71 @@ namespace NzbDrone.Core.Test.DatTests
             queriedSnesEntries.Should().HaveCount(1);
             queriedSnesEntries[0].GameName.Should().Be("Super Mario World (USA)");
         }
+
+        [Test]
+        public void Should_prefer_strongest_hash_tier_and_matching_platform_without_limit_truncation()
+        {
+            var nesDat = new DatFile
+            {
+                Name = "Nintendo - Nintendo Entertainment System",
+                Description = "nes"
+            };
+            var snesDat = new DatFile
+            {
+                Name = "Nintendo - Super Nintendo Entertainment System",
+                Description = "snes"
+            };
+
+            var nesEntries = new List<DatEntry>();
+            for (var i = 0; i < 30; i++)
+            {
+                nesEntries.Add(new DatEntry
+                {
+                    GameName = $"Noise Game {i}",
+                    RomName = $"Noise Game {i}.nes",
+                    Crc32 = "deadbeef",
+                    Md5 = $"noise_md5_{i}",
+                    Sha1 = $"noise_sha1_{i}",
+                    Sha256 = $"noise_sha256_{i}"
+                });
+            }
+
+            nesEntries.Add(new DatEntry
+            {
+                GameName = "Exact Strong Hash NES",
+                RomName = "Exact Strong Hash NES.nes",
+                Crc32 = "deadbeef",
+                Md5 = "target_md5",
+                Sha1 = "target_sha1",
+                Sha256 = "target_sha256"
+            });
+
+            var snesEntries = new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Exact Strong Hash SNES",
+                    RomName = "Exact Strong Hash SNES.sfc",
+                    Crc32 = "deadbeef",
+                    Md5 = "target_md5",
+                    Sha1 = "target_sha1",
+                    Sha256 = "target_sha256"
+                }
+            };
+
+            Subject.Insert(nesDat, nesEntries);
+            Subject.Insert(snesDat, snesEntries);
+
+            var match = Subject.FindBestMatch(
+                crc32: "deadbeef",
+                md5: "target_md5",
+                sha1: "target_sha1",
+                sha256: "target_sha256",
+                platformSlug: "snes",
+                platformName: "Super Nintendo Entertainment System");
+
+            match.Should().NotBeNull();
+            match.GameName.Should().Be("Exact Strong Hash SNES");
+        }
     }
 }
