@@ -310,31 +310,17 @@ namespace NzbDrone.Core.MediaFiles.Export
 
         private static readonly HashSet<string> CartridgeRomExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            ".sfc",
-            ".smc",
-            ".nes",
-            ".fds",
-            ".gb",
-            ".gbc",
-            ".gba",
-            ".md",
-            ".gen",
-            ".bin",
-            ".sms",
-            ".gg",
-            ".pce",
-            ".a26",
-            ".a52",
-            ".a78",
-            ".n64",
-            ".z64",
-            ".v64",
-            ".nds",
-            ".32x",
-            ".ngp",
-            ".ngc",
-            ".ws",
-            ".wsc"
+            ".sfc", ".smc", ".nes", ".unf", ".fds", ".bs", ".st",
+            ".gb", ".gbc", ".gba", ".raw",
+            ".md", ".gen", ".smd", ".bin", ".sms", ".gg", ".sg", ".sf", ".sc", ".sf7",
+            ".pce", ".sgx",
+            ".a26", ".a52", ".a78", ".lnx", ".j64", ".jag",
+            ".n64", ".z64", ".v64", ".ndd",
+            ".nds", ".dsi", ".3ds", ".cia", ".cci",
+            ".32x", ".neo", ".ngp", ".ngc", ".ws", ".wsc", ".vb",
+            ".col", ".int", ".vec", ".min", ".o2", ".chf", ".st2", ".cpr",
+            ".sv", ".tgc", ".fxe", ".gxb", ".hex", ".arduboy", ".mgw", ".pc2",
+            ".rom", ".gam", ".wad"
         };
 
         private static readonly HashSet<string> RawOpticalDiscExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -345,40 +331,41 @@ namespace NzbDrone.Core.MediaFiles.Export
             ".gcm"
         };
 
-        private static readonly HashSet<string> ChdSupportedPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> ChdSupportedPlatformSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "PlayStation",
-            "Sony PlayStation",
-            "PSX",
-            "PS1",
-            "PlayStation 2",
-            "Sony PlayStation 2",
-            "PS2",
-            "PSP",
-            "Sega CD",
-            "Mega-CD",
-            "Mega CD",
-            "Sega Saturn",
-            "Saturn",
-            "Dreamcast",
-            "Sega Dreamcast",
-            "TurboGrafx-CD",
-            "PC Engine CD",
-            "PCECD",
-            "3DO",
-            "Neo Geo CD"
+            "ps1",
+            "ps2",
+            "psp",
+            "psppsn",
+            "segacd",
+            "saturn",
+            "dreamcast",
+            "tgcd",
+            "jaguarcd",
+            "3do",
+            "cdi",
+            "pcfx",
+            "neogeocd",
+            "cd32"
         };
 
-        private static readonly HashSet<string> RvzSupportedPlatforms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> RvzSupportedPlatformSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "GameCube",
-            "Nintendo GameCube",
-            "GC",
-            "Wii",
-            "Nintendo Wii"
+            "gamecube",
+            "wii"
         };
 
-        private static readonly Dictionary<string, string> DefaultPlatformRawExtension = PlatformCatalogService.DefaultPlatformRawExtension;
+        private static bool IsChdSupportedPlatform(string platformFolder)
+        {
+            var normalized = Parser.PlatformCompatibilityValidator.NormalizePlatformSlug(platformFolder, platformFolder);
+            return !string.IsNullOrWhiteSpace(normalized) && ChdSupportedPlatformSlugs.Contains(normalized);
+        }
+
+        private static bool IsRvzSupportedPlatform(string platformFolder)
+        {
+            var normalized = Parser.PlatformCompatibilityValidator.NormalizePlatformSlug(platformFolder, platformFolder);
+            return !string.IsNullOrWhiteSpace(normalized) && RvzSupportedPlatformSlugs.Contains(normalized);
+        }
 
         private static readonly Dictionary<string, string> OnionOsSystemMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -401,6 +388,76 @@ namespace NzbDrone.Core.MediaFiles.Export
             { "Sony PlayStation", "PS" }
         };
 
+        private static readonly Dictionary<string, string> OnionOsCanonicalMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "snes", "SFC" },
+            { "satellaview", "SATELLAVIEW" },
+            { "sufamiturbo", "SUFAMI" },
+            { "nes", "FC" },
+            { "fds", "FDS" },
+            { "gb", "GB" },
+            { "gbc", "GBC" },
+            { "gba", "GBA" },
+            { "ereader", "EREADER" },
+            { "nds", "NDS" },
+            { "dsi", "NDS" },
+            { "dsiware", "DSIWARE" },
+            { "genesis", "MD" },
+            { "pico", "PICO" },
+            { "segacd", "SEGACD" },
+            { "32x", "THIRTYTWOX" },
+            { "sms", "MS" },
+            { "gg", "GG" },
+            { "sg1000", "SG" },
+            { "ps1", "PS" },
+            { "tg16", "PCE" },
+            { "supergrafx", "SGFX" },
+            { "tgcd", "PCECD" },
+            { "neogeo", "NEOGEO" },
+            { "neogeocd", "NEOCD" },
+            { "ngp", "NGP" },
+            { "ngpc", "NGPC" },
+            { "ws", "WS" },
+            { "wonderswan", "WSC" },
+            { "pocketchallengev2", "PC2" },
+            { "vb", "VB" },
+            { "atari2600", "ATARI" },
+            { "atari5200", "FIFTYTWOHUNDRED" },
+            { "atari7800", "SEVENTYEIGHTHUNDRED" },
+            { "lynx", "LYNX" },
+            { "colecovision", "COLECO" },
+            { "intellivision", "INTELLIVISION" },
+            { "vectrex", "VECTREX" },
+            { "pokemonmini", "POKE" },
+            { "gameandwatch", "GW" },
+            { "odyssey2", "ODYSSEY" },
+            { "videopacplus", "VIDEOPAC" },
+            { "channelf", "CHANNELF" },
+            { "supervision", "SUPERVISION" },
+            { "arduboy", "ARDUBOY" },
+            { "arcadia2001", "ARCADIA" },
+            { "creativision", "CRVISION" },
+            { "gamemaster", "GMASTER" },
+            { "adventurevision", "ADVISION" },
+            { "scv", "SCV" },
+            { "gx4000", "GX4000" },
+            { "studio2", "STUDIO2" },
+            { "vc4000", "VC4000" },
+            { "pv1000", "PV1000" },
+            { "n64", "N64" },
+            { "64dd", "64DD" },
+            { "saturn", "SATURN" },
+            { "dreamcast", "DC" },
+            { "psp", "PSP" },
+            { "psppsn", "PSP" },
+            { "3do", "3DO" },
+            { "cd32", "AMIGACD32" },
+            { "cdi", "CDI" },
+            { "pcfx", "PCFX" },
+            { "jaguar", "JAGUAR" },
+            { "jaguarcd", "JAGUARCD" }
+        };
+
         private static readonly Dictionary<string, string> AnaloguePocketCoreMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "SNES", "snes" },
@@ -414,6 +471,53 @@ namespace NzbDrone.Core.MediaFiles.Export
             { "Sega Genesis", "genesis" },
             { "Master System", "sms" },
             { "Game Gear", "gg" }
+        };
+
+        private static readonly Dictionary<string, string> AnaloguePocketCanonicalMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "snes", "snes" },
+            { "satellaview", "snes" },
+            { "sufamiturbo", "snes" },
+            { "nes", "nes" },
+            { "fds", "fds" },
+            { "gb", "gb" },
+            { "gbc", "gbc" },
+            { "gba", "gba" },
+            { "ereader", "gba" },
+            { "genesis", "genesis" },
+            { "sms", "sms" },
+            { "gg", "gg" },
+            { "sg1000", "sg1000" },
+            { "tg16", "pce" },
+            { "supergrafx", "pce" },
+            { "tgcd", "pcecd" },
+            { "neogeo", "ng" },
+            { "ngp", "ngp" },
+            { "ngpc", "ngp" },
+            { "ws", "wonderswan" },
+            { "wonderswan", "wonderswan" },
+            { "pocketchallengev2", "wonderswan" },
+            { "atari2600", "2600" },
+            { "atari5200", "5200" },
+            { "atari7800", "7800" },
+            { "lynx", "lynx" },
+            { "colecovision", "coleco" },
+            { "intellivision", "intv" },
+            { "pokemonmini", "poke" },
+            { "vb", "vb" },
+            { "supervision", "supervision" },
+            { "arduboy", "arduboy" },
+            { "gameandwatch", "gameandwatch" },
+            { "creativision", "creativision" },
+            { "arcadia2001", "arcadia2001" },
+            { "odyssey2", "odyssey2" },
+            { "videopacplus", "odyssey2" },
+            { "channelf", "channelf" },
+            { "studio2", "studio2" },
+            { "gamemaster", "gamemaster" },
+            { "adventurevision", "adventurevision" },
+            { "pv1000", "pv1000" },
+            { "scv", "scv" }
         };
 
         private static readonly Dictionary<string, string> MisterCoreMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -439,6 +543,63 @@ namespace NzbDrone.Core.MediaFiles.Export
             { "TurboGrafx-16", "TGFX16" },
             { "TurboGrafx-CD", "TGFX16-CD" },
             { "PC Engine CD", "TGFX16-CD" }
+        };
+
+        private static readonly Dictionary<string, string> MisterCanonicalMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "snes", "SNES" },
+            { "satellaview", "Satellaview" },
+            { "sufamiturbo", "SufamiTurbo" },
+            { "nes", "NES" },
+            { "fds", "FDS" },
+            { "n64", "N64" },
+            { "64dd", "64DD" },
+            { "gb", "GAMEBOY" },
+            { "gbc", "GBC" },
+            { "gba", "GBA" },
+            { "genesis", "Genesis" },
+            { "segacd", "MegaCD" },
+            { "32x", "S32X" },
+            { "sms", "SMS" },
+            { "gg", "GameGear" },
+            { "sg1000", "SG1000" },
+            { "ps1", "PSX" },
+            { "saturn", "Saturn" },
+            { "tg16", "TGFX16" },
+            { "supergrafx", "SuperGrafx" },
+            { "tgcd", "TGFX16-CD" },
+            { "neogeo", "NeoGeo" },
+            { "neogeocd", "NeoGeoCD" },
+            { "atari2600", "Atari2600" },
+            { "atari5200", "Atari5200" },
+            { "atari7800", "Atari7800" },
+            { "lynx", "AtariLynx" },
+            { "jaguar", "Jaguar" },
+            { "jaguarcd", "JaguarCD" },
+            { "colecovision", "Coleco" },
+            { "intellivision", "Intellivision" },
+            { "vectrex", "Vectrex" },
+            { "ws", "WonderSwan" },
+            { "wonderswan", "WonderSwanColor" },
+            { "pcfx", "PCFX" },
+            { "odyssey2", "ODYSSEY2" },
+            { "videopacplus", "ODYSSEY2" },
+            { "channelf", "ChannelF" },
+            { "cdi", "CDi" },
+            { "cd32", "Amiga" },
+            { "arcadia2001", "Arcadia" },
+            { "creativision", "CreatiVision" },
+            { "vc4000", "VC4000" },
+            { "supervision", "Supervision" },
+            { "arduboy", "Arduboy" },
+            { "scv", "SCV" },
+            { "pv1000", "PV1000" },
+            { "gx4000", "Amstrad" },
+            { "studio2", "Studio2" },
+            { "gamemaster", "GameMaster" },
+            { "adventurevision", "AdventureVision" },
+            { "gameandwatch", "GameNWatch" },
+            { "pokemonmini", "PokemonMini" }
         };
 
         private static readonly string[] MediaAssetTypes = new[]
@@ -489,6 +650,120 @@ namespace NzbDrone.Core.MediaFiles.Export
             { "PlayStation 2", "ps2" }
         };
 
+        private static readonly Dictionary<string, string> EmulationStationCanonicalMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "nes", "nes" },
+            { "fds", "fds" },
+            { "snes", "snes" },
+            { "satellaview", "satellaview" },
+            { "sufamiturbo", "sufami" },
+            { "n64", "n64" },
+            { "64dd", "n64dd" },
+            { "gamecube", "gc" },
+            { "wii", "wii" },
+            { "wiiware", "wii" },
+            { "wiiu", "wiiu" },
+            { "wiiueshop", "wiiu" },
+            { "gb", "gb" },
+            { "gbc", "gbc" },
+            { "gba", "gba" },
+            { "ereader", "gba" },
+            { "nds", "nds" },
+            { "dsiware", "nds" },
+            { "3ds", "3ds" },
+            { "3dseshop", "3ds" },
+            { "switch", "switch" },
+            { "switcheshop", "switch" },
+            { "genesis", "megadrive" },
+            { "segacd", "segacd" },
+            { "32x", "sega32x" },
+            { "saturn", "saturn" },
+            { "dreamcast", "dreamcast" },
+            { "sms", "mastersystem" },
+            { "gg", "gamegear" },
+            { "sg1000", "sg1000" },
+            { "pico", "pico" },
+            { "ps1", "psx" },
+            { "ps2", "ps2" },
+            { "ps3", "ps3" },
+            { "ps3psn", "ps3" },
+            { "psp", "psp" },
+            { "psppsn", "psp" },
+            { "psvita", "psvita" },
+            { "xbox", "xbox" },
+            { "xbox360", "xbox360" },
+            { "xbox360digital", "xbox360" },
+            { "tg16", "pcengine" },
+            { "supergrafx", "supergrafx" },
+            { "tgcd", "pcenginecd" },
+            { "neogeo", "neogeo" },
+            { "neogeocd", "neogeocd" },
+            { "ngp", "ngp" },
+            { "ngpc", "ngpc" },
+            { "ws", "wswan" },
+            { "wonderswan", "wswanc" },
+            { "vb", "virtualboy" },
+            { "pokemonmini", "pokemini" },
+            { "atari2600", "atari2600" },
+            { "atari5200", "atari5200" },
+            { "atari7800", "atari7800" },
+            { "lynx", "lynx" },
+            { "jaguar", "atarijaguar" },
+            { "jaguarcd", "atarijaguarcd" },
+            { "3do", "3do" },
+            { "cd32", "amigacd32" },
+            { "cdi", "cdi" },
+            { "pcfx", "pcfx" },
+            { "colecovision", "colecovision" },
+            { "intellivision", "intellivision" },
+            { "vectrex", "vectrex" },
+            { "odyssey2", "o2em" },
+            { "videopacplus", "videopacplus" },
+            { "channelf", "channelf" },
+            { "arcadia2001", "arcadia" },
+            { "scv", "scv" },
+            { "gx4000", "gx4000" },
+            { "creativision", "crvision" },
+            { "supervision", "supervision" },
+            { "arduboy", "arduboy" },
+            { "gameandwatch", "lcdgames" },
+            { "superacan", "supracan" },
+            { "gamemaster", "gmaster" },
+            { "adventurevision", "advision" }
+        };
+
+        private static string ResolveDeviceFolder(
+            string platformFolder,
+            Dictionary<string, string> directMap,
+            Dictionary<string, string> canonicalMap,
+            string fallback)
+        {
+            if (directMap.TryGetValue(platformFolder, out var direct))
+            {
+                return direct;
+            }
+
+            var normalized = Parser.PlatformCompatibilityValidator.NormalizePlatformSlug(platformFolder, platformFolder);
+            if (!string.IsNullOrWhiteSpace(normalized) && canonicalMap.TryGetValue(normalized, out var canonical))
+            {
+                return canonical;
+            }
+
+            return fallback;
+        }
+
+        private static string ResolveOnionOsSystem(string platformFolder) =>
+            ResolveDeviceFolder(platformFolder, OnionOsSystemMap, OnionOsCanonicalMap, platformFolder.ToUpperInvariant());
+
+        private static string ResolveAnaloguePocketCore(string platformFolder) =>
+            ResolveDeviceFolder(platformFolder, AnaloguePocketCoreMap, AnaloguePocketCanonicalMap, platformFolder.ToLowerInvariant());
+
+        private static string ResolveMisterCore(string platformFolder) =>
+            ResolveDeviceFolder(platformFolder, MisterCoreMap, MisterCanonicalMap, platformFolder);
+
+        private static string ResolveEmulationStationSlug(string platformFolder, string fallback = null) =>
+            ResolveDeviceFolder(platformFolder, EmulationStationSlugMap, EmulationStationCanonicalMap, fallback ?? platformFolder.ToLowerInvariant());
+
         private readonly IDiskProvider _diskProvider;
         private readonly IDiscCompressionService _discCompressionService;
         private readonly Logger _logger;
@@ -511,53 +786,88 @@ namespace NzbDrone.Core.MediaFiles.Export
         private static readonly Dictionary<SdCardDeviceProfile, HashSet<string>> ProfilePlatformRestrictions =
             new Dictionary<SdCardDeviceProfile, HashSet<string>>
             {
-                [SdCardDeviceProfile.FXPakPro] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "snes", "satellaview", "sgb" },
-                [SdCardDeviceProfile.EZFlash] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gba", "gb", "gbc" },
+                [SdCardDeviceProfile.FXPakPro] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "snes", "satellaview", "sufamiturbo", "sgb" },
+                [SdCardDeviceProfile.EZFlash] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gba", "gb", "gbc", "ereader" },
                 [SdCardDeviceProfile.R4] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nds" },
-                [SdCardDeviceProfile.TwilightMenu] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "nds", "dsi", "gb", "gbc", "gba", "nes", "snes", "sms", "gg", "gamegear" },
+                [SdCardDeviceProfile.TwilightMenu] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "nds", "dsi", "dsiware", "gb", "gbc", "gba", "nes", "fds", "snes", "sms", "gg", "gamegear", "sg1000", "genesis",
+                    "tg16", "atari2600", "atari5200", "atari7800", "colecovision", "intellivision", "ngp", "ngpc",
+                    "ws", "wonderswan", "wonderswancolor", "pokemonmini", "pokemini", "channelf", "odyssey2"
+                },
                 [SdCardDeviceProfile.SwissGameCube] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gamecube" },
                 [SdCardDeviceProfile.XStation] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ps1" },
                 [SdCardDeviceProfile.Fenrir] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "saturn" },
                 [SdCardDeviceProfile.GDEMU] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dreamcast" },
                 [SdCardDeviceProfile.AnaloguePocket] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "gb", "gbc", "gba", "nes", "snes", "sms", "gg", "gamegear", "genesis", "tg16", "tgcd", "neogeo", "ngp", "ngpc", "lynx", "wonderswan", "wonderswancolor"
+                    "gb", "gbc", "gba", "ereader", "nes", "fds", "snes", "satellaview", "sufamiturbo",
+                    "sms", "gg", "gamegear", "sg1000", "genesis", "tg16", "supergrafx", "tgcd", "neogeo", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx",
+                    "ws", "wonderswan", "wonderswancolor", "pocketchallengev2",
+                    "colecovision", "intellivision", "supervision", "arduboy", "pokemini", "pokemonmini",
+                    "virtualboy", "vb", "creativision", "arcadia2001", "odyssey2", "videopacplus",
+                    "channelf", "gameandwatch", "studio2", "gamemaster", "adventurevision", "pv1000", "scv"
                 },
                 [SdCardDeviceProfile.EverDrive] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "nes", "fds", "snes", "n64", "64dd", "gb", "gbc", "gba", "sms", "genesis", "32x", "sega32x", "segacd", "gg", "gamegear", "tg16", "tgcd"
+                    "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb", "n64", "64dd",
+                    "gb", "gbc", "gba", "ereader",
+                    "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "pico",
+                    "tg16", "supergrafx", "tgcd", "neogeo",
+                    "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "colecovision", "intellivision", "vectrex",
+                    "ws", "wonderswan", "wonderswancolor", "ngp", "ngpc", "odyssey2", "videopacplus", "channelf",
+                    "vb", "virtualboy"
                 },
                 [SdCardDeviceProfile.MiSTer] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "nes", "fds", "snes", "satellaview", "sgb", "n64", "64dd", "gb", "gbc", "gba",
-                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "saturn",
-                    "ps1", "tg16", "tgcd", "neogeo", "neogeocd",
+                    "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb", "n64", "64dd",
+                    "gb", "gbc", "gba", "gameandwatch", "pokemonmini", "pokemini",
+                    "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "saturn",
+                    "ps1", "tg16", "supergrafx", "tgcd", "neogeo", "neogeocd",
                     "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "jaguarcd",
-                    "colecovision", "intellivision", "vectrex", "wonderswan", "wonderswancolor", "pcfx"
+                    "colecovision", "intellivision", "vectrex", "ws", "wonderswan", "wonderswancolor", "pcfx",
+                    "odyssey2", "videopacplus", "channelf", "cdi", "cd32",
+                    "arcadia2001", "creativision", "vc4000", "supervision", "arduboy", "scv", "pv1000", "gx4000",
+                    "studio2", "gamemaster", "adventurevision"
                 },
                 [SdCardDeviceProfile.OnionOS] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "nes", "fds", "snes", "satellaview", "sgb", "gb", "gbc", "gba", "nds",
-                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "ps1",
-                    "tg16", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
-                    "atari2600", "atari5200", "atari7800", "lynx", "colecovision", "intellivision",
-                    "vectrex", "wonderswan", "wonderswancolor", "virtualboy", "pokemini", "pokemonmini"
+                    "gb", "gbc", "gba", "ereader", "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb", "nds", "ds", "dsiware",
+                    "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "pico",
+                    "ps1", "tg16", "supergrafx", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx",
+                    "colecovision", "intellivision", "vectrex",
+                    "ws", "wonderswan", "wonderswancolor", "pocketchallengev2",
+                    "supervision", "arduboy", "gameandwatch", "odyssey2", "videopacplus", "channelf",
+                    "pokemini", "pokemonmini", "virtualboy", "vb",
+                    "scv", "gx4000", "arcadia2001", "creativision", "studio2", "vc4000", "pv1000", "gamemaster", "adventurevision"
                 },
                 [SdCardDeviceProfile.GarlicOS] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "nes", "fds", "snes", "satellaview", "sgb", "gb", "gbc", "gba",
-                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "ps1",
-                    "tg16", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
-                    "atari2600", "atari5200", "atari7800", "lynx", "colecovision", "intellivision",
-                    "vectrex", "wonderswan", "wonderswancolor", "virtualboy", "pokemini", "pokemonmini"
+                    "gb", "gbc", "gba", "ereader", "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb",
+                    "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "pico",
+                    "ps1", "tg16", "supergrafx", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx",
+                    "colecovision", "intellivision", "vectrex",
+                    "ws", "wonderswan", "wonderswancolor", "pocketchallengev2",
+                    "supervision", "arduboy", "gameandwatch", "odyssey2", "videopacplus", "channelf",
+                    "pokemini", "pokemonmini", "virtualboy", "vb",
+                    "scv", "gx4000", "arcadia2001", "creativision", "studio2", "vc4000", "pv1000", "gamemaster", "adventurevision"
                 },
                 [SdCardDeviceProfile.ArkOS] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "nes", "fds", "snes", "satellaview", "sgb", "n64", "64dd", "gb", "gbc", "gba", "nds",
-                    "sms", "gg", "gamegear", "genesis", "32x", "sega32x", "segacd", "saturn", "dreamcast",
-                    "ps1", "psp", "tg16", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
-                    "atari2600", "atari5200", "atari7800", "lynx", "colecovision", "intellivision",
-                    "vectrex", "wonderswan", "wonderswancolor", "virtualboy", "pokemini", "pokemonmini", "3do"
+                    "gb", "gbc", "gba", "ereader", "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb", "nds", "ds", "dsiware",
+                    "n64", "64dd",
+                    "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "pico", "saturn", "dreamcast",
+                    "ps1", "psp", "psppsn", "tg16", "supergrafx", "tgcd", "neogeo", "neogeocd", "ngp", "ngpc",
+                    "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "jaguarcd",
+                    "colecovision", "intellivision", "vectrex",
+                    "ws", "wonderswan", "wonderswancolor", "pocketchallengev2",
+                    "supervision", "arduboy", "gameandwatch", "odyssey2", "videopacplus", "channelf",
+                    "pokemini", "pokemonmini", "virtualboy", "vb",
+                    "scv", "gx4000", "arcadia2001", "creativision", "studio2", "vc4000", "pv1000", "gamemaster", "adventurevision",
+                    "3do", "cd32", "cdi", "pcfx"
                 },
             };
 
@@ -589,8 +899,9 @@ namespace NzbDrone.Core.MediaFiles.Export
             "wiiu", "wii u", "nintendo wii u",
             "tgcd", "turbografx-cd", "pc engine cd", "pcecd",
             "jaguarcd", "jaguar cd", "atari jaguar cd",
-            "xbox", "original xbox", "xbox 360",
-            "3do", "neogeocd", "neo geo cd", "cdi", "cd-i", "philips cd-i"
+            "xbox", "original xbox", "microsoft xbox", "xbox360", "xbox 360", "microsoft xbox 360",
+            "3do", "neogeocd", "neo geo cd", "cdi", "cd-i", "philips cd-i",
+            "pcfx", "pc-fx", "nec pc-fx", "cd32", "amiga cd32", "commodore amiga cd32"
         };
 
         public static bool IsDiscBasedGame(string platformFolder, string fileName, string gameTitle = null)
@@ -602,7 +913,8 @@ namespace NzbDrone.Core.MediaFiles.Export
             }
 
             var cleanPlatform = (platformFolder ?? string.Empty).Trim().ToLowerInvariant();
-            if (OpticalDiscPlatforms.Contains(cleanPlatform))
+            if (OpticalDiscPlatforms.Contains(cleanPlatform) ||
+                PlatformCatalogService.IsDiscBasedPlatform(cleanPlatform, cleanPlatform))
             {
                 return true;
             }
@@ -644,17 +956,13 @@ namespace NzbDrone.Core.MediaFiles.Export
             {
                 case SdCardDeviceProfile.MiSTer:
                 {
-                    var core = MisterCoreMap.TryGetValue(cleanPlatform, out var mappedMister)
-                        ? mappedMister
-                        : SanitizeFolderName(cleanPlatform);
+                    var core = ResolveMisterCore(cleanPlatform);
                     return Path.Combine("games", core, safeFileName);
                 }
 
                 case SdCardDeviceProfile.AnaloguePocket:
                 {
-                    var core = AnaloguePocketCoreMap.TryGetValue(cleanPlatform, out var mappedPocket)
-                        ? mappedPocket
-                        : SanitizeFolderName(cleanPlatform).ToLowerInvariant();
+                    var core = ResolveAnaloguePocketCore(cleanPlatform);
                     return Path.Combine("Assets", core, "common", safeFileName);
                 }
 
@@ -763,15 +1071,15 @@ namespace NzbDrone.Core.MediaFiles.Export
             {
                 case SdCardDeviceProfile.OnionOS:
                 case SdCardDeviceProfile.GarlicOS:
-                    var onionSystem = OnionOsSystemMap.TryGetValue(safePlatform, out var mappedOnion) ? mappedOnion : safePlatform.ToUpperInvariant();
+                    var onionSystem = ResolveOnionOsSystem(safePlatform);
                     return CombineNonEmpty("Roms", onionSystem, region, discLeaf);
 
                 case SdCardDeviceProfile.AnaloguePocket:
-                    var pocketCore = AnaloguePocketCoreMap.TryGetValue(safePlatform, out var mappedCore) ? mappedCore : safePlatform.ToLowerInvariant();
+                    var pocketCore = ResolveAnaloguePocketCore(safePlatform);
                     return CombineNonEmpty("Assets", pocketCore, "common", region, bucket, discLeaf);
 
                 case SdCardDeviceProfile.MiSTer:
-                    var misterCore = MisterCoreMap.TryGetValue(safePlatform, out var mappedMister) ? mappedMister : safePlatform;
+                    var misterCore = ResolveMisterCore(safePlatform);
                     return CombineNonEmpty("games", misterCore, region, bucket, discLeaf);
 
                 case SdCardDeviceProfile.RetroArch:
@@ -779,11 +1087,11 @@ namespace NzbDrone.Core.MediaFiles.Export
 
                 case SdCardDeviceProfile.Batocera:
                 case SdCardDeviceProfile.ArkOS:
-                    var batoceraSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedBatocera) ? mappedBatocera : safePlatform.ToLowerInvariant();
+                    var batoceraSlug = ResolveEmulationStationSlug(safePlatform);
                     return CombineNonEmpty("roms", batoceraSlug, region, discLeaf);
 
                 case SdCardDeviceProfile.EmulationStation:
-                    var esSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedEs) ? mappedEs : safePlatform.ToLowerInvariant();
+                    var esSlug = ResolveEmulationStationSlug(safePlatform);
                     return CombineNonEmpty("ROMs", esSlug, region, discLeaf);
 
                 case SdCardDeviceProfile.EverDrive:
@@ -799,7 +1107,7 @@ namespace NzbDrone.Core.MediaFiles.Export
                     return CombineNonEmpty("Games", region, bucket, discLeaf);
 
                 case SdCardDeviceProfile.TwilightMenu:
-                    var twilightSlug = EmulationStationSlugMap.TryGetValue(safePlatform, out var mappedTwilight) ? mappedTwilight : "nds";
+                    var twilightSlug = ResolveEmulationStationSlug(safePlatform, "nds");
                     return CombineNonEmpty("roms", twilightSlug, region, bucket, discLeaf);
 
                 case SdCardDeviceProfile.SwissGameCube:
@@ -870,7 +1178,7 @@ namespace NzbDrone.Core.MediaFiles.Export
                 if (useDiscCompression &&
                     descriptor.SupportsChdForOpticalDiscs &&
                     RawOpticalDiscExtensions.Contains(ext) &&
-                    ChdSupportedPlatforms.Contains(safePlatform))
+                    IsChdSupportedPlatform(safePlatform))
                 {
                     var chdFileName = Path.ChangeExtension(safeFileName, ".chd");
                     return new SdCardExportPlan
@@ -883,7 +1191,7 @@ namespace NzbDrone.Core.MediaFiles.Export
                 if (useDiscCompression &&
                     descriptor.SupportsRvzForGameCubeWii &&
                     RawOpticalDiscExtensions.Contains(ext) &&
-                    RvzSupportedPlatforms.Contains(safePlatform))
+                    IsRvzSupportedPlatform(safePlatform))
                 {
                     var rvzFileName = Path.ChangeExtension(safeFileName, ".rvz");
                     return new SdCardExportPlan
@@ -918,7 +1226,8 @@ namespace NzbDrone.Core.MediaFiles.Export
                 if (useCartridgeCompression &&
                     descriptor.SupportsZipPerRom &&
                     CartridgeRomExtensions.Contains(ext) &&
-                    !ChdSupportedPlatforms.Contains(safePlatform))
+                    !IsChdSupportedPlatform(safePlatform) &&
+                    !IsRvzSupportedPlatform(safePlatform))
                 {
                     var zipFileName = Path.ChangeExtension(safeFileName, ".zip");
                     return new SdCardExportPlan
@@ -933,7 +1242,7 @@ namespace NzbDrone.Core.MediaFiles.Export
                 {
                     var targetExt = innerRomExtensionHint.IsNotNullOrWhiteSpace()
                         ? (innerRomExtensionHint.StartsWith(".") ? innerRomExtensionHint : "." + innerRomExtensionHint)
-                        : (DefaultPlatformRawExtension.TryGetValue(safePlatform, out var defaultExt) ? defaultExt : ".rom");
+                        : PlatformCatalogService.GetDefaultRawExtension(safePlatform);
 
                     var rawFileName = Path.ChangeExtension(safeFileName, targetExt);
                     return new SdCardExportPlan

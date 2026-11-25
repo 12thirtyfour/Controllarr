@@ -368,5 +368,86 @@ namespace NzbDrone.Core.Test.MediaFiles.ExportTests
             copiedResult.DestinationPaths.Should().ContainSingle(p => p == Path.Combine("/sd", "BIOS", "scph5501.bin"));
             _diskProvider.Verify(x => x.CopyFile(sourceBios, Path.Combine("/sd", "BIOS", "scph5501.bin"), false), Times.Once);
         }
+
+        [TestCase(SdCardDeviceProfile.OnionOS, "ps1", "Silent Hill", "Silent Hill.chd", "Roms", "PS", "Silent Hill.chd")]
+        [TestCase(SdCardDeviceProfile.OnionOS, "atari2600", "Pitfall!", "Pitfall!.a26", "Roms", "ATARI", "Pitfall!.a26")]
+        [TestCase(SdCardDeviceProfile.GarlicOS, "tg16", "Bonk's Adventure", "Bonk's Adventure.pce", "Roms", "PCE", "Bonk's Adventure.pce")]
+        [TestCase(SdCardDeviceProfile.AnaloguePocket, "supergrafx", "Aldynes", "Aldynes.sgx", "Assets", "pce", "Aldynes.sgx")]
+        [TestCase(SdCardDeviceProfile.MiSTer, "neogeocd", "Metal Slug", "Metal Slug.chd", "games", "NeoGeoCD", "Metal Slug.chd")]
+        [TestCase(SdCardDeviceProfile.Batocera, "pokemonmini", "Pokemon Party Mini", "Pokemon Party Mini.min", "roms", "pokemini", "Pokemon Party Mini.min")]
+        [TestCase(SdCardDeviceProfile.ArkOS, "jaguarcd", "Battlemorph", "Battlemorph.chd", "roms", "atarijaguarcd", "Battlemorph.chd")]
+        [TestCase(SdCardDeviceProfile.EmulationStation, "cd32", "Banshee", "Banshee.chd", "ROMs", "amigacd32", "Banshee.chd")]
+        [TestCase(SdCardDeviceProfile.TwilightMenu, "dsiware", "Shantae", "Shantae.nds", "roms", "nds", "Shantae.nds")]
+        public void should_resolve_canonical_slugs_for_sd_card_profiles(
+            SdCardDeviceProfile profile,
+            string slug,
+            string gameTitle,
+            string fileName,
+            string expectedRootSegment,
+            string expectedSecondSegment,
+            string expectedLeaf)
+        {
+            var relativePath = _subject.BuildDeviceRelativePath(profile, slug, gameTitle, fileName);
+
+            relativePath.Should().StartWith(Path.Combine(expectedRootSegment, expectedSecondSegment));
+            relativePath.Should().EndWith(expectedLeaf);
+        }
+
+        [TestCase(SdCardDeviceProfile.OnionOS, "vb", "Virtual Boy", true)]
+        [TestCase(SdCardDeviceProfile.GarlicOS, "vb", "Virtual Boy", true)]
+        [TestCase(SdCardDeviceProfile.ArkOS, "vb", "Virtual Boy", true)]
+        [TestCase(SdCardDeviceProfile.FXPakPro, "sufamiturbo", "Bandai Sufami Turbo", true)]
+        [TestCase(SdCardDeviceProfile.EZFlash, "ereader", "Nintendo e-Reader", true)]
+        [TestCase(SdCardDeviceProfile.TwilightMenu, "dsiware", "Nintendo DSi Shop", true)]
+        [TestCase(SdCardDeviceProfile.MiSTer, "cd32", "Commodore Amiga CD32", true)]
+        [TestCase(SdCardDeviceProfile.MiSTer, "channelf", "Fairchild Channel F", true)]
+        [TestCase(SdCardDeviceProfile.MiSTer, "pokemonmini", "Nintendo Pokemon Mini", true)]
+        [TestCase(SdCardDeviceProfile.MiSTer, "gameandwatch", "Nintendo Game & Watch", true)]
+        [TestCase(SdCardDeviceProfile.MiSTer, "gx4000", "Amstrad GX4000", true)]
+        [TestCase(SdCardDeviceProfile.AnaloguePocket, "tgcd", "NEC TurboGrafx-CD", true)]
+        [TestCase(SdCardDeviceProfile.AnaloguePocket, "satellaview", "Nintendo Satellaview", true)]
+        [TestCase(SdCardDeviceProfile.AnaloguePocket, "atari5200", "Atari 5200", true)]
+        [TestCase(SdCardDeviceProfile.AnaloguePocket, "switch", "Nintendo Switch", false)]
+        [TestCase(SdCardDeviceProfile.EverDrive, "wonderswan", "Bandai WonderSwan Color", true)]
+        public void should_check_expanded_profile_platform_support(SdCardDeviceProfile profile, string slug, string title, bool expected)
+        {
+            _subject.IsPlatformSupportedByProfile(profile, slug, title).Should().Be(expected);
+        }
+
+        [TestCase("ps1", "Final Fantasy VII", "Final Fantasy VII.cue")]
+        [TestCase("jaguarcd", "Battlemorph", "Battlemorph.cue")]
+        [TestCase("cd32", "Banshee", "Banshee.cue")]
+        [TestCase("pcfx", "Team Innocent", "Team Innocent.cue")]
+        [TestCase("cdi", "Hotel Mario", "Hotel Mario.cue")]
+        [TestCase("neogeocd", "Metal Slug", "Metal Slug.cue")]
+        public void should_compress_canonical_disc_slugs_to_chd_on_retroarch(string slug, string title, string fileName)
+        {
+            var plan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.RetroArch,
+                slug,
+                title,
+                fileName,
+                optimizeFormatsForDevice: true);
+
+            plan.Transformation.Should().Be(SdCardFormatTransformation.CompressDiscToChd);
+            plan.RelativeDestinationPath.Should().EndWith(".chd");
+        }
+
+        [TestCase("atari2600", "Pitfall!", "Pitfall!.zip", ".a26")]
+        [TestCase("gba", "Metroid Fusion", "Metroid Fusion.zip", ".gba")]
+        [TestCase("supergrafx", "Aldynes", "Aldynes.zip", ".sgx")]
+        [TestCase("vb", "Wario Land", "Wario Land.zip", ".vb")]
+        public void should_extract_zip_to_canonical_raw_extension(string slug, string title, string fileName, string expectedExt)
+        {
+            var plan = _subject.ResolveExportPlan(
+                SdCardDeviceProfile.EverDrive,
+                slug,
+                title,
+                fileName,
+                optimizeFormatsForDevice: true);
+
+            plan.Transformation.Should().Be(SdCardFormatTransformation.ExtractZipToRawRom);
+            plan.RelativeDestinationPath.Should().EndWith(expectedExt);
+        }
     }
 }

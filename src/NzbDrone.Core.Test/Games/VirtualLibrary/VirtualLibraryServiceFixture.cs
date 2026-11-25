@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using FluentAssertions;
 using Moq;
 using NLog;
 using NUnit.Framework;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Games.VirtualLibrary;
+using NzbDrone.Core.MetadataSource.Game;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Test.Games.VirtualLibrary
@@ -190,6 +193,90 @@ namespace NzbDrone.Core.Test.Games.VirtualLibrary
             };
 
             Directory.Exists(expectedPath).Should().BeTrue($"expected virtual library link at '{expectedPath}'");
+        }
+
+        [TestCase("mister")]
+        [TestCase("retroarch")]
+        [TestCase("analogue_pocket")]
+        [TestCase("onionos")]
+        [TestCase("batocera")]
+        [TestCase("everdrive")]
+        public void should_have_zero_path_or_ancestor_collisions_across_all_91_platforms(string preset)
+        {
+            var allPlatforms = GameCatalogProxy.GetBuiltInPlatforms();
+            allPlatforms.Count.Should().Be(91);
+
+            var resolvedPaths = new List<(string Slug, string RelativePath)>();
+            foreach (var platform in allPlatforms)
+            {
+                var canonicalSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(platform.Slug, platform.Name);
+                canonicalSlug.Should().NotBeNullOrWhiteSpace($"platform '{platform.Slug}' should normalize cleanly");
+
+                if (!VirtualLibraryService.IsPlatformSupportedByPreset(preset, canonicalSlug))
+                {
+                    continue;
+                }
+
+                var relPath = VirtualLibraryService.ResolvePresetRelativePath(preset, canonicalSlug, platform.Slug)
+                    .Replace('\\', '/')
+                    .Trim('/');
+
+                relPath.Should().NotBeNullOrWhiteSpace($"preset '{preset}' should map '{canonicalSlug}'");
+                resolvedPaths.Add((canonicalSlug, relPath));
+            }
+
+            resolvedPaths.Select(p => p.RelativePath.ToLowerInvariant())
+                .Should()
+                .OnlyHaveUniqueItems($"preset '{preset}' should not collide two platforms onto the same folder");
+
+            foreach (var a in resolvedPaths)
+            {
+                foreach (var b in resolvedPaths)
+                {
+                    if (string.Equals(a.Slug, b.Slug, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    b.RelativePath.StartsWith(a.RelativePath + "/", StringComparison.OrdinalIgnoreCase)
+                        .Should()
+                        .BeFalse($"preset '{preset}' maps '{a.Slug}' to '{a.RelativePath}', which is an ancestor of '{b.Slug}' ('{b.RelativePath}')");
+                }
+            }
+        }
+
+        [Test]
+        public void should_map_newly_added_and_special_platforms_across_presets()
+        {
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "switcheshop").Should().Be("Nintendo - Switch (Digital)");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "switch").Should().Be("Nintendo - Switch");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "atari5200").Should().Be("Atari - 5200");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "jaguarcd").Should().Be("Atari - Jaguar CD");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "pcfx").Should().Be("NEC - PC-FX");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "wiiu").Should().Be("Nintendo - Wii U");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "xbox360digital").Should().Be("Microsoft - Xbox 360 (Digital)");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "ps3psn").Should().Be("Sony - PlayStation 3 (PSN)");
+            VirtualLibraryService.ResolvePresetRelativePath("retroarch", "ereader").Should().Be("Nintendo - e-Reader");
+
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "64dd").Replace('\\', '/').Should().Be("roms/n64dd");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "vb").Replace('\\', '/').Should().Be("roms/virtualboy");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "pokemonmini").Replace('\\', '/').Should().Be("roms/pokemini");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "jaguar").Replace('\\', '/').Should().Be("roms/atarijaguar");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "jaguarcd").Replace('\\', '/').Should().Be("roms/atarijaguarcd");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "odyssey2").Replace('\\', '/').Should().Be("roms/o2em");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "videopacplus").Replace('\\', '/').Should().Be("roms/videopacplus");
+            VirtualLibraryService.ResolvePresetRelativePath("batocera", "superacan").Replace('\\', '/').Should().Be("roms/supracan");
+
+            VirtualLibraryService.IsPlatformSupportedByPreset("mister", "channelf").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("mister", "cd32").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("mister", "pokemonmini").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("mister", "gameandwatch").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("mister", "gx4000").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("analogue_pocket", "tgcd").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("analogue_pocket", "atari5200").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("onionos", "vb").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("onionos", "dsiware").Should().BeTrue();
+            VirtualLibraryService.IsPlatformSupportedByPreset("everdrive", "gamecube").Should().BeTrue();
         }
 
         private string CreatePlatformDir(string name)

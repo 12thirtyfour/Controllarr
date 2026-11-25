@@ -1434,51 +1434,184 @@ namespace NzbDrone.Core.Games
 
         public static readonly Dictionary<string, string> DefaultPlatformRawExtension = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "SNES", ".sfc" },
+            { "snes", ".sfc" },
             { "Super Nintendo Entertainment System", ".sfc" },
-            { "NES", ".nes" },
+            { "satellaview", ".bs" },
+            { "Nintendo Satellaview", ".bs" },
+            { "sufamiturbo", ".st" },
+            { "Bandai Sufami Turbo", ".st" },
+            { "nes", ".nes" },
             { "Nintendo Entertainment System", ".nes" },
+            { "fds", ".fds" },
+            { "Nintendo Famicom Disk System", ".fds" },
+            { "gb", ".gb" },
             { "Game Boy", ".gb" },
+            { "Nintendo Game Boy", ".gb" },
+            { "gbc", ".gbc" },
             { "Game Boy Color", ".gbc" },
+            { "Nintendo Game Boy Color", ".gbc" },
+            { "gba", ".gba" },
             { "Game Boy Advance", ".gba" },
-            { "Genesis", ".md" },
+            { "Nintendo Game Boy Advance", ".gba" },
+            { "ereader", ".raw" },
+            { "Nintendo e-Reader", ".raw" },
+            { "genesis", ".md" },
             { "Sega Genesis", ".md" },
             { "Mega Drive", ".md" },
+            { "32x", ".32x" },
+            { "Sega 32X", ".32x" },
+            { "sms", ".sms" },
             { "Master System", ".sms" },
+            { "Sega Master System", ".sms" },
+            { "gg", ".gg" },
             { "Game Gear", ".gg" },
+            { "Sega Game Gear", ".gg" },
+            { "sg1000", ".sg" },
             { "Sega SG-1000", ".sg" },
             { "SG-1000", ".sg" },
+            { "pico", ".md" },
             { "Sega Pico", ".md" },
+            { "beena", ".bin" },
+            { "Sega Advanced Pico Beena", ".bin" },
+            { "n64", ".z64" },
             { "Nintendo 64", ".z64" },
+            { "64dd", ".ndd" },
+            { "Nintendo 64DD", ".ndd" },
+            { "nds", ".nds" },
             { "Nintendo DS", ".nds" },
+            { "dsiware", ".nds" },
+            { "Nintendo DSi Shop", ".nds" },
+            { "3ds", ".3ds" },
+            { "Nintendo 3DS", ".3ds" },
+            { "3dseshop", ".cia" },
+            { "Nintendo 3DS eShop", ".cia" },
+            { "switch", ".nsp" },
+            { "Nintendo Switch", ".nsp" },
+            { "switcheshop", ".nsp" },
+            { "Nintendo Switch eShop", ".nsp" },
+            { "wiiware", ".wad" },
+            { "Nintendo WiiWare", ".wad" },
+            { "wiiueshop", ".wua" },
+            { "Nintendo Wii U eShop", ".wua" },
+            { "vb", ".vb" },
+            { "Nintendo Virtual Boy", ".vb" },
+            { "tg16", ".pce" },
             { "TurboGrafx-16", ".pce" },
+            { "NEC TurboGrafx-16", ".pce" },
+            { "supergrafx", ".sgx" },
             { "NEC PC Engine SuperGrafx", ".sgx" },
-            { "SuperGrafx", ".sgx" },
+            { "atari2600", ".a26" },
+            { "Atari 2600", ".a26" },
+            { "atari5200", ".a52" },
             { "Atari 5200", ".a52" },
-            { "ColecoVision", ".col" },
+            { "atari7800", ".a78" },
+            { "Atari 7800", ".a78" },
+            { "lynx", ".lnx" },
+            { "Atari Lynx", ".lnx" },
+            { "jaguar", ".j64" },
+            { "Atari Jaguar", ".j64" },
+            { "neogeo", ".neo" },
+            { "SNK Neo Geo", ".neo" },
+            { "colecovision", ".col" },
+            { "intellivision", ".int" },
             { "Mattel Intellivision", ".int" },
-            { "Intellivision", ".int" },
+            { "vectrex", ".vec" },
             { "GCE Vectrex", ".vec" },
-            { "Vectrex", ".vec" },
+            { "pokemonmini", ".min" },
             { "Pokemon Mini", ".min" },
+            { "Nintendo Pokemon Mini", ".min" },
+            { "odyssey2", ".bin" },
             { "Magnavox Odyssey 2", ".bin" },
+            { "videopacplus", ".bin" },
             { "Philips Videopac+ G7400", ".bin" },
+            { "channelf", ".chf" },
             { "Fairchild Channel F", ".chf" },
+            { "ws", ".ws" },
             { "Bandai WonderSwan", ".ws" },
+            { "wonderswan", ".wsc" },
             { "Bandai WonderSwan Color", ".wsc" },
+            { "ngp", ".ngp" },
             { "SNK Neo Geo Pocket", ".ngp" },
+            { "ngpc", ".ngc" },
             { "SNK Neo Geo Pocket Color", ".ngc" },
+            { "arcadia2001", ".bin" },
+            { "Emerson Arcadia 2001", ".bin" },
+            { "scv", ".bin" },
+            { "Epoch Super Cassette Vision", ".bin" },
+            { "cassettevision", ".bin" },
+            { "Epoch Cassette Vision", ".bin" },
+            { "loopy", ".bin" },
+            { "Casio Loopy", ".bin" },
+            { "pv1000", ".bin" },
+            { "Casio PV-1000", ".bin" },
+            { "superacan", ".bin" },
+            { "Funtech Super A'Can", ".bin" },
+            { "vc4000", ".bin" },
+            { "Interton VC 4000", ".bin" },
+            { "studio2", ".st2" },
             { "RCA Studio II", ".st2" },
+            { "gx4000", ".cpr" },
             { "Amstrad GX4000", ".cpr" },
+            { "creativision", ".rom" },
+            { "VTech CreatiVision", ".rom" },
+            { "vsmile", ".bin" },
+            { "VTech V.Smile", ".bin" },
+            { "zeebo", ".bin" },
+            { "picno", ".bin" },
+            { "Konami Picno", ".bin" },
+            { "supervision", ".sv" },
             { "Watara Supervision", ".sv" },
+            { "gamecom", ".tgc" },
             { "Tiger Game.com", ".tgc" },
+            { "adventurevision", ".bin" },
+            { "Entex Adventure Vision", ".bin" },
+            { "gamemaster", ".bin" },
+            { "Hartung Game Master", ".bin" },
+            { "gp32", ".smc" },
             { "GamePark GP32", ".smc" },
-            { "Arduboy", ".hex" },
+            { "arduboy", ".hex" },
+            { "gameandwatch", ".mgw" },
             { "Nintendo Game & Watch", ".mgw" },
+            { "leapster", ".bin" },
+            { "LeapFrog Leapster", ".bin" },
+            { "pocketchallengev2", ".pc2" },
             { "Benesse Pocket Challenge V2", ".pc2" },
-            { "Bandai Sufami Turbo", ".st" },
-            { "Nintendo e-Reader", ".raw" }
+            { "psvita", ".vpk" },
+            { "ps3psn", ".pkg" },
+            { "psppsn", ".pkg" },
+            { "xbox360digital", ".xex" }
         };
+
+        public static string GetDefaultRawExtension(string platformSlugOrTitle)
+        {
+            if (string.IsNullOrWhiteSpace(platformSlugOrTitle))
+            {
+                return ".rom";
+            }
+
+            var trimmed = platformSlugOrTitle.Trim();
+            if (DefaultPlatformRawExtension.TryGetValue(trimmed, out var direct))
+            {
+                return direct;
+            }
+
+            var normalized = Parser.PlatformCompatibilityValidator.NormalizePlatformSlug(trimmed, trimmed);
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                if (DefaultPlatformRawExtension.TryGetValue(normalized, out var slugExt))
+                {
+                    return slugExt;
+                }
+
+                var platformDef = Platforms.FirstOrDefault(p => string.Equals(p.Slug, normalized, StringComparison.OrdinalIgnoreCase));
+                if (platformDef?.RomFileExtensions != null && platformDef.RomFileExtensions.Count > 0)
+                {
+                    return platformDef.RomFileExtensions[0];
+                }
+            }
+
+            return ".rom";
+        }
 
         public List<PlatformDefinition> GetAll()
         {

@@ -273,38 +273,47 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 ["mister"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb", "n64", "64dd",
-                    "gb", "gbc", "gba",
+                    "gb", "gbc", "gba", "gameandwatch", "pokemonmini", "pokemini",
                     "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "saturn",
                     "ps1", "tg16", "tgcd", "supergrafx", "neogeo", "neogeocd",
                     "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "jaguarcd",
                     "colecovision", "intellivision", "vectrex", "ws", "wonderswan", "wonderswancolor", "pcfx",
-                    "supervision", "arduboy", "arcadia2001", "odyssey2", "videopacplus", "creativision", "vc4000", "cdi"
+                    "supervision", "arduboy", "arcadia2001", "odyssey2", "videopacplus", "creativision", "vc4000", "cdi",
+                    "cd32", "channelf", "scv", "pv1000", "gx4000", "studio2", "gamemaster", "adventurevision"
                 },
                 ["analogue_pocket"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "gb", "gbc", "gba", "nes", "fds", "snes", "sms", "gg", "gamegear", "sg1000", "genesis",
-                    "tg16", "supergrafx", "neogeo",
-                    "atari2600", "atari7800", "lynx",
-                    "ws", "wonderswan", "wonderswancolor", "ngp", "ngpc",
-                    "colecovision", "intellivision", "supervision", "arduboy", "pokemini", "pokemonmini", "virtualboy", "vb", "creativision", "arcadia2001", "odyssey2", "videopacplus", "channelf", "gameandwatch"
+                    "gb", "gbc", "gba", "ereader", "nes", "fds", "snes", "satellaview", "sufamiturbo",
+                    "sms", "gg", "gamegear", "sg1000", "genesis",
+                    "tg16", "supergrafx", "tgcd", "neogeo",
+                    "atari2600", "atari5200", "atari7800", "lynx",
+                    "ws", "wonderswan", "wonderswancolor", "pocketchallengev2", "ngp", "ngpc",
+                    "colecovision", "intellivision", "supervision", "arduboy", "pokemini", "pokemonmini",
+                    "virtualboy", "vb", "creativision", "arcadia2001", "odyssey2", "videopacplus", "channelf", "gameandwatch",
+                    "studio2", "gamemaster", "adventurevision", "pv1000", "scv"
                 },
                 ["onionos"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "gb", "gbc", "gba", "nes", "fds", "snes", "satellaview", "sufamiturbo",
+                    "gb", "gbc", "gba", "ereader", "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb",
                     "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "pico",
                     "ps1", "tg16", "tgcd", "supergrafx", "neogeo", "neogeocd",
                     "atari2600", "atari5200", "atari7800", "lynx",
                     "colecovision", "intellivision", "vectrex",
-                    "ws", "wonderswan", "wonderswancolor", "ngp", "ngpc", "supervision", "arduboy", "gameandwatch",
-                    "odyssey2", "videopacplus", "channelf", "pokemini", "pokemonmini", "virtualboy", "vb", "ds", "nds"
+                    "ws", "wonderswan", "wonderswancolor", "pocketchallengev2", "ngp", "ngpc",
+                    "supervision", "arduboy", "gameandwatch",
+                    "odyssey2", "videopacplus", "channelf", "pokemini", "pokemonmini", "virtualboy", "vb", "ds", "nds", "dsiware",
+                    "scv", "gx4000", "arcadia2001", "creativision", "studio2", "vc4000", "pv1000", "gamemaster", "adventurevision"
                 },
                 ["everdrive"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "nes", "fds", "snes", "satellaview", "sufamiturbo", "sgb", "n64", "64dd",
-                    "gb", "gbc", "gba",
+                    "gb", "gbc", "gba", "ereader", "nds",
                     "sms", "gg", "gamegear", "sg1000", "genesis", "32x", "sega32x", "segacd", "pico",
-                    "tg16", "tgcd", "supergrafx", "neogeo", "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "colecovision",
-                    "ws", "wonderswan", "wonderswancolor", "ngp", "ngpc", "channelf", "vectrex", "vb"
+                    "tg16", "tgcd", "supergrafx", "neogeo", "neogeocd",
+                    "atari2600", "atari5200", "atari7800", "lynx", "jaguar", "jaguarcd", "colecovision", "intellivision",
+                    "ws", "wonderswan", "wonderswancolor", "ngp", "ngpc", "channelf", "vectrex", "vb", "virtualboy",
+                    "odyssey2", "videopacplus",
+                    "ps1", "saturn", "dreamcast", "gamecube", "3do", "pcfx", "cd32", "cdi"
                 }
             };
 
@@ -321,6 +330,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             }
 
             return true;
+        }
+
+        internal static string ResolvePresetRelativePath(string preset, string canonicalSlug, string slugOrTitle = null)
+        {
+            return MapPlatformToPresetRelativePath(preset, canonicalSlug, slugOrTitle);
         }
 
         private static string MapPlatformToPresetRelativePath(string preset, string canonicalSlug, string slugOrTitle)
@@ -394,6 +408,8 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 case "wonderswan":
                 case "wonderswancolor":
                     return Path.Combine("WonderSwan", "WonderSwanColor");
+                case "odyssey2":
+                    return Path.Combine("ODYSSEY2", "Odyssey2");
                 case "videopacplus":
                     return Path.Combine("ODYSSEY2", "VideopacPlus");
                 default:
@@ -409,15 +425,35 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                     return Path.Combine("Assets", "nes", "common", "NES");
                 case "fds":
                     return Path.Combine("Assets", "nes", "common", "Famicom Disk System");
+                case "snes":
+                    return Path.Combine("Assets", "snes", "common", "SNES");
+                case "satellaview":
+                    return Path.Combine("Assets", "snes", "common", "Satellaview");
+                case "sufamiturbo":
+                    return Path.Combine("Assets", "snes", "common", "SufamiTurbo");
+                case "gba":
+                    return Path.Combine("Assets", "gba", "common", "GBA");
+                case "ereader":
+                    return Path.Combine("Assets", "gba", "common", "e-Reader");
                 case "tg16":
                     return Path.Combine("Assets", "pce", "common", "PCE");
                 case "supergrafx":
                     return Path.Combine("Assets", "pce", "common", "SuperGrafx");
+                case "tgcd":
+                    return Path.Combine("Assets", "pcecd", "common");
                 case "ws":
                     return Path.Combine("Assets", "wonderswan", "common", "WonderSwan");
                 case "wonderswan":
                 case "wonderswancolor":
                     return Path.Combine("Assets", "wonderswan", "common", "WonderSwan Color");
+                case "pocketchallengev2":
+                    return Path.Combine("Assets", "wonderswan", "common", "Pocket Challenge V2");
+                case "ngp":
+                    return Path.Combine("Assets", "ngp", "common", "NGP");
+                case "ngpc":
+                    return Path.Combine("Assets", "ngp", "common", "NGPC");
+                case "odyssey2":
+                    return Path.Combine("Assets", "odyssey2", "common", "Odyssey2");
                 case "videopacplus":
                     return Path.Combine("Assets", "odyssey2", "common", "VideopacPlus");
                 default:
@@ -447,6 +483,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "Satellaview";
             }
 
+            if (norm == "sufamiturbo")
+            {
+                return "SufamiTurbo";
+            }
+
             if (norm == "sgb")
             {
                 return "SGB";
@@ -460,6 +501,16 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             if (norm == "64dd")
             {
                 return "64DD";
+            }
+
+            if (norm == "ereader")
+            {
+                return "eReader";
+            }
+
+            if (norm == "nds" || norm == "ds")
+            {
+                return "NDS";
             }
 
             if (norm.Contains("game-boy-advance") || norm == "gba")
@@ -509,7 +560,7 @@ namespace NzbDrone.Core.Games.VirtualLibrary
 
             if (norm == "pico")
             {
-                return "Genesis";
+                return "Pico";
             }
 
             if (norm == "supervision")
@@ -532,9 +583,14 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "CreatiVision";
             }
 
-            if (norm == "odyssey2" || norm == "videopacplus")
+            if (norm == "odyssey2")
             {
                 return "ODYSSEY2";
+            }
+
+            if (norm == "videopacplus")
+            {
+                return "VideopacPlus";
             }
 
             if (norm == "vc4000")
@@ -542,9 +598,149 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "VC4000";
             }
 
+            if (norm == "channelf")
+            {
+                return "ChannelF";
+            }
+
             if (norm == "cdi")
             {
                 return "CDi";
+            }
+
+            if (norm == "cd32")
+            {
+                return "Amiga";
+            }
+
+            if (norm == "3do")
+            {
+                return "3DO";
+            }
+
+            if (norm == "gamecube" || norm == "gc")
+            {
+                return "GameCube";
+            }
+
+            if (norm == "dreamcast")
+            {
+                return "Dreamcast";
+            }
+
+            if (norm == "pcfx")
+            {
+                return "PCFX";
+            }
+
+            if (norm == "scv")
+            {
+                return "SCV";
+            }
+
+            if (norm == "pv1000")
+            {
+                return "PV1000";
+            }
+
+            if (norm == "gx4000")
+            {
+                return "Amstrad";
+            }
+
+            if (norm == "studio2")
+            {
+                return "Studio2";
+            }
+
+            if (norm == "gamemaster")
+            {
+                return "GameMaster";
+            }
+
+            if (norm == "adventurevision")
+            {
+                return "AdventureVision";
+            }
+
+            if (norm == "atari2600")
+            {
+                return "Atari2600";
+            }
+
+            if (norm == "atari5200")
+            {
+                return "Atari5200";
+            }
+
+            if (norm == "atari7800")
+            {
+                return "Atari7800";
+            }
+
+            if (norm == "lynx")
+            {
+                return "AtariLynx";
+            }
+
+            if (norm == "jaguar")
+            {
+                return "Jaguar";
+            }
+
+            if (norm == "jaguarcd")
+            {
+                return "JaguarCD";
+            }
+
+            if (norm == "colecovision")
+            {
+                return "Coleco";
+            }
+
+            if (norm == "intellivision")
+            {
+                return "Intellivision";
+            }
+
+            if (norm == "vectrex")
+            {
+                return "Vectrex";
+            }
+
+            if (norm == "ws")
+            {
+                return "WonderSwan";
+            }
+
+            if (norm == "wonderswan" || norm == "wonderswancolor")
+            {
+                return "WonderSwanColor";
+            }
+
+            if (norm == "ngp")
+            {
+                return "NGP";
+            }
+
+            if (norm == "ngpc")
+            {
+                return "NGPC";
+            }
+
+            if (norm == "vb" || norm == "virtualboy")
+            {
+                return "VirtualBoy";
+            }
+
+            if (norm == "pokemonmini" || norm == "pokemini")
+            {
+                return "PokemonMini";
+            }
+
+            if (norm == "gameandwatch")
+            {
+                return "GameNWatch";
             }
 
             if (norm.Contains("saturn"))
@@ -592,6 +788,17 @@ namespace NzbDrone.Core.Games.VirtualLibrary
 
         private static string GetRetroArchSystemName(string norm)
         {
+            if (norm == "switcheshop")
+            {
+                return "Nintendo - Switch (Digital)";
+            }
+
+            if (MetadataSource.Game.GameCatalogProxy.TryResolveBuiltInPlatform(0, norm, norm, out var builtIn) &&
+                !string.IsNullOrWhiteSpace(builtIn.LibretroSystemName))
+            {
+                return builtIn.LibretroSystemName;
+            }
+
             if (norm.Contains("super-nintendo") || norm == "snes")
             {
                 return "Nintendo - Super Nintendo Entertainment System";
@@ -932,9 +1139,44 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "channelf";
             }
 
+            if (norm == "tgcd" || norm == "pcecd")
+            {
+                return "pcecd";
+            }
+
+            if (norm == "studio2")
+            {
+                return "studio2";
+            }
+
+            if (norm == "gamemaster")
+            {
+                return "gamemaster";
+            }
+
+            if (norm == "adventurevision")
+            {
+                return "adventurevision";
+            }
+
+            if (norm == "pv1000")
+            {
+                return "pv1000";
+            }
+
+            if (norm == "scv")
+            {
+                return "scv";
+            }
+
             if (norm == "atari2600" || norm.Contains("atari-2600"))
             {
                 return "2600";
+            }
+
+            if (norm == "atari5200" || norm.Contains("atari-5200"))
+            {
+                return "5200";
             }
 
             if (norm == "atari7800" || norm.Contains("atari-7800"))
@@ -972,7 +1214,17 @@ namespace NzbDrone.Core.Games.VirtualLibrary
 
         private static string GetOnionSystemCode(string norm)
         {
-            if (norm.Contains("super-nintendo") || norm == "snes" || norm == "satellaview" || norm == "sufamiturbo")
+            if (norm == "satellaview")
+            {
+                return "SATELLAVIEW";
+            }
+
+            if (norm == "sufamiturbo")
+            {
+                return "SUFAMI";
+            }
+
+            if (norm.Contains("super-nintendo") || norm == "snes")
             {
                 return "SFC";
             }
@@ -987,7 +1239,12 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "FC";
             }
 
-            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive" || norm == "pico")
+            if (norm == "pico")
+            {
+                return "PICO";
+            }
+
+            if (norm.Contains("genesis") || norm.Contains("mega-drive") || norm == "md" || norm == "megadrive")
             {
                 return "MD";
             }
@@ -1017,6 +1274,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "SG";
             }
 
+            if (norm == "ereader")
+            {
+                return "EREADER";
+            }
+
             if (norm.Contains("game-boy-advance") || norm == "gba")
             {
                 return "GBA";
@@ -1030,6 +1292,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             if (norm.Contains("game-boy") || norm == "gb")
             {
                 return "GB";
+            }
+
+            if (norm == "dsiware")
+            {
+                return "DSIWARE";
             }
 
             if (norm == "nds" || norm == "ds")
@@ -1052,12 +1319,22 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "PCECD";
             }
 
-            if (norm.Contains("turbografx") || norm == "tg16" || norm == "pce" || norm == "supergrafx")
+            if (norm == "supergrafx")
+            {
+                return "SGFX";
+            }
+
+            if (norm.Contains("turbografx") || norm == "tg16" || norm == "pce")
             {
                 return "PCE";
             }
 
-            if (norm.Contains("neo-geo-pocket") || norm == "ngpc" || norm == "ngp")
+            if (norm == "ngpc")
+            {
+                return "NGPC";
+            }
+
+            if (norm.Contains("neo-geo-pocket") || norm == "ngp")
             {
                 return "NGP";
             }
@@ -1072,9 +1349,19 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "NEOGEO";
             }
 
-            if (norm.Contains("wonderswan") || norm == "ws" || norm == "wsc")
+            if (norm == "ws")
             {
                 return "WS";
+            }
+
+            if (norm == "wonderswan" || norm == "wonderswancolor")
+            {
+                return "WSC";
+            }
+
+            if (norm == "pocketchallengev2")
+            {
+                return "PC2";
             }
 
             if (norm == "supervision")
@@ -1092,9 +1379,14 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "GW";
             }
 
-            if (norm == "odyssey2" || norm == "videopacplus")
+            if (norm == "odyssey2")
             {
                 return "ODYSSEY";
+            }
+
+            if (norm == "videopacplus")
+            {
+                return "VIDEOPAC";
             }
 
             if (norm == "channelf")
@@ -1107,6 +1399,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 return "ATARI";
             }
 
+            if (norm == "atari5200" || norm.Contains("atari-5200"))
+            {
+                return "FIFTYTWOHUNDRED";
+            }
+
             if (norm == "atari7800" || norm.Contains("atari-7800"))
             {
                 return "SEVENTYEIGHTHUNDRED";
@@ -1115,6 +1412,61 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             if (norm.Contains("lynx"))
             {
                 return "LYNX";
+            }
+
+            if (norm == "colecovision")
+            {
+                return "COLECO";
+            }
+
+            if (norm == "pokemonmini" || norm == "pokemini")
+            {
+                return "POKE";
+            }
+
+            if (norm == "arcadia2001")
+            {
+                return "ARCADIA";
+            }
+
+            if (norm == "creativision")
+            {
+                return "CRVISION";
+            }
+
+            if (norm == "gamemaster")
+            {
+                return "GMASTER";
+            }
+
+            if (norm == "adventurevision")
+            {
+                return "ADVISION";
+            }
+
+            if (norm == "scv")
+            {
+                return "SCV";
+            }
+
+            if (norm == "gx4000")
+            {
+                return "GX4000";
+            }
+
+            if (norm == "studio2")
+            {
+                return "STUDIO2";
+            }
+
+            if (norm == "vc4000")
+            {
+                return "VC4000";
+            }
+
+            if (norm == "pv1000")
+            {
+                return "PV1000";
             }
 
             return norm.ToUpperInvariant();
@@ -1145,6 +1497,11 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             if (norm.Contains("nintendo-64") || norm == "n64")
             {
                 return "n64";
+            }
+
+            if (norm == "64dd")
+            {
+                return "n64dd";
             }
 
             if (norm.Contains("game-boy-advance") || norm == "gba")
@@ -1329,12 +1686,52 @@ namespace NzbDrone.Core.Games.VirtualLibrary
 
             if (norm == "videopacplus")
             {
+                return "videopacplus";
+            }
+
+            if (norm == "odyssey2")
+            {
                 return "o2em";
             }
 
             if (norm == "creativision")
             {
                 return "crvision";
+            }
+
+            if (norm == "jaguar")
+            {
+                return "atarijaguar";
+            }
+
+            if (norm == "jaguarcd")
+            {
+                return "atarijaguarcd";
+            }
+
+            if (norm == "vb" || norm == "virtualboy")
+            {
+                return "virtualboy";
+            }
+
+            if (norm == "pokemonmini" || norm == "pokemini")
+            {
+                return "pokemini";
+            }
+
+            if (norm == "superacan")
+            {
+                return "supracan";
+            }
+
+            if (norm == "gamemaster")
+            {
+                return "gmaster";
+            }
+
+            if (norm == "adventurevision")
+            {
+                return "advision";
             }
 
             return norm;
