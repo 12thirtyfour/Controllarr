@@ -75,7 +75,11 @@
       ).matches;
 
       document.documentElement.dataset.theme =
-        theme === 'dark' || (theme === 'auto' && defaultDark) ? 'dark' : 'light';
+        theme === 'auto' || !theme || theme === '_THEME_'
+          ? defaultDark
+            ? 'dark'
+            : 'light'
+          : theme;
     </script>
 
     <style>

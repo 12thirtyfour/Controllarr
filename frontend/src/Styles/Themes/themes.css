@@ -199,54 +199,95 @@
 [data-theme="32x"],
 [data-theme="3do"],
 [data-theme="3ds"],
+[data-theme="3dseshop"],
 [data-theme="64dd"],
+[data-theme=adventurevision],
+[data-theme=arcadia2001],
+[data-theme=arduboy],
 [data-theme=atari2600],
 [data-theme=atari5200],
 [data-theme=atari7800],
+[data-theme=beena],
+[data-theme=cassettevision],
+[data-theme=cd32],
 [data-theme=cdi],
 [data-theme=channelf],
 [data-theme=colecovision],
+[data-theme=creativision],
 [data-theme=dmg],
+[data-theme=dsiware],
+[data-theme=ereader],
 [data-theme=famicom],
 [data-theme=fds],
+[data-theme=gameandwatch],
+[data-theme=gamecom],
 [data-theme=gamecube],
+[data-theme=gamemaster],
 [data-theme=gba],
 [data-theme=gbc],
 [data-theme=genesis],
 [data-theme=gg],
+[data-theme=gp32],
+[data-theme=gx4000],
 [data-theme=intellivision],
 [data-theme=jaguar],
 [data-theme=jaguarcd],
+[data-theme=leapster],
+[data-theme=loopy],
 [data-theme=lynx],
 [data-theme=megadrive],
 [data-theme=n64],
 [data-theme=nds],
 [data-theme=neogeo],
+[data-theme=neogeocd],
 [data-theme=nes],
+[data-theme=ngp],
 [data-theme=ngpc],
 [data-theme=odyssey2],
 [data-theme=pcfx],
+[data-theme=picno],
+[data-theme=pico],
+[data-theme=pocketchallengev2],
 [data-theme=pokemonmini],
 [data-theme=ps1],
 [data-theme=ps2],
 [data-theme=ps3],
+[data-theme=ps3psn],
 [data-theme=psp],
+[data-theme=psppsn],
 [data-theme=psvita],
+[data-theme=pv1000],
 [data-theme=satellaview],
 [data-theme=saturn],
+[data-theme=scv],
 [data-theme=segacd],
+[data-theme=sg1000],
 [data-theme=sms],
 [data-theme=snes],
+[data-theme=studio2],
+[data-theme=sufamiturbo],
+[data-theme=superacan],
 [data-theme=superfamicom],
+[data-theme=supergrafx],
+[data-theme=supervision],
 [data-theme=switch],
+[data-theme=switcheshop],
 [data-theme=tg16],
 [data-theme=tgcd],
 [data-theme=vb],
+[data-theme=vc4000],
 [data-theme=vectrex],
+[data-theme=videopacplus],
+[data-theme=vsmile],
 [data-theme=wiiu],
+[data-theme=wiiueshop],
+[data-theme=wiiware],
 [data-theme=wonderswan],
+[data-theme=ws],
 [data-theme=xbox],
-[data-theme=xbox-dark] {
+[data-theme=xbox-dark],
+[data-theme=xbox360digital],
+[data-theme=zeebo] {
   /* Surfaces - Controllarr Midnight Arcade Dark */
   --paper: oklch(20% 0.022 272);
   --paperWarm: oklch(23% 0.024 272);
@@ -456,7 +497,8 @@
   --alertWarningBackgroundColor: color-mix(in oklch, var(--warningColor) 8%, transparent);
 }
 
-[data-theme=dark][data-color-impaired] {
+[data-theme=dark][data-color-impaired],
+[data-theme$=-dark][data-color-impaired] {
   --statusMissing:   oklch(68% 0.170 48);    /* Vermillion     */
   --statusAiring:    oklch(78% 0.117 236);   /* Sky blue       */
   --statusUpcoming:  oklch(82% 0.158 77);    /* Orange         */
@@ -948,7 +990,8 @@
   --primaryHoverBorderColor: #8674f0;
 }
 
-[data-theme=xbox] {
+[data-theme=xbox],
+[data-theme=xbox-dark] {
   --paper: #0b110b;
   --pageBackground: #0b110b;
   --paperWarm: #111c11;
@@ -2355,6 +2398,1322 @@
   --primaryBorderColor: #22b8cf;
   --primaryHoverBackgroundColor: #22b8cf;
   --primaryHoverBorderColor: #66d9e8;
+}
+
+/* ============================================================================
+   Extended Catalog Platforms (Dark Variants)
+   ============================================================================ */
+
+[data-theme=wiiware],
+[data-theme=wiiware-dark] {
+  /* Nintendo WiiWare / Wii Shop Channel: deep slate-navy & crisp aqua-cyan */
+  --paper: #0f161e;
+  --pageBackground: #0f161e;
+  --paperWarm: #16202b;
+  --paperCard: #1d2b3a;
+  --hairline: #2a3e54;
+  --hairlineStrong: #3d5978;
+  --pageHeaderBackgroundColor: #090e14;
+  --sidebarBackgroundColor: #0c1219;
+  --sidebarActiveBackgroundColor: #0c445c;
+  --toolbarBackgroundColor: #131c26;
+  --accent: #00b4d8;
+  --accentDeep: #008cb3;
+  --accentGlow: #48cae4;
+  --primaryColor: #00b4d8;
+  --selectedColor: #00b4d8;
+  --controllarrBlue: #00b4d8;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #00b4d8;
+  --themeAlternateBlue: #008cb3;
+  --linkColor: #38c6e5;
+  --linkHoverColor: #72d9f0;
+  --inputFocusBorderColor: #00b4d8;
+  --defaultHoverBorderColor: #00b4d8;
+  --primaryBackgroundColor: #008cb3;
+  --primaryBorderColor: #00b4d8;
+  --primaryHoverBackgroundColor: #00b4d8;
+  --primaryHoverBorderColor: #48cae4;
+}
+
+[data-theme=wiiueshop],
+[data-theme=wiiueshop-dark] {
+  /* Nintendo Wii U eShop: charcoal-slate shell, shopping-bag amber & Wii U cyan */
+  --paper: #12151b;
+  --pageBackground: #12151b;
+  --paperWarm: #191e26;
+  --paperCard: #222934;
+  --hairline: #323c4d;
+  --hairlineStrong: #47566e;
+  --pageHeaderBackgroundColor: #0a0c10;
+  --sidebarBackgroundColor: #0e1116;
+  --sidebarActiveBackgroundColor: #472e0b;
+  --toolbarBackgroundColor: #161a22;
+  --accent: #f59e0b;
+  --accentDeep: #009ac7;
+  --accentGlow: #fbbf24;
+  --primaryColor: #f59e0b;
+  --selectedColor: #009ac7;
+  --controllarrBlue: #f59e0b;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #f59e0b;
+  --themeAlternateBlue: #009ac7;
+  --linkColor: #fbbf24;
+  --linkHoverColor: #38bdf8;
+  --inputFocusBorderColor: #f59e0b;
+  --defaultHoverBorderColor: #009ac7;
+  --primaryBackgroundColor: #d97706;
+  --primaryBorderColor: #f59e0b;
+  --primaryHoverBackgroundColor: #f59e0b;
+  --primaryHoverBorderColor: #fbbf24;
+}
+
+[data-theme=dsiware],
+[data-theme=dsiware-dark] {
+  /* Nintendo DSi Shop: matte charcoal DSi bezel & ice-blue cobalt highlights */
+  --paper: #11151c;
+  --pageBackground: #11151c;
+  --paperWarm: #181e28;
+  --paperCard: #202836;
+  --hairline: #2f3b50;
+  --hairlineStrong: #435573;
+  --pageHeaderBackgroundColor: #0a0d12;
+  --sidebarBackgroundColor: #0d1118;
+  --sidebarActiveBackgroundColor: #123e5e;
+  --toolbarBackgroundColor: #141a23;
+  --accent: #38bdf8;
+  --accentDeep: #0284c7;
+  --accentGlow: #7dd3fc;
+  --primaryColor: #38bdf8;
+  --selectedColor: #38bdf8;
+  --controllarrBlue: #38bdf8;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #38bdf8;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #5cc9fa;
+  --linkHoverColor: #93defe;
+  --inputFocusBorderColor: #38bdf8;
+  --defaultHoverBorderColor: #38bdf8;
+  --primaryBackgroundColor: #0284c7;
+  --primaryBorderColor: #38bdf8;
+  --primaryHoverBackgroundColor: #38bdf8;
+  --primaryHoverBorderColor: #7dd3fc;
+}
+
+[data-theme="3dseshop"],
+[data-theme="3dseshop-dark"] {
+  /* Nintendo 3DS eShop: dark slate shell, tangerine shopping-bag orange & mint-teal */
+  --paper: #141316;
+  --pageBackground: #141316;
+  --paperWarm: #1d1b20;
+  --paperCard: #26242b;
+  --hairline: #3a3642;
+  --hairlineStrong: #524d5e;
+  --pageHeaderBackgroundColor: #0b0a0d;
+  --sidebarBackgroundColor: #0f0e12;
+  --sidebarActiveBackgroundColor: #4a2409;
+  --toolbarBackgroundColor: #19171c;
+  --accent: #ff7a1a;
+  --accentDeep: #14b8a6;
+  --accentGlow: #ffa35c;
+  --primaryColor: #ff7a1a;
+  --selectedColor: #14b8a6;
+  --controllarrBlue: #ff7a1a;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ff7a1a;
+  --themeAlternateBlue: #14b8a6;
+  --linkColor: #ff9447;
+  --linkHoverColor: #2dd4bf;
+  --inputFocusBorderColor: #ff7a1a;
+  --defaultHoverBorderColor: #14b8a6;
+  --primaryBackgroundColor: #d95b00;
+  --primaryBorderColor: #ff7a1a;
+  --primaryHoverBackgroundColor: #ff7a1a;
+  --primaryHoverBorderColor: #ffa35c;
+}
+
+[data-theme=switcheshop],
+[data-theme=switcheshop-dark] {
+  /* Nintendo Switch eShop: Joy-Con obsidian, golden-orange & Nintendo crimson */
+  --paper: #141314;
+  --pageBackground: #141314;
+  --paperWarm: #1d1b1d;
+  --paperCard: #272427;
+  --hairline: #3d373d;
+  --hairlineStrong: #574e57;
+  --pageHeaderBackgroundColor: #0b0a0b;
+  --sidebarBackgroundColor: #0f0e0f;
+  --sidebarActiveBackgroundColor: #4d2508;
+  --toolbarBackgroundColor: #191719;
+  --accent: #ff8c1a;
+  --accentDeep: #e60012;
+  --accentGlow: #ffad5c;
+  --primaryColor: #ff8c1a;
+  --selectedColor: #ff8c1a;
+  --controllarrBlue: #ff8c1a;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ff8c1a;
+  --themeAlternateBlue: #e60012;
+  --linkColor: #ffa247;
+  --linkHoverColor: #ff5964;
+  --inputFocusBorderColor: #ff8c1a;
+  --defaultHoverBorderColor: #ff8c1a;
+  --primaryBackgroundColor: #cc6700;
+  --primaryBorderColor: #ff8c1a;
+  --primaryHoverBackgroundColor: #ff8c1a;
+  --primaryHoverBorderColor: #ffad5c;
+}
+
+[data-theme=neogeocd],
+[data-theme=neogeocd-dark] {
+  /* SNK Neo Geo CD: gloss charcoal chassis, SNK royal blue & burnished gold */
+  --paper: #111319;
+  --pageBackground: #111319;
+  --paperWarm: #181b24;
+  --paperCard: #212531;
+  --hairline: #31384a;
+  --hairlineStrong: #47516b;
+  --pageHeaderBackgroundColor: #090a0e;
+  --sidebarBackgroundColor: #0d0f15;
+  --sidebarActiveBackgroundColor: #172d5e;
+  --toolbarBackgroundColor: #151820;
+  --accent: #3b82f6;
+  --accentDeep: #e5a93c;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #e5a93c;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #e5a93c;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #f0bc5e;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #e5a93c;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
+}
+
+[data-theme=supergrafx],
+[data-theme=supergrafx-dark] {
+  /* NEC PC Engine SuperGrafx: ribbed dark industrial slate, turbo cyan & crimson */
+  --paper: #121519;
+  --pageBackground: #121519;
+  --paperWarm: #1a1e24;
+  --paperCard: #232931;
+  --hairline: #343d4a;
+  --hairlineStrong: #4b586b;
+  --pageHeaderBackgroundColor: #0a0c0f;
+  --sidebarBackgroundColor: #0e1014;
+  --sidebarActiveBackgroundColor: #123b47;
+  --toolbarBackgroundColor: #161a20;
+  --accent: #06b6d4;
+  --accentDeep: #ef4444;
+  --accentGlow: #22d3ee;
+  --primaryColor: #06b6d4;
+  --selectedColor: #ef4444;
+  --controllarrBlue: #06b6d4;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #06b6d4;
+  --themeAlternateBlue: #ef4444;
+  --linkColor: #22d3ee;
+  --linkHoverColor: #f87171;
+  --inputFocusBorderColor: #06b6d4;
+  --defaultHoverBorderColor: #ef4444;
+  --primaryBackgroundColor: #0891b2;
+  --primaryBorderColor: #06b6d4;
+  --primaryHoverBackgroundColor: #06b6d4;
+  --primaryHoverBorderColor: #22d3ee;
+}
+
+[data-theme=ws],
+[data-theme=ws-dark] {
+  /* Bandai WonderSwan: charcoal bezel, monochrome olive-silver LCD & steel blue */
+  --paper: #14171c;
+  --pageBackground: #14171c;
+  --paperWarm: #1c2128;
+  --paperCard: #252b35;
+  --hairline: #36404f;
+  --hairlineStrong: #4f5e73;
+  --pageHeaderBackgroundColor: #0c0e12;
+  --sidebarBackgroundColor: #101318;
+  --sidebarActiveBackgroundColor: #1f3654;
+  --toolbarBackgroundColor: #181c23;
+  --accent: #5c8fd6;
+  --accentDeep: #3b6db5;
+  --accentGlow: #8bb3eb;
+  --primaryColor: #5c8fd6;
+  --selectedColor: #5c8fd6;
+  --controllarrBlue: #5c8fd6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #5c8fd6;
+  --themeAlternateBlue: #3b6db5;
+  --linkColor: #7ca7e3;
+  --linkHoverColor: #a3c2f0;
+  --inputFocusBorderColor: #5c8fd6;
+  --defaultHoverBorderColor: #5c8fd6;
+  --primaryBackgroundColor: #3b6db5;
+  --primaryBorderColor: #5c8fd6;
+  --primaryHoverBackgroundColor: #5c8fd6;
+  --primaryHoverBorderColor: #8bb3eb;
+}
+
+[data-theme=ngp],
+[data-theme=ngp-dark] {
+  /* SNK Neo Geo Pocket: graphite handheld shell, cool LCD slate & SNK cobalt blue */
+  --paper: #14161b;
+  --pageBackground: #14161b;
+  --paperWarm: #1c1f26;
+  --paperCard: #252933;
+  --hairline: #363c4b;
+  --hairlineStrong: #4e566b;
+  --pageHeaderBackgroundColor: #0c0d11;
+  --sidebarBackgroundColor: #101217;
+  --sidebarActiveBackgroundColor: #1a335c;
+  --toolbarBackgroundColor: #181a21;
+  --accent: #3b82f6;
+  --accentDeep: #1d4ed8;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #3b82f6;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #1d4ed8;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #93c5fd;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #3b82f6;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
+}
+
+[data-theme=sg1000],
+[data-theme=sg1000-dark] {
+  /* Sega SG-1000: 1983 charcoal-ivory trim, Sega vermilion red & classic blue */
+  --paper: #161414;
+  --pageBackground: #161414;
+  --paperWarm: #201c1c;
+  --paperCard: #2b2626;
+  --hairline: #423939;
+  --hairlineStrong: #5e5151;
+  --pageHeaderBackgroundColor: #0d0c0c;
+  --sidebarBackgroundColor: #110f0f;
+  --sidebarActiveBackgroundColor: #4f1717;
+  --toolbarBackgroundColor: #1b1818;
+  --accent: #e53935;
+  --accentDeep: #2563eb;
+  --accentGlow: #ff6b66;
+  --primaryColor: #e53935;
+  --selectedColor: #2563eb;
+  --controllarrBlue: #e53935;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #e53935;
+  --themeAlternateBlue: #2563eb;
+  --linkColor: #f87171;
+  --linkHoverColor: #60a5fa;
+  --inputFocusBorderColor: #e53935;
+  --defaultHoverBorderColor: #2563eb;
+  --primaryBackgroundColor: #c62828;
+  --primaryBorderColor: #e53935;
+  --primaryHoverBackgroundColor: #e53935;
+  --primaryHoverBorderColor: #ff6b66;
+}
+
+[data-theme=cd32],
+[data-theme=cd32-dark] {
+  /* Commodore Amiga CD32: matte dark charcoal, Amiga crimson red & cobalt accents */
+  --paper: #121317;
+  --pageBackground: #121317;
+  --paperWarm: #1a1c22;
+  --paperCard: #23262e;
+  --hairline: #343845;
+  --hairlineStrong: #4b5163;
+  --pageHeaderBackgroundColor: #0a0b0e;
+  --sidebarBackgroundColor: #0e0f13;
+  --sidebarActiveBackgroundColor: #4a151b;
+  --toolbarBackgroundColor: #16181e;
+  --accent: #ef4444;
+  --accentDeep: #3b82f6;
+  --accentGlow: #f87171;
+  --primaryColor: #ef4444;
+  --selectedColor: #3b82f6;
+  --controllarrBlue: #ef4444;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ef4444;
+  --themeAlternateBlue: #3b82f6;
+  --linkColor: #f87171;
+  --linkHoverColor: #60a5fa;
+  --inputFocusBorderColor: #ef4444;
+  --defaultHoverBorderColor: #3b82f6;
+  --primaryBackgroundColor: #dc2626;
+  --primaryBorderColor: #ef4444;
+  --primaryHoverBackgroundColor: #ef4444;
+  --primaryHoverBorderColor: #f87171;
+}
+
+[data-theme=pico],
+[data-theme=pico-dark] {
+  /* Sega Pico: cobalt-blue Magic Pen dark slate & sunshine-yellow highlights */
+  --paper: #101524;
+  --pageBackground: #101524;
+  --paperWarm: #171e33;
+  --paperCard: #1f2945;
+  --hairline: #2e3d66;
+  --hairlineStrong: #425891;
+  --pageHeaderBackgroundColor: #090d17;
+  --sidebarBackgroundColor: #0d1220;
+  --sidebarActiveBackgroundColor: #1b3670;
+  --toolbarBackgroundColor: #141a2b;
+  --accent: #3b82f6;
+  --accentDeep: #eab308;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #eab308;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #eab308;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #facc15;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #eab308;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
+}
+
+[data-theme=beena],
+[data-theme=beena-dark] {
+  /* Sega Advanced Pico Beena: deep forest-slate & fresh lime-mint + sky-blue trim */
+  --paper: #101814;
+  --pageBackground: #101814;
+  --paperWarm: #17231d;
+  --paperCard: #1f3027;
+  --hairline: #2e473a;
+  --hairlineStrong: #426654;
+  --pageHeaderBackgroundColor: #090e0b;
+  --sidebarBackgroundColor: #0d1410;
+  --sidebarActiveBackgroundColor: #16472d;
+  --toolbarBackgroundColor: #141e19;
+  --accent: #22c55e;
+  --accentDeep: #38bdf8;
+  --accentGlow: #4ade80;
+  --primaryColor: #22c55e;
+  --selectedColor: #38bdf8;
+  --controllarrBlue: #22c55e;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #22c55e;
+  --themeAlternateBlue: #38bdf8;
+  --linkColor: #4ade80;
+  --linkHoverColor: #7dd3fc;
+  --inputFocusBorderColor: #22c55e;
+  --defaultHoverBorderColor: #38bdf8;
+  --primaryBackgroundColor: #16a34a;
+  --primaryBorderColor: #22c55e;
+  --primaryHoverBackgroundColor: #22c55e;
+  --primaryHoverBorderColor: #4ade80;
+}
+
+[data-theme=arcadia2001],
+[data-theme=arcadia2001-dark] {
+  /* Emerson Arcadia 2001: espresso-walnut shell & brushed bronze-orange */
+  --paper: #171310;
+  --pageBackground: #171310;
+  --paperWarm: #211b17;
+  --paperCard: #2b231e;
+  --hairline: #42352d;
+  --hairlineStrong: #5e4c40;
+  --pageHeaderBackgroundColor: #0f0c0a;
+  --sidebarBackgroundColor: #130f0d;
+  --sidebarActiveBackgroundColor: #4d2a12;
+  --toolbarBackgroundColor: #1d1714;
+  --accent: #ea7b24;
+  --accentDeep: #c25e0e;
+  --accentGlow: #f59e56;
+  --primaryColor: #ea7b24;
+  --selectedColor: #ea7b24;
+  --controllarrBlue: #ea7b24;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ea7b24;
+  --themeAlternateBlue: #c25e0e;
+  --linkColor: #f2964b;
+  --linkHoverColor: #f7b379;
+  --inputFocusBorderColor: #ea7b24;
+  --defaultHoverBorderColor: #ea7b24;
+  --primaryBackgroundColor: #c25e0e;
+  --primaryBorderColor: #ea7b24;
+  --primaryHoverBackgroundColor: #ea7b24;
+  --primaryHoverBorderColor: #f59e56;
+}
+
+[data-theme=scv],
+[data-theme=scv-dark] {
+  /* Epoch Super Cassette Vision: burgundy-charcoal, electric crimson & retro gold */
+  --paper: #171114;
+  --pageBackground: #171114;
+  --paperWarm: #21181d;
+  --paperCard: #2c2026;
+  --hairline: #423039;
+  --hairlineStrong: #5e4451;
+  --pageHeaderBackgroundColor: #0e0a0c;
+  --sidebarBackgroundColor: #130e10;
+  --sidebarActiveBackgroundColor: #541427;
+  --toolbarBackgroundColor: #1d1519;
+  --accent: #e11d48;
+  --accentDeep: #eab308;
+  --accentGlow: #fb7185;
+  --primaryColor: #e11d48;
+  --selectedColor: #eab308;
+  --controllarrBlue: #e11d48;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #e11d48;
+  --themeAlternateBlue: #eab308;
+  --linkColor: #fb7185;
+  --linkHoverColor: #facc15;
+  --inputFocusBorderColor: #e11d48;
+  --defaultHoverBorderColor: #eab308;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #e11d48;
+  --primaryHoverBackgroundColor: #e11d48;
+  --primaryHoverBorderColor: #fb7185;
+}
+
+[data-theme=cassettevision],
+[data-theme=cassettevision-dark] {
+  /* Epoch Cassette Vision: vintage warm chocolate-taupe & mustard-amber */
+  --paper: #181410;
+  --pageBackground: #181410;
+  --paperWarm: #221d17;
+  --paperCard: #2c251d;
+  --hairline: #42372c;
+  --hairlineStrong: #5e4f3f;
+  --pageHeaderBackgroundColor: #100d0a;
+  --sidebarBackgroundColor: #14100d;
+  --sidebarActiveBackgroundColor: #4a3312;
+  --toolbarBackgroundColor: #1e1914;
+  --accent: #d99a1e;
+  --accentDeep: #c93b2b;
+  --accentGlow: #edb94e;
+  --primaryColor: #d99a1e;
+  --selectedColor: #d99a1e;
+  --controllarrBlue: #d99a1e;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #d99a1e;
+  --themeAlternateBlue: #c93b2b;
+  --linkColor: #e6ae3c;
+  --linkHoverColor: #f2ca74;
+  --inputFocusBorderColor: #d99a1e;
+  --defaultHoverBorderColor: #d99a1e;
+  --primaryBackgroundColor: #b07912;
+  --primaryBorderColor: #d99a1e;
+  --primaryHoverBackgroundColor: #d99a1e;
+  --primaryHoverBorderColor: #edb94e;
+}
+
+[data-theme=loopy],
+[data-theme=loopy-dark] {
+  /* Casio Loopy: plum-charcoal shell, sakura-pink & soft lavender-violet */
+  --paper: #171219;
+  --pageBackground: #171219;
+  --paperWarm: #211924;
+  --paperCard: #2b2130;
+  --hairline: #403147;
+  --hairlineStrong: #5c4666;
+  --pageHeaderBackgroundColor: #0f0b10;
+  --sidebarBackgroundColor: #130e15;
+  --sidebarActiveBackgroundColor: #521a3e;
+  --toolbarBackgroundColor: #1d1620;
+  --accent: #ec4899;
+  --accentDeep: #a855f7;
+  --accentGlow: #f472b6;
+  --primaryColor: #ec4899;
+  --selectedColor: #a855f7;
+  --controllarrBlue: #ec4899;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ec4899;
+  --themeAlternateBlue: #a855f7;
+  --linkColor: #f472b6;
+  --linkHoverColor: #c084fc;
+  --inputFocusBorderColor: #ec4899;
+  --defaultHoverBorderColor: #a855f7;
+  --primaryBackgroundColor: #db2777;
+  --primaryBorderColor: #ec4899;
+  --primaryHoverBackgroundColor: #ec4899;
+  --primaryHoverBorderColor: #f472b6;
+}
+
+[data-theme=pv1000],
+[data-theme=pv1000-dark] {
+  /* Casio PV-1000: metallic dark-charcoal Casio deck & bold signal red */
+  --paper: #131416;
+  --pageBackground: #131416;
+  --paperWarm: #1c1d21;
+  --paperCard: #25272d;
+  --hairline: #373a42;
+  --hairlineStrong: #4f5460;
+  --pageHeaderBackgroundColor: #0b0c0d;
+  --sidebarBackgroundColor: #0f1012;
+  --sidebarActiveBackgroundColor: #4f1717;
+  --toolbarBackgroundColor: #18191d;
+  --accent: #ef4444;
+  --accentDeep: #94a3b8;
+  --accentGlow: #f87171;
+  --primaryColor: #ef4444;
+  --selectedColor: #ef4444;
+  --controllarrBlue: #ef4444;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ef4444;
+  --themeAlternateBlue: #94a3b8;
+  --linkColor: #f87171;
+  --linkHoverColor: #cbd5e1;
+  --inputFocusBorderColor: #ef4444;
+  --defaultHoverBorderColor: #ef4444;
+  --primaryBackgroundColor: #dc2626;
+  --primaryBorderColor: #ef4444;
+  --primaryHoverBackgroundColor: #ef4444;
+  --primaryHoverBorderColor: #f87171;
+}
+
+[data-theme=superacan],
+[data-theme=superacan-dark] {
+  /* Funtech Super A'Can: dark lavender-slate, electric teal-cyan & purple */
+  --paper: #13131b;
+  --pageBackground: #13131b;
+  --paperWarm: #1b1b26;
+  --paperCard: #242433;
+  --hairline: #35354b;
+  --hairlineStrong: #4c4c6b;
+  --pageHeaderBackgroundColor: #0b0b10;
+  --sidebarBackgroundColor: #0f0f16;
+  --sidebarActiveBackgroundColor: #124242;
+  --toolbarBackgroundColor: #171721;
+  --accent: #14b8a6;
+  --accentDeep: #7c3aed;
+  --accentGlow: #2dd4bf;
+  --primaryColor: #14b8a6;
+  --selectedColor: #7c3aed;
+  --controllarrBlue: #14b8a6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #14b8a6;
+  --themeAlternateBlue: #7c3aed;
+  --linkColor: #2dd4bf;
+  --linkHoverColor: #a78bfa;
+  --inputFocusBorderColor: #14b8a6;
+  --defaultHoverBorderColor: #7c3aed;
+  --primaryBackgroundColor: #0d9488;
+  --primaryBorderColor: #14b8a6;
+  --primaryHoverBackgroundColor: #14b8a6;
+  --primaryHoverBorderColor: #2dd4bf;
+}
+
+[data-theme=vc4000],
+[data-theme=vc4000-dark] {
+  /* Interton VC 4000: dark walnut-graphite & signal orange-gold */
+  --paper: #151412;
+  --pageBackground: #151412;
+  --paperWarm: #1f1d1a;
+  --paperCard: #292622;
+  --hairline: #3d3933;
+  --hairlineStrong: #575148;
+  --pageHeaderBackgroundColor: #0d0c0b;
+  --sidebarBackgroundColor: #11100e;
+  --sidebarActiveBackgroundColor: #4f280e;
+  --toolbarBackgroundColor: #1a1815;
+  --accent: #f97316;
+  --accentDeep: #eab308;
+  --accentGlow: #fb923c;
+  --primaryColor: #f97316;
+  --selectedColor: #eab308;
+  --controllarrBlue: #f97316;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #f97316;
+  --themeAlternateBlue: #eab308;
+  --linkColor: #fb923c;
+  --linkHoverColor: #facc15;
+  --inputFocusBorderColor: #f97316;
+  --defaultHoverBorderColor: #eab308;
+  --primaryBackgroundColor: #ea580c;
+  --primaryBorderColor: #f97316;
+  --primaryHoverBackgroundColor: #f97316;
+  --primaryHoverBorderColor: #fb923c;
+}
+
+[data-theme=studio2],
+[data-theme=studio2-dark] {
+  /* RCA Studio II: minimalist monochrome charcoal & brushed pewter-silver */
+  --paper: #131416;
+  --pageBackground: #131416;
+  --paperWarm: #1c1e21;
+  --paperCard: #25282c;
+  --hairline: #373c42;
+  --hairlineStrong: #4f5660;
+  --pageHeaderBackgroundColor: #0b0c0d;
+  --sidebarBackgroundColor: #0f1012;
+  --sidebarActiveBackgroundColor: #2e3540;
+  --toolbarBackgroundColor: #181a1d;
+  --accent: #94a3b8;
+  --accentDeep: #64748b;
+  --accentGlow: #cbd5e1;
+  --primaryColor: #94a3b8;
+  --selectedColor: #cbd5e1;
+  --controllarrBlue: #94a3b8;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #94a3b8;
+  --themeAlternateBlue: #64748b;
+  --linkColor: #cbd5e1;
+  --linkHoverColor: #e2e8f0;
+  --inputFocusBorderColor: #94a3b8;
+  --defaultHoverBorderColor: #cbd5e1;
+  --primaryBackgroundColor: #475569;
+  --primaryBorderColor: #94a3b8;
+  --primaryHoverBackgroundColor: #64748b;
+  --primaryHoverBorderColor: #cbd5e1;
+}
+
+[data-theme=gx4000],
+[data-theme=gx4000-dark] {
+  /* Amstrad GX4000: sleek gunmetal-charcoal wedge & Amstrad magenta-red */
+  --paper: #141316;
+  --pageBackground: #141316;
+  --paperWarm: #1d1b20;
+  --paperCard: #26242b;
+  --hairline: #3a3742;
+  --hairlineStrong: #524e5e;
+  --pageHeaderBackgroundColor: #0b0b0d;
+  --sidebarBackgroundColor: #0f0f12;
+  --sidebarActiveBackgroundColor: #4f1426;
+  --toolbarBackgroundColor: #19181c;
+  --accent: #e11d48;
+  --accentDeep: #be123c;
+  --accentGlow: #fb7185;
+  --primaryColor: #e11d48;
+  --selectedColor: #e11d48;
+  --controllarrBlue: #e11d48;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #e11d48;
+  --themeAlternateBlue: #be123c;
+  --linkColor: #fb7185;
+  --linkHoverColor: #fda4af;
+  --inputFocusBorderColor: #e11d48;
+  --defaultHoverBorderColor: #e11d48;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #e11d48;
+  --primaryHoverBackgroundColor: #e11d48;
+  --primaryHoverBorderColor: #fb7185;
+}
+
+[data-theme=videopacplus],
+[data-theme=videopacplus-dark] {
+  /* Philips Videopac+ G7400: graphite-silver deck, Philips blue & ruby-amber */
+  --paper: #12151a;
+  --pageBackground: #12151a;
+  --paperWarm: #1a1e26;
+  --paperCard: #232833;
+  --hairline: #333b4d;
+  --hairlineStrong: #48546e;
+  --pageHeaderBackgroundColor: #0a0c0f;
+  --sidebarBackgroundColor: #0e1015;
+  --sidebarActiveBackgroundColor: #172e5c;
+  --toolbarBackgroundColor: #161a21;
+  --accent: #3b82f6;
+  --accentDeep: #ef4444;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #f59e0b;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #ef4444;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #fbbf24;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #f59e0b;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
+}
+
+[data-theme=creativision],
+[data-theme=creativision-dark] {
+  /* VTech CreatiVision: deep navy-charcoal, VTech tangerine orange & azure blue */
+  --paper: #11151d;
+  --pageBackground: #11151d;
+  --paperWarm: #181e29;
+  --paperCard: #212938;
+  --hairline: #303d54;
+  --hairlineStrong: #445678;
+  --pageHeaderBackgroundColor: #090c12;
+  --sidebarBackgroundColor: #0d1017;
+  --sidebarActiveBackgroundColor: #4f2810;
+  --toolbarBackgroundColor: #151a24;
+  --accent: #f97316;
+  --accentDeep: #38bdf8;
+  --accentGlow: #fb923c;
+  --primaryColor: #f97316;
+  --selectedColor: #38bdf8;
+  --controllarrBlue: #f97316;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #f97316;
+  --themeAlternateBlue: #38bdf8;
+  --linkColor: #fb923c;
+  --linkHoverColor: #7dd3fc;
+  --inputFocusBorderColor: #f97316;
+  --defaultHoverBorderColor: #38bdf8;
+  --primaryBackgroundColor: #ea580c;
+  --primaryBorderColor: #f97316;
+  --primaryHoverBackgroundColor: #f97316;
+  --primaryHoverBorderColor: #fb923c;
+}
+
+[data-theme=vsmile],
+[data-theme=vsmile-dark] {
+  /* VTech V.Smile: deep violet-slate, royal purple & vibrant tangerine */
+  --paper: #15111c;
+  --pageBackground: #15111c;
+  --paperWarm: #1e1829;
+  --paperCard: #282038;
+  --hairline: #3c3054;
+  --hairlineStrong: #564578;
+  --pageHeaderBackgroundColor: #0d0a12;
+  --sidebarBackgroundColor: #110d17;
+  --sidebarActiveBackgroundColor: #382166;
+  --toolbarBackgroundColor: #1a1524;
+  --accent: #8b5cf6;
+  --accentDeep: #f97316;
+  --accentGlow: #a78bfa;
+  --primaryColor: #8b5cf6;
+  --selectedColor: #f97316;
+  --controllarrBlue: #8b5cf6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #8b5cf6;
+  --themeAlternateBlue: #f97316;
+  --linkColor: #a78bfa;
+  --linkHoverColor: #fb923c;
+  --inputFocusBorderColor: #8b5cf6;
+  --defaultHoverBorderColor: #f97316;
+  --primaryBackgroundColor: #7c3aed;
+  --primaryBorderColor: #8b5cf6;
+  --primaryHoverBackgroundColor: #8b5cf6;
+  --primaryHoverBorderColor: #a78bfa;
+}
+
+[data-theme=zeebo],
+[data-theme=zeebo-dark] {
+  /* Zeebo: dark charcoal slate & iconic Zeebo lime-green */
+  --paper: #121510;
+  --pageBackground: #121510;
+  --paperWarm: #1a1e17;
+  --paperCard: #22291e;
+  --hairline: #333e2d;
+  --hairlineStrong: #495940;
+  --pageHeaderBackgroundColor: #0a0c09;
+  --sidebarBackgroundColor: #0e100c;
+  --sidebarActiveBackgroundColor: #2a4713;
+  --toolbarBackgroundColor: #161a14;
+  --accent: #84cc16;
+  --accentDeep: #4d7c0f;
+  --accentGlow: #a3e635;
+  --primaryColor: #84cc16;
+  --selectedColor: #84cc16;
+  --controllarrBlue: #84cc16;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #84cc16;
+  --themeAlternateBlue: #4d7c0f;
+  --linkColor: #a3e635;
+  --linkHoverColor: #bef264;
+  --inputFocusBorderColor: #84cc16;
+  --defaultHoverBorderColor: #84cc16;
+  --primaryBackgroundColor: #65a30d;
+  --primaryBorderColor: #84cc16;
+  --primaryHoverBackgroundColor: #84cc16;
+  --primaryHoverBorderColor: #a3e635;
+}
+
+[data-theme=picno],
+[data-theme=picno-dark] {
+  /* Konami Picno: warm studio charcoal, Konami crimson & cerulean blue */
+  --paper: #161315;
+  --pageBackground: #161315;
+  --paperWarm: #201b1e;
+  --paperCard: #2a2328;
+  --hairline: #40353c;
+  --hairlineStrong: #5b4c56;
+  --pageHeaderBackgroundColor: #0d0b0c;
+  --sidebarBackgroundColor: #110f10;
+  --sidebarActiveBackgroundColor: #4f1425;
+  --toolbarBackgroundColor: #1b1719;
+  --accent: #e11d48;
+  --accentDeep: #0284c7;
+  --accentGlow: #fb7185;
+  --primaryColor: #e11d48;
+  --selectedColor: #38bdf8;
+  --controllarrBlue: #e11d48;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #e11d48;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #fb7185;
+  --linkHoverColor: #38bdf8;
+  --inputFocusBorderColor: #e11d48;
+  --defaultHoverBorderColor: #38bdf8;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #e11d48;
+  --primaryHoverBackgroundColor: #e11d48;
+  --primaryHoverBorderColor: #fb7185;
+}
+
+[data-theme=xbox360digital],
+[data-theme=xbox360digital-dark] {
+  /* Xbox 360 Digital / XBLA: obsidian green-black, electric Xbox lime & XBLA amber */
+  --paper: #0e130f;
+  --pageBackground: #0e130f;
+  --paperWarm: #151c16;
+  --paperCard: #1c261d;
+  --hairline: #2a3b2c;
+  --hairlineStrong: #3d5640;
+  --pageHeaderBackgroundColor: #090d0a;
+  --sidebarBackgroundColor: #0b100c;
+  --sidebarActiveBackgroundColor: #1e4214;
+  --toolbarBackgroundColor: #121913;
+  --accent: #7ec82a;
+  --accentDeep: #f59e0b;
+  --accentGlow: #a3e354;
+  --primaryColor: #7ec82a;
+  --selectedColor: #f59e0b;
+  --controllarrBlue: #7ec82a;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #7ec82a;
+  --themeAlternateBlue: #f59e0b;
+  --linkColor: #92da3e;
+  --linkHoverColor: #fbbf24;
+  --inputFocusBorderColor: #7ec82a;
+  --defaultHoverBorderColor: #f59e0b;
+  --primaryBackgroundColor: #5ea316;
+  --primaryBorderColor: #7ec82a;
+  --primaryHoverBackgroundColor: #7ec82a;
+  --primaryHoverBorderColor: #a3e354;
+}
+
+[data-theme=ps3psn],
+[data-theme=ps3psn-dark] {
+  /* Sony PS3 PSN: PlayStation Store XMB midnight cobalt & cyan-blue wave */
+  --paper: #0d1322;
+  --pageBackground: #0d1322;
+  --paperWarm: #131c32;
+  --paperCard: #1a2645;
+  --hairline: #273966;
+  --hairlineStrong: #385291;
+  --pageHeaderBackgroundColor: #070b15;
+  --sidebarBackgroundColor: #0a0f1c;
+  --sidebarActiveBackgroundColor: #15316b;
+  --toolbarBackgroundColor: #10182b;
+  --accent: #3b82f6;
+  --accentDeep: #38bdf8;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #38bdf8;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #38bdf8;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #7dd3fc;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #38bdf8;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
+}
+
+[data-theme=psppsn],
+[data-theme=psppsn-dark] {
+  /* Sony PSP PSN: deep sapphire-teal XMB & bright sky-cyan highlight */
+  --paper: #0c141c;
+  --pageBackground: #0c141c;
+  --paperWarm: #121e2a;
+  --paperCard: #18293a;
+  --hairline: #243e57;
+  --hairlineStrong: #34597d;
+  --pageHeaderBackgroundColor: #070c11;
+  --sidebarBackgroundColor: #0a1017;
+  --sidebarActiveBackgroundColor: #103d5c;
+  --toolbarBackgroundColor: #0f1923;
+  --accent: #0ea5e9;
+  --accentDeep: #0284c7;
+  --accentGlow: #38bdf8;
+  --primaryColor: #0ea5e9;
+  --selectedColor: #0ea5e9;
+  --controllarrBlue: #0ea5e9;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0ea5e9;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #38bdf8;
+  --linkHoverColor: #7dd3fc;
+  --inputFocusBorderColor: #0ea5e9;
+  --defaultHoverBorderColor: #0ea5e9;
+  --primaryBackgroundColor: #0284c7;
+  --primaryBorderColor: #0ea5e9;
+  --primaryHoverBackgroundColor: #0ea5e9;
+  --primaryHoverBorderColor: #38bdf8;
+}
+
+[data-theme=supervision],
+[data-theme=supervision-dark] {
+  /* Watara Supervision: matte slate gray, olive-amber LCD & magenta-red accent */
+  --paper: #141612;
+  --pageBackground: #141612;
+  --paperWarm: #1d201a;
+  --paperCard: #272b23;
+  --hairline: #3a4034;
+  --hairlineStrong: #525b4a;
+  --pageHeaderBackgroundColor: #0c0d0a;
+  --sidebarBackgroundColor: #10120e;
+  --sidebarActiveBackgroundColor: #384214;
+  --toolbarBackgroundColor: #181b16;
+  --accent: #a3b82b;
+  --accentDeep: #d946ef;
+  --accentGlow: #c0d647;
+  --primaryColor: #a3b82b;
+  --selectedColor: #a3b82b;
+  --controllarrBlue: #a3b82b;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #a3b82b;
+  --themeAlternateBlue: #6b7f12;
+  --linkColor: #b8ce3e;
+  --linkHoverColor: #d3e66a;
+  --inputFocusBorderColor: #a3b82b;
+  --defaultHoverBorderColor: #a3b82b;
+  --primaryBackgroundColor: #7b8d18;
+  --primaryBorderColor: #a3b82b;
+  --primaryHoverBackgroundColor: #a3b82b;
+  --primaryHoverBorderColor: #c0d647;
+}
+
+[data-theme=gamecom],
+[data-theme=gamecom-dark] {
+  /* Tiger Game.com: smoky 1997 PDA charcoal, neon aqua-teal & tiger orange */
+  --paper: #111617;
+  --pageBackground: #111617;
+  --paperWarm: #182022;
+  --paperCard: #202b2e;
+  --hairline: #2f4045;
+  --hairlineStrong: #435c63;
+  --pageHeaderBackgroundColor: #090d0e;
+  --sidebarBackgroundColor: #0d1112;
+  --sidebarActiveBackgroundColor: #10423d;
+  --toolbarBackgroundColor: #141b1c;
+  --accent: #14b8a6;
+  --accentDeep: #f97316;
+  --accentGlow: #2dd4bf;
+  --primaryColor: #14b8a6;
+  --selectedColor: #f97316;
+  --controllarrBlue: #14b8a6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #14b8a6;
+  --themeAlternateBlue: #f97316;
+  --linkColor: #2dd4bf;
+  --linkHoverColor: #fb923c;
+  --inputFocusBorderColor: #14b8a6;
+  --defaultHoverBorderColor: #f97316;
+  --primaryBackgroundColor: #0d9488;
+  --primaryBorderColor: #14b8a6;
+  --primaryHoverBackgroundColor: #14b8a6;
+  --primaryHoverBorderColor: #2dd4bf;
+}
+
+[data-theme=adventurevision],
+[data-theme=adventurevision-dark] {
+  /* Entex Adventure Vision: pitch-black visor & glowing 40-LED ruby crimson */
+  --paper: #120c0d;
+  --pageBackground: #120c0d;
+  --paperWarm: #1c1214;
+  --paperCard: #26181b;
+  --hairline: #3d2429;
+  --hairlineStrong: #59333b;
+  --pageHeaderBackgroundColor: #0a0607;
+  --sidebarBackgroundColor: #0e090a;
+  --sidebarActiveBackgroundColor: #4f1219;
+  --toolbarBackgroundColor: #170f10;
+  --accent: #ef4444;
+  --accentDeep: #dc2626;
+  --accentGlow: #f87171;
+  --primaryColor: #ef4444;
+  --selectedColor: #ef4444;
+  --controllarrBlue: #ef4444;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ef4444;
+  --themeAlternateBlue: #dc2626;
+  --linkColor: #f87171;
+  --linkHoverColor: #fca5a5;
+  --inputFocusBorderColor: #ef4444;
+  --defaultHoverBorderColor: #ef4444;
+  --primaryBackgroundColor: #dc2626;
+  --primaryBorderColor: #ef4444;
+  --primaryHoverBackgroundColor: #ef4444;
+  --primaryHoverBorderColor: #f87171;
+}
+
+[data-theme=gamemaster],
+[data-theme=gamemaster-dark] {
+  /* Hartung Game Master: charcoal-black handheld, turquoise & amber markings */
+  --paper: #111517;
+  --pageBackground: #111517;
+  --paperWarm: #181e21;
+  --paperCard: #20282c;
+  --hairline: #303c42;
+  --hairlineStrong: #44565e;
+  --pageHeaderBackgroundColor: #090c0d;
+  --sidebarBackgroundColor: #0d1012;
+  --sidebarActiveBackgroundColor: #11414d;
+  --toolbarBackgroundColor: #14191c;
+  --accent: #06b6d4;
+  --accentDeep: #f59e0b;
+  --accentGlow: #22d3ee;
+  --primaryColor: #06b6d4;
+  --selectedColor: #f59e0b;
+  --controllarrBlue: #06b6d4;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #06b6d4;
+  --themeAlternateBlue: #f59e0b;
+  --linkColor: #22d3ee;
+  --linkHoverColor: #fbbf24;
+  --inputFocusBorderColor: #06b6d4;
+  --defaultHoverBorderColor: #f59e0b;
+  --primaryBackgroundColor: #0891b2;
+  --primaryBorderColor: #06b6d4;
+  --primaryHoverBackgroundColor: #06b6d4;
+  --primaryHoverBorderColor: #22d3ee;
+}
+
+[data-theme=gp32],
+[data-theme=gp32-dark] {
+  /* GamePark GP32: pearlescent gunmetal slate, electric azure & emerald */
+  --paper: #12151a;
+  --pageBackground: #12151a;
+  --paperWarm: #1a1f27;
+  --paperCard: #222934;
+  --hairline: #323c4d;
+  --hairlineStrong: #47566e;
+  --pageHeaderBackgroundColor: #0a0c10;
+  --sidebarBackgroundColor: #0e1015;
+  --sidebarActiveBackgroundColor: #153361;
+  --toolbarBackgroundColor: #161a21;
+  --accent: #3b82f6;
+  --accentDeep: #10b981;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #10b981;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #10b981;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #34d399;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #10b981;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
+}
+
+[data-theme=arduboy],
+[data-theme=arduboy-dark] {
+  /* Arduboy: jet-black PCB & aluminum, sharp OLED ice-cyan */
+  --paper: #0b0e12;
+  --pageBackground: #0b0e12;
+  --paperWarm: #11161d;
+  --paperCard: #181f29;
+  --hairline: #253040;
+  --hairlineStrong: #35465e;
+  --pageHeaderBackgroundColor: #06080b;
+  --sidebarBackgroundColor: #090b0f;
+  --sidebarActiveBackgroundColor: #103b45;
+  --toolbarBackgroundColor: #0e1218;
+  --accent: #22d3ee;
+  --accentDeep: #0891b2;
+  --accentGlow: #67e8f9;
+  --primaryColor: #22d3ee;
+  --selectedColor: #22d3ee;
+  --controllarrBlue: #22d3ee;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #22d3ee;
+  --themeAlternateBlue: #0891b2;
+  --linkColor: #67e8f9;
+  --linkHoverColor: #a5f3fc;
+  --inputFocusBorderColor: #22d3ee;
+  --defaultHoverBorderColor: #22d3ee;
+  --primaryBackgroundColor: #0891b2;
+  --primaryBorderColor: #22d3ee;
+  --primaryHoverBackgroundColor: #06b6d4;
+  --primaryHoverBorderColor: #67e8f9;
+}
+
+[data-theme=gameandwatch],
+[data-theme=gameandwatch-dark] {
+  /* Nintendo Game & Watch: espresso-maroon shell, brushed gold-brass & crimson */
+  --paper: #181310;
+  --pageBackground: #181310;
+  --paperWarm: #221b16;
+  --paperCard: #2d231d;
+  --hairline: #44362c;
+  --hairlineStrong: #614d3f;
+  --pageHeaderBackgroundColor: #100c0a;
+  --sidebarBackgroundColor: #140f0c;
+  --sidebarActiveBackgroundColor: #4a3412;
+  --toolbarBackgroundColor: #1e1713;
+  --accent: #d4a024;
+  --accentDeep: #c93b2b;
+  --accentGlow: #ebbf52;
+  --primaryColor: #d4a024;
+  --selectedColor: #d4a024;
+  --controllarrBlue: #d4a024;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #d4a024;
+  --themeAlternateBlue: #c93b2b;
+  --linkColor: #e5b743;
+  --linkHoverColor: #f26857;
+  --inputFocusBorderColor: #d4a024;
+  --defaultHoverBorderColor: #d4a024;
+  --primaryBackgroundColor: #9c710f;
+  --primaryBorderColor: #d4a024;
+  --primaryHoverBackgroundColor: #d4a024;
+  --primaryHoverBorderColor: #ebbf52;
+}
+
+[data-theme=leapster],
+[data-theme=leapster-dark] {
+  /* LeapFrog Leapster: deep forest-slate shell, emerald green & sunny gold */
+  --paper: #0f1612;
+  --pageBackground: #0f1612;
+  --paperWarm: #16211b;
+  --paperCard: #1e2d24;
+  --hairline: #2d4436;
+  --hairlineStrong: #40614d;
+  --pageHeaderBackgroundColor: #090e0b;
+  --sidebarBackgroundColor: #0c120e;
+  --sidebarActiveBackgroundColor: #134224;
+  --toolbarBackgroundColor: #131c17;
+  --accent: #22c55e;
+  --accentDeep: #eab308;
+  --accentGlow: #4ade80;
+  --primaryColor: #22c55e;
+  --selectedColor: #eab308;
+  --controllarrBlue: #22c55e;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #22c55e;
+  --themeAlternateBlue: #eab308;
+  --linkColor: #4ade80;
+  --linkHoverColor: #facc15;
+  --inputFocusBorderColor: #22c55e;
+  --defaultHoverBorderColor: #eab308;
+  --primaryBackgroundColor: #16a34a;
+  --primaryBorderColor: #22c55e;
+  --primaryHoverBackgroundColor: #22c55e;
+  --primaryHoverBorderColor: #4ade80;
+}
+
+[data-theme=pocketchallengev2],
+[data-theme=pocketchallengev2-dark] {
+  /* Benesse Pocket Challenge V2: deep ocean navy, translucent sky-blue & coral */
+  --paper: #0f151d;
+  --pageBackground: #0f151d;
+  --paperWarm: #161f2b;
+  --paperCard: #1e2a3b;
+  --hairline: #2c3e57;
+  --hairlineStrong: #3e587d;
+  --pageHeaderBackgroundColor: #090d12;
+  --sidebarBackgroundColor: #0c1118;
+  --sidebarActiveBackgroundColor: #133c61;
+  --toolbarBackgroundColor: #131a24;
+  --accent: #38bdf8;
+  --accentDeep: #f59e0b;
+  --accentGlow: #7dd3fc;
+  --primaryColor: #38bdf8;
+  --selectedColor: #f59e0b;
+  --controllarrBlue: #38bdf8;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #38bdf8;
+  --themeAlternateBlue: #f59e0b;
+  --linkColor: #5cc9fa;
+  --linkHoverColor: #fbbf24;
+  --inputFocusBorderColor: #38bdf8;
+  --defaultHoverBorderColor: #f59e0b;
+  --primaryBackgroundColor: #0284c7;
+  --primaryBorderColor: #38bdf8;
+  --primaryHoverBackgroundColor: #38bdf8;
+  --primaryHoverBorderColor: #7dd3fc;
+}
+
+[data-theme=sufamiturbo],
+[data-theme=sufamiturbo-dark] {
+  /* Bandai Sufami Turbo: matte dark-gray twin-cart shell, Bandai ruby & electric blue */
+  --paper: #141418;
+  --pageBackground: #141418;
+  --paperWarm: #1d1d23;
+  --paperCard: #26262e;
+  --hairline: #383845;
+  --hairlineStrong: #505063;
+  --pageHeaderBackgroundColor: #0b0b0e;
+  --sidebarBackgroundColor: #0f0f13;
+  --sidebarActiveBackgroundColor: #4f1426;
+  --toolbarBackgroundColor: #18181e;
+  --accent: #e11d48;
+  --accentDeep: #3b82f6;
+  --accentGlow: #fb7185;
+  --primaryColor: #e11d48;
+  --selectedColor: #3b82f6;
+  --controllarrBlue: #e11d48;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #e11d48;
+  --themeAlternateBlue: #3b82f6;
+  --linkColor: #fb7185;
+  --linkHoverColor: #60a5fa;
+  --inputFocusBorderColor: #e11d48;
+  --defaultHoverBorderColor: #3b82f6;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #e11d48;
+  --primaryHoverBackgroundColor: #e11d48;
+  --primaryHoverBorderColor: #fb7185;
+}
+
+[data-theme=ereader],
+[data-theme=ereader-dark] {
+  /* Nintendo e-Reader: glossy charcoal GBA scanner, Nintendo blue & dot-code magenta */
+  --paper: #12141a;
+  --pageBackground: #12141a;
+  --paperWarm: #1a1d26;
+  --paperCard: #222733;
+  --hairline: #32394d;
+  --hairlineStrong: #47526e;
+  --pageHeaderBackgroundColor: #0a0b0f;
+  --sidebarBackgroundColor: #0e1015;
+  --sidebarActiveBackgroundColor: #172e5e;
+  --toolbarBackgroundColor: #161820;
+  --accent: #3b82f6;
+  --accentDeep: #ec4899;
+  --accentGlow: #60a5fa;
+  --primaryColor: #3b82f6;
+  --selectedColor: #ec4899;
+  --controllarrBlue: #3b82f6;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b82f6;
+  --themeAlternateBlue: #ec4899;
+  --linkColor: #60a5fa;
+  --linkHoverColor: #f472b6;
+  --inputFocusBorderColor: #3b82f6;
+  --defaultHoverBorderColor: #ec4899;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #3b82f6;
+  --primaryHoverBackgroundColor: #3b82f6;
+  --primaryHoverBorderColor: #60a5fa;
 }
 
 /* ============================================================================
@@ -3809,4 +5168,1197 @@
   --primaryBorderColor: #0891b2;
   --primaryHoverBackgroundColor: #0e7490;
   --primaryHoverBorderColor: #0e7490;
+}
+
+/* ============================================================================
+   Extended Catalog Platforms (Light Variants)
+   ============================================================================ */
+
+[data-theme=wiiware-light] {
+  --paper: #eef6fa;
+  --pageBackground: #eef6fa;
+  --paperWarm: #dfedf5;
+  --paperCard: #fff;
+  --hairline: #c4dbe8;
+  --hairlineStrong: #a1c5da;
+  --pageHeaderBackgroundColor: #0f2536;
+  --sidebarBackgroundColor: #0b1c29;
+  --sidebarActiveBackgroundColor: #0c546e;
+  --toolbarBackgroundColor: #dfedf5;
+  --accent: #0091b3;
+  --accentDeep: #006d87;
+  --accentGlow: #0091b3;
+  --selectedColor: #0091b3;
+  --controllarrBlue: #0091b3;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0091b3;
+  --themeAlternateBlue: #006d87;
+  --linkColor: #006d87;
+  --linkHoverColor: #0091b3;
+  --inputFocusBorderColor: #0091b3;
+  --defaultHoverBorderColor: #0091b3;
+  --primaryBackgroundColor: #0091b3;
+  --primaryBorderColor: #0091b3;
+  --primaryHoverBackgroundColor: #006d87;
+  --primaryHoverBorderColor: #006d87;
+}
+
+[data-theme=wiiueshop-light] {
+  --paper: #f7f6f2;
+  --pageBackground: #f7f6f2;
+  --paperWarm: #edeae0;
+  --paperCard: #fff;
+  --hairline: #dad4c3;
+  --hairlineStrong: #c2b9a1;
+  --pageHeaderBackgroundColor: #1c2430;
+  --sidebarBackgroundColor: #151b24;
+  --sidebarActiveBackgroundColor: #6e450a;
+  --toolbarBackgroundColor: #edeae0;
+  --accent: #d97706;
+  --accentDeep: #0082a8;
+  --accentGlow: #d97706;
+  --selectedColor: #0082a8;
+  --controllarrBlue: #d97706;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #d97706;
+  --themeAlternateBlue: #0082a8;
+  --linkColor: #0082a8;
+  --linkHoverColor: #d97706;
+  --inputFocusBorderColor: #d97706;
+  --defaultHoverBorderColor: #0082a8;
+  --primaryBackgroundColor: #d97706;
+  --primaryBorderColor: #d97706;
+  --primaryHoverBackgroundColor: #b45309;
+  --primaryHoverBorderColor: #b45309;
+}
+
+[data-theme=dsiware-light] {
+  --paper: #eff5fa;
+  --pageBackground: #eff5fa;
+  --paperWarm: #e1ecf5;
+  --paperCard: #fff;
+  --hairline: #c7d9ea;
+  --hairlineStrong: #a6c3de;
+  --pageHeaderBackgroundColor: #142233;
+  --sidebarBackgroundColor: #0f1a28;
+  --sidebarActiveBackgroundColor: #0e4a73;
+  --toolbarBackgroundColor: #e1ecf5;
+  --accent: #0284c7;
+  --accentDeep: #0369a1;
+  --accentGlow: #0284c7;
+  --selectedColor: #0284c7;
+  --controllarrBlue: #0284c7;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0284c7;
+  --themeAlternateBlue: #0369a1;
+  --linkColor: #0369a1;
+  --linkHoverColor: #0284c7;
+  --inputFocusBorderColor: #0284c7;
+  --defaultHoverBorderColor: #0284c7;
+  --primaryBackgroundColor: #0284c7;
+  --primaryBorderColor: #0284c7;
+  --primaryHoverBackgroundColor: #0369a1;
+  --primaryHoverBorderColor: #0369a1;
+}
+
+[data-theme="3dseshop-light"] {
+  --paper: #f7f3f0;
+  --pageBackground: #f7f3f0;
+  --paperWarm: #ede6e0;
+  --paperCard: #fff;
+  --hairline: #dcd0c6;
+  --hairlineStrong: #c4b2a3;
+  --pageHeaderBackgroundColor: #241d19;
+  --sidebarBackgroundColor: #1c1613;
+  --sidebarActiveBackgroundColor: #73340a;
+  --toolbarBackgroundColor: #ede6e0;
+  --accent: #d95b00;
+  --accentDeep: #0d9488;
+  --accentGlow: #d95b00;
+  --selectedColor: #0d9488;
+  --controllarrBlue: #d95b00;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #d95b00;
+  --themeAlternateBlue: #0d9488;
+  --linkColor: #0d9488;
+  --linkHoverColor: #d95b00;
+  --inputFocusBorderColor: #d95b00;
+  --defaultHoverBorderColor: #0d9488;
+  --primaryBackgroundColor: #d95b00;
+  --primaryBorderColor: #d95b00;
+  --primaryHoverBackgroundColor: #b34700;
+  --primaryHoverBorderColor: #b34700;
+}
+
+[data-theme=switcheshop-light] {
+  --paper: #f6f4f2;
+  --pageBackground: #f6f4f2;
+  --paperWarm: #ebe7e3;
+  --paperCard: #fff;
+  --hairline: #d6cfc8;
+  --hairlineStrong: #bdb3a8;
+  --pageHeaderBackgroundColor: #211d1c;
+  --sidebarBackgroundColor: #191615;
+  --sidebarActiveBackgroundColor: #753907;
+  --toolbarBackgroundColor: #ebe7e3;
+  --accent: #d96900;
+  --accentDeep: #c80010;
+  --accentGlow: #d96900;
+  --selectedColor: #d96900;
+  --controllarrBlue: #d96900;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #d96900;
+  --themeAlternateBlue: #c80010;
+  --linkColor: #c80010;
+  --linkHoverColor: #d96900;
+  --inputFocusBorderColor: #d96900;
+  --defaultHoverBorderColor: #d96900;
+  --primaryBackgroundColor: #d96900;
+  --primaryBorderColor: #d96900;
+  --primaryHoverBackgroundColor: #b35300;
+  --primaryHoverBorderColor: #b35300;
+}
+
+[data-theme=neogeocd-light] {
+  --paper: #f1f3f7;
+  --pageBackground: #f1f3f7;
+  --paperWarm: #e3e7f0;
+  --paperCard: #fff;
+  --hairline: #cbd2e0;
+  --hairlineStrong: #aeb8cc;
+  --pageHeaderBackgroundColor: #141a2b;
+  --sidebarBackgroundColor: #0f1421;
+  --sidebarActiveBackgroundColor: #1e3a7a;
+  --toolbarBackgroundColor: #e3e7f0;
+  --accent: #2563eb;
+  --accentDeep: #b88322;
+  --accentGlow: #2563eb;
+  --selectedColor: #b88322;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #b88322;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #b88322;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #b88322;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
+}
+
+[data-theme=supergrafx-light] {
+  --paper: #f1f4f6;
+  --pageBackground: #f1f4f6;
+  --paperWarm: #e3e9ed;
+  --paperCard: #fff;
+  --hairline: #cbd5dc;
+  --hairlineStrong: #aebdc7;
+  --pageHeaderBackgroundColor: #161d24;
+  --sidebarBackgroundColor: #11161c;
+  --sidebarActiveBackgroundColor: #0e4f5c;
+  --toolbarBackgroundColor: #e3e9ed;
+  --accent: #0891b2;
+  --accentDeep: #dc2626;
+  --accentGlow: #0891b2;
+  --selectedColor: #dc2626;
+  --controllarrBlue: #0891b2;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0891b2;
+  --themeAlternateBlue: #dc2626;
+  --linkColor: #0e7490;
+  --linkHoverColor: #dc2626;
+  --inputFocusBorderColor: #0891b2;
+  --defaultHoverBorderColor: #dc2626;
+  --primaryBackgroundColor: #0891b2;
+  --primaryBorderColor: #0891b2;
+  --primaryHoverBackgroundColor: #0e7490;
+  --primaryHoverBorderColor: #0e7490;
+}
+
+[data-theme=ws-light] {
+  --paper: #f2f4f7;
+  --pageBackground: #f2f4f7;
+  --paperWarm: #e4e9ef;
+  --paperCard: #fff;
+  --hairline: #cdd5e0;
+  --hairlineStrong: #b1bdcc;
+  --pageHeaderBackgroundColor: #1b222e;
+  --sidebarBackgroundColor: #141a24;
+  --sidebarActiveBackgroundColor: #2a4d7d;
+  --toolbarBackgroundColor: #e4e9ef;
+  --accent: #3b6db5;
+  --accentDeep: #28508c;
+  --accentGlow: #3b6db5;
+  --selectedColor: #3b6db5;
+  --controllarrBlue: #3b6db5;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #3b6db5;
+  --themeAlternateBlue: #28508c;
+  --linkColor: #28508c;
+  --linkHoverColor: #3b6db5;
+  --inputFocusBorderColor: #3b6db5;
+  --defaultHoverBorderColor: #3b6db5;
+  --primaryBackgroundColor: #3b6db5;
+  --primaryBorderColor: #3b6db5;
+  --primaryHoverBackgroundColor: #28508c;
+  --primaryHoverBorderColor: #28508c;
+}
+
+[data-theme=ngp-light] {
+  --paper: #f1f4f8;
+  --pageBackground: #f1f4f8;
+  --paperWarm: #e3e8f0;
+  --paperCard: #fff;
+  --hairline: #ccd4e2;
+  --hairlineStrong: #b0bccf;
+  --pageHeaderBackgroundColor: #181d26;
+  --sidebarBackgroundColor: #12161f;
+  --sidebarActiveBackgroundColor: #1e4280;
+  --toolbarBackgroundColor: #e3e8f0;
+  --accent: #2563eb;
+  --accentDeep: #1d4ed8;
+  --accentGlow: #2563eb;
+  --selectedColor: #2563eb;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #1d4ed8;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #2563eb;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #2563eb;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
+}
+
+[data-theme=sg1000-light] {
+  --paper: #f6f3f1;
+  --pageBackground: #f6f3f1;
+  --paperWarm: #ece6e2;
+  --paperCard: #fdfbfa;
+  --hairline: #dad0ca;
+  --hairlineStrong: #c2b4ac;
+  --pageHeaderBackgroundColor: #261e1d;
+  --sidebarBackgroundColor: #1d1716;
+  --sidebarActiveBackgroundColor: #731d1b;
+  --toolbarBackgroundColor: #ece6e2;
+  --accent: #c62828;
+  --accentDeep: #1d4ed8;
+  --accentGlow: #c62828;
+  --selectedColor: #1d4ed8;
+  --controllarrBlue: #c62828;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #c62828;
+  --themeAlternateBlue: #1d4ed8;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #c62828;
+  --inputFocusBorderColor: #c62828;
+  --defaultHoverBorderColor: #1d4ed8;
+  --primaryBackgroundColor: #c62828;
+  --primaryBorderColor: #c62828;
+  --primaryHoverBackgroundColor: #9e1c1c;
+  --primaryHoverBorderColor: #9e1c1c;
+}
+
+[data-theme=cd32-light] {
+  --paper: #f3f3f5;
+  --pageBackground: #f3f3f5;
+  --paperWarm: #e6e7eb;
+  --paperCard: #fff;
+  --hairline: #d0d2da;
+  --hairlineStrong: #b5b8c4;
+  --pageHeaderBackgroundColor: #1a1b22;
+  --sidebarBackgroundColor: #13141a;
+  --sidebarActiveBackgroundColor: #6e1920;
+  --toolbarBackgroundColor: #e6e7eb;
+  --accent: #dc2626;
+  --accentDeep: #2563eb;
+  --accentGlow: #dc2626;
+  --selectedColor: #2563eb;
+  --controllarrBlue: #dc2626;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #dc2626;
+  --themeAlternateBlue: #2563eb;
+  --linkColor: #2563eb;
+  --linkHoverColor: #dc2626;
+  --inputFocusBorderColor: #dc2626;
+  --defaultHoverBorderColor: #2563eb;
+  --primaryBackgroundColor: #dc2626;
+  --primaryBorderColor: #dc2626;
+  --primaryHoverBackgroundColor: #b91c1c;
+  --primaryHoverBorderColor: #b91c1c;
+}
+
+[data-theme=pico-light] {
+  --paper: #eff3fa;
+  --pageBackground: #eff3fa;
+  --paperWarm: #e0e8f5;
+  --paperCard: #fff;
+  --hairline: #c5d3ea;
+  --hairlineStrong: #a4b9dd;
+  --pageHeaderBackgroundColor: #142240;
+  --sidebarBackgroundColor: #0f1a30;
+  --sidebarActiveBackgroundColor: #1e428f;
+  --toolbarBackgroundColor: #e0e8f5;
+  --accent: #2563eb;
+  --accentDeep: #b8860b;
+  --accentGlow: #2563eb;
+  --selectedColor: #b8860b;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #b8860b;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #b8860b;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #b8860b;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
+}
+
+[data-theme=beena-light] {
+  --paper: #eff7f2;
+  --pageBackground: #eff7f2;
+  --paperWarm: #e0efe6;
+  --paperCard: #fff;
+  --hairline: #c4decb;
+  --hairlineStrong: #a3c9ae;
+  --pageHeaderBackgroundColor: #14261c;
+  --sidebarBackgroundColor: #0f1c15;
+  --sidebarActiveBackgroundColor: #185e37;
+  --toolbarBackgroundColor: #e0efe6;
+  --accent: #16a34a;
+  --accentDeep: #0284c7;
+  --accentGlow: #16a34a;
+  --selectedColor: #0284c7;
+  --controllarrBlue: #16a34a;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #16a34a;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #15803d;
+  --linkHoverColor: #0284c7;
+  --inputFocusBorderColor: #16a34a;
+  --defaultHoverBorderColor: #0284c7;
+  --primaryBackgroundColor: #16a34a;
+  --primaryBorderColor: #16a34a;
+  --primaryHoverBackgroundColor: #15803d;
+  --primaryHoverBorderColor: #15803d;
+}
+
+[data-theme=arcadia2001-light] {
+  --paper: #f6f2ee;
+  --pageBackground: #f6f2ee;
+  --paperWarm: #ece4dc;
+  --paperCard: #fdfbfa;
+  --hairline: #dad0c5;
+  --hairlineStrong: #c2b2a1;
+  --pageHeaderBackgroundColor: #261b14;
+  --sidebarBackgroundColor: #1c140f;
+  --sidebarActiveBackgroundColor: #73390e;
+  --toolbarBackgroundColor: #ece4dc;
+  --accent: #c25e0e;
+  --accentDeep: #9a4708;
+  --accentGlow: #c25e0e;
+  --selectedColor: #c25e0e;
+  --controllarrBlue: #c25e0e;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #c25e0e;
+  --themeAlternateBlue: #9a4708;
+  --linkColor: #9a4708;
+  --linkHoverColor: #c25e0e;
+  --inputFocusBorderColor: #c25e0e;
+  --defaultHoverBorderColor: #c25e0e;
+  --primaryBackgroundColor: #c25e0e;
+  --primaryBorderColor: #c25e0e;
+  --primaryHoverBackgroundColor: #9a4708;
+  --primaryHoverBorderColor: #9a4708;
+}
+
+[data-theme=scv-light] {
+  --paper: #f7f2f4;
+  --pageBackground: #f7f2f4;
+  --paperWarm: #ede3e7;
+  --paperCard: #fff;
+  --hairline: #dccad1;
+  --hairlineStrong: #c4aab4;
+  --pageHeaderBackgroundColor: #26141c;
+  --sidebarBackgroundColor: #1c0f15;
+  --sidebarActiveBackgroundColor: #781533;
+  --toolbarBackgroundColor: #ede3e7;
+  --accent: #be123c;
+  --accentDeep: #b8860b;
+  --accentGlow: #be123c;
+  --selectedColor: #b8860b;
+  --controllarrBlue: #be123c;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #be123c;
+  --themeAlternateBlue: #b8860b;
+  --linkColor: #9f1239;
+  --linkHoverColor: #b8860b;
+  --inputFocusBorderColor: #be123c;
+  --defaultHoverBorderColor: #b8860b;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #be123c;
+  --primaryHoverBackgroundColor: #9f1239;
+  --primaryHoverBorderColor: #9f1239;
+}
+
+[data-theme=cassettevision-light] {
+  --paper: #f7f4ee;
+  --pageBackground: #f7f4ee;
+  --paperWarm: #ede7dc;
+  --paperCard: #fdfbf7;
+  --hairline: #dcd2c0;
+  --hairlineStrong: #c4b59b;
+  --pageHeaderBackgroundColor: #292116;
+  --sidebarBackgroundColor: #1f1910;
+  --sidebarActiveBackgroundColor: #6e4810;
+  --toolbarBackgroundColor: #ede7dc;
+  --accent: #b07912;
+  --accentDeep: #b8291d;
+  --accentGlow: #b07912;
+  --selectedColor: #b07912;
+  --controllarrBlue: #b07912;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #b07912;
+  --themeAlternateBlue: #b8291d;
+  --linkColor: #8c5e0b;
+  --linkHoverColor: #b8291d;
+  --inputFocusBorderColor: #b07912;
+  --defaultHoverBorderColor: #b07912;
+  --primaryBackgroundColor: #b07912;
+  --primaryBorderColor: #b07912;
+  --primaryHoverBackgroundColor: #8c5e0b;
+  --primaryHoverBorderColor: #8c5e0b;
+}
+
+[data-theme=loopy-light] {
+  --paper: #f8f2f7;
+  --pageBackground: #f8f2f7;
+  --paperWarm: #efe3ee;
+  --paperCard: #fff;
+  --hairline: #dec8dc;
+  --hairlineStrong: #c7a6c4;
+  --pageHeaderBackgroundColor: #261624;
+  --sidebarBackgroundColor: #1c101b;
+  --sidebarActiveBackgroundColor: #7a1e58;
+  --toolbarBackgroundColor: #efe3ee;
+  --accent: #db2777;
+  --accentDeep: #9333ea;
+  --accentGlow: #db2777;
+  --selectedColor: #9333ea;
+  --controllarrBlue: #db2777;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #db2777;
+  --themeAlternateBlue: #9333ea;
+  --linkColor: #be185d;
+  --linkHoverColor: #9333ea;
+  --inputFocusBorderColor: #db2777;
+  --defaultHoverBorderColor: #9333ea;
+  --primaryBackgroundColor: #db2777;
+  --primaryBorderColor: #db2777;
+  --primaryHoverBackgroundColor: #be185d;
+  --primaryHoverBorderColor: #be185d;
+}
+
+[data-theme=pv1000-light] {
+  --paper: #f3f4f6;
+  --pageBackground: #f3f4f6;
+  --paperWarm: #e5e7eb;
+  --paperCard: #fff;
+  --hairline: #d1d5db;
+  --hairlineStrong: #b6bcc6;
+  --pageHeaderBackgroundColor: #1c1e24;
+  --sidebarBackgroundColor: #14161a;
+  --sidebarActiveBackgroundColor: #731818;
+  --toolbarBackgroundColor: #e5e7eb;
+  --accent: #dc2626;
+  --accentDeep: #475569;
+  --accentGlow: #dc2626;
+  --selectedColor: #dc2626;
+  --controllarrBlue: #dc2626;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #dc2626;
+  --themeAlternateBlue: #475569;
+  --linkColor: #b91c1c;
+  --linkHoverColor: #dc2626;
+  --inputFocusBorderColor: #dc2626;
+  --defaultHoverBorderColor: #dc2626;
+  --primaryBackgroundColor: #dc2626;
+  --primaryBorderColor: #dc2626;
+  --primaryHoverBackgroundColor: #b91c1c;
+  --primaryHoverBorderColor: #b91c1c;
+}
+
+[data-theme=superacan-light] {
+  --paper: #f2f2f7;
+  --pageBackground: #f2f2f7;
+  --paperWarm: #e4e4ef;
+  --paperCard: #fff;
+  --hairline: #cbcbe0;
+  --hairlineStrong: #aeaecd;
+  --pageHeaderBackgroundColor: #181829;
+  --sidebarBackgroundColor: #12121f;
+  --sidebarActiveBackgroundColor: #0d5c54;
+  --toolbarBackgroundColor: #e4e4ef;
+  --accent: #0d9488;
+  --accentDeep: #6d28d9;
+  --accentGlow: #0d9488;
+  --selectedColor: #6d28d9;
+  --controllarrBlue: #0d9488;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0d9488;
+  --themeAlternateBlue: #6d28d9;
+  --linkColor: #0f766e;
+  --linkHoverColor: #6d28d9;
+  --inputFocusBorderColor: #0d9488;
+  --defaultHoverBorderColor: #6d28d9;
+  --primaryBackgroundColor: #0d9488;
+  --primaryBorderColor: #0d9488;
+  --primaryHoverBackgroundColor: #0f766e;
+  --primaryHoverBorderColor: #0f766e;
+}
+
+[data-theme=vc4000-light] {
+  --paper: #f6f4f0;
+  --pageBackground: #f6f4f0;
+  --paperWarm: #ece8e0;
+  --paperCard: #fdfcf9;
+  --hairline: #dad3c6;
+  --hairlineStrong: #c2b8a5;
+  --pageHeaderBackgroundColor: #241f18;
+  --sidebarBackgroundColor: #1b1712;
+  --sidebarActiveBackgroundColor: #75380d;
+  --toolbarBackgroundColor: #ece8e0;
+  --accent: #ea580c;
+  --accentDeep: #b8860b;
+  --accentGlow: #ea580c;
+  --selectedColor: #b8860b;
+  --controllarrBlue: #ea580c;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ea580c;
+  --themeAlternateBlue: #b8860b;
+  --linkColor: #c2410c;
+  --linkHoverColor: #b8860b;
+  --inputFocusBorderColor: #ea580c;
+  --defaultHoverBorderColor: #b8860b;
+  --primaryBackgroundColor: #ea580c;
+  --primaryBorderColor: #ea580c;
+  --primaryHoverBackgroundColor: #c2410c;
+  --primaryHoverBorderColor: #c2410c;
+}
+
+[data-theme=studio2-light] {
+  --paper: #f3f4f6;
+  --pageBackground: #f3f4f6;
+  --paperWarm: #e5e7eb;
+  --paperCard: #fff;
+  --hairline: #cfd4dc;
+  --hairlineStrong: #b2bac6;
+  --pageHeaderBackgroundColor: #1a1c21;
+  --sidebarBackgroundColor: #131519;
+  --sidebarActiveBackgroundColor: #334155;
+  --toolbarBackgroundColor: #e5e7eb;
+  --accent: #475569;
+  --accentDeep: #334155;
+  --accentGlow: #475569;
+  --selectedColor: #334155;
+  --controllarrBlue: #475569;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #475569;
+  --themeAlternateBlue: #334155;
+  --linkColor: #334155;
+  --linkHoverColor: #475569;
+  --inputFocusBorderColor: #475569;
+  --defaultHoverBorderColor: #334155;
+  --primaryBackgroundColor: #475569;
+  --primaryBorderColor: #475569;
+  --primaryHoverBackgroundColor: #334155;
+  --primaryHoverBorderColor: #334155;
+}
+
+[data-theme=gx4000-light] {
+  --paper: #f5f3f6;
+  --pageBackground: #f5f3f6;
+  --paperWarm: #eae5ed;
+  --paperCard: #fff;
+  --hairline: #d6cedb;
+  --hairlineStrong: #bcb0c4;
+  --pageHeaderBackgroundColor: #201a24;
+  --sidebarBackgroundColor: #17131a;
+  --sidebarActiveBackgroundColor: #751434;
+  --toolbarBackgroundColor: #eae5ed;
+  --accent: #be123c;
+  --accentDeep: #9f1239;
+  --accentGlow: #be123c;
+  --selectedColor: #be123c;
+  --controllarrBlue: #be123c;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #be123c;
+  --themeAlternateBlue: #9f1239;
+  --linkColor: #9f1239;
+  --linkHoverColor: #be123c;
+  --inputFocusBorderColor: #be123c;
+  --defaultHoverBorderColor: #be123c;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #be123c;
+  --primaryHoverBackgroundColor: #9f1239;
+  --primaryHoverBorderColor: #9f1239;
+}
+
+[data-theme=videopacplus-light] {
+  --paper: #f1f4f8;
+  --pageBackground: #f1f4f8;
+  --paperWarm: #e3e8f0;
+  --paperCard: #fff;
+  --hairline: #cbd3e2;
+  --hairlineStrong: #aebad1;
+  --pageHeaderBackgroundColor: #161d2b;
+  --sidebarBackgroundColor: #101621;
+  --sidebarActiveBackgroundColor: #1e3b7a;
+  --toolbarBackgroundColor: #e3e8f0;
+  --accent: #2563eb;
+  --accentDeep: #dc2626;
+  --accentGlow: #2563eb;
+  --selectedColor: #d97706;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #dc2626;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #d97706;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #d97706;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
+}
+
+[data-theme=creativision-light] {
+  --paper: #f2f5f8;
+  --pageBackground: #f2f5f8;
+  --paperWarm: #e4eaf2;
+  --paperCard: #fff;
+  --hairline: #cad5e4;
+  --hairlineStrong: #abbbd1;
+  --pageHeaderBackgroundColor: #141f30;
+  --sidebarBackgroundColor: #0f1724;
+  --sidebarActiveBackgroundColor: #78350f;
+  --toolbarBackgroundColor: #e4eaf2;
+  --accent: #ea580c;
+  --accentDeep: #0284c7;
+  --accentGlow: #ea580c;
+  --selectedColor: #0284c7;
+  --controllarrBlue: #ea580c;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #ea580c;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #0284c7;
+  --linkHoverColor: #ea580c;
+  --inputFocusBorderColor: #ea580c;
+  --defaultHoverBorderColor: #0284c7;
+  --primaryBackgroundColor: #ea580c;
+  --primaryBorderColor: #ea580c;
+  --primaryHoverBackgroundColor: #c2410c;
+  --primaryHoverBorderColor: #c2410c;
+}
+
+[data-theme=vsmile-light] {
+  --paper: #f4f1f8;
+  --pageBackground: #f4f1f8;
+  --paperWarm: #e8e1f1;
+  --paperCard: #fff;
+  --hairline: #d3c7e3;
+  --hairlineStrong: #b8a5d1;
+  --pageHeaderBackgroundColor: #211633;
+  --sidebarBackgroundColor: #181026;
+  --sidebarActiveBackgroundColor: #4c2889;
+  --toolbarBackgroundColor: #e8e1f1;
+  --accent: #7c3aed;
+  --accentDeep: #ea580c;
+  --accentGlow: #7c3aed;
+  --selectedColor: #ea580c;
+  --controllarrBlue: #7c3aed;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #7c3aed;
+  --themeAlternateBlue: #ea580c;
+  --linkColor: #6d28d9;
+  --linkHoverColor: #ea580c;
+  --inputFocusBorderColor: #7c3aed;
+  --defaultHoverBorderColor: #ea580c;
+  --primaryBackgroundColor: #7c3aed;
+  --primaryBorderColor: #7c3aed;
+  --primaryHoverBackgroundColor: #6d28d9;
+  --primaryHoverBorderColor: #6d28d9;
+}
+
+[data-theme=zeebo-light] {
+  --paper: #f3f6ef;
+  --pageBackground: #f3f6ef;
+  --paperWarm: #e6ede0;
+  --paperCard: #fff;
+  --hairline: #cddac2;
+  --hairlineStrong: #b0c49f;
+  --pageHeaderBackgroundColor: #1b2416;
+  --sidebarBackgroundColor: #141a10;
+  --sidebarActiveBackgroundColor: #3b6312;
+  --toolbarBackgroundColor: #e6ede0;
+  --accent: #65a30d;
+  --accentDeep: #4d7c0f;
+  --accentGlow: #65a30d;
+  --selectedColor: #65a30d;
+  --controllarrBlue: #65a30d;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #65a30d;
+  --themeAlternateBlue: #4d7c0f;
+  --linkColor: #4d7c0f;
+  --linkHoverColor: #65a30d;
+  --inputFocusBorderColor: #65a30d;
+  --defaultHoverBorderColor: #65a30d;
+  --primaryBackgroundColor: #65a30d;
+  --primaryBorderColor: #65a30d;
+  --primaryHoverBackgroundColor: #4d7c0f;
+  --primaryHoverBorderColor: #4d7c0f;
+}
+
+[data-theme=picno-light] {
+  --paper: #f7f3f5;
+  --pageBackground: #f7f3f5;
+  --paperWarm: #eee5ea;
+  --paperCard: #fff;
+  --hairline: #dccbd3;
+  --hairlineStrong: #c4abb7;
+  --pageHeaderBackgroundColor: #24161d;
+  --sidebarBackgroundColor: #1a1015;
+  --sidebarActiveBackgroundColor: #731632;
+  --toolbarBackgroundColor: #eee5ea;
+  --accent: #be123c;
+  --accentDeep: #0284c7;
+  --accentGlow: #be123c;
+  --selectedColor: #0284c7;
+  --controllarrBlue: #be123c;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #be123c;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #0284c7;
+  --linkHoverColor: #be123c;
+  --inputFocusBorderColor: #be123c;
+  --defaultHoverBorderColor: #0284c7;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #be123c;
+  --primaryHoverBackgroundColor: #9f1239;
+  --primaryHoverBorderColor: #9f1239;
+}
+
+[data-theme=xbox360digital-light] {
+  --paper: #f3f5f2;
+  --pageBackground: #f3f5f2;
+  --paperWarm: #e7ebe4;
+  --paperCard: #fff;
+  --hairline: #cdd5c8;
+  --hairlineStrong: #adb9a7;
+  --pageHeaderBackgroundColor: #1b241c;
+  --sidebarBackgroundColor: #141c15;
+  --sidebarActiveBackgroundColor: #285c15;
+  --toolbarBackgroundColor: #e7ebe4;
+  --accent: #529c14;
+  --accentDeep: #d97706;
+  --accentGlow: #529c14;
+  --selectedColor: #d97706;
+  --controllarrBlue: #529c14;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #529c14;
+  --themeAlternateBlue: #d97706;
+  --linkColor: #3f7d0d;
+  --linkHoverColor: #d97706;
+  --inputFocusBorderColor: #529c14;
+  --defaultHoverBorderColor: #d97706;
+  --primaryBackgroundColor: #529c14;
+  --primaryBorderColor: #529c14;
+  --primaryHoverBackgroundColor: #3f7d0d;
+  --primaryHoverBorderColor: #3f7d0d;
+}
+
+[data-theme=ps3psn-light] {
+  --paper: #eff3fa;
+  --pageBackground: #eff3fa;
+  --paperWarm: #e0e8f5;
+  --paperCard: #fff;
+  --hairline: #c4d2eb;
+  --hairlineStrong: #a1b8df;
+  --pageHeaderBackgroundColor: #111c36;
+  --sidebarBackgroundColor: #0c1429;
+  --sidebarActiveBackgroundColor: #1b3f8a;
+  --toolbarBackgroundColor: #e0e8f5;
+  --accent: #2563eb;
+  --accentDeep: #0284c7;
+  --accentGlow: #2563eb;
+  --selectedColor: #0284c7;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #0284c7;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #0284c7;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #0284c7;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
+}
+
+[data-theme=psppsn-light] {
+  --paper: #eff5f9;
+  --pageBackground: #eff5f9;
+  --paperWarm: #e0ecf3;
+  --paperCard: #fff;
+  --hairline: #c4dae8;
+  --hairlineStrong: #a1c3da;
+  --pageHeaderBackgroundColor: #102030;
+  --sidebarBackgroundColor: #0b1724;
+  --sidebarActiveBackgroundColor: #0f4e78;
+  --toolbarBackgroundColor: #e0ecf3;
+  --accent: #0284c7;
+  --accentDeep: #0369a1;
+  --accentGlow: #0284c7;
+  --selectedColor: #0284c7;
+  --controllarrBlue: #0284c7;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0284c7;
+  --themeAlternateBlue: #0369a1;
+  --linkColor: #0369a1;
+  --linkHoverColor: #0284c7;
+  --inputFocusBorderColor: #0284c7;
+  --defaultHoverBorderColor: #0284c7;
+  --primaryBackgroundColor: #0284c7;
+  --primaryBorderColor: #0284c7;
+  --primaryHoverBackgroundColor: #0369a1;
+  --primaryHoverBorderColor: #0369a1;
+}
+
+[data-theme=supervision-light] {
+  --paper: #f4f5ef;
+  --pageBackground: #f4f5ef;
+  --paperWarm: #e8eae0;
+  --paperCard: #fdfef9;
+  --hairline: #d3d6c4;
+  --hairlineStrong: #b8bda1;
+  --pageHeaderBackgroundColor: #202418;
+  --sidebarBackgroundColor: #171a11;
+  --sidebarActiveBackgroundColor: #4f5e10;
+  --toolbarBackgroundColor: #e8eae0;
+  --accent: #6b7f12;
+  --accentDeep: #a21caf;
+  --accentGlow: #6b7f12;
+  --selectedColor: #6b7f12;
+  --controllarrBlue: #6b7f12;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #6b7f12;
+  --themeAlternateBlue: #a21caf;
+  --linkColor: #54640d;
+  --linkHoverColor: #a21caf;
+  --inputFocusBorderColor: #6b7f12;
+  --defaultHoverBorderColor: #6b7f12;
+  --primaryBackgroundColor: #6b7f12;
+  --primaryBorderColor: #6b7f12;
+  --primaryHoverBackgroundColor: #54640d;
+  --primaryHoverBorderColor: #54640d;
+}
+
+[data-theme=gamecom-light] {
+  --paper: #eff6f6;
+  --pageBackground: #eff6f6;
+  --paperWarm: #e0eded;
+  --paperCard: #fff;
+  --hairline: #c4dbdb;
+  --hairlineStrong: #a1c5c5;
+  --pageHeaderBackgroundColor: #122224;
+  --sidebarBackgroundColor: #0d191a;
+  --sidebarActiveBackgroundColor: #0f544e;
+  --toolbarBackgroundColor: #e0eded;
+  --accent: #0d9488;
+  --accentDeep: #ea580c;
+  --accentGlow: #0d9488;
+  --selectedColor: #ea580c;
+  --controllarrBlue: #0d9488;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0d9488;
+  --themeAlternateBlue: #ea580c;
+  --linkColor: #0f766e;
+  --linkHoverColor: #ea580c;
+  --inputFocusBorderColor: #0d9488;
+  --defaultHoverBorderColor: #ea580c;
+  --primaryBackgroundColor: #0d9488;
+  --primaryBorderColor: #0d9488;
+  --primaryHoverBackgroundColor: #0f766e;
+  --primaryHoverBorderColor: #0f766e;
+}
+
+[data-theme=adventurevision-light] {
+  --paper: #f7f1f2;
+  --pageBackground: #f7f1f2;
+  --paperWarm: #eee2e4;
+  --paperCard: #fff;
+  --hairline: #ddc8cb;
+  --hairlineStrong: #c4a7ab;
+  --pageHeaderBackgroundColor: #241215;
+  --sidebarBackgroundColor: #1a0d0f;
+  --sidebarActiveBackgroundColor: #78151d;
+  --toolbarBackgroundColor: #eee2e4;
+  --accent: #dc2626;
+  --accentDeep: #b91c1c;
+  --accentGlow: #dc2626;
+  --selectedColor: #dc2626;
+  --controllarrBlue: #dc2626;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #dc2626;
+  --themeAlternateBlue: #b91c1c;
+  --linkColor: #b91c1c;
+  --linkHoverColor: #dc2626;
+  --inputFocusBorderColor: #dc2626;
+  --defaultHoverBorderColor: #dc2626;
+  --primaryBackgroundColor: #dc2626;
+  --primaryBorderColor: #dc2626;
+  --primaryHoverBackgroundColor: #b91c1c;
+  --primaryHoverBorderColor: #b91c1c;
+}
+
+[data-theme=gamemaster-light] {
+  --paper: #eff5f7;
+  --pageBackground: #eff5f7;
+  --paperWarm: #e0ecf0;
+  --paperCard: #fff;
+  --hairline: #c4d8de;
+  --hairlineStrong: #a1c0ca;
+  --pageHeaderBackgroundColor: #141f24;
+  --sidebarBackgroundColor: #0f171a;
+  --sidebarActiveBackgroundColor: #0e5463;
+  --toolbarBackgroundColor: #e0ecf0;
+  --accent: #0891b2;
+  --accentDeep: #d97706;
+  --accentGlow: #0891b2;
+  --selectedColor: #d97706;
+  --controllarrBlue: #0891b2;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0891b2;
+  --themeAlternateBlue: #d97706;
+  --linkColor: #0e7490;
+  --linkHoverColor: #d97706;
+  --inputFocusBorderColor: #0891b2;
+  --defaultHoverBorderColor: #d97706;
+  --primaryBackgroundColor: #0891b2;
+  --primaryBorderColor: #0891b2;
+  --primaryHoverBackgroundColor: #0e7490;
+  --primaryHoverBorderColor: #0e7490;
+}
+
+[data-theme=gp32-light] {
+  --paper: #f1f4f8;
+  --pageBackground: #f1f4f8;
+  --paperWarm: #e3e9f2;
+  --paperCard: #fff;
+  --hairline: #cad4e4;
+  --hairlineStrong: #abbad1;
+  --pageHeaderBackgroundColor: #151e2e;
+  --sidebarBackgroundColor: #0f1622;
+  --sidebarActiveBackgroundColor: #1a407a;
+  --toolbarBackgroundColor: #e3e9f2;
+  --accent: #2563eb;
+  --accentDeep: #059669;
+  --accentGlow: #2563eb;
+  --selectedColor: #059669;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #059669;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #059669;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #059669;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
+}
+
+[data-theme=arduboy-light] {
+  --paper: #eff5f7;
+  --pageBackground: #eff5f7;
+  --paperWarm: #e1ecef;
+  --paperCard: #fff;
+  --hairline: #c6d9df;
+  --hairlineStrong: #a3c2cc;
+  --pageHeaderBackgroundColor: #0f171f;
+  --sidebarBackgroundColor: #0a1017;
+  --sidebarActiveBackgroundColor: #0e5261;
+  --toolbarBackgroundColor: #e1ecef;
+  --accent: #0891b2;
+  --accentDeep: #0e7490;
+  --accentGlow: #0891b2;
+  --selectedColor: #0891b2;
+  --controllarrBlue: #0891b2;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0891b2;
+  --themeAlternateBlue: #0e7490;
+  --linkColor: #0e7490;
+  --linkHoverColor: #0891b2;
+  --inputFocusBorderColor: #0891b2;
+  --defaultHoverBorderColor: #0891b2;
+  --primaryBackgroundColor: #0891b2;
+  --primaryBorderColor: #0891b2;
+  --primaryHoverBackgroundColor: #0e7490;
+  --primaryHoverBorderColor: #0e7490;
+}
+
+[data-theme=gameandwatch-light] {
+  --paper: #f7f3eb;
+  --pageBackground: #f7f3eb;
+  --paperWarm: #ede5d5;
+  --paperCard: #fdfbf6;
+  --hairline: #dcd0ba;
+  --hairlineStrong: #c4b293;
+  --pageHeaderBackgroundColor: #291e14;
+  --sidebarBackgroundColor: #1f160f;
+  --sidebarActiveBackgroundColor: #6b4c10;
+  --toolbarBackgroundColor: #ede5d5;
+  --accent: #9c710f;
+  --accentDeep: #b8291d;
+  --accentGlow: #9c710f;
+  --selectedColor: #9c710f;
+  --controllarrBlue: #9c710f;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #9c710f;
+  --themeAlternateBlue: #b8291d;
+  --linkColor: #7d5909;
+  --linkHoverColor: #b8291d;
+  --inputFocusBorderColor: #9c710f;
+  --defaultHoverBorderColor: #9c710f;
+  --primaryBackgroundColor: #9c710f;
+  --primaryBorderColor: #9c710f;
+  --primaryHoverBackgroundColor: #7d5909;
+  --primaryHoverBorderColor: #7d5909;
+}
+
+[data-theme=leapster-light] {
+  --paper: #f0f6f2;
+  --pageBackground: #f0f6f2;
+  --paperWarm: #e1ede5;
+  --paperCard: #fff;
+  --hairline: #c4dccb;
+  --hairlineStrong: #a1c7ac;
+  --pageHeaderBackgroundColor: #14261a;
+  --sidebarBackgroundColor: #0f1c13;
+  --sidebarActiveBackgroundColor: #175c30;
+  --toolbarBackgroundColor: #e1ede5;
+  --accent: #16a34a;
+  --accentDeep: #ca8a04;
+  --accentGlow: #16a34a;
+  --selectedColor: #ca8a04;
+  --controllarrBlue: #16a34a;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #16a34a;
+  --themeAlternateBlue: #ca8a04;
+  --linkColor: #15803d;
+  --linkHoverColor: #ca8a04;
+  --inputFocusBorderColor: #16a34a;
+  --defaultHoverBorderColor: #ca8a04;
+  --primaryBackgroundColor: #16a34a;
+  --primaryBorderColor: #16a34a;
+  --primaryHoverBackgroundColor: #15803d;
+  --primaryHoverBorderColor: #15803d;
+}
+
+[data-theme=pocketchallengev2-light] {
+  --paper: #eff5fa;
+  --pageBackground: #eff5fa;
+  --paperWarm: #e0ebf5;
+  --paperCard: #fff;
+  --hairline: #c4d9eb;
+  --hairlineStrong: #a1c2de;
+  --pageHeaderBackgroundColor: #142233;
+  --sidebarBackgroundColor: #0f1a28;
+  --sidebarActiveBackgroundColor: #114b78;
+  --toolbarBackgroundColor: #e0ebf5;
+  --accent: #0284c7;
+  --accentDeep: #d97706;
+  --accentGlow: #0284c7;
+  --selectedColor: #d97706;
+  --controllarrBlue: #0284c7;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #0284c7;
+  --themeAlternateBlue: #d97706;
+  --linkColor: #0369a1;
+  --linkHoverColor: #d97706;
+  --inputFocusBorderColor: #0284c7;
+  --defaultHoverBorderColor: #d97706;
+  --primaryBackgroundColor: #0284c7;
+  --primaryBorderColor: #0284c7;
+  --primaryHoverBackgroundColor: #0369a1;
+  --primaryHoverBorderColor: #0369a1;
+}
+
+[data-theme=sufamiturbo-light] {
+  --paper: #f3f3f6;
+  --pageBackground: #f3f3f6;
+  --paperWarm: #e6e6ed;
+  --paperCard: #fff;
+  --hairline: #cfd0db;
+  --hairlineStrong: #b3b5c7;
+  --pageHeaderBackgroundColor: #1b1b24;
+  --sidebarBackgroundColor: #13131a;
+  --sidebarActiveBackgroundColor: #731632;
+  --toolbarBackgroundColor: #e6e6ed;
+  --accent: #be123c;
+  --accentDeep: #2563eb;
+  --accentGlow: #be123c;
+  --selectedColor: #2563eb;
+  --controllarrBlue: #be123c;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #be123c;
+  --themeAlternateBlue: #2563eb;
+  --linkColor: #2563eb;
+  --linkHoverColor: #be123c;
+  --inputFocusBorderColor: #be123c;
+  --defaultHoverBorderColor: #2563eb;
+  --primaryBackgroundColor: #be123c;
+  --primaryBorderColor: #be123c;
+  --primaryHoverBackgroundColor: #9f1239;
+  --primaryHoverBorderColor: #9f1239;
+}
+
+[data-theme=ereader-light] {
+  --paper: #f1f4f8;
+  --pageBackground: #f1f4f8;
+  --paperWarm: #e3e8f1;
+  --paperCard: #fff;
+  --hairline: #cbd4e3;
+  --hairlineStrong: #aebbd1;
+  --pageHeaderBackgroundColor: #151c2b;
+  --sidebarBackgroundColor: #0f1521;
+  --sidebarActiveBackgroundColor: #1b3d82;
+  --toolbarBackgroundColor: #e3e8f1;
+  --accent: #2563eb;
+  --accentDeep: #db2777;
+  --accentGlow: #2563eb;
+  --selectedColor: #db2777;
+  --controllarrBlue: #2563eb;
+  --sonarrBlue: var(--controllarrBlue);
+  --themeBlue: #2563eb;
+  --themeAlternateBlue: #db2777;
+  --linkColor: #1d4ed8;
+  --linkHoverColor: #db2777;
+  --inputFocusBorderColor: #2563eb;
+  --defaultHoverBorderColor: #db2777;
+  --primaryBackgroundColor: #2563eb;
+  --primaryBorderColor: #2563eb;
+  --primaryHoverBackgroundColor: #1d4ed8;
+  --primaryHoverBorderColor: #1d4ed8;
 }

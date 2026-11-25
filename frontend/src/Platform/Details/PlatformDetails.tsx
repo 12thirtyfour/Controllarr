@@ -62,6 +62,7 @@ import usePlatform, {
   useToggleSeriesMonitored,
 } from 'Platform/usePlatform';
 import useRomFiles from 'RomFile/useRomFiles';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import sortByProp from 'Utilities/Array/sortByProp';
 import { findCommand, isCommandExecuting } from 'Utilities/Command';
 import formatBytes from 'Utilities/Number/formatBytes';
@@ -209,17 +210,20 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   const { toggleSeriesMonitored, isTogglingSeriesMonitored } =
     useToggleSeriesMonitored(seriesId);
   const { data: allSeries } = usePlatform();
+  const uiSettings = useUiSettingsValues();
+  const consoleRegion = uiSettings?.consoleRegion;
 
   useLayoutEffect(() => {
     const consoleTheme = resolveConsoleThemeFromSlug(
-      series?.titleSlug || series?.title
+      series?.titleSlug || series?.title,
+      consoleRegion
     );
     setActivePlatformTheme(consoleTheme);
 
     return () => {
       setActivePlatformTheme(null);
     };
-  }, [series?.titleSlug, series?.title]);
+  }, [series?.titleSlug, series?.title, consoleRegion]);
 
   const monitored = series?.monitored ?? false;
   const isRaSupported = isPlatformRetroAchievementsSupported(
