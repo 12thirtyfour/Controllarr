@@ -73,6 +73,8 @@ public class PlatformResource : RestResource
     public AddPlatformOptionsResource? AddOptions { get; set; }
     public Ratings? Ratings { get; set; }
     public SeriesStatisticsResource? Statistics { get; set; }
+    public List<string> VerificationDatabases { get; set; } = [];
+    public List<string> VerificationMethods { get; set; } = [];
     public bool? GamesChanged { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [SwaggerIgnore]
@@ -129,6 +131,12 @@ public static class PlatformResourceMapper
 {
     public static SeriesResource ToResource(this NzbDrone.Core.Tv.Series model, bool includeSeasonImages = false)
     {
+        var verification = NzbDrone.Core.MetadataSource.Game.GameCatalogProxy.GetPlatformVerificationInfo(
+            model.TvdbId,
+            model.TitleSlug,
+            model.Title,
+            model.EncryptionPreference);
+
         return new SeriesResource
         {
             Id = model.Id,
@@ -180,7 +188,9 @@ public static class PlatformResourceMapper
             Tags = model.Tags,
             Added = model.Added,
             AddOptions = model.AddOptions.ToResource(),
-            Ratings = model.Ratings
+            Ratings = model.Ratings,
+            VerificationDatabases = verification.Databases,
+            VerificationMethods = verification.Methods
         };
     }
 

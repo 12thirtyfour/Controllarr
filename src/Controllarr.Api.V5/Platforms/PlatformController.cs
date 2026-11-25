@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.TPL;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Games;
@@ -48,6 +49,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     private readonly IMapCoversToLocal _coverMapper;
     private readonly IRootFolderService _rootFolderService;
     private readonly ISearchForNewPlatforms _searchProxy;
+    private readonly IDatCacheService? _datCacheService;
     private readonly InlineValidator<AddAllPlatformsResource> _addAllValidator = new();
 
     private readonly LockByIdPool _seriesLockPool = new();
@@ -69,7 +71,8 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                         QualityProfileExistsValidator qualityProfileExistsValidator,
                         RootFolderExistsValidator rootFolderExistsValidator,
                         SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator,
-                        SeriesSeasonTypeValidator seriesSeasonTypeValidator)
+                        SeriesSeasonTypeValidator seriesSeasonTypeValidator,
+                        IDatCacheService? datCacheService = null)
         : base(signalRBroadcaster)
     {
         _seriesService = seriesService;
@@ -80,6 +83,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         _coverMapper = coverMapper;
         _rootFolderService = rootFolderService;
         _searchProxy = searchProxy;
+        _datCacheService = datCacheService;
 
         _addAllValidator.RuleFor(s => s.RootFolderPath).Cascade(CascadeMode.Stop)
             .NotEmpty()
@@ -150,6 +154,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         LinkSeriesStatistics(seriesResources, seriesStats.ToDictionary(x => x.SeriesId));
         PopulateAlternateTitles(seriesResources);
         PopulateTranslations(seriesResources);
+        PopulateVerificationInfo(seriesResources);
         seriesResources.ForEach(LinkRootFolderPath);
 
         return TypedResults.Ok(seriesResources);
@@ -429,6 +434,7 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
         FetchAndLinkSeriesStatistics(resource);
         PopulateAlternateTitles(resource);
         PopulateTranslations(resource);
+        PopulateVerificationInfo(resource);
         LinkRootFolderPath(resource);
 
         return resource;
@@ -524,6 +530,60 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     private void LinkRootFolderPath(SeriesResource resource)
     {
         resource.RootFolderPath = _rootFolderService.GetBestRootFolderPath(resource.Path);
+    }
+
+    private static EncryptionPreference ResolveEncryptionPreference(SeriesResource resource)
+    {
+        if (string.Equals(resource.SeasonType, "both", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(resource.SeasonType, "encrypted", StringComparison.OrdinalIgnoreCase))
+        {
+            return GameCatalogProxy.ParseEncryptionPreference(resource.SeasonType);
+        }
+
+        return resource.PreferEncryptedRoms
+            ? EncryptionPreference.Encrypted
+            : EncryptionPreference.NotEncrypted;
+    }
+
+    private void PopulateVerificationInfo(List<SeriesResource> resources)
+    {
+        var allDatFiles = _datCacheService?.GetAllDatFiles();
+        if (allDatFiles == null || allDatFiles.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var resource in resources)
+        {
+            var verification = GameCatalogProxy.GetPlatformVerificationInfo(
+                resource.TvdbId,
+                resource.TitleSlug,
+                resource.Title,
+                ResolveEncryptionPreference(resource),
+                allDatFiles);
+
+            resource.VerificationDatabases = verification.Databases;
+            resource.VerificationMethods = verification.Methods;
+        }
+    }
+
+    private void PopulateVerificationInfo(SeriesResource resource)
+    {
+        var allDatFiles = _datCacheService?.GetAllDatFiles();
+        if (allDatFiles == null || allDatFiles.Count == 0)
+        {
+            return;
+        }
+
+        var verification = GameCatalogProxy.GetPlatformVerificationInfo(
+            resource.TvdbId,
+            resource.TitleSlug,
+            resource.Title,
+            ResolveEncryptionPreference(resource),
+            allDatFiles);
+
+        resource.VerificationDatabases = verification.Databases;
+        resource.VerificationMethods = verification.Methods;
     }
 
     [NonAction]

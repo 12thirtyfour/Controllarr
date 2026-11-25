@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.MediaCover;
@@ -44,6 +45,7 @@ namespace Sonarr.Api.V3.Platforms
         private readonly ISeriesStatisticsService _seriesStatisticsService;
         private readonly IMapCoversToLocal _coverMapper;
         private readonly IRootFolderService _rootFolderService;
+        private readonly IDatCacheService _datCacheService;
 
         public PlatformController(IBroadcastSignalRMessage signalRBroadcaster,
                             ISeriesService seriesService,
@@ -60,7 +62,8 @@ namespace Sonarr.Api.V3.Platforms
                             SystemFolderValidator systemFolderValidator,
                             QualityProfileExistsValidator qualityProfileExistsValidator,
                             RootFolderExistsValidator rootFolderExistsValidator,
-                            SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator)
+                            SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator,
+                            IDatCacheService datCacheService = null)
             : base(signalRBroadcaster)
         {
             _seriesService = seriesService;
@@ -70,6 +73,7 @@ namespace Sonarr.Api.V3.Platforms
 
             _coverMapper = coverMapper;
             _rootFolderService = rootFolderService;
+            _datCacheService = datCacheService;
 
             SharedValidator.RuleFor(s => s.Path).Cascade(CascadeMode.Stop)
                 .IsValidPath()
@@ -133,6 +137,7 @@ namespace Sonarr.Api.V3.Platforms
             LinkSeriesStatistics(seriesResources, seriesStats.ToDictionary(x => x.SeriesId));
             PopulateAlternateTitles(seriesResources);
             PopulateTranslations(seriesResources, translations.GroupBy(x => x.SeriesId).ToDictionary(x => x.Key, g => g.ToList()));
+            PopulateVerificationInfo(seriesResources);
             seriesResources.ForEach(LinkRootFolderPath);
 
             return seriesResources;
@@ -244,6 +249,7 @@ namespace Sonarr.Api.V3.Platforms
             FetchAndLinkSeriesStatistics(resource);
             PopulateAlternateTitles(resource);
             FetchAndPopulateTranslations(resource);
+            PopulateVerificationInfo(resource);
             LinkRootFolderPath(resource);
 
             return resource;
@@ -336,6 +342,47 @@ namespace Sonarr.Api.V3.Platforms
         private void LinkRootFolderPath(SeriesResource resource)
         {
             resource.RootFolderPath = _rootFolderService.GetBestRootFolderPath(resource.Path);
+        }
+
+        private void PopulateVerificationInfo(List<SeriesResource> resources)
+        {
+            var allDatFiles = _datCacheService?.GetAllDatFiles();
+            if (allDatFiles == null || allDatFiles.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var resource in resources)
+            {
+                var verification = GameCatalogProxy.GetPlatformVerificationInfo(
+                    resource.TvdbId,
+                    resource.TitleSlug,
+                    resource.Title,
+                    resource.EncryptionPreference,
+                    allDatFiles);
+
+                resource.VerificationDatabases = verification.Databases;
+                resource.VerificationMethods = verification.Methods;
+            }
+        }
+
+        private void PopulateVerificationInfo(SeriesResource resource)
+        {
+            var allDatFiles = _datCacheService?.GetAllDatFiles();
+            if (allDatFiles == null || allDatFiles.Count == 0)
+            {
+                return;
+            }
+
+            var verification = GameCatalogProxy.GetPlatformVerificationInfo(
+                resource.TvdbId,
+                resource.TitleSlug,
+                resource.Title,
+                resource.EncryptionPreference,
+                allDatFiles);
+
+            resource.VerificationDatabases = verification.Databases;
+            resource.VerificationMethods = verification.Methods;
         }
 
         [NonAction]

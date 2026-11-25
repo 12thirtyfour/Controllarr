@@ -87,6 +87,9 @@ namespace Sonarr.Api.V3.Platforms
 
         public SeriesStatisticsResource Statistics { get; set; }
 
+        public List<string> VerificationDatabases { get; set; }
+        public List<string> VerificationMethods { get; set; }
+
         public bool? EpisodesChanged { get; set; }
 
         [Obsolete("Deprecated")]
@@ -105,6 +108,12 @@ namespace Sonarr.Api.V3.Platforms
             {
                 return null;
             }
+
+            var verification = NzbDrone.Core.MetadataSource.Game.GameCatalogProxy.GetPlatformVerificationInfo(
+                model.TvdbId,
+                model.TitleSlug,
+                model.Title,
+                model.EncryptionPreference);
 
             return new SeriesResource
                    {
@@ -176,7 +185,9 @@ namespace Sonarr.Api.V3.Platforms
                        Added = model.Added,
                        AddOptions = model.AddOptions,
                        Ratings = model.Ratings,
-                       Language = model.Language
+                       Language = model.Language,
+                       VerificationDatabases = verification.Databases,
+                       VerificationMethods = verification.Methods
                    };
         }
 

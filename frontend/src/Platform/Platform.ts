@@ -137,6 +137,8 @@ interface Platform extends ModelBase {
   seasonType: string;
   seasonTypes: SeasonType[];
   translations: Translation[];
+  verificationDatabases?: string[];
+  verificationMethods?: string[];
   year: number;
   addOptions: SeriesAddOptions;
 }

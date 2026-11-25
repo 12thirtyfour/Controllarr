@@ -1923,6 +1923,8 @@
     "PlatformType": "Platform Type",
     "PlatformTypes": "Platform Types",
     "PlatformTypesHelpText": "Platform organization mode for ROMs, multi-disc sets, and hardware target packs",
+    "PlatformVerificationDatabasesOnly": "Verified via {databases}",
+    "PlatformVerificationSummary": "Verified via {databases} · {methods}",
     "Platforms": "Platforms",
     "PlatformsByStatus": "Platforms by Status",
     "Port": "Port",

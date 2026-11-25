@@ -4964,6 +4964,312 @@ namespace NzbDrone.Core.MetadataSource.Game
             return entry?.Overview;
         }
 
+        private static readonly HashSet<string> OpticalRedumpPlatformSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ps1", "ps2", "ps3", "psp", "segacd", "saturn", "dreamcast", "tgcd",
+            "gamecube", "wii", "wiiu", "xbox", "xbox360", "jaguarcd", "3do",
+            "cdi", "pcfx", "neogeocd", "cd32"
+        };
+
+        public static PlatformVerificationInfo GetPlatformVerificationInfo(
+            int tvdbId,
+            string titleSlug,
+            string title,
+            Games.EncryptionPreference encryptionPreference = Games.EncryptionPreference.NotEncrypted,
+            IEnumerable<DatFile> cachedDatFiles = null)
+        {
+            TryResolveBuiltInPlatform(tvdbId, titleSlug, title, out var platform);
+            var slug = (platform?.Slug ?? titleSlug ?? string.Empty).Trim().ToLowerInvariant();
+            var platformName = platform?.Name ?? title;
+
+            var databases = ResolveVerificationDatabases(
+                slug,
+                platformName,
+                platform?.LibretroSystemName,
+                encryptionPreference,
+                cachedDatFiles);
+
+            var methods = ResolveVerificationMethods(slug, platform?.Extensions);
+
+            return new PlatformVerificationInfo
+            {
+                Databases = databases,
+                Methods = methods
+            };
+        }
+
+        private static List<string> ResolveVerificationDatabases(
+            string slug,
+            string platformName,
+            string libretroSystemName,
+            Games.EncryptionPreference encryptionPreference,
+            IEnumerable<DatFile> cachedDatFiles)
+        {
+            var matchedDatabases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var hasNoIntroDecrypted = false;
+            var hasNoIntroEncrypted = false;
+            var hasNoIntroPlain = false;
+            var hasLibretroFallback = false;
+
+            if (cachedDatFiles != null)
+            {
+                var platformDatFiles = DatCacheService.FilterDatFilesForPlatform(
+                    cachedDatFiles,
+                    slug,
+                    platformName,
+                    libretroSystemName);
+
+                foreach (var datFile in platformDatFiles)
+                {
+                    var labelSource = !string.IsNullOrWhiteSpace(datFile.Category)
+                        ? datFile.Category.Trim()
+                        : (datFile.Name ?? string.Empty).Trim();
+
+                    if (string.IsNullOrWhiteSpace(labelSource))
+                    {
+                        continue;
+                    }
+
+                    if (labelSource.Contains("Homebrew & Aftermarket", StringComparison.OrdinalIgnoreCase) ||
+                        labelSource.Contains("ROM Hacks & Translations", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (labelSource.Contains("No-Intro", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (slug == "nds" || slug == "3ds")
+                        {
+                            if (labelSource.Contains("Decrypted", StringComparison.OrdinalIgnoreCase))
+                            {
+                                hasNoIntroDecrypted = true;
+                            }
+                            else if (labelSource.Contains("Encrypted", StringComparison.OrdinalIgnoreCase))
+                            {
+                                hasNoIntroEncrypted = true;
+                            }
+                            else
+                            {
+                                hasNoIntroPlain = true;
+                            }
+                        }
+                        else
+                        {
+                            hasNoIntroPlain = true;
+                        }
+                    }
+                    else if (labelSource.Contains("Redump", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedDatabases.Add("Redump");
+                    }
+                    else if (labelSource.Contains("FBNeo", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedDatabases.Add("FBNeo");
+                    }
+                    else if (labelSource.Contains("NSWDB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedDatabases.Add("NSWDB");
+                    }
+                    else if (labelSource.Contains("TOSEC", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedDatabases.Add("TOSEC");
+                    }
+                    else if (labelSource.Contains("SmokeMonster", StringComparison.OrdinalIgnoreCase) ||
+                             labelSource.Contains("SMDB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedDatabases.Add("SMDB");
+                    }
+                    else if (labelSource.Contains("GameTDB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedDatabases.Add("GameTDB");
+                    }
+                    else if (labelSource.Contains("Libretro", StringComparison.OrdinalIgnoreCase) ||
+                             labelSource.Contains("Wii U Catalog", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasLibretroFallback = true;
+                    }
+                    else
+                    {
+                        matchedDatabases.Add("Custom DAT");
+                    }
+                }
+
+                if (slug == "nds" || slug == "3ds")
+                {
+                    if (hasNoIntroDecrypted && hasNoIntroEncrypted)
+                    {
+                        matchedDatabases.Add("No-Intro (Decrypted & Encrypted)");
+                    }
+                    else if (hasNoIntroDecrypted)
+                    {
+                        matchedDatabases.Add("No-Intro (Decrypted)");
+                    }
+                    else if (hasNoIntroEncrypted)
+                    {
+                        matchedDatabases.Add("No-Intro (Encrypted)");
+                    }
+                    else if (hasNoIntroPlain)
+                    {
+                        matchedDatabases.Add("No-Intro");
+                    }
+                }
+                else if (hasNoIntroPlain)
+                {
+                    matchedDatabases.Add("No-Intro");
+                }
+
+                var hasHigherSpecificityPrimary = matchedDatabases.Contains("FBNeo") ||
+                                                  matchedDatabases.Contains("NSWDB") ||
+                                                  matchedDatabases.Contains("Redump") ||
+                                                  matchedDatabases.Contains("TOSEC") ||
+                                                  matchedDatabases.Any(d => d.StartsWith("No-Intro", StringComparison.OrdinalIgnoreCase));
+
+                if (hasLibretroFallback && (!hasHigherSpecificityPrimary || slug == "gameandwatch"))
+                {
+                    matchedDatabases.Add("Libretro");
+                }
+            }
+
+            if (matchedDatabases.Count == 0)
+            {
+                AddConfiguredDatabasesForSlug(slug, encryptionPreference, matchedDatabases);
+            }
+
+            return OrderVerificationDatabases(matchedDatabases);
+        }
+
+        private static void AddConfiguredDatabasesForSlug(
+            string slug,
+            Games.EncryptionPreference encryptionPreference,
+            HashSet<string> databases)
+        {
+            if (slug is "switch" or "switcheshop")
+            {
+                databases.Add("NSWDB");
+                databases.Add("GameTDB");
+                return;
+            }
+
+            if (slug == "neogeo")
+            {
+                databases.Add("FBNeo");
+                databases.Add("No-Intro");
+            }
+            else if (slug is "nds" or "3ds")
+            {
+                var noIntroLabel = encryptionPreference switch
+                {
+                    Games.EncryptionPreference.Both => "No-Intro (Decrypted & Encrypted)",
+                    Games.EncryptionPreference.Encrypted => "No-Intro (Encrypted)",
+                    _ => "No-Intro (Decrypted)"
+                };
+
+                databases.Add(noIntroLabel);
+            }
+            else if (slug is "dsiware" or "3dseshop" or "wiiware" or "wiiueshop")
+            {
+                databases.Add("No-Intro");
+            }
+            else if (slug is "xbox360digital" or "ps3psn" or "psppsn")
+            {
+                databases.Add("No-Intro");
+                return;
+            }
+            else if (slug == "gameandwatch")
+            {
+                databases.Add("Libretro");
+                return;
+            }
+            else if (OpticalRedumpPlatformSlugs.Contains(slug))
+            {
+                databases.Add("Redump");
+            }
+            else
+            {
+                databases.Add("No-Intro");
+            }
+
+            if (!string.IsNullOrWhiteSpace(GetSmokeMonsterSmdbUrl(slug)))
+            {
+                databases.Add("SMDB");
+            }
+
+            if (!string.IsNullOrWhiteSpace(GetGameTdbUrl(slug)))
+            {
+                databases.Add("GameTDB");
+            }
+        }
+
+        private static List<string> OrderVerificationDatabases(HashSet<string> databases)
+        {
+            var preferredOrder = new[]
+            {
+                "FBNeo",
+                "No-Intro",
+                "No-Intro (Decrypted & Encrypted)",
+                "No-Intro (Decrypted)",
+                "No-Intro (Encrypted)",
+                "Redump",
+                "NSWDB",
+                "TOSEC",
+                "Libretro",
+                "SMDB",
+                "GameTDB",
+                "Custom DAT"
+            };
+
+            var ordered = new List<string>();
+            foreach (var name in preferredOrder)
+            {
+                if (databases.Contains(name))
+                {
+                    ordered.Add(name);
+                }
+            }
+
+            foreach (var remaining in databases.Where(d => !ordered.Contains(d, StringComparer.OrdinalIgnoreCase)).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
+            {
+                ordered.Add(remaining);
+            }
+
+            return ordered;
+        }
+
+        private static List<string> ResolveVerificationMethods(string slug, IEnumerable<string> extensions)
+        {
+            var methods = new List<string> { "CRC32", "MD5", "SHA-1", "SHA-256" };
+            var extSet = new HashSet<string>(extensions ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+
+            var hasDiscSheet = extSet.Contains(".cue") || extSet.Contains(".gdi") || extSet.Contains(".ccd");
+            var hasChd = extSet.Contains(".chd");
+
+            if (hasDiscSheet)
+            {
+                methods.Add("Disc Track Hashing");
+            }
+
+            if (hasChd)
+            {
+                methods.Add("CHD Verify");
+            }
+
+            if (extSet.Contains(".rvz"))
+            {
+                methods.Add("RVZ / Disc Hashing");
+            }
+            else if (OpticalRedumpPlatformSlugs.Contains(slug) && !hasDiscSheet && !hasChd)
+            {
+                methods.Add("Disc Image Hashing");
+            }
+
+            if (extSet.Contains(".zip") || extSet.Contains(".7z"))
+            {
+                methods.Add("Archive Hashing");
+            }
+
+            return methods;
+        }
+
         private static List<PlatformCatalogEntry> BuildPlatforms()
         {
             return new List<PlatformCatalogEntry>

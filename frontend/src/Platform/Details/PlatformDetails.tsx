@@ -616,6 +616,8 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     collectionStrategy,
     revisionPreference,
     pinnedVersion,
+    verificationDatabases,
+    verificationMethods,
   } = series;
 
   const {
@@ -1109,8 +1111,8 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                   <PlatformDetailsPath path={path} pendingPath={pendingPath} />
 
                   <MetadataAttribution
-                    verifiedText="Verified via No-Intro / Redump / SMDB"
-                    supportedFormatsText="Supported ROM & disc formats"
+                    verificationDatabases={verificationDatabases}
+                    verificationMethods={verificationMethods}
                   />
                 </div>
               </div>

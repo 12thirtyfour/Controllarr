@@ -19,6 +19,12 @@ namespace NzbDrone.Core.MetadataSource.Game
         public List<string> Extensions { get; set; } = new List<string>();
     }
 
+    public class PlatformVerificationInfo
+    {
+        public List<string> Databases { get; set; } = new List<string>();
+        public List<string> Methods { get; set; } = new List<string>();
+    }
+
     public class GameCatalogEntry
     {
         public int TvdbId { get; set; }

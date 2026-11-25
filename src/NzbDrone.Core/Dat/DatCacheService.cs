@@ -211,6 +211,36 @@ namespace NzbDrone.Core.Dat
 
         private static readonly HashSet<string> KnownPlatformSlugs = PlatformCatalogService.KnownPlatformSlugs;
 
+        public List<DatFile> GetDatFilesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null)
+        {
+            return FilterDatFilesForPlatform(GetAllDatFiles(), platformSlug, platformName, libretroSystemName);
+        }
+
+        public static List<DatFile> FilterDatFilesForPlatform(
+            IEnumerable<DatFile> datFiles,
+            string platformSlug,
+            string platformName = null,
+            string libretroSystemName = null)
+        {
+            if (datFiles == null)
+            {
+                return new List<DatFile>();
+            }
+
+            var slug = (platformSlug ?? string.Empty).Trim().ToLowerInvariant();
+            var name = (platformName ?? slug).Trim().ToLowerInvariant();
+            var sys = (libretroSystemName ?? name).Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(slug) && string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(sys))
+            {
+                return new List<DatFile>();
+            }
+
+            return datFiles
+                .Where(f => f != null && IsDatFilePlatformMatch(f, slug, name, sys))
+                .ToList();
+        }
+
         public List<DatEntry> GetEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null)
         {
             using (var connection = _database.OpenConnection())

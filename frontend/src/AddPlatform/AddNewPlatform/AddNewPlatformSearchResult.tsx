@@ -40,6 +40,8 @@ function AddNewPlatformSearchResult({
     translations,
     images,
     isExcluded,
+    verificationDatabases,
+    verificationMethods,
   } = series;
 
   const { preferredMetadataLanguage } = useMetadataSourceSettingsValues();
@@ -178,7 +180,10 @@ function AddNewPlatformSearchResult({
 
           <div className={styles.overview}>{overview}</div>
 
-          <MetadataAttribution />
+          <MetadataAttribution
+            verificationDatabases={verificationDatabases}
+            verificationMethods={verificationMethods}
+          />
         </div>
       </div>
 

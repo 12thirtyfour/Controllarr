@@ -14,6 +14,7 @@ namespace NzbDrone.Core.Dat
         DatFile Insert(DatFile datFile, List<DatEntry> datEntries);
         List<DatFile> GetAllDatFiles();
         DatFile GetDatFileById(int id);
+        List<DatFile> GetDatFilesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null);
         List<DatEntry> GetEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null);
         bool HasEntriesForPlatform(string platformSlug, string platformName = null, string libretroSystemName = null);
 
