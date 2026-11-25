@@ -30,12 +30,11 @@ public class RejectedImportService : IRejectedImportService
 
     public bool Process(TrackedDownload trackedDownload, ImportResult importResult)
     {
-        if (importResult.Result != ImportResultType.Rejected || trackedDownload.RemoteEpisode?.Release == null)
+        if (importResult.Result != ImportResultType.Rejected || importResult.ImportDecision?.Rejections == null)
         {
             return false;
         }
 
-        var indexerSettings = _cachedIndexerSettingsProvider.GetSettings(trackedDownload.RemoteEpisode.Release.IndexerId);
         var rejectionReason = importResult.ImportDecision.Rejections.FirstOrDefault()?.Reason;
 
         if (rejectionReason == ImportRejectionReason.UnmonitoredDatMatch)
@@ -69,6 +68,14 @@ public class RejectedImportService : IRejectedImportService
             trackedDownload.Fail();
             return true;
         }
+
+        if (trackedDownload.RemoteEpisode?.Release == null)
+        {
+            trackedDownload.Warn(new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, importResult.Errors));
+            return true;
+        }
+
+        var indexerSettings = _cachedIndexerSettingsProvider.GetSettings(trackedDownload.RemoteEpisode.Release.IndexerId);
 
         if (indexerSettings == null)
         {

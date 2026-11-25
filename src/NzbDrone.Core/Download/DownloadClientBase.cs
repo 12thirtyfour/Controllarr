@@ -127,17 +127,33 @@ namespace NzbDrone.Core.Download
 
             try
             {
+                var deletedFolder = false;
                 if (_diskProvider.FolderExists(item.OutputPath.FullPath))
                 {
                     _logger.Debug("[{0}] Deleting folder '{1}'.", item.Title, item.OutputPath);
 
                     _diskProvider.DeleteFolder(item.OutputPath.FullPath, true);
+                    deletedFolder = true;
                 }
                 else if (_diskProvider.FileExists(item.OutputPath.FullPath))
                 {
                     _logger.Debug("[{0}] Deleting file '{1}'.", item.Title, item.OutputPath);
 
                     _diskProvider.DeleteFile(item.OutputPath.FullPath);
+                }
+                else
+                {
+                    _logger.Trace("[{0}] File or folder '{1}' doesn't exist, skipping direct path cleanup.", item.Title, item.OutputPath);
+                }
+
+                if (!deletedFolder)
+                {
+                    var partPath = item.OutputPath.FullPath + ".ia.part";
+                    if (_diskProvider.FileExists(partPath))
+                    {
+                        _logger.Debug("[{0}] Deleting partial download file '{1}'.", item.Title, partPath);
+                        _diskProvider.DeleteFile(partPath);
+                    }
 
                     var parentDir = System.IO.Path.GetDirectoryName(item.OutputPath.FullPath);
                     var baseName = System.IO.Path.GetFileNameWithoutExtension(item.OutputPath.FullPath);
@@ -149,11 +165,24 @@ namespace NzbDrone.Core.Download
                             _logger.Debug("[{0}] Deleting extracted folder '{1}'.", item.Title, extractedDir);
                             _diskProvider.DeleteFolder(extractedDir, true);
                         }
+
+                        if (_diskProvider.FolderExists(parentDir))
+                        {
+                            var extractPrefix = baseName + "_extract_";
+                            var siblingDirs = _diskProvider.GetDirectories(parentDir) ?? Array.Empty<string>();
+                            foreach (var siblingDir in siblingDirs)
+                            {
+                                var dirName = System.IO.Path.GetFileName(siblingDir);
+                                if (!string.IsNullOrWhiteSpace(dirName) &&
+                                    dirName.StartsWith(extractPrefix, StringComparison.OrdinalIgnoreCase) &&
+                                    _diskProvider.FolderExists(siblingDir))
+                                {
+                                    _logger.Debug("[{0}] Deleting extracted folder '{1}'.", item.Title, siblingDir);
+                                    _diskProvider.DeleteFolder(siblingDir, true);
+                                }
+                            }
+                        }
                     }
-                }
-                else
-                {
-                    _logger.Trace("[{0}] File or folder '{1}' doesn't exist, skipping cleanup.", item.Title, item.OutputPath);
                 }
             }
             catch (Exception ex)

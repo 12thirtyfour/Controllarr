@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation.Results;
@@ -15,6 +16,7 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.Localization;
@@ -45,10 +47,15 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         private static readonly System.Net.Http.HttpClient SharedHttpClient = CreateSharedHttpClient();
 
+        private static readonly object PersistenceLock = new object();
+
+        private static volatile bool _initializedFromDisk;
+
         private readonly IHttpClient _httpClient;
         private readonly IManageCommandQueue _commandQueue;
         private readonly IAppFolderInfo _appFolderInfo;
         private readonly IIndexerFactory _indexerFactory;
+        private readonly IDownloadHistoryService _downloadHistoryService;
 
         public override string Name => "InternetArchive";
 
@@ -62,13 +69,15 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                                ILocalizationService localizationService,
                                IManageCommandQueue commandQueue = null,
                                IAppFolderInfo appFolderInfo = null,
-                               IIndexerFactory indexerFactory = null)
+                               IIndexerFactory indexerFactory = null,
+                               IDownloadHistoryService downloadHistoryService = null)
             : base(configService, diskProvider, remotePathMappingService, logger, localizationService)
         {
             _httpClient = httpClient;
             _commandQueue = commandQueue;
             _appFolderInfo = appFolderInfo;
             _indexerFactory = indexerFactory;
+            _downloadHistoryService = downloadHistoryService;
         }
 
         private InternetArchiveIndexerSettings GetIndexerSettings()
@@ -162,6 +171,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         public static void ClearTrackedItems()
         {
             TrackedItems.Clear();
+            _initializedFromDisk = false;
         }
 
         public static void TrackTransferState(
@@ -250,11 +260,18 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 cleanTitle = "rom_" + Guid.NewGuid().ToString("N")[..8];
             }
 
-            var filename = cleanTitle + extension;
             var workingFolder = GetWorkingFolder();
             _diskProvider.EnsureFolder(workingFolder);
 
+            var filename = cleanTitle + extension;
             var downloadPath = Path.Combine(workingFolder, filename);
+            if (TrackedItems.TryGetValue(downloadPath, out var existingState) &&
+                existingState.Status is DownloadItemStatus.Downloading or DownloadItemStatus.Queued)
+            {
+                filename = cleanTitle + "_" + Guid.NewGuid().ToString("N")[..6] + extension;
+                downloadPath = Path.Combine(workingFolder, filename);
+            }
+
             var normalizedWorkingFolder = Path.GetFullPath(workingFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
             var fullDestinationPath = Path.GetFullPath(downloadPath);
 
@@ -276,6 +293,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             };
 
             TrackedItems[downloadPath] = state;
+            PersistTrackedItems();
 
             var isBackgroundRun = remoteEpisode?.Series != null &&
                                   _httpClient.GetType().FullName?.Contains("Castle.Proxies", StringComparison.Ordinal) != true;
@@ -335,6 +353,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             string downloadPath,
             InternetArchiveDownloadState state)
         {
+            var tempDownloadPath = downloadPath + ".ia.part";
             await ConcurrencySemaphore.WaitAsync().ConfigureAwait(false);
             try
             {
@@ -435,6 +454,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                             state.ErrorMessage = $"HTTP {(int)resp.StatusCode} ({resp.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
                             _logger.Warn("InternetArchive anonymous stream also failed with {0}.", resp.StatusCode);
                             resp.Dispose();
+                            PersistTrackedItems();
                             return;
                         }
                     }
@@ -442,6 +462,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     {
                         state.Status = DownloadItemStatus.Failed;
                         state.ErrorMessage = $"HTTP {(int)initialStatus} ({initialStatus}) - Authentication required. Please configure S3 Access and Secret keys.";
+                        PersistTrackedItems();
                         return;
                     }
                 }
@@ -455,7 +476,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     }
 
                     using var networkStream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    using var fileStream = _diskProvider.OpenWriteStream(downloadPath);
+                    using var fileStream = _diskProvider.OpenWriteStream(tempDownloadPath);
 
                     const int bufferSize = 262144;
                     var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
@@ -490,9 +511,17 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     }
                 }
 
+                if (_diskProvider.FileExists(downloadPath))
+                {
+                    _diskProvider.DeleteFile(downloadPath);
+                }
+
+                _diskProvider.MoveFile(tempDownloadPath, downloadPath, true);
+
                 state.TotalSize = Math.Max(state.TotalSize, state.DownloadedBytes);
                 state.DownloadedBytes = state.TotalSize;
                 state.Status = DownloadItemStatus.Completed;
+                PersistTrackedItems();
                 _logger.Info("HTTPS download completed: {0} ({1} bytes) -> {2}", filename, state.DownloadedBytes, downloadPath);
             }
             catch (Exception ex)
@@ -500,6 +529,20 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 _logger.Error(ex, "HTTPS download failed for {0}", filename);
                 state.Status = DownloadItemStatus.Failed;
                 state.ErrorMessage = ex.Message;
+
+                try
+                {
+                    if (_diskProvider.FileExists(tempDownloadPath))
+                    {
+                        _diskProvider.DeleteFile(tempDownloadPath);
+                    }
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger.Debug(cleanupEx, "Unable to delete partial download file '{0}'", tempDownloadPath);
+                }
+
+                PersistTrackedItems();
             }
             finally
             {
@@ -584,6 +627,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
                     state.DownloadedBytes = state.TotalSize;
                     state.Status = DownloadItemStatus.Completed;
+                    PersistTrackedItems();
                     _logger.Debug("Downloaded archive {0} to {1}", filename, downloadPath);
                     return downloadPath;
                 }
@@ -591,12 +635,14 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 state.Status = DownloadItemStatus.Failed;
                 state.ErrorMessage = "Empty response from HTTPS server";
                 TrackedItems.TryRemove(downloadPath, out _);
+                PersistTrackedItems();
                 throw new DownloadClientException(state.ErrorMessage);
             }
             catch (Exception ex)
             {
                 state.Status = DownloadItemStatus.Failed;
                 state.ErrorMessage = ex.Message;
+                PersistTrackedItems();
                 throw;
             }
             finally
@@ -638,6 +684,8 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
+            EnsureInitializedFromDisk();
+
             var clientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
             var items = new List<DownloadClientItem>();
 
@@ -678,15 +726,378 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public override void RemoveItem(DownloadClientItem item, bool deleteData)
         {
+            InternetArchiveDownloadState removedState = null;
             if (item != null && !string.IsNullOrWhiteSpace(item.DownloadId))
             {
-                TrackedItems.TryRemove(item.DownloadId, out _);
+                TrackedItems.TryRemove(item.DownloadId, out removedState);
+                PersistTrackedItems();
             }
 
             if (deleteData && item != null)
             {
+                if (item.OutputPath.IsEmpty)
+                {
+                    var fallbackPath = !string.IsNullOrWhiteSpace(removedState?.OutputPath)
+                        ? removedState.OutputPath
+                        : (Path.IsPathRooted(item.DownloadId) ? item.DownloadId : null);
+
+                    if (!string.IsNullOrWhiteSpace(fallbackPath))
+                    {
+                        DeleteItemData(new DownloadClientItem
+                        {
+                            DownloadId = item.DownloadId,
+                            Title = item.Title ?? removedState?.Title ?? Path.GetFileName(fallbackPath),
+                            OutputPath = new OsPath(fallbackPath)
+                        });
+                    }
+
+                    return;
+                }
+
                 DeleteItemData(item);
             }
+        }
+
+        private string GetManifestFilePath()
+        {
+            if (string.IsNullOrWhiteSpace(_appFolderInfo?.AppDataFolder))
+            {
+                return null;
+            }
+
+            return Path.Combine(_appFolderInfo.AppDataFolder, "internet_archive_downloads.json");
+        }
+
+        private void PersistTrackedItems()
+        {
+            var manifestPath = GetManifestFilePath();
+            if (string.IsNullOrWhiteSpace(manifestPath))
+            {
+                return;
+            }
+
+            try
+            {
+                var snapshot = TrackedItems.Values.ToList();
+                var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
+                var dir = Path.GetDirectoryName(manifestPath);
+                lock (PersistenceLock)
+                {
+                    if (!string.IsNullOrWhiteSpace(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+
+                    File.WriteAllText(manifestPath, json);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to persist Internet Archive download state to '{0}'", manifestPath);
+            }
+        }
+
+        private void EnsureInitializedFromDisk()
+        {
+            if (_initializedFromDisk)
+            {
+                return;
+            }
+
+            lock (PersistenceLock)
+            {
+                if (_initializedFromDisk)
+                {
+                    return;
+                }
+
+                _initializedFromDisk = true;
+                var changed = false;
+                var manifestPath = GetManifestFilePath();
+
+                if (!string.IsNullOrWhiteSpace(manifestPath) && File.Exists(manifestPath))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(manifestPath);
+                        var persisted = JsonSerializer.Deserialize<List<InternetArchiveDownloadState>>(json);
+                        if (persisted != null)
+                        {
+                            foreach (var entry in persisted)
+                            {
+                                if (entry == null || string.IsNullOrWhiteSpace(entry.DownloadId) || TrackedItems.ContainsKey(entry.DownloadId))
+                                {
+                                    continue;
+                                }
+
+                                if (entry.Status is DownloadItemStatus.Downloading or DownloadItemStatus.Queued)
+                                {
+                                    var partPath = (entry.OutputPath ?? string.Empty) + ".ia.part";
+                                    if (!string.IsNullOrWhiteSpace(entry.OutputPath) && _diskProvider.FileExists(partPath))
+                                    {
+                                        _diskProvider.DeleteFile(partPath);
+                                    }
+
+                                    entry.Status = DownloadItemStatus.Failed;
+                                    entry.ErrorMessage = "Download interrupted by application restart";
+                                    TrackedItems[entry.DownloadId] = entry;
+                                    changed = true;
+                                }
+                                else if (!string.IsNullOrWhiteSpace(entry.OutputPath) &&
+                                         (_diskProvider.FileExists(entry.OutputPath) || HasAnyExtractedFolder(entry.OutputPath)))
+                                {
+                                    if (_downloadHistoryService != null)
+                                    {
+                                        var latest = _downloadHistoryService.GetLatestDownloadHistoryItem(entry.DownloadId);
+                                        if (latest != null && IsOwnedByInternetArchive(latest) && ShouldAutoDeleteByHistory(latest))
+                                        {
+                                            _logger.Info("Cleaning up leftover Internet Archive download data for '{0}' at '{1}'", entry.Title ?? entry.DownloadId, entry.OutputPath);
+                                            DeleteItemData(new DownloadClientItem
+                                            {
+                                                DownloadId = entry.DownloadId,
+                                                Title = entry.Title ?? Path.GetFileName(entry.OutputPath),
+                                                OutputPath = new OsPath(entry.OutputPath)
+                                            });
+                                            changed = true;
+                                            continue;
+                                        }
+                                    }
+
+                                    TrackedItems[entry.DownloadId] = entry;
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Unable to read persisted Internet Archive download state from '{0}'", manifestPath);
+                    }
+                }
+
+                if (ReconcileWorkingFolderWithHistory())
+                {
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    PersistTrackedItems();
+                }
+            }
+        }
+
+        private bool ReconcileWorkingFolderWithHistory()
+        {
+            var changed = false;
+            var workingFolder = GetWorkingFolder();
+            if (string.IsNullOrWhiteSpace(workingFolder) || !_diskProvider.FolderExists(workingFolder))
+            {
+                return false;
+            }
+
+            try
+            {
+                var files = _diskProvider.GetFiles(workingFolder, false) ?? Array.Empty<string>();
+                foreach (var filePath in files)
+                {
+                    if (string.IsNullOrWhiteSpace(filePath))
+                    {
+                        continue;
+                    }
+
+                    if (filePath.EndsWith(".ia.part", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var targetPath = filePath[..^8];
+                        if (!TrackedItems.TryGetValue(targetPath, out var activeState) ||
+                            activeState.Status is not (DownloadItemStatus.Downloading or DownloadItemStatus.Queued))
+                        {
+                            _logger.Info("Deleting stale Internet Archive partial download '{0}'", filePath);
+                            _diskProvider.DeleteFile(filePath);
+                            changed = true;
+                        }
+
+                        continue;
+                    }
+
+                    if (TrackedItems.ContainsKey(filePath) || _downloadHistoryService == null)
+                    {
+                        continue;
+                    }
+
+                    var latest = _downloadHistoryService.GetLatestDownloadHistoryItem(filePath);
+                    if (latest == null || !IsOwnedByInternetArchive(latest))
+                    {
+                        continue;
+                    }
+
+                    if (ShouldAutoDeleteByHistory(latest))
+                    {
+                        _logger.Info("Cleaning up orphaned Internet Archive download '{0}' (status: {1})", filePath, latest.EventType);
+                        DeleteItemData(new DownloadClientItem
+                        {
+                            DownloadId = filePath,
+                            Title = latest.SourceTitle ?? Path.GetFileName(filePath),
+                            OutputPath = new OsPath(filePath)
+                        });
+                        changed = true;
+                    }
+                    else if (latest.EventType == DownloadHistoryEventType.DownloadGrabbed)
+                    {
+                        var size = Math.Max(0L, _diskProvider.GetFileSize(filePath));
+                        TrackedItems[filePath] = new InternetArchiveDownloadState
+                        {
+                            DownloadId = filePath,
+                            Title = latest.SourceTitle ?? Path.GetFileName(filePath),
+                            OutputPath = filePath,
+                            TotalSize = size,
+                            DownloadedBytes = size,
+                            SpeedBytesPerSec = 0,
+                            Status = DownloadItemStatus.Completed
+                        };
+                        changed = true;
+                    }
+                }
+
+                if (_downloadHistoryService != null)
+                {
+                    var dirs = _diskProvider.GetDirectories(workingFolder) ?? Array.Empty<string>();
+                    string[] candidateExtensions = { ".7z", ".zip", ".rar", ".chd", ".iso" };
+                    foreach (var dirPath in dirs)
+                    {
+                        if (string.IsNullOrWhiteSpace(dirPath) || !_diskProvider.FolderExists(dirPath))
+                        {
+                            continue;
+                        }
+
+                        var dirName = Path.GetFileName(dirPath);
+                        if (string.IsNullOrWhiteSpace(dirName))
+                        {
+                            continue;
+                        }
+
+                        string baseName = null;
+                        if (dirName.EndsWith("_extracted", StringComparison.OrdinalIgnoreCase))
+                        {
+                            baseName = dirName[..^"_extracted".Length];
+                        }
+                        else
+                        {
+                            var extractIdx = dirName.IndexOf("_extract_", StringComparison.OrdinalIgnoreCase);
+                            if (extractIdx > 0)
+                            {
+                                baseName = dirName[..extractIdx];
+                            }
+                        }
+
+                        if (string.IsNullOrWhiteSpace(baseName))
+                        {
+                            continue;
+                        }
+
+                        var isTrackedOrCleaned = false;
+                        foreach (var ext in candidateExtensions)
+                        {
+                            var candidatePath = Path.Combine(workingFolder, baseName + ext);
+                            if (TrackedItems.ContainsKey(candidatePath))
+                            {
+                                isTrackedOrCleaned = true;
+                                break;
+                            }
+
+                            var latest = _downloadHistoryService.GetLatestDownloadHistoryItem(candidatePath);
+                            if (latest != null && IsOwnedByInternetArchive(latest) && ShouldAutoDeleteByHistory(latest))
+                            {
+                                _logger.Info("Deleting orphaned Internet Archive extracted folder '{0}'", dirPath);
+                                _diskProvider.DeleteFolder(dirPath, true);
+                                changed = true;
+                                isTrackedOrCleaned = true;
+                                break;
+                            }
+                        }
+
+                        if (isTrackedOrCleaned)
+                        {
+                            continue;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Error while reconciling Internet Archive working folder '{0}'", workingFolder);
+            }
+
+            return changed;
+        }
+
+        private bool ShouldAutoDeleteByHistory(DownloadHistory history)
+        {
+            if (history == null)
+            {
+                return false;
+            }
+
+            var definition = Definition as DownloadClientDefinition;
+            if (history.EventType == DownloadHistoryEventType.DownloadImported)
+            {
+                return definition is { RemoveCompletedDownloads: true };
+            }
+
+            if (history.EventType == DownloadHistoryEventType.DownloadFailed)
+            {
+                return definition is { RemoveFailedDownloads: true };
+            }
+
+            return false;
+        }
+
+        private static bool IsOwnedByInternetArchive(DownloadHistory history)
+        {
+            if (history == null)
+            {
+                return false;
+            }
+
+            if (history.Data != null &&
+                history.Data.TryGetValue("DownloadClient", out var downloadClient) &&
+                !string.IsNullOrWhiteSpace(downloadClient))
+            {
+                return string.Equals(downloadClient, "InternetArchive", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(downloadClient, "Internet Archive", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return history.Protocol == DownloadProtocol.Http;
+        }
+
+        private bool HasAnyExtractedFolder(string outputPath)
+        {
+            var parentDir = Path.GetDirectoryName(outputPath);
+            var baseName = Path.GetFileNameWithoutExtension(outputPath);
+            if (string.IsNullOrWhiteSpace(parentDir) || string.IsNullOrWhiteSpace(baseName))
+            {
+                return false;
+            }
+
+            if (_diskProvider.FolderExists(Path.Combine(parentDir, baseName + "_extracted")))
+            {
+                return true;
+            }
+
+            if (!_diskProvider.FolderExists(parentDir))
+            {
+                return false;
+            }
+
+            var extractPrefix = baseName + "_extract_";
+            var siblingDirs = _diskProvider.GetDirectories(parentDir) ?? Array.Empty<string>();
+            return siblingDirs.Any(d =>
+            {
+                var name = Path.GetFileName(d);
+                return !string.IsNullOrWhiteSpace(name) &&
+                       name.StartsWith(extractPrefix, StringComparison.OrdinalIgnoreCase) &&
+                       _diskProvider.FolderExists(d);
+            });
         }
 
         protected override void Test(List<ValidationFailure> failures)

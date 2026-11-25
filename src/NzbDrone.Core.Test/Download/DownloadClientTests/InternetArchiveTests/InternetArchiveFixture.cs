@@ -15,6 +15,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Clients.InternetArchive;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.Parser.Model;
@@ -31,12 +32,24 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
         public void SetUp()
         {
             InternetArchive.ClearTrackedItems();
+            var manifestPath = Path.Combine(TempFolder, "appdata", "internet_archive_downloads.json");
+            if (File.Exists(manifestPath))
+            {
+                File.Delete(manifestPath);
+            }
+
             _settings = new InternetArchiveSettings
             {
                 UrlBase = "https://archive.org",
                 AllowAnonymousFallback = true
             };
-            Subject.Definition = new DownloadClientDefinition { Settings = _settings };
+            Subject.Definition = new DownloadClientDefinition
+            {
+                Name = "Internet Archive",
+                RemoveCompletedDownloads = true,
+                RemoveFailedDownloads = true,
+                Settings = _settings
+            };
 
             Mocker.GetMock<IConfigService>().SetupGet(s => s.DownloadClientWorkingFolders)
                   .Returns(Path.Combine(TempFolder, "downloads"));
@@ -326,6 +339,122 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
 
             downloadId.Should().NotBeNullOrWhiteSpace();
             downloadId.Should().StartWith(folder);
+        }
+
+        [Test]
+        public void should_delete_companion_extracted_and_part_artifacts_even_when_primary_file_is_gone()
+        {
+            var workingFolder = Subject.GetWorkingFolder();
+            var archivePath = Path.Combine(workingFolder, "StarStrike.7z");
+            var partPath = archivePath + ".ia.part";
+            var extractedDir = Path.Combine(workingFolder, "StarStrike_extracted");
+            var extractGuidDir = Path.Combine(workingFolder, "StarStrike_extract_1234abcd");
+
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(workingFolder)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FileExists(archivePath)).Returns(false);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FileExists(partPath)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(extractedDir)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(extractGuidDir)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.GetDirectories(workingFolder)).Returns(new[] { extractedDir, extractGuidDir });
+
+            var item = new DownloadClientItem
+            {
+                DownloadId = archivePath,
+                Title = "StarStrike.7z",
+                OutputPath = new OsPath(archivePath)
+            };
+
+            Subject.RemoveItem(item, true);
+
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(partPath), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFolder(extractedDir, true), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFolder(extractGuidDir, true), Times.Once());
+        }
+
+        [Test]
+        public void should_reconcile_leftover_files_safely_by_download_history_and_preserve_unrelated_files()
+        {
+            var workingFolder = Subject.GetWorkingFolder();
+            _settings.DownloadPath = workingFolder;
+
+            var importedArchive = Path.Combine(workingFolder, "ImportedGame.7z");
+            var failedArchive = Path.Combine(workingFolder, "FailedGame.7z");
+            var pendingArchive = Path.Combine(workingFolder, "PendingGame.7z");
+            var stalePart = Path.Combine(workingFolder, "CrashedGame.7z.ia.part");
+            var sabnzbdFile = Path.Combine(workingFolder, "SomeSabnzbdDownload.7z");
+            var importedExtractedDir = Path.Combine(workingFolder, "ImportedGame_extracted");
+            var sabnzbdExtractedDir = Path.Combine(workingFolder, "SomeSabnzbdDownload_extracted");
+
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(workingFolder)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.GetFiles(workingFolder, false))
+                  .Returns(new[] { importedArchive, failedArchive, pendingArchive, stalePart, sabnzbdFile });
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.GetDirectories(workingFolder))
+                  .Returns(new[] { importedExtractedDir, sabnzbdExtractedDir });
+
+            foreach (var f in new[] { importedArchive, failedArchive, pendingArchive, stalePart, sabnzbdFile })
+            {
+                Mocker.GetMock<IDiskProvider>().Setup(d => d.FileExists(f)).Returns(true);
+                Mocker.GetMock<IDiskProvider>().Setup(d => d.GetFileSize(f)).Returns(2048);
+            }
+
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(importedExtractedDir)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(sabnzbdExtractedDir)).Returns(true);
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                  .Setup(s => s.GetLatestDownloadHistoryItem(importedArchive))
+                  .Returns(new DownloadHistory
+                  {
+                      DownloadId = importedArchive,
+                      EventType = DownloadHistoryEventType.DownloadImported,
+                      Protocol = DownloadProtocol.Http,
+                      SourceTitle = "Imported Game (USA)",
+                      Data = new Dictionary<string, string> { { "DownloadClient", "InternetArchive" } }
+                  });
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                  .Setup(s => s.GetLatestDownloadHistoryItem(failedArchive))
+                  .Returns(new DownloadHistory
+                  {
+                      DownloadId = failedArchive,
+                      EventType = DownloadHistoryEventType.DownloadFailed,
+                      Protocol = DownloadProtocol.Http,
+                      SourceTitle = "Failed Game (USA)",
+                      Data = new Dictionary<string, string> { { "DownloadClient", "InternetArchive" } }
+                  });
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                  .Setup(s => s.GetLatestDownloadHistoryItem(pendingArchive))
+                  .Returns(new DownloadHistory
+                  {
+                      DownloadId = pendingArchive,
+                      EventType = DownloadHistoryEventType.DownloadGrabbed,
+                      Protocol = DownloadProtocol.Http,
+                      SourceTitle = "Pending Game (USA)",
+                      Data = new Dictionary<string, string> { { "DownloadClient", "InternetArchive" } }
+                  });
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                  .Setup(s => s.GetLatestDownloadHistoryItem(sabnzbdFile))
+                  .Returns(new DownloadHistory
+                  {
+                      DownloadId = "sabnzbd_nzo_123",
+                      EventType = DownloadHistoryEventType.DownloadImported,
+                      Protocol = DownloadProtocol.Usenet,
+                      Data = new Dictionary<string, string> { { "DownloadClient", "Sabnzbd" } }
+                  });
+
+            var items = Subject.GetItems().ToList();
+
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(importedArchive), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFolder(importedExtractedDir, true), Times.AtLeastOnce());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(failedArchive), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(stalePart), Times.Once());
+
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(pendingArchive), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFile(sabnzbdFile), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFolder(sabnzbdExtractedDir, true), Times.Never());
+
+            items.Should().ContainSingle(i => i.DownloadId == pendingArchive && i.Status == DownloadItemStatus.Completed);
         }
     }
 }

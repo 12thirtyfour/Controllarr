@@ -74,8 +74,19 @@ namespace NzbDrone.Core.Download
             var downloadClient = _downloadClientProvider.Get(trackedDownload.DownloadClient);
             var definition = downloadClient.Definition as DownloadClientDefinition;
 
-            if (!trackedDownload.DownloadItem.CanBeRemoved ||
-                !definition.RemoveCompletedDownloads)
+            if (!trackedDownload.DownloadItem.CanBeRemoved)
+            {
+                return;
+            }
+
+            if (trackedDownload.State == TrackedDownloadState.Failed)
+            {
+                if (definition is not { RemoveFailedDownloads: true })
+                {
+                    return;
+                }
+            }
+            else if (definition is not { RemoveCompletedDownloads: true })
             {
                 return;
             }

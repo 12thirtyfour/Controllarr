@@ -78,5 +78,34 @@ namespace NzbDrone.Core.Test.Download
             trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
             trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
         }
+
+        [Test]
+        public void should_fail_unverified_download_even_when_release_metadata_is_null()
+        {
+            var trackedDownload = new TrackedDownload
+            {
+                DownloadItem = new DownloadClientItem
+                {
+                    Title = "Unverified.Game.ROM",
+                    DownloadId = "dl-unverified-1"
+                },
+                RemoteEpisode = new RemoteEpisode
+                {
+                    Release = null
+                }
+            };
+
+            var importDecision = new ImportDecision(
+                new LocalEpisode { Path = @"C:\Downloads\Unverified.Game.7z" },
+                new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "No matching DAT hash"));
+
+            var importResult = new ImportResult(importDecision, "No matching DAT hash");
+
+            var handled = Subject.Process(trackedDownload, importResult);
+
+            handled.Should().BeTrue();
+            trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
+            trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
+        }
     }
 }
