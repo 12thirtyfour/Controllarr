@@ -11,6 +11,7 @@ using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download.Aggregation;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -93,6 +94,13 @@ namespace NzbDrone.Core.DecisionEngine
                     if (PlatformCompatibilityValidator.IsPcOrNonConsoleRelease(report.Title))
                     {
                         _logger.Debug("Skipping release '{0}' because it is a PC or non-console release", report.Title);
+                        reportNumber++;
+                        continue;
+                    }
+
+                    if (PlatformCompatibilityValidator.IsNonRomContentRelease(report.Title))
+                    {
+                        _logger.Debug("Skipping release '{0}' because it is non-ROM content (save file, guide, cheats, or artwork)", report.Title);
                         reportNumber++;
                         continue;
                     }
@@ -240,7 +248,6 @@ namespace NzbDrone.Core.DecisionEngine
         private sealed class SearchEpisodeTitleLookup
         {
             private readonly Dictionary<string, Episode> _exactMatches = new(StringComparer.Ordinal);
-            private readonly Dictionary<string, List<(string CleanTitle, Episode Episode)>> _prefixBuckets = new(StringComparer.Ordinal);
 
             public SearchEpisodeTitleLookup(IList<Episode> episodes)
             {
@@ -258,18 +265,6 @@ namespace NzbDrone.Core.DecisionEngine
                     }
 
                     _exactMatches.TryAdd(targetClean, ep);
-
-                    if (targetClean.Length >= 3)
-                    {
-                        var prefix = targetClean.Substring(0, 3);
-                        if (!_prefixBuckets.TryGetValue(prefix, out var bucket))
-                        {
-                            bucket = new List<(string CleanTitle, Episode Episode)>();
-                            _prefixBuckets[prefix] = bucket;
-                        }
-
-                        bucket.Add((targetClean, ep));
-                    }
                 }
             }
 
@@ -280,25 +275,7 @@ namespace NzbDrone.Core.DecisionEngine
                     return null;
                 }
 
-                if (_exactMatches.TryGetValue(cleanCandidate, out var exact))
-                {
-                    return exact;
-                }
-
-                if (cleanCandidate.Length >= 3 &&
-                    _prefixBuckets.TryGetValue(cleanCandidate.Substring(0, 3), out var bucket))
-                {
-                    foreach (var (targetClean, ep) in bucket)
-                    {
-                        if (cleanCandidate.StartsWith(targetClean, StringComparison.Ordinal) ||
-                            targetClean.StartsWith(cleanCandidate, StringComparison.Ordinal))
-                        {
-                            return ep;
-                        }
-                    }
-                }
-
-                return null;
+                return _exactMatches.TryGetValue(cleanCandidate, out var exact) ? exact : null;
             }
         }
 
@@ -360,18 +337,64 @@ namespace NzbDrone.Core.DecisionEngine
 
                         if (matchingEp != null)
                         {
+                            var effectiveSeason = matchingEp.SeasonNumber;
                             var romQuality = romInfo?.Quality ?? report?.ParsedRomInfo?.Quality ?? new QualityModel(Quality.VerifiedGoodDump);
                             if (romQuality.Quality == Quality.Unknown)
                             {
                                 romQuality = new QualityModel(Quality.VerifiedGoodDump);
                             }
 
+                            var isTranslation = RegionHelper.IsTranslation(releaseTitle, releaseTitle, romInfo?.DumpTags) ||
+                                                TranslationReleaseRegex.IsMatch(releaseTitle);
+                            var isHack = !isTranslation &&
+                                         (RegionHelper.IsRomHackOrTranslation(releaseTitle, releaseTitle, romInfo?.DumpTags) ||
+                                          HackReleaseRegex.IsMatch(releaseTitle));
+
+                            if ((isTranslation || isHack) &&
+                                matchingEp.SeasonNumber != 5 &&
+                                matchingEp.SeasonNumber != 6 &&
+                                matchingEp.SeasonNumber != 9 &&
+                                !HackReleaseRegex.IsMatch(matchingEp.Title ?? string.Empty) &&
+                                !TranslationReleaseRegex.IsMatch(matchingEp.Title ?? string.Empty))
+                            {
+                                effectiveSeason = isTranslation ? 9 : 6;
+                                if (isTranslation)
+                                {
+                                    romQuality = new QualityModel(Quality.TranslationPatch);
+                                }
+                            }
+                            else
+                            {
+                                var isBetaProto = romQuality.Quality == Quality.BetaProto ||
+                                                  BetaProtoDemoReleaseRegex.IsMatch(releaseTitle);
+
+                                if (isBetaProto &&
+                                    !BetaProtoDemoReleaseRegex.IsMatch(matchingEp.Title ?? string.Empty))
+                                {
+                                    romQuality = new QualityModel(Quality.BetaProto);
+                                    if (matchingEp.SeasonNumber is >= 1 and <= 4)
+                                    {
+                                        effectiveSeason = 0;
+                                    }
+                                }
+                                else if (matchingEp.SeasonNumber is >= 1 and <= 4)
+                                {
+                                    var explicitRegions = DetectExplicitRegions(releaseTitle, romInfo, matchingEp.Title);
+                                    if (explicitRegions.Count > 0 &&
+                                        !explicitRegions.Contains(matchingEp.SeasonNumber) &&
+                                        !explicitRegions.Contains(4))
+                                    {
+                                        effectiveSeason = explicitRegions[0];
+                                    }
+                                }
+                            }
+
                             return new ParsedEpisodeInfo
                             {
                                 SeriesTitle = series.Title,
                                 SeriesTitleInfo = new SeriesTitleInfo { Title = series.Title },
-                                SeasonNumber = matchingEp.SeasonNumber,
-                                SeasonNumbers = new List<int> { matchingEp.SeasonNumber },
+                                SeasonNumber = effectiveSeason,
+                                SeasonNumbers = new List<int> { effectiveSeason },
                                 EpisodeNumbers = new[] { matchingEp.EpisodeNumber },
                                 AbsoluteEpisodeNumbers = new[] { matchingEp.AbsoluteEpisodeNumber ?? matchingEp.EpisodeNumber },
                                 ReleaseTitle = releaseTitle,
@@ -608,6 +631,83 @@ namespace NzbDrone.Core.DecisionEngine
             @"(?<![A-Za-z0-9])(?:Game\s*Boy\s+Advance|Game\s*Boy\s+Color|Game\s*Boy|Super\s+Nintendo(?:\s+Entertainment\s+System)?|Nintendo\s+Entertainment\s+System|Nintendo\s+64DD|Nintendo\s+64|Nintendo\s+GameCube|GameCube|Nintendo\s+Wii\s*U|Nintendo\s+Wii|Nintendo\s+Switch|Nintendo\s+3DS|Nintendo\s+DS|Virtual\s+Boy|PlayStation\s+Portable|PlayStation\s+Vita|Sony\s+PlayStation(?:\s*[12345])?|Sega\s+Genesis|Mega\s+Drive|Master\s+System|Game\s+Gear|Sega\s+Saturn|Sega\s+Dreamcast|Atari\s+Lynx|Atari\s+Jaguar(?:\s+CD)?|TurboGrafx(?:-|\s*)16|PC\s+Engine)(?![A-Za-z0-9])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private static readonly Regex BenignRomTokensRegex = new(
+            @"(?<![A-Za-z0-9])(?:Rev\s*[A-Za-z0-9.]+|v\d+(?:\.\d+)*|Trimmed|Multi\d*|iNTERNAL|PROPER|REPACK|DUMP|CLEAN|EU-NL|PT-BR)(?![A-Za-z0-9])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex HackReleaseRegex = new(
+            @"\b(?:kaizo|rom\s*hack|hack(?:ed)?|anti[\s._-]*piracy(?:\s+patch)?|patched|randomizer|redux|deluxe\s+hack|volt\s+white|blaze\s+black|renegade\s+platinum)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex TranslationReleaseRegex = new(
+            @"\b(?:fan[\s._-]*translat(?:ed|ion)|translat(?:ed|ion)|pt[\s._-]*br)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex BetaProtoDemoReleaseRegex = new(
+            @"\b(?:beta|proto(?:types?)?|demo|shareware|kiosk|sample)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex StandaloneRegionTokenRegex = new(
+            @"(?<![A-Za-z0-9])(?:USA|EUR|Europe|EU-NL|JPN|Japan|PT-BR|FRA|France|GER|Germany|SPA|Spain|ITA|Italy|KOR|Korea|CHN|China|AUS|Australia|PAL|NTSC-U|NTSC-J)(?![A-Za-z0-9])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static List<int> DetectExplicitRegions(string releaseTitle, ParsedRomInfo romInfo, string targetGameTitle)
+        {
+            var detected = new List<int>();
+
+            if (romInfo?.Regions != null)
+            {
+                foreach (var region in romInfo.Regions)
+                {
+                    var mapped = TryMapExplicitRegionToken(region);
+                    if (mapped >= 0 && !detected.Contains(mapped))
+                    {
+                        detected.Add(mapped);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(releaseTitle))
+            {
+                var safeTargetTitle = targetGameTitle ?? string.Empty;
+                foreach (Match match in StandaloneRegionTokenRegex.Matches(releaseTitle))
+                {
+                    var token = match.Value;
+                    if (!string.IsNullOrWhiteSpace(safeTargetTitle) &&
+                        safeTargetTitle.Contains(token, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var mapped = TryMapExplicitRegionToken(token);
+                    if (mapped >= 0 && !detected.Contains(mapped))
+                    {
+                        detected.Add(mapped);
+                    }
+                }
+            }
+
+            return detected;
+        }
+
+        private static int TryMapExplicitRegionToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return -1;
+            }
+
+            return token.Trim().ToLowerInvariant() switch
+            {
+                "usa" or "us" or "u" or "canada" or "ntsc-u" => 1,
+                "eur" or "europe" or "eu" or "e" or "eu-nl" or "pal" or "uk" or "united kingdom" or "australia" or "aus" or "france" or "fra" or "germany" or "ger" or "spain" or "spa" or "italy" or "ita" or "netherlands" or "belgium" or "austria" or "switzerland" or "sweden" or "denmark" or "finland" or "norway" or "portugal" or "russia" or "poland" or "greece" or "scandinavia" => 2,
+                "jpn" or "japan" or "jp" or "j" or "ntsc-j" or "asia" or "korea" or "kor" or "china" or "chn" or "taiwan" or "hong kong" => 3,
+                "world" or "w" or "jue" or "uej" => 4,
+                "pt-br" => 9,
+                _ => -1
+            };
+        }
+
         private static string CleanRomTitleForComparison(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -649,13 +749,20 @@ namespace NzbDrone.Core.DecisionEngine
                 clean = withoutSceneTags;
             }
 
+            var withoutBenign = BenignRomTokensRegex.Replace(clean, " ").Trim();
+            if (withoutBenign.Any(char.IsLetterOrDigit))
+            {
+                clean = withoutBenign;
+            }
+
             var withoutVersionWord = VersionWordStripRegex.Replace(clean, " ").Trim();
             if (withoutVersionWord.Any(char.IsLetterOrDigit))
             {
                 clean = withoutVersionWord;
             }
 
-            clean = clean.Trim();
+            clean = RomParser.NormalizeTitleArticle(clean.Trim());
+
             if (clean.StartsWith("The ", StringComparison.OrdinalIgnoreCase))
             {
                 clean = clean.Substring(4).Trim();

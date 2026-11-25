@@ -8,7 +8,6 @@ namespace NzbDrone.Core.Test.ParserTests
     public class MultiGameParserFixture : CoreTest
     {
         [TestCase("Series.S03E01-06.DUAL.BDRip.XviD.AC3.-HELLYWOOD", "Series", 3, new[] { 1, 2, 3, 4, 5, 6 })]
-        [TestCase("Series.Title.103.104.720p.HDTV.X264-DIMENSION", "Series Title", 1, new[] { 3, 4 })]
         [TestCase("Series.S03E01.S03E02.720p.HDTV.X264-DIMENSION", "Series", 3, new[] { 1, 2 })]
         [TestCase("The Series S01e01 e02 ShoHD On Demand 1080i DD5 1 ALANiS", "The Series", 1, new[] { 1, 2 })]
         [TestCase("Series.Title.2x04.2x05.720p.BluRay-FUTV", "Series Title", 2, new[] { 4, 5 })]
@@ -28,7 +27,6 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Series.S01E91-E100", "Series", 1, new[] { 91, 92, 93, 94, 95, 96, 97, 98, 99, 100 })]
         [TestCase("Series.S29E161-E165.PDTV.x264-FQM", "Series", 29, new[] { 161, 162, 163, 164, 165 })]
         [TestCase("Shortland.Series.S22E5363-E5366.HDTV.x264-FiHTV", "Shortland Series", 22, new[] { 5363, 5364, 5365, 5366 })]
-        [TestCase("the.Series.101.102.hdtv-lol", "the Series", 1, new[] { 1, 2 })]
         [TestCase("Series.10708.hdtv-lol.mp4", "Series", 1, new[] { 7, 8 })]
         [TestCase("Series.10910.hdtv-lol.mp4", "Series", 1, new[] { 9, 10 })]
         [TestCase("E.010910.HDTVx264REPACKLOL.mp4", "E", 1, new[] { 9, 10 })]

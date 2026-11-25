@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -80,6 +81,7 @@ namespace NzbDrone.Core.MediaFiles
             _biosService = biosService;
         }
 
+        private static readonly ConcurrentDictionary<int, byte> ActiveScans = new();
         private static readonly Regex ExcludedExtrasSubFolderRegex = new Regex(@"(?:\\|\/|^)(?:extras|extrafanart|behind the scenes|deleted scenes|featurettes|interviews|other|scenes|samples|shorts|trailers|theme[-_. ]music|backdrops)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:@eadir|\.@__thumb|plex versions|bios|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ExcludedExtraFilesRegex = new Regex(@"(-(trailer|other|behindthescenes|deleted|featurette|interview|scene|short)\.[^.]+$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -93,6 +95,33 @@ namespace NzbDrone.Core.MediaFiles
                 return;
             }
 
+            var scanLockAcquired = false;
+            if (series != null && series.Id > 0)
+            {
+                if (!ActiveScans.TryAdd(series.Id, 0))
+                {
+                    _logger.Info("Disk scan already in progress for {0}, skipping duplicate scan.", series.Title);
+                    return;
+                }
+
+                scanLockAcquired = true;
+            }
+
+            try
+            {
+                ScanInternal(series);
+            }
+            finally
+            {
+                if (scanLockAcquired)
+                {
+                    ActiveScans.TryRemove(series.Id, out _);
+                }
+            }
+        }
+
+        private void ScanInternal(Series series)
+        {
             if (series != null && series.Id > 0 && _seriesService.IsSeriesDeletedWithFiles(series.Id))
             {
                 if (!string.IsNullOrWhiteSpace(series.Path) && _diskProvider.FolderExists(series.Path))

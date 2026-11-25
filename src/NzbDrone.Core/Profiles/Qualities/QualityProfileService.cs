@@ -103,25 +103,40 @@ namespace NzbDrone.Core.Profiles.Qualities
 
             if (profiles.Any())
             {
-                var gamingQualities = new[]
+                var orderedGamingQualities = new[]
                 {
-                    Quality.VerifiedGoodDump,
-                    Quality.VerifiedRedump,
-                    Quality.NoIntroVerified,
-                    Quality.UnverifiedRaw,
+                    Quality.Unknown,
                     Quality.BetaProto,
                     Quality.TranslationPatch,
-                    Quality.Unknown
+                    Quality.UnverifiedRaw,
+                    Quality.VerifiedGoodDump,
+                    Quality.NoIntroVerified,
+                    Quality.VerifiedRedump
+                };
+
+                var canonicalGamingRanks = new Dictionary<int, int>
+                {
+                    { Quality.BetaProto.Id, 0 },
+                    { Quality.TranslationPatch.Id, 1 },
+                    { Quality.UnverifiedRaw.Id, 2 },
+                    { Quality.VerifiedGoodDump.Id, 3 },
+                    { Quality.NoIntroVerified.Id, 4 },
+                    { Quality.VerifiedRedump.Id, 5 }
                 };
 
                 foreach (var profile in profiles)
                 {
                     var modified = false;
 
-                    foreach (var gq in gamingQualities)
+                    if (profile.Items == null)
                     {
-                        var qualityItem = profile.Items?.FirstOrDefault(i => i.Quality == gq) ??
-                                          profile.Items?.SelectMany(i => i.Items ?? new List<QualityProfileQualityItem>()).FirstOrDefault(i => i.Quality == gq);
+                        profile.Items = new List<QualityProfileQualityItem>();
+                    }
+
+                    foreach (var gq in orderedGamingQualities)
+                    {
+                        var qualityItem = profile.Items.FirstOrDefault(i => i.Quality == gq) ??
+                                          profile.Items.SelectMany(i => i.Items ?? new List<QualityProfileQualityItem>()).FirstOrDefault(i => i.Quality == gq);
 
                         if (qualityItem != null)
                         {
@@ -133,12 +148,56 @@ namespace NzbDrone.Core.Profiles.Qualities
                         }
                         else
                         {
-                            if (profile.Items == null)
+                            var newItem = new QualityProfileQualityItem { Quality = gq, Allowed = true };
+                            if (gq == Quality.Unknown)
                             {
-                                profile.Items = new List<QualityProfileQualityItem>();
+                                profile.Items.Insert(0, newItem);
+                            }
+                            else
+                            {
+                                profile.Items.Add(newItem);
                             }
 
-                            profile.Items.Insert(0, new QualityProfileQualityItem { Quality = gq, Allowed = true });
+                            modified = true;
+                        }
+                    }
+
+                    var gamingSlotIndices = new List<int>();
+                    for (var i = 0; i < profile.Items.Count; i++)
+                    {
+                        var itemQuality = profile.Items[i].Quality;
+                        if (itemQuality != null && canonicalGamingRanks.ContainsKey(itemQuality.Id))
+                        {
+                            gamingSlotIndices.Add(i);
+                        }
+                    }
+
+                    if (gamingSlotIndices.Count > 1)
+                    {
+                        var needsReorder = false;
+                        for (var i = 1; i < gamingSlotIndices.Count; i++)
+                        {
+                            var prevRank = canonicalGamingRanks[profile.Items[gamingSlotIndices[i - 1]].Quality.Id];
+                            var currRank = canonicalGamingRanks[profile.Items[gamingSlotIndices[i]].Quality.Id];
+                            if (currRank < prevRank)
+                            {
+                                needsReorder = true;
+                                break;
+                            }
+                        }
+
+                        if (needsReorder)
+                        {
+                            var sortedGamingItems = gamingSlotIndices
+                                .Select(idx => profile.Items[idx])
+                                .OrderBy(item => canonicalGamingRanks[item.Quality.Id])
+                                .ToList();
+
+                            for (var i = 0; i < gamingSlotIndices.Count; i++)
+                            {
+                                profile.Items[gamingSlotIndices[i]] = sortedGamingItems[i];
+                            }
+
                             modified = true;
                         }
                     }

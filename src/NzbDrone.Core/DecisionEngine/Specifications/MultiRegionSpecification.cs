@@ -12,7 +12,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             _logger = logger;
         }
 
-        public SpecificationPriority Priority => SpecificationPriority.Default;
+        public SpecificationPriority Priority => SpecificationPriority.Parsing;
         public RejectionType Type => RejectionType.Permanent;
 
         public virtual DownloadSpecDecision IsSatisfiedBy(RemoteEpisode subject, ReleaseDecisionInformation information)

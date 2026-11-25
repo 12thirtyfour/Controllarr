@@ -97,6 +97,14 @@ namespace NzbDrone.Core.Test.ParserTests
             seriesTitleInfo.AllTitles.Should().BeEquivalentTo(titles);
         }
 
+        [Test]
+        public void should_not_misparse_rom_paths_or_indexed_rom_titles_as_tv_episodes()
+        {
+            Parser.Parser.ParsePath("/roms/Nintendo/Nintendo 64/USA/WWF No Mercy.zip").Should().BeNull();
+            Parser.Parser.ParseTitle("1015 Pokemon Diamond Version").Should().BeNull();
+            Parser.Parser.ParseTitle("Pokemon Diamond Version r9792").Should().BeNull();
+        }
+
         [TestCase("[Reza] Series in Russian - S01E08 [WEBRip 1080p HEVC AAC] (Dual Audio) (Tokidoki Bosotto Russiago de Dereru Tonari no Alya-san)", "Unknown")]
         public void should_parse_language_after_parsing_title(string postTitle, string expectedLanguage)
         {

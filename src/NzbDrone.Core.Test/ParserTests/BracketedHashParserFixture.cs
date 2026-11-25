@@ -19,7 +19,6 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[K-F] Series Title S10E14 214", "K-F", "")]
         [TestCase("[K-F] Series Title 10x14 214", "K-F", "")]
         [TestCase("[K-F] Series Title 214 10x14", "K-F", "")]
-        [TestCase("Series Title - 031 - The Resolution to Kill [Lunar].avi", "Lunar", "")]
         [TestCase("[ACX]Series Title 01 Episode Name [Kosaka] [9C57891E].mkv", "ACX", "9C57891E")]
         [TestCase("[S-T-D] Series Title! - 06 (1280x720 10bit AAC) [59B3F2EA].mkv", "S-T-D", "59B3F2EA")]
 
@@ -36,7 +35,6 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[K-F] Series Title S10E14 214", "K-F", "")]
         [TestCase("[K-F] Series Title 10x14 214", "K-F", "")]
         [TestCase("[K-F] Series Title 214 10x14", "K-F", "")]
-        [TestCase("Series Title - 031 - The Resolution to Kill [Lunar].avi", "Lunar", "")]
         [TestCase("[ACX]Series Title 01 Episode Name [Kosaka] (9C57891E).mkv", "ACX", "9C57891E")]
         [TestCase("[S-T-D] Series Title! - 06 (1280x720 10bit AAC) (59B3F2EA).mkv", "S-T-D", "59B3F2EA")]
         public void should_parse_releasegroup_and_hash(string postTitle, string subGroup, string hash)

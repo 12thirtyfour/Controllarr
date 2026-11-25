@@ -185,18 +185,33 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                 if (!searchCriteria.InteractiveSearch)
                 {
                     pageableRequests.AddTier();
-                }
 
-                foreach (var term in pagedTerms)
-                {
-                    pageableRequests.Add(GetPagedRequests(term, platformParam, ignorePrimaryArchives: false, isCollectionSearch: isPlatformCollection, maxPagesOverride: 1));
-                }
+                    if (!isPlatformCollection && pagedTerms.Count > 1)
+                    {
+                        pageableRequests.Add(GetPagedRequests(pagedTerms[0], platformParam, ignorePrimaryArchives: false, isCollectionSearch: false, maxPagesOverride: 1));
+                        pageableRequests.AddTier();
 
-                // For automated searches, advance to a third tier so preferred archives are evaluated first;
-                // for interactive searches, keep global requests in the same tier so all results are returned together.
-                if (!searchCriteria.InteractiveSearch)
-                {
+                        foreach (var term in pagedTerms.Skip(1))
+                        {
+                            pageableRequests.Add(GetPagedRequests(term, platformParam, ignorePrimaryArchives: false, isCollectionSearch: false, maxPagesOverride: 1));
+                        }
+                    }
+                    else
+                    {
+                        foreach (var term in pagedTerms)
+                        {
+                            pageableRequests.Add(GetPagedRequests(term, platformParam, ignorePrimaryArchives: false, isCollectionSearch: isPlatformCollection, maxPagesOverride: 1));
+                        }
+                    }
+
                     pageableRequests.AddTier();
+                }
+                else
+                {
+                    foreach (var term in pagedTerms)
+                    {
+                        pageableRequests.Add(GetPagedRequests(term, platformParam, ignorePrimaryArchives: false, isCollectionSearch: isPlatformCollection, maxPagesOverride: 1));
+                    }
                 }
             }
 
@@ -208,7 +223,7 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     pageableRequests.Add(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: true, maxPagesOverride: 1));
                 }
             }
-            else
+            else if (searchCriteria.InteractiveSearch)
             {
                 foreach (var term in pagedTerms)
                 {
@@ -218,6 +233,31 @@ namespace NzbDrone.Core.Indexers.InternetArchive
                     }
 
                     pageableRequests.Add(GetPagedRequests(term, platformParam, ignorePrimaryArchives: true, isCollectionSearch: false, maxPagesOverride: 1, titleScoped: true));
+                }
+            }
+            else if (pagedTerms.Count > 0)
+            {
+                var primaryTerm = pagedTerms[0];
+                if (!string.IsNullOrWhiteSpace(platformLuceneClause))
+                {
+                    pageableRequests.Add(GetPagedRequests(primaryTerm, platformParam, ignorePrimaryArchives: true, isCollectionSearch: false, maxPagesOverride: 1, platformLuceneClause: platformLuceneClause));
+                    pageableRequests.AddTier();
+                }
+
+                pageableRequests.Add(GetPagedRequests(primaryTerm, platformParam, ignorePrimaryArchives: true, isCollectionSearch: false, maxPagesOverride: 1, titleScoped: true));
+
+                if (pagedTerms.Count > 1)
+                {
+                    foreach (var fallbackTerm in pagedTerms.Skip(1))
+                    {
+                        pageableRequests.AddTier();
+                        if (!string.IsNullOrWhiteSpace(platformLuceneClause))
+                        {
+                            pageableRequests.Add(GetPagedRequests(fallbackTerm, platformParam, ignorePrimaryArchives: true, isCollectionSearch: false, maxPagesOverride: 1, platformLuceneClause: platformLuceneClause));
+                        }
+
+                        pageableRequests.Add(GetPagedRequests(fallbackTerm, platformParam, ignorePrimaryArchives: true, isCollectionSearch: false, maxPagesOverride: 1, titleScoped: true));
+                    }
                 }
             }
 
@@ -326,6 +366,9 @@ namespace NzbDrone.Core.Indexers.InternetArchive
             {
                 clean = clean.Substring(0, bracketIdx);
             }
+
+            clean = Regex.Replace(clean, @"[:;!?,]+", " ");
+            clean = Regex.Replace(clean, @"\s{2,}", " ");
 
             return clean.Trim();
         }

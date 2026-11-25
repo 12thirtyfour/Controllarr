@@ -644,5 +644,38 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
                 }
             }
         }
+
+        [Test]
+        public void should_skip_concurrent_duplicate_disk_scan_for_same_platform()
+        {
+            using var firstScanEntered = new System.Threading.ManualResetEventSlim(false);
+            using var releaseFirstScan = new System.Threading.ManualResetEventSlim(false);
+            var scanCalls = 0;
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(s => s.FolderExists(_series.Path))
+                  .Returns(() =>
+                  {
+                      if (System.Threading.Interlocked.Increment(ref scanCalls) == 1)
+                      {
+                          firstScanEntered.Set();
+                          releaseFirstScan.Wait(TimeSpan.FromSeconds(5));
+                      }
+
+                      return false;
+                  });
+
+            var firstTask = System.Threading.Tasks.Task.Run(() => Subject.Scan(_series));
+            firstScanEntered.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+
+            // Second scan for the same platform while the first is in-flight must return immediately without touching disk
+            Subject.Scan(_series);
+
+            releaseFirstScan.Set();
+            firstTask.Wait(TimeSpan.FromSeconds(5));
+
+            scanCalls.Should().Be(1);
+            ExceptionVerification.ExpectedWarns(1);
+        }
     }
 }

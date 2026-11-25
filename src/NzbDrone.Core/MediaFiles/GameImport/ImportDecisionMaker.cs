@@ -257,6 +257,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport
 
             return videoFiles.Count(file =>
             {
+                if (MediaFileExtensions.RomExtensions.Contains(Path.GetExtension(file)))
+                {
+                    return true;
+                }
+
                 var sample = _detectSample.IsSample(series, file, isPossibleSpecialEpisode);
 
                 if (sample == DetectSampleResult.Sample)

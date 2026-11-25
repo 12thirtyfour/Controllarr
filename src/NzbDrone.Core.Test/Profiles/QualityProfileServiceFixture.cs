@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -113,6 +115,67 @@ namespace NzbDrone.Core.Test.Profiles
             Assert.Throws<QualityProfileInUseException>(() => Subject.Delete(1));
 
             Mocker.GetMock<IQualityProfileRepository>().Verify(c => c.Delete(It.IsAny<int>()), Times.Never());
+        }
+
+        [Test]
+        public void should_reorder_inverted_gaming_qualities_and_preserve_allowed_flags()
+        {
+            var invertedProfile = new QualityProfile
+            {
+                Id = 1,
+                Name = "Retail Dumps",
+                Cutoff = Quality.VerifiedGoodDump.Id,
+                Items = new List<QualityProfileQualityItem>
+                {
+                    new() { Quality = Quality.Unknown, Allowed = false },
+                    new() { Quality = Quality.VerifiedGoodDump, Allowed = true },
+                    new() { Quality = Quality.VerifiedRedump, Allowed = true },
+                    new() { Quality = Quality.NoIntroVerified, Allowed = true },
+                    new() { Quality = Quality.UnverifiedRaw, Allowed = false },
+                    new() { Quality = Quality.BetaProto, Allowed = false },
+                    new() { Quality = Quality.TranslationPatch, Allowed = false }
+                }
+            };
+
+            Mocker.GetMock<IQualityProfileRepository>()
+                  .Setup(s => s.All())
+                  .Returns(new List<QualityProfile> { invertedProfile });
+
+            Subject.Handle(new ApplicationStartedEvent());
+
+            var orderedIds = invertedProfile.Items.Select(i => i.Quality.Id).ToList();
+            orderedIds.Should().Equal(
+                Quality.Unknown.Id,
+                Quality.BetaProto.Id,
+                Quality.TranslationPatch.Id,
+                Quality.UnverifiedRaw.Id,
+                Quality.VerifiedGoodDump.Id,
+                Quality.NoIntroVerified.Id,
+                Quality.VerifiedRedump.Id);
+
+            invertedProfile.Items.Single(i => i.Quality == Quality.BetaProto).Allowed.Should().BeFalse();
+            invertedProfile.Items.Single(i => i.Quality == Quality.VerifiedGoodDump).Allowed.Should().BeTrue();
+            Mocker.GetMock<IQualityProfileRepository>().Verify(r => r.Update(invertedProfile), Times.Once());
+        }
+
+        [Test]
+        public void should_order_verified_good_dump_above_beta_proto_and_translation_patch_in_default_profile()
+        {
+            Mocker.GetMock<ICustomFormatService>()
+                  .Setup(s => s.All())
+                  .Returns(new List<CustomFormat>());
+
+            var profile = Subject.GetDefaultProfile(
+                "Any",
+                Quality.VerifiedGoodDump,
+                Quality.VerifiedGoodDump,
+                Quality.BetaProto,
+                Quality.TranslationPatch);
+
+            var comparer = new QualityModelComparer(profile);
+            comparer.Compare(Quality.VerifiedGoodDump, Quality.BetaProto).Should().BeGreaterThan(0);
+            comparer.Compare(Quality.VerifiedGoodDump, Quality.TranslationPatch).Should().BeGreaterThan(0);
+            comparer.Compare(Quality.VerifiedGoodDump, Quality.UnverifiedRaw).Should().BeGreaterThan(0);
         }
     }
 }

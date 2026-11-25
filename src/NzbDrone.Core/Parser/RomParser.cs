@@ -15,7 +15,8 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex RegionRegex = new Regex(@"\(\s*(?:USA|Europe|Japan|World|Asia|Australia|Austria|Belgium|Brazil|Canada|China|Denmark|Finland|France|Germany|Greece|Hong Kong|India|Italy|Korea|Latin America|Mexico|Netherlands|Norway|Poland|Portugal|Russia|Scandinavia|Spain|Sweden|Switzerland|Taiwan|UK|United Kingdom|US|EU|EUR|JP|JPN|JUE|UEJ|JU|UE|U|E|J|W|,\s*)+\s*\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex RevisionRegex = new Regex(@"(?:\(|\[)\s*(?:Rev\.?\s*(?<rev>[A-Za-z0-9.]+)|v\s*(?<ver>\d+(?:\.\d+)*[A-Za-z]?)|Version\s*(?<ver>[\d.]+)|Alt\s*(?<alt>\d*)|PRG(?<prg>\d+)|(?<upd>(?:(?:Title\s+Update|Update|Patch|DLC(?:\s+(?:Pack|Content))?|Add-?on|Unlock\s+Key|Additional\s+Content|Downloadable\s+Content|Season\s+Pass)(?:\s*#?\s*v?[\d.]+)?|TU\s*#?\s*\d+(?:\.\d+)*|v?[\d.]+\s*(?:Title\s+Update|Update|Patch)|UPD|Theme|Avatar|Soundtrack)))\s*(?:\)|\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex HardwareRegex = new Regex(@"\((NES 2\.0|Headered|Unheadered)\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex DumpRegex = new Regex(@"\((Beta|Proto|Demo|Sample)\)|\[(?<tag>!|b|t|h|f|a|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex DumpRegex = new Regex(@"\((?<tag>Beta(?:\s*\d+)?|Proto(?:types?)?(?:\s*\d+)?|Demo|Sample|Shareware|Kiosk)\)|\[(?<tag>!|b|t|h|f|a|T\+[A-Za-z]+|T\-[A-Za-z]+\s*by.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex UnparenthesizedBetaProtoRegex = new Regex(@"\b(?<tag>Beta|Proto(?:types?)?|Demo|Shareware|Kiosk)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DiscTrackRegex = new Regex(@"\((?:Disc\s*(?<disc>\d+(?:\s*of\s*\d+)?)|Track\s*(?<track>\d+))\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BiosRegex = new Regex(@"(?:\[BIOS\]|\(BIOS\)|\b(?:BIOS|Firmware|Boot\s*ROM)\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FullSetRegex = new Regex(@"\((Complete Set|Full Set|1G1R|Parent-Clone|\d{8}-\d{6})\)|(?:^@|\b(?:SMDB|HTGDB|No-Intro|Redump|TOSEC|Romset|Rom Set|Full Set|Complete Set|1G1R)\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -130,8 +131,22 @@ namespace NzbDrone.Core.Parser
             // Dump tags
             foreach (Match match in DumpRegex.Matches(normalizedTitle))
             {
-                result.DumpTags.Add(match.Groups[1].Success ? match.Groups[1].Value : match.Groups["tag"].Value);
+                var tag = match.Groups["tag"].Value;
+                if (!result.DumpTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                {
+                    result.DumpTags.Add(tag);
+                }
+
                 normalizedTitle = normalizedTitle.Replace(match.Value, "");
+            }
+
+            foreach (Match match in UnparenthesizedBetaProtoRegex.Matches(normalizedTitle))
+            {
+                var tag = match.Groups["tag"].Value;
+                if (!result.DumpTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                {
+                    result.DumpTags.Add(tag);
+                }
             }
 
             // BIOS tags
@@ -184,7 +199,12 @@ namespace NzbDrone.Core.Parser
             {
                 result.Quality = new QualityModel(Quality.TranslationPatch);
             }
-            else if (result.DumpTags.Any(t => t.Equals("Beta", StringComparison.OrdinalIgnoreCase) || t.Equals("Proto", StringComparison.OrdinalIgnoreCase)))
+            else if (result.DumpTags.Any(t => t.StartsWith("Beta", StringComparison.OrdinalIgnoreCase) ||
+                                              t.StartsWith("Proto", StringComparison.OrdinalIgnoreCase) ||
+                                              t.Equals("Demo", StringComparison.OrdinalIgnoreCase) ||
+                                              t.Equals("Shareware", StringComparison.OrdinalIgnoreCase) ||
+                                              t.Equals("Kiosk", StringComparison.OrdinalIgnoreCase) ||
+                                              t.Equals("Sample", StringComparison.OrdinalIgnoreCase)))
             {
                 result.Quality = new QualityModel(Quality.BetaProto);
             }

@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_not_attempt_to_map_episode_if_series_title_is_blank()
         {
             GivenSpecifications(_pass1, _pass2, _pass3);
-            _reports[0].Title = "1937 - Snow White and the Seven Dwarves";
+            _reports[0].Title = "S19E37 - Snow White and the Seven Dwarves";
 
             var results = Subject.GetRssDecision(_reports).ToList();
 
@@ -197,7 +197,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_return_rejected_result_for_unparsable_search()
         {
             GivenSpecifications(_pass1, _pass2, _pass3);
-            _reports[0].Title = "1937 - Snow White and the Seven Dwarves";
+            _reports[0].Title = "S19E37 - Snow White and the Seven Dwarves";
 
             Subject.GetSearchDecision(_reports, new SingleEpisodeSearchCriteria()).ToList();
 
@@ -447,6 +447,116 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions.Should().ContainSingle(d => d.Approved && d.RemoteEpisode.Episodes.Any(e => e.Id == 4200) && d.RemoteEpisode.Release.Title == "Ys.(Japan).N64.z64");
             decisions.Should().NotContain(d => d.RemoteEpisode.Release.Title == "Super.Mario.64.(USA).PS2.iso");
             sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5));
+        }
+
+        [Test]
+        public void should_reject_sequels_wrong_regions_tv_rips_saves_betas_and_hacks_on_retail_single_game_search()
+        {
+            var series = Builder<Series>.CreateNew()
+                                        .With(s => s.Id = 44)
+                                        .With(s => s.Title = "Nintendo DS")
+                                        .With(s => s.CleanTitle = "nintendods")
+                                        .With(s => s.TitleSlug = "nds")
+                                        .Build();
+
+            var pokemonWhite = new Episode
+            {
+                Id = 101,
+                SeriesId = series.Id,
+                Series = series,
+                SeasonNumber = 1,
+                EpisodeNumber = 101,
+                Title = "Pokemon - White Version"
+            };
+
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                Series = series,
+                Episodes = new List<Episode> { pokemonWhite },
+                SeasonNumber = 1,
+                EpisodeNumber = 101
+            };
+
+            var reports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo { Title = "Pokemon.White.Version.(USA).NDS-DUMP" },
+                new ReleaseInfo { Title = "Pokemon.White.Version.2.(USA).NDS-DUMP" },
+                new ReleaseInfo { Title = "Pokemon.White.Version.EUR.NDS-SweeTnDs" },
+                new ReleaseInfo { Title = "POKEMON White eu-nl (dsi bins dumped)" },
+                new ReleaseInfo { Title = "Pokemon White (PT-BR)" },
+                new ReleaseInfo { Title = "Pokemon White Version Fan Translated" },
+                new ReleaseInfo { Title = "Pokemon White 2 Kaizo Full Release V 1d 5" },
+                new ReleaseInfo { Title = "Pokemon Diamond And Pearl Cartoon Network TVRips 2007-2008" },
+                new ReleaseInfo { Title = "Pokemon White Save. 7z" },
+                new ReleaseInfo { Title = "Pokemon White Version (USA) (Beta)" },
+                new ReleaseInfo { Title = "Pokemon White Version Demo (Shareware)" }
+            };
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(v => v.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
+                .Returns<ParsedEpisodeInfo, int, int, string, SearchCriteriaBase>((p, _, _, _, _) =>
+                    new RemoteEpisode
+                    {
+                        DownloadAllowed = true,
+                        ParsedEpisodeInfo = p,
+                        Series = series,
+                        Episodes = p.SeasonNumber == 1 ? new List<Episode> { pokemonWhite } : new List<Episode>()
+                    });
+
+            Mocker.SetConstant<IEnumerable<IDownloadDecisionEngineSpecification>>(new List<IDownloadDecisionEngineSpecification>
+            {
+                Mocker.Resolve<NzbDrone.Core.DecisionEngine.Specifications.PlatformPackOnlySpecification>(),
+                Mocker.Resolve<NzbDrone.Core.DecisionEngine.Specifications.Search.SingleGameSearchMatchSpecification>(),
+                Mocker.Resolve<NzbDrone.Core.DecisionEngine.Specifications.Search.GameRequestedSpecification>()
+            });
+
+            var decisions = Subject.GetSearchDecision(reports, criteria).ToList();
+
+            decisions.Where(d => d.Approved).Select(d => d.RemoteEpisode.Release.Title)
+                .Should().BeEquivalentTo(new[] { "Pokemon.White.Version.(USA).NDS-DUMP" });
+            decisions.Should().NotContain(d => d.RemoteEpisode.Release.Title.Contains("Cartoon Network TVRips"));
+            decisions.Should().NotContain(d => d.RemoteEpisode.Release.Title.Contains("Save."));
+        }
+
+        [Test]
+        public void should_short_circuit_database_upgrade_specs_when_parsing_tier_rejects_collection_pack()
+        {
+            var series = Builder<Series>.CreateNew()
+                                        .With(s => s.Id = 55)
+                                        .With(s => s.Title = "Nintendo DS")
+                                        .With(s => s.CleanTitle = "nintendods")
+                                        .With(s => s.TitleSlug = "nds")
+                                        .Build();
+
+            var targetEp = new Episode { Id = 1, SeriesId = series.Id, Series = series, SeasonNumber = 1, EpisodeNumber = 1, Title = "Pokemon Diamond Version" };
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                Series = series,
+                Episodes = new List<Episode> { targetEp },
+                SeasonNumber = 1,
+                EpisodeNumber = 1
+            };
+
+            var parsingRejectSpec = new Mock<IDownloadDecisionEngineSpecification>();
+            parsingRejectSpec.SetupGet(s => s.Priority).Returns(SpecificationPriority.Parsing);
+            parsingRejectSpec.SetupGet(s => s.Type).Returns(RejectionType.Permanent);
+            parsingRejectSpec.Setup(s => s.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()))
+                .Returns(DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Collection package rejected"));
+
+            var databaseUpgradeSpec = new Mock<IDownloadDecisionEngineSpecification>();
+            databaseUpgradeSpec.SetupGet(s => s.Priority).Returns(SpecificationPriority.Database);
+            databaseUpgradeSpec.SetupGet(s => s.Type).Returns(RejectionType.Permanent);
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(v => v.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
+                .Returns(_remoteEpisode);
+
+            GivenSpecifications(parsingRejectSpec, databaseUpgradeSpec);
+
+            var decisions = Subject.GetSearchDecision(new List<ReleaseInfo> { new ReleaseInfo { Title = "Nintendo DS Full Set (No-Intro)" } }, criteria).ToList();
+
+            decisions.Should().ContainSingle().Which.Approved.Should().BeFalse();
+            databaseUpgradeSpec.Verify(s => s.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()), Times.Never());
         }
     }
 }

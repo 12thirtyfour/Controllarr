@@ -32,10 +32,31 @@ interface SignalRMessage {
   version: number | undefined;
 }
 
+const SIGNALR_INVALIDATION_DEBOUNCE_MS = 250;
+
 function SignalRListener() {
   const queryClient = useQueryClient();
   const updateCommand = useUpdateCommand();
   const connection = useRef<HubConnection | null>(null);
+  const invalidationTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
+
+  const scheduleInvalidateQueries = useRef((queryKey: QueryKey) => {
+    const serializedKey = JSON.stringify(queryKey);
+    const existingTimer = invalidationTimers.current.get(serializedKey);
+
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(() => {
+      invalidationTimers.current.delete(serializedKey);
+      queryClient.invalidateQueries({ queryKey });
+    }, SIGNALR_INVALIDATION_DEBOUNCE_MS);
+
+    invalidationTimers.current.set(serializedKey, timer);
+  });
 
   const handleStartFail = useRef((error: unknown) => {
     console.error('[signalR] failed to connect');
@@ -109,7 +130,7 @@ function SignalRListener() {
 
     if (name === 'command') {
       if (body.action === 'sync') {
-        queryClient.invalidateQueries({ queryKey: ['/command'] });
+        scheduleInvalidateQueries.current(['/command']);
         return;
       }
 
@@ -170,7 +191,7 @@ function SignalRListener() {
     }
 
     if (name === 'health') {
-      queryClient.invalidateQueries({ queryKey: ['/health'] });
+      scheduleInvalidateQueries.current(['/health']);
       return;
     }
 
@@ -216,17 +237,17 @@ function SignalRListener() {
     }
 
     if (name === 'qualitydefinition') {
-      queryClient.invalidateQueries({ queryKey: ['/qualitydefinition'] });
+      scheduleInvalidateQueries.current(['/qualitydefinition']);
       return;
     }
 
     if (name === 'queue') {
-      queryClient.invalidateQueries({ queryKey: ['/queue'] });
+      scheduleInvalidateQueries.current(['/queue']);
       return;
     }
 
     if (name === 'queue/details') {
-      queryClient.invalidateQueries({ queryKey: ['/queue/details'] });
+      scheduleInvalidateQueries.current(['/queue/details']);
       return;
     }
 
@@ -243,7 +264,7 @@ function SignalRListener() {
     }
 
     if (name === 'rootfolder') {
-      queryClient.invalidateQueries({ queryKey: ['/rootFolder'] });
+      scheduleInvalidateQueries.current(['/rootFolder']);
 
       return;
     }
@@ -258,7 +279,7 @@ function SignalRListener() {
         updateQueryClientItem(queryClient, ['/series'], updatedItem, true);
 
         if (updatedItem.episodesChanged || updatedItem.gamesChanged) {
-          queryClient.invalidateQueries({ queryKey: ['/episode'] });
+          scheduleInvalidateQueries.current(['/episode']);
         }
 
         repopulatePage('seriesUpdated');
@@ -270,7 +291,7 @@ function SignalRListener() {
     }
 
     if (name === 'system/task') {
-      queryClient.invalidateQueries({ queryKey: ['/system/task'] });
+      scheduleInvalidateQueries.current(['/system/task']);
       return;
     }
 
@@ -279,8 +300,8 @@ function SignalRListener() {
         return;
       }
 
-      queryClient.invalidateQueries({ queryKey: ['/tag'] });
-      queryClient.invalidateQueries({ queryKey: ['/tag/detail'] });
+      scheduleInvalidateQueries.current(['/tag']);
+      scheduleInvalidateQueries.current(['/tag/detail']);
 
       return;
     }
@@ -324,6 +345,7 @@ function SignalRListener() {
   useEffect(() => {
     console.log('[signalR] starting');
 
+    const timers = invalidationTimers.current;
     const url = `${window.Controllarr.urlBase}/signalr/messages`;
 
     connection.current = new HubConnectionBuilder()
@@ -353,6 +375,8 @@ function SignalRListener() {
       .then(handleStart.current, handleStartFail.current);
 
     return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
       connection.current?.stop();
       connection.current = null;
     };

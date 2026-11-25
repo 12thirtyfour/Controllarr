@@ -730,5 +730,30 @@ namespace NzbDrone.Core.Test.Indexers.InternetArchiveTests
             sapphireReleases[0].Origin.Should().NotContain("fav-");
             sapphireReleases[0].Container.Should().Be("ZIP");
         }
+
+        [Test]
+        public void should_separate_single_game_fallback_queries_into_tiered_requests_and_strip_colon()
+        {
+            var settings = new InternetArchiveIndexerSettings
+            {
+                BaseUrl = "https://archive.org",
+                PrimaryArchiveUrls = new[] { "https://archive.org/details/htgdb-gamepacks" }
+            };
+            var generator = new InternetArchiveRequestGenerator { Settings = settings };
+
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                Series = new Series { Title = "Nintendo DS", TitleSlug = "nds" },
+                Episodes = new List<Episode> { new Episode { Title = "Pokemon: Diamond Version" } },
+                InteractiveSearch = false
+            };
+
+            var chain = generator.GetSearchRequests(criteria);
+
+            // Non-interactive searches should place direct metadata lookup first, then primary collection, then platform-scoped and global fallbacks in separate tiers
+            chain.Tiers.Should().BeGreaterThanOrEqualTo(4);
+            var tier0 = chain.GetTier(0).SelectMany(p => p).Select(r => r.Url.FullUri).ToList();
+            tier0.Should().ContainSingle().Which.Should().Contain("/metadata/htgdb-gamepacks/files?search=Pokemon%20Diamond%20Version");
+        }
     }
 }

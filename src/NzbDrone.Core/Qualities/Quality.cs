@@ -167,12 +167,12 @@ namespace NzbDrone.Core.Qualities
 
             DefaultQualityDefinitions = new HashSet<QualityDefinition>
             {
-                new QualityDefinition(Quality.VerifiedGoodDump) { Weight = 100, MinSize = 0, MaxSize = null, PreferredSize = 100 },
-                new QualityDefinition(Quality.VerifiedRedump) { Weight = 101, MinSize = 0, MaxSize = null, PreferredSize = 100 },
-                new QualityDefinition(Quality.NoIntroVerified) { Weight = 102, MinSize = 0, MaxSize = null, PreferredSize = 100 },
-                new QualityDefinition(Quality.UnverifiedRaw) { Weight = 103, MinSize = 0, MaxSize = null, PreferredSize = 100 },
-                new QualityDefinition(Quality.BetaProto) { Weight = 104, MinSize = 0, MaxSize = null, PreferredSize = 100 },
-                new QualityDefinition(Quality.TranslationPatch) { Weight = 105, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.BetaProto) { Weight = 100, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.TranslationPatch) { Weight = 101, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.UnverifiedRaw) { Weight = 102, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.VerifiedGoodDump) { Weight = 103, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.NoIntroVerified) { Weight = 104, MinSize = 0, MaxSize = null, PreferredSize = 100 },
+                new QualityDefinition(Quality.VerifiedRedump) { Weight = 105, MinSize = 0, MaxSize = null, PreferredSize = 100 },
                 new QualityDefinition(Quality.Unknown)     { Weight = 1,  MinSize = 1, MaxSize = 199.9, PreferredSize = 95 },
                 new QualityDefinition(Quality.SDTV)        { Weight = 2,  MinSize = 2, MaxSize = 100, PreferredSize = 95 },
                 new QualityDefinition(Quality.WEBRip480p)  { Weight = 3,  MinSize = 2, MaxSize = 100, PreferredSize = 95, GroupName = "WEB 480p" },

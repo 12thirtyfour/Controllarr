@@ -129,6 +129,9 @@ namespace NzbDrone.Core.MetadataSource.Game
         private static readonly ConcurrentDictionary<string, DateTime> ScraperCooldownUntil =
             new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
 
+        private static readonly ConcurrentDictionary<string, object> GamelistWriteLocks =
+            new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
         private readonly IConfigService _configService;
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
@@ -740,7 +743,30 @@ namespace NzbDrone.Core.MetadataSource.Game
             var gamelistPath = Path.Combine(platform.Path, "gamelist.xml");
             if (_diskProvider != null)
             {
-                _diskProvider.WriteAllText(gamelistPath, xmlContent);
+                var lockKey = gamelistPath;
+                try
+                {
+                    lockKey = Path.GetFullPath(gamelistPath);
+                }
+                catch
+                {
+                    // Fall back to raw path if platform.Path is non-standard in tests
+                }
+
+                var writeLock = GamelistWriteLocks.GetOrAdd(lockKey, _ => new object());
+                lock (writeLock)
+                {
+                    var tempPath = gamelistPath + ".tmp";
+                    _diskProvider.WriteAllText(tempPath, xmlContent);
+                    if (_diskProvider.FileExists(tempPath))
+                    {
+                        _diskProvider.MoveFile(tempPath, gamelistPath, true);
+                    }
+                    else
+                    {
+                        _diskProvider.WriteAllText(gamelistPath, xmlContent);
+                    }
+                }
             }
 
             return xmlContent;
@@ -787,8 +813,17 @@ namespace NzbDrone.Core.MetadataSource.Game
 
         public void Handle(RomFileDeletedEvent message)
         {
-            var series = message?.EpisodeFile?.Series?.Value ??
-                         (message?.EpisodeFile != null ? _seriesService?.GetSeries(message.EpisodeFile.SeriesId) : null);
+            // During disk scans / table cleanup, hundreds or thousands of MissingFromDisk / NoLinkedEpisodes
+            // deletions can fire in sequence; DiskScanService publishes PlatformScannedEvent once cleanup finishes.
+            if (message == null ||
+                message.Reason == DeleteMediaFileReason.MissingFromDisk ||
+                message.Reason == DeleteMediaFileReason.NoLinkedEpisodes)
+            {
+                return;
+            }
+
+            var series = message.EpisodeFile?.Series?.Value ??
+                         (message.EpisodeFile != null ? _seriesService?.GetSeries(message.EpisodeFile.SeriesId) : null);
             if (series == null)
             {
                 return;

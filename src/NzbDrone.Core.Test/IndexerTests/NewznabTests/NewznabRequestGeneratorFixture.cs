@@ -288,5 +288,28 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             pages.All(p => !p.Url.Query.Contains("season=")).Should().BeTrue();
             pages.All(p => p.Url.Query.Contains("t=search")).Should().BeTrue();
         }
+
+        [Test]
+        public void should_strip_colons_upfront_to_avoid_duplicate_queries()
+        {
+            Subject.MaxPages = 1;
+            var criteria = new SingleEpisodeSearchCriteria
+            {
+                Series = new Tv.Series { Title = "Nintendo DS", TitleSlug = "nds", TvdbId = 1044 },
+                Episodes = new List<Tv.Episode>
+                {
+                    new Tv.Episode { Title = "Pokemon: Diamond Version", SeasonNumber = 1, EpisodeNumber = 100 }
+                },
+                SeasonNumber = 1,
+                EpisodeNumber = 100
+            };
+
+            var results = Subject.GetSearchRequests(criteria);
+            var pages = results.GetAllTiers().SelectMany(t => t).ToList();
+
+            pages.Should().HaveCount(1);
+            pages[0].Url.Query.Should().Contain("q=Pokemon%20Diamond%20Version");
+            pages[0].Url.Query.Should().NotContain("%3A");
+        }
     }
 }

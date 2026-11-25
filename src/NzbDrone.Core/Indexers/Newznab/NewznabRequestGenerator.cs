@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
@@ -58,14 +59,10 @@ namespace NzbDrone.Core.Indexers.Newznab
                         {
                             queryTitles.Add(cleanBase);
                         }
-
-                        var unaccented = ep.Title.RemoveDiacritics();
-                        if (!string.IsNullOrWhiteSpace(unaccented))
+                        else
                         {
-                            queryTitles.Add(unaccented);
+                            queryTitles.Add(ep.Title);
                         }
-
-                        queryTitles.Add(ep.Title);
                     }
                 }
             }
@@ -197,6 +194,14 @@ namespace NzbDrone.Core.Indexers.Newznab
             return Settings?.Categories?.Distinct().ToList() ?? new List<int>();
         }
 
+        private static readonly Regex SearchHostilePunctuationRegex = new(
+            @"[:;!?'"",]|(?<=\s)-(?=\s)",
+            RegexOptions.Compiled);
+
+        private static readonly Regex MultiSpaceRegex = new(
+            @"\s{2,}",
+            RegexOptions.Compiled);
+
         private static string CleanGameTitleForSearch(string rawTitle)
         {
             if (string.IsNullOrWhiteSpace(rawTitle))
@@ -216,6 +221,9 @@ namespace NzbDrone.Core.Indexers.Newznab
             {
                 clean = clean.Substring(0, bracketIdx);
             }
+
+            clean = SearchHostilePunctuationRegex.Replace(clean, " ");
+            clean = MultiSpaceRegex.Replace(clean, " ");
 
             return clean.Trim();
         }

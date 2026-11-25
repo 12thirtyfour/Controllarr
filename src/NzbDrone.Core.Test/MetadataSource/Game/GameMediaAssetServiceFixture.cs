@@ -148,6 +148,36 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
         }
 
         [Test]
+        public void should_skip_gamelist_xml_rewrite_on_missing_from_disk_or_unlinked_rom_deletions()
+        {
+            var platform = new Series
+            {
+                Id = 8,
+                Title = "Nintendo Entertainment System",
+                Path = @"C:\Roms\NES"
+            };
+
+            Mocker.GetMock<IConfigService>()
+                  .Setup(c => c.MetadataGenerateGamelistXml)
+                  .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(platform.Path))
+                  .Returns(true);
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetSeries(platform.Id))
+                  .Returns(platform);
+
+            Subject.Handle(new RomFileDeletedEvent(new EpisodeFile { Id = 1, SeriesId = platform.Id }, DeleteMediaFileReason.MissingFromDisk));
+            Subject.Handle(new RomFileDeletedEvent(new EpisodeFile { Id = 2, SeriesId = platform.Id }, DeleteMediaFileReason.NoLinkedEpisodes));
+
+            Mocker.GetMock<IDiskProvider>().Verify(
+                d => d.WriteAllText(It.IsAny<string>(), It.IsAny<string>()),
+                Times.Never());
+        }
+
+        [Test]
         public void should_sync_metadata_scrapers_json_when_saving_metadata_sources_and_asset_settings()
         {
             var appDataDir = Path.Combine(Path.GetTempPath(), "Controllarr_MetaSync_" + Guid.NewGuid().ToString("N"));
