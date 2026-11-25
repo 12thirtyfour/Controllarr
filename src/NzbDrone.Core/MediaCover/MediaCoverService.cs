@@ -80,13 +80,13 @@ namespace NzbDrone.Core.MediaCover
         {
             if (seriesId == 0)
             {
-                // Series isn't in Sonarr yet, map via a proxy to circumvent referrer issues
+                // Series isn't in Controllarr yet, map via a proxy to circumvent referrer issues
                 foreach (var mediaCover in covers)
                 {
-                    if (!string.IsNullOrWhiteSpace(mediaCover.RemoteUrl) &&
-                        mediaCover.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                    if (TryGetLocalContentPath(mediaCover, out var contentPath))
                     {
-                        mediaCover.Url = _configFileProvider.UrlBase + mediaCover.RemoteUrl;
+                        mediaCover.RemoteUrl = contentPath;
+                        mediaCover.Url = _configFileProvider.UrlBase + contentPath;
                         continue;
                     }
 
@@ -102,10 +102,10 @@ namespace NzbDrone.Core.MediaCover
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(mediaCover.RemoteUrl) &&
-                        mediaCover.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                    if (TryGetLocalContentPath(mediaCover, out var contentPath))
                     {
-                        mediaCover.Url = _configFileProvider.UrlBase + mediaCover.RemoteUrl;
+                        mediaCover.RemoteUrl = contentPath;
+                        mediaCover.Url = _configFileProvider.UrlBase + contentPath;
                         continue;
                     }
 
@@ -117,6 +117,36 @@ namespace NzbDrone.Core.MediaCover
                     }
                 }
             }
+        }
+
+        private bool TryGetLocalContentPath(MediaCover cover, out string contentPath)
+        {
+            var urlBase = _configFileProvider.UrlBase;
+            var candidates = new[] { cover.RemoteUrl, cover.Url };
+
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate))
+                {
+                    continue;
+                }
+
+                if (candidate.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                {
+                    contentPath = candidate;
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(urlBase) &&
+                    candidate.StartsWith(urlBase + "/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                {
+                    contentPath = candidate[urlBase.Length..];
+                    return true;
+                }
+            }
+
+            contentPath = null;
+            return false;
         }
 
         private bool CoverExists(int seriesId, MediaCoverTypes coverType, DateTime? added)
@@ -161,8 +191,7 @@ namespace NzbDrone.Core.MediaCover
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(cover.RemoteUrl) &&
-                    cover.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))
+                if (TryGetLocalContentPath(cover, out _))
                 {
                     continue;
                 }

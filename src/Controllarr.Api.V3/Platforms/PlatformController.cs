@@ -10,6 +10,7 @@ using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.PlatformStats;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv;
@@ -252,6 +253,8 @@ namespace Sonarr.Api.V3.Platforms
         {
             foreach (var seriesResource in series)
             {
+                seriesResource.Images ??= new List<MediaCover>();
+                GameCatalogProxy.EnsureCanonicalPlatformImages(seriesResource.TvdbId, seriesResource.TitleSlug, seriesResource.Title, seriesResource.Images);
                 _coverMapper.ConvertToLocalUrls(seriesResource.Id, seriesResource.Images, seriesResource.Added);
             }
         }

@@ -716,6 +716,35 @@ namespace NzbDrone.Core.Tv
         public void Handle(ApplicationStartedEvent message)
         {
             ClearStalePendingPaths();
+            EnsureBuiltInPlatformImages();
+        }
+
+        private void EnsureBuiltInPlatformImages()
+        {
+            try
+            {
+                var updatedSeries = new List<Series>();
+
+                foreach (var series in _seriesRepository.All())
+                {
+                    series.Images ??= new List<MediaCover.MediaCover>();
+
+                    if (GameCatalogProxy.EnsureCanonicalPlatformImages(series.TvdbId, series.TitleSlug, series.Title, series.Images))
+                    {
+                        updatedSeries.Add(series);
+                    }
+                }
+
+                if (updatedSeries.Any())
+                {
+                    _seriesRepository.SetFields(updatedSeries, s => s.Images);
+                    _logger.Info("Normalized console images for {0} existing platform(s).", updatedSeries.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to normalize built-in platform console images on startup.");
+            }
         }
 
         private void ClearStalePendingPaths()

@@ -291,6 +291,121 @@ namespace NzbDrone.Core.MetadataSource.Game
             return entry != null;
         }
 
+        public static IReadOnlyList<PlatformCatalogEntry> GetBuiltInPlatforms() => BuiltInPlatforms;
+
+        public static string GetConsoleImageUrl(PlatformCatalogEntry platform)
+        {
+            return $"/Content/Images/Consoles/{platform.Slug.ToLowerInvariant()}.png";
+        }
+
+        public static bool TryResolveBuiltInPlatform(int tvdbId, string titleSlug, string title, out PlatformCatalogEntry entry)
+        {
+            if (tvdbId > 0)
+            {
+                entry = BuiltInPlatforms.FirstOrDefault(p => p.TvdbId == tvdbId);
+                if (entry != null)
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(titleSlug))
+            {
+                var trimmedSlug = titleSlug.Trim();
+                entry = BuiltInPlatforms.FirstOrDefault(p =>
+                    string.Equals(p.Slug, trimmedSlug, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(p.Name, trimmedSlug, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(p.ShortName, trimmedSlug, StringComparison.OrdinalIgnoreCase) ||
+                    p.Aliases.Any(a => string.Equals(a, trimmedSlug, StringComparison.OrdinalIgnoreCase)));
+                if (entry != null)
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                var trimmedTitle = title.Trim();
+                entry = BuiltInPlatforms.FirstOrDefault(p =>
+                    string.Equals(p.Slug, trimmedTitle, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(p.Name, trimmedTitle, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(p.ShortName, trimmedTitle, StringComparison.OrdinalIgnoreCase) ||
+                    p.Aliases.Any(a => string.Equals(a, trimmedTitle, StringComparison.OrdinalIgnoreCase)));
+                if (entry != null)
+                {
+                    return true;
+                }
+
+                entry = InferPlatformFromText(trimmedTitle);
+                if (entry != null)
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(titleSlug))
+            {
+                entry = InferPlatformFromText(titleSlug.Replace('-', ' ').Replace('_', ' '));
+                if (entry != null)
+                {
+                    return true;
+                }
+            }
+
+            entry = null;
+            return false;
+        }
+
+        public static bool EnsureCanonicalPlatformImages(int tvdbId, string titleSlug, string title, List<MediaCover.MediaCover> images)
+        {
+            if (images == null || !TryResolveBuiltInPlatform(tvdbId, titleSlug, title, out var platform))
+            {
+                return false;
+            }
+
+            return EnsureCanonicalPlatformImages(platform, images);
+        }
+
+        private static bool EnsureCanonicalPlatformImages(PlatformCatalogEntry platform, List<MediaCover.MediaCover> images)
+        {
+            var canonicalUrl = GetConsoleImageUrl(platform);
+            var changed = false;
+
+            foreach (var coverType in new[] { MediaCoverTypes.Poster, MediaCoverTypes.Banner })
+            {
+                var existing = images.FirstOrDefault(i => i.CoverType == coverType);
+                if (existing == null)
+                {
+                    images.Add(new MediaCover.MediaCover(coverType, canonicalUrl)
+                    {
+                        Url = canonicalUrl,
+                        RemoteUrl = canonicalUrl
+                    });
+                    changed = true;
+                }
+                else
+                {
+                    if (!string.Equals(existing.Url, canonicalUrl, StringComparison.Ordinal) ||
+                        !string.Equals(existing.RemoteUrl, canonicalUrl, StringComparison.Ordinal))
+                    {
+                        existing.Url = canonicalUrl;
+                        existing.RemoteUrl = canonicalUrl;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (images.RemoveAll(i =>
+                i.CoverType == MediaCoverTypes.Fanart &&
+                (string.IsNullOrWhiteSpace(i.RemoteUrl) ||
+                 !i.RemoteUrl.StartsWith("/Content/Images/", StringComparison.OrdinalIgnoreCase))) > 0)
+            {
+                changed = true;
+            }
+
+            return changed;
+        }
+
         public void RegisterGameSelection(int gameTvdbId)
         {
             if (!TryGetGameEntry(gameTvdbId, out var game))
@@ -4532,11 +4647,17 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             var seasons = BuildDefaultRegions();
             var firstAired = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            var consoleImageUrl = $"/Content/Images/Consoles/{platform.Slug}.png";
+            var consoleImageUrl = GetConsoleImageUrl(platform);
             var images = new List<MediaCover.MediaCover>
             {
                 new MediaCover.MediaCover(MediaCoverTypes.Poster, consoleImageUrl)
                 {
+                    Url = consoleImageUrl,
+                    RemoteUrl = consoleImageUrl
+                },
+                new MediaCover.MediaCover(MediaCoverTypes.Banner, consoleImageUrl)
+                {
+                    Url = consoleImageUrl,
                     RemoteUrl = consoleImageUrl
                 }
             };

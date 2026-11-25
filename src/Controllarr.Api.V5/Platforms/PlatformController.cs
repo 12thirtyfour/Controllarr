@@ -13,6 +13,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.PlatformStats;
 using NzbDrone.Core.RootFolders;
@@ -437,6 +438,8 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
     {
         foreach (var seriesResource in series)
         {
+            seriesResource.Images ??= new List<MediaCover>();
+            GameCatalogProxy.EnsureCanonicalPlatformImages(seriesResource.TvdbId, seriesResource.TitleSlug, seriesResource.Title, seriesResource.Images);
             _coverMapper.ConvertToLocalUrls(seriesResource.Id, seriesResource.Images, seriesResource.Added);
         }
     }

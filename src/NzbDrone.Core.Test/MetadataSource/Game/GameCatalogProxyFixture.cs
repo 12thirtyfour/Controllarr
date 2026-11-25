@@ -1925,5 +1925,71 @@ game (
             existing.RevisionTag.Should().Be("Retail (v1.0) • En,Fr,De");
             candidate.RevisionTag.Should().Be("Retail (v1.0) • En,Es,It");
         }
+
+        [Test]
+        public void should_have_canonical_console_image_and_png_asset_for_every_built_in_platform()
+        {
+            var platforms = GameCatalogProxy.GetBuiltInPlatforms();
+            platforms.Should().HaveCount(91);
+
+            var dir = new System.IO.DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+            string consoleAssetDir = null;
+            while (dir != null)
+            {
+                var candidate = System.IO.Path.Combine(dir.FullName, "frontend", "public", "Content", "Images", "Consoles");
+                if (System.IO.Directory.Exists(candidate))
+                {
+                    consoleAssetDir = candidate;
+                    break;
+                }
+
+                dir = dir.Parent;
+            }
+
+            consoleAssetDir.Should().NotBeNull("expected to locate frontend/public/Content/Images/Consoles asset folder");
+
+            foreach (var platform in platforms)
+            {
+                var expectedUrl = $"/Content/Images/Consoles/{platform.Slug.ToLowerInvariant()}.png";
+                var info = Subject.GetSeriesInfo(platform.TvdbId, Language.English, "standard");
+
+                info.Item1.Images.Should().Contain(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Poster && i.Url == expectedUrl && i.RemoteUrl == expectedUrl);
+                info.Item1.Images.Should().Contain(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Banner && i.Url == expectedUrl && i.RemoteUrl == expectedUrl);
+
+                var assetPath = System.IO.Path.Combine(consoleAssetDir, $"{platform.Slug.ToLowerInvariant()}.png");
+                System.IO.File.Exists(assetPath).Should().BeTrue($"missing console image PNG for {platform.Name} ({platform.Slug})");
+            }
+        }
+
+        [Test]
+        public void should_heal_missing_external_uppercase_and_legacy_slug_platform_images()
+        {
+            var emptyImages = new List<NzbDrone.Core.MediaCover.MediaCover>();
+            GameCatalogProxy.EnsureCanonicalPlatformImages(1003, "snes", "Super Nintendo Entertainment System", emptyImages).Should().BeTrue();
+            emptyImages.Should().Contain(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Poster && i.RemoteUrl == "/Content/Images/Consoles/snes.png");
+            emptyImages.Should().Contain(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Banner && i.RemoteUrl == "/Content/Images/Consoles/snes.png");
+
+            var staleImages = new List<NzbDrone.Core.MediaCover.MediaCover>
+            {
+                new(NzbDrone.Core.MediaCover.MediaCoverTypes.Poster, "/MediaCover/1/poster.jpg") { RemoteUrl = "https://example.com/old.jpg" },
+                new(NzbDrone.Core.MediaCover.MediaCoverTypes.Fanart, "/MediaCover/1/fanart.jpg") { RemoteUrl = "https://example.com/fanart.jpg" }
+            };
+            GameCatalogProxy.EnsureCanonicalPlatformImages(1022, "ps1", "Sony PlayStation", staleImages).Should().BeTrue();
+            staleImages.Should().NotContain(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Fanart);
+            staleImages.Should().ContainSingle(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Poster && i.Url == "/Content/Images/Consoles/ps1.png" && i.RemoteUrl == "/Content/Images/Consoles/ps1.png");
+
+            var legacySlugImages = new List<NzbDrone.Core.MediaCover.MediaCover>();
+            GameCatalogProxy.EnsureCanonicalPlatformImages(0, "super-nintendo-entertainment-system", "Super Nintendo Entertainment System", legacySlugImages).Should().BeTrue();
+            legacySlugImages.Should().Contain(i => i.CoverType == NzbDrone.Core.MediaCover.MediaCoverTypes.Poster && i.RemoteUrl == "/Content/Images/Consoles/snes.png");
+
+            var uppercaseImages = new List<NzbDrone.Core.MediaCover.MediaCover>
+            {
+                new(NzbDrone.Core.MediaCover.MediaCoverTypes.Poster, "/Content/Images/Consoles/NES.png") { RemoteUrl = "/Content/Images/Consoles/NES.png" },
+                new(NzbDrone.Core.MediaCover.MediaCoverTypes.Banner, "/Content/Images/Consoles/NES.png") { RemoteUrl = "/Content/Images/Consoles/NES.png" }
+            };
+            GameCatalogProxy.EnsureCanonicalPlatformImages(1001, "nes", "Nintendo Entertainment System", uppercaseImages).Should().BeTrue();
+            uppercaseImages.Should().OnlyContain(i => i.Url == "/Content/Images/Consoles/nes.png" && i.RemoteUrl == "/Content/Images/Consoles/nes.png");
+            GameCatalogProxy.EnsureCanonicalPlatformImages(1001, "nes", "Nintendo Entertainment System", uppercaseImages).Should().BeFalse();
+        }
     }
 }

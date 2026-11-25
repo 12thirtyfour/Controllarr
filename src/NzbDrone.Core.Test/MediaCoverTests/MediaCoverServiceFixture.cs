@@ -239,5 +239,19 @@ namespace NzbDrone.Core.Test.MediaCoverTests
             Mocker.GetMock<IImageResizer>()
                   .Verify(v => v.Resize(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Exactly(2));
         }
+
+        [Test]
+        public void should_preserve_local_content_image_url_when_remote_url_is_empty()
+        {
+            var covers = new List<MediaCover.MediaCover>
+            {
+                new() { CoverType = MediaCoverTypes.Poster, Url = "/Content/Images/Consoles/snes.png" }
+            };
+
+            Subject.ConvertToLocalUrls(12, covers, DateTime.UtcNow);
+
+            covers.Single().Url.Should().Be("/Content/Images/Consoles/snes.png");
+            covers.Single().RemoteUrl.Should().Be("/Content/Images/Consoles/snes.png");
+        }
     }
 }

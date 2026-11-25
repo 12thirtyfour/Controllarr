@@ -141,29 +141,47 @@ function isDiscBasedPlatform(titleSlug?: string, title?: string): boolean {
   );
 }
 
+function normalizeContentUrl(url?: string) {
+  if (!url) {
+    return undefined;
+  }
+
+  const urlBase = window.Controllarr?.urlBase || '';
+
+  if (url.startsWith('/Content/Images/')) {
+    return `${urlBase}${url}`;
+  }
+
+  return url;
+}
+
 function getFanartUrl(images: Image[]) {
   return images.find((image) => image.coverType === 'fanart')?.url;
 }
 
 function getConsoleArtUrl(images: Image[], titleSlug?: string) {
-  const poster = images.find((image) => image.coverType === 'poster');
+  const poster =
+    images.find((image) => image.coverType === 'poster') ??
+    images.find((image) => image.coverType === 'banner');
+
+  if (poster?.url && poster.url.includes('/Content/Images/Consoles/')) {
+    return poster.url;
+  }
 
   if (
     poster?.remoteUrl &&
     poster.remoteUrl.startsWith('/Content/Images/Consoles/')
   ) {
-    return poster.remoteUrl;
-  }
-
-  if (poster?.url && poster.url.startsWith('/Content/Images/Consoles/')) {
-    return poster.url;
+    return normalizeContentUrl(poster.remoteUrl);
   }
 
   if (titleSlug) {
-    return `/Content/Images/Consoles/${titleSlug}.png`;
+    return normalizeContentUrl(
+      `/Content/Images/Consoles/${titleSlug.toLowerCase()}.png`
+    );
   }
 
-  return poster?.remoteUrl || poster?.url;
+  return poster?.url || poster?.remoteUrl;
 }
 
 function getRunningYears(year: number) {
@@ -329,6 +347,15 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   const [isDeletePlatformModalOpen, setIsDeletePlatformModalOpen] =
     useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+  const [consoleArtStage, setConsoleArtStage] = useState(0);
+
+  useEffect(() => {
+    setConsoleArtStage(0);
+  }, [seriesId, series?.titleSlug]);
+
+  const handleConsoleArtError = useCallback(() => {
+    setConsoleArtStage((stage) => stage + 1);
+  }, []);
   const [
     isCollectionInteractiveSearchModalOpen,
     setIsCollectionInteractiveSearchModalOpen,
@@ -612,7 +639,25 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
   }
 
   const fanartUrl = getFanartUrl(images);
-  const consoleArtUrl = getConsoleArtUrl(images, titleSlug);
+  const primaryConsoleArtUrl = getConsoleArtUrl(images, titleSlug);
+  const slugFallbackConsoleArtUrl = titleSlug
+    ? normalizeContentUrl(
+        `/Content/Images/Consoles/${titleSlug.toLowerCase()}.png`
+      )
+    : undefined;
+
+  let consoleArtUrl = primaryConsoleArtUrl;
+
+  if (consoleArtStage === 1) {
+    consoleArtUrl =
+      slugFallbackConsoleArtUrl &&
+      slugFallbackConsoleArtUrl !== primaryConsoleArtUrl
+        ? slugFallbackConsoleArtUrl
+        : undefined;
+  } else if (consoleArtStage >= 2) {
+    consoleArtUrl = undefined;
+  }
+
   let collectionStrategyLabel = '1G1R';
 
   if (
@@ -830,6 +875,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                   src={consoleArtUrl}
                   alt=""
                   aria-hidden="true"
+                  onError={handleConsoleArtError}
                 />
               ) : null}
 

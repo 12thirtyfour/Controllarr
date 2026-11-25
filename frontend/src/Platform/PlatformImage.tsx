@@ -14,14 +14,14 @@ function findImage(images: Image[], coverType: CoverType) {
 }
 
 function getUrl(image: Image, coverType: CoverType, size: number) {
-  if (image?.remoteUrl && image.remoteUrl.startsWith('/Content/Images/')) {
-    return image.remoteUrl;
-  }
-
   const imageUrl = image?.url;
 
-  if (imageUrl && imageUrl.startsWith('/Content/Images/')) {
+  if (imageUrl && imageUrl.includes('/Content/Images/')) {
     return imageUrl;
+  }
+
+  if (image?.remoteUrl && image.remoteUrl.startsWith('/Content/Images/')) {
+    return `${window.Controllarr?.urlBase || ''}${image.remoteUrl}`;
   }
 
   return imageUrl
