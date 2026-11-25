@@ -17,7 +17,6 @@ using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Jobs
@@ -102,12 +101,6 @@ namespace NzbDrone.Core.Jobs
                     {
                         Interval = 7 * 24 * 60,
                         TypeName = typeof(UpdateDatCatalogsCommand).FullName
-                    },
-
-                    new ScheduledTask
-                    {
-                        Interval = 12 * 60,
-                        TypeName = typeof(RefreshPlatformCommand).FullName
                     },
 
                     new ScheduledTask

@@ -23,6 +23,13 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-25
+
+### Changed
+- **Removed Automatic Scheduled Library Refresh (`TaskManager`)**:
+  - Removed the 12-hour automatic `RefreshPlatformCommand` scheduled task from `TaskManager` so library refreshes only run when triggered manually by the user (or when adding, editing, or importing a platform) or when DAT catalogs/databases are updated (`UpdateDatCatalogsCommand` via `DatCatalogUpdateService` / `DatDatabaseUpdatedEvent` via `DatDatabaseUpdatedHandler`).
+  - Existing SQLite and PostgreSQL installations automatically prune the obsolete `RefreshPlatformCommand` scheduled task entry on application startup.
+
 ## [1.0.0-rc.4] - 2026-11-24
 
 ### Added
