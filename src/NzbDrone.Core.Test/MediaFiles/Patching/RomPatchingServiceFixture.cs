@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using FluentAssertions;
 using Moq;
@@ -187,6 +188,262 @@ namespace NzbDrone.Core.Test.MediaFiles.Patching
                     Directory.Delete(tempDir, true);
                 }
             }
+        }
+
+        [Test]
+        public void should_never_apply_ips_patch_to_unrelated_single_file_platform_like_3do_chd()
+        {
+            var tempRoot = Path.Combine(Path.GetTempPath(), "Controllarr_PatchCrossPlatform_" + Guid.NewGuid().ToString("N"));
+            var threeDoUsa = Path.Combine(tempRoot, "3do", "USA");
+            var gbaUsa = Path.Combine(tempRoot, "gba", "USA");
+            Directory.CreateDirectory(threeDoUsa);
+            Directory.CreateDirectory(gbaUsa);
+
+            try
+            {
+                var threeDoChdPath = Path.Combine(threeDoUsa, "Road Rash (USA).chd");
+                File.WriteAllBytes(threeDoChdPath, Encoding.ASCII.GetBytes("FAKE_3DO_CHD_CONTAINER"));
+
+                var fireRedPath = Path.Combine(gbaUsa, "Pokemon - FireRed Version (USA, Europe).gba");
+                File.WriteAllBytes(fireRedPath, Encoding.ASCII.GetBytes("FIRE_RED_RETAIL_GBA_ROM"));
+
+                var threeDoSeries = new Series { Id = 10, TvdbId = 1041, Title = "3DO Interactive Multiplayer", TitleSlug = "3do", Path = Path.Combine(tempRoot, "3do") };
+                var gbaSeries = new Series { Id = 11, TvdbId = 1011, Title = "Nintendo Game Boy Advance", TitleSlug = "gba", Path = Path.Combine(tempRoot, "gba") };
+
+                _seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series> { threeDoSeries, gbaSeries });
+                _mediaFileServiceMock.Setup(m => m.GetFilesBySeries(10)).Returns(new List<EpisodeFile>
+                {
+                    new EpisodeFile { Id = 100, SeriesId = 10, SeasonNumber = 1, RelativePath = Path.Combine("USA", "Road Rash (USA).chd") }
+                });
+                _mediaFileServiceMock.Setup(m => m.GetFilesBySeries(11)).Returns(new List<EpisodeFile>
+                {
+                    new EpisodeFile { Id = 101, SeriesId = 11, SeasonNumber = 1, RelativePath = Path.Combine("USA", "Pokemon - FireRed Version (USA, Europe).gba") }
+                });
+
+                var ipsPatch = BuildSimpleIpsPatch();
+
+                var result = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    PatchFileName = "Pokemon Orange Islands Beta 5.7.ips",
+                    PatchBase64Content = Convert.ToBase64String(ipsPatch)
+                });
+
+                result.Success.Should().BeFalse();
+                result.Message.Should().Contain("select the target Platform and Retail Base ROM");
+                Directory.Exists(Path.Combine(threeDoSeries.Path, "ROM Hacks")).Should().BeFalse();
+                Directory.Exists(Path.Combine(gbaSeries.Path, "ROM Hacks")).Should().BeFalse();
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_reject_compressed_disc_containers_like_chd_for_ips_and_bps()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "Controllarr_PatchChd_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var chdPath = Path.Combine(tempDir, "Road Rash (USA).chd");
+                var chdBytes = Encoding.ASCII.GetBytes("FAKE_CHD_CONTAINER_DATA");
+                File.WriteAllBytes(chdPath, chdBytes);
+
+                var ipsResult = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    BaseRomPath = chdPath,
+                    PatchFileName = "Pokemon Orange Islands Beta 5.7.ips",
+                    PatchBase64Content = Convert.ToBase64String(BuildSimpleIpsPatch())
+                });
+
+                ipsResult.Success.Should().BeFalse();
+                ipsResult.Message.Should().Contain("compressed disc container");
+
+                var bpsResult = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    BaseRomPath = chdPath,
+                    PatchFileName = "DiscPatch.bps",
+                    PatchBase64Content = Convert.ToBase64String(BuildBpsTargetReadPatch(chdBytes, chdBytes))
+                });
+
+                bpsResult.Success.Should().BeFalse();
+                bpsResult.Message.Should().Contain("compressed disc container");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_apply_ips_patch_to_explicitly_selected_zipped_gba_base_rom_with_accurate_metadata()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "Controllarr_PatchZippedGba_" + Guid.NewGuid().ToString("N"));
+            var usaDir = Path.Combine(tempDir, "USA");
+            Directory.CreateDirectory(usaDir);
+
+            try
+            {
+                var retailBytes = Encoding.ASCII.GetBytes("HELLO_RETAIL_ROM_DATA");
+                var zipPath = Path.Combine(usaDir, "Pokemon - FireRed Version (USA, Europe).zip");
+                using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    var entry = zip.CreateEntry("Pokemon - FireRed Version (USA, Europe).gba");
+                    using var stream = entry.Open();
+                    stream.Write(retailBytes, 0, retailBytes.Length);
+                }
+
+                var originalZipBytes = File.ReadAllBytes(zipPath);
+
+                var gbaSeries = new Series
+                {
+                    Id = 11,
+                    TvdbId = 1011,
+                    Title = "Nintendo Game Boy Advance",
+                    TitleSlug = "gba",
+                    Path = tempDir
+                };
+
+                _seriesServiceMock.Setup(s => s.GetSeries(11)).Returns(gbaSeries);
+                _mediaFileServiceMock.Setup(m => m.GetFilesBySeries(11)).Returns(new List<EpisodeFile>
+                {
+                    new EpisodeFile
+                    {
+                        Id = 202,
+                        SeriesId = 11,
+                        SeasonNumber = 1,
+                        RelativePath = Path.Combine("USA", "Pokemon - FireRed Version (USA, Europe).zip")
+                    }
+                });
+                _episodeServiceMock.Setup(e => e.GetEpisodeBySeries(11)).Returns(new List<Episode>());
+                _mediaFileServiceMock.Setup(m => m.GetFilesWithRelativePath(11, It.IsAny<string>())).Returns(new List<EpisodeFile>());
+                _mediaFileServiceMock.Setup(m => m.Add(It.IsAny<EpisodeFile>())).Returns((EpisodeFile f) =>
+                {
+                    f.Id = 303;
+                    return f;
+                });
+
+                var result = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    SeriesId = 11,
+                    BaseEpisodeFileId = 202,
+                    PatchFileName = "Pokemon Orange Islands Beta 5.7.ips",
+                    PatchBase64Content = Convert.ToBase64String(BuildSimpleIpsPatch())
+                });
+
+                result.Success.Should().BeTrue();
+                result.Format.Should().Be("IPS");
+                result.PlatformTitle.Should().Be("Nintendo Game Boy Advance");
+                result.BaseRomName.Should().Be("Pokemon - FireRed Version (USA, Europe).zip");
+                result.BaseRomCrc32.Should().Be(RomPatchingService.ComputeCrc32Uint(retailBytes, 0, retailBytes.Length).ToString("x8"));
+                result.OutputRomPath.Should().EndWith(".gba");
+                result.OutputRomPath.Should().Contain("ROM Hacks");
+                result.VerifiedInCatalog.Should().BeFalse();
+                result.MatchedCatalogName.Should().BeNull();
+                Encoding.ASCII.GetString(File.ReadAllBytes(result.OutputRomPath)).Should().Be("HELLO_HACKED_ROM_DATA!!!");
+                File.ReadAllBytes(zipPath).Should().Equal(originalZipBytes);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_inspect_ips_and_bps_patches_without_writing_files()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "Controllarr_InspectPatch_" + Guid.NewGuid().ToString("N"));
+            var usaDir = Path.Combine(tempDir, "USA");
+            Directory.CreateDirectory(usaDir);
+
+            try
+            {
+                var retailPath = Path.Combine(usaDir, "Mother 3 (USA).gba");
+                var retailBytes = Encoding.ASCII.GetBytes("CLEAN_RETAIL_1G1R_MOTHER3_ROM");
+                File.WriteAllBytes(retailPath, retailBytes);
+                var expectedSrcCrc = RomPatchingService.ComputeCrc32Uint(retailBytes, 0, retailBytes.Length).ToString("x8");
+
+                var targetBytes = Encoding.ASCII.GetBytes("TRANSLATED_MOTHER3_ENG_V1_3!");
+                var bpsPatch = BuildBpsTargetReadPatch(retailBytes, targetBytes);
+
+                var series = new Series
+                {
+                    Id = 5,
+                    TvdbId = 1011,
+                    Title = "Nintendo Game Boy Advance",
+                    TitleSlug = "gba",
+                    Path = tempDir
+                };
+
+                _seriesServiceMock.Setup(s => s.GetAllSeries()).Returns(new List<Series> { series });
+                _mediaFileServiceMock.Setup(m => m.GetFilesBySeries(5)).Returns(new List<EpisodeFile>
+                {
+                    new EpisodeFile
+                    {
+                        Id = 55,
+                        SeriesId = 5,
+                        SeasonNumber = 1,
+                        RelativePath = Path.Combine("USA", "Mother 3 (USA).gba")
+                    }
+                });
+
+                var bpsInspect = _subject.InspectPatch(new RomPatchRequestModel
+                {
+                    PatchFileName = "Mother 3 [T+Eng].bps",
+                    PatchBase64Content = Convert.ToBase64String(bpsPatch)
+                });
+
+                bpsInspect.Success.Should().BeTrue();
+                bpsInspect.Format.Should().Be("BPS");
+                bpsInspect.HasEmbeddedSourceChecksum.Should().BeTrue();
+                bpsInspect.ExpectedSourceCrc32.Should().Be(expectedSrcCrc);
+                bpsInspect.RequiresManualBaseRom.Should().BeFalse();
+                bpsInspect.AutoMatchedSeriesId.Should().Be(5);
+                bpsInspect.AutoMatchedBaseEpisodeFileId.Should().Be(55);
+                bpsInspect.AutoMatchedBaseRomName.Should().Be("Mother 3 (USA).gba");
+
+                var ipsInspect = _subject.InspectPatch(new RomPatchRequestModel
+                {
+                    PatchFileName = "Pokemon Orange Islands Beta 5.7.ips",
+                    PatchBase64Content = Convert.ToBase64String(BuildSimpleIpsPatch())
+                });
+
+                ipsInspect.Success.Should().BeTrue();
+                ipsInspect.Format.Should().Be("IPS");
+                ipsInspect.HasEmbeddedSourceChecksum.Should().BeFalse();
+                ipsInspect.RequiresManualBaseRom.Should().BeTrue();
+                ipsInspect.MaxPatchEndOffset.Should().Be(24);
+                Directory.Exists(Path.Combine(tempDir, "ROM Hacks")).Should().BeFalse();
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        private static byte[] BuildSimpleIpsPatch()
+        {
+            using var ms = new MemoryStream();
+            ms.Write(Encoding.ASCII.GetBytes("PATCH"));
+            ms.Write(new byte[] { 0x00, 0x00, 0x06, 0x00, 0x06 });
+            ms.Write(Encoding.ASCII.GetBytes("HACKED"));
+            ms.Write(new byte[] { 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x03, (byte)'!' });
+            ms.Write(Encoding.ASCII.GetBytes("EOF"));
+            return ms.ToArray();
         }
 
         private static byte[] BuildBpsTargetReadPatch(byte[] source, byte[] target)

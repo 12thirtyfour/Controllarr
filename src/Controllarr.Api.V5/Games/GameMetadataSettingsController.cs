@@ -91,6 +91,23 @@ namespace Sonarr.Api.V5.Games
             return Ok(_datCatalogUpdateService?.SyncLibraryDatCatalogs() ?? new DatCatalogSyncResultModel());
         }
 
+        [HttpPost("patches/inspect")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public ActionResult<RomPatchInspectResultModel> InspectRomPatch([FromBody] RomPatchRequestModel? request)
+        {
+            if (_romPatchingService == null)
+            {
+                return Ok(new RomPatchInspectResultModel
+                {
+                    Success = false,
+                    Message = "ROM patching service is unavailable."
+                });
+            }
+
+            return Ok(_romPatchingService.InspectPatch(request));
+        }
+
         [HttpPost("patches/apply")]
         [Consumes("application/json")]
         [Produces("application/json")]
