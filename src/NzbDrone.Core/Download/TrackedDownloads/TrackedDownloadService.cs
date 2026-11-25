@@ -109,6 +109,25 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 return existingItem;
             }
 
+            if (existingItem != null &&
+                existingItem.State == TrackedDownloadState.Downloading &&
+                existingItem.RemoteEpisode?.Series != null &&
+                existingItem.RemoteEpisode.Episodes != null &&
+                existingItem.RemoteEpisode.Episodes.Any() &&
+                string.Equals(existingItem.DownloadItem?.Title, downloadItem.Title, StringComparison.Ordinal))
+            {
+                var existingDownloadHistory = _downloadHistoryService.GetLatestDownloadHistoryItem(downloadItem.DownloadId);
+                if (existingDownloadHistory == null || GetStateFromHistory(existingDownloadHistory.EventType) == TrackedDownloadState.Downloading)
+                {
+                    LogItemChange(existingItem, existingItem.DownloadItem, downloadItem);
+
+                    existingItem.DownloadItem = downloadItem;
+                    existingItem.IsTrackable = true;
+
+                    return existingItem;
+                }
+            }
+
             var trackedDownload = new TrackedDownload
             {
                 DownloadClient = downloadClient.Id,
@@ -170,6 +189,13 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                 firstHistoryItem.SeriesId,
                                 historyItems.Where(v => v.EventType == GameHistoryEventType.Grabbed)
                                     .Select(h => h.EpisodeId).Distinct());
+
+                            if (trackedDownload.RemoteEpisode?.Series != null &&
+                                trackedDownload.RemoteEpisode.ParsedEpisodeInfo != null &&
+                                trackedDownload.RemoteEpisode.ParsedEpisodeInfo.SeriesTitle.IsNullOrWhiteSpace())
+                            {
+                                trackedDownload.RemoteEpisode.ParsedEpisodeInfo.SeriesTitle = trackedDownload.RemoteEpisode.Series.Title;
+                            }
                         }
                     }
 
@@ -257,13 +283,19 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 existingItem.CanBeRemoved != downloadItem.CanBeRemoved ||
                 existingItem.CanMoveFiles != downloadItem.CanMoveFiles)
             {
+                var gameDisplay = trackedDownload.RemoteEpisode?.Series != null &&
+                                  trackedDownload.RemoteEpisode.Episodes != null &&
+                                  trackedDownload.RemoteEpisode.Episodes.Any()
+                    ? $"{trackedDownload.RemoteEpisode.Series.Title} - {string.Join(", ", trackedDownload.RemoteEpisode.Episodes.Select(e => e.Title))}"
+                    : trackedDownload.RemoteEpisode?.ParsedEpisodeInfo?.ToString();
+
                 _logger.Debug("Tracking '{0}:{1}': ClientState={2}{3} ControllarrStage={4} Game='{5}' OutputPath={6}.",
                     downloadItem.DownloadClientInfo.Name,
                     downloadItem.Title,
                     downloadItem.Status,
                     downloadItem.CanBeRemoved ? "" : downloadItem.CanMoveFiles ? " (busy)" : " (readonly)",
                     trackedDownload.State,
-                    trackedDownload.RemoteEpisode?.ParsedEpisodeInfo,
+                    gameDisplay,
                     downloadItem.OutputPath);
             }
         }

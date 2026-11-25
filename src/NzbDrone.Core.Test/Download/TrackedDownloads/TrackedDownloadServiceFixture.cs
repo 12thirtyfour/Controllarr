@@ -541,6 +541,55 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             Subject.Find("other").Should().NotBeNull();
         }
 
+        [Test]
+        public void should_reuse_resolved_downloading_tracked_download_without_reparsing_when_title_and_state_unchanged()
+        {
+            GivenDownloadHistory();
+
+            var remoteEpisode = new RemoteEpisode
+            {
+                Series = new Series { Id = 5, Title = "Atari Jaguar CD" },
+                Episodes = [new Episode { Id = 4, Title = "Robinson's Requiem" }],
+                ParsedEpisodeInfo = new ParsedEpisodeInfo
+                {
+                    SeriesTitle = "Atari Jaguar CD"
+                }
+            };
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.Map(It.IsAny<ParsedEpisodeInfo>(), 5, It.IsAny<IEnumerable<int>>()))
+                .Returns(remoteEpisode);
+
+            var client = new DownloadClientDefinition
+            {
+                Id = 1,
+                Protocol = DownloadProtocol.Http,
+                Name = "Internet Archive"
+            };
+
+            var item = new DownloadClientItem
+            {
+                Title = "Robinsons Requiem (World)",
+                DownloadId = "35238",
+                Status = DownloadItemStatus.Queued,
+                DownloadClientInfo = new DownloadClientItemClientInfo
+                {
+                    Protocol = client.Protocol,
+                    Id = client.Id,
+                    Name = client.Name
+                }
+            };
+
+            var first = Subject.TrackDownload(client, item);
+            var second = Subject.TrackDownload(client, item);
+
+            second.Should().BeSameAs(first);
+            second.RemoteEpisode.Series.Id.Should().Be(5);
+            second.RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 4);
+            Mocker.GetMock<IHistoryService>()
+                .Verify(s => s.FindByDownloadId("35238"), Times.Once());
+        }
+
         private void GivenTrackedDownload(int downloadClientId, string downloadId)
         {
             var client = new DownloadClientDefinition

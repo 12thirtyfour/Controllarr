@@ -217,5 +217,67 @@ namespace NzbDrone.Core.Test.MediaFiles.DiscTests
                 }
             }
         }
+
+        [TestCase(4096, "MODE1/2048")]
+        [TestCase(4704, "MODE1/2352")]
+        public void Should_fallback_to_temporary_cue_when_raw_iso_createcd_fails_and_clean_up(int isoSize, string expectedMode)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr-iso-fallback-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            var isoPath = Path.Combine(tempDir, "ROBINSONS_REQUEIM.iso");
+            var expectedChdPath = Path.Combine(tempDir, "Robinson's Requiem (USA).chd");
+            File.WriteAllBytes(isoPath, new byte[isoSize]);
+
+            string capturedCuePath = null;
+            string capturedCueContent = null;
+
+            try
+            {
+                Mocker.GetMock<IProcessProvider>()
+                    .Setup(p => p.StartAndCapture("chdman", It.Is<string>(a => a.StartsWith("createcd ") && a.Contains(isoPath)), null))
+                    .Returns(new ProcessOutput
+                    {
+                        ExitCode = 1,
+                        Lines =
+                        {
+                            new ProcessOutputLine(ProcessOutputLevel.Error, "Error parsing input file")
+                        }
+                    });
+
+                Mocker.GetMock<IProcessProvider>()
+                    .Setup(p => p.StartAndCapture("chdman", It.Is<string>(a => a.StartsWith("createcd ") && !a.Contains(isoPath) && a.Contains("disc.cue")), null))
+                    .Returns((string exe, string args, System.Collections.Specialized.StringDictionary env) =>
+                    {
+                        var marker = "createcd -i \"";
+                        var start = args.IndexOf(marker, StringComparison.Ordinal) + marker.Length;
+                        var end = args.IndexOf("\"", start, StringComparison.Ordinal);
+                        capturedCuePath = args.Substring(start, end - start);
+                        capturedCueContent = File.ReadAllText(capturedCuePath);
+                        File.WriteAllBytes(expectedChdPath, new byte[] { 1, 2, 3 });
+                        return new ProcessOutput { ExitCode = 0 };
+                    });
+
+                Mocker.GetMock<IProcessProvider>()
+                    .Setup(p => p.StartAndCapture("chdman", $"verify -i \"{expectedChdPath}\"", null))
+                    .Returns(new ProcessOutput { ExitCode = 0 });
+
+                var result = Subject.CompressDisc(isoPath, "jaguarcd", out var outputPath, expectedChdPath);
+
+                result.Should().BeTrue();
+                outputPath.Should().Be(expectedChdPath);
+                capturedCuePath.Should().NotBeNullOrWhiteSpace();
+                capturedCueContent.Should().Contain($"FILE \"{isoPath}\" BINARY");
+                capturedCueContent.Should().Contain($"TRACK 01 {expectedMode}");
+                File.Exists(capturedCuePath).Should().BeFalse();
+                Directory.Exists(Path.GetDirectoryName(capturedCuePath)).Should().BeFalse();
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
     }
 }

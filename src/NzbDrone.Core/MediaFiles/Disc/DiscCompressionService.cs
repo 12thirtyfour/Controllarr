@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using NLog;
 using NzbDrone.Common.Processes;
@@ -87,8 +88,23 @@ namespace NzbDrone.Core.MediaFiles.Disc
             var compressResult = _processProvider.StartAndCapture(executable, arguments);
             if (compressResult == null || compressResult.ExitCode != 0)
             {
-                _logger.Error("Disc compression ({0}) failed for {1} with exit code {2}", executable, sourcePath, compressResult?.ExitCode);
-                return false;
+                var errorOutput = FormatProcessOutput(compressResult);
+                var canRetryViaCue = format == DiscCompressionFormat.ChdCd &&
+                                     string.Equals(Path.GetExtension(sourcePath), ".iso", StringComparison.OrdinalIgnoreCase) &&
+                                     File.Exists(sourcePath);
+
+                if (!canRetryViaCue)
+                {
+                    _logger.Error("Disc compression ({0}) failed for {1} with exit code {2}. Output: {3}", executable, sourcePath, compressResult?.ExitCode, errorOutput);
+                    return false;
+                }
+
+                _logger.Warn("Direct disc compression ({0}) failed for {1} with exit code {2}; retrying via temporary CUE sheet. Output: {3}", executable, sourcePath, compressResult?.ExitCode, errorOutput);
+
+                if (!TryCompressRawIsoViaCue(sourcePath, targetPath))
+                {
+                    return false;
+                }
             }
 
             if (format == DiscCompressionFormat.ChdCd || format == DiscCompressionFormat.ChdDvd)
@@ -96,12 +112,97 @@ namespace NzbDrone.Core.MediaFiles.Disc
                 var verifyResult = _processProvider.StartAndCapture("chdman", $"verify -i \"{outputPath}\"");
                 if (verifyResult == null || verifyResult.ExitCode != 0)
                 {
-                    _logger.Error("CHD verification failed for {0}", outputPath);
+                    var verifyOutput = FormatProcessOutput(verifyResult);
+                    _logger.Error("CHD verification failed for {0}. Output: {1}", outputPath, verifyOutput);
                     return false;
                 }
             }
 
             return true;
+        }
+
+        private bool TryCompressRawIsoViaCue(string sourcePath, string targetPath)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr-iso-cue-" + Guid.NewGuid().ToString("N"));
+
+            try
+            {
+                Directory.CreateDirectory(tempDir);
+
+                var fileLength = new FileInfo(sourcePath).Length;
+                var sectorMode = (fileLength > 0 && fileLength % 2352 == 0 && fileLength % 2048 != 0)
+                    ? "MODE1/2352"
+                    : "MODE1/2048";
+
+                var tempCuePath = Path.Combine(tempDir, "disc.cue");
+                var cueContent = string.Join(
+                    Environment.NewLine,
+                    $"FILE \"{sourcePath}\" BINARY",
+                    $"  TRACK 01 {sectorMode}",
+                    "    INDEX 01 00:00:00");
+                File.WriteAllText(tempCuePath, cueContent);
+
+                if (File.Exists(targetPath))
+                {
+                    try
+                    {
+                        File.Delete(targetPath);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                var retryResult = _processProvider.StartAndCapture("chdman", $"createcd -i \"{tempCuePath}\" -o \"{targetPath}\" -f");
+                if (retryResult == null || retryResult.ExitCode != 0)
+                {
+                    var retryOutput = FormatProcessOutput(retryResult);
+                    _logger.Error("Disc compression fallback (chdman via temporary CUE) failed for {0} with exit code {1}. Output: {2}", sourcePath, retryResult?.ExitCode, retryOutput);
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Disc compression fallback (chdman via temporary CUE) failed for {0}", sourcePath);
+                return false;
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+        }
+
+        private static string FormatProcessOutput(ProcessOutput output)
+        {
+            if (output == null)
+            {
+                return "(no process output)";
+            }
+
+            var lines = (output.Error ?? new List<ProcessOutputLine>())
+                .Concat(output.Standard ?? new List<ProcessOutputLine>())
+                .Select(l => l?.Content?.Trim())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList();
+
+            if (lines.Count == 0)
+            {
+                return "(none)";
+            }
+
+            var combined = string.Join(" | ", lines);
+            return combined.Length > 500 ? string.Concat(combined.AsSpan(0, 500), "...") : combined;
         }
 
         public (string Executable, string Arguments, string PrimaryOutputPath) BuildDecompressionCommand(

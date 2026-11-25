@@ -9,6 +9,7 @@ using NzbDrone.Core.Dat;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.LibraryImport;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -310,6 +311,126 @@ namespace NzbDrone.Core.Test.MediaFiles.LibraryImport
             scanned.Should().ContainSingle();
             scanned[0].Series.Should().BeNull();
             scanned[0].IsHighConfidenceMatch.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_not_create_fake_episode_or_mark_verified_when_download_iso_has_no_dat_match()
+        {
+            var downloadDir = Path.Combine(_tempRoot, "Downloads");
+            var isoPath = Path.Combine(downloadDir, "ROBINSONS_REQUEIM.iso");
+            Directory.CreateDirectory(downloadDir);
+            File.WriteAllBytes(isoPath, new byte[4096]);
+
+            var jaguarCdSeries = new Series
+            {
+                Id = 50,
+                TvdbId = 1050,
+                Title = "Atari Jaguar CD",
+                CleanTitle = "atarijaguarcd",
+                TitleSlug = "jaguarcd",
+                Path = Path.Combine(_tempRoot, "Library", "Atari Jaguar CD")
+            };
+
+            var realEpisode = new Episode
+            {
+                Id = 501,
+                SeriesId = 50,
+                SeasonNumber = 1,
+                EpisodeNumber = 1,
+                Title = "Robinson's Requiem"
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetAllSeries())
+                .Returns(new List<Series> { jaguarCdSeries });
+
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(e => e.GetEpisodeBySeries(50))
+                .Returns(new List<Episode> { realEpisode });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = isoPath,
+                Series = jaguarCdSeries,
+                Episodes = new List<Episode>()
+            };
+
+            Subject.VerifyAndEnrichLocalEpisode(localEpisode);
+
+            localEpisode.Episodes.Should().BeEmpty();
+            localEpisode.RomHashVerified.Should().BeFalse();
+            Mocker.GetMock<IEpisodeService>()
+                .Verify(e => e.InsertMany(It.IsAny<List<Episode>>()), Times.Never());
+        }
+
+        [Test]
+        public void should_mark_rom_hash_verified_true_when_dat_hash_matches()
+        {
+            var downloadDir = Path.Combine(_tempRoot, "Downloads");
+            var romPath = Path.Combine(downloadDir, "ROBINSONS_REQUEIM.iso");
+            Directory.CreateDirectory(downloadDir);
+            var bytes = new byte[] { 10, 20, 30, 40, 50 };
+            File.WriteAllBytes(romPath, bytes);
+
+            var expectedHashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(romPath);
+            var expectedCrc32 = expectedHashes["CRC32"];
+            var expectedMd5 = expectedHashes["MD5"];
+            var expectedSha1 = expectedHashes["SHA-1"];
+
+            var jaguarCdSeries = new Series
+            {
+                Id = 50,
+                TvdbId = 1050,
+                Title = "Atari Jaguar CD",
+                CleanTitle = "atarijaguarcd",
+                TitleSlug = "jaguarcd",
+                Path = Path.Combine(_tempRoot, "Library", "Atari Jaguar CD")
+            };
+
+            var realEpisode = new Episode
+            {
+                Id = 501,
+                SeriesId = 50,
+                SeasonNumber = 1,
+                EpisodeNumber = 1,
+                Title = "Robinson's Requiem",
+                FinaleType = "Retail (v1.0)"
+            };
+
+            var datEntry = new DatEntry
+            {
+                GameName = "Robinson's Requiem (USA)",
+                RomName = "Robinson's Requiem (USA).iso",
+                Crc32 = expectedCrc32,
+                Md5 = expectedMd5,
+                Sha1 = expectedSha1
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetAllSeries())
+                .Returns(new List<Series> { jaguarCdSeries });
+
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(e => e.GetEpisodeBySeries(50))
+                .Returns(new List<Episode> { realEpisode });
+
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.FindBestMatch(expectedCrc32, expectedMd5, expectedSha1, It.IsAny<string>(), "jaguarcd", "Atari Jaguar CD"))
+                .Returns(datEntry);
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = romPath,
+                Series = jaguarCdSeries,
+                Episodes = new List<Episode>()
+            };
+
+            Subject.VerifyAndEnrichLocalEpisode(localEpisode);
+
+            localEpisode.RomHashVerified.Should().BeTrue();
+            localEpisode.Episodes.Should().ContainSingle(e => e.Id == 501);
+            Mocker.GetMock<IEpisodeService>()
+                .Verify(e => e.InsertMany(It.IsAny<List<Episode>>()), Times.Never());
         }
     }
 }

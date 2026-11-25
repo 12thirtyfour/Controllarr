@@ -31,5 +31,6 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
         // Game specific properties
         public Dictionary<string, string> Hashes { get; set; } = new Dictionary<string, string>();
         public bool IsHighConfidenceMatch { get; set; }
+        public bool IsDatHashVerified { get; set; }
     }
 }

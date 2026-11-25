@@ -293,27 +293,28 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                                 localEpisode.ReleaseHash = crc32;
                             }
 
-                            var (series, episode, highConfidence, _) = ResolvePlatformAndGame(crc32, resolvedName, zipPath, preferredSeries: localEpisode.Series);
+                            var (series, episode, highConfidence, matchedDatEntry) = ResolvePlatformAndGame(crc32, resolvedName, zipPath, preferredSeries: localEpisode.Series, allowCreateEpisode: false);
+                            var isDatVerified = matchedDatEntry != null;
                             localEpisode.Series ??= series;
-                            if (episode != null && (localEpisode.Episodes == null || localEpisode.Episodes.Count == 0 || highConfidence))
+                            if (episode != null && (localEpisode.Episodes == null || localEpisode.Episodes.Count == 0 || isDatVerified))
                             {
                                 localEpisode.Episodes = new List<Episode> { episode };
                             }
 
                             if (localEpisode.FileEpisodeInfo != null && episode != null)
                             {
-                                if (highConfidence || localEpisode.FileEpisodeInfo.SeasonNumber == null)
+                                if (isDatVerified || localEpisode.FileEpisodeInfo.SeasonNumber == null)
                                 {
                                     localEpisode.FileEpisodeInfo.SeasonNumber = episode.SeasonNumber;
                                 }
 
-                                if (highConfidence || localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
+                                if (isDatVerified || localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
                                 {
                                     localEpisode.FileEpisodeInfo.EpisodeNumbers = new[] { episode.EpisodeNumber };
                                 }
                             }
 
-                            localEpisode.RomHashVerified = highConfidence;
+                            localEpisode.RomHashVerified = isDatVerified;
                             if (localEpisode.RomHashVerified && (localEpisode.Quality == null || localEpisode.Quality.Quality == Quality.Unknown))
                             {
                                 localEpisode.Quality = new QualityModel(Quality.VerifiedGoodDump);
@@ -329,7 +330,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     return;
                 }
 
-                var processed = ProcessSingleFile(localEpisode.Path, Path.GetDirectoryName(localEpisode.Path), validExtensions, localEpisode.Series);
+                var processed = ProcessSingleFile(localEpisode.Path, Path.GetDirectoryName(localEpisode.Path), validExtensions, localEpisode.Series, allowCreateEpisode: false);
                 if (processed != null)
                 {
                     localEpisode.RomHashes = processed.Hashes ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -345,14 +346,15 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         }
                     }
 
-                    localEpisode.RomHashVerified = processed.IsHighConfidenceMatch;
+                    var isDatVerified = processed.IsDatHashVerified;
+                    localEpisode.RomHashVerified = isDatVerified;
                     if (localEpisode.RomHashVerified && (localEpisode.Quality == null || localEpisode.Quality.Quality == Quality.Unknown))
                     {
                         localEpisode.Quality = new QualityModel(Quality.VerifiedGoodDump);
                     }
 
                     localEpisode.Series ??= processed.Series;
-                    if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0 || processed.IsHighConfidenceMatch) &&
+                    if ((localEpisode.Episodes == null || localEpisode.Episodes.Count == 0 || isDatVerified) &&
                         processed.Episodes != null && processed.Episodes.Count > 0)
                     {
                         localEpisode.Episodes = processed.Episodes;
@@ -361,12 +363,12 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     if (localEpisode.FileEpisodeInfo != null && processed.Episodes != null && processed.Episodes.Count > 0)
                     {
                         var firstEp = processed.Episodes[0];
-                        if (processed.IsHighConfidenceMatch || localEpisode.FileEpisodeInfo.SeasonNumber == null)
+                        if (isDatVerified || localEpisode.FileEpisodeInfo.SeasonNumber == null)
                         {
                             localEpisode.FileEpisodeInfo.SeasonNumber = firstEp.SeasonNumber;
                         }
 
-                        if (processed.IsHighConfidenceMatch || localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
+                        if (isDatVerified || localEpisode.FileEpisodeInfo.EpisodeNumbers == null || localEpisode.FileEpisodeInfo.EpisodeNumbers.Length == 0)
                         {
                             localEpisode.FileEpisodeInfo.EpisodeNumbers = new[] { firstEp.EpisodeNumber };
                         }
@@ -729,7 +731,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             };
         }
 
-        private ManualImportItem ProcessSingleFile(string filePath, string rootFolder, List<string> validExtensions, Series preferredSeries = null)
+        private ManualImportItem ProcessSingleFile(string filePath, string rootFolder, List<string> validExtensions, Series preferredSeries = null, bool allowCreateEpisode = true)
         {
             var fileName = Path.GetFileName(filePath);
             if (RegionHelper.IsBios(fileName, null, null, filePath))
@@ -748,7 +750,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             var parsedInfo = RomParser.ParseRomName(effectiveRomName) ?? RomParser.ParseRomName(fileName);
 
             var crc32 = hashes.TryGetValue("CRC32", out var c) ? c : null;
-            var (matchedSeries, matchedEpisode, isHighConfidence, _) = ResolvePlatformAndGame(crc32, effectiveRomName, filePath, hashes, preferredSeries);
+            var (matchedSeries, matchedEpisode, isHighConfidence, matchedDatEntry) = ResolvePlatformAndGame(crc32, effectiveRomName, filePath, hashes, preferredSeries, allowCreateEpisode);
 
             return new ManualImportItem
             {
@@ -760,7 +762,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 SeasonNumber = matchedEpisode?.SeasonNumber,
                 Episodes = matchedEpisode != null ? new List<Episode> { matchedEpisode } : new List<Episode>(),
                 Hashes = hashes,
-                IsHighConfidenceMatch = isHighConfidence
+                IsHighConfidenceMatch = isHighConfidence,
+                IsDatHashVerified = matchedDatEntry != null
             };
         }
 
@@ -769,7 +772,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             string romName,
             string filePath,
             Dictionary<string, string> hashes = null,
-            Series preferredSeries = null)
+            Series preferredSeries = null,
+            bool allowCreateEpisode = true)
         {
             DatEntry matchedDatEntry = null;
             string platformSlug = null;
@@ -864,7 +868,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 matchedSeries = null;
             }
 
-            var matchedEpisode = FindMatchingEpisode(matchedSeries, romName, matchedDatEntry, crc32, hashes);
+            var matchedEpisode = FindMatchingEpisode(matchedSeries, romName, matchedDatEntry, crc32, hashes, allowCreateEpisode);
 
             if (matchedSeries == null && matchedEpisode != null)
             {
@@ -961,7 +965,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             string romName,
             DatEntry matchedDatEntry,
             string crc32 = null,
-            Dictionary<string, string> hashes = null)
+            Dictionary<string, string> hashes = null,
+            bool allowCreateEpisode = true)
         {
             var candidateTitles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
@@ -969,13 +974,25 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             if (!string.IsNullOrWhiteSpace(fileNameNoExt))
             {
                 candidateTitles.Add(fileNameNoExt);
+                var spaceNormalized = fileNameNoExt.Replace('_', ' ');
+                if (!string.IsNullOrWhiteSpace(spaceNormalized))
+                {
+                    candidateTitles.Add(spaceNormalized);
+                }
             }
 
-            var parsedRom = RomParser.ParseRomName(Path.GetFileName(romName));
+            var rawFileName = Path.GetFileName(romName);
+            var parsedRom = RomParser.ParseRomName(rawFileName) ?? RomParser.ParseRomName(rawFileName.Replace('_', ' '));
             if (!string.IsNullOrWhiteSpace(parsedRom?.GameTitle))
             {
                 candidateTitles.Add(parsedRom.GameTitle);
-                var normalizedArticle = RomParser.NormalizeTitleArticle(parsedRom.GameTitle);
+                var parsedSpaceNormalized = parsedRom.GameTitle.Replace('_', ' ');
+                if (!string.IsNullOrWhiteSpace(parsedSpaceNormalized))
+                {
+                    candidateTitles.Add(parsedSpaceNormalized);
+                }
+
+                var normalizedArticle = RomParser.NormalizeTitleArticle(parsedSpaceNormalized);
                 if (!string.IsNullOrWhiteSpace(normalizedArticle))
                 {
                     candidateTitles.Add(normalizedArticle);
@@ -1145,6 +1162,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     if (fuzzyMatched != null)
                     {
                         return fuzzyMatched;
+                    }
+
+                    if (!allowCreateEpisode)
+                    {
+                        return null;
                     }
 
                     var nextEpNum = games
