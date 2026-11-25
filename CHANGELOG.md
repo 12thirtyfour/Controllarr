@@ -3,7 +3,7 @@
 All notable changes to **Controllarr** are documented in this file.
 
 > [!NOTE]
-> **Project Lifecycle & Versioning Model: Release Candidate (`v1.0.0-rc.3`)**
+> **Project Lifecycle & Versioning Model: Release Candidate (`v1.0.0-rc.4`)**
 > Controllarr is currently in active **Alpha** development as core architecture, platform models, and media acquisition workflows are built and stabilized. Formal versioned releases (Beta, RC, and 1.0.0) will begin once the baseline feature set is verified. During Alpha, all changes are tracked chronologically by **Date**.
 >
 > **Beta Readiness Gate (Baseline Capabilities Required)**:
@@ -23,7 +23,7 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
-## [Unreleased] - 2026-11-24
+## [1.0.0-rc.4] - 2026-11-24
 
 ### Added
 - **Patch-First ROM Hack Search, Auto-Patching & Library Import Pipeline (`RomHackAutomationService`, `RomPatchingService`, `GameSearchService`, `RegionSearchService`, `PlatformSearchService`, `RomHackController`, `RomPatcherPage.tsx`)**:
