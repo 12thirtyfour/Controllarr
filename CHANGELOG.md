@@ -25,6 +25,12 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-25
 
+### Removed
+- **Orphaned Files & Dead Code Cleanup**:
+  - Removed 33 unreferenced frontend source/CSS files (and orphaned `.module.css.d.ts` declarations), including unused legacy shapes (`Helpers/Props/Shapes/*`), `Portal.tsx`, `Router/Switch.tsx`, `CircularProgressBar`, `DateInput`, `GameNumber`/`SceneInfo`, and superseded `Settings/Profiles/Delay` and `Settings/Profiles/Release` UI components.
+  - Removed 25 unreferenced backend C# classes/exceptions/DTOs across `NzbDrone.Core`, `Controllarr.Common`, and `Controllarr.Http` (e.g., `ArchiveExtractionService`, `ExportProfile`, `FolderValidator`, unused JSON converters and download client DTOs).
+  - Removed 3 entirely commented-out legacy test files (`JobRepositoryFixture.cs`, `TestJobs.cs`, `UpdateProviderStartFixture.cs`), 11 unreferenced test fixture data files (`Files/Xem/*`, `Files/Indexers/HdBits/*`, etc.), and leftover Sonarr/TV root/packaging files (`src/Sonarr.sln.DotSettings`, `schemas/torznab.xsd`, `Logo/Sonarr.svg`, `Logo/sonarr-simple.svg`, `distribution/build-package.sh`, `distribution/docker-build/*`) along with empty leftover directories.
+
 ### Changed
 - **Strict BIOS, Firmware & Boot ROM Filtering and Classification (`RegionHelper`, `DatParserService`, `GameCatalogProxy`, `BiosService`)**:
   - Broadened `RegionHelper.IsBios` to detect console BIOS, firmware, boot ROM/BootROM/boot image, IPL, System Menu/Software/Card, Kickstart, Executive ROM, and known console BIOS filenames across platforms while preventing false positives on retail game titles (`Bioshock`, `Bionic Commando`, `Boot Camp`, `Das Boot`, `System Shock`, etc.).
