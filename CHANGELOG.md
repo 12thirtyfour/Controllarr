@@ -25,6 +25,15 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-25
 
+### Changed
+- **Verification Database Hash Deduplication & Strict Update/DLC Coupling (`GameCatalogProxy`, `PlatformDetailsRegion`)**:
+  - Added hash-indexed cross-reference lookup (`entriesByHash`) across built-in, online-synced, and cached DAT entries in `GameCatalogProxy.GetSeriesInfo` so any entries sharing a checksum/hash are merged into a single canonical game entry instead of duplicating across databases, and enabled `rejectSecondaryTracks: true` when ingesting cached DAT entries so multi-track optical discs do not create duplicate entries.
+  - Updated `GameCatalogProxy.PairDlcWithBaseGames` to support both `" - "` and `": "` DLC separators, preserve contained-title DLC suffixes, align paired Update/DLC entries to their base game's region when needed, and remove standalone/orphaned Updates and DLC that have no matching base game.
+  - Preserved distinct DLC packs in `PlatformDetailsRegion` deduplication keys and ensured 1G1R view retains coupled DLC entries alongside Updates.
+- **Dedicated `Aftermarket` Region Split & Strict `Magazines & Books` Classification (`RegionHelper`, `GameCatalogProxy`, `PlatformController`, Frontend)**:
+  - Split `Aftermarket` into its own independent region (`RegionAftermarket = 10`) separate from `Homebrew` (`RegionHomebrew = 5`), wired across `RegionHelper`, `GameCatalogProxy`, `FileNameBuilder`, `AddPlatformService`, `GameMonitoredService`, `RefreshPlatformService`, `AddAllPlatformsResource`/`PlatformController` (`TrackAftermarket`), and frontend region formatting, ordering, collection defaults, and edit controls.
+  - Tightened `RegionHelper.IsMagazineOrBook` / `MagazineOrBookRegex` so `Magazines & Books` strictly captures actual magazine cover discs, book companion discs, and digital magazines rather than retail encyclopedias, almanacs, lexicons, dictionaries, atlases, or interactive catalogs.
+
 ### Fixed
 - **Full Addon & Digital-Storefront Platform Independence (`UnmanagedDiskScanner`, `PlatformCompatibilityValidator`, `PlatformCatalogService`, `DatCacheService`, `PlatformService`)**:
   - Replaced substring `StartsWith(p.Path)` path matching in `UnmanagedDiskScanner.FindPlatformBySlugOrTitle` with exact/parent boundary checks (`PathEquals` / `IsParentPath`) sorted longest-path-first so addon paths (e.g., `Atari Jaguar CD`, `Nintendo 64DD`) never resolve to their shorter parent platform folder (`Atari Jaguar`, `Nintendo 64`).

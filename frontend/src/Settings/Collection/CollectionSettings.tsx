@@ -143,7 +143,8 @@ function CollectionSettings() {
         name === 'trackUnlicensed' ||
         name === 'trackRomHacks' ||
         name === 'trackTranslations' ||
-        name === 'trackHomebrew'
+        name === 'trackHomebrew' ||
+        name === 'trackAftermarket'
       ) {
         setAddPlatformOption(name, Boolean(value));
         setHasPendingChanges(true);
@@ -278,14 +279,23 @@ function CollectionSettings() {
               </FormRow>
 
               <FormRow size={sizes.MEDIUM}>
-                <FormLabel>
-                  Track Homebrew &amp; Aftermarket by Default
-                </FormLabel>
-                <FormInputHelpText text="Include modern homebrew and indie aftermarket releases when adding a new platform" />
+                <FormLabel>Track Homebrew by Default</FormLabel>
+                <FormInputHelpText text="Include modern community homebrew releases when adding a new platform" />
                 <FormInput
                   type={inputTypes.CHECK}
                   name="trackHomebrew"
                   value={Boolean(addOptions.trackHomebrew)}
+                  onChange={handleBooleanOptionChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Track Aftermarket by Default</FormLabel>
+                <FormInputHelpText text="Include post-lifecycle commercial indie aftermarket releases when adding a new platform" />
+                <FormInput
+                  type={inputTypes.CHECK}
+                  name="trackAftermarket"
+                  value={Boolean(addOptions.trackAftermarket)}
                   onChange={handleBooleanOptionChange}
                 />
               </FormRow>

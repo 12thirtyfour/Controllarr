@@ -240,6 +240,9 @@ function EditPlatformModalContent({
   const isHomebrewMonitored = Boolean(
     currentSeasons.find((s) => s.seasonNumber === 5)?.monitored
   );
+  const isAftermarketMonitored = Boolean(
+    currentSeasons.find((s) => s.seasonNumber === 10)?.monitored
+  );
   const isRomHacksMonitored = Boolean(
     currentSeasons.find((s) => s.seasonNumber === 6)?.monitored
   );
@@ -290,6 +293,13 @@ function EditPlatformModalContent({
   const handleHomebrewMonitorChange = useCallback(
     ({ value }: InputChanged) => {
       handleRegionMonitorToggle(5, Boolean(value));
+    },
+    [handleRegionMonitorToggle]
+  );
+
+  const handleAftermarketMonitorChange = useCallback(
+    ({ value }: InputChanged) => {
+      handleRegionMonitorToggle(10, Boolean(value));
     },
     [handleRegionMonitorToggle]
   );
@@ -516,13 +526,24 @@ function EditPlatformModalContent({
           </FormRow>
 
           <FormRow size={sizes.MEDIUM}>
-            <FormLabel>Track Homebrew & Aftermarket</FormLabel>
-            <FormInputHelpText text="Enable monitoring of the Homebrew & Aftermarket region" />
+            <FormLabel>Track Homebrew</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the Homebrew region" />
             <FormInput
               type={inputTypes.CHECK}
               name="trackHomebrew"
               value={isHomebrewMonitored}
               onChange={handleHomebrewMonitorChange}
+            />
+          </FormRow>
+
+          <FormRow size={sizes.MEDIUM}>
+            <FormLabel>Track Aftermarket</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the Aftermarket region" />
+            <FormInput
+              type={inputTypes.CHECK}
+              name="trackAftermarket"
+              value={isAftermarketMonitored}
+              onChange={handleAftermarketMonitorChange}
             />
           </FormRow>
 

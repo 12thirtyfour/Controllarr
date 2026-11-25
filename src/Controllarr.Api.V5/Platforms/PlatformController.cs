@@ -303,6 +303,10 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                     {
                         season.Monitored = resource.TrackHomebrew;
                     }
+                    else if (season.SeasonNumber == 10)
+                    {
+                        season.Monitored = resource.TrackAftermarket;
+                    }
                     else if (season.SeasonNumber == 6)
                     {
                         season.Monitored = resource.TrackRomHacks;

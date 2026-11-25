@@ -204,9 +204,10 @@ const FILTER_PREDICATES = {
     const { seasons, statistics = {} as Statistics } = item;
     const { monitoredGameCount = 0, totalGameCount = 0 } = statistics;
     const nonRetailSeasons =
-      seasons?.filter((s) => [0, 5, 6, 7, 8, 9].includes(s.seasonNumber)) ?? [];
+      seasons?.filter((s) => [0, 5, 6, 7, 8, 9, 10].includes(s.seasonNumber)) ??
+      [];
 
-    // Exclude non-retail regions (Unlicensed, Homebrew, ROM Hacks, Test & Utilities, Magazines & Books, Translations)
+    // Exclude non-retail regions (Unlicensed, Homebrew, Aftermarket, ROM Hacks, Test & Utilities, Magazines & Books, Translations)
     // so monitoring status reflects retail coverage accurately.
 
     const nonRetailMonitoredCount = nonRetailSeasons.reduce(

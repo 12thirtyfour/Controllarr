@@ -100,6 +100,7 @@ namespace NzbDrone.Core.Games
                 7 => "Test & Utilities",
                 8 => "Magazines & Books",
                 9 => "Translations",
+                10 => "Aftermarket",
                 99 => "BIOS",
                 _ => $"Region {regionNumber}"
             };
@@ -121,6 +122,7 @@ namespace NzbDrone.Core.Games
                 "japan" or "jp" or "ja" or "jpn" or "j" or "ntsc-j" or "asia" or "korea" or "ntsc-k" or "china" or "taiwan" or "hong kong" => 3,
                 "world" or "global" or "w" or "jue" or "uej" => 4,
                 "homebrew" => 5,
+                "aftermarket" => 10,
                 "rom hacks" or "rom hack" => 6,
                 "translation" or "translations" => 9,
                 "test & utilities" or "test and utilities" or "test & utility" or "test and utility" or "utilities" or "utility" or "tools" or "diagnostic" or "diagnostics" => 7,
@@ -297,14 +299,16 @@ namespace NzbDrone.Core.Games
         }
 
         private static readonly Regex MagazineOrBookRegex = new(
-            @"\b(?:Magazine|Magazin|Issue\s*#?\s*\d+|Volume\s+\d+\s*-\s*Issue|(?:Magazine|CD-i|Issue).*Vol\.\s*\d+|Vol\.\s*\d+\s*[-:]\s*(?:Issue|Magazine)|CD-?Online|CD-?I\s+World|Titel-Neuheiten|News\s+and\s+Views|Encyclop(?:a?edia|edie)|Universallexikon|Lexikon|Dictionary|Woordenboek|Worterbuch|(?:World|Interactive|3D|Picture|Road|Historical)\s+Atlas|Beauty\s+Guide|Driving\s+Guide|Interactive\s+Storybook|Interactive\s+Book|Audio\s+Book|Interactive\s+Catalog(?:ue)?|Product\s+Preview|Demonstration\s+Disc|Demo\s+Disc|Title\s+Sampler|CD-i\s+Awards|Awards\s+-\s+International\s+CD-i|ICDIA\s+Summit|Accent\s+Health|POS\s+&\s+Training|Training\s+Disc|College\s+Search|Historia\s+de(?:l)?\s+|English\s+Interactive|Vom\s+Kloster\s+zum\s+Museum)\b",
+            @"\b(?:Magazine|Magazin|Digital\s+Magazine|Interactive\s+Magazine|Cover\s*Dis[ck]|Companion\s+Dis[ck]|Issue\s*#?\s*\d+|Volume\s+\d+\s*-\s*Issue|(?:Magazine|CD-i|Issue).*Vol\.\s*\d+|Vol\.\s*\d+\s*[-:]\s*(?:Issue|Magazine)|CD-?Online|CD-?I\s+World|Official\s+(?:PlayStation|Dreamcast|Xbox|Nintendo|Sega|Saturn)\s+Magazine|OPM\s+Issue|OXM\s+(?:Demo\s+)?Dis[ck]|Famitsu\s+(?:Wave|Dis[ck]|CD|DVD)|Dengeki\s+PlayStation\s+D|PlayStation\s+Underground\s+(?:Vol|Issue))\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static bool IsMagazineOrBook(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
         {
             if (!string.IsNullOrWhiteSpace(verificationSource) && (
                 verificationSource.Contains("Magazines", StringComparison.OrdinalIgnoreCase) ||
-                verificationSource.Contains("Books", StringComparison.OrdinalIgnoreCase)))
+                verificationSource.Contains("Digital Magazine", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Cover Disc", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Cover Disk", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -339,12 +343,9 @@ namespace NzbDrone.Core.Games
             return false;
         }
 
-        public static bool IsHomebrewOrAftermarket(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        public static bool IsAftermarket(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
         {
-            if (!string.IsNullOrWhiteSpace(verificationSource) && (
-                verificationSource.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
-                verificationSource.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
-                verificationSource.Contains("Public Domain", StringComparison.OrdinalIgnoreCase)))
+            if (dumpTags != null && dumpTags.Any(t => t.Equals("Aftermarket", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -358,10 +359,44 @@ namespace NzbDrone.Core.Games
                 }
 
                 if (text.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Aftermarket/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Aftermarket\\", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("RetroUSB", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("8-Bit Xmas", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("8 BIT XMAS", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("8 BIT XMAS", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(verificationSource) &&
+                verificationSource.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) &&
+                !verificationSource.Contains("Homebrew", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsHomebrew(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            if (!string.IsNullOrWhiteSpace(verificationSource) && (
+                verificationSource.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
+                verificationSource.Contains("Public Domain", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var texts = new[] { title, releaseTitle };
+            foreach (var text in texts)
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (text.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("Byte-Off", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("NESDev", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(PD)", StringComparison.OrdinalIgnoreCase) ||
@@ -376,8 +411,6 @@ namespace NzbDrone.Core.Games
                     text.Contains("\\Homebrew\\", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/4 Homebrew/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\4 Homebrew\\", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("/Aftermarket/", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("\\Aftermarket\\", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(Atari ST)", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("(AMIGA)", StringComparison.OrdinalIgnoreCase))
                 {
@@ -386,6 +419,12 @@ namespace NzbDrone.Core.Games
             }
 
             return false;
+        }
+
+        public static bool IsHomebrewOrAftermarket(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            return IsAftermarket(title, releaseTitle, dumpTags, verificationSource) ||
+                   IsHomebrew(title, releaseTitle, dumpTags, verificationSource);
         }
 
         public static bool IsUnlicensed(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)

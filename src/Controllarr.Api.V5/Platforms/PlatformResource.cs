@@ -283,6 +283,7 @@ public class AddAllPlatformsResource
     public bool TrackRomHacks { get; set; }
     public bool TrackTranslations { get; set; }
     public bool TrackHomebrew { get; set; }
+    public bool TrackAftermarket { get; set; }
     public bool SearchForMissingGames { get; set; }
     public bool SearchForCutoffUnmetGames { get; set; }
     public SeriesTypes SeriesType { get; set; } = SeriesTypes.Standard;

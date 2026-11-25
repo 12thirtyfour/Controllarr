@@ -23,6 +23,7 @@ interface AddPlatformPayload
       | 'enableCompression'
       | 'trackUnlicensed'
       | 'trackHomebrew'
+      | 'trackAftermarket'
       | 'trackRomHacks'
       | 'trackTranslations'
     > {
@@ -99,6 +100,7 @@ export interface AddAllPlatformsPayload {
   trackRomHacks: boolean;
   trackTranslations: boolean;
   trackHomebrew: boolean;
+  trackAftermarket: boolean;
   searchForMissingGames: boolean;
   searchForCutoffUnmetGames: boolean;
   seriesType: string;

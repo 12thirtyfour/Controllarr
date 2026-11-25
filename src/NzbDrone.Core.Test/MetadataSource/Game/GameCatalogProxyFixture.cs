@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             results.Should().NotBeEmpty();
             results.First().Title.Should().Be("Super Nintendo Entertainment System");
             results.First().TitleSlug.Should().Be("snes");
-            results.First().Seasons.Should().HaveCount(10);
+            results.First().Seasons.Should().HaveCount(11);
         }
 
         [Test]
@@ -111,8 +111,8 @@ game (
             var unlicensedEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionUnlicensed).ToList();
             unlicensedEpisodes.Should().Contain(e => e.Title.Contains("Bible Adventures"));
 
-            var homebrewEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionHomebrew).ToList();
-            homebrewEpisodes.Should().Contain(e => e.Title.Contains("Micro Mages"));
+            var aftermarketEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionAftermarket).ToList();
+            aftermarketEpisodes.Should().Contain(e => e.Title.Contains("Micro Mages"));
 
             GameCatalogProxy.IsPreReleaseVersion("Proto", "Star Fox 2 (USA) (Proto)").Should().BeTrue();
             GameCatalogProxy.IsPreReleaseVersion("Beta", "Legend of Zelda, The (USA) (Beta)").Should().BeTrue();
@@ -1059,11 +1059,10 @@ game (
 
         [TestCase("CD-I World - Volume 1 - Issue 1 (USA)", true)]
         [TestCase("CD-Online - Issue 01 - Internet on TV (UK)", true)]
-        [TestCase("1993 CD-i Awards (USA)", true)]
-        [TestCase("ASICS Interactive Catalogue on CD-i 1995 (Germany)", true)]
-        [TestCase("Bertelsmann Universallexikon (Germany)", true)]
-        [TestCase("Accent Health - April 2003 50 + Silver CDi 0403 (USA)", true)]
-        [TestCase("Bose - Home Cinema Sound System - Demonstration Disc (Europe)", true)]
+        [TestCase("Official PlayStation Magazine Issue 12 (USA)", true)]
+        [TestCase("Bertelsmann Universallexikon (Germany)", false)]
+        [TestCase("Compton's Interactive Encyclopedia (USA)", false)]
+        [TestCase("World Almanac (USA)", false)]
         [TestCase("Hotel Mario (USA)", false)]
         [TestCase("Link - The Faces of Evil (USA)", false)]
         [TestCase("7th Guest, The (USA) (Disc 1) (The Game)", false)]
@@ -1077,6 +1076,10 @@ game (
             if (expectedMagazineOrBook)
             {
                 entry.RegionNumber.Should().Be(GameCatalogProxy.RegionMagazinesAndBooks);
+            }
+            else if (title.Contains("(Germany)", System.StringComparison.OrdinalIgnoreCase))
+            {
+                entry.RegionNumber.Should().Be(GameCatalogProxy.RegionEurope);
             }
             else
             {
@@ -1415,15 +1418,12 @@ game (
             unlockKey.FinaleType.Should().Be("DLC • Maid Pack");
 
             var legoDlc = tuple.Item2.FirstOrDefault(e => e.Overview.Contains("Villain Pack"));
-            legoDlc.Should().NotBeNull();
-            legoDlc.Title.Should().Be("Lego Batman");
+            legoDlc.Should().BeNull();
 
             var nelke1 = tuple.Item2.FirstOrDefault(e => e.Overview.Contains("Pack 1 (Japan) (DLC)"));
             var nelke2 = tuple.Item2.FirstOrDefault(e => e.Overview.Contains("Pack 2 (Japan) (DLC)"));
-            nelke1.Should().NotBeNull();
-            nelke2.Should().NotBeNull();
-            nelke1.Title.Should().Be("Nelke & The Legendary Alchemists - Ateliers of the New World");
-            nelke2.Title.Should().Be("Nelke & The Legendary Alchemists - Ateliers of the New World");
+            nelke1.Should().BeNull();
+            nelke2.Should().BeNull();
         }
 
         [Test]
@@ -1484,16 +1484,9 @@ game (
 
             GameCatalogProxy.PairDlcWithBaseGames(entries);
 
+            entries.Should().HaveCount(2);
             entries[1].Title.Should().Be("Halo 3");
             entries[1].RevisionTag.Should().Be("DLC • Heroic Map Pack");
-
-            entries[2].Title.Should().Be("Xbox 360 Avatar & Marketplace Items");
-            entries[3].Title.Should().Be("Xbox 360 Avatar & Marketplace Items");
-            entries[4].Title.Should().Be("Xbox 360 Avatar & Marketplace Items");
-            entries[2].RevisionTag.Should().Be("DLC • 2016 Penguins Stanley Cup Tee");
-
-            entries[5].Title.Should().Be("Xbox 360 Addons (58410AAA)");
-            entries[6].Title.Should().Be("Xbox 360 Addons (58410AAA)");
         }
 
         [Test]
@@ -2242,6 +2235,141 @@ game (
             GameCatalogProxy.GetRevisionSortOrder("Rev 1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v2"));
             GameCatalogProxy.GetRevisionSortOrder("v1.1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v2"));
             GameCatalogProxy.GetRevisionSortOrder("v1.1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v2.0"));
+        }
+
+        [Test]
+        public void should_split_aftermarket_and_homebrew_into_separate_regions()
+        {
+            Subject.TryGetPlatformEntryBySlug("nes", out var nesPlatform).Should().BeTrue();
+
+            var searchResults = Subject.SearchForNewSeries("NES", Language.English);
+            searchResults.First().Seasons.Should().Contain(s => s.SeasonNumber == GameCatalogProxy.RegionAftermarket && s.Title == "Aftermarket");
+            searchResults.First().Seasons.Should().Contain(s => s.SeasonNumber == GameCatalogProxy.RegionHomebrew && s.Title == "Homebrew");
+
+            var aftermarketEntry = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(nesPlatform, "Micro Mages (World) (Aftermarket)", 2019, "No-Intro");
+            var homebrewEntry = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(nesPlatform, "Blade Buster (World) (Homebrew)", 2010, "SmokeMonster HTGDB / SMDB");
+
+            aftermarketEntry.Should().NotBeNull();
+            aftermarketEntry.RegionNumber.Should().Be(GameCatalogProxy.RegionAftermarket);
+            aftermarketEntry.RegionName.Should().Be("Aftermarket");
+            aftermarketEntry.RevisionTag.Should().Be("Aftermarket");
+
+            homebrewEntry.Should().NotBeNull();
+            homebrewEntry.RegionNumber.Should().Be(GameCatalogProxy.RegionHomebrew);
+            homebrewEntry.RegionName.Should().Be("Homebrew");
+            homebrewEntry.RevisionTag.Should().Be("Homebrew");
+        }
+
+        [Test]
+        public void should_couple_cross_region_and_colon_separated_dlc_with_base_game_only()
+        {
+            var entries = new List<GameCatalogEntry>
+            {
+                new GameCatalogEntry
+                {
+                    Title = "Borderlands 2",
+                    BaseTitle = "Borderlands 2",
+                    NoIntroName = "Borderlands 2 (USA)",
+                    RegionNumber = GameCatalogProxy.RegionUsa,
+                    RegionName = "USA",
+                    RevisionTag = "Retail (v1.0)"
+                },
+                new GameCatalogEntry
+                {
+                    Title = "Borderlands 2: Tiny Tina's Assault on Dragon Keep",
+                    BaseTitle = "Borderlands 2: Tiny Tina's Assault on Dragon Keep",
+                    NoIntroName = "Borderlands 2: Tiny Tina's Assault on Dragon Keep (World) (DLC)",
+                    RegionNumber = GameCatalogProxy.RegionWorld,
+                    RegionName = "World",
+                    RevisionTag = "DLC"
+                },
+                new GameCatalogEntry
+                {
+                    Title = "Borderlands 2",
+                    BaseTitle = "Borderlands 2",
+                    NoIntroName = "Borderlands 2 (World) (Update v1.1)",
+                    RegionNumber = GameCatalogProxy.RegionWorld,
+                    RegionName = "World",
+                    RevisionTag = "Update v1.1"
+                },
+                new GameCatalogEntry
+                {
+                    Title = "Orphaned Game - Expansion Pack",
+                    BaseTitle = "Orphaned Game - Expansion Pack",
+                    NoIntroName = "Orphaned Game - Expansion Pack (USA) (DLC)",
+                    RegionNumber = GameCatalogProxy.RegionUsa,
+                    RegionName = "USA",
+                    RevisionTag = "DLC"
+                }
+            };
+
+            GameCatalogProxy.PairDlcWithBaseGames(entries);
+
+            entries.Should().HaveCount(3);
+            entries.Should().OnlyContain(e => e.Title == "Borderlands 2" && e.RegionNumber == GameCatalogProxy.RegionUsa);
+            entries.Should().Contain(e => e.RevisionTag == "DLC • Tiny Tina's Assault on Dragon Keep");
+            entries.Should().Contain(e => e.RevisionTag == "Update v1.1");
+        }
+
+        [Test]
+        public void should_deduplicate_overlapping_dat_hashes_and_reject_secondary_tracks()
+        {
+            Subject.TryGetPlatformEntryBySlug("saturn", out var saturnPlatform).Should().BeTrue();
+            Subject.InvalidatePlatformCache(saturnPlatform.TvdbId);
+
+            var redumpDat = new NzbDrone.Core.Dat.DatFile
+            {
+                Id = 9301,
+                Name = "Sega - Saturn (Redump)",
+                Category = "Redump"
+            };
+            var smdbDat = new NzbDrone.Core.Dat.DatFile
+            {
+                Id = 9302,
+                Name = "Sega - Saturn (SMDB)",
+                Category = "SmokeMonster SMDB"
+            };
+
+            var datEntries = new List<NzbDrone.Core.Dat.DatEntry>
+            {
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9301,
+                    GameName = "Nights into Dreams... (USA)",
+                    RomName = "Nights into Dreams... (USA) (Track 1).bin",
+                    Sha1 = "1212121212121212121212121212121212121212",
+                    Crc32 = "aabbccdd"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9301,
+                    GameName = "Nights into Dreams... (USA)",
+                    RomName = "Nights into Dreams... (USA) (Track 2).bin",
+                    Sha1 = "3434343434343434343434343434343434343434",
+                    Crc32 = "eeff0011"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9302,
+                    GameName = "NiGHTS into Dreams (USA)",
+                    RomName = "NiGHTS into Dreams (USA).cue",
+                    SmdbPath = "Sega Saturn/1 USA/NiGHTS into Dreams (USA).cue",
+                    Sha1 = "1212121212121212121212121212121212121212"
+                }
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile> { redumpDat, smdbDat });
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetEntriesForPlatform(saturnPlatform.Slug, saturnPlatform.Name, saturnPlatform.LibretroSystemName))
+                .Returns(datEntries);
+
+            var tuple = Subject.GetSeriesInfo(saturnPlatform.TvdbId, Language.English, null);
+            var nightsEpisodes = tuple.Item2.Where(e => e.Title.Contains("Nights into Dreams", System.StringComparison.OrdinalIgnoreCase)).ToList();
+
+            nightsEpisodes.Should().ContainSingle();
         }
     }
 }

@@ -34,6 +34,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         public const int RegionTestAndUtilities = 7;
         public const int RegionMagazinesAndBooks = 8;
         public const int RegionTranslations = 9;
+        public const int RegionAftermarket = 10;
         public const int RegionBios = 99;
 
         private const int MaxCachedPlatformCatalogs = 4;
@@ -784,7 +785,79 @@ namespace NzbDrone.Core.MetadataSource.Game
             var seenIds = new Dictionary<int, GameCatalogEntry>();
             var seenCanonicalEntries = new Dictionary<string, GameCatalogEntry>(StringComparer.OrdinalIgnoreCase);
             var seenHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var entriesByHash = new Dictionary<string, GameCatalogEntry>(StringComparer.OrdinalIgnoreCase);
             var seenSpecialCategoryTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            void IndexEntryByHashes(GameCatalogEntry entry)
+            {
+                if (entry == null)
+                {
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(entry.ExpectedSha256))
+                {
+                    entriesByHash.TryAdd($"sha256:{entry.ExpectedSha256.Trim().ToLowerInvariant()}", entry);
+                }
+
+                if (!string.IsNullOrWhiteSpace(entry.ExpectedSha1))
+                {
+                    entriesByHash.TryAdd($"sha1:{entry.ExpectedSha1.Trim().ToLowerInvariant()}", entry);
+                }
+
+                if (!string.IsNullOrWhiteSpace(entry.ExpectedMd5))
+                {
+                    entriesByHash.TryAdd($"md5:{entry.ExpectedMd5.Trim().ToLowerInvariant()}", entry);
+                }
+
+                if (IsValidCrc32(entry.ExpectedCrc32))
+                {
+                    entriesByHash.TryAdd($"crc:{entry.ExpectedCrc32.Trim().ToLowerInvariant()}", entry);
+                }
+            }
+
+            bool TryFindEntryByHash(GameCatalogEntry candidate, out GameCatalogEntry matched)
+            {
+                matched = null;
+                if (candidate == null)
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha256) &&
+                    entriesByHash.TryGetValue($"sha256:{candidate.ExpectedSha256.Trim().ToLowerInvariant()}", out var match256) &&
+                    HasMatchingHash(match256, candidate))
+                {
+                    matched = match256;
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha1) &&
+                    entriesByHash.TryGetValue($"sha1:{candidate.ExpectedSha1.Trim().ToLowerInvariant()}", out var match1) &&
+                    HasMatchingHash(match1, candidate))
+                {
+                    matched = match1;
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(candidate.ExpectedMd5) &&
+                    entriesByHash.TryGetValue($"md5:{candidate.ExpectedMd5.Trim().ToLowerInvariant()}", out var match5) &&
+                    HasMatchingHash(match5, candidate))
+                {
+                    matched = match5;
+                    return true;
+                }
+
+                if (IsValidCrc32(candidate.ExpectedCrc32) &&
+                    entriesByHash.TryGetValue($"crc:{candidate.ExpectedCrc32.Trim().ToLowerInvariant()}", out var matchCrc) &&
+                    HasMatchingHash(matchCrc, candidate))
+                {
+                    matched = matchCrc;
+                    return true;
+                }
+
+                return false;
+            }
 
             bool TryRegisterCrossReferencedGame(GameCatalogEntry candidate)
             {
@@ -799,31 +872,30 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var canonicalRev = NormalizeCanonicalRevisionForKey(candidate.RevisionTag);
                 var canonicalKey = $"{candidate.RegionNumber}:{canonicalTitle}:{canonicalRev}";
 
-                // If a more specific special category (Homebrew, Unlicensed, ROM Hack) matches the exact hash of a previously
+                // If a more specific special category (Homebrew, Aftermarket, Unlicensed, ROM Hack) matches the exact hash of a previously
                 // registered retail/generic entry (e.g. No-Intro Jaguar mixing homebrew into World), reclassify it out of retail
                 // before seenIds/seenNames short-circuits identical titles.
                 if ((candidate.RegionNumber == RegionHomebrew ||
+                     candidate.RegionNumber == RegionAftermarket ||
                      candidate.RegionNumber == RegionUnlicensed ||
                      candidate.RegionNumber == RegionRomHacks ||
                      candidate.RegionNumber == RegionTranslations ||
                      candidate.RegionNumber == RegionTestAndUtilities ||
                      candidate.RegionNumber == RegionMagazinesAndBooks) &&
-                    HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32))
+                    TryFindEntryByHash(candidate, out var hashMatchedSpecial))
                 {
-                    var existingRetail = platformGames.FirstOrDefault(g =>
-                        (g.RegionNumber == RegionUsa || g.RegionNumber == RegionWorld || g.RegionNumber == RegionEurope || g.RegionNumber == RegionJapan) &&
-                        HasMatchingHash(g, candidate));
-                    if (existingRetail != null)
+                    if (hashMatchedSpecial.RegionNumber is RegionUsa or RegionWorld or RegionEurope or RegionJapan)
                     {
-                        existingRetail.RegionNumber = candidate.RegionNumber;
-                        existingRetail.RegionName = candidate.RegionName;
-                        MergeMissingHashes(existingRetail, candidate, seenHashes);
+                        hashMatchedSpecial.RegionNumber = candidate.RegionNumber;
+                        hashMatchedSpecial.RegionName = candidate.RegionName;
                         if (candidate.RegionNumber != RegionRomHacks && candidate.RegionNumber != RegionTranslations)
                         {
-                            seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(existingRetail.BaseTitle ?? existingRetail.Title));
+                            seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(hashMatchedSpecial.BaseTitle ?? hashMatchedSpecial.Title));
                         }
                     }
 
+                    MergeMissingHashes(hashMatchedSpecial, candidate, seenHashes);
+                    IndexEntryByHashes(hashMatchedSpecial);
                     return false;
                 }
 
@@ -836,6 +908,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (seenIds.TryGetValue(candidate.TvdbId, out var existingById))
                 {
                     MergeMissingHashes(existingById, candidate, seenHashes);
+                    IndexEntryByHashes(existingById);
                     return false;
                 }
 
@@ -843,19 +916,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (seenNames.TryGetValue(candidateKeyName, out var existingByName))
                 {
                     MergeMissingHashes(existingByName, candidate, seenHashes);
+                    IndexEntryByHashes(existingByName);
                     return false;
                 }
 
                 // Cross-reference verification hashes so identical ROM dumps with scrambled/alternate titles (e.g. "Action Replay Pro" vs "Pro Action Replay") do not double up,
                 // while distinct ROMs with conflicting stronger hashes are never merged on a CRC32 collision alone.
-                if (HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32))
+                if (TryFindEntryByHash(candidate, out var hashMatched))
                 {
-                    var hashMatched = platformGames.FirstOrDefault(g => HasMatchingHash(g, candidate));
-                    if (hashMatched != null)
-                    {
-                        MergeMissingHashes(hashMatched, candidate, seenHashes);
-                        return false;
-                    }
+                    MergeMissingHashes(hashMatched, candidate, seenHashes);
+                    IndexEntryByHashes(hashMatched);
+                    return false;
                 }
 
                 if (seenCanonicalEntries.TryGetValue(canonicalKey, out var existingCanonical))
@@ -864,6 +935,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     if (!bothHaveHashes || HasMatchingHash(existingCanonical, candidate))
                     {
                         MergeMissingHashes(existingCanonical, candidate, seenHashes);
+                        IndexEntryByHashes(existingCanonical);
                         return false;
                     }
 
@@ -873,6 +945,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 if (candidate.RegionNumber == RegionHomebrew ||
+                    candidate.RegionNumber == RegionAftermarket ||
                     candidate.RegionNumber == RegionUnlicensed ||
                     candidate.RegionNumber == RegionTestAndUtilities ||
                     candidate.RegionNumber == RegionMagazinesAndBooks)
@@ -885,6 +958,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 seenNames.TryAdd(candidateKeyName, candidate);
 
                 RegisterHashes(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32);
+                IndexEntryByHashes(candidate);
 
                 return true;
             }
@@ -969,7 +1043,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                             sourceLabel: null,
                             isHackOrHomebrewFeed: false,
                             allowProseOverride: true,
-                            rejectSecondaryTracks: false,
+                            rejectSecondaryTracks: true,
                             appendEncryptedTag: false,
                             out var rawName))
                         {
@@ -993,11 +1067,14 @@ namespace NzbDrone.Core.MetadataSource.Game
                             {
                                 effectiveCategory = "ROM Hacks & Translations";
                             }
+                            else if (smdbParts.Any(s => s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "Aftermarket";
+                            }
                             else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
-                                                       s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
                                                        s.Contains("Atari ST Port", StringComparison.OrdinalIgnoreCase)))
                             {
-                                effectiveCategory = "Homebrew & Aftermarket";
+                                effectiveCategory = "Homebrew";
                             }
                             else if (smdbParts.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
                                                        s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
@@ -1009,6 +1086,8 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                         var isSpecialCategory = effectiveCategory == "Translations" ||
                                                 effectiveCategory == "ROM Hacks & Translations" ||
+                                                effectiveCategory == "Homebrew" ||
+                                                effectiveCategory == "Aftermarket" ||
                                                 effectiveCategory == "Homebrew & Aftermarket" ||
                                                 effectiveCategory == "Unlicensed";
 
@@ -1073,6 +1152,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 var isUnofficial = seasonNum == RegionUnlicensed ||
                                    seasonNum == RegionHomebrew ||
+                                   seasonNum == RegionAftermarket ||
                                    seasonNum == RegionRomHacks ||
                                    seasonNum == RegionTranslations ||
                                    seasonNum == RegionTestAndUtilities ||
@@ -1731,11 +1811,14 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     smdbCategory = "ROM Hacks & Translations";
                 }
+                else if (pathSegments.Any(s => s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
+                {
+                    smdbCategory = "Aftermarket";
+                }
                 else if (pathSegments.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
-                                               s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase) ||
                                                s.Contains("Atari ST Port", StringComparison.OrdinalIgnoreCase)))
                 {
-                    smdbCategory = "Homebrew & Aftermarket";
+                    smdbCategory = "Homebrew";
                 }
                 else if (pathSegments.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
                                                s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
@@ -3529,23 +3612,12 @@ namespace NzbDrone.Core.MetadataSource.Game
             var baseTitleByCanonicalKey = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var baseTitleByTitleId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var baseBuckets = new Dictionary<string, List<(string Key, string Title)>>(StringComparer.OrdinalIgnoreCase);
-            var orphanTitleIdCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var baseRegionsByKey = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+            var primaryRegionByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var game in games)
             {
-                if (game == null)
+                if (game == null || IsUpdateVersion(game.RevisionTag, game.NoIntroName))
                 {
-                    continue;
-                }
-
-                if (IsUpdateVersion(game.RevisionTag, game.NoIntroName))
-                {
-                    var addonTid = ExtractTitleIdTag(game.NoIntroName);
-                    if (!string.IsNullOrWhiteSpace(addonTid))
-                    {
-                        orphanTitleIdCounts.TryGetValue(addonTid, out var count);
-                        orphanTitleIdCounts[addonTid] = count + 1;
-                    }
-
                     continue;
                 }
 
@@ -3562,22 +3634,61 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 var key = NormalizeCanonicalCrossRefTitle(candidateTitle);
-                if (!string.IsNullOrWhiteSpace(key) && !baseTitleByCanonicalKey.ContainsKey(key))
+                if (!string.IsNullOrWhiteSpace(key))
                 {
-                    baseTitleByCanonicalKey[key] = candidateTitle;
-                    if (key.Length >= 4)
+                    if (!baseRegionsByKey.TryGetValue(key, out var regionSet))
                     {
-                        var bucketKey = key.Substring(0, 4);
-                        if (!baseBuckets.TryGetValue(bucketKey, out var bucket))
-                        {
-                            bucket = new List<(string Key, string Title)>();
-                            baseBuckets[bucketKey] = bucket;
-                        }
+                        regionSet = new HashSet<int>();
+                        baseRegionsByKey[key] = regionSet;
+                        primaryRegionByKey[key] = game.RegionNumber;
+                    }
+                    else if (GetRegionPriority(game.RegionNumber) < GetRegionPriority(primaryRegionByKey[key]))
+                    {
+                        primaryRegionByKey[key] = game.RegionNumber;
+                    }
 
-                        bucket.Add((key, candidateTitle));
+                    regionSet.Add(game.RegionNumber);
+
+                    if (!baseTitleByCanonicalKey.ContainsKey(key))
+                    {
+                        baseTitleByCanonicalKey[key] = candidateTitle;
+                        if (key.Length >= 4)
+                        {
+                            var bucketKey = key.Substring(0, 4);
+                            if (!baseBuckets.TryGetValue(bucketKey, out var bucket))
+                            {
+                                bucket = new List<(string Key, string Title)>();
+                                baseBuckets[bucketKey] = bucket;
+                            }
+
+                            bucket.Add((key, candidateTitle));
+                        }
                     }
                 }
             }
+
+            static void AlignPairedRegion(
+                GameCatalogEntry entry,
+                string matchedBaseTitle,
+                Dictionary<string, HashSet<int>> regionsByKey,
+                Dictionary<string, int> primaryByKey)
+            {
+                var baseKey = NormalizeCanonicalCrossRefTitle(matchedBaseTitle);
+                if (string.IsNullOrWhiteSpace(baseKey) ||
+                    !regionsByKey.TryGetValue(baseKey, out var validRegions) ||
+                    !primaryByKey.TryGetValue(baseKey, out var fallbackRegion))
+                {
+                    return;
+                }
+
+                if (!validRegions.Contains(entry.RegionNumber))
+                {
+                    entry.RegionNumber = fallbackRegion;
+                    entry.RegionName = GetRegionDisplayName(fallbackRegion);
+                }
+            }
+
+            var pairedEntries = new HashSet<GameCatalogEntry>(ReferenceEqualityComparer.Instance);
 
             foreach (var entry in games)
             {
@@ -3597,18 +3708,24 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     entry.Title = directBaseTitle;
                     entry.BaseTitle = directBaseTitle;
+                    AlignPairedRegion(entry, directBaseTitle, baseRegionsByKey, primaryRegionByKey);
+                    pairedEntries.Add(entry);
                     continue;
                 }
 
                 if (TryPairBySeparatorPrefix(entry, currentTitle, (prefix, prefixKey) =>
                     !string.IsNullOrWhiteSpace(prefixKey) && baseTitleByCanonicalKey.TryGetValue(prefixKey, out var exactTitle) ? exactTitle : null))
                 {
+                    AlignPairedRegion(entry, entry.BaseTitle ?? entry.Title, baseRegionsByKey, primaryRegionByKey);
+                    pairedEntries.Add(entry);
                     continue;
                 }
 
                 if (TryPairBySeparatorPrefix(entry, currentTitle, (prefix, prefixKey) =>
                     FindFuzzyPrefixBaseTitle(prefix, prefixKey, baseBuckets)))
                 {
+                    AlignPairedRegion(entry, entry.BaseTitle ?? entry.Title, baseRegionsByKey, primaryRegionByKey);
+                    pairedEntries.Add(entry);
                     continue;
                 }
 
@@ -3617,8 +3734,23 @@ namespace NzbDrone.Core.MetadataSource.Game
                     var fullMatch = FindContainedBaseTitle(currentKey, baseBuckets);
                     if (!string.IsNullOrWhiteSpace(fullMatch))
                     {
-                        entry.Title = fullMatch;
-                        entry.BaseTitle = fullMatch;
+                        var containedSuffix = currentTitle.Length > fullMatch.Length &&
+                                              currentTitle.StartsWith(fullMatch, StringComparison.OrdinalIgnoreCase)
+                            ? currentTitle.Substring(fullMatch.Length).TrimStart(' ', '-', ':', '\u2013')
+                            : string.Empty;
+
+                        if (!string.IsNullOrWhiteSpace(containedSuffix))
+                        {
+                            ApplyPairedDlcMetadata(entry, fullMatch, containedSuffix);
+                        }
+                        else
+                        {
+                            entry.Title = fullMatch;
+                            entry.BaseTitle = fullMatch;
+                        }
+
+                        AlignPairedRegion(entry, fullMatch, baseRegionsByKey, primaryRegionByKey);
+                        pairedEntries.Add(entry);
                         continue;
                     }
                 }
@@ -3627,7 +3759,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (!string.IsNullOrWhiteSpace(entryTid) && baseTitleByTitleId.TryGetValue(entryTid, out var titleIdBaseTitle))
                 {
                     var suffix = currentTitle.StartsWith(titleIdBaseTitle, StringComparison.OrdinalIgnoreCase)
-                        ? currentTitle.Substring(titleIdBaseTitle.Length).TrimStart(' ', '-', ':')
+                        ? currentTitle.Substring(titleIdBaseTitle.Length).TrimStart(' ', '-', ':', '\u2013')
                         : currentTitle;
                     if (string.IsNullOrWhiteSpace(suffix))
                     {
@@ -3635,37 +3767,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                     }
 
                     ApplyPairedDlcMetadata(entry, titleIdBaseTitle, suffix);
-                    continue;
-                }
-
-                // Group orphaned DLCs (when no base game entry is present in the DAT) under their shared game prefix or Title ID
-                var lastSepIdx = currentTitle.LastIndexOf(" - ", StringComparison.Ordinal);
-                if (lastSepIdx > 0)
-                {
-                    var orphanBase = currentTitle.Substring(0, lastSepIdx).Trim();
-                    var orphanSuffix = currentTitle.Substring(lastSepIdx + 3).Trim();
-                    if (!string.IsNullOrWhiteSpace(orphanBase) && !string.IsNullOrWhiteSpace(orphanSuffix))
-                    {
-                        ApplyPairedDlcMetadata(entry, orphanBase, orphanSuffix);
-                        continue;
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(entryTid))
-                {
-                    if (string.Equals(entryTid, "373907D1", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(entryTid, "FFFE07D1", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ApplyPairedDlcMetadata(entry, "Xbox 360 Avatar & Marketplace Items", currentTitle);
-                        continue;
-                    }
-
-                    if (orphanTitleIdCounts.TryGetValue(entryTid, out var tidCount) && tidCount >= 2)
-                    {
-                        ApplyPairedDlcMetadata(entry, $"Xbox 360 Addons ({entryTid.ToUpperInvariant()})", currentTitle);
-                    }
+                    AlignPairedRegion(entry, titleIdBaseTitle, baseRegionsByKey, primaryRegionByKey);
+                    pairedEntries.Add(entry);
                 }
             }
+
+            // Never leave standalone/orphaned Updates or DLC floating in the library without their base game
+            games.RemoveAll(g => g != null && IsUpdateVersion(g.RevisionTag, g.NoIntroName) && !pairedEntries.Contains(g));
         }
 
         private static string ExtractTitleIdTag(string noIntroName)
@@ -3687,14 +3795,17 @@ namespace NzbDrone.Core.MetadataSource.Game
             var searchEnd = currentTitle.Length;
             while (searchEnd > 0)
             {
-                var sepIdx = currentTitle.LastIndexOf(" - ", searchEnd - 1, StringComparison.Ordinal);
+                var dashIdx = currentTitle.LastIndexOf(" - ", searchEnd - 1, StringComparison.Ordinal);
+                var colonIdx = currentTitle.LastIndexOf(": ", searchEnd - 1, StringComparison.Ordinal);
+                var sepIdx = Math.Max(dashIdx, colonIdx);
                 if (sepIdx <= 0)
                 {
                     break;
                 }
 
+                var sepLen = sepIdx == colonIdx ? 2 : 3;
                 var prefix = currentTitle.Substring(0, sepIdx).Trim();
-                var dlcSuffix = currentTitle.Substring(sepIdx + 3).Trim();
+                var dlcSuffix = currentTitle.Substring(sepIdx + sepLen).Trim();
                 var prefixKey = NormalizeCanonicalCrossRefTitle(prefix);
 
                 if (!string.IsNullOrWhiteSpace(prefixKey) && !string.IsNullOrWhiteSpace(dlcSuffix))
@@ -4274,7 +4385,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            if (parts.Count == 1 && IsBaseV1Tag(parts[0]) && regionNumber != RegionRomHacks && regionNumber != RegionTranslations && regionNumber != RegionHomebrew)
+            if (parts.Count == 1 && IsBaseV1Tag(parts[0]) && regionNumber != RegionRomHacks && regionNumber != RegionTranslations && regionNumber != RegionHomebrew && regionNumber != RegionAftermarket)
             {
                 return "Retail (v1.0)";
             }
@@ -4308,6 +4419,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             if (regionNumber == RegionHomebrew)
             {
                 return "Homebrew";
+            }
+
+            if (regionNumber == RegionAftermarket)
+            {
+                return "Aftermarket";
             }
 
             if (regionNumber == RegionTranslations)
@@ -4360,7 +4476,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return RegionRomHacks;
             }
 
-            if (RegionHelper.IsHomebrewOrAftermarket(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            if (RegionHelper.IsAftermarket(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionAftermarket;
+            }
+
+            if (RegionHelper.IsHomebrew(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
                 return RegionHomebrew;
             }
@@ -5010,6 +5131,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 new Season { SeasonNumber = RegionJapan, Title = "Japan", Monitored = true },
                 new Season { SeasonNumber = RegionWorld, Title = "World", Monitored = true },
                 new Season { SeasonNumber = RegionHomebrew, Title = "Homebrew", Monitored = false },
+                new Season { SeasonNumber = RegionAftermarket, Title = "Aftermarket", Monitored = false },
                 new Season { SeasonNumber = RegionRomHacks, Title = "ROM Hacks", Monitored = false },
                 new Season { SeasonNumber = RegionTestAndUtilities, Title = "Test & Utilities", Monitored = false },
                 new Season { SeasonNumber = RegionMagazinesAndBooks, Title = "Magazines & Books", Monitored = false },
@@ -5048,10 +5170,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                 {
                     sourceLabel = "ROM Hacks & Translations";
                 }
-                else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase) ||
-                                           s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
+                else if (smdbParts.Any(s => s.Contains("Aftermarket", StringComparison.OrdinalIgnoreCase)))
                 {
-                    sourceLabel = "Homebrew & Aftermarket";
+                    sourceLabel = "Aftermarket";
+                }
+                else if (smdbParts.Any(s => s.Contains("Homebrew", StringComparison.OrdinalIgnoreCase)))
+                {
+                    sourceLabel = "Homebrew";
                 }
                 else if (smdbParts.Any(s => s.Contains("Unlicensed", StringComparison.OrdinalIgnoreCase) ||
                                            s.Contains("Pirate", StringComparison.OrdinalIgnoreCase) ||
@@ -5121,10 +5246,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 RegionWorld => "World",
                 RegionUnlicensed => "Unlicensed",
                 RegionRomHacks => "ROM Hacks",
-                RegionHomebrew => "Homebrew & Aftermarket",
+                RegionHomebrew => "Homebrew",
                 RegionTestAndUtilities => "Test & Utilities",
                 RegionMagazinesAndBooks => "Magazines & Books",
                 RegionTranslations => "Translations",
+                RegionAftermarket => "Aftermarket",
                 _ => $"Region {seasonNumber}"
             };
         }
@@ -5199,6 +5325,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 RegionTestAndUtilities => "Test & Utilities",
                 RegionMagazinesAndBooks => "Magazines & Books",
                 RegionTranslations => "Translations",
+                RegionAftermarket => "Aftermarket",
                 RegionBios => "BIOS",
                 _ => "USA"
             };

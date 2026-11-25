@@ -147,6 +147,7 @@ namespace NzbDrone.Core.Tv
                 {
                     season.Monitored = seasonNumber is GameCatalogProxy.RegionUnlicensed
                         or GameCatalogProxy.RegionHomebrew
+                        or GameCatalogProxy.RegionAftermarket
                         or GameCatalogProxy.RegionRomHacks
                         or GameCatalogProxy.RegionTestAndUtilities
                         or GameCatalogProxy.RegionMagazinesAndBooks
@@ -156,6 +157,7 @@ namespace NzbDrone.Core.Tv
 
                 if (seasonNumber == GameCatalogProxy.RegionUnlicensed ||
                     seasonNumber == GameCatalogProxy.RegionHomebrew ||
+                    seasonNumber == GameCatalogProxy.RegionAftermarket ||
                     seasonNumber == GameCatalogProxy.RegionRomHacks ||
                     seasonNumber == GameCatalogProxy.RegionTestAndUtilities ||
                     seasonNumber == GameCatalogProxy.RegionMagazinesAndBooks ||

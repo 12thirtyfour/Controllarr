@@ -178,6 +178,7 @@ namespace NzbDrone.Core.Tv
                 {
                     if (season.SeasonNumber is GameCatalogProxy.RegionUnlicensed
                         or GameCatalogProxy.RegionHomebrew
+                        or GameCatalogProxy.RegionAftermarket
                         or GameCatalogProxy.RegionRomHacks
                         or GameCatalogProxy.RegionTestAndUtilities
                         or GameCatalogProxy.RegionMagazinesAndBooks

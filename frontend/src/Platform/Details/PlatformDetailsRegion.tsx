@@ -543,9 +543,13 @@ function PlatformDetailsRegion({
       rawEntries.forEach((entry) => {
         const cleanVer = parseCleanVersion(entry.versionLabel);
         const disc = parseDiscNumber(entry.versionLabel, entry.item.title);
-        const entryKey = `${cleanVer}:${disc}:${isEncryptedLabel(
-          entry.versionLabel
-        )}`;
+        const isUpdateOrDlc = isUpdateLabel(
+          entry.versionLabel,
+          entry.item.title
+        );
+        const entryKey = isUpdateOrDlc
+          ? `upd:${entry.versionLabel.toLowerCase()}:${disc}`
+          : `${cleanVer}:${disc}:${isEncryptedLabel(entry.versionLabel)}`;
 
         if (seenEntryKeys.add(entryKey)) {
           uniqueEntries.push(entry);
@@ -553,10 +557,11 @@ function PlatformDetailsRegion({
           const existingIdx = uniqueEntries.findIndex((e) => {
             const eVer = parseCleanVersion(e.versionLabel);
             const eDisc = parseDiscNumber(e.versionLabel, e.item.title);
-            return (
-              `${eVer}:${eDisc}:${isEncryptedLabel(e.versionLabel)}` ===
-              entryKey
-            );
+            const eIsUpdateOrDlc = isUpdateLabel(e.versionLabel, e.item.title);
+            const eKey = eIsUpdateOrDlc
+              ? `upd:${e.versionLabel.toLowerCase()}:${eDisc}`
+              : `${eVer}:${eDisc}:${isEncryptedLabel(e.versionLabel)}`;
+            return eKey === entryKey;
           });
 
           if (existingIdx >= 0) {
@@ -693,18 +698,7 @@ function PlatformDetailsRegion({
             (e) => e.item.monitored || e.item.romFileId
           );
 
-          if (monitoredDlcs.length > 0) {
-            preferredDlcs = monitoredDlcs;
-          } else if (patchUpdateEntries.length === 0) {
-            const sortedDlcs = [...dlcEntries].sort((a, b) => {
-              const aVer = parseCleanVersion(a.versionLabel);
-              const bVer = parseCleanVersion(b.versionLabel);
-              return preferOriginalRelease
-                ? compareVersions(aVer, bVer)
-                : compareVersions(bVer, aVer);
-            });
-            preferredDlcs = [sortedDlcs[0]];
-          }
+          preferredDlcs = monitoredDlcs.length > 0 ? monitoredDlcs : dlcEntries;
         }
 
         effectiveEntries = [

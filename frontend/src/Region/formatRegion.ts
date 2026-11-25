@@ -164,7 +164,7 @@ export default function formatRegion(
   }
 
   if (seasonNumber === 5) {
-    return shortFormat ? 'HBW' : 'Homebrew & Aftermarket';
+    return shortFormat ? 'HBW' : 'Homebrew';
   }
 
   if (seasonNumber === 6) {
@@ -181,6 +181,10 @@ export default function formatRegion(
 
   if (seasonNumber === 9) {
     return shortFormat ? 'TRN' : 'Translations';
+  }
+
+  if (seasonNumber === 10) {
+    return shortFormat ? 'AFT' : 'Aftermarket';
   }
 
   if (seasonNumber > 0) {

@@ -822,6 +822,7 @@ namespace NzbDrone.Core.Tv
                 7 => "Test & Utilities",
                 8 => "Magazines & Books",
                 9 => "Translations",
+                10 => "Aftermarket",
                 _ => "USA"
             };
         }

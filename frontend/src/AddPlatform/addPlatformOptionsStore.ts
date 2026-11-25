@@ -10,7 +10,7 @@ export interface PlatformRegionItem {
 }
 
 export const DEFAULT_REGION_ORDER: number[] = [
-  -1, 1, 3, 2, 4, 0, 6, 9, 5, 7, 8,
+  -1, 1, 3, 2, 4, 10, 0, 6, 9, 5, 7, 8,
 ];
 
 export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
@@ -40,6 +40,12 @@ export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
     description: 'Worldwide & multi-region retail releases',
   },
   {
+    id: 10,
+    label: 'Aftermarket',
+    description:
+      'Post-lifecycle commercial indie releases sold as full cartridges/discs',
+  },
+  {
     id: 0,
     label: 'Unlicensed',
     description: 'Unlicensed commercial & historical releases',
@@ -56,8 +62,8 @@ export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
   },
   {
     id: 5,
-    label: 'Homebrew & Aftermarket',
-    description: 'Modern homebrew & indie aftermarket cartridges/discs',
+    label: 'Homebrew',
+    description: 'Modern community homebrew & public domain releases',
   },
   {
     id: 7,
@@ -69,7 +75,7 @@ export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
     id: 8,
     label: 'Magazines & Books',
     description:
-      'Interactive magazines, encyclopedias, catalogs, guides & multimedia discs',
+      'Magazine cover discs, book companion discs & digital magazines',
   },
 ];
 
@@ -112,6 +118,7 @@ export interface AddPlatformOptions {
   preferEncryptedRoms: boolean;
   trackUnlicensed: boolean;
   trackHomebrew: boolean;
+  trackAftermarket: boolean;
   trackRomHacks: boolean;
   trackTranslations: boolean;
   regionOrder?: number[];
@@ -138,6 +145,7 @@ const { useOptions, useOption, setOption } =
       preferEncryptedRoms: false,
       trackUnlicensed: false,
       trackHomebrew: false,
+      trackAftermarket: false,
       trackRomHacks: false,
       trackTranslations: false,
       regionOrder: DEFAULT_REGION_ORDER,
