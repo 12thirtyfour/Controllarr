@@ -26,6 +26,8 @@ All notable changes to **Controllarr** are documented in this file.
 ## [Unreleased] - 2026-11-25
 
 ### Added
+- **Expanded Libretro Web Player Support (`GameLauncherService`, `LibretroSettings`)**:
+  - Enabled in-browser EmulatorJS WebAssembly (`stable` v4.2.3) play for **NEC PC-FX** (`pcfx` / `mednafen_pcfx`), **Philips CD-i** (`same_cdi`), and **Commodore Amiga CD32** (`amiga` / `puae`), plus automatic BIOS detection/streaming for `pcfx.rom`, `cdimono1.zip`/`cdimono2.zip`/`cdibios.zip`, and automatic ZIP bundling of dual Amiga CD32 Kickstart ROMs (`kick40060.CD32` + `kick40060.CD32.ext` into `amiga_cd32_bios.zip`), multi-file disc ZIP preservation for all three cores, and `.a52`/`.col` extension inference.
 - **`Docker (Develop)` Container Publishing Workflow (`.github/workflows/docker-develop.yml`)**:
   - Added a dedicated GitHub Actions workflow on `develop` (and `workflow_dispatch`) that builds and pushes the multi-architecture `ghcr.io/12thirtyfour/controllarr:develop` (and `develop-<sha>`) image for `linux/amd64` and `linux/arm64` without cutting a full release.
 

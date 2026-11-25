@@ -140,6 +140,9 @@ namespace NzbDrone.Core.Test.GamesTests
         [TestCase("jaguar", "jaguar")]
         [TestCase("coleco", "coleco")]
         [TestCase("3do", "3do")]
+        [TestCase("pcfx", "pcfx")]
+        [TestCase("cdi", "same_cdi")]
+        [TestCase("cd32", "amiga")]
         public void should_map_all_supported_wasm_consoles_to_emulatorjs_cores(string platform, string expectedEjsCore)
         {
             var descriptor = _subject.BuildLaunchDescriptor(100, platform, $"/roms/{platform}/Game.bin");
@@ -520,6 +523,142 @@ namespace NzbDrone.Core.Test.GamesTests
 
             ereaderDescriptor.PlatformFolder.Should().Be("Nintendo e-Reader");
             ereaderDescriptor.SupportsWebAssembly.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_resolve_pcfx_bios_and_keep_cue_bin_zip_intact()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_pcfx_test_" + Guid.NewGuid().ToString("N"));
+            var biosDir = Path.Combine(tempDir, "BIOS");
+            Directory.CreateDirectory(biosDir);
+
+            try
+            {
+                File.WriteAllBytes(Path.Combine(biosDir, "pcfx.rom"), new byte[] { 1, 2, 3, 4 });
+
+                var zipPath = Path.Combine(tempDir, "Team Innocent (Japan).zip");
+                using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    var cueEntry = archive.CreateEntry("Team Innocent (Japan).cue");
+                    using (var s = cueEntry.Open())
+                    {
+                        var bytes = Encoding.ASCII.GetBytes("FILE \"Team Innocent (Japan) (Track 01).bin\" BINARY\n");
+                        s.Write(bytes, 0, bytes.Length);
+                    }
+
+                    var binEntry = archive.CreateEntry("Team Innocent (Japan) (Track 01).bin");
+                    using (var s = binEntry.Open())
+                    {
+                        s.Write(new byte[] { 0xAA, 0xBB }, 0, 2);
+                    }
+                }
+
+                var descriptor = _subject.BuildLaunchDescriptor(190, "pcfx", zipPath);
+                descriptor.LibretroCore.Should().Be("mednafen_pcfx");
+                descriptor.EmulatorJsCore.Should().Be("pcfx");
+                descriptor.SupportsWebAssembly.Should().BeTrue();
+                descriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/190/bios/pcfx.rom");
+                descriptor.RomStreamUrl.Should().StartWith("/api/v5/gamelauncher/190/rom/Team%20Innocent%20%28Japan%29.zip");
+
+                using var biosStream = _subject.OpenBiosStream(190, out var biosFileName, "pcfx", zipPath);
+                biosStream.Should().NotBeNull();
+                biosFileName.Should().Be("pcfx.rom");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_resolve_cdi_bios_and_map_to_same_cdi_core()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_cdi_test_" + Guid.NewGuid().ToString("N"));
+            var biosDir = Path.Combine(tempDir, "BIOS");
+            Directory.CreateDirectory(biosDir);
+
+            try
+            {
+                File.WriteAllBytes(Path.Combine(biosDir, "cdimono1.zip"), new byte[] { 0x50, 0x4B, 0x03, 0x04 });
+
+                var romPath = Path.Combine(tempDir, "Hotel Mario (USA).chd");
+                File.WriteAllBytes(romPath, new byte[] { 0x01, 0x02 });
+
+                var descriptor = _subject.BuildLaunchDescriptor(191, "cdi", romPath);
+                descriptor.LibretroCore.Should().Be("same_cdi");
+                descriptor.EmulatorJsCore.Should().Be("same_cdi");
+                descriptor.SupportsWebAssembly.Should().BeTrue();
+                descriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/191/bios/cdimono1.zip");
+
+                using var biosStream = _subject.OpenBiosStream(191, out var biosFileName, "cdi", romPath);
+                biosStream.Should().NotBeNull();
+                biosFileName.Should().Be("cdimono1.zip");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_bundle_amiga_cd32_kickstart_pair_and_keep_cue_bin_zip_intact()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_cd32_test_" + Guid.NewGuid().ToString("N"));
+            var biosDir = Path.Combine(tempDir, "BIOS");
+            Directory.CreateDirectory(biosDir);
+
+            try
+            {
+                var mainKickBytes = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+                var extKickBytes = new byte[] { 0x55, 0x66, 0x77, 0x88 };
+                File.WriteAllBytes(Path.Combine(biosDir, "kick40060.CD32"), mainKickBytes);
+                File.WriteAllBytes(Path.Combine(biosDir, "kick40060.CD32.ext"), extKickBytes);
+
+                var zipPath = Path.Combine(tempDir, "Banshee (Europe).zip");
+                using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    var cueEntry = archive.CreateEntry("Banshee (Europe).cue");
+                    using (var s = cueEntry.Open())
+                    {
+                        var bytes = Encoding.ASCII.GetBytes("FILE \"Banshee (Europe) (Track 01).bin\" BINARY\n");
+                        s.Write(bytes, 0, bytes.Length);
+                    }
+
+                    var binEntry = archive.CreateEntry("Banshee (Europe) (Track 01).bin");
+                    using (var s = binEntry.Open())
+                    {
+                        s.Write(new byte[] { 0xAA, 0xBB }, 0, 2);
+                    }
+                }
+
+                var descriptor = _subject.BuildLaunchDescriptor(192, "cd32", zipPath);
+                descriptor.LibretroCore.Should().Be("puae");
+                descriptor.EmulatorJsCore.Should().Be("amiga");
+                descriptor.SupportsWebAssembly.Should().BeTrue();
+                descriptor.BiosStreamUrl.Should().StartWith("/api/v5/gamelauncher/192/bios/amiga_cd32_bios.zip");
+                descriptor.RomStreamUrl.Should().StartWith("/api/v5/gamelauncher/192/rom/Banshee%20%28Europe%29.zip");
+
+                using var biosStream = _subject.OpenBiosStream(192, out var biosFileName, "cd32", zipPath);
+                biosStream.Should().NotBeNull();
+                biosFileName.Should().Be("amiga_cd32_bios.zip");
+
+                using var zip = new ZipArchive(biosStream, ZipArchiveMode.Read);
+                zip.Entries.Should().Contain(e => e.FullName == "kick40060.CD32");
+                zip.Entries.Should().Contain(e => e.FullName == "kick40060.CD32.ext");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
         }
     }
 }

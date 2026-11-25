@@ -453,7 +453,8 @@ namespace NzbDrone.Core.Games.Launcher
                 DefaultCore = "freeintv",
                 AvailableCores = new[] { "freeintv" },
                 SupportsWasm = false,
-                EmulatorJsCore = "intellivision"
+                WasmUnsupportedReason = "Mattel Intellivision (freeintv) is not yet included in EmulatorJS stable (v4.2.3). Launch in Desktop RetroArch using the freeintv core, or switch the Libretro WebAssembly Data URL to an EmulatorJS 4.3+ build once released.",
+                EmulatorJsCore = "intv"
             },
             new PlatformCoreDef
             {
@@ -472,7 +473,7 @@ namespace NzbDrone.Core.Games.Launcher
                 Aliases = new[] { "PC-FX", "NEC PC-FX", "NEC - PC-FX", "pcfx" },
                 DefaultCore = "mednafen_pcfx",
                 AvailableCores = new[] { "mednafen_pcfx" },
-                SupportsWasm = false,
+                SupportsWasm = true,
                 EmulatorJsCore = "pcfx"
             },
             new PlatformCoreDef
@@ -512,8 +513,8 @@ namespace NzbDrone.Core.Games.Launcher
                 Aliases = new[] { "CD-i", "Philips CD-i", "Philips - CD-i", "cdi" },
                 DefaultCore = "same_cdi",
                 AvailableCores = new[] { "same_cdi" },
-                SupportsWasm = false,
-                EmulatorJsCore = "cdi"
+                SupportsWasm = true,
+                EmulatorJsCore = "same_cdi"
             },
             new PlatformCoreDef
             {
@@ -613,8 +614,8 @@ namespace NzbDrone.Core.Games.Launcher
                 Aliases = new[] { "Amiga CD32", "Commodore Amiga CD32", "Commodore - Amiga CD32", "cd32" },
                 DefaultCore = "puae",
                 AvailableCores = new[] { "puae" },
-                SupportsWasm = false,
-                EmulatorJsCore = "cd32"
+                SupportsWasm = true,
+                EmulatorJsCore = "amiga"
             }
         };
 
@@ -623,7 +624,7 @@ namespace NzbDrone.Core.Games.Launcher
             ".cue", ".gb", ".gbc", ".gba", ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs", ".st",
             ".z64", ".n64", ".v64", ".ndd", ".nds", ".dsi", ".md", ".gen", ".smd", ".32x",
             ".sms", ".sg", ".gg", ".pce", ".sgx", ".vb", ".ws", ".wsc", ".pc2", ".ngp", ".ngc", ".lnx",
-            ".a26", ".a52", ".a78", ".j64", ".jag", ".neo", ".iso", ".chd", ".pbp", ".cso", ".bin"
+            ".a26", ".a52", ".a78", ".j64", ".jag", ".neo", ".col", ".ccd", ".iso", ".chd", ".pbp", ".cso", ".bin"
         };
 
         private readonly IAppFolderInfo _appFolderInfo;
@@ -925,7 +926,10 @@ namespace NzbDrone.Core.Games.Launcher
                 var biosPath = ResolveBiosFilePath(emulatorJsCore, streamFileName, safeRomPath, series, safePlatform);
                 if (!string.IsNullOrWhiteSpace(biosPath))
                 {
-                    var biosFileName = Path.GetFileName(biosPath);
+                    var biosFileName = emulatorJsCore.Equals("amiga", StringComparison.OrdinalIgnoreCase) &&
+                                       TryFindAmigaCd32BiosPair(biosPath, out _, out _)
+                        ? "amiga_cd32_bios.zip"
+                        : Path.GetFileName(biosPath);
                     var biosRoute = $"/api/v5/gamelauncher/{resolvedGameId}/bios/{Uri.EscapeDataString(biosFileName)}";
                     biosStreamUrl = streamQueryParts.Count > 0
                         ? $"{biosRoute}?{string.Join("&", streamQueryParts)}"
@@ -1153,8 +1157,78 @@ namespace NzbDrone.Core.Games.Launcher
                 return null;
             }
 
+            if (descriptor.EmulatorJsCore.Equals("amiga", StringComparison.OrdinalIgnoreCase) &&
+                TryFindAmigaCd32BiosPair(biosPath, out var mainKickstartPath, out var extKickstartPath))
+            {
+                fileName = "amiga_cd32_bios.zip";
+                return BuildBiosZipBundleStream(
+                    (mainKickstartPath, "kick40060.CD32"),
+                    (extKickstartPath, "kick40060.CD32.ext"));
+            }
+
             fileName = Path.GetFileName(biosPath);
             return new FileStream(biosPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        private static bool TryFindAmigaCd32BiosPair(string resolvedBiosPath, out string mainKickstart, out string extKickstart)
+        {
+            mainKickstart = string.Empty;
+            extKickstart = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(resolvedBiosPath))
+            {
+                return false;
+            }
+
+            var resolvedName = Path.GetFileName(resolvedBiosPath);
+            if (!resolvedName.Equals("kick40060.CD32", StringComparison.OrdinalIgnoreCase) &&
+                !resolvedName.Equals("kick40060.CD32.ext", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var dir = Path.GetDirectoryName(resolvedBiosPath);
+            if (string.IsNullOrWhiteSpace(dir))
+            {
+                return false;
+            }
+
+            var mainCandidate = Path.Combine(dir, "kick40060.CD32");
+            var extCandidate = Path.Combine(dir, "kick40060.CD32.ext");
+            if (!File.Exists(mainCandidate) || !File.Exists(extCandidate))
+            {
+                return false;
+            }
+
+            mainKickstart = mainCandidate;
+            extKickstart = extCandidate;
+            return true;
+        }
+
+        private static MemoryStream BuildBiosZipBundleStream(params (string FilePath, string EntryName)[] files)
+        {
+            var bundleStream = new MemoryStream();
+            try
+            {
+                using (var archive = new ZipArchive(bundleStream, ZipArchiveMode.Create, leaveOpen: true))
+                {
+                    foreach (var (filePath, entryName) in files)
+                    {
+                        var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                        using var entryStream = entry.Open();
+                        using var sourceStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        sourceStream.CopyTo(entryStream);
+                    }
+                }
+
+                bundleStream.Position = 0;
+                return bundleStream;
+            }
+            catch
+            {
+                bundleStream.Dispose();
+                throw;
+            }
         }
 
         private string ResolveBiosFilePath(string emulatorJsCore, string romFileName, string romPath, Series series, string platformHint = null)
@@ -1224,6 +1298,22 @@ namespace NzbDrone.Core.Games.Launcher
                 if (candidates.Contains("neocd_z.rom", StringComparer.OrdinalIgnoreCase))
                 {
                     searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "neogeocd"));
+                }
+
+                if (candidates.Contains("pcfx.rom", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "pcfx"));
+                }
+
+                if (candidates.Contains("cdimono1.zip", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "cdi"));
+                }
+
+                if (candidates.Contains("kick40060.CD32", StringComparer.OrdinalIgnoreCase))
+                {
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "cd32"));
+                    searchDirs.Add(Path.Combine(_appFolderInfo.AppDataFolder, "bios", "amiga"));
                 }
             }
 
@@ -1357,6 +1447,21 @@ namespace NzbDrone.Core.Games.Launcher
             if (emulatorJsCore.Equals("jaguarcd", StringComparison.OrdinalIgnoreCase))
             {
                 return new List<string> { "jagcd.rom", "[BIOS] Atari Jaguar CD (World).j64" };
+            }
+
+            if (emulatorJsCore.Equals("pcfx", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "pcfx.rom", "pcfxbios.bin", "pcfx.bios" };
+            }
+
+            if (emulatorJsCore.Equals("same_cdi", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "cdimono1.zip", "cdimono2.zip", "cdibios.zip" };
+            }
+
+            if (emulatorJsCore.Equals("amiga", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<string> { "amiga_cd32_bios.zip", "cd32_bios.zip", "kick40060.CD32", "kick40060.CD32.ext" };
             }
 
             return new List<string>();
@@ -1504,6 +1609,9 @@ namespace NzbDrone.Core.Games.Launcher
                  emulatorJsCore.Equals("3do", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("pce", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("pcengine", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("pcfx", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("amiga", StringComparison.OrdinalIgnoreCase) ||
+                 emulatorJsCore.Equals("same_cdi", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("jaguar", StringComparison.OrdinalIgnoreCase) ||
                  emulatorJsCore.Equals("jaguarcd", StringComparison.OrdinalIgnoreCase)) &&
                 File.Exists(romPath))
@@ -1721,9 +1829,11 @@ namespace NzbDrone.Core.Games.Launcher
                 ".ws" or ".wsc" or ".pc2" => MatchPlatformDef("WonderSwan"),
                 ".ngp" or ".ngc" => MatchPlatformDef("Neo Geo Pocket"),
                 ".a26" => MatchPlatformDef("Atari 2600"),
+                ".a52" => MatchPlatformDef("Atari 5200"),
                 ".a78" => MatchPlatformDef("Atari 7800"),
                 ".lnx" => MatchPlatformDef("Atari Lynx"),
                 ".j64" or ".jag" => MatchPlatformDef("Atari Jaguar"),
+                ".col" => MatchPlatformDef("ColecoVision"),
                 ".pbp" => MatchPlatformDef("PlayStation"),
                 ".cso" => MatchPlatformDef("PSP"),
                 _ => null

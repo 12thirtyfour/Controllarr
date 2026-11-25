@@ -204,6 +204,42 @@ const FALLBACK_PLATFORMS: LibretroPlatformCoreOption[] = [
     emulatorJsCoreName: 'pce',
   },
   {
+    platformKey: '3DO',
+    platformName: '3DO Interactive Multiplayer',
+    defaultCore: 'opera',
+    selectedCore: 'opera',
+    availableCores: ['opera'],
+    supportsWebAssembly: true,
+    emulatorJsCoreName: '3do',
+  },
+  {
+    platformKey: 'PC-FX',
+    platformName: 'NEC PC-FX',
+    defaultCore: 'mednafen_pcfx',
+    selectedCore: 'mednafen_pcfx',
+    availableCores: ['mednafen_pcfx'],
+    supportsWebAssembly: true,
+    emulatorJsCoreName: 'pcfx',
+  },
+  {
+    platformKey: 'CD-i',
+    platformName: 'Philips CD-i',
+    defaultCore: 'same_cdi',
+    selectedCore: 'same_cdi',
+    availableCores: ['same_cdi'],
+    supportsWebAssembly: true,
+    emulatorJsCoreName: 'same_cdi',
+  },
+  {
+    platformKey: 'Amiga CD32',
+    platformName: 'Commodore Amiga CD32',
+    defaultCore: 'puae',
+    selectedCore: 'puae',
+    availableCores: ['puae'],
+    supportsWebAssembly: true,
+    emulatorJsCoreName: 'amiga',
+  },
+  {
     platformKey: 'Neo Geo CD',
     platformName: 'SNK Neo Geo CD',
     defaultCore: 'neocd',
@@ -580,7 +616,7 @@ function LibretroSettings() {
 
               <FormRow size={sizes.MEDIUM}>
                 <FormLabel>Auto-Inject Verified Platform BIOS</FormLabel>
-                <FormInputHelpText text="Automatically mount verified BIOS firmware from the platform's /bios folder (PS1, Sega CD, Saturn, GBA, FDS) when starting a Libretro core" />
+                <FormInputHelpText text="Automatically mount verified BIOS firmware from the platform's /bios folder (PS1, Sega CD, Saturn, PC-FX, Amiga CD32, CD-i, GBA, FDS) when starting a Libretro core" />
                 <CheckInput
                   name="autoInjectBios"
                   value={config.autoInjectBios}
