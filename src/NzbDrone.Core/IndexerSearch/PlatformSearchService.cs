@@ -83,7 +83,9 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 try
                 {
-                    if (_romHackAutomationService != null && episode.SeasonNumber == GameCatalogProxy.RegionRomHacks)
+                    if (_romHackAutomationService != null &&
+                        (episode.SeasonNumber == GameCatalogProxy.RegionRomHacks ||
+                         episode.SeasonNumber == GameCatalogProxy.RegionTranslations))
                     {
                         var patchOutcome = _romHackAutomationService.TryAcquirePatchForGame(series, episode);
                         if (patchOutcome != null && patchOutcome.Success)

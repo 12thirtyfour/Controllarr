@@ -9,7 +9,7 @@ export interface PlatformRegionItem {
   description: string;
 }
 
-export const DEFAULT_REGION_ORDER: number[] = [-1, 1, 3, 2, 4, 0, 6, 5, 7, 8];
+export const DEFAULT_REGION_ORDER: number[] = [-1, 1, 3, 2, 4, 0, 6, 9, 5, 7, 8];
 
 export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
   {
@@ -44,8 +44,13 @@ export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
   },
   {
     id: 6,
-    label: 'ROM Hacks & Translations',
-    description: 'Community ROM hacks & fan translations',
+    label: 'ROM Hacks',
+    description: 'Community ROM hacks & gameplay mods',
+  },
+  {
+    id: 9,
+    label: 'Translations',
+    description: 'Fan translations & localization patches',
   },
   {
     id: 5,
@@ -106,6 +111,7 @@ export interface AddPlatformOptions {
   trackUnlicensed: boolean;
   trackHomebrew: boolean;
   trackRomHacks: boolean;
+  trackTranslations: boolean;
   regionOrder?: number[];
   searchForMissingGames: boolean;
   searchForCutoffUnmetGames: boolean;
@@ -131,6 +137,7 @@ const { useOptions, useOption, setOption } =
       trackUnlicensed: false,
       trackHomebrew: false,
       trackRomHacks: false,
+      trackTranslations: false,
       regionOrder: DEFAULT_REGION_ORDER,
       searchForMissingGames: false,
       searchForCutoffUnmetGames: false,

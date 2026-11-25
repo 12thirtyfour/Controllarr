@@ -243,6 +243,9 @@ function EditPlatformModalContent({
   const isRomHacksMonitored = Boolean(
     currentSeasons.find((s) => s.seasonNumber === 6)?.monitored
   );
+  const isTranslationsMonitored = Boolean(
+    currentSeasons.find((s) => s.seasonNumber === 9)?.monitored
+  );
   const isTestAndUtilitiesMonitored = Boolean(
     currentSeasons.find((s) => s.seasonNumber === 7)?.monitored
   );
@@ -273,6 +276,13 @@ function EditPlatformModalContent({
   const handleRomHacksMonitorChange = useCallback(
     ({ value }: InputChanged) => {
       handleRegionMonitorToggle(6, Boolean(value));
+    },
+    [handleRegionMonitorToggle]
+  );
+
+  const handleTranslationsMonitorChange = useCallback(
+    ({ value }: InputChanged) => {
+      handleRegionMonitorToggle(9, Boolean(value));
     },
     [handleRegionMonitorToggle]
   );
@@ -484,13 +494,24 @@ function EditPlatformModalContent({
           </FormRow>
 
           <FormRow size={sizes.MEDIUM}>
-            <FormLabel>Track ROM Hacks & Translations</FormLabel>
-            <FormInputHelpText text="Enable monitoring of the ROM Hacks & Translations region" />
+            <FormLabel>Track ROM Hacks</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the ROM Hacks region" />
             <FormInput
               type={inputTypes.CHECK}
               name="trackRomHacks"
               value={isRomHacksMonitored}
               onChange={handleRomHacksMonitorChange}
+            />
+          </FormRow>
+
+          <FormRow size={sizes.MEDIUM}>
+            <FormLabel>Track Translations</FormLabel>
+            <FormInputHelpText text="Enable monitoring of the Translations region" />
+            <FormInput
+              type={inputTypes.CHECK}
+              name="trackTranslations"
+              value={isTranslationsMonitored}
+              onChange={handleTranslationsMonitorChange}
             />
           </FormRow>
 

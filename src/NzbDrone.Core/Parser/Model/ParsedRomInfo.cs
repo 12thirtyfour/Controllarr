@@ -56,6 +56,11 @@ namespace NzbDrone.Core.Parser.Model
                     return 8;
                 }
 
+                if (RegionHelper.IsTranslation(GameTitle, ReleaseTitle, DumpTags))
+                {
+                    return 9;
+                }
+
                 if (RegionHelper.IsRomHackOrTranslation(GameTitle, ReleaseTitle, DumpTags))
                 {
                     return 6;

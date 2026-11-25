@@ -53,11 +53,19 @@ namespace NzbDrone.Core.Games
             "Super Mario Land 2 DX", "Conker's Pocket Tales (Color)", "Conker's Pocket Tales Color"
         };
 
+        private static readonly string[] TranslationTokens = new[]
+        {
+            "[T+", "[T-", "(T+", "(T-", "(Translation)", "[Translation]", "Translation Hack", "Fan Translation",
+            "(Translated)", "[Translated]", "(Retranslation)", "[Retranslation]"
+        };
+
+        private static readonly Regex TranslationRegex = new(
+            @"\[tr\s+[^\]]+\]|\bT[+-](?:Eng|En|Spa|Fre|Ger|Ita|Por|Rus|Chi|Kor)\b|\((?:english|french|spanish|german|italian|portuguese|russian|chinese|korean|polish|dutch)\s+translation\)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly string[] RomHackTokens = new[]
         {
             "(Hack", "[Hack", "Hack)", "Hack]", "Hack by", "[h]", "[h1]", "[h2]", "[h3]", "[h4]", "[h5]",
-            "[T+", "[T-", "(T+", "(T-", "(Translation)", "[Translation]", "Translation Hack", "Fan Translation",
-            "(Translated)", "[Translated]", "(Retranslation)", "[Retranslation]",
             "(Kaizo)", "[Kaizo]", "Kaizo Mario", "(Randomizer)", "[Randomizer]", "(Redux)", "[Redux]", "Redux Hack",
             "(Rebalance)", "[Rebalance]", "Rebalance Hack", "Romhack", "ROM Hack",
             "(Mod)", "[Mod]", "Modded", "(Improvement)", "[Improvement]", "(Restoration)", "[Restoration]",
@@ -71,7 +79,7 @@ namespace NzbDrone.Core.Games
         };
 
         private static readonly Regex GoodToolsOrTosecHackRegex = new(
-            @"\[(?:tr\s+[^\]]+|h(?:\d+|I)?(?:\s+[^\]]*)?|t\d*(?:\s+[^\]]*)?|f\d*(?:\s+[^\]]*)?)\]|\bT[+-](?:Eng|En|Spa|Fre|Ger|Ita|Por|Rus|Chi|Kor)\b|\((?:english|french|spanish|german|italian|portuguese|russian|chinese|korean|polish|dutch)\s+translation\)",
+            @"\[(?:h(?:\d+|I)?(?:\s+[^\]]*)?|t\d*(?:\s+[^\]]*)?|f\d*(?:\s+[^\]]*)?)\]",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex PirateTagRegex = new(
@@ -88,9 +96,10 @@ namespace NzbDrone.Core.Games
                 3 => "Japan",
                 4 => "World",
                 5 => "Homebrew",
-                6 => "ROM Hacks & Translations",
+                6 => "ROM Hacks",
                 7 => "Test & Utilities",
                 8 => "Magazines & Books",
+                9 => "Translations",
                 99 => "BIOS",
                 _ => $"Region {regionNumber}"
             };
@@ -112,7 +121,8 @@ namespace NzbDrone.Core.Games
                 "japan" or "jp" or "ja" or "jpn" or "j" or "ntsc-j" or "asia" or "korea" or "ntsc-k" or "china" or "taiwan" or "hong kong" => 3,
                 "world" or "global" or "w" or "jue" or "uej" => 4,
                 "homebrew" => 5,
-                "rom hacks" or "rom hack" or "translation" or "translations" => 6,
+                "rom hacks" or "rom hack" => 6,
+                "translation" or "translations" => 9,
                 "test & utilities" or "test and utilities" or "test & utility" or "test and utility" or "utilities" or "utility" or "tools" or "diagnostic" or "diagnostics" => 7,
                 "magazines & books" or "magazines and books" or "magazines" or "magazine" or "books" or "book" => 8,
                 "bios" or "firmware" => 99,
@@ -120,8 +130,58 @@ namespace NzbDrone.Core.Games
             };
         }
 
+        public static bool IsTranslation(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
+        {
+            if (!string.IsNullOrWhiteSpace(verificationSource) &&
+                verificationSource.Contains("Translation", StringComparison.OrdinalIgnoreCase) &&
+                !verificationSource.Contains("Hack", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (dumpTags != null && dumpTags.Any(t =>
+                t.StartsWith("T+", StringComparison.OrdinalIgnoreCase) ||
+                t.StartsWith("T-", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("Translation", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var texts = new[] { title, releaseTitle };
+            foreach (var text in texts)
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (TranslationTokens.Any(token => text.Contains(token, StringComparison.OrdinalIgnoreCase)) ||
+                    TranslationRegex.IsMatch(text))
+                {
+                    return true;
+                }
+
+                if (text.Contains("/Translations/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Translations\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/English Translations/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\English Translations\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Fan Translations/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Fan Translations\\", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static bool IsRomHackOrTranslation(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
         {
+            if (IsTranslation(title, releaseTitle, dumpTags, verificationSource))
+            {
+                return true;
+            }
+
             if (!string.IsNullOrWhiteSpace(verificationSource) && (
                 verificationSource.Contains("ROM Hacks", StringComparison.OrdinalIgnoreCase) ||
                 verificationSource.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
@@ -157,8 +217,6 @@ namespace NzbDrone.Core.Games
 
                 if (text.Contains("/Hacks/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\Hacks\\", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("/Translations/", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("\\Translations\\", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Translations & Hacks/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\Translations & Hacks\\", StringComparison.OrdinalIgnoreCase))
                 {

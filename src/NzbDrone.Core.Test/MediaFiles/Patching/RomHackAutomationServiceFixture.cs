@@ -265,5 +265,67 @@ namespace NzbDrone.Core.Test.MediaFiles.Patching
             result.EpisodeFileId.Should().Be(777);
             result.BaseRomName.Should().Be("Pokemon - FireRed Version (USA).gba");
         }
+
+        [Test]
+        public void should_acquire_patch_and_import_for_region_translations_episode()
+        {
+            var series = new Series { Id = 4, Title = "Super Nintendo Entertainment System", TitleSlug = "snes", Path = Path.GetTempPath() };
+            var episode = new Episode
+            {
+                Id = 401,
+                SeriesId = 4,
+                SeasonNumber = GameCatalogProxy.RegionTranslations,
+                Title = "Bahamut Lagoon [T-En by DeJap]"
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetSeries(4))
+                .Returns(series);
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri.StartsWith("https://romhackplaza.org/?s="))))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "<a href=\"https://romhackplaza.org/translations/bahamut-lagoon\">Bahamut Lagoon</a>",
+                    HttpStatusCode.OK));
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri == "https://romhackplaza.org/translations/bahamut-lagoon")))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "<div>Platform: Super Nintendo Entertainment System</div><div>Base ROM: Bahamut Lagoon (Japan)</div><a href=\"https://romhackplaza.org/files/bahamut_en.ips\">Download IPS</a>",
+                    HttpStatusCode.OK));
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.DownloadFile("https://romhackplaza.org/files/bahamut_en.ips", It.IsAny<string>()))
+                .Callback<string, string>((_, path) =>
+                {
+                    File.WriteAllBytes(path, Encoding.ASCII.GetBytes("PATCHEOF"));
+                });
+
+            Mocker.GetMock<IRomPatchingService>()
+                .Setup(p => p.ApplyPatchToLibrary(It.Is<RomPatchRequestModel>(req =>
+                    req.SeriesId == 4 &&
+                    req.TargetEpisodeId == 401 &&
+                    req.BaseGameTitleHint == "Bahamut Lagoon (Japan)")))
+                .Returns(new RomPatchResultModel
+                {
+                    Success = true,
+                    Format = "IPS",
+                    BaseRomName = "Bahamut Lagoon (Japan).sfc",
+                    OutputRomPath = "/roms/Nintendo/SNES/Translations/Bahamut Lagoon [T-En by DeJap].sfc",
+                    OutputCrc32 = "87654321",
+                    EpisodeId = 401,
+                    EpisodeFileId = 888
+                });
+
+            var result = Subject.TryAcquirePatchForGame(series, episode);
+
+            result.Success.Should().BeTrue();
+            result.EpisodeId.Should().Be(401);
+            result.EpisodeFileId.Should().Be(888);
+        }
     }
 }

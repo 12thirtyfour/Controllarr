@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             results.Should().NotBeEmpty();
             results.First().Title.Should().Be("Super Nintendo Entertainment System");
             results.First().TitleSlug.Should().Be("snes");
-            results.First().Seasons.Should().HaveCount(9);
+            results.First().Seasons.Should().HaveCount(10);
         }
 
         [Test]
@@ -2122,7 +2122,7 @@ game (
             castlevaniaHacks.Should().Contain(e => e.FinaleType == "Speed (V1.1) Hack");
             castlevaniaHacks.Should().NotContain(e => e.FinaleType.Contains("Hack • Hack") || e.FinaleType.Contains("• !"));
 
-            var translationHack = tuple.Item2.FirstOrDefault(e => e.Title.Contains("Heracles no Eikou") && e.SeasonNumber == GameCatalogProxy.RegionRomHacks);
+            var translationHack = tuple.Item2.FirstOrDefault(e => e.Title.Contains("Heracles no Eikou") && e.SeasonNumber == GameCatalogProxy.RegionTranslations);
             translationHack.Should().NotBeNull();
             translationHack.FinaleType.Should().Be("T-En by aishsha");
 
@@ -2207,6 +2207,30 @@ game (
             tuple.Item2.Should().NotContain(e => e.Title.Contains("BootROM", System.StringComparison.OrdinalIgnoreCase));
             tuple.Item2.Should().NotContain(e => e.Title.Contains("BIOS", System.StringComparison.OrdinalIgnoreCase));
             tuple.Item2.Should().NotContain(e => e.Title.Contains("ARM7", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Test]
+        public void should_split_translations_into_dedicated_region_for_all_platforms()
+        {
+            Subject.TryGetPlatformEntryBySlug("snes", out var snesPlatform).Should().BeTrue();
+            Subject.TryGetPlatformEntryBySlug("gb", out var gbPlatform).Should().BeTrue();
+
+            var searchResults = Subject.SearchForNewSeries("SNES", Language.English);
+            searchResults.First().Seasons.Should().Contain(s => s.SeasonNumber == GameCatalogProxy.RegionTranslations && s.Title == "Translations");
+
+            var snesTrans = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(snesPlatform, "Bahamut Lagoon (Japan) [T-En by DeJap]", 1996, "ROM Hacks & Translations");
+            var gbTrans = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Kaeru no Tame ni Kane wa Naru (Japan) (English Translation)", 1992, "SmokeMonster HTGDB / SMDB");
+            var snesHack = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(snesPlatform, "Super Mario World (USA) (Kaizo)", 1991, "ROM Hacks & Translations");
+            var gbHack = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Pokemon Red (USA) (Color Hack)", 1998, "SmokeMonster HTGDB / SMDB");
+
+            snesTrans.RegionNumber.Should().Be(GameCatalogProxy.RegionTranslations);
+            gbTrans.RegionNumber.Should().Be(GameCatalogProxy.RegionTranslations);
+            snesHack.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            gbHack.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+
+            GameCatalogProxy.GetRegionDisplayName(GameCatalogProxy.RegionRomHacks).Should().Be("ROM Hacks");
+            GameCatalogProxy.GetRegionDisplayName(GameCatalogProxy.RegionTranslations).Should().Be("Translations");
+            GameCatalogProxy.GetRegionFolderName(GameCatalogProxy.RegionTranslations).Should().Be("Translations");
         }
     }
 }

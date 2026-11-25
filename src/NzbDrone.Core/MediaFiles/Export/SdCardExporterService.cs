@@ -1020,8 +1020,12 @@ namespace NzbDrone.Core.MediaFiles.Export
             }
 
             var tag = match.Groups["tag"].Value;
+            if (tag.Equals("Translation", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Translations";
+            }
+
             if (tag.Equals("Hack", StringComparison.OrdinalIgnoreCase) ||
-                tag.Equals("Translation", StringComparison.OrdinalIgnoreCase) ||
                 tag.Equals("ROM Hacks", StringComparison.OrdinalIgnoreCase))
             {
                 return "ROM Hacks";

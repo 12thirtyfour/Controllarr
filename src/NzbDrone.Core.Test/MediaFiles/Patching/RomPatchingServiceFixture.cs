@@ -174,7 +174,7 @@ namespace NzbDrone.Core.Test.MediaFiles.Patching
                 });
 
                 result.Success.Should().BeTrue();
-                result.OutputRomPath.Should().Contain("ROM Hacks");
+                result.OutputRomPath.Should().Contain("Translations");
                 File.Exists(result.OutputRomPath).Should().BeTrue();
                 File.ReadAllBytes(result.OutputRomPath).Should().Equal(targetBytes);
 

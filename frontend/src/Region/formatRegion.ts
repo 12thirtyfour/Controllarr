@@ -168,7 +168,7 @@ export default function formatRegion(
   }
 
   if (seasonNumber === 6) {
-    return shortFormat ? 'HACK' : 'ROM Hacks & Translations';
+    return shortFormat ? 'HACK' : 'ROM Hacks';
   }
 
   if (seasonNumber === 7) {
@@ -177,6 +177,10 @@ export default function formatRegion(
 
   if (seasonNumber === 8) {
     return shortFormat ? 'MAG' : 'Magazines & Books';
+  }
+
+  if (seasonNumber === 9) {
+    return shortFormat ? 'TRN' : 'Translations';
   }
 
   if (seasonNumber > 0) {

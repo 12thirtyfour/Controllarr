@@ -196,12 +196,13 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 };
             }
 
-            if (episode.SeasonNumber != GameCatalogProxy.RegionRomHacks)
+            if (episode.SeasonNumber != GameCatalogProxy.RegionRomHacks &&
+                episode.SeasonNumber != GameCatalogProxy.RegionTranslations)
             {
                 return new RomHackAcquireResult
                 {
                     Success = false,
-                    Message = "Patch-first acquisition is only applicable to ROM Hacks region entries."
+                    Message = "Patch-first acquisition is only applicable to ROM Hacks or Translations region entries."
                 };
             }
 

@@ -66,5 +66,28 @@ namespace NzbDrone.Core.Test.GamesTests
         {
             RegionHelper.IsBios(name).Should().BeFalse();
         }
+
+        [TestCase("Mother 3 (Japan) [T+Eng1.2]")]
+        [TestCase("Seiken Densetsu 3 (Japan) [T-En by Neill Corlett]")]
+        [TestCase("Asterix (Europe)[tr pt Guto]")]
+        [TestCase("Booby Boys (english translation)")]
+        [TestCase("Chrono Trigger (Japan) (Retranslation)")]
+        public void should_classify_translations_separately_from_rom_hacks(string name)
+        {
+            RegionHelper.IsTranslation(name).Should().BeTrue();
+            RegionHelper.GetRegionName(9).Should().Be("Translations");
+            RegionHelper.GetRegionName(6).Should().Be("ROM Hacks");
+            RegionHelper.GetRegionNumber("Translations").Should().Be(9);
+        }
+
+        [TestCase("Super Mario World (USA) (Hack)")]
+        [TestCase("Pokemon Brown (USA) (Color Hack)")]
+        [TestCase("Tetris (World)[h1]")]
+        [TestCase("Addams Family (USA)[t]")]
+        public void should_not_flag_non_translation_rom_hacks_as_translations(string name)
+        {
+            RegionHelper.IsTranslation(name).Should().BeFalse();
+            RegionHelper.IsRomHackOrTranslation(name).Should().BeTrue();
+        }
     }
 }

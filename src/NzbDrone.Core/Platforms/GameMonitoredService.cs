@@ -149,7 +149,8 @@ namespace NzbDrone.Core.Tv
                         or GameCatalogProxy.RegionHomebrew
                         or GameCatalogProxy.RegionRomHacks
                         or GameCatalogProxy.RegionTestAndUtilities
-                        or GameCatalogProxy.RegionMagazinesAndBooks;
+                        or GameCatalogProxy.RegionMagazinesAndBooks
+                        or GameCatalogProxy.RegionTranslations;
                     continue;
                 }
 
@@ -157,7 +158,8 @@ namespace NzbDrone.Core.Tv
                     seasonNumber == GameCatalogProxy.RegionHomebrew ||
                     seasonNumber == GameCatalogProxy.RegionRomHacks ||
                     seasonNumber == GameCatalogProxy.RegionTestAndUtilities ||
-                    seasonNumber == GameCatalogProxy.RegionMagazinesAndBooks)
+                    seasonNumber == GameCatalogProxy.RegionMagazinesAndBooks ||
+                    seasonNumber == GameCatalogProxy.RegionTranslations)
                 {
                     season.Monitored = initialSeasonMonitored.TryGetValue(seasonNumber, out var wasMonitored) && wasMonitored;
                     continue;

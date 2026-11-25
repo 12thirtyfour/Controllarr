@@ -104,7 +104,8 @@ namespace NzbDrone.Core.IndexerSearch
             if (_romHackAutomationService == null ||
                 _seriesService == null ||
                 episode == null ||
-                episode.SeasonNumber != GameCatalogProxy.RegionRomHacks)
+                (episode.SeasonNumber != GameCatalogProxy.RegionRomHacks &&
+                 episode.SeasonNumber != GameCatalogProxy.RegionTranslations))
             {
                 return false;
             }

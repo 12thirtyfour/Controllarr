@@ -819,6 +819,9 @@ namespace NzbDrone.Core.Tv
                 4 => "World",
                 5 => "Homebrew",
                 6 => "ROM Hacks",
+                7 => "Test & Utilities",
+                8 => "Magazines & Books",
+                9 => "Translations",
                 _ => "USA"
             };
         }

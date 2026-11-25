@@ -180,7 +180,8 @@ namespace NzbDrone.Core.Tv
                         or GameCatalogProxy.RegionHomebrew
                         or GameCatalogProxy.RegionRomHacks
                         or GameCatalogProxy.RegionTestAndUtilities
-                        or GameCatalogProxy.RegionMagazinesAndBooks)
+                        or GameCatalogProxy.RegionMagazinesAndBooks
+                        or GameCatalogProxy.RegionTranslations)
                     {
                         _logger.Debug("Ignoring non-retail region ({0}) for platform [{1}] {2} by default", season.SeasonNumber, series.TvdbId, series.Title);
                         season.Monitored = false;

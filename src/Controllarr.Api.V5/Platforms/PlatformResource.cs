@@ -281,6 +281,7 @@ public class AddAllPlatformsResource
     public string ThreeDsEncryptionPreference { get; set; } = "notEncrypted";
     public bool TrackUnlicensed { get; set; }
     public bool TrackRomHacks { get; set; }
+    public bool TrackTranslations { get; set; }
     public bool TrackHomebrew { get; set; }
     public bool SearchForMissingGames { get; set; }
     public bool SearchForCutoffUnmetGames { get; set; }

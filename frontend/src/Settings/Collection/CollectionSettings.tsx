@@ -142,6 +142,7 @@ function CollectionSettings() {
         name === 'enableCompression' ||
         name === 'trackUnlicensed' ||
         name === 'trackRomHacks' ||
+        name === 'trackTranslations' ||
         name === 'trackHomebrew'
       ) {
         setAddPlatformOption(name, Boolean(value));
@@ -255,14 +256,23 @@ function CollectionSettings() {
               </FormRow>
 
               <FormRow size={sizes.MEDIUM}>
-                <FormLabel>
-                  Track ROM Hacks &amp; Translations by Default
-                </FormLabel>
-                <FormInputHelpText text="Include community ROM hacks and fan translations (verified via cryptographic hash-gating) when adding a new platform" />
+                <FormLabel>Track ROM Hacks by Default</FormLabel>
+                <FormInputHelpText text="Include community ROM hacks (verified via cryptographic hash-gating) when adding a new platform" />
                 <FormInput
                   type={inputTypes.CHECK}
                   name="trackRomHacks"
                   value={Boolean(addOptions.trackRomHacks)}
+                  onChange={handleBooleanOptionChange}
+                />
+              </FormRow>
+
+              <FormRow size={sizes.MEDIUM}>
+                <FormLabel>Track Translations by Default</FormLabel>
+                <FormInputHelpText text="Include fan translations and localization patches (verified via cryptographic hash-gating) when adding a new platform" />
+                <FormInput
+                  type={inputTypes.CHECK}
+                  name="trackTranslations"
+                  value={Boolean(addOptions.trackTranslations)}
                   onChange={handleBooleanOptionChange}
                 />
               </FormRow>

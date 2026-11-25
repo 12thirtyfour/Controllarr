@@ -134,6 +134,7 @@ function AddAllPlatformsModalContent({
     trackUnlicensed,
     trackHomebrew,
     trackRomHacks,
+    trackTranslations,
     seriesType,
     tags,
   } = settings;
@@ -210,6 +211,7 @@ function AddAllPlatformsModalContent({
       threeDsEncryptionPreference,
       trackUnlicensed: Boolean(trackUnlicensed?.value),
       trackRomHacks: Boolean(trackRomHacks?.value),
+      trackTranslations: Boolean(trackTranslations?.value),
       trackHomebrew: Boolean(trackHomebrew?.value),
       searchForMissingGames: Boolean(searchForMissingGames?.value),
       searchForCutoffUnmetGames: false,
@@ -231,6 +233,7 @@ function AddAllPlatformsModalContent({
     threeDsEncryptionPreference,
     trackUnlicensed,
     trackRomHacks,
+    trackTranslations,
     trackHomebrew,
     searchForMissingGames,
     seriesType,

@@ -8,6 +8,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Dat;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.MediaFiles.Archive;
 using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MetadataSource.Game;
@@ -412,6 +413,21 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     cleanPatchTitle = $"{cleanPatchTitle} (Hack)";
                 }
 
+                Episode resolvedTargetEpisode = null;
+                if (series != null && request.TargetEpisodeId.HasValue && _episodeService != null)
+                {
+                    resolvedTargetEpisode = (_episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>())
+                        .FirstOrDefault(e => e.Id == request.TargetEpisodeId.Value);
+                }
+
+                var isTranslation = resolvedTargetEpisode != null
+                    ? resolvedTargetEpisode.SeasonNumber == GameCatalogProxy.RegionTranslations
+                    : RegionHelper.IsTranslation(cleanPatchTitle, matchedDat?.GameName ?? effectivePatchName);
+                var targetRegionNumber = isTranslation
+                    ? GameCatalogProxy.RegionTranslations
+                    : GameCatalogProxy.RegionRomHacks;
+                var targetRegionFolder = isTranslation ? "Translations" : "ROM Hacks";
+
                 var outputExt = string.IsNullOrWhiteSpace(baseExtension) ? ".bin" : baseExtension;
                 string outputRomPath = null;
                 int? createdEpisodeId = null;
@@ -419,7 +435,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
 
                 if (series != null && !string.IsNullOrWhiteSpace(series.Path))
                 {
-                    var romHacksFolder = Path.Combine(series.Path, "ROM Hacks");
+                    var romHacksFolder = Path.Combine(series.Path, targetRegionFolder);
                     Directory.CreateDirectory(romHacksFolder);
 
                     var safeFileName = SanitizeFileName(cleanPatchTitle) + outputExt;
@@ -454,7 +470,8 @@ namespace NzbDrone.Core.MediaFiles.Patching
                             cleanPatchTitle,
                             outputRomPath,
                             patchedBytes.LongLength,
-                            request.TargetEpisodeId);
+                            request.TargetEpisodeId,
+                            targetRegionNumber);
                         createdEpisodeId = epId;
                         createdFileId = fileId;
                     }
@@ -462,7 +479,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 else if (!string.IsNullOrWhiteSpace(baseRomPath))
                 {
                     var parentDir = Path.GetDirectoryName(baseRomPath) ?? Directory.GetCurrentDirectory();
-                    var romHacksFolder = Path.Combine(parentDir, "ROM Hacks");
+                    var romHacksFolder = Path.Combine(parentDir, targetRegionFolder);
                     Directory.CreateDirectory(romHacksFolder);
 
                     var safeFileName = SanitizeFileName(cleanPatchTitle) + outputExt;
@@ -492,7 +509,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     MatchedCatalogName = matchedDat?.GameName ?? (format == RomPatchFormat.Bps ? "BPS Source & Target CRC32 Verified" : null),
                     EpisodeId = createdEpisodeId,
                     EpisodeFileId = createdFileId,
-                    Message = $"Applied {formatLabel} patch onto '{baseFileName}'{platformQualifier} and created '{Path.GetFileName(outputRomPath)}' (CRC32: {crc32Hex}) in ROM Hacks without modifying the retail file."
+                    Message = $"Applied {formatLabel} patch onto '{baseFileName}'{platformQualifier} and created '{Path.GetFileName(outputRomPath)}' (CRC32: {crc32Hex}) in {targetRegionFolder} without modifying the retail file."
                 };
             }
             catch (Exception ex)
@@ -1610,7 +1627,8 @@ namespace NzbDrone.Core.MediaFiles.Patching
             string hackTitle,
             string outputRomPath,
             long byteSize,
-            int? targetEpisodeId = null)
+            int? targetEpisodeId = null,
+            int targetRegionNumber = GameCatalogProxy.RegionRomHacks)
         {
             if (_episodeService == null || _mediaFileService == null)
             {
@@ -1624,13 +1642,13 @@ namespace NzbDrone.Core.MediaFiles.Patching
                         ? existingEpisodes.FirstOrDefault(e => e.Id == targetEpisodeId.Value)
                         : null)
                     ?? existingEpisodes.FirstOrDefault(e =>
-                        e.SeasonNumber == GameCatalogProxy.RegionRomHacks &&
+                        e.SeasonNumber == targetRegionNumber &&
                         string.Equals(e.Title, hackTitle, StringComparison.OrdinalIgnoreCase));
 
                 if (hackEpisode == null)
                 {
                     var nextEpNum = existingEpisodes
-                        .Where(e => e.SeasonNumber == GameCatalogProxy.RegionRomHacks)
+                        .Where(e => e.SeasonNumber == targetRegionNumber)
                         .Select(e => e.EpisodeNumber)
                         .DefaultIfEmpty(0)
                         .Max() + 1;
@@ -1639,11 +1657,11 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     {
                         SeriesId = series.Id,
                         TvdbId = Math.Abs(HashCode.Combine(series.TvdbId, hackTitle.ToLowerInvariant())) + 500000,
-                        SeasonNumber = GameCatalogProxy.RegionRomHacks,
+                        SeasonNumber = targetRegionNumber,
                         EpisodeNumber = nextEpNum,
                         AbsoluteEpisodeNumber = nextEpNum,
                         Title = hackTitle,
-                        FinaleType = "ROM Hack",
+                        FinaleType = targetRegionNumber == GameCatalogProxy.RegionTranslations ? "Translation" : "ROM Hack",
                         Overview = $"Patched ROM hack / translation generated onto verified {series.Title} retail base ROM.",
                         AirDate = DateTime.UtcNow.ToString("yyyy-MM-dd"),
                         AirDateUtc = DateTime.UtcNow,
@@ -1664,7 +1682,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 var episodeFile = new EpisodeFile
                 {
                     SeriesId = series.Id,
-                    SeasonNumber = GameCatalogProxy.RegionRomHacks,
+                    SeasonNumber = hackEpisode.SeasonNumber,
                     RelativePath = relativePath,
                     Size = byteSize,
                     DateAdded = DateTime.UtcNow,

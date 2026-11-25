@@ -24,6 +24,7 @@ interface AddPlatformPayload
       | 'trackUnlicensed'
       | 'trackHomebrew'
       | 'trackRomHacks'
+      | 'trackTranslations'
     > {
   language: Language;
 }
@@ -96,6 +97,7 @@ export interface AddAllPlatformsPayload {
   threeDsEncryptionPreference: string;
   trackUnlicensed: boolean;
   trackRomHacks: boolean;
+  trackTranslations: boolean;
   trackHomebrew: boolean;
   searchForMissingGames: boolean;
   searchForCutoffUnmetGames: boolean;

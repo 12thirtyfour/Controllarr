@@ -41,7 +41,9 @@ namespace NzbDrone.Core.IndexerSearch
             var userInvokedSearch = message.Trigger == CommandTrigger.Manual;
             Series series = null;
 
-            if (message.SeasonNumber == GameCatalogProxy.RegionRomHacks && _seriesService != null)
+            if ((message.SeasonNumber == GameCatalogProxy.RegionRomHacks ||
+                 message.SeasonNumber == GameCatalogProxy.RegionTranslations) &&
+                _seriesService != null)
             {
                 series = _seriesService.GetSeries(message.SeriesId);
             }
@@ -61,7 +63,8 @@ namespace NzbDrone.Core.IndexerSearch
                 {
                     if (_romHackAutomationService != null &&
                         series != null &&
-                        episode.SeasonNumber == GameCatalogProxy.RegionRomHacks)
+                        (episode.SeasonNumber == GameCatalogProxy.RegionRomHacks ||
+                         episode.SeasonNumber == GameCatalogProxy.RegionTranslations))
                     {
                         var patchOutcome = _romHackAutomationService.TryAcquirePatchForGame(series, episode);
                         if (patchOutcome != null && patchOutcome.Success)

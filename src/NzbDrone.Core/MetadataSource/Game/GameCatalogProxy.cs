@@ -33,6 +33,7 @@ namespace NzbDrone.Core.MetadataSource.Game
         public const int RegionRomHacks = 6;
         public const int RegionTestAndUtilities = 7;
         public const int RegionMagazinesAndBooks = 8;
+        public const int RegionTranslations = 9;
         public const int RegionBios = 99;
 
         private const int MaxCachedPlatformCatalogs = 4;
@@ -804,6 +805,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if ((candidate.RegionNumber == RegionHomebrew ||
                      candidate.RegionNumber == RegionUnlicensed ||
                      candidate.RegionNumber == RegionRomHacks ||
+                     candidate.RegionNumber == RegionTranslations ||
                      candidate.RegionNumber == RegionTestAndUtilities ||
                      candidate.RegionNumber == RegionMagazinesAndBooks) &&
                     HasSeenHash(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32))
@@ -816,7 +818,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                         existingRetail.RegionNumber = candidate.RegionNumber;
                         existingRetail.RegionName = candidate.RegionName;
                         MergeMissingHashes(existingRetail, candidate, seenHashes);
-                        if (candidate.RegionNumber != RegionRomHacks)
+                        if (candidate.RegionNumber != RegionRomHacks && candidate.RegionNumber != RegionTranslations)
                         {
                             seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(existingRetail.BaseTitle ?? existingRetail.Title));
                         }
@@ -983,7 +985,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
                         {
                             var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-                            if (smdbParts.Any(IsRomHackSmdbSegment))
+                            if (smdbParts.Any(IsTranslationSmdbSegment))
+                            {
+                                effectiveCategory = "Translations";
+                            }
+                            else if (smdbParts.Any(IsRomHackSmdbSegment))
                             {
                                 effectiveCategory = "ROM Hacks & Translations";
                             }
@@ -1001,7 +1007,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                             }
                         }
 
-                        var isSpecialCategory = effectiveCategory == "ROM Hacks & Translations" ||
+                        var isSpecialCategory = effectiveCategory == "Translations" ||
+                                                effectiveCategory == "ROM Hacks & Translations" ||
                                                 effectiveCategory == "Homebrew & Aftermarket" ||
                                                 effectiveCategory == "Unlicensed";
 
@@ -1067,6 +1074,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var isUnofficial = seasonNum == RegionUnlicensed ||
                                    seasonNum == RegionHomebrew ||
                                    seasonNum == RegionRomHacks ||
+                                   seasonNum == RegionTranslations ||
                                    seasonNum == RegionTestAndUtilities ||
                                    seasonNum == RegionMagazinesAndBooks ||
                                    IsPreReleaseVersion(game.RevisionTag, game.NoIntroName);
@@ -1590,6 +1598,22 @@ namespace NzbDrone.Core.MetadataSource.Game
             return false;
         }
 
+        private static bool IsTranslationSmdbSegment(string segment)
+        {
+            if (string.IsNullOrWhiteSpace(segment))
+            {
+                return false;
+            }
+
+            if (segment.Contains("Translation", StringComparison.OrdinalIgnoreCase) &&
+                !segment.Contains("Hack", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return segment.Contains("T-En", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsRomHackSmdbSegment(string segment)
         {
             if (string.IsNullOrWhiteSpace(segment))
@@ -1698,6 +1722,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                                           s.Equals("Diagnostics", StringComparison.OrdinalIgnoreCase)))
                 {
                     smdbCategory = "Test & Utilities";
+                }
+                else if (pathSegments.Any(IsTranslationSmdbSegment))
+                {
+                    smdbCategory = "Translations";
                 }
                 else if (pathSegments.Any(IsRomHackSmdbSegment))
                 {
@@ -4205,7 +4233,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 parts.Add("Encrypted");
             }
 
-            if (regionNumber == RegionRomHacks)
+            if (regionNumber == RegionRomHacks || regionNumber == RegionTranslations)
             {
                 foreach (var token in ExtractBracketAndParenTokens(noIntroName))
                 {
@@ -4232,14 +4260,14 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            if (parts.Count == 1 && IsBaseV1Tag(parts[0]) && regionNumber != RegionRomHacks && regionNumber != RegionHomebrew)
+            if (parts.Count == 1 && IsBaseV1Tag(parts[0]) && regionNumber != RegionRomHacks && regionNumber != RegionTranslations && regionNumber != RegionHomebrew)
             {
                 return "Retail (v1.0)";
             }
 
             if (parts.Count > 0)
             {
-                if (regionNumber == RegionRomHacks)
+                if (regionNumber == RegionRomHacks || regionNumber == RegionTranslations)
                 {
                     var alreadyDescribed = parts.Any(p =>
                         p.Contains("Hack", StringComparison.OrdinalIgnoreCase) ||
@@ -4250,7 +4278,8 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                     if (!alreadyDescribed)
                     {
-                        var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
+                        var isTranslation = regionNumber == RegionTranslations ||
+                                            noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
                                             noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
                                             noIntroName.Contains("[tr ", StringComparison.OrdinalIgnoreCase) ||
                                             noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
@@ -4267,13 +4296,14 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return "Homebrew";
             }
 
+            if (regionNumber == RegionTranslations)
+            {
+                return "Translation";
+            }
+
             if (regionNumber == RegionRomHacks)
             {
-                var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
-                                    noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
-                                    noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
-                                    noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
-                return isTranslation ? "Translation" : "ROM Hack";
+                return "ROM Hack";
             }
 
             if (regionNumber == RegionUnlicensed)
@@ -4304,6 +4334,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             if (allowMagazinesAndBooks && RegionHelper.IsMagazineOrBook(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
             {
                 return RegionMagazinesAndBooks;
+            }
+
+            if (RegionHelper.IsTranslation(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
+            {
+                return RegionTranslations;
             }
 
             if (RegionHelper.IsRomHackOrTranslation(noIntroName, parsed?.ReleaseTitle, parsed?.DumpTags, verificationSource))
@@ -4963,7 +4998,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 new Season { SeasonNumber = RegionHomebrew, Title = "Homebrew", Monitored = false },
                 new Season { SeasonNumber = RegionRomHacks, Title = "ROM Hacks", Monitored = false },
                 new Season { SeasonNumber = RegionTestAndUtilities, Title = "Test & Utilities", Monitored = false },
-                new Season { SeasonNumber = RegionMagazinesAndBooks, Title = "Magazines & Books", Monitored = false }
+                new Season { SeasonNumber = RegionMagazinesAndBooks, Title = "Magazines & Books", Monitored = false },
+                new Season { SeasonNumber = RegionTranslations, Title = "Translations", Monitored = false }
             };
         }
 
@@ -4990,7 +5026,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
             {
                 var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (smdbParts.Any(IsRomHackSmdbSegment))
+                if (smdbParts.Any(IsTranslationSmdbSegment))
+                {
+                    sourceLabel = "Translations";
+                }
+                else if (smdbParts.Any(IsRomHackSmdbSegment))
                 {
                     sourceLabel = "ROM Hacks & Translations";
                 }
@@ -5066,10 +5106,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                 RegionJapan => "Japan",
                 RegionWorld => "World",
                 RegionUnlicensed => "Unlicensed",
-                RegionRomHacks => "ROM Hacks & Translations",
+                RegionRomHacks => "ROM Hacks",
                 RegionHomebrew => "Homebrew & Aftermarket",
                 RegionTestAndUtilities => "Test & Utilities",
                 RegionMagazinesAndBooks => "Magazines & Books",
+                RegionTranslations => "Translations",
                 _ => $"Region {seasonNumber}"
             };
         }
@@ -5143,6 +5184,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 RegionRomHacks => "ROM Hacks",
                 RegionTestAndUtilities => "Test & Utilities",
                 RegionMagazinesAndBooks => "Magazines & Books",
+                RegionTranslations => "Translations",
                 RegionBios => "BIOS",
                 _ => "USA"
             };

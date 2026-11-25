@@ -307,6 +307,10 @@ public class PlatformController : RestControllerWithSignalR<SeriesResource, NzbD
                     {
                         season.Monitored = resource.TrackRomHacks;
                     }
+                    else if (season.SeasonNumber == 9)
+                    {
+                        season.Monitored = resource.TrackTranslations;
+                    }
                 }
             }
 
