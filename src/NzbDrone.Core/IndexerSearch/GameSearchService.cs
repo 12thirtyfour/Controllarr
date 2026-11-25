@@ -7,8 +7,10 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
@@ -17,7 +19,8 @@ namespace NzbDrone.Core.IndexerSearch
 {
     public class GameSearchService : IExecute<GameSearchCommand>,
                                         IExecute<MissingGameSearchCommand>,
-                                        IExecute<CutoffUnmetGameSearchCommand>
+                                        IExecute<CutoffUnmetGameSearchCommand>,
+                                        IHandle<ApplicationShutdownRequested>
     {
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
@@ -27,6 +30,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly ISeriesService _seriesService;
         private readonly IRomHackAutomationService _romHackAutomationService;
         private readonly Logger _logger;
+        private volatile bool _shutdownRequested;
 
         public GameSearchService(ISearchForReleases releaseSearchService,
                                     IProcessDownloadDecisions processDownloadDecisions,
@@ -54,6 +58,12 @@ namespace NzbDrone.Core.IndexerSearch
 
             foreach (var episode in episodes.OrderBy(e => e.LastSearchTime ?? DateTime.MinValue))
             {
+                if (_shutdownRequested)
+                {
+                    _logger.Info("Stopping bulk game search due to application shutdown.");
+                    break;
+                }
+
                 try
                 {
                     if (TryAcquireRomHackPatch(episode))
@@ -69,6 +79,12 @@ namespace NzbDrone.Core.IndexerSearch
                 }
                 catch (Exception ex)
                 {
+                    if (_shutdownRequested || SearchShutdownHelper.IsContainerDisposedException(ex))
+                    {
+                        _logger.Info("Stopping bulk game search because the application container is shutting down.");
+                        break;
+                    }
+
                     _logger.Error(ex, "Unable to search for game: [{0}]", episode);
                 }
             }
@@ -85,17 +101,31 @@ namespace NzbDrone.Core.IndexerSearch
         {
             foreach (var episodeId in message.GameIds)
             {
-                var episode = _episodeService.GetEpisode(episodeId);
-                if (episode != null && TryAcquireRomHackPatch(episode))
+                if (_shutdownRequested)
                 {
-                    _logger.ProgressInfo("Game search completed via patch-first ROM hack acquisition.");
-                    continue;
+                    _logger.Info("Stopping game search due to application shutdown.");
+                    break;
                 }
 
-                var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
-                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+                try
+                {
+                    var episode = _episodeService.GetEpisode(episodeId);
+                    if (episode != null && TryAcquireRomHackPatch(episode))
+                    {
+                        _logger.ProgressInfo("Game search completed via patch-first ROM hack acquisition.");
+                        continue;
+                    }
 
-                _logger.ProgressInfo("Game search completed. {0} releases downloaded.", processed.Grabbed.Count);
+                    var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
+                    var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+
+                    _logger.ProgressInfo("Game search completed. {0} releases downloaded.", processed.Grabbed.Count);
+                }
+                catch (Exception ex) when (_shutdownRequested || SearchShutdownHelper.IsContainerDisposedException(ex))
+                {
+                    _logger.Info("Stopping game search because the application container is shutting down.");
+                    break;
+                }
             }
         }
 
@@ -242,6 +272,11 @@ namespace NzbDrone.Core.IndexerSearch
             var cutoffUnmet = episodes.Where(e => !queue.Contains(e.Id)).ToList();
 
             SearchForBulkEpisodes(cutoffUnmet, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+        }
+
+        public void Handle(ApplicationShutdownRequested message)
+        {
+            _shutdownRequested = true;
         }
 
         private List<int> GetQueuedEpisodeIds()

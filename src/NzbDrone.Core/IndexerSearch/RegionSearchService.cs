@@ -4,14 +4,17 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
 {
-    public class RegionSearchService : IExecute<RegionSearchCommand>
+    public class RegionSearchService : IExecute<RegionSearchCommand>,
+                                       IHandle<ApplicationShutdownRequested>
     {
         private readonly IEpisodeService _episodeService;
         private readonly ISearchForReleases _releaseSearchService;
@@ -19,6 +22,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly ISeriesService _seriesService;
         private readonly IRomHackAutomationService _romHackAutomationService;
         private readonly Logger _logger;
+        private volatile bool _shutdownRequested;
 
         public RegionSearchService(IEpisodeService episodeService,
                                    ISearchForReleases releaseSearchService,
@@ -59,6 +63,12 @@ namespace NzbDrone.Core.IndexerSearch
 
             foreach (var episode in episodes)
             {
+                if (_shutdownRequested)
+                {
+                    _logger.Info("Stopping region search due to application shutdown.");
+                    break;
+                }
+
                 try
                 {
                     if (_romHackAutomationService != null &&
@@ -80,11 +90,22 @@ namespace NzbDrone.Core.IndexerSearch
                 }
                 catch (Exception ex)
                 {
+                    if (_shutdownRequested || SearchShutdownHelper.IsContainerDisposedException(ex))
+                    {
+                        _logger.Info("Stopping region search because the application container is shutting down.");
+                        break;
+                    }
+
                     _logger.Error(ex, "Unable to search for game: [{0}]", episode.Title);
                 }
             }
 
             _logger.ProgressInfo("Region search completed. {0} releases downloaded.", downloadedCount);
+        }
+
+        public void Handle(ApplicationShutdownRequested message)
+        {
+            _shutdownRequested = true;
         }
     }
 }

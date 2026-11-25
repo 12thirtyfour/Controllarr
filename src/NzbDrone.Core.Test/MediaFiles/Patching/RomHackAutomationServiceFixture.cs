@@ -327,5 +327,81 @@ namespace NzbDrone.Core.Test.MediaFiles.Patching
             result.EpisodeId.Should().Be(401);
             result.EpisodeFileId.Should().Be(888);
         }
+
+        [Test]
+        public void should_ignore_romhack_plaza_nav_links_and_archive_book_scans()
+        {
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri.StartsWith("https://romhackplaza.org/?s="))))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "<a href=\"https://romhackplaza.org/news/secret-of-mana-reborn-historic-update\">Secret of Mana Reborn</a>" +
+                    "<a href=\"https://romhackplaza.org/database\">Database</a>" +
+                    "<a href=\"https://romhackplaza.org/queue\">Queue</a>",
+                    HttpStatusCode.OK));
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri.Contains("archive.org/advancedsearch.php"))))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "{\"response\":{\"docs\":[{\"identifier\":\"isbn_9780764112300\",\"title\":\"Barron's Ace\"},{\"identifier\":\"random-book\",\"title\":\"Unrelated Book\"}]}}",
+                    HttpStatusCode.OK));
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri == "https://archive.org/metadata/random-book")))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "{\"files\":[{\"name\":\"random-book_jp2.zip\",\"size\":\"12345\"},{\"name\":\"other-stuff.zip\",\"size\":\"999\"}]}",
+                    HttpStatusCode.OK));
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri.Contains("api.github.com/search/repositories"))))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "{\"items\":[]}",
+                    HttpStatusCode.OK));
+
+            var results = Subject.SearchCommunitySources("Ace", "atari2600", includeHomebrew: false);
+
+            results.Should().BeEmpty();
+            Mocker.GetMock<IHttpClient>()
+                .Verify(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri.Contains("/news/") || r.Url.FullUri.EndsWith("/database") || r.Url.FullUri.EndsWith("/queue"))), Times.Never);
+            Mocker.GetMock<IHttpClient>()
+                .Verify(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri.Contains("isbn_9780764112300"))), Times.Never);
+        }
+
+        [Test]
+        public void should_not_download_html_when_detail_page_has_no_direct_patch_link()
+        {
+            var series = new Series { Id = 5, Title = "Atari 2600", TitleSlug = "atari2600" };
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetSeries(5))
+                .Returns(series);
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get(It.Is<HttpRequest>(r => r.Url.FullUri == "https://romhackplaza.org/hacks/acid-fish")))
+                .Returns<HttpRequest>(r => new HttpResponse(
+                    r,
+                    new HttpHeader(),
+                    "<html><body><div>Acid Fish page with no download link</div></body></html>",
+                    HttpStatusCode.OK));
+
+            var result = Subject.AcquireAndCreate(new RomHackAcquireRequest
+            {
+                SeriesId = 5,
+                Title = "Acid Fish",
+                DownloadUrl = "https://romhackplaza.org/hacks/acid-fish",
+                PageUrl = "https://romhackplaza.org/hacks/acid-fish"
+            });
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain("No direct binary patch download link");
+            Mocker.GetMock<IHttpClient>()
+                .Verify(c => c.DownloadFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
     }
 }

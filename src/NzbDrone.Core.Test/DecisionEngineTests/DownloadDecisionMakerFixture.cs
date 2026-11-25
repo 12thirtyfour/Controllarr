@@ -558,5 +558,67 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions.Should().ContainSingle().Which.Approved.Should().BeFalse();
             databaseUpgradeSpec.Verify(s => s.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()), Times.Never());
         }
+
+        [Test]
+        public void should_not_flag_single_game_from_internet_archive_redump_collection_as_multi_region()
+        {
+            var series = Builder<Series>.CreateNew()
+                                        .With(s => s.Id = 77)
+                                        .With(s => s.Title = "Sega CD")
+                                        .With(s => s.CleanTitle = "segacd")
+                                        .With(s => s.TitleSlug = "segacd")
+                                        .Build();
+
+            var episodes = new List<Episode>
+            {
+                new Episode { Id = 1, SeriesId = series.Id, Series = series, SeasonNumber = 1, EpisodeNumber = 1, Title = "After Burner III" },
+                new Episode { Id = 2, SeriesId = series.Id, Series = series, SeasonNumber = 2, EpisodeNumber = 1, Title = "After Armageddon Gaiden" }
+            };
+
+            var reports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo
+                {
+                    Title = "After Burner III (USA).7z",
+                    InfoUrl = "https://archive.org/details/sega-cd-redump"
+                },
+                new ReleaseInfo
+                {
+                    Title = "Sonic Mega Collection (USA).7z",
+                    InfoUrl = "https://archive.org/details/sega-cd-redump"
+                },
+                new ReleaseInfo
+                {
+                    Title = "Sega CD Redump Complete Set.7z",
+                    InfoUrl = "https://archive.org/details/sega-cd-redump"
+                }
+            };
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(v => v.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<SearchCriteriaBase>()))
+                .Returns<ParsedEpisodeInfo, int, int, string, SearchCriteriaBase>((p, _, _, _, _) =>
+                    new RemoteEpisode
+                    {
+                        DownloadAllowed = true,
+                        ParsedEpisodeInfo = p,
+                        Series = series,
+                        Episodes = episodes
+                    });
+
+            Mocker.SetConstant<IEnumerable<IDownloadDecisionEngineSpecification>>(new List<IDownloadDecisionEngineSpecification>
+            {
+                Mocker.Resolve<MultiRegionSpecification>()
+            });
+
+            var decisions = Subject.GetRssDecision(reports).ToList();
+
+            decisions.Should().HaveCount(3);
+            decisions[0].Approved.Should().BeTrue();
+            decisions[0].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeFalse();
+            decisions[1].Approved.Should().BeTrue();
+            decisions[1].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeFalse();
+            decisions[2].Approved.Should().BeFalse();
+            decisions[2].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeTrue();
+        }
     }
 }

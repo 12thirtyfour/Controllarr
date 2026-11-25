@@ -220,7 +220,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
 
             var candidates = SearchCommunitySources(cleanQuery, series.TitleSlug, includeHomebrew: false)
                 .Where(c => !c.IsHomebrew)
-                .Where(c => c.HasDirectDownload || IsResolvableDetailPageUrl(c.PageUrl ?? c.DownloadUrl))
+                .Where(c => c.HasDirectDownload && c.RelevanceScore >= 40)
                 .Take(3)
                 .ToList();
 
@@ -344,6 +344,17 @@ namespace NzbDrone.Core.MediaFiles.Patching
                         effectiveBaseSha1 = resolved.BaseRomSha1;
                     }
                 }
+            }
+
+            if (string.IsNullOrWhiteSpace(effectiveDownloadUrl) || IsHtmlDetailPageUrl(effectiveDownloadUrl))
+            {
+                return new RomHackAcquireResult
+                {
+                    Success = false,
+                    BaseRomMissing = false,
+                    PatchDownloadUrl = effectiveDownloadUrl,
+                    Message = "No direct binary patch download link was found on the detail page."
+                };
             }
 
             var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_romhack_" + Guid.NewGuid().ToString("N"));
@@ -499,7 +510,13 @@ namespace NzbDrone.Core.MediaFiles.Patching
                         continue;
                     }
 
-                    candidates.Add((href, title, ComputeRelevanceScore(query, title)));
+                    var score = ComputeRelevanceScore(query, title);
+                    if (score < 30)
+                    {
+                        continue;
+                    }
+
+                    candidates.Add((href, title, score));
                 }
 
                 var topCandidates = candidates
@@ -633,7 +650,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
             var results = new List<RomHackSearchResult>();
             try
             {
-                var lucene = $"({query}) AND (romhack OR translation OR \"rom hack\" OR ips OR bps OR homebrew)";
+                var lucene = $"({query}) AND (romhack OR \"rom hack\" OR \"ips patch\" OR \"bps patch\" OR \"rom translation\" OR homebrew) AND mediatype:(software OR data) -mediatype:texts";
                 var url = $"https://archive.org/advancedsearch.php?q={Uri.EscapeDataString(lucene)}&fl[]=identifier,title&rows=15&page=1&output=json";
                 var response = _httpClient.Get(new HttpRequest(url, HttpAccept.Json));
                 if (response == null || response.StatusCode != HttpStatusCode.OK || string.IsNullOrWhiteSpace(response.Content))
@@ -653,7 +670,9 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 {
                     var id = item.TryGetProperty("identifier", out var idProp) ? idProp.GetString() : null;
                     var title = item.TryGetProperty("title", out var titleProp) ? titleProp.GetString() : id;
-                    if (string.IsNullOrWhiteSpace(id))
+                    if (string.IsNullOrWhiteSpace(id) ||
+                        id.StartsWith("isbn_", StringComparison.OrdinalIgnoreCase) ||
+                        id.StartsWith("cia-readingroom", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -672,7 +691,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                         addedDirect = TryAppendArchivePatchFiles(id, title, query, platformSlug, results);
                     }
 
-                    if (!addedDirect)
+                    if (!addedDirect && itemScore >= 40)
                     {
                         results.Add(new RomHackSearchResult
                         {
@@ -754,6 +773,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 }
 
                 var selected = candidates
+                    .Where(c => c.Score >= 40)
                     .OrderByDescending(c => c.Score)
                     .ThenByDescending(c => GetFormatPriorityScore(c.Format))
                     .Take(2)
@@ -799,7 +819,9 @@ namespace NzbDrone.Core.MediaFiles.Patching
             var results = new List<RomHackSearchResult>();
             try
             {
-                var q = $"{query} romhack OR ips OR bps";
+                var q = string.IsNullOrWhiteSpace(platformSlug)
+                    ? $"\"{query}\" (romhack OR \"rom hack\" OR \"ips patch\" OR \"bps patch\")"
+                    : $"\"{query}\" {platformSlug} (romhack OR \"rom hack\" OR ips OR bps)";
                 var url = $"https://api.github.com/search/repositories?q={Uri.EscapeDataString(q)}&per_page=5";
                 var request = new HttpRequest(url, HttpAccept.Json);
                 request.Headers.Add("User-Agent", "Controllarr");
@@ -821,6 +843,12 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     var fullName = repo.TryGetProperty("full_name", out var nameProp) ? nameProp.GetString() : null;
                     var htmlUrl = repo.TryGetProperty("html_url", out var urlProp) ? urlProp.GetString() : null;
                     if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(htmlUrl))
+                    {
+                        continue;
+                    }
+
+                    var description = repo.TryGetProperty("description", out var descProp) ? descProp.GetString() : null;
+                    if (ComputeRelevanceScore(query, $"{fullName} {description}") < 30)
                     {
                         continue;
                     }
@@ -1015,31 +1043,35 @@ namespace NzbDrone.Core.MediaFiles.Patching
 
         private static bool IsValidRomhackPlazaCandidateUrl(string url)
         {
-            if (string.IsNullOrWhiteSpace(url) || !url.Contains("romhackplaza.org", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(url) ||
+                !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+                !uri.Host.Contains("romhackplaza.org", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var path = uri.AbsolutePath.Trim('/');
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length < 2)
             {
                 return false;
             }
 
             var lower = url.ToLowerInvariant();
-            if (lower == "https://romhackplaza.org" || lower == "https://romhackplaza.org/")
-            {
-                return false;
-            }
-
             string[] ignoredSegments =
             {
                 "/?s=", "/category/", "/tag/", "/author/", "/page/",
+                "/news/", "/database", "/queue", "/guides/", "/tools/", "/community/",
+                "/forum/", "/blog/", "/faq", "/login", "/register", "/account", "/discord",
                 "/wp-login", "/wp-admin", "/feed", "#", "/about", "/contact", "/submit", "/privacy", "/terms"
             };
 
             return !ignoredSegments.Any(seg => lower.Contains(seg, StringComparison.Ordinal));
-        }
-
-        private static bool IsResolvableDetailPageUrl(string url)
-        {
-            return !string.IsNullOrWhiteSpace(url) &&
-                   url.Contains("romhackplaza.org", StringComparison.OrdinalIgnoreCase) &&
-                   IsValidRomhackPlazaCandidateUrl(url);
         }
 
         private static bool IsHtmlDetailPageUrl(string url)
@@ -1155,6 +1187,15 @@ namespace NzbDrone.Core.MediaFiles.Patching
                    lower.EndsWith("_files.xml", StringComparison.Ordinal) ||
                    lower.EndsWith("_archive.torrent", StringComparison.Ordinal) ||
                    lower.EndsWith("_meta.sqlite", StringComparison.Ordinal) ||
+                   lower.EndsWith("_jp2.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_raw_jp2.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_images.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_scandata.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_hocr.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_djvu.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_pdf.zip", StringComparison.Ordinal) ||
+                   lower.EndsWith("_abbyy.gz", StringComparison.Ordinal) ||
+                   lower.EndsWith("_chocr.html.gz", StringComparison.Ordinal) ||
                    lower.Contains("__macosx/", StringComparison.Ordinal);
         }
 

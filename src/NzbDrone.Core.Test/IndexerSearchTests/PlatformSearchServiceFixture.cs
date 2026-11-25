@@ -9,6 +9,7 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.IndexerSearch;
+using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -198,6 +199,51 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         public void should_identify_disc_based_platforms(string slug, string title, bool expected)
         {
             PlatformCatalogService.IsDiscBasedPlatform(slug, title).Should().Be(expected);
+        }
+
+        [Test]
+        public void should_stop_searching_remaining_games_when_shutdown_is_requested()
+        {
+            _series.Seasons = new List<Season> { new Season { SeasonNumber = 1, Monitored = true } };
+            var ep1 = new Episode { Id = 1, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 1, Monitored = true, EpisodeFileId = 0, Title = "Game 1" };
+            var ep2 = new Episode { Id = 2, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 2, Monitored = true, EpisodeFileId = 0, Title = "Game 2" };
+            var ep3 = new Episode { Id = 3, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 3, Monitored = true, EpisodeFileId = 0, Title = "Game 3" };
+            _episodes.AddRange(new[] { ep1, ep2, ep3 });
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Setup(s => s.EpisodeSearch(It.IsAny<Episode>(), false, false))
+                  .Callback<Episode, bool, bool>((ep, _, _) =>
+                  {
+                      if (ep.Id == 1)
+                      {
+                          Subject.Handle(new ApplicationShutdownRequested(true));
+                      }
+                  })
+                  .ReturnsAsync(new List<DownloadDecision>());
+
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id });
+
+            Mocker.GetMock<ISearchForReleases>().Verify(s => s.EpisodeSearch(ep1, false, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>().Verify(s => s.EpisodeSearch(ep2, false, false), Times.Never());
+            Mocker.GetMock<ISearchForReleases>().Verify(s => s.EpisodeSearch(ep3, false, false), Times.Never());
+        }
+
+        [Test]
+        public void should_stop_searching_remaining_games_when_container_is_disposed()
+        {
+            _series.Seasons = new List<Season> { new Season { SeasonNumber = 1, Monitored = true } };
+            var ep1 = new Episode { Id = 1, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 1, Monitored = true, EpisodeFileId = 0, Title = "Game 1" };
+            var ep2 = new Episode { Id = 2, SeriesId = _series.Id, SeasonNumber = 1, EpisodeNumber = 2, Monitored = true, EpisodeFileId = 0, Title = "Game 2" };
+            _episodes.AddRange(new[] { ep1, ep2 });
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Setup(s => s.EpisodeSearch(ep1, false, false))
+                  .ThrowsAsync(new System.ObjectDisposedException("Container"));
+
+            Subject.Execute(new PlatformSearchCommand { SeriesId = _series.Id });
+
+            Mocker.GetMock<ISearchForReleases>().Verify(s => s.EpisodeSearch(ep1, false, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>().Verify(s => s.EpisodeSearch(ep2, false, false), Times.Never());
         }
     }
 }

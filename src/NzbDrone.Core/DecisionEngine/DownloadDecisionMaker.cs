@@ -468,7 +468,7 @@ namespace NzbDrone.Core.DecisionEngine
                     romQuality = new QualityModel(Quality.VerifiedGoodDump);
                 }
 
-                if (romInfoIsFullSet || IsFullSetRelease(releaseTitle, fullContext))
+                if (romInfoIsFullSet || IsFullSetRelease(releaseTitle))
                 {
                     return new ParsedEpisodeInfo
                     {
@@ -498,31 +498,44 @@ namespace NzbDrone.Core.DecisionEngine
             return null;
         }
 
-        private static bool IsFullSetRelease(string releaseTitle, string contextToCheck)
+        private static readonly Regex ParentheticalRegionTagRegex = new(
+            @"\((?:[^)]*\b(?:USA|Europe|Japan|World|Australia|Canada|Brazil|Korea|China|Taiwan|Asia|France|Germany|Spain|Italy|Netherlands|Sweden|Denmark|Norway|Finland|Portugal|Russia|Poland|Greece|En|Ja|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Zh|Ko)\b[^)]*)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static bool IsFullSetRelease(string releaseTitle)
         {
-            var text = !string.IsNullOrWhiteSpace(contextToCheck) ? contextToCheck : (releaseTitle ?? string.Empty);
-            return text.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("HTGDB", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("FlashBoy", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("EverDrive", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Ever Drive", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("PowerPak", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("RetroHQ", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Darksoft", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("GamePack", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("1G1R", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("No-Intro", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("nointro", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Redump", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("TOSEC", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Romset", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Rom Set", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Collection", StringComparison.OrdinalIgnoreCase) ||
-                   text.Contains("Complete", StringComparison.OrdinalIgnoreCase) ||
-                   (!string.IsNullOrWhiteSpace(releaseTitle) &&
-                    (releaseTitle.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
-                     releaseTitle.StartsWith("[", StringComparison.OrdinalIgnoreCase)));
+            var text = releaseTitle ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            if (text.Contains("SMDB", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("HTGDB", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("FlashBoy", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("EverDrive", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("Ever Drive", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("PowerPak", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("RetroHQ", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("Darksoft", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("GamePack", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("1G1R", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("nointro", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("Redump", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("TOSEC", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("Romset", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("Rom Set", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("[", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return !ParentheticalRegionTagRegex.IsMatch(text) &&
+                   (text.Contains("Collection", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Complete", StringComparison.OrdinalIgnoreCase));
         }
 
         private static readonly ConcurrentDictionary<string, Regex> WordBoundaryRegexCache = new(StringComparer.OrdinalIgnoreCase);
@@ -543,7 +556,7 @@ namespace NzbDrone.Core.DecisionEngine
 
             var contextToCheck = !string.IsNullOrWhiteSpace(fullContext) ? fullContext : releaseTitle;
 
-            if (!IsFullSetRelease(releaseTitle, contextToCheck))
+            if (!IsFullSetRelease(releaseTitle))
             {
                 return false;
             }
