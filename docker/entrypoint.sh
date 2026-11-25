@@ -16,7 +16,14 @@ if [ "$(id -u)" = "0" ]; then
     fi
 
     mkdir -p /config /roms /downloads 2>/dev/null || true
-    chown -R "${PUID}:${PGID}" /config 2>/dev/null || true
+
+    if ! gosu "${PUID}:${PGID}" test -w /config; then
+        chown "${PUID}:${PGID}" /config 2>/dev/null || true
+
+        if ! gosu "${PUID}:${PGID}" test -w /config; then
+            find /config -maxdepth 2 \( ! -user "${PUID}" -o ! -group "${PGID}" \) -exec chown "${PUID}:${PGID}" {} + 2>/dev/null || true
+        fi
+    fi
 
     if ! gosu "${PUID}:${PGID}" test -w /config; then
         CONFIG_UID="$(stat -c '%u' /config 2>/dev/null || echo "${PUID}")"
@@ -31,8 +38,11 @@ if [ "$(id -u)" = "0" ]; then
         fi
     fi
 
-    chown -R "${PUID}:${PGID}" /app 2>/dev/null || true
-    chown "${PUID}:${PGID}" /roms /downloads 2>/dev/null || true
+    for dir in /roms /downloads; do
+        if [ -d "${dir}" ] && ! gosu "${PUID}:${PGID}" test -w "${dir}"; then
+            chown "${PUID}:${PGID}" "${dir}" 2>/dev/null || true
+        fi
+    done
 
     if ! getent group controllarr >/dev/null 2>&1; then
         groupadd -o -g "${PGID}" controllarr 2>/dev/null || true

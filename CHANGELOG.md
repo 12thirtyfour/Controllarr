@@ -49,6 +49,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Removed TV media server and TV player connection providers (`SynologyIndexer`, `Notifiarr`, `MediaServerUpdateQueue`) and added database migration `248_remove_tv_media_notifications` to clean up legacy TV connection records (`SynologyIndexer`, `Notifiarr`, `PlexClient`, `PlexServer`, `Xbmc`, `MediaBrowser`, `Emby`, `Trakt`, `Subgen`).
 
 ### Fixed
+- **Faster Docker & TrueNAS SCALE Startup / Image Size Reduction (`Dockerfile`, `docker/entrypoint.sh`)**:
+  - Removed unconditional per-boot recursive `chown -R` on `/app` (eliminating ~150+ MB OverlayFS copy-up on every container restart) and replaced recursive `/config` `chown -R` with fast writability checks plus bounded mismatch-only fallback (`-maxdepth 2`) for ZFS/NFSv4 ACL datasets.
+  - Added a dedicated `tools-extract` stage in `Dockerfile` to extract only headless `chdman`/`dolphin-tool` binaries and their non-base shared libraries instead of shipping full GUI `dolphin-emu`/X11/Qt/Mesa/LLVM and redundant `libicu-dev` packages, pre-set executable bits in build stages to remove duplicate `/app/bin` layer bloat, and configured `HEALTHCHECK --start-interval=2s` on `127.0.0.1:7050/ping` so Docker/TrueNAS SCALE detects readiness within seconds.
 - **Clean Studio Console Hardware Art Replacement (`gp32.png`, `gamemaster.png`, `picno.png`, `vsmile.png`)**:
   - Replaced the console hardware transparent PNG assets for GamePark GP32, Hartung Game Master, Konami Picno, and VTech V.Smile with newly rendered, anti-aliased and color-decontaminated `512x512` RGBA PNGs to eliminate jagged edges and background halos.
 - **Prevent Synthetic `Platform <id>` & Unrecognized DAT Game Misclassification (`GameCatalogProxy`, `ImportPlatformSelectPlatform`)**:
