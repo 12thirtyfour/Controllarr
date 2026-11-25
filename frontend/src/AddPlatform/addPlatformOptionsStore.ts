@@ -9,7 +9,9 @@ export interface PlatformRegionItem {
   description: string;
 }
 
-export const DEFAULT_REGION_ORDER: number[] = [-1, 1, 3, 2, 4, 0, 6, 9, 5, 7, 8];
+export const DEFAULT_REGION_ORDER: number[] = [
+  -1, 1, 3, 2, 4, 0, 6, 9, 5, 7, 8,
+];
 
 export const PLATFORM_REGION_ITEMS: PlatformRegionItem[] = [
   {
