@@ -277,5 +277,19 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName).Should().Be(expected);
         }
+
+        [TestCase("TG16 CD/Lords of Thunder (USA).chd")]
+        [TestCase("TG16-CD/Lords of Thunder (USA).chd")]
+        [TestCase("TurboGrafx-16 CD/Ys Book I & II (USA).chd")]
+        [TestCase("TGFX16-CD/Gate of Thunder (USA).chd")]
+        [TestCase("PCE CD/Akumajou Dracula X (Japan).chd")]
+        [TestCase("PC Engine Super CD-ROM2/Rondo of Blood (Japan).chd")]
+        public void should_detect_tgcd_variants_and_allow_chd_without_bleeding_to_tg16(string candidatePath)
+        {
+            var detected = PlatformCompatibilityValidator.DetectPlatforms(candidatePath);
+            detected.Should().Contain("tgcd");
+            detected.Should().NotContain("tg16");
+            PlatformCompatibilityValidator.IsLocalFileCompatible(candidatePath, "tgcd", "NEC TurboGrafx-CD").Should().BeTrue();
+        }
     }
 }

@@ -116,6 +116,95 @@ namespace NzbDrone.Core.MediaFiles.Disc
             return resolved;
         }
 
+        public static List<string> ResolveTrackFilesPrioritizingData(string sheetPath)
+        {
+            if (string.IsNullOrWhiteSpace(sheetPath) || !File.Exists(sheetPath))
+            {
+                return new List<string>();
+            }
+
+            var ext = Path.GetExtension(sheetPath)?.ToLowerInvariant() ?? string.Empty;
+            if (ext != ".cue")
+            {
+                return ResolveTrackFiles(sheetPath);
+            }
+
+            var sheetDir = Path.GetDirectoryName(sheetPath);
+            if (string.IsNullOrWhiteSpace(sheetDir) || !Directory.Exists(sheetDir))
+            {
+                return new List<string>();
+            }
+
+            var cueBlocks = new List<(string Reference, bool IsDataTrack)>();
+            try
+            {
+                foreach (var line in File.ReadLines(sheetPath))
+                {
+                    var fileRef = TryParseCueFileReference(line);
+                    if (!string.IsNullOrWhiteSpace(fileRef))
+                    {
+                        cueBlocks.Add((fileRef, false));
+                        continue;
+                    }
+
+                    if (cueBlocks.Count > 0 && IsCueDataTrackLine(line))
+                    {
+                        var lastIndex = cueBlocks.Count - 1;
+                        cueBlocks[lastIndex] = (cueBlocks[lastIndex].Reference, true);
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            if (cueBlocks.Count == 0)
+            {
+                return ResolveTrackFiles(sheetPath);
+            }
+
+            string[] dirFiles = null;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var dataTracks = new List<string>();
+            var otherTracks = new List<string>();
+
+            foreach (var (reference, isDataTrack) in cueBlocks)
+            {
+                var trackPath = ResolveSingleTrackReference(sheetDir, reference, cueBlocks.Count, true, ref dirFiles);
+                if (!string.IsNullOrWhiteSpace(trackPath) && seen.Add(trackPath))
+                {
+                    if (isDataTrack)
+                    {
+                        dataTracks.Add(trackPath);
+                    }
+                    else
+                    {
+                        otherTracks.Add(trackPath);
+                    }
+                }
+            }
+
+            return dataTracks.Concat(otherTracks).ToList();
+        }
+
+        private static bool IsCueDataTrackLine(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return false;
+            }
+
+            var parts = line.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 3 && string.Equals(parts[0], "TRACK", StringComparison.OrdinalIgnoreCase))
+            {
+                var mode = parts[2];
+                return mode.StartsWith("MODE1", StringComparison.OrdinalIgnoreCase) ||
+                       mode.StartsWith("MODE2", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
         public static long GetEffectiveFileSize(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))

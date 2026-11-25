@@ -49,6 +49,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
         private readonly Logger _logger;
         private readonly IBiosService _biosService;
         private readonly IGameCatalogService _gameCatalogService;
+        private readonly IDiscCompressionService _discCompressionService;
 
         public UnmanagedDiskScanner(
             ISeriesService seriesService,
@@ -57,7 +58,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             IDatCacheService datCacheService,
             Logger logger,
             IBiosService biosService = null,
-            IGameCatalogService gameCatalogService = null)
+            IGameCatalogService gameCatalogService = null,
+            IDiscCompressionService discCompressionService = null)
         {
             _seriesService = seriesService;
             _episodeService = episodeService;
@@ -66,6 +68,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             _logger = logger;
             _biosService = biosService;
             _gameCatalogService = gameCatalogService;
+            _discCompressionService = discCompressionService;
         }
 
         public List<ManualImportItem> Scan(string rootFolder)
@@ -855,6 +858,12 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
 
             var matchedSeries = preferredSeries ?? FindPlatformBySlugOrTitle(platformSlug, filePath);
+            if (preferredSeries == null && matchedDatEntry == null && matchedSeries != null &&
+                !PlatformCompatibilityValidator.IsLocalFileCompatible(filePath, matchedSeries.TitleSlug, matchedSeries.Title))
+            {
+                matchedSeries = null;
+            }
+
             var matchedEpisode = FindMatchingEpisode(matchedSeries, romName, matchedDatEntry, crc32, hashes);
 
             if (matchedSeries == null && matchedEpisode != null)
@@ -1186,14 +1195,15 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
         private Dictionary<string, string> ComputeHashes(string filePath, List<string> validExtensions)
         {
-            return ComputeFileOrArchiveHashes(filePath, validExtensions, _datCacheService, _logger);
+            return ComputeFileOrArchiveHashes(filePath, validExtensions, _datCacheService, _logger, _discCompressionService);
         }
 
         public static Dictionary<string, string> ComputeFileOrArchiveHashes(
             string filePath,
             IEnumerable<string> validExtensions = null,
             IDatCacheService datCacheService = null,
-            Logger logger = null)
+            Logger logger = null,
+            IDiscCompressionService discCompressionService = null)
         {
             var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (string.IsNullOrWhiteSpace(filePath))
@@ -1227,6 +1237,13 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 if (DiscSheetHelper.IsDiscSheetExtension(extension))
                 {
                     EnrichDiscSheetHashesFromTracks(filePath, datCacheService, logger, hashes);
+                }
+                else if (extension.Equals(".chd", StringComparison.OrdinalIgnoreCase) &&
+                         datCacheService != null &&
+                         discCompressionService != null &&
+                         !MatchesAnyDatHash(datCacheService, hashes))
+                {
+                    EnrichChdHashesFromTracks(filePath, datCacheService, discCompressionService, logger, hashes);
                 }
             }
 
@@ -1456,24 +1473,61 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
         }
 
+        private static void EnrichChdHashesFromTracks(
+            string chdPath,
+            IDatCacheService datCacheService,
+            IDiscCompressionService discCompressionService,
+            Logger logger,
+            Dictionary<string, string> hashes)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr-chd-verify-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                if (discCompressionService.ExtractChdTracksForVerification(chdPath, tempDir, out var cuePath) &&
+                    !string.IsNullOrWhiteSpace(cuePath) &&
+                    File.Exists(cuePath))
+                {
+                    EnrichDiscSheetHashesFromTracks(cuePath, datCacheService, logger, hashes, Path.GetFileName(chdPath));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.Debug(ex, "Unable to verify inner tracks of CHD {0}", chdPath);
+            }
+            finally
+            {
+                try
+                {
+                    if (Directory.Exists(tempDir))
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
         private static void EnrichDiscSheetHashesFromTracks(
             string sheetPath,
             IDatCacheService datCacheService,
             Logger logger,
-            Dictionary<string, string> hashes)
+            Dictionary<string, string> hashes,
+            string originalRomName = null)
         {
             if (datCacheService != null && MatchesAnyDatHash(datCacheService, hashes))
             {
                 return;
             }
 
-            var tracks = DiscSheetHelper.ResolveTrackFiles(sheetPath);
+            var tracks = DiscSheetHelper.ResolveTrackFilesPrioritizingData(sheetPath);
             if (tracks.Count == 0)
             {
                 return;
             }
 
-            var maxTracksToCheck = datCacheService == null ? 1 : Math.Min(3, tracks.Count);
+            var maxTracksToCheck = datCacheService == null ? 1 : Math.Min(8, tracks.Count);
             for (var i = 0; i < maxTracksToCheck; i++)
             {
                 var trackPath = tracks[i];
@@ -1497,7 +1551,9 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                             hashes[kvp.Key] = kvp.Value;
                         }
 
-                        hashes["ROM_NAME"] = Path.GetFileName(sheetPath);
+                        hashes["ROM_NAME"] = !string.IsNullOrWhiteSpace(originalRomName)
+                            ? originalRomName
+                            : Path.GetFileName(sheetPath);
                         return;
                     }
                 }

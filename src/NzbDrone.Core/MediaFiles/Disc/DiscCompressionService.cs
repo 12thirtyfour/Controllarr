@@ -20,6 +20,7 @@ namespace NzbDrone.Core.MediaFiles.Disc
         bool CompressDisc(string sourcePath, string platformSlug, out string outputPath, string explicitOutputPath = null);
         (string Executable, string Arguments, string PrimaryOutputPath) BuildDecompressionCommand(string sourcePath, string targetDirectory, string targetFileNameWithoutExtension = null);
         bool DecompressDisc(string sourcePath, string targetDirectory, out string primaryOutputPath, string targetFileNameWithoutExtension = null);
+        bool ExtractChdTracksForVerification(string chdPath, string targetDirectory, out string cuePath);
         void GenerateM3uPlaylist(IEnumerable<string> discPaths, string outputM3uPath);
     }
 
@@ -144,6 +145,42 @@ namespace NzbDrone.Core.MediaFiles.Disc
             }
 
             return true;
+        }
+
+        public bool ExtractChdTracksForVerification(string chdPath, string targetDirectory, out string cuePath)
+        {
+            cuePath = null;
+            if (string.IsNullOrWhiteSpace(chdPath) || string.IsNullOrWhiteSpace(targetDirectory))
+            {
+                return false;
+            }
+
+            cuePath = Path.Combine(targetDirectory, "disc.cue");
+
+            try
+            {
+                Directory.CreateDirectory(targetDirectory);
+
+                var splitResult = _processProvider.StartAndCapture("chdman", $"extractcd -i \"{chdPath}\" -o \"{cuePath}\" -sb");
+                if (splitResult != null && splitResult.ExitCode == 0 && File.Exists(cuePath))
+                {
+                    return true;
+                }
+
+                var fallbackResult = _processProvider.StartAndCapture("chdman", $"extractcd -i \"{chdPath}\" -o \"{cuePath}\"");
+                if (fallbackResult != null && fallbackResult.ExitCode == 0 && File.Exists(cuePath))
+                {
+                    return true;
+                }
+
+                _logger.Debug("CHD track extraction for verification failed for {0} (split exit: {1}, fallback exit: {2})", chdPath, splitResult?.ExitCode, fallbackResult?.ExitCode);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "CHD track extraction for verification failed for {0}", chdPath);
+                return false;
+            }
         }
 
         public void GenerateM3uPlaylist(IEnumerable<string> discPaths, string outputM3uPath)

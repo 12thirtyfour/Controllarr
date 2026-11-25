@@ -30,6 +30,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Added a dedicated GitHub Actions workflow on `develop` (and `workflow_dispatch`) that builds and pushes the multi-architecture `ghcr.io/12thirtyfour/controllarr:develop` (and `develop-<sha>`) image for `linux/amd64` and `linux/arm64` without cutting a full release.
 
 ### Changed
+- **CHD Per-Track Redump Hash Verification (`DiscCompressionService`, `DiscSheetHelper`, `UnmanagedDiskScanner`, `DownloadedGamesImportService`)**:
+  - Added `IDiscCompressionService.ExtractChdTracksForVerification` (`chdman extractcd -sb` with non-split fallback) and `DiscSheetHelper.ResolveTrackFilesPrioritizingData` (sorting `MODE1`/`MODE2` data tracks ahead of shared `AUDIO` warning tracks) so `.chd` disc images (such as NEC TurboGrafx-CD / PC Engine CD) are verified against Redump per-track CRC32/MD5/SHA-1 DAT entries during disk scanning and download import, with automatic temporary extraction cleanup.
 - **Verification Database Hash Deduplication & Strict Update/DLC Coupling (`GameCatalogProxy`, `PlatformDetailsRegion`)**:
   - Added hash-indexed cross-reference lookup (`entriesByHash`) across built-in, online-synced, and cached DAT entries in `GameCatalogProxy.GetSeriesInfo` so any entries sharing a checksum/hash are merged into a single canonical game entry instead of duplicating across databases, and enabled `rejectSecondaryTracks: true` when ingesting cached DAT entries so multi-track optical discs do not create duplicate entries.
   - Updated `GameCatalogProxy.PairDlcWithBaseGames` to support both `" - "` and `": "` DLC separators, preserve contained-title DLC suffixes, align paired Update/DLC entries to their base game's region when needed, and remove standalone/orphaned Updates and DLC that have no matching base game.
@@ -39,6 +41,9 @@ All notable changes to **Controllarr** are documented in this file.
   - Tightened `RegionHelper.IsMagazineOrBook` / `MagazineOrBookRegex` so `Magazines & Books` strictly captures actual magazine cover discs, book companion discs, and digital magazines rather than retail encyclopedias, almanacs, lexicons, dictionaries, atlases, or interactive catalogs.
 
 ### Fixed
+- **TurboGrafx-CD (`tgcd`) Alias Detection & Incompatible Folder Path Lock-In (`PlatformCatalogService`, `PlatformCompatibilityValidator`, `UnmanagedDiskScanner`)**:
+  - Expanded `PlatformAliases["tgcd"]` and the `tgcd` regex in `PlatformCompatibilityValidator` to recognize `TG16 CD`, `TG16-CD`, `TGFX16-CD`, `TurboGrafx-16 CD`, `PCE CD`, and `PC Engine Super CD-ROM2` without bleeding into `tg16`.
+  - Cleared path-clue platform resolution in `UnmanagedDiskScanner.ResolvePlatformAndGame` when an unverified file's format is incompatible with the inferred platform (e.g., `.chd` placed inside a `TG16` folder), allowing manual import for the selected disc platform.
 - **Full Addon & Digital-Storefront Platform Independence (`UnmanagedDiskScanner`, `PlatformCompatibilityValidator`, `PlatformCatalogService`, `DatCacheService`, `PlatformService`)**:
   - Replaced substring `StartsWith(p.Path)` path matching in `UnmanagedDiskScanner.FindPlatformBySlugOrTitle` with exact/parent boundary checks (`PathEquals` / `IsParentPath`) sorted longest-path-first so addon paths (e.g., `Atari Jaguar CD`, `Nintendo 64DD`) never resolve to their shorter parent platform folder (`Atari Jaguar`, `Nintendo 64`).
   - Replaced substring BIOS platform lookup in `UnmanagedDiskScanner.ProcessBiosFile` with exact normalized slug equality.

@@ -191,7 +191,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:(?:nec\s+)?(?:pc\s*engine\s+)?super\s*grafx|supergrafx|sgx)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "supergrafx"),
 
             // TurboGrafx-CD / PC Engine CD (must precede TurboGrafx-16 / PC Engine)
-            (new Regex(@"(?:\b|_|\[|\()(?:turbografx[\s._-]*cd|pc[\s._-]*engine[\s._-]*cd|tg-?cd|pce-?cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
+            (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:[\s._-]*16)?[\s._-]*cd|pc[\s._-]*engine[\s._-]*(?:super[\s._-]*)?cd(?:-?rom2?)?|tg(?:fx)?16[\s._-]*cd|tg-?cd|pce[\s._-]*cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
 
             // TurboGrafx-16 / PC Engine
             (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:-16|\s*16)?|pc\s*engine|tg16|pce)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tg16"),

@@ -67,6 +67,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IDatCacheService _datCacheService;
         private readonly IEpisodeService _episodeService;
         private readonly IMediaFileService _mediaFileService;
+        private readonly IDiscCompressionService _discCompressionService;
         private readonly Logger _logger;
 
         public DownloadedGamesImportService(IDiskProvider diskProvider,
@@ -85,7 +86,8 @@ namespace NzbDrone.Core.MediaFiles
                                                IImportActivityService importActivityService = null,
                                                IDatCacheService datCacheService = null,
                                                IEpisodeService episodeService = null,
-                                               IMediaFileService mediaFileService = null)
+                                               IMediaFileService mediaFileService = null,
+                                               IDiscCompressionService discCompressionService = null)
         {
             _diskProvider = diskProvider;
             _diskScanService = diskScanService;
@@ -103,6 +105,7 @@ namespace NzbDrone.Core.MediaFiles
             _datCacheService = datCacheService;
             _episodeService = episodeService;
             _mediaFileService = mediaFileService;
+            _discCompressionService = discCompressionService;
             _logger = logger;
         }
 
@@ -976,7 +979,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 var hashes = existingLocalEpisode?.RomHashes != null && existingLocalEpisode.RomHashes.Count > 0
                     ? existingLocalEpisode.RomHashes
-                    : UnmanagedDiskScanner.ComputeFileOrArchiveHashes(fileInfo.FullName, MediaFileExtensions.RomExtensions, _datCacheService, _logger);
+                    : UnmanagedDiskScanner.ComputeFileOrArchiveHashes(fileInfo.FullName, MediaFileExtensions.RomExtensions, _datCacheService, _logger, _discCompressionService);
 
                 hashes.TryGetValue("CRC32", out var crc32);
                 hashes.TryGetValue("SHA-1", out var sha1);
@@ -1156,7 +1159,7 @@ namespace NzbDrone.Core.MediaFiles
                     continue;
                 }
 
-                var candidateHashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(candidatePath, MediaFileExtensions.RomExtensions, _datCacheService, _logger);
+                var candidateHashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(candidatePath, MediaFileExtensions.RomExtensions, _datCacheService, _logger, _discCompressionService);
                 if (HashesMatch(hashes, candidateHashes))
                 {
                     return libraryFile;

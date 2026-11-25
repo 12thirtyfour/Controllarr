@@ -1263,7 +1263,13 @@ namespace NzbDrone.Core.Games
             ["beena"] = new[] { "beena", "sega-beena", "sega beena", "advanced pico beena" },
             ["tg16"] = new[] { "turbografx-16", "turbografx 16", "turbografx", "tg16", "pc-engine", "pc engine", "pce" },
             ["supergrafx"] = new[] { "supergrafx", "pc-engine-supergrafx", "pc engine supergrafx", "nec pc engine supergrafx", "sgx" },
-            ["tgcd"] = new[] { "turbografx-cd", "turbografx cd", "turbografxcd", "tg-cd", "tgcd", "pc-engine-cd", "pc engine cd", "pcenginecd", "pcecd" },
+            ["tgcd"] = new[]
+            {
+                "turbografx-cd", "turbografx cd", "turbografxcd", "turbografx-16 cd", "turbografx-16-cd", "turbografx 16 cd",
+                "tg-cd", "tgcd", "tg16-cd", "tg16 cd", "tg16cd", "tgfx16-cd", "tgfx16 cd",
+                "pc-engine-cd", "pc engine cd", "pcenginecd", "pcecd", "pce-cd", "pce cd",
+                "pc engine cd-rom2", "pc engine super cd-rom2"
+            },
             ["ps1"] = new[] { "sony-playstation", "playstation", "ps1", "psx", "sony playstation", "psone" },
             ["ps2"] = new[] { "sony-playstation-2", "playstation-2", "playstation 2", "ps2", "sony playstation 2" },
             ["ps3"] = new[] { "sony-playstation-3", "playstation-3", "playstation 3", "ps3", "sony playstation 3" },

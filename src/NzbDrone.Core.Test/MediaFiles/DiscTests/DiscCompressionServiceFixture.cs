@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using FluentAssertions;
 using Moq;
@@ -97,6 +98,122 @@ namespace NzbDrone.Core.Test.MediaFiles.DiscTests
                 if (File.Exists(tempM3u))
                 {
                     File.Delete(tempM3u);
+                }
+            }
+        }
+
+        [Test]
+        public void Should_extract_chd_tracks_using_splitbin_flag_when_supported()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr-chd-split-" + Guid.NewGuid().ToString("N"));
+            var cuePath = Path.Combine(tempDir, "disc.cue");
+
+            try
+            {
+                Mocker.GetMock<IProcessProvider>()
+                    .Setup(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && a.Contains("-sb")), null))
+                    .Returns(() =>
+                    {
+                        Directory.CreateDirectory(tempDir);
+                        File.WriteAllText(cuePath, "FILE \"disc (Track 1).bin\" BINARY\n  TRACK 01 AUDIO\n");
+                        return new ProcessOutput { ExitCode = 0 };
+                    });
+
+                var result = Subject.ExtractChdTracksForVerification("Game (USA).chd", tempDir, out var resolvedCuePath);
+
+                result.Should().BeTrue();
+                resolvedCuePath.Should().Be(cuePath);
+                Mocker.GetMock<IProcessProvider>()
+                    .Verify(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && a.Contains("-sb")), null), Times.Once());
+                Mocker.GetMock<IProcessProvider>()
+                    .Verify(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && !a.Contains("-sb")), null), Times.Never());
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void Should_fallback_to_non_splitbin_extractcd_when_splitbin_fails()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr-chd-fallback-" + Guid.NewGuid().ToString("N"));
+            var cuePath = Path.Combine(tempDir, "disc.cue");
+
+            try
+            {
+                Mocker.GetMock<IProcessProvider>()
+                    .Setup(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && a.Contains("-sb")), null))
+                    .Returns(new ProcessOutput { ExitCode = 1 });
+
+                Mocker.GetMock<IProcessProvider>()
+                    .Setup(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && !a.Contains("-sb")), null))
+                    .Returns(() =>
+                    {
+                        Directory.CreateDirectory(tempDir);
+                        File.WriteAllText(cuePath, "FILE \"disc.bin\" BINARY\n  TRACK 01 AUDIO\n");
+                        return new ProcessOutput { ExitCode = 0 };
+                    });
+
+                var result = Subject.ExtractChdTracksForVerification("Game (USA).chd", tempDir, out var resolvedCuePath);
+
+                result.Should().BeTrue();
+                resolvedCuePath.Should().Be(cuePath);
+                Mocker.GetMock<IProcessProvider>()
+                    .Verify(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && a.Contains("-sb")), null), Times.Once());
+                Mocker.GetMock<IProcessProvider>()
+                    .Verify(p => p.StartAndCapture("chdman", It.Is<string>(a => a.Contains("extractcd") && !a.Contains("-sb")), null), Times.Once());
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void Should_prioritize_data_tracks_over_audio_tracks_in_cue_sheet()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr-cue-prio-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var track1 = Path.Combine(tempDir, "Game (Track 1).bin");
+                var track2 = Path.Combine(tempDir, "Game (Track 2).bin");
+                var track3 = Path.Combine(tempDir, "Game (Track 3).bin");
+                var cue = Path.Combine(tempDir, "Game.cue");
+
+                File.WriteAllBytes(track1, new byte[] { 1, 2, 3 });
+                File.WriteAllBytes(track2, new byte[] { 4, 5, 6 });
+                File.WriteAllBytes(track3, new byte[] { 7, 8, 9 });
+                File.WriteAllText(cue, string.Join(
+                    "\n",
+                    "FILE \"Game (Track 1).bin\" BINARY",
+                    "  TRACK 01 AUDIO",
+                    "    INDEX 01 00:00:00",
+                    "FILE \"Game (Track 2).bin\" BINARY",
+                    "  TRACK 02 MODE1/2352",
+                    "    INDEX 00 00:00:00",
+                    "    INDEX 01 00:02:00",
+                    "FILE \"Game (Track 3).bin\" BINARY",
+                    "  TRACK 03 AUDIO",
+                    "    INDEX 01 00:00:00"));
+
+                var orderedTracks = DiscSheetHelper.ResolveTrackFilesPrioritizingData(cue);
+
+                orderedTracks.Should().Equal(Path.GetFullPath(track2), Path.GetFullPath(track1), Path.GetFullPath(track3));
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
                 }
             }
         }
