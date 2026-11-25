@@ -49,6 +49,8 @@ All notable changes to **Controllarr** are documented in this file.
   - Removed TV media server and TV player connection providers (`SynologyIndexer`, `Notifiarr`, `MediaServerUpdateQueue`) and added database migration `248_remove_tv_media_notifications` to clean up legacy TV connection records (`SynologyIndexer`, `Notifiarr`, `PlexClient`, `PlexServer`, `Xbmc`, `MediaBrowser`, `Emby`, `Trakt`, `Subgen`).
 
 ### Fixed
+- **Clean Studio Console Hardware Art Replacement (`gp32.png`, `gamemaster.png`, `picno.png`, `vsmile.png`)**:
+  - Replaced the console hardware transparent PNG assets for GamePark GP32, Hartung Game Master, Konami Picno, and VTech V.Smile with newly rendered, anti-aliased and color-decontaminated `512x512` RGBA PNGs to eliminate jagged edges and background halos.
 - **Prevent Synthetic `Platform <id>` & Unrecognized DAT Game Misclassification (`GameCatalogProxy`, `ImportPlatformSelectPlatform`)**:
   - Removed the catch-all `CreateFallbackPlatformEntry` synthesis for unrecognized catalog IDs in `GameCatalogProxy.GetSeriesInfo` and `SearchForNewSeries` (`tvdb:`/`igdb:` ID lookups) so unknown or stale deterministic IDs (e.g. `821058`) throw `SeriesNotFoundException` instead of fabricating `"Platform <id>"` + `"Platform <id> Launch Title"` entries, while preserving legacy integration fixture IDs.
   - Removed the `snes` fallback in `GameCatalogProxy.ConvertDatEntryToGameCatalogEntry` so DAT/SMDB entries for unsupported systems (such as `Jupiter Ace Games`) are ignored during search instead of being misassigned and cached under SNES.
