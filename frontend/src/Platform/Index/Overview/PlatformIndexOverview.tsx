@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import React, { useCallback, useMemo, useState } from 'react';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
@@ -12,7 +11,7 @@ import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
 import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import PlatformIndexProgressBar from 'Platform/Index/ProgressBar/PlatformIndexProgressBar';
 import PlatformIndexPosterSelect from 'Platform/Index/Select/PlatformIndexPosterSelect';
-import { PlatformStatus, Statistics } from 'Platform/Platform';
+import { Statistics } from 'Platform/Platform';
 import { usePlatformOverviewOptions } from 'Platform/platformOptionsStore';
 import PlatformPoster from 'Platform/PlatformPoster';
 import { useToggleSeriesMonitored } from 'Platform/usePlatform';
@@ -36,21 +35,6 @@ interface PlatformIndexOverviewProps {
   posterHeight: number;
   rowHeight: number;
   isSelectMode: boolean;
-}
-
-function getStatusBadge(status: PlatformStatus) {
-  switch (status) {
-    case 'deleted':
-      return { label: translate('Deleted'), statusClass: styles.deleted };
-    case 'continuing':
-      return { label: translate('Continuing'), statusClass: styles.continuing };
-    case 'upcoming':
-      return { label: translate('Upcoming'), statusClass: styles.upcoming };
-    case 'ended':
-      return { label: translate('Ended'), statusClass: styles.ended };
-    default:
-      return null;
-  }
 }
 
 function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
@@ -157,8 +141,6 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
     height: `${posterHeight}px`,
   };
 
-  const statusBadge = getStatusBadge(status);
-
   return (
     <div>
       <div className={styles.content}>
@@ -169,17 +151,6 @@ function PlatformIndexOverview(props: PlatformIndexOverviewProps) {
                 seriesId={seriesId}
                 titleSlug={titleSlug}
               />
-            ) : null}
-
-            {statusBadge ? (
-              <div
-                className={classNames(
-                  styles.statusPill,
-                  statusBadge.statusClass
-                )}
-              >
-                <span className={styles.statusLabel}>{statusBadge.label}</span>
-              </div>
             ) : null}
 
             <Link className={styles.link} style={elementStyle} to={link}>

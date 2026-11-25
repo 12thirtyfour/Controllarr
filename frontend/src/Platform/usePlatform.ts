@@ -47,28 +47,6 @@ export const FILTERS: Filter[] = [
     ],
   },
   {
-    key: 'continuing',
-    label: () => translate('ContinuingOnly'),
-    filters: [
-      {
-        key: 'status',
-        value: 'continuing',
-        type: 'equal',
-      },
-    ],
-  },
-  {
-    key: 'ended',
-    label: () => translate('EndedOnly'),
-    filters: [
-      {
-        key: 'status',
-        value: 'ended',
-        type: 'equal',
-      },
-    ],
-  },
-  {
     key: 'missing',
     label: () => translate('MissingGames'),
     filters: [
@@ -83,17 +61,7 @@ export const FILTERS: Filter[] = [
 
 const SORT_PREDICATES = {
   status: (item: Series, _: SortDirection) => {
-    let result = 0;
-
-    if (item.monitored) {
-      result += 2;
-    }
-
-    if (item.status === 'continuing') {
-      result++;
-    }
-
-    return result;
+    return item.monitored ? 1 : 0;
   },
 
   sizeOnDisk: (item: Series, _: SortDirection) => {
@@ -272,12 +240,6 @@ export const FILTER_BUILDER: FilterBuilderProp<Series>[] = [
     label: () => translate('Monitored'),
     type: filterBuilderTypes.EXACT,
     valueType: filterBuilderValueTypes.BOOL,
-  },
-  {
-    name: 'status',
-    label: () => translate('Status'),
-    type: filterBuilderTypes.EXACT,
-    valueType: filterBuilderValueTypes.SERIES_STATUS,
   },
   {
     name: 'seriesType',

@@ -38,33 +38,6 @@ const posterSizeOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
-const showStatusOptions: EnhancedSelectInputValue<string>[] = [
-  {
-    key: 'deleted',
-    get value() {
-      return translate('Deleted');
-    },
-  },
-  {
-    key: 'continuing',
-    get value() {
-      return translate('Continuing');
-    },
-  },
-  {
-    key: 'upcoming',
-    get value() {
-      return translate('Upcoming');
-    },
-  },
-  {
-    key: 'ended',
-    get value() {
-      return translate('Ended');
-    },
-  },
-];
-
 interface PlatformIndexPosterOptionsModalContentProps {
   onModalClose(...args: unknown[]): unknown;
 }
@@ -80,7 +53,6 @@ function PlatformIndexPosterOptionsModalContent({
     showQualityProfile,
     showTags,
     showSearchAction,
-    showStatuses,
   } = usePlatformPosterOptions();
 
   const onPosterOptionChange = useCallback(
@@ -171,18 +143,6 @@ function PlatformIndexPosterOptionsModalContent({
               type={inputTypes.CHECK}
               name="showSearchAction"
               value={showSearchAction}
-              onChange={onPosterOptionChange}
-            />
-          </FormRow>
-
-          <FormRow>
-            <FormLabel>{translate('ShowStatuses')}</FormLabel>
-            <FormInputHelpText text={translate('ShowStatusesHelpText')} />
-            <FormInput
-              type={inputTypes.SELECT}
-              name="showStatuses"
-              value={showStatuses}
-              values={showStatusOptions}
               onChange={onPosterOptionChange}
             />
           </FormRow>

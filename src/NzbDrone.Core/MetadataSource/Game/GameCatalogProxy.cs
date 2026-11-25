@@ -110,6 +110,14 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"\((?<rev>Rev\s*[A-Z0-9\.]+|v\d+[\.\dA-Za-z]*|Version\s*[\d\.]+|Alt\s*\d*|Program\s*ROM\s*[^\)]+|PRG\d+)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex AltVariantTagRegex = new Regex(
+            @"\((?<alt>Alt(?:\s*\d+)?|PRG\s*\d+|Program\s*ROM\s*[^\)]+)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex EditionVariantTagRegex = new Regex(
+            @"\((?<ed>SGB\s+Enhanced|GB\s+Compatible|Rumble\s+Version|No\s+EDC|EDC|Player's\s+Choice|Greatest\s+Hits|Platinum|Best\s+Price|The\s+Best|Collector's\s+Edition|GameCube\s+Edition|Shindou\s+Edition|Special\s+Edition|Limited\s+Edition|Competition\s+Cart|Not\s+for\s+Resale|NFR|Kiosk|Bonus\s+Disc|Save\s+Edition|Debug|NP|Made\s+in\s+Japan|512K|1M|2M|4M|8M|16M)\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         internal static readonly Regex UpdateTagRegex = new Regex(
             @"(?:\(|[\s\[])?\b(?<upd>(?:(?:Title\s+Update|Update|Patch|DLC(?:\s+(?:Pack|Content))?|Add-?on|Unlock\s+Key|Additional\s+Content|Downloadable\s+Content|Season\s+Pass)(?:\s*#?\s*v?[\d.]+)?|TU\s*#?\s*\d+(?:\.\d+)*|v?[\d.]+\s*(?:Title\s+Update|Update|Patch)|UPD))\b(?:\)|\])?|\(\s*(?<upd>Theme|Avatar|Soundtrack)\s*\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -638,11 +646,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
 
                 var canonicalTitle = NormalizeCanonicalCrossRefTitle(candidate.BaseTitle ?? candidate.Title);
-                var rawRev = candidate.RevisionTag ?? "Retail (v1.0)";
-                var canonicalRev = rawRev.Equals("v1.0", StringComparison.OrdinalIgnoreCase) ||
-                                   rawRev.Equals("Retail", StringComparison.OrdinalIgnoreCase)
-                    ? "Retail (v1.0)"
-                    : rawRev.Trim();
+                var canonicalRev = NormalizeCanonicalRevisionForKey(candidate.RevisionTag);
                 var canonicalKey = $"{candidate.RegionNumber}:{canonicalTitle}:{canonicalRev}";
 
                 // If a more specific special category (Homebrew, Unlicensed, ROM Hack) matches the exact hash of a previously
@@ -708,6 +712,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                         MergeMissingHashes(existingCanonical, candidate, seenHashes);
                         return false;
                     }
+
+                    DisambiguateCollidingEntries(existingCanonical, candidate, platformGames, canonicalTitle);
+                    canonicalRev = NormalizeCanonicalRevisionForKey(candidate.RevisionTag);
+                    canonicalKey = $"{candidate.RegionNumber}:{canonicalTitle}:{canonicalRev}";
                 }
 
                 if (candidate.RegionNumber == RegionHomebrew ||
@@ -3676,6 +3684,140 @@ namespace NzbDrone.Core.MetadataSource.Game
             return sb.ToString();
         }
 
+        internal static bool IsBaseV1Tag(string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                return false;
+            }
+
+            var trimmed = tag.Trim();
+            return trimmed.Equals("v1.0", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("v1.00", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("v1.0.0", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("Version 1.0", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("Version 1.00", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("Retail", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.Equals("Retail (v1.0)", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static string NormalizeCanonicalRevisionForKey(string revisionTag)
+        {
+            if (string.IsNullOrWhiteSpace(revisionTag))
+            {
+                return "Retail (v1.0)";
+            }
+
+            var trimmed = revisionTag.Trim();
+            return IsBaseV1Tag(trimmed) ? "Retail (v1.0)" : trimmed;
+        }
+
+        private static List<string> ExtractParentheticalTokens(string noIntroName)
+        {
+            var tokens = new List<string>();
+            if (string.IsNullOrWhiteSpace(noIntroName))
+            {
+                return tokens;
+            }
+
+            foreach (Match m in Regex.Matches(noIntroName, @"\((?<tok>[^()]+)\)"))
+            {
+                var val = m.Groups["tok"].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    tokens.Add(val);
+                }
+            }
+
+            return tokens;
+        }
+
+        internal static void DisambiguateCollidingEntries(
+            GameCatalogEntry existingCanonical,
+            GameCatalogEntry candidate,
+            List<GameCatalogEntry> platformGames,
+            string canonicalTitle)
+        {
+            var existingTokens = ExtractParentheticalTokens(existingCanonical.NoIntroName);
+            var candidateTokens = ExtractParentheticalTokens(candidate.NoIntroName);
+
+            bool IsNoiseToken(string token) =>
+                token.Equals("Encrypted", StringComparison.OrdinalIgnoreCase) ||
+                token.StartsWith("Track ", StringComparison.OrdinalIgnoreCase);
+
+            var existingSet = new HashSet<string>(existingTokens.Where(t => !IsNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
+            var candidateSet = new HashSet<string>(candidateTokens.Where(t => !IsNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
+
+            string PickDistinctToken(IEnumerable<string> own, HashSet<string> other) =>
+                own.FirstOrDefault(t => !IsNoiseToken(t) && !other.Contains(t));
+
+            var usedTags = new HashSet<string>(
+                platformGames
+                    .Where(g => g.RegionNumber == candidate.RegionNumber &&
+                                string.Equals(NormalizeCanonicalCrossRefTitle(g.BaseTitle ?? g.Title), canonicalTitle, StringComparison.OrdinalIgnoreCase))
+                    .Select(g => g.RevisionTag ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase);
+
+            var candidateDiff = PickDistinctToken(candidateTokens, existingSet);
+            var candidateUpdated = false;
+            if (!string.IsNullOrWhiteSpace(candidateDiff))
+            {
+                var baseRev = NormalizeCanonicalRevisionForKey(candidate.RevisionTag);
+                var updated = baseRev == "Retail (v1.0)"
+                    ? $"Retail (v1.0) • {candidateDiff}"
+                    : (!baseRev.Contains(candidateDiff, StringComparison.OrdinalIgnoreCase) ? $"{baseRev} • {candidateDiff}" : baseRev);
+
+                if (!usedTags.Contains(updated))
+                {
+                    candidate.RevisionTag = updated;
+                    candidateUpdated = true;
+                }
+            }
+
+            var existingDiff = PickDistinctToken(existingTokens, candidateSet);
+            if (!string.IsNullOrWhiteSpace(existingDiff) && IsBaseV1Tag(existingCanonical.RevisionTag))
+            {
+                var updatedExisting = $"Retail (v1.0) • {existingDiff}";
+                if (!usedTags.Contains(updatedExisting) &&
+                    !string.Equals(updatedExisting, candidate.RevisionTag, StringComparison.OrdinalIgnoreCase))
+                {
+                    existingCanonical.RevisionTag = updatedExisting;
+                    usedTags.Add(updatedExisting);
+                }
+            }
+
+            if (candidateUpdated)
+            {
+                if (string.Equals(
+                        NormalizeCanonicalRevisionForKey(candidate.RevisionTag),
+                        NormalizeCanonicalRevisionForKey(existingCanonical.RevisionTag),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    candidateUpdated = false;
+                }
+            }
+
+            if (!candidateUpdated || usedTags.Contains(candidate.RevisionTag ?? string.Empty))
+            {
+                var baseRev = string.IsNullOrWhiteSpace(candidate.RevisionTag)
+                    ? "Retail (v1.0)"
+                    : candidate.RevisionTag.Trim();
+                var altIndex = 2;
+                string numbered;
+                do
+                {
+                    numbered = baseRev == "Retail (v1.0)"
+                        ? $"Retail (v1.0) • Alt {altIndex}"
+                        : $"{baseRev} • Alt {altIndex}";
+                    altIndex++;
+                }
+                while (usedTags.Contains(numbered) ||
+                       string.Equals(numbered, existingCanonical.RevisionTag, StringComparison.OrdinalIgnoreCase));
+
+                candidate.RevisionTag = numbered;
+            }
+        }
+
         internal static string ExtractRevisionTag(
             string noIntroName,
             Parser.Model.ParsedRomInfo parsed,
@@ -3716,14 +3858,36 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
             else if (!string.IsNullOrWhiteSpace(parsed?.Version))
             {
-                parts.Add($"v{parsed.Version}");
+                var normalizedVer = IsBaseV1Tag($"v{parsed.Version}") ? "v1.0" : $"v{parsed.Version}";
+                parts.Add(normalizedVer);
             }
             else
             {
                 var revMatch = RevisionTagRegex.Match(noIntroName);
                 if (revMatch.Success)
                 {
-                    parts.Add(revMatch.Groups["rev"].Value.Trim());
+                    var revVal = revMatch.Groups["rev"].Value.Trim();
+                    parts.Add(IsBaseV1Tag(revVal) ? "v1.0" : revVal);
+                }
+            }
+
+            foreach (Match altMatch in AltVariantTagRegex.Matches(noIntroName))
+            {
+                var altVal = altMatch.Groups["alt"].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(altVal) &&
+                    !parts.Any(p => p.Equals(altVal, StringComparison.OrdinalIgnoreCase)))
+                {
+                    parts.Add(altVal);
+                }
+            }
+
+            foreach (Match edMatch in EditionVariantTagRegex.Matches(noIntroName))
+            {
+                var edVal = edMatch.Groups["ed"].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(edVal) &&
+                    !parts.Any(p => p.Equals(edVal, StringComparison.OrdinalIgnoreCase)))
+                {
+                    parts.Add(edVal);
                 }
             }
 
@@ -3742,6 +3906,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                  verificationSource.Contains("(Encrypted)", StringComparison.OrdinalIgnoreCase)))
             {
                 parts.Add("Encrypted");
+            }
+
+            if (parts.Count == 1 && IsBaseV1Tag(parts[0]) && regionNumber != RegionRomHacks && regionNumber != RegionHomebrew)
+            {
+                return "Retail (v1.0)";
             }
 
             if (parts.Count > 0)

@@ -1,5 +1,4 @@
 import classNames from 'classnames';
-import moment from 'moment-timezone';
 import React, {
   useCallback,
   useEffect,
@@ -55,9 +54,8 @@ import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import SdCardExportModal from 'Platform/Export/SdCardExportModal';
 import PlatformHistoryModal from 'Platform/History/PlatformHistoryModal';
 import MonitoringOptionsModal from 'Platform/MonitoringOptions/MonitoringOptionsModal';
-import { Image, PlatformStatus, Statistics } from 'Platform/Platform';
+import { Image, Statistics } from 'Platform/Platform';
 import PlatformGenres from 'Platform/PlatformGenres';
-import { getPlatformStatusDetails } from 'Platform/PlatformStatus';
 import RegionInteractiveSearchModal from 'Platform/Search/RegionInteractiveSearchModal';
 import usePlatform, {
   useSingleSeries,
@@ -168,22 +166,12 @@ function getConsoleArtUrl(images: Image[], titleSlug?: string) {
   return poster?.remoteUrl || poster?.url;
 }
 
-function getDateYear(date: string) {
-  return moment.utc(date).format('YYYY');
-}
-
-function getRunningYears(
-  status: PlatformStatus,
-  year: number,
-  lastAired: string | undefined
-) {
+function getRunningYears(year: number) {
   if (year === 0) {
     return null;
   }
 
-  return status === 'ended' && lastAired
-    ? `${year}-${getDateYear(lastAired)}`
-    : `${year}-`;
+  return String(year);
 }
 
 interface ExpandedState {
@@ -591,7 +579,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     pendingPath,
     statistics = {} as Statistics,
     language,
-    status,
     originalLanguage,
     overview,
     images,
@@ -599,7 +586,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     genres,
     tags,
     year,
-    lastAired,
     collectionStrategy,
     revisionPreference,
     pinnedVersion,
@@ -612,8 +598,7 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
     sizeOnDisk = 0,
   } = statistics;
 
-  const statusDetails = getPlatformStatusDetails(status);
-  const runningYears = getRunningYears(status, year, lastAired);
+  const runningYears = getRunningYears(year);
   const isDiscBased = isDiscBasedPlatform(titleSlug, title);
 
   let romFilesCountMessage = translate('PlatformDetailsNoRomFiles');
@@ -1056,18 +1041,6 @@ function PlatformDetails({ seriesId }: PlatformDetailsProps) {
                     >
                       <span className={styles.languageName}>
                         {language.name}
-                      </span>
-                    </Label>
-
-                    <Label
-                      className={styles.detailsLabel}
-                      title={statusDetails.message}
-                      size={sizes.LARGE}
-                      kind={status === 'deleted' ? kinds.INVERSE : undefined}
-                      icon={statusDetails.icon}
-                    >
-                      <span className={styles.statusName}>
-                        {statusDetails.title}
                       </span>
                     </Label>
 

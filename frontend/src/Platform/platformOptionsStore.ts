@@ -83,7 +83,7 @@ const { useOptions, useOption, setOptions, setOption, setSort, getOptions } =
         {
           name: 'status',
           label: '',
-          columnLabel: () => translate('Status'),
+          columnLabel: () => translate('Monitored'),
           isSortable: true,
           isVisible: true,
           isModifiable: 'disabled',

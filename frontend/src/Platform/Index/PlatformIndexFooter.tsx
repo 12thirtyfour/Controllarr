@@ -11,8 +11,6 @@ export default function PlatformIndexFooter() {
   const count = series.length;
   let games = 0;
   let romFiles = 0;
-  let ended = 0;
-  let continuing = 0;
   let monitored = 0;
   let totalFileSize = 0;
 
@@ -24,12 +22,6 @@ export default function PlatformIndexFooter() {
     games += gameCount;
     romFiles += romFileCount;
 
-    if (s.status === 'ended') {
-      ended++;
-    } else {
-      continuing++;
-    }
-
     if (s.monitored) {
       monitored++;
     }
@@ -40,11 +32,6 @@ export default function PlatformIndexFooter() {
   return (
     <div className={styles.footer}>
       <div>
-        <div className={styles.legendItem}>
-          <div className={styles.continuing} />
-          <div>{translate('PlatformIndexFooterContinuing')}</div>
-        </div>
-
         <div className={styles.legendItem}>
           <div className={styles.ended} />
           <div>{translate('PlatformIndexFooterEnded')}</div>
@@ -70,15 +57,6 @@ export default function PlatformIndexFooter() {
         <DescriptionList>
           <DescriptionListItem title={translate('Platforms')} data={count} />
 
-          <DescriptionListItem title={translate('Ended')} data={ended} />
-
-          <DescriptionListItem
-            title={translate('Continuing')}
-            data={continuing}
-          />
-        </DescriptionList>
-
-        <DescriptionList>
           <DescriptionListItem
             title={translate('Monitored')}
             data={monitored}

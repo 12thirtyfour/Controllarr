@@ -1,7 +1,7 @@
 .status {
   composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
 
-  width: 60px;
+  width: 40px;
 }
 
 .statusIcon {

@@ -2,7 +2,7 @@ import { kinds } from 'Helpers/Props';
 import { PlatformStatus } from 'Platform/Platform';
 
 function getProgressBarKind(
-  status: PlatformStatus,
+  _status: PlatformStatus,
   monitored: boolean,
   progress: number,
   isDownloading: boolean
@@ -12,7 +12,7 @@ function getProgressBarKind(
   }
 
   if (progress === 100) {
-    return status === 'ended' ? kinds.SUCCESS : kinds.PRIMARY;
+    return kinds.SUCCESS;
   }
 
   if (monitored) {

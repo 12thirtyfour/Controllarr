@@ -17,21 +17,6 @@ import translate from 'Utilities/String/translate';
 import AddNewPlatformModal from './AddNewPlatformModal';
 import styles from './AddNewPlatformSearchResult.module.css';
 
-function getStatusChip(status: string) {
-  switch (status) {
-    case 'continuing':
-      return { dot: styles.chipDotAiring, label: translate('Continuing') };
-    case 'upcoming':
-      return { dot: styles.chipDotUpcoming, label: translate('Upcoming') };
-    case 'ended':
-      return { dot: styles.chipDotEnded, label: translate('Ended') };
-    case 'deleted':
-      return { dot: styles.chipDotFinished, label: translate('Deleted') };
-    default:
-      return null;
-  }
-}
-
 interface AddNewPlatformSearchResultProps {
   series: AddPlatform;
 }
@@ -48,7 +33,6 @@ function AddNewPlatformSearchResult({
     network,
     originalLanguage,
     genres = [],
-    status,
     statistics = {} as Statistics,
     ratings,
     overview: lookupOverview,
@@ -90,8 +74,6 @@ function AddNewPlatformSearchResult({
   if (seasonCount > 1) {
     seasons = translate('CountSeasons', { count: seasonCount });
   }
-
-  const statusChip = getStatusChip(status);
 
   return (
     <div
@@ -174,13 +156,6 @@ function AddNewPlatformSearchResult({
                   votes={ratings.votes}
                   iconSize={11}
                 />
-              </span>
-            ) : null}
-
-            {statusChip ? (
-              <span className={styles.chip}>
-                <span className={classNames(styles.chipDot, statusChip.dot)} />
-                {statusChip.label}
               </span>
             ) : null}
 

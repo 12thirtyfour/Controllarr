@@ -74,30 +74,114 @@ function isPatchUpdateLabel(label?: string, title?: string): boolean {
   return /\b(title\s+update|update|patch|upd)\b|\bTU\s*#?\s*\d+\b/i.test(str);
 }
 
+function getVersionRank(label: string): number {
+  const normalized = (label || '').trim().toLowerCase();
+
+  if (
+    !normalized ||
+    normalized === 'retail (v1.0)' ||
+    normalized === 'retail' ||
+    normalized === 'v1.0' ||
+    normalized === 'v1.00' ||
+    normalized === 'v1.0.0' ||
+    normalized === 'version 1.0'
+  ) {
+    return 0;
+  }
+
+  return 1;
+}
+
 function compareVersions(a: string, b: string): number {
+  const rankA = getVersionRank(a);
+  const rankB = getVersionRank(b);
+
+  if (rankA !== rankB) {
+    return rankA - rankB;
+  }
+
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function normalizeBaseVersionLabel(label: string): string {
+  const trimmed = (label || '').trim();
+
+  if (
+    !trimmed ||
+    /^retail(?:\s*\(v1\.0+\))?$/i.test(trimmed) ||
+    /^v?1\.0+(?:\.0+)?$/i.test(trimmed) ||
+    /^version\s*1\.0+(?:\.0+)?$/i.test(trimmed)
+  ) {
+    return 'Retail (v1.0)';
+  }
+
+  return trimmed;
+}
+
+function extractDiscTag(text?: string): string | null {
+  const match = (text || '').match(
+    /\((?<disc>(?:Disc\s*\d+(?:\s*of\s*\d+)?|Disk\s*[A-Z0-9]+(?:\s*of\s*\d+)?|Side\s*[A-Z0-9]+(?:\s*of\s*\d+)?))\)/i
+  );
+
+  return match?.groups?.disc?.trim() || null;
 }
 
 function parseDiscNumber(versionLabel: string, title?: string): number {
   const match =
-    (versionLabel || '').match(/\bdisc\s*(\d+)\b/i) ||
-    (title || '').match(/\bdisc\s*(\d+)\b/i);
-  return match ? parseInt(match[1]) : 1;
+    (versionLabel || '').match(/\b(?:disc|disk|side)\s*(?<num>[A-Z0-9]+)\b/i) ||
+    (title || '').match(/\b(?:disc|disk|side)\s*(?<num>[A-Z0-9]+)\b/i);
+
+  if (!match?.groups?.num) {
+    return 1;
+  }
+
+  const raw = match.groups.num.trim();
+  const parsed = parseInt(raw);
+
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+
+  if (raw.length === 1 && /[A-Za-z]/.test(raw)) {
+    return raw.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+  }
+
+  return 1;
 }
 
 function hasDiscTag(versionLabel: string, title?: string): boolean {
-  return (
-    /\bdisc\s*\d+\b/i.test(versionLabel || '') ||
-    /\bdisc\s*\d+\b/i.test(title || '')
-  );
+  const discRegex = /\b(?:disc|disk|side)\s*[A-Z0-9]+\b/i;
+
+  return discRegex.test(versionLabel || '') || discRegex.test(title || '');
 }
 
 function parseCleanVersion(versionLabel: string): string {
   const clean = (versionLabel || '')
-    .replace(/\bdisc\s*\d+\b/i, '')
+    .replace(/\b(?:disc|disk|side)\s*[A-Z0-9]+(?:\s*of\s*\d+)?\b/gi, '')
+    .replace(/•/g, ' ')
+    .replace(/\s+/g, ' ')
     .replace(/^[\s,-]+|[\s,-]+$/g, '')
     .trim();
-  return clean || 'Retail (v1.0)';
+
+  return normalizeBaseVersionLabel(clean);
+}
+
+function extractOverviewParens(overview?: string): string[] {
+  const tokens: string[] = [];
+  const regex = /\(([^()]+)\)/g;
+  let match = regex.exec(overview || '');
+
+  while (match) {
+    const val = match[1].trim();
+
+    if (val) {
+      tokens.push(val);
+    }
+
+    match = regex.exec(overview || '');
+  }
+
+  return tokens;
 }
 
 function normalizeGroupKey(title: string): string {
@@ -110,18 +194,37 @@ function normalizeGroupKey(title: string): string {
 }
 
 function parseBaseGameAndVersion(item: Game) {
-  const rawTitle = item.title ?? '';
+  let rawTitle = item.title ?? '';
+  const extractedDisc = extractDiscTag(rawTitle);
+
+  if (extractedDisc) {
+    rawTitle = rawTitle
+      .replace(
+        /\s*\((?:Disc\s*\d+(?:\s*of\s*\d+)?|Disk\s*[A-Z0-9]+(?:\s*of\s*\d+)?|Side\s*[A-Z0-9]+(?:\s*of\s*\d+)?)\)/gi,
+        ''
+      )
+      .trim();
+  }
+
+  const normalizedFinale = item.finaleType
+    ? normalizeBaseVersionLabel(item.finaleType)
+    : '';
 
   if (
-    item.finaleType &&
-    item.finaleType !== 'Retail (v1.0)' &&
+    normalizedFinale &&
+    normalizedFinale !== 'Retail (v1.0)' &&
     rawTitle.endsWith(`(${item.finaleType})`)
   ) {
+    const versionLabel =
+      extractedDisc && !hasDiscTag(normalizedFinale)
+        ? `${extractedDisc} • ${normalizedFinale}`
+        : normalizedFinale;
+
     return {
       baseTitle: rawTitle
-        .slice(0, rawTitle.length - item.finaleType.length - 2)
+        .slice(0, rawTitle.length - item.finaleType!.length - 2)
         .trim(),
-      versionLabel: item.finaleType,
+      versionLabel,
     };
   }
 
@@ -130,15 +233,32 @@ function parseBaseGameAndVersion(item: Game) {
   );
 
   if (match) {
+    const rawVer =
+      normalizedFinale || normalizeBaseVersionLabel(match[2].trim());
+    const versionLabel =
+      extractedDisc && !hasDiscTag(rawVer)
+        ? `${extractedDisc} • ${rawVer}`
+        : rawVer;
+
     return {
       baseTitle: match[1].trim(),
-      versionLabel: item.finaleType || match[2].trim(),
+      versionLabel,
     };
+  }
+
+  const fallbackVer = normalizedFinale || 'Retail (v1.0)';
+  let versionLabel = fallbackVer;
+
+  if (extractedDisc && !hasDiscTag(fallbackVer)) {
+    versionLabel =
+      fallbackVer === 'Retail (v1.0)'
+        ? extractedDisc
+        : `${extractedDisc} • ${fallbackVer}`;
   }
 
   return {
     baseTitle: rawTitle.trim(),
-    versionLabel: item.finaleType || 'Retail (v1.0)',
+    versionLabel,
   };
 }
 
@@ -530,13 +650,75 @@ function PlatformDetailsRegion({
         effectiveEntries.length > 1 ? effectiveEntries.length - 1 : 0;
 
       if (isGroupExpanded) {
+        const labelCounts = new Map<string, number>();
+        effectiveEntries.forEach((entry) => {
+          labelCounts.set(
+            entry.versionLabel,
+            (labelCounts.get(entry.versionLabel) || 0) + 1
+          );
+        });
+
+        const usedExpandedLabels = new Set<string>();
+
         effectiveEntries.forEach((entry, idx) => {
+          let displayLabel = entry.versionLabel;
+
+          if ((labelCounts.get(entry.versionLabel) || 0) > 1) {
+            const ownTokens = extractOverviewParens(entry.item.overview);
+            const peerTokenSets = effectiveEntries
+              .filter((_, peerIdx) => peerIdx !== idx)
+              .map(
+                (peer) =>
+                  new Set(
+                    extractOverviewParens(peer.item.overview).map((t) =>
+                      t.toLowerCase()
+                    )
+                  )
+              );
+
+            const diffToken = ownTokens.find(
+              (tok) =>
+                !tok.toLowerCase().startsWith('track ') &&
+                tok.toLowerCase() !== 'encrypted' &&
+                !displayLabel.toLowerCase().includes(tok.toLowerCase()) &&
+                peerTokenSets.some((set) => !set.has(tok.toLowerCase()))
+            );
+
+            if (diffToken) {
+              displayLabel =
+                displayLabel === 'Retail (v1.0)'
+                  ? `Retail (v1.0) • ${diffToken}`
+                  : `${displayLabel} • ${diffToken}`;
+            }
+
+            if (usedExpandedLabels.has(displayLabel)) {
+              let altIdx = 2;
+
+              while (
+                usedExpandedLabels.has(
+                  displayLabel === 'Retail (v1.0)'
+                    ? `Retail (v1.0) • Alt ${altIdx}`
+                    : `${displayLabel} • Alt ${altIdx}`
+                )
+              ) {
+                altIdx++;
+              }
+
+              displayLabel =
+                displayLabel === 'Retail (v1.0)'
+                  ? `Retail (v1.0) • Alt ${altIdx}`
+                  : `${displayLabel} • Alt ${altIdx}`;
+            }
+          }
+
+          usedExpandedLabels.add(displayLabel);
+
           rows.push({
             item: {
               ...entry.item,
               title: entry.baseTitle,
             },
-            versionLabel: entry.versionLabel,
+            versionLabel: displayLabel,
             isAlternateGroup,
             alternateVersionCount: idx === 0 ? alternateVersionCount : 0,
             alternateType,

@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import React, { useCallback, useState } from 'react';
 import CommandNames from 'Commands/CommandNames';
 import { useExecuteCommand } from 'Commands/useCommands';
@@ -12,11 +11,8 @@ import DeletePlatformModal from 'Platform/Delete/DeletePlatformModal';
 import EditPlatformModal from 'Platform/Edit/EditPlatformModal';
 import PlatformIndexProgressBar from 'Platform/Index/ProgressBar/PlatformIndexProgressBar';
 import PlatformIndexPosterSelect from 'Platform/Index/Select/PlatformIndexPosterSelect';
-import { PlatformStatus, Statistics } from 'Platform/Platform';
-import {
-  ShowStatusMode,
-  usePlatformPosterOptions,
-} from 'Platform/platformOptionsStore';
+import { Statistics } from 'Platform/Platform';
+import { usePlatformPosterOptions } from 'Platform/platformOptionsStore';
 import PlatformPoster from 'Platform/PlatformPoster';
 import { useToggleSeriesMonitored } from 'Platform/usePlatform';
 import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
@@ -33,29 +29,6 @@ interface PlatformIndexPosterProps {
   posterHeight: number;
 }
 
-function getStatusBadge(
-  status: PlatformStatus,
-  showStatuses: ShowStatusMode[]
-) {
-  if (status === 'deleted' && showStatuses.includes('deleted')) {
-    return { label: translate('Deleted'), statusClass: styles.deleted };
-  }
-
-  if (status === 'continuing' && showStatuses.includes('continuing')) {
-    return { label: translate('Continuing'), statusClass: styles.continuing };
-  }
-
-  if (status === 'upcoming' && showStatuses.includes('upcoming')) {
-    return { label: translate('Upcoming'), statusClass: styles.upcoming };
-  }
-
-  if (status === 'ended' && showStatuses.includes('ended')) {
-    return { label: translate('Ended'), statusClass: styles.ended };
-  }
-
-  return null;
-}
-
 function PlatformIndexPoster(props: PlatformIndexPosterProps) {
   const { seriesId, sortKey, isSelectMode, posterWidth, posterHeight } = props;
 
@@ -68,7 +41,6 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
     showMonitored,
     showTags,
     showSearchAction,
-    showStatuses,
   } = usePlatformPosterOptions();
 
   const { showRelativeDates, shortDateFormat, longDateFormat, timeFormat } =
@@ -158,8 +130,6 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
     height: `${posterHeight}px`,
   };
 
-  const statusBadge = getStatusBadge(status, showStatuses);
-
   const monitoredLabel = monitored
     ? translate('Monitored')
     : translate('Unmonitored');
@@ -210,15 +180,6 @@ function PlatformIndexPoster(props: PlatformIndexPosterProps) {
             onPress={onEditPlatformPress}
           />
         </div>
-
-        {statusBadge ? (
-          <div
-            className={classNames(styles.status, statusBadge.statusClass)}
-            title={statusBadge.label}
-          >
-            <span className={styles.statusLabel}>{statusBadge.label}</span>
-          </div>
-        ) : null}
 
         <Link className={styles.link} style={elementStyle} to={link}>
           <PlatformPoster

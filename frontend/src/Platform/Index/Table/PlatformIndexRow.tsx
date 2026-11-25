@@ -167,7 +167,6 @@ function PlatformIndexRow(props: PlatformIndexRowProps) {
               className={styles[name]}
               seriesId={seriesId}
               monitored={monitored}
-              status={status}
               isSelectMode={isSelectMode}
               component={VirtualTableRowCell}
             />

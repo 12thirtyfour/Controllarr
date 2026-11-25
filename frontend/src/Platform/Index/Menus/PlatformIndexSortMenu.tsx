@@ -25,7 +25,7 @@ function PlatformIndexSortMenu(props: PlatformIndexSortMenuProps) {
           sortDirection={sortDirection}
           onPress={onSortSelect}
         >
-          {translate('MonitoredStatus')}
+          {translate('Monitored')}
         </SortMenuItem>
 
         <SortMenuItem

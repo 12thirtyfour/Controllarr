@@ -1873,5 +1873,57 @@ game (
             Subject.SyncPlatformDatCatalogs(gx.TvdbId, forceRefresh: true);
             requestedUrls.Should().Contain(u => u.Contains("metadat/tosec/Amstrad%20-%20GX4000.dat"));
         }
+
+        [Test]
+        public void should_normalize_base_v1_versions_and_preserve_alt_or_edition_qualifiers()
+        {
+            Subject.TryGetPlatformEntryBySlug("gb", out var gbPlatform).Should().BeTrue();
+
+            var v10 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Tetris (World) (v1.0)", 1989, "No-Intro");
+            var v100 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Tetris (World) (v1.00)", 1989, "No-Intro");
+            var ver10 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Tetris (World) (Version 1.0)", 1989, "No-Intro");
+            var altV1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Tetris (USA) (v1.0) (Alt)", 1989, "No-Intro");
+            var sgb = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Donkey Kong (World) (SGB Enhanced)", 1994, "No-Intro");
+            var playersChoice = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Tetris (World) (Player's Choice)", 1989, "No-Intro");
+            var revAlt = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Link's Awakening (USA) (Rev 1) (Alt 2)", 1993, "No-Intro");
+
+            v10.RevisionTag.Should().Be("Retail (v1.0)");
+            v100.RevisionTag.Should().Be("Retail (v1.0)");
+            ver10.RevisionTag.Should().Be("Retail (v1.0)");
+            altV1.RevisionTag.Should().Be("v1.0 • Alt");
+            sgb.RevisionTag.Should().Be("SGB Enhanced • ROM Hack");
+            playersChoice.RevisionTag.Should().Be("Player's Choice");
+            revAlt.RevisionTag.Should().Be("Rev 1 • Alt 2");
+        }
+
+        [Test]
+        public void should_disambiguate_distinct_hash_entries_colliding_on_same_region_and_base_version()
+        {
+            var existing = new GameCatalogEntry
+            {
+                Title = "Rayman",
+                BaseTitle = "Rayman",
+                NoIntroName = "Rayman (Europe) (En,Fr,De)",
+                RegionNumber = GameCatalogProxy.RegionEurope,
+                RevisionTag = "Retail (v1.0)",
+                ExpectedSha1 = "1111111111111111111111111111111111111111"
+            };
+
+            var candidate = new GameCatalogEntry
+            {
+                Title = "Rayman",
+                BaseTitle = "Rayman",
+                NoIntroName = "Rayman (Europe) (En,Es,It)",
+                RegionNumber = GameCatalogProxy.RegionEurope,
+                RevisionTag = "Retail (v1.0)",
+                ExpectedSha1 = "2222222222222222222222222222222222222222"
+            };
+
+            var list = new List<GameCatalogEntry> { existing };
+            GameCatalogProxy.DisambiguateCollidingEntries(existing, candidate, list, "rayman");
+
+            existing.RevisionTag.Should().Be("Retail (v1.0) • En,Fr,De");
+            candidate.RevisionTag.Should().Be("Retail (v1.0) • En,Es,It");
+        }
     }
 }
