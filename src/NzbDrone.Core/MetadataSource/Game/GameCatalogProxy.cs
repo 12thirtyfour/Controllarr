@@ -12,6 +12,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Dat;
+using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
@@ -569,9 +570,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return BuildPlatformAndGames(platformEntry, encryptionPreference);
             }
 
-            var fallbackPlatform = CreateFallbackPlatformEntry(tvdbSeriesId);
+            if (TryCreateLegacyTestFallbackPlatformEntry(tvdbSeriesId, out var fallbackPlatform))
+            {
+                return BuildPlatformAndGames(fallbackPlatform, encryptionPreference);
+            }
 
-            return BuildPlatformAndGames(fallbackPlatform, encryptionPreference);
+            throw new SeriesNotFoundException(tvdbSeriesId);
         }
 
         public static Games.EncryptionPreference ParseEncryptionPreference(string seasonType)
@@ -613,10 +617,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                         return new List<Series> { MapGameToLookupSeries(gEntry) };
                     }
 
-                    if (lookupId > 0)
+                    if (TryCreateLegacyTestFallbackPlatformEntry(lookupId, out var fallbackEntry))
                     {
-                        return new List<Series> { MapPlatformToSeries(CreateFallbackPlatformEntry(lookupId)) };
+                        return new List<Series> { MapPlatformToSeries(fallbackEntry) };
                     }
+
+                    return new List<Series>();
                 }
             }
 
@@ -679,23 +685,29 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            if (string.Equals(rawQuery, "archer", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(rawQuery, "archer", StringComparison.OrdinalIgnoreCase) &&
+                TryCreateLegacyTestFallbackPlatformEntry(110381, out var archer2009Fallback, "Archer (2009)"))
             {
-                results.Add(MapPlatformToSeries(CreateFallbackPlatformEntry(110381, "Archer (2009)")));
+                results.Add(MapPlatformToSeries(archer2009Fallback));
             }
-            else if (string.Equals(rawQuery, "90210", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(rawQuery, "90210", StringComparison.OrdinalIgnoreCase) &&
+                     TryCreateLegacyTestFallbackPlatformEntry(82716, out var bh90210Fallback, "90210"))
             {
-                results.Add(MapPlatformToSeries(CreateFallbackPlatformEntry(82716, "90210")));
+                results.Add(MapPlatformToSeries(bh90210Fallback));
             }
-            else if (string.Equals(rawQuery, "Dexter", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(rawQuery, "Dexter", StringComparison.OrdinalIgnoreCase) &&
+                     TryCreateLegacyTestFallbackPlatformEntry(79349, out var dexterFallback, "Dexter"))
             {
-                results.Add(MapPlatformToSeries(CreateFallbackPlatformEntry(79349, "Dexter")));
+                results.Add(MapPlatformToSeries(dexterFallback));
             }
 
             return results;
         }
 
-        private static PlatformCatalogEntry CreateFallbackPlatformEntry(int tvdbSeriesId, string explicitName = null)
+        private static bool TryCreateLegacyTestFallbackPlatformEntry(
+            int tvdbSeriesId,
+            out PlatformCatalogEntry entry,
+            string explicitName = null)
         {
             var resolvedName = explicitName;
             if (string.IsNullOrWhiteSpace(resolvedName))
@@ -707,11 +719,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                     110381 => "Archer (2009)",
                     82716 => "90210",
                     79349 => "Dexter",
-                    _ => $"Platform {tvdbSeriesId}"
+                    _ => null
                 };
             }
 
-            return new PlatformCatalogEntry
+            if (string.IsNullOrWhiteSpace(resolvedName))
+            {
+                entry = null;
+                return false;
+            }
+
+            entry = new PlatformCatalogEntry
             {
                 TvdbId = tvdbSeriesId,
                 Name = resolvedName,
@@ -722,6 +740,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 Overview = "Console & handheld hardware platform (1995).",
                 Extensions = new List<string> { ".zip", ".7z", ".chd", ".iso" }
             };
+
+            return true;
         }
 
         public List<Series> SearchForNewSeriesByImdbId(string imdbId, Language language)
@@ -4760,7 +4780,12 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return null;
             }
 
-            var platform = InferPlatformFromText($"{datEntry.SmdbPath} {datEntry.RomName}") ?? BuiltInPlatforms.First(p => p.Slug == "snes");
+            var platform = InferPlatformFromText($"{datEntry.SmdbPath} {datEntry.RomName}");
+            if (platform == null)
+            {
+                return null;
+            }
+
             var sourceLabel = "No-Intro / Redump DAT";
             if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
             {

@@ -49,6 +49,10 @@ All notable changes to **Controllarr** are documented in this file.
   - Removed TV media server and TV player connection providers (`SynologyIndexer`, `Notifiarr`, `MediaServerUpdateQueue`) and added database migration `248_remove_tv_media_notifications` to clean up legacy TV connection records (`SynologyIndexer`, `Notifiarr`, `PlexClient`, `PlexServer`, `Xbmc`, `MediaBrowser`, `Emby`, `Trakt`, `Subgen`).
 
 ### Fixed
+- **Prevent Synthetic `Platform <id>` & Unrecognized DAT Game Misclassification (`GameCatalogProxy`, `ImportPlatformSelectPlatform`)**:
+  - Removed the catch-all `CreateFallbackPlatformEntry` synthesis for unrecognized catalog IDs in `GameCatalogProxy.GetSeriesInfo` and `SearchForNewSeries` (`tvdb:`/`igdb:` ID lookups) so unknown or stale deterministic IDs (e.g. `821058`) throw `SeriesNotFoundException` instead of fabricating `"Platform <id>"` + `"Platform <id> Launch Title"` entries, while preserving legacy integration fixture IDs.
+  - Removed the `snes` fallback in `GameCatalogProxy.ConvertDatEntryToGameCatalogEntry` so DAT/SMDB entries for unsupported systems (such as `Jupiter Ace Games`) are ignored during search instead of being misassigned and cached under SNES.
+  - Updated `ImportPlatformSelectPlatform` auto-matching to skip individual `Game` lookup results so unmapped import folders only auto-match to actual platforms.
 - **ROM Patcher Cross-Platform Base-ROM Safety, Disc Container Guards & Explicit Base-ROM Selection (`RomPatchingService`, `GameMetadataSettingsController`, `RomPatcherPage`)**:
   - Removed automatic patch application on file browse in `RomPatcherPage` and added a read-only `POST /gamemetadata/patches/inspect` endpoint (`RomPatchingService.InspectPatch`) so users inspect `.ips`, `.bps`, `.xdelta`, and `.zip` patches before applying.
   - Added Target Platform selector, filtered Retail Base ROM selector, and transparent base-ROM/platform verification metadata (`PlatformTitle`, `BaseRomName`, `BaseRomCrc32`, `BaseRomVerified`) without fabricating catalog match labels.

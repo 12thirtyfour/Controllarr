@@ -196,11 +196,12 @@ function ImportPlatformSelectPlatform({
     }
 
     const canAutoMatch = !isEditing && !selectedSeries && query === name;
+    const platformMatch = data.find((item) => !item.genres?.includes('Game'));
 
     updateImportPlatformItem({
       id,
       hasSearched: true,
-      selectedSeries: canAutoMatch ? data[0] : selectedSeries,
+      selectedSeries: canAutoMatch ? platformMatch : selectedSeries,
     });
 
     removeFromLookupQueue(id);

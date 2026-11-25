@@ -1991,5 +1991,40 @@ game (
             uppercaseImages.Should().OnlyContain(i => i.Url == "/Content/Images/Consoles/nes.png" && i.RemoteUrl == "/Content/Images/Consoles/nes.png");
             GameCatalogProxy.EnsureCanonicalPlatformImages(1001, "nes", "Nintendo Entertainment System", uppercaseImages).Should().BeFalse();
         }
+
+        [Test]
+        public void should_throw_series_not_found_for_unknown_platform_id_instead_of_creating_synthetic_platform()
+        {
+            System.Action act = () => Subject.GetSeriesInfo(821058, Language.English, null);
+            act.Should().Throw<NzbDrone.Core.Exceptions.SeriesNotFoundException>();
+
+            Subject.SearchForNewSeries("tvdb:821058", Language.English).Should().BeEmpty();
+
+            var legacyInfo = Subject.GetSeriesInfo(266189, Language.English, null);
+            legacyInfo.Item1.Title.Should().Be("The Blacklist");
+            Subject.SearchForNewSeries("tvdb:266189", Language.English)
+                .Should().ContainSingle(s => s.Title == "The Blacklist");
+        }
+
+        [Test]
+        public void should_not_return_unrecognized_dat_entries_as_snes_games_in_search()
+        {
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.SearchByName("Jupiter Ace", Moq.It.IsAny<int>()))
+                .Returns(new List<NzbDrone.Core.Dat.DatEntry>
+                {
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 999,
+                        GameName = "Jupiter Ace Games",
+                        RomName = "Jupiter Ace Games.tap",
+                        SmdbPath = "Jupiter Ace/Jupiter Ace Games.tap"
+                    }
+                });
+
+            var results = Subject.SearchForNewSeries("Jupiter Ace", Language.English);
+
+            results.Should().BeEmpty();
+        }
     }
 }
