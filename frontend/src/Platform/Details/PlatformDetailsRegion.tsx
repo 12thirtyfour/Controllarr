@@ -54,8 +54,25 @@ import RegionInfo from './RegionInfo';
 import RegionProgressLabel from './RegionProgressLabel';
 import styles from './PlatformDetailsRegion.module.css';
 
-function isPreReleaseLabel(label: string) {
-  return /\b(proto|prototype|beta|demo|sample)\b/i.test(label);
+function isPreReleaseLabel(label: string, title?: string, overview?: string) {
+  if (
+    /\b(proto|prototype|beta|demo|sample|preview|trial)\b/i.test(label || '')
+  ) {
+    return true;
+  }
+
+  if (
+    /[([]\s*(?:proto|prototype|beta|demo|sample|preview|trial)\b[^)\]]*[\])]/i.test(
+      title || ''
+    ) ||
+    /\b(demo|beta|proto|prototype)\s*$/i.test(title || '')
+  ) {
+    return true;
+  }
+
+  return /\(\s*(?:proto|prototype|beta|demo|sample|preview|trial)\b[^)]*\)/i.test(
+    overview || ''
+  );
 }
 
 function isEncryptedLabel(label: string) {
@@ -74,8 +91,13 @@ function isPatchUpdateLabel(label?: string, title?: string): boolean {
   return /\b(title\s+update|update|patch|upd)\b|\bTU\s*#?\s*\d+\b/i.test(str);
 }
 
-function getVersionRank(label: string): number {
-  const normalized = (label || '').trim().toLowerCase();
+function getRevisionScore(label: string): number {
+  const stripped = (label || '')
+    .replace(/\b(?:disc|disk|side)\s*[A-Z0-9]+(?:\s*of\s*\d+)?\b/gi, '')
+    .replace(/•/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const normalized = stripped.toLowerCase();
 
   if (
     !normalized ||
@@ -84,20 +106,89 @@ function getVersionRank(label: string): number {
     normalized === 'v1.0' ||
     normalized === 'v1.00' ||
     normalized === 'v1.0.0' ||
-    normalized === 'version 1.0'
+    normalized === 'version 1.0' ||
+    /^prg0$/i.test(normalized)
   ) {
-    return 0;
+    return 1_000_000;
   }
 
-  return 1;
+  const verMatch = stripped.match(
+    /(?:^|[\s(,])(?:version\s+|v)(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<patch>\d+))?)?/i
+  );
+
+  if (verMatch?.groups?.major) {
+    const major = parseInt(verMatch.groups.major);
+    const minorRaw = verMatch.groups.minor;
+    const minorWeight = minorRaw
+      ? Math.round(parseFloat(`0.${minorRaw}`) * 1_000_000)
+      : 0;
+    const patchWeight = verMatch.groups.patch
+      ? parseInt(verMatch.groups.patch) * 100
+      : 0;
+
+    return major * 1_000_000 + minorWeight + patchWeight;
+  }
+
+  const tuMatch = stripped.match(
+    /(?:title\s+update|update|patch|dlc|tu)\s*#?\s*v?(?<major>\d+)(?:\.(?<minor>\d+))?/i
+  );
+
+  if (tuMatch?.groups?.major) {
+    const major = parseInt(tuMatch.groups.major);
+    const minorWeight = tuMatch.groups.minor
+      ? Math.round(parseFloat(`0.${tuMatch.groups.minor}`) * 10_000)
+      : 0;
+
+    return major * 1_000_000 + minorWeight;
+  }
+
+  const revNumMatch = stripped.match(
+    /\brev\.?\s*(?<num>\d+)(?:\.(?<subnum>\d+))?/i
+  );
+
+  if (revNumMatch?.groups?.num) {
+    const num = parseInt(revNumMatch.groups.num);
+    const subnum = revNumMatch.groups.subnum
+      ? parseInt(revNumMatch.groups.subnum)
+      : 0;
+
+    return 1_000_000 + num * 10_000 + subnum * 100;
+  }
+
+  const revLetterMatch = stripped.match(/\brev\.?\s*(?<letter>[a-z])\b/i);
+
+  if (revLetterMatch?.groups?.letter) {
+    const idx =
+      revLetterMatch.groups.letter.toUpperCase().charCodeAt(0) -
+      'A'.charCodeAt(0) +
+      1;
+
+    return 1_000_000 + idx * 10_000;
+  }
+
+  const prgMatch = stripped.match(/\bprg\s*(?<num>\d+)\b/i);
+
+  if (prgMatch?.groups?.num) {
+    return 1_000_000 + parseInt(prgMatch.groups.num) * 10_000;
+  }
+
+  const altMatch = stripped.match(/\balt(?:\s*(?<num>\d+))?\b/i);
+
+  if (altMatch) {
+    const altNum = altMatch.groups?.num ? parseInt(altMatch.groups.num) : 1;
+
+    return 999_900 - altNum;
+  }
+
+  return 1_000_000;
 }
 
 function compareVersions(a: string, b: string): number {
-  const rankA = getVersionRank(a);
-  const rankB = getVersionRank(b);
+  const scoreA = getRevisionScore(a);
+  const scoreB = getRevisionScore(b);
 
-  if (rankA !== rankB) {
-    return rankA - rankB;
+  if (scoreA !== scoreB) {
+    return scoreA - scoreB;
   }
 
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -474,22 +565,34 @@ function PlatformDetailsRegion({
         }
       });
 
-      // Sort unencrypted retail releases first, then encrypted retail releases, then Prototype/Beta/Demo/Sample pre-releases
-      const getEntryBucket = (versionLabel: string) => {
-        if (isPreReleaseLabel(versionLabel)) {
+      // Sort unencrypted retail base releases first, then encrypted retail, then updates/DLC, then pre-releases (Demo/Beta/Proto/Sample)
+      const getEntryBucket = (entry: (typeof uniqueEntries)[number]) => {
+        if (
+          isPreReleaseLabel(
+            entry.versionLabel,
+            entry.item.title,
+            entry.item.overview
+          )
+        ) {
+          return 3;
+        }
+
+        if (isUpdateLabel(entry.versionLabel, entry.item.title)) {
           return 2;
         }
 
-        if (isEncryptedLabel(versionLabel)) {
+        if (isEncryptedLabel(entry.versionLabel)) {
           return 1;
         }
 
         return 0;
       };
 
+      const sortAscending = !isCompletionist && preferOriginalRelease;
+
       const entries = [...uniqueEntries].sort((a, b) => {
-        const aBucket = getEntryBucket(a.versionLabel);
-        const bBucket = getEntryBucket(b.versionLabel);
+        const aBucket = getEntryBucket(a);
+        const bBucket = getEntryBucket(b);
 
         if (aBucket !== bBucket) {
           return aBucket - bBucket;
@@ -499,7 +602,7 @@ function PlatformDetailsRegion({
         const bVer = parseCleanVersion(b.versionLabel);
 
         if (aVer !== bVer) {
-          return preferOriginalRelease
+          return sortAscending
             ? compareVersions(aVer, bVer)
             : compareVersions(bVer, aVer);
         }
@@ -510,7 +613,7 @@ function PlatformDetailsRegion({
       });
 
       const retailEntries = entries.filter(
-        (e) => !isPreReleaseLabel(e.versionLabel)
+        (e) => !isPreReleaseLabel(e.versionLabel, e.item.title, e.item.overview)
       );
 
       // Demos, Protos, Betas, and Samples are never considered for 1G1R at all
@@ -742,28 +845,35 @@ function PlatformDetailsRegion({
 
         if (isMultiDisc && disc1Entry) {
           primaryEntry = disc1Entry;
+        } else if (isCompletionist) {
+          primaryEntry =
+            disc1Entry ?? baseEntriesPool[0] ?? effectiveEntries[0];
         } else {
           const monitoredRetailEntry = baseEntriesPool.find(
-            (e) => e.item.monitored
+            (e) =>
+              e.item.monitored &&
+              !isPreReleaseLabel(e.versionLabel, e.item.title, e.item.overview)
           );
           const monitoredEntry =
             monitoredRetailEntry ??
             baseEntriesPool.find((e) => e.item.monitored) ??
             effectiveEntries.find((e) => e.item.monitored);
-          const unencryptedRetailEntries = baseEntriesPool.filter(
+          const nonPreReleaseBaseEntries = baseEntriesPool.filter(
+            (e) =>
+              !isPreReleaseLabel(e.versionLabel, e.item.title, e.item.overview)
+          );
+          const retailCandidatePool =
+            nonPreReleaseBaseEntries.length > 0
+              ? nonPreReleaseBaseEntries
+              : baseEntriesPool;
+          const unencryptedRetailEntries = retailCandidatePool.filter(
             (e) => !isEncryptedLabel(e.versionLabel)
           );
           const fallbackPool =
             unencryptedRetailEntries.length > 0
               ? unencryptedRetailEntries
-              : baseEntriesPool;
-          let fallbackRetail = effectiveEntries[0];
-
-          if (fallbackPool.length > 0) {
-            fallbackRetail = preferOriginalRelease
-              ? fallbackPool[0]
-              : fallbackPool[fallbackPool.length - 1];
-          }
+              : retailCandidatePool;
+          const fallbackRetail = fallbackPool[0] ?? effectiveEntries[0];
 
           primaryEntry = monitoredEntry ?? fallbackRetail;
         }

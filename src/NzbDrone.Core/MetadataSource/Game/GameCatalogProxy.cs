@@ -3914,12 +3914,13 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             if (IsPreReleaseVersion(clean))
             {
-                return 10000;
+                return -1;
             }
 
-            var match = Regex.Match(clean, @"(?:Rev\.?\s*([A-Za-z0-9.]+)|Title\s+Update\s*#?\s*v?([0-9.]+)|TU\s*#?\s*([0-9.]+)|Update\s*#?\s*v?([0-9.]+)|Patch\s*#?\s*v?([0-9.]+)|DLC\s*#?\s*v?([0-9.]+)|v([0-9.]+))", RegexOptions.IgnoreCase);
+            var match = Regex.Match(clean, @"(?:Rev\.?\s*([A-Za-z0-9.]+)|Title\s+Update\s*#?\s*v?([0-9.]+)|TU\s*#?\s*([0-9.]+)|Update\s*#?\s*v?([0-9.]+)|Patch\s*#?\s*v?([0-9.]+)|DLC\s*#?\s*v?([0-9.]+)|(?:Version\s*|v)([0-9.]+))", RegexOptions.IgnoreCase);
             if (match.Success)
             {
+                var isRev = match.Groups[1].Success;
                 var val = match.Groups[1].Success ? match.Groups[1].Value :
                           match.Groups[2].Success ? match.Groups[2].Value :
                           match.Groups[3].Success ? match.Groups[3].Value :
@@ -3928,19 +3929,32 @@ namespace NzbDrone.Core.MetadataSource.Game
                           match.Groups[6].Success ? match.Groups[6].Value :
                           match.Groups[7].Value;
 
+                if (isRev)
+                {
+                    if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var revNum))
+                    {
+                        return 1000000 + (int)Math.Round(revNum * 10000);
+                    }
+
+                    if (val.Length == 1 && char.IsLetter(val[0]))
+                    {
+                        return 1000000 + ((char.ToUpperInvariant(val[0]) - 'A' + 1) * 10000);
+                    }
+                }
+
                 if (Version.TryParse(val, out var semVer))
                 {
-                    return 1000 + (semVer.Major * 1000000) + (Math.Max(0, semVer.Minor) * 10000) + (Math.Max(0, semVer.Build) * 100) + Math.Max(0, semVer.Revision);
+                    return (semVer.Major * 1000000) + (Math.Max(0, semVer.Minor) * 10000) + (Math.Max(0, semVer.Build) * 100) + Math.Max(0, semVer.Revision);
+                }
+
+                if (int.TryParse(val, out var intMajor))
+                {
+                    return intMajor * 1000000;
                 }
 
                 if (double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
                 {
-                    return 100 + (int)(num * 100);
-                }
-
-                if (val.Length == 1 && char.IsLetter(val[0]))
-                {
-                    return 200 + (char.ToUpperInvariant(val[0]) - 'A');
+                    return (int)Math.Round(num * 1000000);
                 }
             }
 

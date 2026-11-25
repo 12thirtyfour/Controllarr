@@ -23,6 +23,13 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-25
+
+### Fixed
+- **Completionist Latest-Version Primary Display & Semantic Version Ranking (`PlatformDetailsRegion.tsx`, `GameCatalogProxy.cs`)** *(Closes #1)*:
+  - Fixed Completionist mode displaying older versions or demos above newer retail releases by switching collapsed primary-row selection from `fallbackPool[fallbackPool.length - 1]` to `fallbackPool[0]` and always ordering Completionist groups latest retail version first with trailing/older revisions and pre-releases (`Demo`, `Beta`, `Proto`, `Sample`) nested underneath.
+  - Replaced binary `getVersionRank` (`0` vs `1`) in `PlatformDetailsRegion.tsx` and updated `GameCatalogProxy.GetRevisionSortOrder` so semantic versions rank accurately (`v2` > `v1.1` > `Rev 1` / `Rev A` > `Retail (v1.0)` > `Demo`/`Beta`/`Proto`), and ensured demos/betas/protos in `title` or parenthesized `overview` tags are always placed after retail builds.
+
 ## [1.0.0-rc.4] - 2026-11-25
 
 ### Added

@@ -2232,5 +2232,16 @@ game (
             GameCatalogProxy.GetRegionDisplayName(GameCatalogProxy.RegionTranslations).Should().Be("Translations");
             GameCatalogProxy.GetRegionFolderName(GameCatalogProxy.RegionTranslations).Should().Be("Translations");
         }
+
+        [Test]
+        public void should_rank_higher_versions_above_v1_and_pre_releases()
+        {
+            GameCatalogProxy.GetRevisionSortOrder("Demo").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("Retail (v1.0)"));
+            GameCatalogProxy.GetRevisionSortOrder("Retail (v1.0)").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("Rev 1"));
+            GameCatalogProxy.GetRevisionSortOrder("Retail (v1.0)").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v1.1"));
+            GameCatalogProxy.GetRevisionSortOrder("Rev 1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v2"));
+            GameCatalogProxy.GetRevisionSortOrder("v1.1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v2"));
+            GameCatalogProxy.GetRevisionSortOrder("v1.1").Should().BeLessThan(GameCatalogProxy.GetRevisionSortOrder("v2.0"));
+        }
     }
 }
