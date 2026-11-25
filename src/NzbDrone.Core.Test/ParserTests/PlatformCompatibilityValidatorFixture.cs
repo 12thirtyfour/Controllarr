@@ -198,5 +198,84 @@ namespace NzbDrone.Core.Test.ParserTests
             PlatformCompatibilityValidator.IsCompatible("GamePark GP32/Astonishia Story R (Korea).smc", "gp32", "GamePark GP32").Should().BeTrue();
             PlatformCompatibilityValidator.IsCompatible("GamePark GP32/Chrono Trigger (SNES).smc", "gp32", "GamePark GP32").Should().BeFalse();
         }
+
+        [TestCase("jaguarcd", "Atari Jaguar CD")]
+        [TestCase("jagcd", "Atari Jaguar CD")]
+        [TestCase("jaguar", "Atari Jaguar")]
+        [TestCase("64dd", "Nintendo 64DD")]
+        [TestCase("n64dd", "Nintendo 64DD")]
+        [TestCase("n64", "Nintendo 64")]
+        [TestCase("satellaview", "Nintendo Satellaview")]
+        [TestCase("sufamiturbo", "Bandai Sufami Turbo")]
+        [TestCase("fds", "Nintendo Famicom Disk System")]
+        [TestCase("tgcd", "NEC TurboGrafx-CD")]
+        [TestCase("supergrafx", "NEC PC Engine SuperGrafx")]
+        [TestCase("ereader", "Nintendo e-Reader")]
+        [TestCase("videopacplus", "Philips Videopac+ G7400")]
+        public void should_resolve_addon_platform_names_independently(string input, string expectedCanonicalName)
+        {
+            PlatformCompatibilityValidator.ResolvePlatformName(input).Should().Be(expectedCanonicalName);
+        }
+
+        [TestCase("jaguarcd", "jaguar", false)]
+        [TestCase("jaguar", "jaguarcd", false)]
+        [TestCase("64dd", "n64", false)]
+        [TestCase("n64", "64dd", false)]
+        [TestCase("fds", "nes", false)]
+        [TestCase("nes", "fds", false)]
+        [TestCase("satellaview", "snes", false)]
+        [TestCase("snes", "satellaview", false)]
+        [TestCase("sufamiturbo", "snes", false)]
+        [TestCase("tgcd", "tg16", false)]
+        [TestCase("pcecd", "pce", false)]
+        [TestCase("ereader", "gba", false)]
+        [TestCase("wiiware", "wii", false)]
+        [TestCase("wii", "wiiware", false)]
+        [TestCase("wiiueshop", "wiiu", false)]
+        [TestCase("wiiu", "wiiueshop", false)]
+        [TestCase("dsiware", "nds", false)]
+        [TestCase("nds", "dsiware", false)]
+        [TestCase("3dseshop", "3ds", false)]
+        [TestCase("3ds", "3dseshop", false)]
+        [TestCase("switcheshop", "switch", false)]
+        [TestCase("switch", "switcheshop", false)]
+        [TestCase("xbox360digital", "xbox360", false)]
+        [TestCase("xbox360", "xbox360digital", false)]
+        [TestCase("ps3psn", "ps3", false)]
+        [TestCase("ps3", "ps3psn", false)]
+        [TestCase("psppsn", "psp", false)]
+        [TestCase("psp", "psppsn", false)]
+        [TestCase("pce", "tg16", true)]
+        [TestCase("tg16", "pce", true)]
+        public void should_not_cross_match_addon_or_digital_platforms_with_parent(string detectedSlug, string targetSlug, bool expected)
+        {
+            PlatformCompatibilityValidator.IsPlatformMatch(detectedSlug, targetSlug).Should().Be(expected);
+        }
+
+        [TestCase("Atari Jaguar CD/Battlemorph (USA).chd", "jaguarcd", "Atari Jaguar CD", true)]
+        [TestCase("Atari Jaguar CD/Battlemorph (USA).chd", "jaguar", "Atari Jaguar", false)]
+        [TestCase("Atari Jaguar/Tempest 2000 (USA).j64", "jaguar", "Atari Jaguar", true)]
+        [TestCase("Atari Jaguar/Tempest 2000 (USA).j64", "jaguarcd", "Atari Jaguar CD", false)]
+        [TestCase("Nintendo 64DD/F-Zero X Expansion Kit (Japan).ndd", "64dd", "Nintendo 64DD", true)]
+        [TestCase("Nintendo 64DD/F-Zero X Expansion Kit (Japan).ndd", "n64", "Nintendo 64", false)]
+        [TestCase("Nintendo 64/Super Mario 64 (USA).z64", "n64", "Nintendo 64", true)]
+        [TestCase("Nintendo 64/Super Mario 64 (USA).z64", "64dd", "Nintendo 64DD", false)]
+        [TestCase("Famicom Disk System/Metroid (Japan).fds", "fds", "Nintendo Famicom Disk System", true)]
+        [TestCase("Famicom Disk System/Metroid (Japan).fds", "nes", "Nintendo Entertainment System", false)]
+        [TestCase("NES/Super Mario Bros (USA).nes", "fds", "Nintendo Famicom Disk System", false)]
+        [TestCase("Satellaview/BS Zelda no Densetsu (Japan).bs", "satellaview", "Nintendo Satellaview", true)]
+        [TestCase("Satellaview/BS Zelda no Densetsu (Japan).bs", "snes", "Super Nintendo Entertainment System", false)]
+        [TestCase("Sufami Turbo/SD Ultra Battle (Japan).st", "sufamiturbo", "Bandai Sufami Turbo", true)]
+        [TestCase("Sufami Turbo/SD Ultra Battle (Japan).st", "snes", "Super Nintendo Entertainment System", false)]
+        [TestCase("SNES/Chrono Trigger (USA).sfc", "sufamiturbo", "Bandai Sufami Turbo", false)]
+        [TestCase("TurboGrafx-CD/Rondo of Blood (Japan).chd", "tgcd", "NEC TurboGrafx-CD", true)]
+        [TestCase("TurboGrafx-CD/Rondo of Blood (Japan).chd", "tg16", "NEC TurboGrafx-16", false)]
+        [TestCase("Nintendo e-Reader/Mario Party-e (USA).raw", "ereader", "Nintendo e-Reader", true)]
+        [TestCase("Nintendo e-Reader/Mario Party-e (USA).raw", "gba", "Game Boy Advance", false)]
+        [TestCase("GBA/Metroid Fusion (USA).gba", "ereader", "Nintendo e-Reader", false)]
+        public void should_isolate_addon_formats_and_paths_from_parent_platform(string candidatePath, string platformSlug, string platformName, bool expected)
+        {
+            PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName).Should().Be(expected);
+        }
     }
 }

@@ -23,6 +23,18 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-25
+
+### Fixed
+- **Full Addon & Digital-Storefront Platform Independence (`UnmanagedDiskScanner`, `PlatformCompatibilityValidator`, `PlatformCatalogService`, `DatCacheService`, `PlatformService`)**:
+  - Replaced substring `StartsWith(p.Path)` path matching in `UnmanagedDiskScanner.FindPlatformBySlugOrTitle` with exact/parent boundary checks (`PathEquals` / `IsParentPath`) sorted longest-path-first so addon paths (e.g., `Atari Jaguar CD`, `Nintendo 64DD`) never resolve to their shorter parent platform folder (`Atari Jaguar`, `Nintendo 64`).
+  - Replaced substring BIOS platform lookup in `UnmanagedDiskScanner.ProcessBiosFile` with exact normalized slug equality.
+  - Decoupled all addon and digital-storefront platforms in `PlatformCompatibilityValidator.IsPlatformMatch` (`tgcd`, `pcecd`, `satellaview`, `fds`, `64dd`, `wiiware`, `wiiueshop`, `dsiware`, `3dseshop`, `switcheshop`, `xbox360digital`, `ps3psn`, `psppsn`), added `PlatformAliases` key lookup before substring fallback in `NormalizePlatformSlug`, and added hyphen-tolerant `TurboGrafx-CD`/`Sega CD`/`jagcd` detection patterns.
+  - Removed cross-platform ROM extension overlap in `PlatformCatalogService.ExclusiveExtensionsByPlatform` (`nes`/`.fds`, `snes`/`.bs`+`.st`, `sufamiturbo`/`.sfc`+`.smc`, `n64`/`.ndd`, `ereader`/`.gba`) and added compact slug aliases in `PlatformAliases` (`jaguarcd`, `atarijaguarcd`, `jagcd`, `n64dd`, `nintendo64dd`, etc.).
+  - Added missing DAT filename collision guards in `DatCacheService.HasPlatformSubstringCollision` (`jaguar` vs `jaguarcd`, `n64` vs `64dd`, `genesis` vs `32x`/`segacd`, `ws` vs `pocket challenge`) and guarded `PlatformService.FindByTitleInexact` with `DetectPlatforms` matching so addon releases never bind to parent platforms.
+
+---
+
 ## [1.0.0-rc.4.5] - 2026-11-25
 
 ### Fixed

@@ -161,7 +161,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s+genesis|mega\s*drive|megadrive)(?:\b|_|\]|\))|(?:^|[\s@\[\(\._\-])\s*genesis\s*(?:$|[\s\]\)\._\-])", RegexOptions.IgnoreCase | RegexOptions.Compiled), "genesis"),
 
             // Sega CD / Mega CD
-            (new Regex(@"(?:\b|_|\[|\()(?:sega\s*cd|mega\s*cd|segacd|megacd|scd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "segacd"),
+            (new Regex(@"(?:\b|_|\[|\()(?:sega[\s._-]*cd|mega[\s._-]*cd|segacd|megacd|scd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "segacd"),
 
             // Sega 32X
             (new Regex(@"(?:\b|_|\[|\()(?:sega\s*32x|super\s*32x|32x)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "32x"),
@@ -190,11 +190,11 @@ namespace NzbDrone.Core.Parser
             // NEC PC Engine SuperGrafx (must precede TurboGrafx-16 / PC Engine)
             (new Regex(@"(?:\b|_|\[|\()(?:(?:nec\s+)?(?:pc\s*engine\s+)?super\s*grafx|supergrafx|sgx)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "supergrafx"),
 
+            // TurboGrafx-CD / PC Engine CD (must precede TurboGrafx-16 / PC Engine)
+            (new Regex(@"(?:\b|_|\[|\()(?:turbografx[\s._-]*cd|pc[\s._-]*engine[\s._-]*cd|tg-?cd|pce-?cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
+
             // TurboGrafx-16 / PC Engine
             (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:-16|\s*16)?|pc\s*engine|tg16|pce)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tg16"),
-
-            // TurboGrafx-CD / PC Engine CD
-            (new Regex(@"(?:\b|_|\[|\()(?:turbografx\s*cd|pc\s*engine\s*cd|tgcd|pcecd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
 
             // Neo Geo Pocket Color (must precede Neo Geo Pocket and Neo Geo)
             (new Regex(@"(?:\b|_|\[|\()(?:(?:snk\s+)?neo\s*geo\s*pocket\s*color|ngpc)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "ngpc"),
@@ -212,7 +212,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*2600|a2600)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "atari2600"),
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*7800|a7800)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "atari7800"),
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*lynx|lynx)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "lynx"),
-            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar\s*cd|jaguar\s*cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguarcd"),
+            (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar\s*cd|jaguar\s*cd|jagcd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguarcd"),
             (new Regex(@"(?:\b|_|\[|\()(?:atari\s*jaguar|jaguar)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "jaguar"),
 
             // WonderSwan Color (must precede WonderSwan)
@@ -515,19 +515,8 @@ namespace NzbDrone.Core.Parser
                 return true;
             }
 
-            if ((targetSlug is "tg16" && detectedSlug is "pce" or "tgcd") ||
-                (targetSlug is "pce" && detectedSlug is "tg16" or "pcecd") ||
-                (targetSlug is "snes" && detectedSlug is "satellaview") ||
-                (targetSlug is "nes" && detectedSlug is "fds") ||
-                (targetSlug is "n64" && detectedSlug is "64dd") ||
-                (targetSlug is "wiiware" && detectedSlug is "wii") ||
-                (targetSlug is "wiiueshop" && detectedSlug is "wiiu") ||
-                (targetSlug is "dsiware" && detectedSlug is "nds") ||
-                (targetSlug is "3dseshop" && detectedSlug is "3ds") ||
-                (targetSlug is "switcheshop" && detectedSlug is "switch") ||
-                (targetSlug is "xbox360digital" && detectedSlug is "xbox360") ||
-                (targetSlug is "ps3psn" && detectedSlug is "ps3") ||
-                (targetSlug is "psppsn" && detectedSlug is "psp"))
+            if ((string.Equals(targetSlug, "tg16", StringComparison.OrdinalIgnoreCase) && string.Equals(detectedSlug, "pce", StringComparison.OrdinalIgnoreCase)) ||
+                (string.Equals(targetSlug, "pce", StringComparison.OrdinalIgnoreCase) && string.Equals(detectedSlug, "tg16", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -924,6 +913,11 @@ namespace NzbDrone.Core.Parser
             {
                 var lowerName = name.ToLowerInvariant().Trim();
                 var lowerNameDehyphenated = lowerName.Replace('-', ' ');
+
+                if (PlatformAliases.ContainsKey(lowerName))
+                {
+                    return lowerName;
+                }
 
                 foreach (var (canonicalSlug, aliases) in PlatformAliases)
                 {

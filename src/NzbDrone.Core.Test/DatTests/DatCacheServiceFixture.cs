@@ -337,5 +337,49 @@ namespace NzbDrone.Core.Test.DatTests
             snesEntries[0].Md5.Should().Be("bbbb1111222233334444555566667777");
             snesEntries[0].Sha256.Should().Be("cccc111122223333444455556666777788889999000011112222333344445555");
         }
+
+        [Test]
+        public void Should_not_match_addon_dat_files_when_querying_parent_platform()
+        {
+            var jaguarCdDat = new DatFile
+            {
+                Name = "Atari - Jaguar CD (Redump)",
+                Description = "Atari - Jaguar CD"
+            };
+
+            var jaguarDat = new DatFile
+            {
+                Name = "Atari - Jaguar (No-Intro)",
+                Description = "Atari - Jaguar"
+            };
+
+            Subject.Insert(jaguarCdDat, new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Battlemorph (USA)",
+                    RomName = "Battlemorph (USA).chd",
+                    Crc32 = "aaaa1111"
+                }
+            });
+
+            Subject.Insert(jaguarDat, new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Tempest 2000 (USA)",
+                    RomName = "Tempest 2000 (USA).j64",
+                    Crc32 = "bbbb2222"
+                }
+            });
+
+            var jaguarEntries = Subject.GetEntriesForPlatform("jaguar", "Atari Jaguar", "Atari - Jaguar");
+            jaguarEntries.Should().ContainSingle();
+            jaguarEntries[0].GameName.Should().Be("Tempest 2000 (USA)");
+
+            var jaguarCdEntries = Subject.GetEntriesForPlatform("jaguarcd", "Atari Jaguar CD", "Atari - Jaguar CD");
+            jaguarCdEntries.Should().ContainSingle();
+            jaguarCdEntries[0].GameName.Should().Be("Battlemorph (USA)");
+        }
     }
 }

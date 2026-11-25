@@ -353,6 +353,8 @@ namespace NzbDrone.Core.Dat
                     return datFileName.Contains("super nintendo") || datFileName.Contains("snes") || datFileName.Contains("famicom disk system") || datFileName.Contains("fds");
                 case "snes":
                     return datFileName.Contains("sufami turbo") || datFileName.Contains("satellaview");
+                case "n64":
+                    return datFileName.Contains("64dd") || datFileName.Contains("nintendo 64dd");
                 case "gb":
                     return datFileName.Contains("game boy color") || datFileName.Contains("gbc") || datFileName.Contains("game boy advance") || datFileName.Contains("gba");
                 case "gbc":
@@ -377,18 +379,22 @@ namespace NzbDrone.Core.Dat
                     return datFileName.Contains("wii u") || datFileName.Contains("wiiu") || datFileName.Contains("wiiware") || datFileName.Contains("(digital)");
                 case "wiiu":
                     return datFileName.Contains("eshop") || datFileName.Contains("(digital)");
+                case "genesis":
+                    return datFileName.Contains("32x") || datFileName.Contains("sega cd") || datFileName.Contains("mega-cd") || datFileName.Contains("mega cd");
                 case "sms":
                     return datFileName.Contains("genesis") || datFileName.Contains("mega drive") || datFileName.Contains("sega cd") || datFileName.Contains("game gear");
                 case "pico":
                     return datFileName.Contains("beena");
                 case "tg16":
                     return datFileName.Contains("tgcd") || datFileName.Contains("turbografx-cd") || datFileName.Contains("pc engine cd") || datFileName.Contains("supergrafx");
+                case "jaguar":
+                    return datFileName.Contains("jaguar cd") || datFileName.Contains("jaguarcd");
                 case "neogeo":
                     return datFileName.Contains("pocket") || datFileName.Contains("ngp") || datFileName.Contains("neo geo cd") || datFileName.Contains("neo-geo cd") || datFileName.Contains("neogeocd");
                 case "ngp":
                     return datFileName.Contains("color") || datFileName.Contains("ngpc");
                 case "ws":
-                    return datFileName.Contains("color") || datFileName.Contains("wsc");
+                    return datFileName.Contains("color") || datFileName.Contains("wsc") || datFileName.Contains("pocket challenge");
                 case "odyssey2":
                     return datFileName.Contains("videopac+");
                 case "cassettevision":

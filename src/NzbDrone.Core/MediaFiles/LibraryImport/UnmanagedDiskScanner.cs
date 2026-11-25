@@ -692,8 +692,12 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             if (matchedSeries == null && biosFile != null && !string.IsNullOrWhiteSpace(biosFile.GamePlatform))
             {
+                var normalizedBiosPlatform = PlatformCompatibilityValidator.NormalizePlatformSlug(biosFile.GamePlatform, biosFile.GamePlatform);
                 matchedSeries = allSeries.FirstOrDefault(s =>
-                    s.TitleSlug != null && s.TitleSlug.IndexOf(biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) >= 0);
+                {
+                    var normalizedSeriesSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(s.TitleSlug, s.Title);
+                    return string.Equals(normalizedSeriesSlug, normalizedBiosPlatform, StringComparison.OrdinalIgnoreCase);
+                });
             }
 
             if (matchedSeries == null)
@@ -896,9 +900,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             if (!string.IsNullOrWhiteSpace(contextualPath))
             {
-                var matchedByPath = allPlatforms.FirstOrDefault(p =>
-                    !string.IsNullOrWhiteSpace(p.Path) &&
-                    (contextualPath.StartsWith(p.Path, StringComparison.OrdinalIgnoreCase) || p.Path.IsParentPath(contextualPath)));
+                var matchedByPath = allPlatforms
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Path) &&
+                                (p.Path.PathEquals(contextualPath) || p.Path.IsParentPath(contextualPath)))
+                    .OrderByDescending(p => p.Path.Length)
+                    .FirstOrDefault();
 
                 if (matchedByPath != null)
                 {

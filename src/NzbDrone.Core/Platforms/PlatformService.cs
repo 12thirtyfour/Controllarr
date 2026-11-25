@@ -144,6 +144,21 @@ namespace NzbDrone.Core.Tv
                 return null;
             }
 
+            var detectedPlatforms = PlatformCompatibilityValidator.DetectPlatforms(title);
+            if (detectedPlatforms.Count > 0)
+            {
+                list = list.Where(s =>
+                {
+                    var seriesSlug = PlatformCompatibilityValidator.NormalizePlatformSlug(s.TitleSlug, s.Title);
+                    return detectedPlatforms.Any(d => PlatformCompatibilityValidator.IsPlatformMatch(d, seriesSlug));
+                }).ToList();
+
+                if (!list.Any())
+                {
+                    return null;
+                }
+            }
+
             if (list.Count == 1)
             {
                 // return the first series if there is only one
