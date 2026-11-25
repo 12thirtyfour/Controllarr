@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Notifications.Join
 
         public ValidationFailure Test(JoinSettings settings)
         {
-            const string title = "Test Notification";
+            const string title = "Controllarr - Test Notification";
             const string body = "This is a test message from Controllarr.";
 
             try
@@ -98,8 +98,8 @@ namespace NzbDrone.Core.Notifications.Join
             var request = requestBuilder.AddQueryParam("apikey", settings.ApiKey)
                           .AddQueryParam("title", title)
                           .AddQueryParam("text", message)
-                          .AddQueryParam("icon", "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png")
-                          .AddQueryParam("smallicon", "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/96-Outline-White.png")
+                          .AddQueryParam("icon", "https://raw.githubusercontent.com/12thirtyfour/Controllarr/main/Logo/256.png")
+                          .AddQueryParam("smallicon", "https://raw.githubusercontent.com/12thirtyfour/Controllarr/main/Logo/96-Outline-White.png")
                           .AddQueryParam("priority", settings.Priority)
                           .Build();
 

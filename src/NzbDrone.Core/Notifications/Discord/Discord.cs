@@ -5,10 +5,10 @@ using System.Linq;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Notifications.Discord.Payloads;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Validation;
@@ -17,6 +17,8 @@ namespace NzbDrone.Core.Notifications.Discord
 {
     public class Discord : NotificationBase<DiscordSettings>
     {
+        private const string ControllarrIconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/main/Logo/256.png";
+
         private readonly IDiscordProxy _proxy;
         private readonly IConfigFileProvider _configFileProvider;
         private readonly ILocalizationService _localizationService;
@@ -41,10 +43,10 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Url = "https://www.igdb.com/",
-                Description = "Episode Grabbed",
+                Description = GAME_GRABBED_TITLE,
                 Title = GetTitle(series, episodes),
                 Color = (int)DiscordColors.Standard,
                 Fields = new List<DiscordField>(),
@@ -80,11 +82,11 @@ namespace NzbDrone.Core.Notifications.Discord
                         break;
                     case DiscordGrabFieldType.Rating:
                         discordField.Name = "Rating";
-                        discordField.Value = series.Ratings.Value.ToString(CultureInfo.InvariantCulture);
+                        discordField.Value = series.Ratings?.Value.ToString(CultureInfo.InvariantCulture);
                         break;
                     case DiscordGrabFieldType.Genres:
                         discordField.Name = "Genres";
-                        discordField.Value = series.Genres.Take(5).Join(", ");
+                        discordField.Value = series.Genres?.Take(5).Join(", ");
                         break;
                     case DiscordGrabFieldType.Quality:
                         discordField.Name = "Quality";
@@ -144,10 +146,10 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Url = "https://www.igdb.com/",
-                Description = isUpgrade ? "Episode Upgraded" : "Episode Imported",
+                Description = isUpgrade ? "Game Upgraded" : "Game Imported",
                 Title = GetTitle(series, episodes),
                 Color = isUpgrade ? (int)DiscordColors.Upgrade : (int)DiscordColors.Success,
                 Fields = new List<DiscordField>(),
@@ -183,24 +185,16 @@ namespace NzbDrone.Core.Notifications.Discord
                         break;
                     case DiscordImportFieldType.Rating:
                         discordField.Name = "Rating";
-                        discordField.Value = series.Ratings.Value.ToString(CultureInfo.InvariantCulture);
+                        discordField.Value = series.Ratings?.Value.ToString(CultureInfo.InvariantCulture);
                         break;
                     case DiscordImportFieldType.Genres:
                         discordField.Name = "Genres";
-                        discordField.Value = series.Genres.Take(5).Join(", ");
+                        discordField.Value = series.Genres?.Take(5).Join(", ");
                         break;
                     case DiscordImportFieldType.Quality:
                         discordField.Name = "Quality";
                         discordField.Inline = true;
                         discordField.Value = message.EpisodeFile.Quality.Quality.Name;
-                        break;
-                    case DiscordImportFieldType.Codecs:
-                        discordField.Name = "Codecs";
-                        discordField.Inline = true;
-                        discordField.Value = string.Format("{0} / {1} {2}",
-                            MediaInfoFormatter.FormatVideoCodec(message.EpisodeFile.MediaInfo, null),
-                            MediaInfoFormatter.FormatAudioCodec(message.EpisodeFile.MediaInfo.PrimaryAudioStream, null),
-                            MediaInfoFormatter.FormatAudioChannels(message.EpisodeFile.MediaInfo.PrimaryAudioStream));
                         break;
                     case DiscordImportFieldType.Group:
                         discordField.Name = "Group";
@@ -213,11 +207,7 @@ namespace NzbDrone.Core.Notifications.Discord
                         break;
                     case DiscordImportFieldType.Languages:
                         discordField.Name = "Languages";
-                        discordField.Value = message.EpisodeFile.MediaInfo.AudioStreams?.Select(l => l.Language).ConcatToString("/");
-                        break;
-                    case DiscordImportFieldType.Subtitles:
-                        discordField.Name = "Subtitles";
-                        discordField.Value = message.EpisodeFile.MediaInfo.SubtitleStreams?.Select(l => l.Language).ConcatToString("/");
+                        discordField.Value = message.EpisodeFile.Languages?.Select(l => l.Name).ConcatToString("/");
                         break;
                     case DiscordImportFieldType.Release:
                         discordField.Name = "Release";
@@ -258,7 +248,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Url = "https://www.igdb.com/",
                 Description = "Import Complete",
@@ -297,11 +287,11 @@ namespace NzbDrone.Core.Notifications.Discord
                         break;
                     case DiscordImportFieldType.Rating:
                         discordField.Name = "Rating";
-                        discordField.Value = series.Ratings.Value.ToString(CultureInfo.InvariantCulture);
+                        discordField.Value = series.Ratings?.Value.ToString(CultureInfo.InvariantCulture);
                         break;
                     case DiscordImportFieldType.Genres:
                         discordField.Name = "Genres";
-                        discordField.Value = series.Genres.Take(5).Join(", ");
+                        discordField.Value = series.Genres?.Take(5).Join(", ");
                         break;
                     case DiscordImportFieldType.Quality:
                         discordField.Name = "Quality";
@@ -365,11 +355,11 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Url = "https://www.igdb.com/",
                 Title = GetTitle(series, episodes),
-                Description = "Episode Deleted",
+                Description = GAME_DELETED_TITLE,
                 Color = (int)DiscordColors.Danger,
                 Fields = new List<DiscordField>
                 {
@@ -392,11 +382,11 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Url = "https://www.igdb.com/",
                 Title = series.Title,
-                Description = "Series Added",
+                Description = PLATFORM_ADDED_TITLE,
                 Color = (int)DiscordColors.Success,
                 Fields = new List<DiscordField> { new() { Name = "Links", Value = GetLinksString(series) } }
             };
@@ -431,7 +421,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Url = "https://www.igdb.com/",
                 Title = series.Title,
@@ -468,7 +458,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Title = healthCheck.Source.Name,
                 Description = healthCheck.Message,
@@ -488,7 +478,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Title = "Health Issue Resolved: " + previousCheck.Source.Name,
                 Description = $"The following issue is now resolved: {previousCheck.Message}",
@@ -508,7 +498,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
                 Title = APPLICATION_UPDATE_TITLE,
                 Timestamp = DateTime.UtcNow.ToString("O"),
@@ -543,9 +533,9 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/256.png"
+                    IconUrl = ControllarrIconUrl
                 },
-                Url = series?.TvdbId > 0 ? "https://www.igdb.com/" : null,
+                Url = series != null ? "https://www.igdb.com/" : null,
                 Description = "Manual interaction needed",
                 Title = GetTitle(series, episodes),
                 Color = (int)DiscordColors.Standard,
@@ -696,13 +686,9 @@ namespace NzbDrone.Core.Notifications.Discord
 
             var links = new List<string>
             {
-                "[Game Catalog](https://www.igdb.com/)"
+                "[Game Catalog](https://www.igdb.com/)",
+                "[TheGamesDB](https://thegamesdb.net/)"
             };
-
-            if (series.ImdbId.IsNotNullOrWhiteSpace())
-            {
-                links.Add($"[IMDB](https://imdb.com/title/{series.ImdbId}/)");
-            }
 
             return string.Join(" / ", links);
         }
@@ -714,23 +700,19 @@ namespace NzbDrone.Core.Notifications.Discord
                 return null;
             }
 
-            if (episodes.Empty())
+            if (episodes == null || episodes.Empty())
             {
                 return series.Title.Replace("`", "\\`");
             }
 
-            if (series.SeriesType == SeriesTypes.Daily)
-            {
-                var episode = episodes.First();
+            var regionName = RegionHelper.GetRegionName(episodes.First().SeasonNumber);
+            var gameTitles = string.Join(" + ", episodes.Select(e => e.Title).Where(t => t.IsNotNullOrWhiteSpace()));
 
-                return $"{series.Title} - {episode.AirDate} - {episode.Title}".Replace("`", "\\`");
-            }
+            var rawTitle = gameTitles.IsNullOrWhiteSpace()
+                ? $"{series.Title} ({regionName})"
+                : $"{series.Title} ({regionName}) - {gameTitles}";
 
-            var episodeNumbers = string.Concat(episodes.Select(e => $"x{e.EpisodeNumber:00}"));
-
-            var episodeTitles = string.Join(" + ", episodes.Select(e => e.Title));
-
-            var title = $"{series.Title} - {episodes.First().SeasonNumber}{episodeNumbers} - {episodeTitles}".Replace("`", "\\`");
+            var title = rawTitle.Replace("`", "\\`");
 
             return title.Length > 256 ? $"{title.AsSpan(0, 253).TrimEnd('\\')}..." : title;
         }

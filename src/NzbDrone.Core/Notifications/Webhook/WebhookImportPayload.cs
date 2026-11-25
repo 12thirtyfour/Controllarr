@@ -4,9 +4,9 @@ namespace NzbDrone.Core.Notifications.Webhook
 {
     public class WebhookImportPayload : WebhookPayload
     {
-        public WebhookPlatform Series { get; set; }
-        public List<WebhookGame> Episodes { get; set; }
-        public WebhookRomFile EpisodeFile { get; set; }
+        public WebhookPlatform Platform { get; set; }
+        public List<WebhookGame> Games { get; set; }
+        public WebhookRomFile RomFile { get; set; }
         public bool IsUpgrade { get; set; }
         public string DownloadClient { get; set; }
         public string DownloadClientType { get; set; }

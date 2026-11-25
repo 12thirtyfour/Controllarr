@@ -35,17 +35,17 @@ namespace NzbDrone.Core.Notifications.Twitter
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            _twitterService.SendNotification($"Episode Deleted: {deleteMessage.Message}", Settings);
+            _twitterService.SendNotification($"{GAME_DELETED_TITLE}: {deleteMessage.Message}", Settings);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
-            _twitterService.SendNotification($"Series Added: {message.Message}", Settings);
+            _twitterService.SendNotification($"{PLATFORM_ADDED_TITLE}: {message.Message}", Settings);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            _twitterService.SendNotification($"Series Deleted: {deleteMessage.Message}", Settings);
+            _twitterService.SendNotification($"{PLATFORM_DELETED_TITLE}: {deleteMessage.Message}", Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)

@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         [Test]
         public void SendNotification_should_not_throw_for_a_valid_apiKey()
         {
-            Subject.SendNotification("NzbDrone Test", "This is a test message from NzbDrone", _settings);
+            Subject.SendNotification("Controllarr Test", "This is a test message from Controllarr", _settings);
             ExceptionVerification.ExpectedWarns(0);
         }
 
@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             _settings.ApiKey = _badApiKey;
 
-            Subject.SendNotification("NzbDrone Test", "This is a test message from NzbDrone", _settings);
+            Subject.SendNotification("Controllarr Test", "This is a test message from Controllarr", _settings);
 
             ExceptionVerification.ExpectedWarns(1);
         }

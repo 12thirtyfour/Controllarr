@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Notifications.Slack.Payloads;
@@ -13,6 +14,8 @@ namespace NzbDrone.Core.Notifications.Slack
 {
     public class Slack : NotificationBase<SlackSettings>
     {
+        private const string ControllarrIconUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/main/Logo/256.png";
+
         private readonly ISlackProxy _proxy;
         private readonly ILocalizationService _localizationService;
 
@@ -71,7 +74,7 @@ namespace NzbDrone.Core.Notifications.Slack
                     Color = "good"
                 }
             };
-            var payload = CreatePayload($"Imported all expected episodes: {message.Message}", attachments);
+            var payload = CreatePayload($"Imported all expected ROMs: {message.Message}", attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -101,7 +104,7 @@ namespace NzbDrone.Core.Notifications.Slack
                 }
             };
 
-            var payload = CreatePayload("Episode Deleted", attachments);
+            var payload = CreatePayload(GAME_DELETED_TITLE, attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -116,7 +119,7 @@ namespace NzbDrone.Core.Notifications.Slack
                 }
             };
 
-            var payload = CreatePayload("Series Added", attachments);
+            var payload = CreatePayload(PLATFORM_ADDED_TITLE, attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -132,7 +135,7 @@ namespace NzbDrone.Core.Notifications.Slack
                 }
             };
 
-            var payload = CreatePayload("Series Deleted", attachments);
+            var payload = CreatePayload(PLATFORM_DELETED_TITLE, attachments);
 
             _proxy.SendPayload(payload, Settings);
         }
@@ -255,6 +258,10 @@ namespace NzbDrone.Core.Notifications.Slack
                     payload.IconUrl = icon;
                 }
             }
+            else
+            {
+                payload.IconUrl = ControllarrIconUrl;
+            }
 
             if (channel.IsNotNullOrWhiteSpace())
             {
@@ -271,23 +278,20 @@ namespace NzbDrone.Core.Notifications.Slack
                 return null;
             }
 
-            if (episodes.Empty())
+            if (episodes == null || episodes.Empty())
             {
                 return series.Title;
             }
 
-            if (series.SeriesType == SeriesTypes.Daily)
-            {
-                var episode = episodes.First();
+            var regionName = RegionHelper.GetRegionName(episodes.First().SeasonNumber);
+            var gameTitles = string.Join(" + ", episodes.Select(e => e.Title).Where(t => t.IsNotNullOrWhiteSpace()));
 
-                return $"{series.Title} - {episode.AirDate} - {episode.Title}";
+            if (gameTitles.IsNullOrWhiteSpace())
+            {
+                return $"{series.Title} ({regionName})";
             }
 
-            var episodeNumbers = string.Concat(episodes.Select(e => $"x{e.EpisodeNumber:00}"));
-
-            var episodeTitles = string.Join(" + ", episodes.Select(e => e.Title));
-
-            return $"{series.Title} - {episodes.First().SeasonNumber}{episodeNumbers} - {episodeTitles}";
+            return $"{series.Title} ({regionName}) - {gameTitles}";
         }
     }
 }

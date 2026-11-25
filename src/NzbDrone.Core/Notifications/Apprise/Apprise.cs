@@ -22,12 +22,12 @@ namespace NzbDrone.Core.Notifications.Apprise
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            _proxy.SendNotification(EPISODE_GRABBED_TITLE, grabMessage.Message, GetPosterUrl(grabMessage.Series), Settings);
+            _proxy.SendNotification(GAME_GRABBED_TITLE, grabMessage.Message, GetPosterUrl(grabMessage.Series), Settings);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            _proxy.SendNotification(EPISODE_DOWNLOADED_TITLE, message.Message, GetPosterUrl(message.Series), Settings);
+            _proxy.SendNotification(GAME_DOWNLOADED_TITLE, message.Message, GetPosterUrl(message.Series), Settings);
         }
 
         public override void OnImportComplete(ImportCompleteMessage message)
@@ -37,17 +37,17 @@ namespace NzbDrone.Core.Notifications.Apprise
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(EPISODE_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), Settings);
+            _proxy.SendNotification(GAME_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), Settings);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
-            _proxy.SendNotification(SERIES_ADDED_TITLE, message.Message, GetPosterUrl(message.Series), Settings);
+            _proxy.SendNotification(PLATFORM_ADDED_TITLE, message.Message, GetPosterUrl(message.Series), Settings);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(SERIES_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), Settings);
+            _proxy.SendNotification(PLATFORM_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)

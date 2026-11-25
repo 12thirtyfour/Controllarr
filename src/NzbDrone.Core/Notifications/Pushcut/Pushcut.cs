@@ -31,12 +31,12 @@ namespace NzbDrone.Core.Notifications.Pushcut
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            _proxy.SendNotification(EPISODE_GRABBED_TITLE, grabMessage?.Message, GetPosterUrl(grabMessage.Series), GetLinks(grabMessage.Series), Settings);
+            _proxy.SendNotification(GAME_GRABBED_TITLE, grabMessage?.Message, GetPosterUrl(grabMessage.Series), GetLinks(grabMessage.Series), Settings);
         }
 
         public override void OnDownload(DownloadMessage downloadMessage)
         {
-            _proxy.SendNotification(EPISODE_DOWNLOADED_TITLE, downloadMessage.Message, GetPosterUrl(downloadMessage.Series), GetLinks(downloadMessage.Series), Settings);
+            _proxy.SendNotification(GAME_DOWNLOADED_TITLE, downloadMessage.Message, GetPosterUrl(downloadMessage.Series), GetLinks(downloadMessage.Series), Settings);
         }
 
         public override void OnImportComplete(ImportCompleteMessage message)
@@ -46,17 +46,17 @@ namespace NzbDrone.Core.Notifications.Pushcut
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(EPISODE_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), GetLinks(deleteMessage.Series), Settings);
+            _proxy.SendNotification(GAME_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), GetLinks(deleteMessage.Series), Settings);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage seriesAddMessage)
         {
-            _proxy.SendNotification(SERIES_ADDED_TITLE, $"{seriesAddMessage.Series.Title} added to library", GetPosterUrl(seriesAddMessage.Series), GetLinks(seriesAddMessage.Series), Settings);
+            _proxy.SendNotification(PLATFORM_ADDED_TITLE, $"{seriesAddMessage.Series.Title} added to library", GetPosterUrl(seriesAddMessage.Series), GetLinks(seriesAddMessage.Series), Settings);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(SERIES_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), GetLinks(deleteMessage.Series), Settings);
+            _proxy.SendNotification(PLATFORM_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Series), GetLinks(deleteMessage.Series), Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)

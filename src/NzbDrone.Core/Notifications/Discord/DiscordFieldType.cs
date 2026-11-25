@@ -19,21 +19,19 @@ namespace NzbDrone.Core.Notifications.Discord
 
     public enum DiscordImportFieldType
     {
-        Overview,
-        Rating,
-        Genres,
-        Quality,
-        Codecs,
-        Group,
-        Size,
-        Languages,
-        Subtitles,
-        Links,
-        Release,
-        Poster,
-        Fanart,
-        CustomFormats,
-        CustomFormatScore
+        Overview = 0,
+        Rating = 1,
+        Genres = 2,
+        Quality = 3,
+        Group = 5,
+        Size = 6,
+        Languages = 7,
+        Links = 9,
+        Release = 10,
+        Poster = 11,
+        Fanart = 12,
+        CustomFormats = 13,
+        CustomFormatScore = 14
     }
 
     public enum DiscordManualInteractionFieldType

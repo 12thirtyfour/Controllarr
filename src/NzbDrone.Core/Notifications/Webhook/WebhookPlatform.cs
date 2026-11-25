@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.Languages;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Notifications.Webhook
@@ -11,43 +10,27 @@ namespace NzbDrone.Core.Notifications.Webhook
         public string Title { get; set; }
         public string TitleSlug { get; set; }
         public string Path { get; set; }
-        public int TvdbId { get; set; }
-        public int TvMazeId { get; set; }
-        public int TmdbId { get; set; }
-        public string ImdbId { get; set; }
-        public HashSet<int> MalIds { get; set; }
-        public HashSet<int> AniListIds { get; set; }
-        public SeriesTypes Type { get; set; }
+        public int CatalogId { get; set; }
         public int Year { get; set; }
         public List<string> Genres { get; set; }
         public List<WebhookImage> Images { get; set; }
         public List<string> Tags { get; set; }
-        public Language OriginalLanguage { get; set; }
-        public string OriginalCountry { get; set; }
 
         public WebhookPlatform()
         {
         }
 
-        public WebhookPlatform(Series series, List<string> tags)
+        public WebhookPlatform(Series platform, List<string> tags)
         {
-            Id = series.Id;
-            Title = series.Title;
-            TitleSlug = series.TitleSlug;
-            Path = series.Path;
-            TvdbId = series.TvdbId;
-            TvMazeId = series.TvMazeId;
-            TmdbId = series.TmdbId;
-            ImdbId = series.ImdbId;
-            MalIds = series.MalIds;
-            AniListIds = series.AniListIds;
-            Type = series.SeriesType;
-            Year = series.Year;
-            Genres = series.Genres;
-            Images = series.Images.Select(i => new WebhookImage(i)).ToList();
+            Id = platform.Id;
+            Title = platform.Title;
+            TitleSlug = platform.TitleSlug;
+            Path = platform.Path;
+            CatalogId = platform.TvdbId;
+            Year = platform.Year;
+            Genres = platform.Genres;
+            Images = platform.Images.Select(i => new WebhookImage(i)).ToList();
             Tags = tags;
-            OriginalLanguage = series.OriginalLanguage;
-            OriginalCountry = series.OriginalCountry;
         }
     }
 }

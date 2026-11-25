@@ -4,18 +4,10 @@ namespace NzbDrone.Core.Notifications
 {
     public enum MetadataLinkType
     {
-        [FieldOption(Label = "IMDb")]
-        Imdb = 0,
-
         [FieldOption(Label = "Game Catalog")]
         GameCatalog = 1,
 
-        [FieldOption(Label = "TheGamesDb")]
-        TheGamesDb = 2,
-
-        // Legacy compatibility aliases
-        Tvdb = 1,
-        Tvmaze = 2,
-        Trakt = 3
+        [FieldOption(Label = "TheGamesDB")]
+        TheGamesDb = 2
     }
 }

@@ -5,9 +5,9 @@ namespace NzbDrone.Core.Notifications.Webhook
 {
     public class WebhookGameDeletePayload : WebhookPayload
     {
-        public WebhookPlatform Series { get; set; }
-        public List<WebhookGame> Episodes { get; set; }
-        public WebhookRomFile EpisodeFile { get; set; }
+        public WebhookPlatform Platform { get; set; }
+        public List<WebhookGame> Games { get; set; }
+        public WebhookRomFile RomFile { get; set; }
         public DeleteMediaFileReason DeleteReason { get; set; }
     }
 }

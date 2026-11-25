@@ -83,7 +83,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             items.Should().HaveCount(1);
             items.First().Implementation.Should().Be("Telegram");
             items.First().ConfigContract.Should().Be("TelegramSettings");
-            items.First().Settings.LinkPreview.Should().Be((int)MetadataLinkPreviewType.Imdb);
+            items.First().Settings.LinkPreview.Should().Be(0);
         }
 
         [Test]
@@ -120,7 +120,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             items.Should().HaveCount(1);
             items.First().Implementation.Should().Be("Telegram");
             items.First().ConfigContract.Should().Be("TelegramSettings");
-            items.First().Settings.LinkPreview.Should().Be((int)MetadataLinkPreviewType.Tvmaze);
+            items.First().Settings.LinkPreview.Should().Be((int)MetadataLinkPreviewType.TheGamesDb);
         }
 
         [Test]

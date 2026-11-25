@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            var title = Settings.IncludeAppNameInTitle ? EPISODE_GRABBED_TITLE_BRANDED : EPISODE_GRABBED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? GAME_GRABBED_TITLE_BRANDED : GAME_GRABBED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
             var links = GetLinks(grabMessage.Series);
 
@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnDownload(DownloadMessage message)
         {
-            var title = Settings.IncludeAppNameInTitle ? EPISODE_DOWNLOADED_TITLE_BRANDED : EPISODE_DOWNLOADED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? GAME_DOWNLOADED_TITLE_BRANDED : GAME_DOWNLOADED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
             var links = GetLinks(message.Series);
 
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnImportComplete(ImportCompleteMessage message)
         {
-            var title = Settings.IncludeAppNameInTitle ? EPISODE_DOWNLOADED_TITLE_BRANDED : EPISODE_DOWNLOADED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? IMPORT_COMPLETE_TITLE_BRANDED : IMPORT_COMPLETE_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
             var links = GetLinks(message.Series);
 
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            var title = Settings.IncludeAppNameInTitle ? EPISODE_DELETED_TITLE_BRANDED : EPISODE_DELETED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? GAME_DELETED_TITLE_BRANDED : GAME_DELETED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
             var links = GetLinks(deleteMessage.Series);
 
@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
-            var title = Settings.IncludeAppNameInTitle ? SERIES_ADDED_TITLE_BRANDED : SERIES_ADDED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? PLATFORM_ADDED_TITLE_BRANDED : PLATFORM_ADDED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
             var links = GetLinks(message.Series);
 
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            var title = Settings.IncludeAppNameInTitle ? SERIES_DELETED_TITLE_BRANDED : SERIES_DELETED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? PLATFORM_DELETED_TITLE_BRANDED : PLATFORM_DELETED_TITLE;
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
             var links = GetLinks(deleteMessage.Series);
 

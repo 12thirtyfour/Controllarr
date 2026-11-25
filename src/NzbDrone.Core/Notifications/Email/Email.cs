@@ -33,42 +33,42 @@ namespace NzbDrone.Core.Notifications.Email
         {
             var body = $"{grabMessage.Message} sent to queue.";
 
-            SendEmail(Settings, EPISODE_GRABBED_TITLE_BRANDED, body);
+            SendEmail(Settings, GAME_GRABBED_TITLE_BRANDED, body);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
             var body = $"{message.Message} Downloaded and sorted.";
 
-            SendEmail(Settings, EPISODE_DOWNLOADED_TITLE_BRANDED, body);
+            SendEmail(Settings, GAME_DOWNLOADED_TITLE_BRANDED, body);
         }
 
         public override void OnImportComplete(ImportCompleteMessage message)
         {
-            var body = $"All expected episode files in {message.Message} downloaded and sorted.";
+            var body = $"All expected ROM files in {message.Message} downloaded and sorted.";
 
-            SendEmail(Settings, IMPORT_COMPLETE_TITLE, body);
+            SendEmail(Settings, IMPORT_COMPLETE_TITLE_BRANDED, body);
         }
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message} deleted.";
 
-            SendEmail(Settings, EPISODE_DELETED_TITLE_BRANDED, body);
+            SendEmail(Settings, GAME_DELETED_TITLE_BRANDED, body);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
             var body = $"{message.Message}";
 
-            SendEmail(Settings, SERIES_ADDED_TITLE_BRANDED, body);
+            SendEmail(Settings, PLATFORM_ADDED_TITLE_BRANDED, body);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message}";
 
-            SendEmail(Settings, SERIES_DELETED_TITLE_BRANDED, body);
+            SendEmail(Settings, PLATFORM_DELETED_TITLE_BRANDED, body);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck message)

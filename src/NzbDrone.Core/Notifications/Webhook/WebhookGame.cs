@@ -1,4 +1,4 @@
-﻿using System;
+﻿using NzbDrone.Core.Games;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.Notifications.Webhook
@@ -9,29 +9,23 @@ namespace NzbDrone.Core.Notifications.Webhook
         {
         }
 
-        public WebhookGame(Episode episode)
+        public WebhookGame(Episode game)
         {
-            Id = episode.Id;
-            SeasonNumber = episode.SeasonNumber;
-            EpisodeNumber = episode.EpisodeNumber;
-            Title = episode.Title;
-            Overview = episode.Overview;
-            AirDate = episode.AirDate;
-            AirDateUtc = episode.AirDateUtc;
-            SeriesId = episode.SeriesId;
-            TvdbId = episode.TvdbId;
-            FinaleType = episode.FinaleType;
+            Id = game.Id;
+            PlatformId = game.SeriesId;
+            RegionNumber = game.SeasonNumber;
+            Region = RegionHelper.GetRegionName(game.SeasonNumber);
+            GameNumber = game.EpisodeNumber;
+            Title = game.Title;
+            Overview = game.Overview;
         }
 
         public int Id { get; set; }
-        public int EpisodeNumber { get; set; }
-        public int SeasonNumber { get; set; }
+        public int PlatformId { get; set; }
+        public int RegionNumber { get; set; }
+        public string Region { get; set; }
+        public int GameNumber { get; set; }
         public string Title { get; set; }
         public string Overview { get; set; }
-        public string AirDate { get; set; }
-        public DateTime? AirDateUtc { get; set; }
-        public int SeriesId { get; set; }
-        public int TvdbId { get; set; }
-        public string FinaleType { get; set; }
     }
 }

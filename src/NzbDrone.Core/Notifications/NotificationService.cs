@@ -5,6 +5,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
@@ -47,48 +48,39 @@ namespace NzbDrone.Core.Notifications
 
         private string GetMessage(Series series, List<Episode> episodes, QualityModel quality)
         {
-            var qualityString = GetQualityString(series, quality);
+            var qualityString = GetQualityString(quality);
 
-            if (episodes.Empty())
+            if (episodes == null || episodes.Empty())
             {
-                return $"{series.Title} - [{qualityString}]";
+                return $"{series.Title} [{qualityString}]";
             }
 
-            if (series.SeriesType == SeriesTypes.Daily)
-            {
-                var episode = episodes.First();
+            var regionName = RegionHelper.GetRegionName(episodes.First().SeasonNumber);
+            var gameTitles = string.Join(" + ", episodes.Select(e => e.Title).Where(t => t.IsNotNullOrWhiteSpace()));
 
-                return $"{series.Title} - {episode.AirDate} - {episode.Title} [{qualityString}]";
+            if (gameTitles.IsNullOrWhiteSpace())
+            {
+                return $"{series.Title} ({regionName}) [{qualityString}]";
             }
 
-            var episodeNumbers = string.Concat(episodes.Select(e => $"x{e.EpisodeNumber:00}"));
-
-            var episodeTitles = string.Join(" + ", episodes.Select(e => e.Title));
-
-            return $"{series.Title} - {episodes.First().SeasonNumber}{episodeNumbers} - {episodeTitles} [{qualityString}]";
+            return $"{series.Title} ({regionName}) - {gameTitles} [{qualityString}]";
         }
 
-        private string GetFullSeasonMessage(Series series, int seasonNumber, QualityModel quality)
+        private string GetFullRegionMessage(Series series, int regionNumber, QualityModel quality)
         {
-            var qualityString = GetQualityString(series, quality);
+            var qualityString = GetQualityString(quality);
+            var regionName = RegionHelper.GetRegionName(regionNumber);
 
-            return $"{series.Title} - Season {seasonNumber} [{qualityString}]";
+            return $"{series.Title} - {regionName} Collection [{qualityString}]";
         }
 
-        private string GetQualityString(Series series, QualityModel quality)
+        private string GetQualityString(QualityModel quality)
         {
-            var qualityString = quality.Quality.ToString();
+            var qualityString = quality?.Quality?.Name ?? quality?.Quality?.ToString() ?? "Unknown";
 
-            if (quality.Revision.Version > 1)
+            if (quality?.Revision?.Version > 1)
             {
-                if (series.SeriesType == SeriesTypes.Anime)
-                {
-                    qualityString += " v" + quality.Revision.Version;
-                }
-                else
-                {
-                    qualityString += " Proper";
-                }
+                qualityString += $" Rev {quality.Revision.Version}";
             }
 
             return qualityString;
@@ -104,13 +96,13 @@ namespace NzbDrone.Core.Notifications
 
             if (series == null)
             {
-                _logger.Debug("{0} has tags but the series is unknown. Notification will not be sent", definition.Name);
+                _logger.Debug("{0} has tags but the platform is unknown. Notification will not be sent", definition.Name);
                 return false;
             }
 
             if (definition.Tags.Intersect(series.Tags).Any())
             {
-                _logger.Debug("Notification and series have one or more intersecting tags.");
+                _logger.Debug("Notification and platform have one or more intersecting tags.");
                 return true;
             }
 
@@ -215,8 +207,8 @@ namespace NzbDrone.Core.Notifications
 
             var downloadMessage = new ImportCompleteMessage
             {
-                Message = parsedEpisodeInfo.FullSeason
-                    ? GetFullSeasonMessage(series, episodes.First().SeasonNumber, parsedEpisodeInfo.Quality)
+                Message = parsedEpisodeInfo.FullSeason && episodes.Any()
+                    ? GetFullRegionMessage(series, episodes.First().SeasonNumber, parsedEpisodeInfo.Quality)
                     : GetMessage(series, episodes, parsedEpisodeInfo.Quality),
                 Series = series,
                 Episodes = episodes,
@@ -259,8 +251,8 @@ namespace NzbDrone.Core.Notifications
 
             var downloadMessage = new ImportCompleteMessage
             {
-                Message = parsedEpisodeInfo.FullSeason
-                    ? GetFullSeasonMessage(series, episodes.First().SeasonNumber, parsedEpisodeInfo.Quality)
+                Message = parsedEpisodeInfo.FullSeason && episodes.Any()
+                    ? GetFullRegionMessage(series, episodes.First().SeasonNumber, parsedEpisodeInfo.Quality)
                     : GetMessage(series, episodes, parsedEpisodeInfo.Quality),
                 Series = series,
                 Episodes = episodes,
@@ -391,7 +383,7 @@ namespace NzbDrone.Core.Notifications
         {
             if (message.EpisodeFile.Episodes.Value.Empty())
             {
-                _logger.Trace("Skipping notification for deleted file without an episode (episode metadata was removed)");
+                _logger.Trace("Skipping notification for deleted file without a game (game metadata was removed)");
 
                 return;
             }

@@ -11,23 +11,18 @@ namespace NzbDrone.Core.Notifications.Webhook
         {
         }
 
-        public WebhookRomFile(EpisodeFile episodeFile)
+        public WebhookRomFile(EpisodeFile romFile)
         {
-            Id = episodeFile.Id;
-            RelativePath = episodeFile.RelativePath;
-            Path = System.IO.Path.Combine(episodeFile.Series.Value.Path, episodeFile.RelativePath);
-            Quality = episodeFile.Quality.Quality.Name;
-            QualityVersion = episodeFile.Quality.Revision.Version;
-            ReleaseGroup = episodeFile.ReleaseGroup;
-            SceneName = episodeFile.SceneName;
-            Size = episodeFile.Size;
-            DateAdded = episodeFile.DateAdded;
-            Languages = episodeFile.Languages;
-
-            if (episodeFile.MediaInfo != null)
-            {
-                MediaInfo = new WebhookRomFileMediaInfo(episodeFile);
-            }
+            Id = romFile.Id;
+            RelativePath = romFile.RelativePath;
+            Path = System.IO.Path.Combine(romFile.Series.Value.Path, romFile.RelativePath);
+            Quality = romFile.Quality.Quality.Name;
+            QualityVersion = romFile.Quality.Revision.Version;
+            ReleaseGroup = romFile.ReleaseGroup;
+            SceneName = romFile.SceneName;
+            Size = romFile.Size;
+            DateAdded = romFile.DateAdded;
+            Languages = romFile.Languages;
         }
 
         public int Id { get; set; }
@@ -40,7 +35,6 @@ namespace NzbDrone.Core.Notifications.Webhook
         public long Size { get; set; }
         public DateTime DateAdded { get; set; }
         public List<Language> Languages { get; set; }
-        public WebhookRomFileMediaInfo MediaInfo { get; set; }
         public string SourcePath { get; set; }
         public string RecycleBinPath { get; set; }
     }

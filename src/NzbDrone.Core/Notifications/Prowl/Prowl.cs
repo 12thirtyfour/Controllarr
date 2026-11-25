@@ -18,12 +18,12 @@ namespace NzbDrone.Core.Notifications.Prowl
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            _prowlProxy.SendNotification(EPISODE_GRABBED_TITLE, grabMessage.Message, Settings);
+            _prowlProxy.SendNotification(GAME_GRABBED_TITLE, grabMessage.Message, Settings);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            _prowlProxy.SendNotification(EPISODE_DOWNLOADED_TITLE, message.Message, Settings);
+            _prowlProxy.SendNotification(GAME_DOWNLOADED_TITLE, message.Message, Settings);
         }
 
         public override void OnImportComplete(ImportCompleteMessage message)
@@ -33,17 +33,17 @@ namespace NzbDrone.Core.Notifications.Prowl
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            _prowlProxy.SendNotification(EPISODE_DELETED_TITLE, deleteMessage.Message, Settings);
+            _prowlProxy.SendNotification(GAME_DELETED_TITLE, deleteMessage.Message, Settings);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
-            _prowlProxy.SendNotification(SERIES_ADDED_TITLE, message.Message, Settings);
+            _prowlProxy.SendNotification(PLATFORM_ADDED_TITLE, message.Message, Settings);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            _prowlProxy.SendNotification(SERIES_DELETED_TITLE, deleteMessage.Message, Settings);
+            _prowlProxy.SendNotification(PLATFORM_DELETED_TITLE, deleteMessage.Message, Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck message)

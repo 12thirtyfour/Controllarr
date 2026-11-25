@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using FluentValidation.Results;
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Tv;
@@ -13,7 +12,7 @@ namespace NzbDrone.Core.Notifications.Gotify
 {
     public class Gotify : NotificationBase<GotifySettings>
     {
-        private const string ControllarrImageUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/develop/Logo/128.png";
+        private const string ControllarrImageUrl = "https://raw.githubusercontent.com/12thirtyfour/Controllarr/main/Logo/128.png";
 
         private readonly IGotifyProxy _proxy;
         private readonly ILocalizationService _localizationService;
@@ -31,12 +30,12 @@ namespace NzbDrone.Core.Notifications.Gotify
 
         public override void OnGrab(GrabMessage message)
         {
-            SendNotification(EPISODE_GRABBED_TITLE, message.Message, message.Series);
+            SendNotification(GAME_GRABBED_TITLE, message.Message, message.Series);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            SendNotification(EPISODE_DOWNLOADED_TITLE, message.Message, message.Series);
+            SendNotification(GAME_DOWNLOADED_TITLE, message.Message, message.Series);
         }
 
         public override void OnImportComplete(ImportCompleteMessage message)
@@ -46,17 +45,17 @@ namespace NzbDrone.Core.Notifications.Gotify
 
         public override void OnEpisodeFileDelete(GameDeleteMessage message)
         {
-            SendNotification(EPISODE_DELETED_TITLE, message.Message, message.Series);
+            SendNotification(GAME_DELETED_TITLE, message.Message, message.Series);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
-            SendNotification(SERIES_ADDED_TITLE, message.Message, message.Series);
+            SendNotification(PLATFORM_ADDED_TITLE, message.Message, message.Series);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage message)
         {
-            SendNotification(SERIES_DELETED_TITLE, message.Message, message.Series);
+            SendNotification(PLATFORM_DELETED_TITLE, message.Message, message.Series);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)
@@ -86,7 +85,7 @@ namespace NzbDrone.Core.Notifications.Gotify
             try
             {
                 var isMarkdown = false;
-                const string title = "Test Notification";
+                const string title = "Controllarr - Test Notification";
 
                 var sb = new StringBuilder();
                 sb.AppendLine("This is a test message from Controllarr");
@@ -157,36 +156,21 @@ namespace NzbDrone.Core.Notifications.Gotify
 
                 if (Settings.MetadataLinks.Any())
                 {
-                    isMarkdown = true;
-                    sb.AppendLine("");
+                    var links = NotificationMetadataLinkGenerator.GenerateLinks(series, Settings.MetadataLinks);
 
-                    foreach (var link in Settings.MetadataLinks)
+                    if (links.Any())
                     {
-                        var linkType = (MetadataLinkType)link;
-                        var linkText = "";
-                        var linkUrl = "";
+                        isMarkdown = true;
+                        sb.AppendLine("");
 
-                        if (linkType == MetadataLinkType.Imdb && series.ImdbId.IsNotNullOrWhiteSpace())
+                        foreach (var link in links)
                         {
-                            linkText = "IMDb";
-                            linkUrl = $"https://www.imdb.com/title/{series.ImdbId}";
-                        }
-                        else if ((linkType == MetadataLinkType.GameCatalog || linkType == MetadataLinkType.Tvdb) && (series.TvdbId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
-                        {
-                            linkText = "Game Catalog";
-                            linkUrl = "https://www.igdb.com/";
-                        }
-                        else if ((linkType == MetadataLinkType.TheGamesDb || linkType == MetadataLinkType.Tvmaze) && (series.TvMazeId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
-                        {
-                            linkText = "TheGamesDB";
-                            linkUrl = "https://thegamesdb.net/";
-                        }
+                            sb.AppendLine($"[{link.Label}]({link.Link})");
 
-                        sb.AppendLine($"[{linkText}]({linkUrl})");
-
-                        if (link == Settings.PreferredMetadataLink)
-                        {
-                            payload.SetClickUrl(linkUrl);
+                            if ((int)link.Type == Settings.PreferredMetadataLink)
+                            {
+                                payload.SetClickUrl(link.Link);
+                            }
                         }
                     }
                 }

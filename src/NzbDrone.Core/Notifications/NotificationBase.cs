@@ -10,23 +10,23 @@ namespace NzbDrone.Core.Notifications
     public abstract class NotificationBase<TSettings> : INotification
         where TSettings : NotificationSettingsBase<TSettings>, new()
     {
-        protected const string EPISODE_GRABBED_TITLE = "Episode Grabbed";
-        protected const string EPISODE_DOWNLOADED_TITLE = "Episode Downloaded";
+        protected const string GAME_GRABBED_TITLE = "Game Grabbed";
+        protected const string GAME_DOWNLOADED_TITLE = "Game Downloaded";
         protected const string IMPORT_COMPLETE_TITLE = "Import Complete";
-        protected const string EPISODE_DELETED_TITLE = "Episode Deleted";
-        protected const string SERIES_ADDED_TITLE = "Series Added";
-        protected const string SERIES_DELETED_TITLE = "Series Deleted";
+        protected const string GAME_DELETED_TITLE = "Game Deleted";
+        protected const string PLATFORM_ADDED_TITLE = "Platform Added";
+        protected const string PLATFORM_DELETED_TITLE = "Platform Deleted";
         protected const string HEALTH_ISSUE_TITLE = "Health Check Failure";
         protected const string HEALTH_RESTORED_TITLE = "Health Check Restored";
         protected const string APPLICATION_UPDATE_TITLE = "Application Updated";
         protected const string MANUAL_INTERACTION_REQUIRED_TITLE = "Manual Interaction";
 
-        protected const string EPISODE_GRABBED_TITLE_BRANDED = "Controllarr - " + EPISODE_GRABBED_TITLE;
-        protected const string EPISODE_DOWNLOADED_TITLE_BRANDED = "Controllarr - " + EPISODE_DOWNLOADED_TITLE;
+        protected const string GAME_GRABBED_TITLE_BRANDED = "Controllarr - " + GAME_GRABBED_TITLE;
+        protected const string GAME_DOWNLOADED_TITLE_BRANDED = "Controllarr - " + GAME_DOWNLOADED_TITLE;
         protected const string IMPORT_COMPLETE_TITLE_BRANDED = "Controllarr - " + IMPORT_COMPLETE_TITLE;
-        protected const string EPISODE_DELETED_TITLE_BRANDED = "Controllarr - " + EPISODE_DELETED_TITLE;
-        protected const string SERIES_ADDED_TITLE_BRANDED = "Controllarr - " + SERIES_ADDED_TITLE;
-        protected const string SERIES_DELETED_TITLE_BRANDED = "Controllarr - " + SERIES_DELETED_TITLE;
+        protected const string GAME_DELETED_TITLE_BRANDED = "Controllarr - " + GAME_DELETED_TITLE;
+        protected const string PLATFORM_ADDED_TITLE_BRANDED = "Controllarr - " + PLATFORM_ADDED_TITLE;
+        protected const string PLATFORM_DELETED_TITLE_BRANDED = "Controllarr - " + PLATFORM_DELETED_TITLE;
         protected const string HEALTH_ISSUE_TITLE_BRANDED = "Controllarr - " + HEALTH_ISSUE_TITLE;
         protected const string HEALTH_RESTORED_TITLE_BRANDED = "Controllarr - " + HEALTH_RESTORED_TITLE;
         protected const string APPLICATION_UPDATE_TITLE_BRANDED = "Controllarr - " + APPLICATION_UPDATE_TITLE;

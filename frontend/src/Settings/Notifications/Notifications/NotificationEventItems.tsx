@@ -54,7 +54,7 @@ function NotificationEventItems({
       <div>
         <FormInputHelpText
           text={translate('NotificationTriggersHelpText')}
-          link="https://wiki.servarr.com/controllarr/settings#connections"
+          link="https://github.com/12thirtyfour/Controllarr/wiki"
         />
         <div className={styles.events}>
           <div>

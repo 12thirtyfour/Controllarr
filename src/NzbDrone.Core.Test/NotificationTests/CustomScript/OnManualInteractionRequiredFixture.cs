@@ -49,7 +49,7 @@ namespace NzbDrone.Core.Test.NotificationTests.CustomScript
             Subject.OnManualInteractionRequired(_manualInteractionRequiredMessage);
 
             Mocker.GetMock<IProcessProvider>()
-                .Verify(v => v.StartAndCapture(It.IsAny<string>(), It.IsAny<string>(), It.Is<StringDictionary>(d => !d.ContainsKey("Sonarr_Series_Id"))), Times.Once());
+                .Verify(v => v.StartAndCapture(It.IsAny<string>(), It.IsAny<string>(), It.Is<StringDictionary>(d => !d.ContainsKey("Controllarr_Platform_Id") && !d.ContainsKey("Sonarr_Series_Id"))), Times.Once());
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Test.NotificationTests.CustomScript
             Subject.OnManualInteractionRequired(_manualInteractionRequiredMessage);
 
             Mocker.GetMock<IProcessProvider>()
-                .Verify(v => v.StartAndCapture(It.IsAny<string>(), It.IsAny<string>(), It.Is<StringDictionary>(d => d["Sonarr_Download_Title"] == string.Empty && d["Sonarr_Download_Size"] == string.Empty)), Times.Once());
+                .Verify(v => v.StartAndCapture(It.IsAny<string>(), It.IsAny<string>(), It.Is<StringDictionary>(d => d["Controllarr_Download_Title"] == string.Empty && d["Controllarr_Download_Size"] == string.Empty)), Times.Once());
         }
     }
 }

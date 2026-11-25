@@ -19,17 +19,12 @@ public static class NotificationMetadataLinkGenerator
         {
             var linkType = (MetadataLinkType)link;
 
-            if (linkType == MetadataLinkType.Imdb && series.ImdbId.IsNotNullOrWhiteSpace())
-            {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Imdb, "IMDb", $"https://www.imdb.com/title/{series.ImdbId}"));
-            }
-
-            if ((linkType == MetadataLinkType.GameCatalog || linkType == MetadataLinkType.Tvdb) && (series.TvdbId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
+            if (linkType == MetadataLinkType.GameCatalog && (series.TvdbId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
             {
                 links.Add(new NotificationMetadataLink(MetadataLinkType.GameCatalog, "Game Catalog", "https://www.igdb.com/"));
             }
 
-            if ((linkType == MetadataLinkType.TheGamesDb || linkType == MetadataLinkType.Tvmaze) && (series.TvMazeId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
+            if (linkType == MetadataLinkType.TheGamesDb && (series.TvMazeId > 0 || series.TitleSlug.IsNotNullOrWhiteSpace()))
             {
                 links.Add(new NotificationMetadataLink(MetadataLinkType.TheGamesDb, "TheGamesDB", "https://thegamesdb.net/"));
             }

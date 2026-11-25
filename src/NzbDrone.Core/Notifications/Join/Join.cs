@@ -19,12 +19,12 @@ namespace NzbDrone.Core.Notifications.Join
 
         public override void OnGrab(GrabMessage message)
         {
-            _proxy.SendNotification(EPISODE_GRABBED_TITLE_BRANDED, message.Message, Settings);
+            _proxy.SendNotification(GAME_GRABBED_TITLE_BRANDED, message.Message, Settings);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            _proxy.SendNotification(EPISODE_DOWNLOADED_TITLE_BRANDED, message.Message, Settings);
+            _proxy.SendNotification(GAME_DOWNLOADED_TITLE_BRANDED, message.Message, Settings);
         }
 
         public override void OnImportComplete(ImportCompleteMessage message)
@@ -34,17 +34,17 @@ namespace NzbDrone.Core.Notifications.Join
 
         public override void OnEpisodeFileDelete(GameDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(EPISODE_DELETED_TITLE_BRANDED, deleteMessage.Message, Settings);
+            _proxy.SendNotification(GAME_DELETED_TITLE_BRANDED, deleteMessage.Message, Settings);
         }
 
         public override void OnSeriesAdd(PlatformAddMessage message)
         {
-            _proxy.SendNotification(SERIES_ADDED_TITLE_BRANDED, message.Message, Settings);
+            _proxy.SendNotification(PLATFORM_ADDED_TITLE_BRANDED, message.Message, Settings);
         }
 
         public override void OnSeriesDelete(PlatformDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(SERIES_DELETED_TITLE_BRANDED, deleteMessage.Message, Settings);
+            _proxy.SendNotification(PLATFORM_DELETED_TITLE_BRANDED, deleteMessage.Message, Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck message)
