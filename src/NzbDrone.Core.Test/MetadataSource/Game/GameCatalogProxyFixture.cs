@@ -610,7 +610,8 @@ game (
             hack4.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
             hack5.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
             hack6.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
-            hack7.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            hack7.RegionNumber.Should().Be(GameCatalogProxy.RegionUsa);
+            hack7.RevisionTag.Should().Be("SGB Enhanced");
 
             var official1 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Super Mario Land (World)", 1989, "No-Intro");
             var official2 = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(gbPlatform, "Metroid II - Return of Samus (USA)", 1991, "No-Intro");
@@ -1891,7 +1892,8 @@ game (
             v100.RevisionTag.Should().Be("Retail (v1.0)");
             ver10.RevisionTag.Should().Be("Retail (v1.0)");
             altV1.RevisionTag.Should().Be("v1.0 • Alt");
-            sgb.RevisionTag.Should().Be("SGB Enhanced • ROM Hack");
+            sgb.RegionNumber.Should().Be(GameCatalogProxy.RegionWorld);
+            sgb.RevisionTag.Should().Be("SGB Enhanced");
             playersChoice.RevisionTag.Should().Be("Player's Choice");
             revAlt.RevisionTag.Should().Be("Rev 1 • Alt 2");
         }
@@ -2025,6 +2027,116 @@ game (
             var results = Subject.SearchForNewSeries("Jupiter Ace", Language.English);
 
             results.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_keep_gb_retail_separate_from_hacks_skip_tosec_when_nointro_present_and_avoid_doubled_hack_versions()
+        {
+            Subject.TryGetPlatformEntryBySlug("gb", out var gbPlatform).Should().BeTrue();
+
+            var noIntroDat = @"
+game (
+	name ""Pokemon - Red Version (USA, Europe) (SGB Enhanced)""
+	rom ( name ""Pokemon - Red Version (USA, Europe) (SGB Enhanced).gb"" size 1048576 crc 9F7FDD53 )
+)
+game (
+	name ""Castlevania - The Adventure (USA)""
+	rom ( name ""Castlevania - The Adventure (USA).gb"" size 65536 crc 42544234 )
+)";
+            var tosecDat = @"
+game (
+	name ""Pokemon - Red Version (USA, Europe)[b2]""
+	rom ( name ""Pokemon - Red Version (USA, Europe)[b2].gb"" size 1048576 crc AAAAAAAA )
+)
+game (
+	name ""Leaked TOSEC Only Entry (USA)""
+	rom ( name ""Leaked TOSEC Only Entry (USA).gb"" size 65536 crc BBBBBBBB )
+)";
+            var hacksDat = @"
+game (
+	name ""Heracles no Eikou - Ugokidashita Kamigami (Japan) [T-En by aishsha]""
+	rom ( name ""Heracles no Eikou - Ugokidashita Kamigami (Japan).gb"" size 262144 crc D51370EF )
+)";
+            var smdb = string.Join("\n", new[]
+            {
+                "1111111111111111111111111111111111111111111111111111111111111111\tGame Boy/4 Hacks/Castlevania - The Adventure (Graphics Improved Hack) [S].gb\t1111111111111111111111111111111111111111\t11111111111111111111111111111111\t11111111",
+                "2222222222222222222222222222222222222222222222222222222222222222\tGame Boy/4 Hacks/Castlevania - The Adventure (Speed (V1.1) Hack) [S].gb\t2222222222222222222222222222222222222222\t22222222222222222222222222222222\t22222222",
+                "3333333333333333333333333333333333333333333333333333333333333333\tGame Boy/3 Super Game Boy Enhanced/GBC Only/Azure Dreams (USA) (SGB Enhanced) (GB Compatible).gbc\t3333333333333333333333333333333333333333\t33333333333333333333333333333333\t33333333",
+                "4444444444444444444444444444444444444444444444444444444444444444\tGame Boy/3 GBC with GB Compatibility - Black Carts/1 USA/Antz (USA) (GB Compatible).gbc\t4444444444444444444444444444444444444444\t44444444444444444444444444444444\t44444444"
+            });
+
+            var requestedUrls = new List<string>();
+            var httpMock = Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>();
+            httpMock
+                .Setup(c => c.Execute(Moq.It.IsAny<NzbDrone.Common.Http.HttpRequest>()))
+                .Returns((NzbDrone.Common.Http.HttpRequest r) =>
+                {
+                    var uri = r.Url.FullUri;
+                    requestedUrls.Add(uri);
+                    if (uri.Contains("metadat/no-intro/"))
+                    {
+                        return new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), noIntroDat);
+                    }
+
+                    if (uri.Contains("metadat/tosec/"))
+                    {
+                        return new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), tosecDat);
+                    }
+
+                    if (uri.Contains("metadat/hacks/"))
+                    {
+                        return new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), hacksDat);
+                    }
+
+                    if (uri.Contains("Game%20Boy%20SMDB.txt"))
+                    {
+                        return new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), smdb);
+                    }
+
+                    return new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), string.Empty);
+                });
+
+            Subject.InvalidatePlatformCache(1009);
+            var tuple = Subject.GetSeriesInfo(1009, Language.English, null);
+
+            // Uses Game Boy SMDB.txt (not EverDrive GB SMDB) and skips TOSEC when No-Intro succeeded
+            requestedUrls.Should().Contain(u => u.Contains("Game%20Boy%20SMDB.txt"));
+            requestedUrls.Should().NotContain(u => u.Contains("EverDrive%20GB%20SMDB.txt"));
+            requestedUrls.Should().NotContain(u => u.Contains("metadat/tosec/"));
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("Leaked TOSEC Only Entry"));
+
+            // Excludes .gbc / GBC Only / Black Carts from monochrome GB
+            tuple.Item2.Should().NotContain(e => e.Title == "Azure Dreams");
+            tuple.Item2.Should().NotContain(e => e.Title == "Antz");
+
+            // Official (SGB Enhanced) stays in Retail USA, never ROM Hacks
+            tuple.Item2.Should().Contain(e => e.Title == "Pokemon - Red Version" && e.SeasonNumber == GameCatalogProxy.RegionUsa && e.FinaleType == "SGB Enhanced");
+            tuple.Item2.Should().NotContain(e => e.Title == "Pokemon - Red Version" && e.SeasonNumber == GameCatalogProxy.RegionRomHacks);
+
+            // Retail Castlevania is preserved even though Castlevania hacks exist
+            tuple.Item2.Should().Contain(e => e.Title == "Castlevania - The Adventure" && e.SeasonNumber == GameCatalogProxy.RegionUsa);
+
+            // ROM Hacks have clean, non-doubled version descriptors
+            var castlevaniaHacks = tuple.Item2.Where(e => e.Title == "Castlevania - The Adventure" && e.SeasonNumber == GameCatalogProxy.RegionRomHacks).ToList();
+            castlevaniaHacks.Should().Contain(e => e.FinaleType == "Graphics Improved Hack");
+            castlevaniaHacks.Should().Contain(e => e.FinaleType == "Speed (V1.1) Hack");
+            castlevaniaHacks.Should().NotContain(e => e.FinaleType.Contains("Hack • Hack") || e.FinaleType.Contains("• !"));
+
+            var translationHack = tuple.Item2.FirstOrDefault(e => e.Title.Contains("Heracles no Eikou") && e.SeasonNumber == GameCatalogProxy.RegionRomHacks);
+            translationHack.Should().NotBeNull();
+            translationHack.FinaleType.Should().Be("T-En by aishsha");
+
+            // Bad dumps and TOSEC tags are properly handled
+            GameCatalogProxy.IsValidGameTitle("Tetris (World)[b2]").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Tetris (World)[o]").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Tetris (World)[u]").Should().BeFalse();
+            NzbDrone.Core.Games.RegionHelper.IsRomHackOrTranslation("Asterix (Europe)[tr pt Guto]").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsRomHackOrTranslation("Addams Family (USA)[t]").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsRomHackOrTranslation("Caveman (J) T+Eng v1").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsRomHackOrTranslation("Booby Boys (english translation)").Should().BeTrue();
+            NzbDrone.Core.Games.RegionHelper.IsUnlicensed("Dragon Ball (Taiwan)[p]").Should().BeTrue();
+            GameCatalogProxy.ShouldSkipSmdbPathForPlatform("gb", "Game Boy/3 GBC with GB Compatibility - Black Carts/1 USA/Antz (USA).gbc", "Antz (USA).gbc").Should().BeTrue();
+            GameCatalogProxy.ShouldSkipSmdbPathForPlatform("gbc", "Game Boy/3 GBC with GB Compatibility - Black Carts/1 USA/Antz (USA).gbc", "Antz (USA).gbc").Should().BeFalse();
         }
     }
 }

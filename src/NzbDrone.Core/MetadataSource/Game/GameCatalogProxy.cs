@@ -163,6 +163,14 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"^(?:(?:\d{1,3}(?:,\s*\d{1,3})*\).+)|(?:0\d[A-Za-z].+))$",
             RegexOptions.Compiled);
 
+        private static readonly Regex BadDumpTagRegex = new Regex(
+            @"\[(?:b|o|u)\d*(?:\s+[^\]]*)?\]",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DescriptiveHackTokenRegex = new Regex(
+            @"(?:\bHack\b|\bTranslation\b|^T[+-]|^tr\s+|^(?:h|t|f)\d*$|^(?:h|t|f)\s+|\bDX\b|\bColor(?:ized|ization)?\b|\bImprovement\b|\bRestoration\b|\bEnhancement\b|\bBugfix\b|\bFix\b|\bPatch\b|\bRandomizer\b|\bRedux\b|\bRebalance\b|\bKaizo\b|\bFastROM\b|\bMSU-?1?\b|\bUncensored\b)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly HashSet<string> NonRomOrAudioExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             ".wav", ".mp3", ".ogg", ".flac", ".ape", ".aac", ".m4a", ".wma",
@@ -802,7 +810,10 @@ namespace NzbDrone.Core.MetadataSource.Game
                         existingRetail.RegionNumber = candidate.RegionNumber;
                         existingRetail.RegionName = candidate.RegionName;
                         MergeMissingHashes(existingRetail, candidate, seenHashes);
-                        seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(existingRetail.BaseTitle ?? existingRetail.Title));
+                        if (candidate.RegionNumber != RegionRomHacks)
+                        {
+                            seenSpecialCategoryTitles.Add(NormalizeCanonicalCrossRefTitle(existingRetail.BaseTitle ?? existingRetail.Title));
+                        }
                     }
 
                     return false;
@@ -855,7 +866,6 @@ namespace NzbDrone.Core.MetadataSource.Game
 
                 if (candidate.RegionNumber == RegionHomebrew ||
                     candidate.RegionNumber == RegionUnlicensed ||
-                    candidate.RegionNumber == RegionRomHacks ||
                     candidate.RegionNumber == RegionTestAndUtilities ||
                     candidate.RegionNumber == RegionMagazinesAndBooks)
                 {
@@ -873,9 +883,10 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             foreach (var builtIn in BuiltInGames.Where(g => g.PlatformTvdbId == platform.TvdbId))
             {
-                if (TryRegisterCrossReferencedGame(builtIn))
+                var builtInCopy = CloneGameCatalogEntry(builtIn);
+                if (TryRegisterCrossReferencedGame(builtInCopy))
                 {
-                    platformGames.Add(builtIn);
+                    platformGames.Add(builtInCopy);
                 }
             }
 
@@ -907,6 +918,20 @@ namespace NzbDrone.Core.MetadataSource.Game
                         ? FetchReleaseYearLookup(Uri.EscapeDataString(platform.LibretroSystemName))
                         : null;
                     var datFileMap = _datCacheService?.GetAllDatFiles()?.ToDictionary(d => d.Id) ?? new Dictionary<int, DatFile>();
+                    var hasAuthoritativeRetailCatalog =
+                        syncedGames.Any(g => g.VerificationSource != null &&
+                                             (g.VerificationSource.StartsWith("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                                              g.VerificationSource.StartsWith("Redump", StringComparison.OrdinalIgnoreCase))) ||
+                        cachedDatEntries.Any(e =>
+                            e != null &&
+                            datFileMap.TryGetValue(e.DatFileId, out var df) &&
+                            ((df.Category != null &&
+                              (df.Category.StartsWith("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                               df.Category.StartsWith("Redump", StringComparison.OrdinalIgnoreCase))) ||
+                             (df.Name != null &&
+                              (df.Name.Contains("(No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                               df.Name.Contains("(Redump", StringComparison.OrdinalIgnoreCase)))));
+
                     foreach (var datEntry in cachedDatEntries)
                     {
                         if (datEntry == null)
@@ -914,7 +939,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                             continue;
                         }
 
-                        if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath) && ShouldSkipSmdbPath(datEntry.SmdbPath))
+                        if (ShouldSkipSmdbPathForPlatform(platform.Slug, datEntry.SmdbPath, datEntry.RomName))
+                        {
+                            continue;
+                        }
+
+                        if (hasAuthoritativeRetailCatalog &&
+                            datFileMap.TryGetValue(datEntry.DatFileId, out var cachedDatFile) &&
+                            (string.Equals(cachedDatFile.Category, "TOSEC", StringComparison.OrdinalIgnoreCase) ||
+                             (cachedDatFile.Name?.Contains("(TOSEC)", StringComparison.OrdinalIgnoreCase) == true)))
                         {
                             continue;
                         }
@@ -1094,9 +1127,16 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var releaseYearLookup = FetchReleaseYearLookup(escapedSystem, forceRefresh);
 
                 var datFeeds = BuildDatFeedsForPlatform(platform, escapedSystem, encryptionPreference);
+                var hasAuthoritativeRetailFeed = false;
 
                 foreach (var feed in datFeeds)
                 {
+                    if (hasAuthoritativeRetailFeed &&
+                        string.Equals(feed.SourceLabel, "TOSEC", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         var request = new HttpRequest(feed.Url)
@@ -1113,6 +1153,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                             {
                                 syncedList.AddRange(parsedEntries);
                                 TryCacheRemoteDatContent(platform, feed.SourceLabel, response.Content, forceRefresh);
+
+                                if (feed.SourceLabel != null &&
+                                    (feed.SourceLabel.StartsWith("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                                     feed.SourceLabel.StartsWith("Redump", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    hasAuthoritativeRetailFeed = true;
+                                }
                             }
                         }
                     }
@@ -1417,7 +1464,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 case "n64":
                     return baseUrl + "EverDrive%2064%20%26%2064drive%20SMDB.txt";
                 case "gb":
-                    return baseUrl + "EverDrive%20GB%20SMDB.txt";
+                    return baseUrl + "Game%20Boy%20SMDB.txt";
                 case "gbc":
                     return baseUrl + "Game%20Boy%20Color%20SMDB.txt";
                 case "gba":
@@ -1497,6 +1544,40 @@ namespace NzbDrone.Core.MetadataSource.Game
                                          s.Equals("InsmEdit", StringComparison.OrdinalIgnoreCase));
         }
 
+        internal static bool ShouldSkipSmdbPathForPlatform(string platformSlug, string smdbPath, string romName = null)
+        {
+            if (ShouldSkipSmdbPath(smdbPath))
+            {
+                return true;
+            }
+
+            if (string.Equals(platformSlug, "gb", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(smdbPath))
+                {
+                    var segments = smdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    if (segments.Any(s => s.Contains("GBC Only", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("GBC with GB Compatibility", StringComparison.OrdinalIgnoreCase) ||
+                                          s.Contains("Black Carts", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return true;
+                    }
+
+                    if (smdbPath.EndsWith(".gbc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(romName) && romName.EndsWith(".gbc", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static bool IsRomHackSmdbSegment(string segment)
         {
             if (string.IsNullOrWhiteSpace(segment))
@@ -1545,12 +1626,13 @@ namespace NzbDrone.Core.MetadataSource.Game
                 var normalizedSmdbPath = smdbPath.Replace('\\', '/');
                 var pathSegments = normalizedSmdbPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-                if (ShouldSkipSmdbPath(normalizedSmdbPath))
+                var fileName = Path.GetFileName(normalizedSmdbPath);
+
+                if (ShouldSkipSmdbPathForPlatform(platform?.Slug, normalizedSmdbPath, fileName))
                 {
                     continue;
                 }
 
-                var fileName = Path.GetFileName(normalizedSmdbPath);
                 if (!TryNormalizeDatEntryTitle(
                     platform,
                     blockOrGameName: null,
@@ -3001,7 +3083,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return false;
             }
 
-            if (AudioStemRegex.IsMatch(trimmed))
+            if (AudioStemRegex.IsMatch(trimmed) || BadDumpTagRegex.IsMatch(trimmed))
             {
                 return false;
             }
@@ -3018,6 +3100,44 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             return true;
+        }
+
+        private static GameCatalogEntry CloneGameCatalogEntry(GameCatalogEntry source)
+        {
+            if (source == null)
+            {
+                return null;
+            }
+
+            return new GameCatalogEntry
+            {
+                TvdbId = source.TvdbId,
+                Title = source.Title,
+                BaseTitle = source.BaseTitle,
+                RevisionTag = source.RevisionTag,
+                IsLatestRevision = source.IsLatestRevision,
+                IsInitialRelease = source.IsInitialRelease,
+                NoIntroName = source.NoIntroName,
+                PlatformTvdbId = source.PlatformTvdbId,
+                PlatformSlug = source.PlatformSlug,
+                PlatformName = source.PlatformName,
+                PlatformShortName = source.PlatformShortName,
+                Manufacturer = source.Manufacturer,
+                RegionNumber = source.RegionNumber,
+                RegionName = source.RegionName,
+                GameNumber = source.GameNumber,
+                AbsoluteGameNumber = source.AbsoluteGameNumber,
+                ReleaseYear = source.ReleaseYear,
+                ReleaseDateString = source.ReleaseDateString,
+                ReleaseDate = source.ReleaseDate,
+                Overview = source.Overview,
+                PosterUrl = source.PosterUrl,
+                VerificationSource = source.VerificationSource,
+                ExpectedCrc32 = source.ExpectedCrc32,
+                ExpectedMd5 = source.ExpectedMd5,
+                ExpectedSha1 = source.ExpectedSha1,
+                ExpectedSha256 = source.ExpectedSha256
+            };
         }
 
         internal static GameCatalogEntry CreateCatalogEntryFromNoIntroName(
@@ -3867,18 +3987,43 @@ namespace NzbDrone.Core.MetadataSource.Game
             return tokens;
         }
 
+        private static List<string> ExtractBracketAndParenTokens(string noIntroName)
+        {
+            var tokens = new List<string>();
+            if (string.IsNullOrWhiteSpace(noIntroName))
+            {
+                return tokens;
+            }
+
+            foreach (Match m in Regex.Matches(noIntroName, @"(?:\((?<ptok>(?:[^()]|\([^()]*\))+)\)|\[(?<btok>[^\]]+)\])"))
+            {
+                var val = m.Groups["ptok"].Success ? m.Groups["ptok"].Value.Trim() : m.Groups["btok"].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(val))
+                {
+                    tokens.Add(val);
+                }
+            }
+
+            return tokens;
+        }
+
         internal static void DisambiguateCollidingEntries(
             GameCatalogEntry existingCanonical,
             GameCatalogEntry candidate,
             List<GameCatalogEntry> platformGames,
             string canonicalTitle)
         {
-            var existingTokens = ExtractParentheticalTokens(existingCanonical.NoIntroName);
-            var candidateTokens = ExtractParentheticalTokens(candidate.NoIntroName);
+            var existingTokens = ExtractBracketAndParenTokens(existingCanonical.NoIntroName);
+            var candidateTokens = ExtractBracketAndParenTokens(candidate.NoIntroName);
 
             bool IsNoiseToken(string token) =>
                 token.Equals("Encrypted", StringComparison.OrdinalIgnoreCase) ||
-                token.StartsWith("Track ", StringComparison.OrdinalIgnoreCase);
+                token.StartsWith("Track ", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("!", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("S", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("Hack", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("ROM Hack", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("Translation", StringComparison.OrdinalIgnoreCase);
 
             var existingSet = new HashSet<string>(existingTokens.Where(t => !IsNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
             var candidateSet = new HashSet<string>(candidateTokens.Where(t => !IsNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
@@ -4043,6 +4188,33 @@ namespace NzbDrone.Core.MetadataSource.Game
                 parts.Add("Encrypted");
             }
 
+            if (regionNumber == RegionRomHacks)
+            {
+                foreach (var token in ExtractBracketAndParenTokens(noIntroName))
+                {
+                    if (token.Equals("Hack", StringComparison.OrdinalIgnoreCase) ||
+                        token.Equals("ROM Hack", StringComparison.OrdinalIgnoreCase) ||
+                        token.Equals("Translation", StringComparison.OrdinalIgnoreCase) ||
+                        token.Equals("SGB Enhanced", StringComparison.OrdinalIgnoreCase) ||
+                        token.Equals("!", StringComparison.OrdinalIgnoreCase) ||
+                        token.Equals("S", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (DescriptiveHackTokenRegex.IsMatch(token) &&
+                        !parts.Any(p => p.Equals(token, StringComparison.OrdinalIgnoreCase) ||
+                                        p.Contains(token, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        parts.RemoveAll(p =>
+                            token.Contains(p, StringComparison.OrdinalIgnoreCase) &&
+                            !p.Contains("Hack", StringComparison.OrdinalIgnoreCase) &&
+                            !p.Contains("Translation", StringComparison.OrdinalIgnoreCase));
+                        parts.Add(token);
+                    }
+                }
+            }
+
             if (parts.Count == 1 && IsBaseV1Tag(parts[0]) && regionNumber != RegionRomHacks && regionNumber != RegionHomebrew)
             {
                 return "Retail (v1.0)";
@@ -4052,11 +4224,22 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 if (regionNumber == RegionRomHacks)
                 {
-                    var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
-                                        noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
-                                        noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
-                                        noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
-                    parts.Add(isTranslation ? "Translation" : "ROM Hack");
+                    var alreadyDescribed = parts.Any(p =>
+                        p.Contains("Hack", StringComparison.OrdinalIgnoreCase) ||
+                        p.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                        p.Contains("T+", StringComparison.OrdinalIgnoreCase) ||
+                        p.Contains("T-", StringComparison.OrdinalIgnoreCase) ||
+                        p.StartsWith("tr ", StringComparison.OrdinalIgnoreCase));
+
+                    if (!alreadyDescribed)
+                    {
+                        var isTranslation = noIntroName.Contains("[T+", StringComparison.OrdinalIgnoreCase) ||
+                                            noIntroName.Contains("[T-", StringComparison.OrdinalIgnoreCase) ||
+                                            noIntroName.Contains("[tr ", StringComparison.OrdinalIgnoreCase) ||
+                                            noIntroName.Contains("Translation", StringComparison.OrdinalIgnoreCase) ||
+                                            noIntroName.Contains("Translated", StringComparison.OrdinalIgnoreCase);
+                        parts.Add(isTranslation ? "Translation" : "ROM Hack");
+                    }
                 }
 
                 return string.Join(" • ", parts.Distinct(StringComparer.OrdinalIgnoreCase));

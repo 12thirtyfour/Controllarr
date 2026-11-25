@@ -66,9 +66,16 @@ namespace NzbDrone.Core.Games
             "(Fix)", "[Fix]", "(Fixes)", "[Fixes]", "(Bugfix)", "(Bug Fix)",
             "(Patch)", "[Patch]", "(Patches)", "[Patches]", "(Patched)",
             "(FastROM)", "[FastROM]", "(MSU-1)", "[MSU-1]", "(MSU1)",
-            "(SGB Enhanced)", "[SGB Enhanced]",
             "(DX)", "[DX]"
         };
+
+        private static readonly Regex GoodToolsOrTosecHackRegex = new(
+            @"\[(?:tr\s+[^\]]+|h(?:\d+|I)?(?:\s+[^\]]*)?|t\d*(?:\s+[^\]]*)?|f\d*(?:\s+[^\]]*)?)\]|\bT[+-](?:Eng|En|Spa|Fre|Ger|Ita|Por|Rus|Chi|Kor)\b|\((?:english|french|spanish|german|italian|portuguese|russian|chinese|korean|polish|dutch)\s+translation\)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PirateTagRegex = new(
+            @"\[p\d*(?:\s+[^\]]*)?\]",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static string GetRegionName(int regionNumber)
         {
@@ -141,7 +148,8 @@ namespace NzbDrone.Core.Games
                     continue;
                 }
 
-                if (RomHackTokens.Any(token => text.Contains(token, StringComparison.OrdinalIgnoreCase)))
+                if (RomHackTokens.Any(token => text.Contains(token, StringComparison.OrdinalIgnoreCase)) ||
+                    GoodToolsOrTosecHackRegex.IsMatch(text))
                 {
                     return true;
                 }
@@ -357,7 +365,8 @@ namespace NzbDrone.Core.Games
                     text.Contains("(Demake", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("[Demake", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Unlicensed/", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("\\Unlicensed\\", StringComparison.OrdinalIgnoreCase))
+                    text.Contains("\\Unlicensed\\", StringComparison.OrdinalIgnoreCase) ||
+                    PirateTagRegex.IsMatch(text))
                 {
                     return true;
                 }
