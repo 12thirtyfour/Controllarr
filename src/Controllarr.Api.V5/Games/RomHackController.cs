@@ -17,9 +17,12 @@ namespace Sonarr.Api.V5.Games
 
         [HttpGet("search")]
         [Produces("application/json")]
-        public ActionResult<List<RomHackSearchResult>> Search([FromQuery] string query, [FromQuery] string? platformSlug = null)
+        public ActionResult<List<RomHackSearchResult>> Search(
+            [FromQuery] string query,
+            [FromQuery] string? platformSlug = null,
+            [FromQuery] bool includeHomebrew = true)
         {
-            return Ok(_romHackAutomationService.SearchCommunitySources(query, platformSlug));
+            return Ok(_romHackAutomationService.SearchCommunitySources(query, platformSlug, includeHomebrew));
         }
 
         [HttpPost("acquire")]

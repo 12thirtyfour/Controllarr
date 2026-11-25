@@ -353,7 +353,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     (expectedSourceSize, _, expectedSourceCrc32, _) = TryReadBpsHeaderInfo(patchBytes);
                 }
 
-                var (baseBytes, baseRomPath, baseExtension, resolvedSeries, _, resolveError) = ResolveRetailBaseRom(
+                var (baseBytes, baseRomPath, baseExtension, resolvedSeries, _, resolveError, baseRomMissing) = ResolveRetailBaseRom(
                     request,
                     series,
                     effectivePatchName,
@@ -365,10 +365,17 @@ namespace NzbDrone.Core.MediaFiles.Patching
 
                 if (baseBytes == null || baseBytes.Length == 0)
                 {
+                    var expectedCrcHex = expectedSourceCrc32.HasValue
+                        ? $"{expectedSourceCrc32.Value:x8}"
+                        : request.ExpectedBaseRomCrc32?.Trim().ToLowerInvariant();
+
                     return new RomPatchResultModel
                     {
                         Success = false,
+                        BaseRomMissing = baseRomMissing,
                         Format = format.ToString().ToUpperInvariant(),
+                        PlatformTitle = series?.Title,
+                        ExpectedBaseRomCrc32 = expectedCrcHex,
                         Message = !string.IsNullOrWhiteSpace(resolveError)
                             ? resolveError
                             : (expectedSourceCrc32.HasValue
@@ -420,7 +427,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     File.WriteAllBytes(outputRomPath, patchedBytes);
 
                     var importedThroughFlow = false;
-                    if (_downloadedGamesImportService?.Value != null)
+                    if (_downloadedGamesImportService?.Value != null && !request.TargetEpisodeId.HasValue)
                     {
                         try
                         {
@@ -446,7 +453,8 @@ namespace NzbDrone.Core.MediaFiles.Patching
                             series,
                             cleanPatchTitle,
                             outputRomPath,
-                            patchedBytes.LongLength);
+                            patchedBytes.LongLength,
+                            request.TargetEpisodeId);
                         createdEpisodeId = epId;
                         createdFileId = fileId;
                     }
@@ -474,6 +482,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     BaseRomName = baseFileName,
                     BaseRomPath = baseRomPath,
                     BaseRomCrc32 = baseCrc32Hex,
+                    ExpectedBaseRomCrc32 = expectedSourceCrc32.HasValue ? $"{expectedSourceCrc32.Value:x8}" : request.ExpectedBaseRomCrc32?.Trim().ToLowerInvariant(),
                     BaseRomVerified = baseRomVerified,
                     OutputRomPath = outputRomPath,
                     OutputCrc32 = crc32Hex,
@@ -914,27 +923,45 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 }
 
                 var decoded = Convert.FromBase64String(rawBase64);
-                return ExtractPatchIfZip(decoded, request.PatchFileName ?? "patch.bps");
+                return ExtractPatchFromArchiveIfNeeded(decoded, request.PatchFileName ?? "patch.bps");
             }
 
             if (!string.IsNullOrWhiteSpace(request.PatchFilePath) && File.Exists(request.PatchFilePath))
             {
                 var rawBytes = File.ReadAllBytes(request.PatchFilePath);
-                return ExtractPatchIfZip(rawBytes, Path.GetFileName(request.PatchFilePath));
+                return ExtractPatchFromArchiveIfNeeded(rawBytes, Path.GetFileName(request.PatchFilePath));
             }
 
             return (null, null);
         }
 
-        private (byte[] PatchBytes, string PatchName) ExtractPatchIfZip(byte[] rawBytes, string fileName)
+        private (byte[] PatchBytes, string PatchName) ExtractPatchFromArchiveIfNeeded(byte[] rawBytes, string fileName)
         {
-            if (rawBytes != null && rawBytes.Length >= 4 &&
-                rawBytes[0] == 0x50 && rawBytes[1] == 0x4B && rawBytes[2] == 0x03 && rawBytes[3] == 0x04)
+            if (rawBytes == null || rawBytes.Length == 0)
+            {
+                return (rawBytes, fileName);
+            }
+
+            var isZipMagic = rawBytes.Length >= 4 &&
+                             rawBytes[0] == 0x50 && rawBytes[1] == 0x4B && rawBytes[2] == 0x03 && rawBytes[3] == 0x04;
+            var isSevenZipMagic = rawBytes.Length >= 6 &&
+                                  rawBytes[0] == 0x37 && rawBytes[1] == 0x7A && rawBytes[2] == 0xBC &&
+                                  rawBytes[3] == 0xAF && rawBytes[4] == 0x27 && rawBytes[5] == 0x1C;
+            var isRarMagic = rawBytes.Length >= 4 &&
+                             rawBytes[0] == 0x52 && rawBytes[1] == 0x61 && rawBytes[2] == 0x72 && rawBytes[3] == 0x21;
+
+            if (isZipMagic)
             {
                 using (var ms = new MemoryStream(rawBytes))
                 using (var archive = new ZipArchive(ms, ZipArchiveMode.Read))
                 {
-                    var patchEntry = archive.Entries.FirstOrDefault(e => IsPatchFile(e.Name));
+                    var patchEntry = archive.Entries
+                        .Where(e => e.Length > 0 &&
+                                    IsPatchFile(e.Name) &&
+                                    !ArchiveRepackService.IsJunkEntry(e.FullName, e.Name))
+                        .OrderBy(e => GetPatchFormatPriority(e.Name))
+                        .FirstOrDefault();
+
                     if (patchEntry != null)
                     {
                         using (var entryStream = patchEntry.Open())
@@ -946,11 +973,56 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     }
                 }
             }
+            else if (isSevenZipMagic || isRarMagic || IsArchiveExtension(Path.GetExtension(fileName)))
+            {
+                try
+                {
+                    using (var ms = new MemoryStream(rawBytes))
+                    using (var archive = ArchiveFactory.OpenArchive(ms))
+                    {
+                        var patchEntry = archive.Entries
+                            .Where(e => !e.IsDirectory &&
+                                        e.Size > 0 &&
+                                        !string.IsNullOrWhiteSpace(e.Key) &&
+                                        IsPatchFile(e.Key) &&
+                                        !ArchiveRepackService.IsJunkEntry(e.Key, Path.GetFileName(e.Key)))
+                            .OrderBy(e => GetPatchFormatPriority(e.Key))
+                            .FirstOrDefault();
+
+                        if (patchEntry != null)
+                        {
+                            using (var entryStream = patchEntry.OpenEntryStream())
+                            using (var outMs = new MemoryStream())
+                            {
+                                entryStream.CopyTo(outMs);
+                                return (outMs.ToArray(), Path.GetFileName(patchEntry.Key));
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Debug(ex, "Unable to inspect archive '{0}' for patch files", fileName);
+                }
+            }
 
             return (rawBytes, fileName);
         }
 
-        private (byte[] BaseBytes, string BaseRomPath, string BaseExtension, Series ResolvedSeries, int? BaseEpisodeFileId, string ErrorMessage) ResolveRetailBaseRom(
+        private static int GetPatchFormatPriority(string patchFileName)
+        {
+            var ext = Path.GetExtension(patchFileName ?? string.Empty)?.ToLowerInvariant();
+            return ext switch
+            {
+                ".bps" => 1,
+                ".ips" => 2,
+                ".xdelta" => 3,
+                ".vcdiff" => 4,
+                _ => 99
+            };
+        }
+
+        private (byte[] BaseBytes, string BaseRomPath, string BaseExtension, Series ResolvedSeries, int? BaseEpisodeFileId, string ErrorMessage, bool BaseRomMissing) ResolveRetailBaseRom(
             RomPatchRequestModel request,
             Series series,
             string patchFileName,
@@ -962,25 +1034,26 @@ namespace NzbDrone.Core.MediaFiles.Patching
             {
                 if (!File.Exists(request.BaseRomPath))
                 {
-                    return (null, null, null, series, null, $"Specified retail base ROM file does not exist: '{request.BaseRomPath}'.");
+                    return (null, null, null, series, null, $"Specified retail base ROM file does not exist: '{request.BaseRomPath}'.", false);
                 }
 
                 var rawExt = Path.GetExtension(request.BaseRomPath);
                 if (NonPatchableCompressedDiscExtensions.Contains(rawExt))
                 {
                     return (null, null, null, series, null,
-                        $"'{Path.GetFileName(request.BaseRomPath)}' is a compressed disc container ({rawExt}) and cannot be patched directly. Decompress to a raw image or select an uncompressed retail ROM.");
+                        $"'{Path.GetFileName(request.BaseRomPath)}' is a compressed disc container ({rawExt}) and cannot be patched directly. Decompress to a raw image or select an uncompressed retail ROM.",
+                        false);
                 }
 
                 var (bytes, ext) = ReadRomBytesAndExtension(request.BaseRomPath);
                 if (bytes == null || bytes.Length == 0)
                 {
-                    return (null, null, null, series, null, $"Unable to read ROM data from '{Path.GetFileName(request.BaseRomPath)}'.");
+                    return (null, null, null, series, null, $"Unable to read ROM data from '{Path.GetFileName(request.BaseRomPath)}'.", false);
                 }
 
                 if (!ValidateBaseRomCompatibility(request.BaseRomPath, ext, bytes.LongLength, format, out var compatError))
                 {
-                    return (null, null, null, series, null, compatError);
+                    return (null, null, null, series, null, compatError, false);
                 }
 
                 if (expectedSourceCrc32.HasValue)
@@ -989,12 +1062,13 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     if (actualCrc != expectedSourceCrc32.Value)
                     {
                         return (null, null, null, series, null,
-                            $"Selected base ROM '{Path.GetFileName(request.BaseRomPath)}' has CRC32 {actualCrc:x8}, which does not match expected BPS source CRC32 {expectedSourceCrc32.Value:x8}.");
+                            $"Selected base ROM '{Path.GetFileName(request.BaseRomPath)}' has CRC32 {actualCrc:x8}, which does not match expected BPS source CRC32 {expectedSourceCrc32.Value:x8}.",
+                            false);
                     }
                 }
 
                 var resolvedOwner = series ?? ResolveSeriesByPathPrefix(request.BaseRomPath);
-                return (bytes, request.BaseRomPath, ext, resolvedOwner, null, null);
+                return (bytes, request.BaseRomPath, ext, resolvedOwner, null, null, false);
             }
 
             if (request.BaseEpisodeFileId.HasValue && request.BaseEpisodeFileId.Value > 0)
@@ -1026,25 +1100,26 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     var fullPath = Path.Combine(candidateSeries.Path, explicitFile.RelativePath);
                     if (!File.Exists(fullPath))
                     {
-                        return (null, null, null, candidateSeries, explicitFile.Id, $"Selected retail base ROM file does not exist on disk: '{fullPath}'.");
+                        return (null, null, null, candidateSeries, explicitFile.Id, $"Selected retail base ROM file does not exist on disk: '{fullPath}'.", false);
                     }
 
                     var rawExt = Path.GetExtension(fullPath);
                     if (NonPatchableCompressedDiscExtensions.Contains(rawExt))
                     {
                         return (null, null, null, candidateSeries, explicitFile.Id,
-                            $"'{Path.GetFileName(fullPath)}' is a compressed disc container ({rawExt}) and cannot be patched directly. Decompress to a raw image or select an uncompressed retail ROM.");
+                            $"'{Path.GetFileName(fullPath)}' is a compressed disc container ({rawExt}) and cannot be patched directly. Decompress to a raw image or select an uncompressed retail ROM.",
+                            false);
                     }
 
                     var (bytes, ext) = ReadRomBytesAndExtension(fullPath);
                     if (bytes == null || bytes.Length == 0)
                     {
-                        return (null, null, null, candidateSeries, explicitFile.Id, $"Unable to read ROM data from '{Path.GetFileName(fullPath)}'.");
+                        return (null, null, null, candidateSeries, explicitFile.Id, $"Unable to read ROM data from '{Path.GetFileName(fullPath)}'.", false);
                     }
 
                     if (!ValidateBaseRomCompatibility(fullPath, ext, bytes.LongLength, format, out var compatError))
                     {
-                        return (null, null, null, candidateSeries, explicitFile.Id, compatError);
+                        return (null, null, null, candidateSeries, explicitFile.Id, compatError, false);
                     }
 
                     if (expectedSourceCrc32.HasValue)
@@ -1053,14 +1128,15 @@ namespace NzbDrone.Core.MediaFiles.Patching
                         if (actualCrc != expectedSourceCrc32.Value)
                         {
                             return (null, null, null, candidateSeries, explicitFile.Id,
-                                $"Selected base ROM '{Path.GetFileName(fullPath)}' has CRC32 {actualCrc:x8}, which does not match expected BPS source CRC32 {expectedSourceCrc32.Value:x8}.");
+                                $"Selected base ROM '{Path.GetFileName(fullPath)}' has CRC32 {actualCrc:x8}, which does not match expected BPS source CRC32 {expectedSourceCrc32.Value:x8}.",
+                                false);
                         }
                     }
 
-                    return (bytes, fullPath, ext, candidateSeries, explicitFile.Id, null);
+                    return (bytes, fullPath, ext, candidateSeries, explicitFile.Id, null, false);
                 }
 
-                return (null, null, null, series, request.BaseEpisodeFileId, "The selected retail base ROM could not be found in the library.");
+                return (null, null, null, series, request.BaseEpisodeFileId, "The selected retail base ROM could not be found in the library.", false);
             }
 
             if (expectedSourceCrc32.HasValue)
@@ -1123,25 +1199,27 @@ namespace NzbDrone.Core.MediaFiles.Patching
 
                         if (ComputeCrc32Uint(bytes, 0, bytes.Length) == expectedSourceCrc32.Value)
                         {
-                            return (bytes, fullPath, ext, candidateSeries, retailFile.Id, null);
+                            return (bytes, fullPath, ext, candidateSeries, retailFile.Id, null, false);
                         }
                     }
                 }
 
                 return (null, null, null, series, null,
-                    $"No matching retail base ROM with CRC32 {expectedSourceCrc32.Value:x8} was found in the platform library.");
+                    $"No matching retail base ROM with CRC32 {expectedSourceCrc32.Value:x8} was found in the platform library.",
+                    true);
             }
 
             // IPS and xdelta patches have no embedded source CRC32: never scan or fall back blindly across unrelated platforms.
             if (series == null)
             {
                 return (null, null, null, null, null,
-                    "IPS and xdelta patches do not contain a source ROM checksum. Please select the target Platform and Retail Base ROM before applying this patch.");
+                    "IPS and xdelta patches do not contain a source ROM checksum. Please select the target Platform and Retail Base ROM before applying this patch.",
+                    false);
             }
 
             if (string.IsNullOrWhiteSpace(series.Path))
             {
-                return (null, null, null, series, null, $"Platform '{series.Title}' does not have a valid library folder path.");
+                return (null, null, null, series, null, $"Platform '{series.Title}' does not have a valid library folder path.", true);
             }
 
             var platformFiles = _mediaFileService?.GetFilesBySeries(series.Id) ?? new List<EpisodeFile>();
@@ -1174,46 +1252,135 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 })
                 .ToList();
 
-            var normalizedPatchStem = NormalizeMatchKey(Path.GetFileNameWithoutExtension(patchFileName ?? string.Empty));
-            var titleMatches = new List<(EpisodeFile File, string FullPath, byte[] Bytes, string Ext)>();
+            var expectedHintCrc32 = request.ExpectedBaseRomCrc32?.Trim().ToLowerInvariant();
+            var expectedHintMd5 = request.ExpectedBaseRomMd5?.Trim().ToLowerInvariant();
+            var expectedHintSha1 = request.ExpectedBaseRomSha1?.Trim().ToLowerInvariant();
+            var hasMetadataChecksums = !string.IsNullOrWhiteSpace(expectedHintCrc32) ||
+                                       !string.IsNullOrWhiteSpace(expectedHintMd5) ||
+                                       !string.IsNullOrWhiteSpace(expectedHintSha1);
 
-            if (normalizedPatchStem.Length >= 4)
+            if (hasMetadataChecksums)
             {
                 foreach (var candidate in patchableRetailFiles)
                 {
-                    var fileStem = NormalizeMatchKey(Path.GetFileNameWithoutExtension(candidate.File.RelativePath));
-                    if (fileStem.Length < 4)
+                    var (bytes, ext) = ReadRomBytesAndExtension(candidate.FullPath);
+                    if (bytes == null || bytes.Length == 0 ||
+                        !ValidateBaseRomCompatibility(candidate.FullPath, ext, bytes.LongLength, format, out _))
                     {
                         continue;
                     }
 
-                    if (normalizedPatchStem.Contains(fileStem, StringComparison.OrdinalIgnoreCase) ||
-                        fileStem.Contains(normalizedPatchStem, StringComparison.OrdinalIgnoreCase))
+                    var (crcHex, md5Hex, sha1Hex, _) = ComputeAllHashes(bytes);
+                    var crcMatches = !string.IsNullOrWhiteSpace(expectedHintCrc32) && string.Equals(crcHex, expectedHintCrc32, StringComparison.OrdinalIgnoreCase);
+                    var md5Matches = !string.IsNullOrWhiteSpace(expectedHintMd5) && string.Equals(md5Hex, expectedHintMd5, StringComparison.OrdinalIgnoreCase);
+                    var sha1Matches = !string.IsNullOrWhiteSpace(expectedHintSha1) && string.Equals(sha1Hex, expectedHintSha1, StringComparison.OrdinalIgnoreCase);
+
+                    if (crcMatches || md5Matches || sha1Matches)
                     {
-                        var (bytes, ext) = ReadRomBytesAndExtension(candidate.FullPath);
-                        if (bytes != null && bytes.Length > 0 &&
-                            ValidateBaseRomCompatibility(candidate.FullPath, ext, bytes.LongLength, format, out _))
-                        {
-                            titleMatches.Add((candidate.File, candidate.FullPath, bytes, ext));
-                        }
+                        return (bytes, candidate.FullPath, ext, series, candidate.File.Id, null, false);
                     }
                 }
+
+                var label = expectedHintCrc32 ?? expectedHintSha1 ?? expectedHintMd5;
+                return (null, null, null, series, null,
+                    $"No matching retail base ROM in {series.Title} matched expected base checksum '{label}'.",
+                    true);
             }
+
+            if (!string.IsNullOrWhiteSpace(request.BaseGameTitleHint))
+            {
+                var normalizedHint = NormalizeMatchKey(request.BaseGameTitleHint);
+                if (normalizedHint.Length >= 4)
+                {
+                    var hintMatches = CollectTitleStemMatches(patchableRetailFiles, normalizedHint, format);
+                    if (hintMatches.Count == 1)
+                    {
+                        var uniqueHint = hintMatches[0];
+                        return (uniqueHint.Bytes, uniqueHint.FullPath, uniqueHint.Ext, series, uniqueHint.File.Id, null, false);
+                    }
+
+                    if (hintMatches.Count > 1)
+                    {
+                        var distinctStems = hintMatches
+                            .Select(m => NormalizeMatchKey(Path.GetFileNameWithoutExtension(m.File.RelativePath)))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+
+                        if (distinctStems.Count == 1)
+                        {
+                            var preferredUsa = hintMatches
+                                .Where(m => m.FullPath.Contains("(USA", StringComparison.OrdinalIgnoreCase) ||
+                                            m.FullPath.Contains("(World)", StringComparison.OrdinalIgnoreCase))
+                                .ToList();
+
+                            if (preferredUsa.Count == 1)
+                            {
+                                var chosen = preferredUsa[0];
+                                return (chosen.Bytes, chosen.FullPath, chosen.Ext, series, chosen.File.Id, null, false);
+                            }
+                        }
+
+                        return (null, null, null, series, null,
+                            $"Multiple retail ROMs in {series.Title} matched base ROM '{request.BaseGameTitleHint}'. Select the exact Retail Base ROM manually.",
+                            false);
+                    }
+
+                    return (null, null, null, series, null,
+                        $"No matching retail base ROM for '{request.BaseGameTitleHint}' was found in {series.Title}.",
+                        true);
+                }
+            }
+
+            var normalizedPatchStem = NormalizeMatchKey(Path.GetFileNameWithoutExtension(patchFileName ?? string.Empty));
+            var titleMatches = normalizedPatchStem.Length >= 4
+                ? CollectTitleStemMatches(patchableRetailFiles, normalizedPatchStem, format)
+                : new List<(EpisodeFile File, string FullPath, byte[] Bytes, string Ext)>();
 
             if (titleMatches.Count == 1)
             {
                 var unique = titleMatches[0];
-                return (unique.Bytes, unique.FullPath, unique.Ext, series, unique.File.Id, null);
+                return (unique.Bytes, unique.FullPath, unique.Ext, series, unique.File.Id, null, false);
             }
 
             if (titleMatches.Count > 1)
             {
                 return (null, null, null, series, null,
-                    $"Multiple retail ROMs in {series.Title} could match '{Path.GetFileName(patchFileName)}'. Select the exact Retail Base ROM manually.");
+                    $"Multiple retail ROMs in {series.Title} could match '{Path.GetFileName(patchFileName)}'. Select the exact Retail Base ROM manually.",
+                    false);
             }
 
             return (null, null, null, series, null,
-                $"No matching retail base ROM was found in {series.Title}. Select the exact Retail Base ROM manually.");
+                $"No matching retail base ROM was found in {series.Title}. Select the exact Retail Base ROM manually.",
+                true);
+        }
+
+        private static List<(EpisodeFile File, string FullPath, byte[] Bytes, string Ext)> CollectTitleStemMatches(
+            List<(EpisodeFile File, string FullPath)> patchableRetailFiles,
+            string normalizedTargetStem,
+            RomPatchFormat format)
+        {
+            var matches = new List<(EpisodeFile File, string FullPath, byte[] Bytes, string Ext)>();
+            foreach (var candidate in patchableRetailFiles)
+            {
+                var fileStem = NormalizeMatchKey(Path.GetFileNameWithoutExtension(candidate.File.RelativePath));
+                if (fileStem.Length < 4)
+                {
+                    continue;
+                }
+
+                if (normalizedTargetStem.Contains(fileStem, StringComparison.OrdinalIgnoreCase) ||
+                    fileStem.Contains(normalizedTargetStem, StringComparison.OrdinalIgnoreCase))
+                {
+                    var (bytes, ext) = ReadRomBytesAndExtension(candidate.FullPath);
+                    if (bytes != null && bytes.Length > 0 &&
+                        ValidateBaseRomCompatibility(candidate.FullPath, ext, bytes.LongLength, format, out _))
+                    {
+                        matches.Add((candidate.File, candidate.FullPath, bytes, ext));
+                    }
+                }
+            }
+
+            return matches;
         }
 
         private Series ResolveSeriesByPathPrefix(string filePath)
@@ -1442,7 +1609,8 @@ namespace NzbDrone.Core.MediaFiles.Patching
             Series series,
             string hackTitle,
             string outputRomPath,
-            long byteSize)
+            long byteSize,
+            int? targetEpisodeId = null)
         {
             if (_episodeService == null || _mediaFileService == null)
             {
@@ -1452,9 +1620,12 @@ namespace NzbDrone.Core.MediaFiles.Patching
             try
             {
                 var existingEpisodes = _episodeService.GetEpisodeBySeries(series.Id) ?? new List<Episode>();
-                var hackEpisode = existingEpisodes.FirstOrDefault(e =>
-                    e.SeasonNumber == GameCatalogProxy.RegionRomHacks &&
-                    string.Equals(e.Title, hackTitle, StringComparison.OrdinalIgnoreCase));
+                var hackEpisode = (targetEpisodeId.HasValue
+                        ? existingEpisodes.FirstOrDefault(e => e.Id == targetEpisodeId.Value)
+                        : null)
+                    ?? existingEpisodes.FirstOrDefault(e =>
+                        e.SeasonNumber == GameCatalogProxy.RegionRomHacks &&
+                        string.Equals(e.Title, hackTitle, StringComparison.OrdinalIgnoreCase));
 
                 if (hackEpisode == null)
                 {

@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import React, { ChangeEvent, useCallback, useMemo, useState } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
@@ -7,6 +8,7 @@ import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import FormRow from 'Components/Form/FormRow';
 import SelectInputStyle from 'Components/Form/SelectInput.module.css';
+import Label from 'Components/Label';
 import Button from 'Components/Link/Button';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import PageContent from 'Components/Page/PageContent';
@@ -17,7 +19,60 @@ import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import usePlatform from 'Platform/usePlatform';
 import useRomFiles from 'RomFile/useRomFiles';
 import { InputChanged } from 'typings/inputs';
+import fetchJson from 'Utilities/Fetch/fetchJson';
+import getQueryPath from 'Utilities/Fetch/getQueryPath';
+import getQueryString from 'Utilities/Fetch/getQueryString';
 import translate from 'Utilities/String/translate';
+
+export interface RomHackSearchResult {
+  title: string;
+  platformSlug?: string;
+  platformHint?: string;
+  baseGameTitle?: string;
+  baseRomCrc32?: string;
+  baseRomMd5?: string;
+  baseRomSha1?: string;
+  sourceName: string;
+  downloadUrl: string;
+  pageUrl?: string;
+  patchFormat: string;
+  hasDirectDownload: boolean;
+  fileSize?: number;
+  relevanceScore: number;
+  isHomebrew: boolean;
+}
+
+export interface RomHackAcquireRequest {
+  seriesId: number;
+  baseEpisodeFileId?: number;
+  baseRomPath?: string;
+  title: string;
+  downloadUrl: string;
+  pageUrl?: string;
+  baseGameTitle?: string;
+  baseRomCrc32?: string;
+  baseRomMd5?: string;
+  baseRomSha1?: string;
+  isHomebrew?: boolean;
+  searchMissingBaseRom?: boolean;
+}
+
+export interface RomHackAcquireResult {
+  success: boolean;
+  baseRomMissing: boolean;
+  baseRomSearchQueued: boolean;
+  outputRomPath?: string;
+  patchFormat?: string;
+  patchSource?: string;
+  patchDownloadUrl?: string;
+  baseRomName?: string;
+  baseRomCrc32?: string;
+  outputCrc32?: string;
+  outputSha1?: string;
+  episodeId?: number;
+  episodeFileId?: number;
+  message: string;
+}
 
 export interface RomPatchRequest {
   seriesId?: number;
@@ -113,6 +168,96 @@ function formatByteSize(bytes?: number) {
   return `${bytes} B`;
 }
 
+interface RomHackResultRowProps {
+  result: RomHackSearchResult;
+  isAcquiring: boolean;
+  isBusy: boolean;
+  hasTargetPlatform: boolean;
+  onAcquire: (result: RomHackSearchResult) => void;
+}
+
+function RomHackResultRow({
+  result,
+  isAcquiring,
+  isBusy,
+  hasTargetPlatform,
+  onAcquire,
+}: RomHackResultRowProps) {
+  const sizeLabel = formatByteSize(result.fileSize);
+
+  const handlePress = useCallback(() => {
+    onAcquire(result);
+  }, [onAcquire, result]);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '10px 12px',
+        border: '1px solid var(--borderColor)',
+        borderRadius: '4px',
+        background: 'var(--cardBackgroundColor)',
+      }}
+    >
+      <div style={{ flex: '1 1 320px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <strong>{result.title}</strong>
+          <Label
+            kind={result.patchFormat === 'BPS' ? kinds.SUCCESS : kinds.INFO}
+          >
+            {result.patchFormat}
+          </Label>
+          <Label kind={kinds.DEFAULT}>{result.sourceName}</Label>
+          {sizeLabel ? <small>({sizeLabel})</small> : null}
+        </div>
+        <div style={{ marginTop: '4px' }}>
+          <small>
+            {result.baseGameTitle
+              ? `Base ROM: ${result.baseGameTitle}`
+              : 'Base ROM: Auto-detect via checksum/title'}
+            {result.baseRomCrc32 ? ` | Base CRC32: ${result.baseRomCrc32}` : ''}
+            {result.platformHint ? ` | Platform: ${result.platformHint}` : ''}
+          </small>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {result.pageUrl ? (
+          <a
+            href={result.pageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: '12px' }}
+          >
+            Source Page
+          </a>
+        ) : null}
+
+        <SpinnerButton
+          kind={kinds.PRIMARY}
+          size={sizes.SMALL}
+          isSpinning={isAcquiring}
+          isDisabled={isBusy || !hasTargetPlatform}
+          onPress={handlePress}
+        >
+          {isAcquiring ? 'Patching...' : 'Download, Patch & Import'}
+        </SpinnerButton>
+      </div>
+    </div>
+  );
+}
+
 function RomPatcherPage() {
   const [stagedPatchFileName, setStagedPatchFileName] = useState('');
   const [stagedPatchBase64, setStagedPatchBase64] = useState('');
@@ -129,12 +274,27 @@ function RomPatcherPage() {
   const [inspectResult, setInspectResult] =
     useState<RomPatchInspectResult | null>(null);
   const [patchStatus, setPatchStatus] = useState<RomPatchResult | null>(null);
+  const [patchSearchQuery, setPatchSearchQuery] = useState('');
+  const [patchSearchResults, setPatchSearchResults] = useState<
+    RomHackSearchResult[]
+  >([]);
+  const [hasSearchedPatches, setHasSearchedPatches] = useState(false);
+  const [acquiringDownloadUrl, setAcquiringDownloadUrl] = useState<
+    string | null
+  >(null);
+  const [acquireStatus, setAcquireStatus] =
+    useState<RomHackAcquireResult | null>(null);
 
   const { data: platforms = [] } = usePlatform();
   const { data: platformFiles = [], isFetching: isPlatformFilesFetching } =
     useRomFiles(
       selectedSeriesId ? { seriesId: selectedSeriesId } : { romFileIds: [] }
     );
+
+  const selectedPlatform = useMemo(
+    () => platforms.find((p) => p.id === selectedSeriesId),
+    [platforms, selectedSeriesId]
+  );
 
   const sortedPlatforms = useMemo(() => {
     return [...platforms].sort((a, b) => {
@@ -228,6 +388,117 @@ function RomPatcherPage() {
       },
     },
   });
+
+  const { mutate: searchCommunityPatches, isPending: isSearchingPatches } =
+    useMutation<
+      RomHackSearchResult[],
+      unknown,
+      { query: string; platformSlug?: string }
+    >({
+      mutationFn: async ({ query, platformSlug }) => {
+        const path =
+          getQueryPath('/romhack/search') +
+          getQueryString({
+            query,
+            platformSlug,
+            includeHomebrew: false,
+          });
+
+        return fetchJson<RomHackSearchResult[], never>({
+          path,
+          method: 'GET',
+          headers: {
+            'X-Api-Key': window.Controllarr.apiKey,
+            'X-Controllarr-Client': 'Controllarr',
+          },
+        });
+      },
+      onSuccess: (results) => {
+        setPatchSearchResults(results ?? []);
+        setHasSearchedPatches(true);
+      },
+      onError: () => {
+        setPatchSearchResults([]);
+        setHasSearchedPatches(true);
+        setAcquireStatus({
+          success: false,
+          baseRomMissing: false,
+          baseRomSearchQueued: false,
+          message: 'Failed to search community ROM hack patch sources.',
+        });
+      },
+    });
+
+  const { mutate: acquireRomHack, isPending: isAcquiringHack } = useApiMutation<
+    RomHackAcquireResult,
+    RomHackAcquireRequest
+  >({
+    path: '/romhack/acquire',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: (result) => {
+        setAcquireStatus(result);
+        setAcquiringDownloadUrl(null);
+      },
+      onError: () => {
+        setAcquiringDownloadUrl(null);
+        setAcquireStatus({
+          success: false,
+          baseRomMissing: false,
+          baseRomSearchQueued: false,
+          message:
+            'Failed to download and apply ROM hack patch to your retail library.',
+        });
+      },
+    },
+  });
+
+  const handlePatchSearchQueryChange = useCallback(
+    ({ value }: InputChanged<string>) => {
+      setPatchSearchQuery(value ?? '');
+    },
+    []
+  );
+
+  const handleSearchPatchesPress = useCallback(() => {
+    const trimmed = patchSearchQuery.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    setAcquireStatus(null);
+    searchCommunityPatches({
+      query: trimmed,
+      platformSlug: selectedPlatform?.titleSlug,
+    });
+  }, [patchSearchQuery, searchCommunityPatches, selectedPlatform?.titleSlug]);
+
+  const handleAcquireResultPress = useCallback(
+    (result: RomHackSearchResult) => {
+      if (!selectedSeriesId) {
+        return;
+      }
+
+      setAcquireStatus(null);
+      setAcquiringDownloadUrl(result.downloadUrl);
+      acquireRomHack({
+        seriesId: selectedSeriesId,
+        baseEpisodeFileId: selectedBaseFileId,
+        baseRomPath: baseRomServerPath.trim() || undefined,
+        title: result.title,
+        downloadUrl: result.downloadUrl,
+        pageUrl: result.pageUrl,
+        baseGameTitle: result.baseGameTitle,
+        baseRomCrc32: result.baseRomCrc32,
+        baseRomMd5: result.baseRomMd5,
+        baseRomSha1: result.baseRomSha1,
+        isHomebrew: result.isHomebrew,
+        searchMissingBaseRom: true,
+      });
+    },
+    [selectedSeriesId, selectedBaseFileId, baseRomServerPath, acquireRomHack]
+  );
 
   const handlePatchUploadChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -383,6 +654,14 @@ function RomPatcherPage() {
     inspectAlertKind = kinds.WARNING;
   }
 
+  let acquireAlertKind: 'success' | 'danger' | 'warning' = kinds.DANGER;
+
+  if (acquireStatus?.success) {
+    acquireAlertKind = kinds.SUCCESS;
+  } else if (acquireStatus?.baseRomMissing) {
+    acquireAlertKind = kinds.WARNING;
+  }
+
   return (
     <PageContent title="ROM Patcher">
       <PageContentBody>
@@ -450,6 +729,142 @@ function RomPatcherPage() {
 
           <div style={{ marginTop: '20px' }}>
             <Form>
+              <FieldSet
+                legend="Search & Auto-Patch ROM Hacks (BPS / IPS)"
+                caption="Search Romhack Plaza, Internet Archive, and GitHub Releases for .bps, .ips, or .xdelta patches. Controllarr automatically downloads the patch, matches the retail base ROM (via BPS CRC32 or base-ROM metadata), applies it non-destructively, and imports the result into ROM Hacks."
+              >
+                <FormRow size={sizes.MEDIUM}>
+                  <FormLabel>Target Platform</FormLabel>
+                  <FormInputHelpText text="Select the console platform whose retail library provides the base ROM and receives the patched hack" />
+                  <select
+                    aria-label="Search Target Platform"
+                    className={SelectInputStyle.select}
+                    value={selectedSeriesId ? String(selectedSeriesId) : ''}
+                    disabled={isApplyingPatch || isAcquiringHack}
+                    onChange={handlePlatformSelectChange}
+                  >
+                    <option value="">-- Select Target Platform --</option>
+                    {sortedPlatforms.map((platform) => {
+                      const fileCount = platform.statistics?.romFileCount ?? 0;
+
+                      return (
+                        <option key={platform.id} value={String(platform.id)}>
+                          {platform.title} ({fileCount}{' '}
+                          {fileCount === 1 ? 'file' : 'files'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </FormRow>
+
+                <FormRow size={sizes.MEDIUM}>
+                  <FormLabel>ROM Hack or Base Game Search</FormLabel>
+                  <FormInputHelpText text="Enter a ROM hack title (e.g. Pokemon Orange Islands, Super Mario World Return) to find direct .bps/.ips patch downloads" />
+                  <FormInput
+                    type={inputTypes.TEXT}
+                    name="patchSearchQuery"
+                    value={patchSearchQuery}
+                    placeholder="Search community ROM hack patches..."
+                    onChange={handlePatchSearchQueryChange}
+                  />
+                  <div style={{ marginTop: '8px' }}>
+                    <SpinnerButton
+                      kind={kinds.PRIMARY}
+                      size={sizes.SMALL}
+                      isSpinning={isSearchingPatches}
+                      isDisabled={
+                        isSearchingPatches ||
+                        isAcquiringHack ||
+                        !patchSearchQuery.trim()
+                      }
+                      onPress={handleSearchPatchesPress}
+                    >
+                      {isSearchingPatches ? 'Searching...' : 'Search Patches'}
+                    </SpinnerButton>
+                  </div>
+                </FormRow>
+
+                {acquireStatus ? (
+                  <div style={{ marginTop: '12px', marginBottom: '12px' }}>
+                    <Alert kind={acquireAlertKind}>
+                      <div>
+                        <strong>{acquireStatus.message}</strong>
+                      </div>
+                      {acquireStatus.baseRomName ? (
+                        <div style={{ marginTop: '4px' }}>
+                          <small>
+                            Base ROM: {acquireStatus.baseRomName}
+                            {acquireStatus.baseRomCrc32
+                              ? ` (CRC32: ${acquireStatus.baseRomCrc32})`
+                              : ''}
+                          </small>
+                        </div>
+                      ) : null}
+                      {acquireStatus.outputRomPath ? (
+                        <div style={{ marginTop: '4px' }}>
+                          <small>Output: {acquireStatus.outputRomPath}</small>
+                        </div>
+                      ) : null}
+                      {acquireStatus.outputCrc32 ? (
+                        <div style={{ marginTop: '4px' }}>
+                          <small>
+                            CRC32: {acquireStatus.outputCrc32} | SHA1:{' '}
+                            {acquireStatus.outputSha1}
+                          </small>
+                        </div>
+                      ) : null}
+                      {acquireStatus.baseRomSearchQueued ? (
+                        <div style={{ marginTop: '4px' }}>
+                          <small>
+                            Queued an automated indexer search for the missing
+                            retail base ROM.
+                          </small>
+                        </div>
+                      ) : null}
+                    </Alert>
+                  </div>
+                ) : null}
+
+                {hasSearchedPatches ? (
+                  <div style={{ marginTop: '12px' }}>
+                    {patchSearchResults.length === 0 ? (
+                      <Alert kind={kinds.INFO}>
+                        No community ROM hack patches matched your query. Try a
+                        shorter title or upload a local .ips/.bps patch below.
+                      </Alert>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                        }}
+                      >
+                        {selectedSeriesId ? null : (
+                          <Alert kind={kinds.WARNING}>
+                            Select a Target Platform above before clicking
+                            Download, Patch &amp; Import.
+                          </Alert>
+                        )}
+                        {patchSearchResults.map((result) => (
+                          <RomHackResultRow
+                            key={`${result.sourceName}-${result.downloadUrl}`}
+                            result={result}
+                            isAcquiring={
+                              isAcquiringHack &&
+                              acquiringDownloadUrl === result.downloadUrl
+                            }
+                            isBusy={isAcquiringHack || isApplyingPatch}
+                            hasTargetPlatform={Boolean(selectedSeriesId)}
+                            onAcquire={handleAcquireResultPress}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </FieldSet>
+
               <FieldSet
                 legend="1. Select Patch File"
                 caption="Select a local patch file or enter a path on the Controllarr host server. Selecting a file stages and inspects it without modifying your library."

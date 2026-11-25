@@ -4,7 +4,9 @@ using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.IndexerSearch;
+using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -56,6 +58,9 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             Mocker.GetMock<ISearchForReleases>()
                   .Verify(v => v.SeasonSearch(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<List<Episode>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never);
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Verify(v => v.TryAcquirePatchForGame(It.IsAny<Series>(), It.IsAny<Episode>(), It.IsAny<bool>()), Times.Never);
         }
 
         [Test]
@@ -70,6 +75,81 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             Mocker.GetMock<ISearchForReleases>()
                   .Verify(v => v.EpisodeSearch(2, true, false), Times.Once);
+        }
+
+        [Test]
+        public void should_use_patch_first_acquisition_for_rom_hack_and_skip_indexer_on_success()
+        {
+            var series = new Series { Id = SeriesId, Title = "Game Boy Advance", TitleSlug = "gba" };
+            var hackGame = new Episode
+            {
+                Id = 601,
+                SeriesId = SeriesId,
+                SeasonNumber = GameCatalogProxy.RegionRomHacks,
+                Title = "Pokemon Orange Islands (Hack)"
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetSeries(SeriesId))
+                  .Returns(series);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(e => e.GetEpisode(601))
+                  .Returns(hackGame);
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Setup(p => p.TryAcquirePatchForGame(series, hackGame, true))
+                  .Returns(new RomHackAcquireResult
+                  {
+                      Success = true,
+                      PatchFormat = "BPS",
+                      Message = "Patched and imported."
+                  });
+
+            Subject.Execute(new GameSearchCommand(new List<int> { 601 }) { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Verify(p => p.TryAcquirePatchForGame(series, hackGame, true), Times.Once);
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(v => v.EpisodeSearch(601, true, false), Times.Never);
+        }
+
+        [Test]
+        public void should_fallback_to_indexer_search_when_rom_hack_patch_acquisition_fails()
+        {
+            var series = new Series { Id = SeriesId, Title = "Game Boy Advance", TitleSlug = "gba" };
+            var hackGame = new Episode
+            {
+                Id = 602,
+                SeriesId = SeriesId,
+                SeasonNumber = GameCatalogProxy.RegionRomHacks,
+                Title = "Pokemon Glazed (Hack)"
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetSeries(SeriesId))
+                  .Returns(series);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(e => e.GetEpisode(602))
+                  .Returns(hackGame);
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Setup(p => p.TryAcquirePatchForGame(series, hackGame, true))
+                  .Returns(new RomHackAcquireResult
+                  {
+                      Success = false,
+                      Message = "No matching patch found."
+                  });
+
+            Subject.Execute(new GameSearchCommand(new List<int> { 602 }) { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Verify(p => p.TryAcquirePatchForGame(series, hackGame, true), Times.Once);
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(v => v.EpisodeSearch(602, true, false), Times.Once);
         }
     }
 }

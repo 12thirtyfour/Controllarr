@@ -4,7 +4,9 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch
@@ -15,18 +17,21 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IEpisodeService _episodeService;
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
+        private readonly IRomHackAutomationService _romHackAutomationService;
         private readonly Logger _logger;
 
         public PlatformSearchService(ISeriesService seriesService,
                                    IEpisodeService episodeService,
                                    ISearchForReleases releaseSearchService,
                                    IProcessDownloadDecisions processDownloadDecisions,
-                                   Logger logger)
+                                   Logger logger,
+                                   IRomHackAutomationService romHackAutomationService = null)
         {
             _seriesService = seriesService;
             _episodeService = episodeService;
             _releaseSearchService = releaseSearchService;
             _processDownloadDecisions = processDownloadDecisions;
+            _romHackAutomationService = romHackAutomationService;
             _logger = logger;
         }
 
@@ -78,6 +83,16 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 try
                 {
+                    if (_romHackAutomationService != null && episode.SeasonNumber == GameCatalogProxy.RegionRomHacks)
+                    {
+                        var patchOutcome = _romHackAutomationService.TryAcquirePatchForGame(series, episode);
+                        if (patchOutcome != null && patchOutcome.Success)
+                        {
+                            downloadedCount++;
+                            continue;
+                        }
+                    }
+
                     var decisions = _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false).GetAwaiter().GetResult();
                     var processDecisions = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
                     downloadedCount += processDecisions.Grabbed.Count;

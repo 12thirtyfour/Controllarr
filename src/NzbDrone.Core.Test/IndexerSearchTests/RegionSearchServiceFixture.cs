@@ -4,7 +4,9 @@ using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.IndexerSearch;
+using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -53,6 +55,38 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             Mocker.GetMock<ISearchForReleases>()
                   .Verify(v => v.EpisodeSearch(unmonitoredGame, true, false), Times.Never);
+        }
+
+        [Test]
+        public void should_try_patch_first_for_rom_hacks_region_and_fallback_when_unavailable()
+        {
+            var series = new Series { Id = SeriesId, Title = "Super Nintendo", TitleSlug = "snes" };
+            var patchedHack = new Episode { Id = 11, SeriesId = SeriesId, SeasonNumber = GameCatalogProxy.RegionRomHacks, EpisodeNumber = 1, Monitored = true, EpisodeFileId = 0, Title = "SMW Return (Hack)" };
+            var fallbackHack = new Episode { Id = 12, SeriesId = SeriesId, SeasonNumber = GameCatalogProxy.RegionRomHacks, EpisodeNumber = 2, Monitored = true, EpisodeFileId = 0, Title = "Unknown Hack (Hack)" };
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetSeries(SeriesId))
+                  .Returns(series);
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodesBySeason(SeriesId, GameCatalogProxy.RegionRomHacks))
+                  .Returns(new List<Episode> { patchedHack, fallbackHack });
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Setup(p => p.TryAcquirePatchForGame(series, patchedHack, true))
+                  .Returns(new RomHackAcquireResult { Success = true, PatchFormat = "BPS" });
+
+            Mocker.GetMock<IRomHackAutomationService>()
+                  .Setup(p => p.TryAcquirePatchForGame(series, fallbackHack, true))
+                  .Returns(new RomHackAcquireResult { Success = false });
+
+            Subject.Execute(new RegionSearchCommand { SeriesId = SeriesId, SeasonNumber = GameCatalogProxy.RegionRomHacks, Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(v => v.EpisodeSearch(patchedHack, true, false), Times.Never);
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(v => v.EpisodeSearch(fallbackHack, true, false), Times.Once);
         }
     }
 }

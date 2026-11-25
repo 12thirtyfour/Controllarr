@@ -13,23 +13,30 @@ namespace NzbDrone.Core.MediaFiles.Patching
     public class RomPatchRequestModel
     {
         public int? SeriesId { get; set; }
+        public int? TargetEpisodeId { get; set; }
         public int? BaseEpisodeFileId { get; set; }
         public string BaseRomPath { get; set; }
         public string PatchFilePath { get; set; }
         public string PatchFileName { get; set; }
         public string PatchBase64Content { get; set; }
         public string OutputTitle { get; set; }
+        public string BaseGameTitleHint { get; set; }
+        public string ExpectedBaseRomCrc32 { get; set; }
+        public string ExpectedBaseRomMd5 { get; set; }
+        public string ExpectedBaseRomSha1 { get; set; }
     }
 
     public class RomPatchResultModel
     {
         public bool Success { get; set; }
+        public bool BaseRomMissing { get; set; }
         public string Message { get; set; }
         public string Format { get; set; }
         public string PlatformTitle { get; set; }
         public string BaseRomName { get; set; }
         public string BaseRomPath { get; set; }
         public string BaseRomCrc32 { get; set; }
+        public string ExpectedBaseRomCrc32 { get; set; }
         public bool BaseRomVerified { get; set; }
         public string OutputRomPath { get; set; }
         public string OutputCrc32 { get; set; }

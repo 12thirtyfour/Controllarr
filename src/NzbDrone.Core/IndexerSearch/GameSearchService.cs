@@ -7,7 +7,9 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.MediaFiles.Patching;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
 
@@ -23,6 +25,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IGameCutoffService _episodeCutoffService;
         private readonly IQueueService _queueService;
         private readonly ISeriesService _seriesService;
+        private readonly IRomHackAutomationService _romHackAutomationService;
         private readonly Logger _logger;
 
         public GameSearchService(ISearchForReleases releaseSearchService,
@@ -31,7 +34,8 @@ namespace NzbDrone.Core.IndexerSearch
                                     IGameCutoffService episodeCutoffService,
                                     IQueueService queueService,
                                     Logger logger,
-                                    ISeriesService seriesService = null)
+                                    ISeriesService seriesService = null,
+                                    IRomHackAutomationService romHackAutomationService = null)
         {
             _releaseSearchService = releaseSearchService;
             _processDownloadDecisions = processDownloadDecisions;
@@ -39,6 +43,7 @@ namespace NzbDrone.Core.IndexerSearch
             _episodeCutoffService = episodeCutoffService;
             _queueService = queueService;
             _seriesService = seriesService;
+            _romHackAutomationService = romHackAutomationService;
             _logger = logger;
         }
 
@@ -51,6 +56,12 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 try
                 {
+                    if (TryAcquireRomHackPatch(episode))
+                    {
+                        downloadedCount++;
+                        continue;
+                    }
+
                     var decisions = await _releaseSearchService.EpisodeSearch(episode, userInvokedSearch, false);
                     var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
 
@@ -74,11 +85,44 @@ namespace NzbDrone.Core.IndexerSearch
         {
             foreach (var episodeId in message.GameIds)
             {
+                var episode = _episodeService.GetEpisode(episodeId);
+                if (episode != null && TryAcquireRomHackPatch(episode))
+                {
+                    _logger.ProgressInfo("Game search completed via patch-first ROM hack acquisition.");
+                    continue;
+                }
+
                 var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
                 var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
 
                 _logger.ProgressInfo("Game search completed. {0} releases downloaded.", processed.Grabbed.Count);
             }
+        }
+
+        private bool TryAcquireRomHackPatch(Episode episode)
+        {
+            if (_romHackAutomationService == null ||
+                _seriesService == null ||
+                episode == null ||
+                episode.SeasonNumber != GameCatalogProxy.RegionRomHacks)
+            {
+                return false;
+            }
+
+            var series = _seriesService.GetSeries(episode.SeriesId);
+            if (series == null)
+            {
+                return false;
+            }
+
+            var patchOutcome = _romHackAutomationService.TryAcquirePatchForGame(series, episode);
+            if (patchOutcome != null && patchOutcome.Success)
+            {
+                _logger.ProgressInfo("Acquired and applied {0} patch for '{1}': {2}", patchOutcome.PatchFormat ?? "ROM", episode.Title, patchOutcome.Message);
+                return true;
+            }
+
+            return false;
         }
 
         public void Execute(MissingGameSearchCommand message)

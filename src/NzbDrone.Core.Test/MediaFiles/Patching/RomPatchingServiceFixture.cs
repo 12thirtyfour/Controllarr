@@ -435,6 +435,147 @@ namespace NzbDrone.Core.Test.MediaFiles.Patching
             }
         }
 
+        [Test]
+        public void should_auto_match_ips_base_rom_using_expected_checksum_and_base_title_hint()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_ips_hint_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(tempDir, "USA"));
+
+            try
+            {
+                var unrelatedRom = Path.Combine(tempDir, "USA", "Advance Wars (USA).gba");
+                var fireRedRom = Path.Combine(tempDir, "USA", "Pokemon - FireRed Version (USA, Europe).gba");
+                var unrelatedBytes = Encoding.ASCII.GetBytes("ADVANCE_WARS_GBA_RETAIL_BYTES");
+                var fireRedBytes = Encoding.ASCII.GetBytes("HELLO_RETAIL_ROM_DATA");
+
+                File.WriteAllBytes(unrelatedRom, unrelatedBytes);
+                File.WriteAllBytes(fireRedRom, fireRedBytes);
+
+                var gbaSeries = new Series { Id = 22, Title = "Game Boy Advance", Path = tempDir };
+                _seriesServiceMock.Setup(s => s.GetSeries(22)).Returns(gbaSeries);
+
+                _mediaFileServiceMock.Setup(m => m.GetFilesBySeries(22)).Returns(new List<EpisodeFile>
+                {
+                    new EpisodeFile { Id = 201, SeriesId = 22, SeasonNumber = 1, RelativePath = Path.Combine("USA", "Advance Wars (USA).gba") },
+                    new EpisodeFile { Id = 202, SeriesId = 22, SeasonNumber = 1, RelativePath = Path.Combine("USA", "Pokemon - FireRed Version (USA, Europe).gba") }
+                });
+
+                var ipsBytes = BuildSimpleIpsPatch();
+                var fireRedCrc32 = RomPatchingService.ComputeCrc32Uint(fireRedBytes, 0, fireRedBytes.Length).ToString("x8");
+
+                var crcResult = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    SeriesId = 22,
+                    PatchFileName = "Pokemon Orange Islands Beta 5.7.ips",
+                    PatchBase64Content = Convert.ToBase64String(ipsBytes),
+                    ExpectedBaseRomCrc32 = fireRedCrc32,
+                    OutputTitle = "Pokemon Orange Islands By Crc"
+                });
+
+                crcResult.Success.Should().BeTrue();
+                crcResult.BaseRomName.Should().Be("Pokemon - FireRed Version (USA, Europe).gba");
+
+                var hintResult = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    SeriesId = 22,
+                    PatchFileName = "Pokemon Orange Islands Beta 5.7.ips",
+                    PatchBase64Content = Convert.ToBase64String(ipsBytes),
+                    BaseGameTitleHint = "Pokemon - FireRed Version (USA)",
+                    OutputTitle = "Pokemon Orange Islands By Hint"
+                });
+
+                hintResult.Success.Should().BeTrue();
+                hintResult.BaseRomName.Should().Be("Pokemon - FireRed Version (USA, Europe).gba");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
+        [Test]
+        public void should_prefer_bps_over_ips_inside_zip_and_link_target_episode()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_zip_prio_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(tempDir, "USA"));
+
+            try
+            {
+                var sourceRom = Path.Combine(tempDir, "USA", "Super Mario World (USA).sfc");
+                var sourceBytes = Encoding.ASCII.GetBytes("SUPER_MARIO_BROS_RETAIL_10");
+                var targetBytes = Encoding.ASCII.GetBytes("SUPER_MARIO_BROS_3MIX_HACK");
+                File.WriteAllBytes(sourceRom, sourceBytes);
+
+                var series = new Series { Id = 33, Title = "Super Nintendo", Path = tempDir };
+                var targetEpisode = new Episode
+                {
+                    Id = 905,
+                    SeriesId = 33,
+                    SeasonNumber = 6,
+                    EpisodeNumber = 1,
+                    Title = "SMW Return (Hack)"
+                };
+
+                _seriesServiceMock.Setup(s => s.GetSeries(33)).Returns(series);
+                _episodeServiceMock.Setup(e => e.GetEpisodeBySeries(33)).Returns(new List<Episode> { targetEpisode });
+                _mediaFileServiceMock.Setup(m => m.GetFilesBySeries(33)).Returns(new List<EpisodeFile>
+                {
+                    new EpisodeFile { Id = 301, SeriesId = 33, SeasonNumber = 1, RelativePath = Path.Combine("USA", "Super Mario World (USA).sfc") }
+                });
+                _mediaFileServiceMock.Setup(m => m.GetFilesWithRelativePath(33, It.IsAny<string>())).Returns(new List<EpisodeFile>());
+                _mediaFileServiceMock.Setup(m => m.Add(It.IsAny<EpisodeFile>())).Returns<EpisodeFile>(f =>
+                {
+                    f.Id = 999;
+                    return f;
+                });
+
+                using var zipMs = new MemoryStream();
+                using (var archive = new ZipArchive(zipMs, ZipArchiveMode.Create, leaveOpen: true))
+                {
+                    var ipsEntry = archive.CreateEntry("hack.ips");
+                    using (var es = ipsEntry.Open())
+                    {
+                        var ips = BuildSimpleIpsPatch();
+                        es.Write(ips, 0, ips.Length);
+                    }
+
+                    var bpsEntry = archive.CreateEntry("hack.bps");
+                    using (var es = bpsEntry.Open())
+                    {
+                        var bps = BuildBpsTargetReadPatch(sourceBytes, targetBytes);
+                        es.Write(bps, 0, bps.Length);
+                    }
+                }
+
+                var result = _subject.ApplyPatchToLibrary(new RomPatchRequestModel
+                {
+                    SeriesId = 33,
+                    TargetEpisodeId = 905,
+                    PatchFileName = "smw-return-bundle.zip",
+                    PatchBase64Content = Convert.ToBase64String(zipMs.ToArray()),
+                    OutputTitle = "SMW Return (Hack)"
+                });
+
+                result.Success.Should().BeTrue();
+                result.Format.Should().Be("BPS");
+                result.EpisodeId.Should().Be(905);
+                result.EpisodeFileId.Should().Be(999);
+                _mediaFileServiceMock.Verify(
+                    m => m.Add(It.Is<EpisodeFile>(f => f.SeasonNumber == 6 && f.Episodes.Value.Contains(targetEpisode))),
+                    Times.Once);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
+
         private static byte[] BuildSimpleIpsPatch()
         {
             using var ms = new MemoryStream();
