@@ -25,6 +25,10 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-25
 
+### Added
+- **`Docker (Develop)` Container Publishing Workflow (`.github/workflows/docker-develop.yml`)**:
+  - Added a dedicated GitHub Actions workflow on `develop` (and `workflow_dispatch`) that builds and pushes the multi-architecture `ghcr.io/12thirtyfour/controllarr:develop` (and `develop-<sha>`) image for `linux/amd64` and `linux/arm64` without cutting a full release.
+
 ### Changed
 - **Verification Database Hash Deduplication & Strict Update/DLC Coupling (`GameCatalogProxy`, `PlatformDetailsRegion`)**:
   - Added hash-indexed cross-reference lookup (`entriesByHash`) across built-in, online-synced, and cached DAT entries in `GameCatalogProxy.GetSeriesInfo` so any entries sharing a checksum/hash are merged into a single canonical game entry instead of duplicating across databases, and enabled `rejectSecondaryTracks: true` when ingesting cached DAT entries so multi-track optical discs do not create duplicate entries.
