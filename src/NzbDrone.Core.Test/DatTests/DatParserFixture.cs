@@ -183,5 +183,39 @@ game (
                 datEntries[0].Sha256.Should().Be("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
             }
         }
+
+        [Test]
+        public void Should_prefix_isbios_entries_with_bios_tag_in_xml_and_clrmamepro()
+        {
+            const string xmlWithBios = @"<?xml version=""1.0""?>
+<datafile>
+	<header><name>Sega - Saturn</name></header>
+	<game name=""sega_101"" isbios=""yes"">
+		<description>Saturn System Software</description>
+		<rom name=""sega_101.bin"" size=""524288"" crc=""AABBCCDD"" />
+	</game>
+</datafile>";
+
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xmlWithBios)))
+            {
+                var (_, datEntries) = Subject.Parse(stream);
+                datEntries.Should().ContainSingle();
+                datEntries[0].GameName.Should().StartWith("[BIOS] ");
+            }
+
+            const string clrWithBios = @"
+game (
+	name ""System Unit v1.0 (World)""
+	isbios yes
+	rom ( name ""sysunit.bin"" size 65536 crc 11223344 )
+)";
+
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(clrWithBios)))
+            {
+                var (_, datEntries) = Subject.Parse(stream);
+                datEntries.Should().ContainSingle();
+                datEntries[0].GameName.Should().Be("[BIOS] System Unit v1.0 (World)");
+            }
+        }
     }
 }

@@ -75,6 +75,10 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"crc\s+([0-9a-fA-F]{8})",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex DatIsBiosRegex = new Regex(
+            @"\bisbios\s+""?(?:yes|true|1)""?\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex DatMd5Regex = new Regex(
             @"\bmd5\s+([0-9a-fA-F]{32})",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -783,7 +787,9 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             bool TryRegisterCrossReferencedGame(GameCatalogEntry candidate)
             {
-                if (candidate == null)
+                if (candidate == null ||
+                    candidate.RegionNumber == RegionBios ||
+                    RegionHelper.IsBios(candidate.NoIntroName ?? candidate.Title, candidate.Title, null, candidate.VerificationSource))
                 {
                     return false;
                 }
@@ -1043,6 +1049,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var absoluteGameCounter = 0;
 
             foreach (var game in platformGames
+                .Where(g => g.RegionNumber != RegionBios && !RegionHelper.IsBios(g.NoIntroName ?? g.Title, g.Title, null, g.VerificationSource))
                 .OrderBy(g => StripArticle(g.BaseTitle ?? g.Title), StringComparer.OrdinalIgnoreCase)
                 .ThenBy(g => IsPreReleaseVersion(g.RevisionTag, g.NoIntroName) ? 2 : (IsEncryptedVersion(g.RevisionTag, g.NoIntroName) ? 1 : 0))
                 .ThenBy(g => GetRevisionSortOrder(g.RevisionTag))
@@ -1536,6 +1543,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                                          s.Contains("MSU-1", StringComparison.OrdinalIgnoreCase) ||
                                          s.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
                                          s.Contains("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Boot ROM", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("BootROM", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("Boot Image", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("System ROM", StringComparison.OrdinalIgnoreCase) ||
+                                         s.Contains("System Firmware", StringComparison.OrdinalIgnoreCase) ||
                                          s.Contains("Game Boy Emulator", StringComparison.OrdinalIgnoreCase) ||
                                          s.Equals("Scripts", StringComparison.OrdinalIgnoreCase) ||
                                          s.Contains("Jaguar CD", StringComparison.OrdinalIgnoreCase) ||
@@ -2424,6 +2436,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 var blockName = match.Groups["name"].Value.Trim();
                 var body = match.Groups["body"].Value;
+
+                if (DatIsBiosRegex.IsMatch(body))
+                {
+                    continue;
+                }
 
                 var romBlockMatches = DatRomBlockRegex.Matches(body);
                 var preferredRomBody = body;

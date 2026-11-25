@@ -25,5 +25,46 @@ namespace NzbDrone.Core.Test.GamesTests
         {
             RegionHelper.IsBios(name).Should().BeFalse();
         }
+
+        [TestCase("Atari 5200 BIOS (USA)")]
+        [TestCase("Nintendo DS Firmware (World)")]
+        [TestCase("Game Boy BootROM (World)")]
+        [TestCase("Atari Lynx Boot Image (World)")]
+        [TestCase("Nintendo 64DD IPL (Japan)")]
+        [TestCase("GameCube IPL (USA)")]
+        [TestCase("Super CD-ROM2 System (Japan)")]
+        [TestCase("Wii System Menu (USA)")]
+        [TestCase("scph5501.bin")]
+        [TestCase("gba_bios.bin")]
+        [TestCase("bios7.bin")]
+        [TestCase("firmware.bin")]
+        [TestCase("dc_boot.bin")]
+        [TestCase("syscard3.pce")]
+        [TestCase("lynxboot.img")]
+        [TestCase("exec.bin")]
+        [TestCase("grom.bin")]
+        [TestCase("kick40060.cd32")]
+        public void should_detect_console_bios_firmware_and_boot_roms(string name)
+        {
+            RegionHelper.IsBios(name).Should().BeTrue();
+        }
+
+        [TestCase("Bioshock (USA)")]
+        [TestCase("Bionic Commando (USA)")]
+        [TestCase("Bio-Hazard Battle (USA)")]
+        [TestCase("Bio Force Ape (Japan)")]
+        [TestCase("Das Boot (Europe)")]
+        [TestCase("Boot Camp (USA)")]
+        [TestCase("Puss in Boots (USA)")]
+        [TestCase("ReBoot (USA)")]
+        [TestCase("System Shock (USA)")]
+        [TestCase("Kick Off (Europe)")]
+        [TestCase("Mine Storm (World)")]
+        [TestCase("Sonic CD (USA)")]
+        [TestCase("Super Mario Bros. (World)")]
+        public void should_not_flag_retail_games_with_similar_words_as_bios(string name)
+        {
+            RegionHelper.IsBios(name).Should().BeFalse();
+        }
     }
 }

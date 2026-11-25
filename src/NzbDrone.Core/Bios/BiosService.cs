@@ -10,9 +10,11 @@ using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
+using NzbDrone.Core.Dat;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.InternetArchive;
 using NzbDrone.Core.Download.Clients.Mega;
+using NzbDrone.Core.Games;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.InternetArchive;
@@ -4772,6 +4774,7 @@ namespace NzbDrone.Core.Bios
         private readonly IGameCatalogService _gameCatalogService;
         private readonly IIndexerFactory _indexerFactory;
         private readonly IDownloadClientRepository _downloadClientRepository;
+        private readonly IDatCacheService _datCacheService;
         private readonly object _firmwareSyncLock = new object();
         private bool _firmwareCacheLoaded;
         private List<DarthsternieFirmwareEntry> _syncedFirmwareEntries = new List<DarthsternieFirmwareEntry>();
@@ -4786,7 +4789,8 @@ namespace NzbDrone.Core.Bios
             IHistoryRepository historyRepository = null,
             IGameCatalogService gameCatalogService = null,
             IIndexerFactory indexerFactory = null,
-            IDownloadClientRepository downloadClientRepository = null)
+            IDownloadClientRepository downloadClientRepository = null,
+            IDatCacheService datCacheService = null)
         {
             _logger = logger;
             _seriesService = seriesService;
@@ -4798,6 +4802,7 @@ namespace NzbDrone.Core.Bios
             _gameCatalogService = gameCatalogService;
             _indexerFactory = indexerFactory;
             _downloadClientRepository = downloadClientRepository;
+            _datCacheService = datCacheService;
         }
 
         public List<BiosFile> GetCatalog(string platformSlug = null)
@@ -4811,6 +4816,7 @@ namespace NzbDrone.Core.Bios
             }
 
             var catalog = query.ToList();
+            AppendDatDiscoveredBiosEntries(catalog, platformSlug);
             PopulatePlatformBiosStatus(catalog, platformSlug);
             return catalog
                 .OrderBy(b => b.PlatformTitle, StringComparer.OrdinalIgnoreCase)
@@ -6388,7 +6394,7 @@ namespace NzbDrone.Core.Bios
             {
                 entry.PlatformTitle = PlatformDisplayNames.TryGetValue(entry.GamePlatform, out var display)
                     ? display
-                    : entry.GamePlatform.ToUpperInvariant();
+                    : (!string.IsNullOrWhiteSpace(entry.PlatformTitle) ? entry.PlatformTitle : entry.GamePlatform.ToUpperInvariant());
                 entry.DownloadUrl = BuildCandidateDownloadUrls(entry).FirstOrDefault();
 
                 if (!resolvedDirByPlatform.TryGetValue(entry.GamePlatform, out var biosDir))
@@ -6609,6 +6615,100 @@ namespace NzbDrone.Core.Bios
             }
 
             return totalSynced;
+        }
+
+        private void AppendDatDiscoveredBiosEntries(List<BiosFile> catalog, string platformSlug)
+        {
+            if (catalog == null || _datCacheService == null || string.IsNullOrWhiteSpace(platformSlug))
+            {
+                return;
+            }
+
+            try
+            {
+                var trimmedSlug = platformSlug.Trim();
+                PlatformCatalogEntry platformEntry = null;
+                _gameCatalogService?.TryGetPlatformEntryBySlug(trimmedSlug, out platformEntry);
+
+                var datEntries = _datCacheService.GetEntriesForPlatform(
+                    trimmedSlug,
+                    platformEntry?.Name,
+                    platformEntry?.LibretroSystemName);
+
+                if (datEntries == null || datEntries.Count == 0)
+                {
+                    return;
+                }
+
+                var biosGroupKey = ResolveBiosGroupKey(trimmedSlug);
+                var existingMd5s = new HashSet<string>(
+                    catalog.Where(b => !string.IsNullOrWhiteSpace(b.ExpectedMd5))
+                           .Select(b => b.ExpectedMd5.Trim().ToLowerInvariant()),
+                    StringComparer.OrdinalIgnoreCase);
+                var existingSha1s = new HashSet<string>(
+                    catalog.Where(b => !string.IsNullOrWhiteSpace(b.ExpectedSha1))
+                           .Select(b => b.ExpectedSha1.Trim().ToLowerInvariant()),
+                    StringComparer.OrdinalIgnoreCase);
+                var existingFileNames = new HashSet<string>(
+                    catalog.Where(b => !string.IsNullOrWhiteSpace(b.FileName))
+                           .Select(b => Path.GetFileName(b.FileName.Replace('\\', '/'))),
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (var entry in datEntries)
+                {
+                    if (entry == null || !RegionHelper.IsBios(entry.GameName, entry.RomName, null, entry.SmdbPath))
+                    {
+                        continue;
+                    }
+
+                    var rawFileName = !string.IsNullOrWhiteSpace(entry.RomName) ? entry.RomName : entry.GameName;
+                    var cleanFileName = !string.IsNullOrWhiteSpace(rawFileName)
+                        ? Path.GetFileName(rawFileName.Replace('\\', '/').Trim())
+                        : null;
+
+                    if (string.IsNullOrWhiteSpace(cleanFileName))
+                    {
+                        continue;
+                    }
+
+                    var md5 = entry.Md5?.Trim().ToLowerInvariant() ?? string.Empty;
+                    var sha1 = entry.Sha1?.Trim().ToLowerInvariant() ?? string.Empty;
+
+                    if ((!string.IsNullOrEmpty(md5) && existingMd5s.Contains(md5)) ||
+                        (!string.IsNullOrEmpty(sha1) && existingSha1s.Contains(sha1)) ||
+                        existingFileNames.Contains(cleanFileName))
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(md5))
+                    {
+                        existingMd5s.Add(md5);
+                    }
+
+                    if (!string.IsNullOrEmpty(sha1))
+                    {
+                        existingSha1s.Add(sha1);
+                    }
+
+                    existingFileNames.Add(cleanFileName);
+
+                    catalog.Add(new BiosFile
+                    {
+                        GamePlatform = biosGroupKey,
+                        PlatformTitle = platformEntry?.Name ?? trimmedSlug,
+                        FileName = cleanFileName,
+                        ExpectedMd5 = md5,
+                        ExpectedSha1 = sha1,
+                        Description = !string.IsNullOrWhiteSpace(entry.GameName) ? entry.GameName : "System BIOS / Firmware",
+                        IsRequired = false
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug(ex, "Unable to append DAT-discovered BIOS entries for {0}", platformSlug);
+            }
         }
 
         private IEnumerable<BiosFile> GetEffectiveCatalogEntries()

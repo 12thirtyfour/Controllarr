@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -375,18 +376,34 @@ namespace NzbDrone.Core.Games
             return false;
         }
 
+        private static readonly Regex BiosTitleRegex = new(
+            @"(?:\bBIOS\b|\bFirmware\b|\bBoot[\s_-]?ROMs?\b|\bBoot[\s_-]?Image\b|\bBoot[\s_-]?Strap\b|\bBootstrap\b|\bBoot[\s_-]?Loader\b|\bBootloader\b|\bBoot[\s_-]?Dis[ck]\b|\bBoot[\s_-]?CD\b|\bBoot[\s_-]?Cart(?:ridge)?\b|\b(?:64DD|GameCube|GC|Nintendo|System|Boot)\s+IPL\b|\bIPL\s*(?:ROM|v?\d|Rev\b|\(|\[)|\bSystem\s+(?:ROM|Software|Menu|Update|BIOS|Firmware)\b|\b(?:Super\s+)?CD-ROM2?\s+System\b|\bSuper\s+System\s+Card\b|\bSystem\s+Card\s*(?:v?\d|\(|\[)|\bGames\s+Express\s+CD\s+Card\b|\bExecutive\s+ROM\b|\bKickstart\s*(?:v?\d|ROM|\()|\bCD32\s+Extended\s+ROM\b|\bExtended\s+ROM\b|\b(?:OS|Kernel|Monitor)\s+ROM\b|\bUniverse\s+BIOS\b|\bUniBIOS\b)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlayStationBiosFileRegex = new(
+            @"^scph\d{4,5}(?:\.[a-z0-9]+)?$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         public static bool IsBios(string title, string releaseTitle = null, IEnumerable<string> dumpTags = null, string verificationSource = null)
         {
             if (!string.IsNullOrWhiteSpace(verificationSource) &&
                 (verificationSource.Contains("BIOS", StringComparison.OrdinalIgnoreCase) ||
-                 verificationSource.Contains("Firmware", StringComparison.OrdinalIgnoreCase)))
+                 verificationSource.Contains("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                 verificationSource.Contains("Boot ROM", StringComparison.OrdinalIgnoreCase) ||
+                 verificationSource.Contains("BootROM", StringComparison.OrdinalIgnoreCase) ||
+                 verificationSource.Contains("Boot Image", StringComparison.OrdinalIgnoreCase) ||
+                 verificationSource.Contains("System ROM", StringComparison.OrdinalIgnoreCase) ||
+                 verificationSource.Contains("System Software", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
 
             if (dumpTags != null && dumpTags.Any(t =>
                 t.Equals("BIOS", StringComparison.OrdinalIgnoreCase) ||
-                t.Equals("Firmware", StringComparison.OrdinalIgnoreCase)))
+                t.Equals("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("Boot ROM", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("BootROM", StringComparison.OrdinalIgnoreCase) ||
+                t.Equals("IPL", StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -412,11 +429,18 @@ namespace NzbDrone.Core.Games
                     text.Contains("\\BIOS\\", StringComparison.OrdinalIgnoreCase) ||
                     text.EndsWith("/BIOS", StringComparison.OrdinalIgnoreCase) ||
                     text.EndsWith("\\BIOS", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Firmware/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Firmware\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/Boot ROM/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\Boot ROM\\", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("/BootROM/", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("\\BootROM\\", StringComparison.OrdinalIgnoreCase) ||
                     text.StartsWith("bios_", StringComparison.OrdinalIgnoreCase) ||
                     text.StartsWith("uni-bios", StringComparison.OrdinalIgnoreCase) ||
                     text.StartsWith("unibios", StringComparison.OrdinalIgnoreCase) ||
                     text.EndsWith(".ipl", StringComparison.OrdinalIgnoreCase) ||
-                    IsKnownNeoGeoBiosName(text) ||
+                    BiosTitleRegex.IsMatch(text) ||
+                    IsKnownBiosFileName(text) ||
                     text.Equals("disksys.rom", StringComparison.OrdinalIgnoreCase) ||
                     text.Equals("cd_bios.rom", StringComparison.OrdinalIgnoreCase))
                 {
@@ -426,6 +450,96 @@ namespace NzbDrone.Core.Games
 
             return false;
         }
+
+        private static readonly HashSet<string> KnownConsoleBiosFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "gb_bios.bin",
+            "gb_bios",
+            "gbc_bios.bin",
+            "gbc_bios",
+            "gba_bios.bin",
+            "gba_bios",
+            "sgb_bios.bin",
+            "sgb_bios",
+            "sgb2_bios.bin",
+            "sgb2_bios",
+            "dmg_boot.bin",
+            "dmg_boot",
+            "cgb_boot.bin",
+            "cgb_boot",
+            "agb_boot.bin",
+            "agb_boot",
+            "sgb_boot.bin",
+            "sgb_boot",
+            "bios7.bin",
+            "bios9.bin",
+            "bios7i.bin",
+            "bios9i.bin",
+            "firmware.bin",
+            "boot9.bin",
+            "boot11.bin",
+            "dc_boot.bin",
+            "dc_boot",
+            "dc_flash.bin",
+            "dc_flash",
+            "sega_101.bin",
+            "mpr-17933.bin",
+            "syscard1.pce",
+            "syscard1",
+            "syscard2.pce",
+            "syscard2",
+            "syscard3.pce",
+            "syscard3",
+            "gexpress.pce",
+            "pcfx.rom",
+            "pcfxga.rom",
+            "lynxboot.img",
+            "lynxboot",
+            "jagboot.rom",
+            "jagboot",
+            "jagcd.rom",
+            "jagcd",
+            "5200.rom",
+            "coleco.rom",
+            "exec.bin",
+            "grom.bin",
+            "ecs.bin",
+            "o2rom.bin",
+            "o2rom",
+            "fastboot.vec",
+            "sl31253.bin",
+            "sl31254.bin",
+            "sl90025.bin",
+            "panafz1.bin",
+            "panafz1",
+            "panafz10.bin",
+            "panafz10",
+            "goldstar.bin",
+            "sanyotry.bin",
+            "cdimono1.zip",
+            "cdimono1",
+            "cdimono2.zip",
+            "cdimono2",
+            "cdibios.zip",
+            "cdibios",
+            "kick40060.cd32",
+            "kick40060.cd32.ext",
+            "cd32.rom",
+            "psxonpsp660.bin",
+            "psxonpsp660",
+            "ps3updat.pup",
+            "psp2updat.pup",
+            "bios.min",
+            "bios.gg",
+            "bioscv.rom",
+            "bioscv",
+            "ipl.bin",
+            "64dd_ipl.bin",
+            "64dd_ipl",
+            "bs-x.bin",
+            "disksys.rom",
+            "cd_bios.rom"
+        };
 
         private static readonly HashSet<string> NeoGeoBiosNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -490,14 +604,20 @@ namespace NzbDrone.Core.Games
             "neopen.bios"
         };
 
-        private static bool IsKnownNeoGeoBiosName(string text)
+        private static bool IsKnownBiosFileName(string text)
         {
             var trimmed = text.Trim();
-            var fileName = System.IO.Path.GetFileName(trimmed);
-            var fileNameNoExt = System.IO.Path.GetFileNameWithoutExtension(trimmed);
+            var normalizedPath = trimmed.Replace('\\', '/');
+            var fileName = Path.GetFileName(normalizedPath);
+            var fileNameNoExt = Path.GetFileNameWithoutExtension(normalizedPath);
             return NeoGeoBiosNames.Contains(fileName) ||
                    NeoGeoBiosNames.Contains(fileNameNoExt) ||
-                   NeoGeoBiosNames.Contains(trimmed);
+                   NeoGeoBiosNames.Contains(trimmed) ||
+                   KnownConsoleBiosFileNames.Contains(fileName) ||
+                   KnownConsoleBiosFileNames.Contains(fileNameNoExt) ||
+                   KnownConsoleBiosFileNames.Contains(trimmed) ||
+                   PlayStationBiosFileRegex.IsMatch(fileName) ||
+                   PlayStationBiosFileRegex.IsMatch(fileNameNoExt);
         }
     }
 }

@@ -112,6 +112,37 @@ namespace NzbDrone.Core.Dat
             return ParseReader(textReader);
         }
 
+        private static bool IsBiosMetadata(string isBiosFlag, string category)
+        {
+            if (!string.IsNullOrWhiteSpace(isBiosFlag) &&
+                (isBiosFlag.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                 isBiosFlag.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                 isBiosFlag.Equals("1", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(category) &&
+                (category.Equals("BIOS", StringComparison.OrdinalIgnoreCase) ||
+                 category.Equals("Firmware", StringComparison.OrdinalIgnoreCase) ||
+                 category.Equals("Boot ROM", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string ApplyBiosPrefixIfNeeded(string gameName, bool isBios)
+        {
+            if (!isBios || string.IsNullOrWhiteSpace(gameName) || gameName.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase))
+            {
+                return gameName;
+            }
+
+            return $"[BIOS] {gameName}";
+        }
+
         private static (DatFile DatFile, List<DatEntry> DatEntries) ParseReader(TextReader streamReader)
         {
             var datFile = new DatFile { CreatedAt = DateTime.UtcNow };
@@ -167,8 +198,13 @@ namespace NzbDrone.Core.Dat
                         var gameEl = (XElement)XNode.ReadFrom(reader);
                         var localGameName = (string)gameEl.Attribute("name");
                         var currentGameDescription = ((string)gameEl.Element("description"))?.Trim();
+                        var isBiosAttr = ((string)gameEl.Attribute("isbios"))?.Trim();
+                        var categoryAttr = ((string)gameEl.Element("category"))?.Trim();
+                        var isBiosEntry = IsBiosMetadata(isBiosAttr, categoryAttr);
 
-                        var effectiveGameName = ResolveEffectiveGameName(localGameName, currentGameDescription);
+                        var effectiveGameName = ApplyBiosPrefixIfNeeded(
+                            ResolveEffectiveGameName(localGameName, currentGameDescription),
+                            isBiosEntry);
 
                         foreach (var rom in gameEl.Elements("rom"))
                         {
@@ -221,9 +257,14 @@ namespace NzbDrone.Core.Dat
             {
                 var body = gameMatch.Groups["body"].Value;
                 var gameHeaderBody = ClrRomBlockRegex.Replace(body, string.Empty);
-                var gameName = ResolveEffectiveGameName(
-                    ExtractClrField(gameHeaderBody, "name"),
-                    ExtractClrField(gameHeaderBody, "description"));
+                var isBiosToken = ExtractClrToken(gameHeaderBody, "isbios");
+                var categoryField = ExtractClrField(gameHeaderBody, "category");
+                var isBiosEntry = IsBiosMetadata(isBiosToken, categoryField);
+                var gameName = ApplyBiosPrefixIfNeeded(
+                    ResolveEffectiveGameName(
+                        ExtractClrField(gameHeaderBody, "name"),
+                        ExtractClrField(gameHeaderBody, "description")),
+                    isBiosEntry);
 
                 foreach (Match romMatch in ClrRomBlockRegex.Matches(body))
                 {

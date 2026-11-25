@@ -11,6 +11,8 @@ using NUnit.Framework;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Bios;
+using NzbDrone.Core.Dat;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 
@@ -702,6 +704,61 @@ namespace NzbDrone.Core.Test.BiosTests
             var excludedGroups = new[] { "naomi", "msx", "amiga", "x68000", "pc98" };
 
             catalog.Select(g => g.GamePlatform).Should().NotContain(excludedGroups);
+        }
+
+        [Test]
+        public void Should_include_dat_discovered_bios_firmware_and_boot_roms_in_bios_catalog()
+        {
+            var platformEntry = new PlatformCatalogEntry
+            {
+                TvdbId = 1012,
+                Name = "Nintendo DS",
+                Slug = "nds",
+                LibretroSystemName = "Nintendo - Nintendo DS"
+            };
+
+            Mocker.GetMock<IGameCatalogService>()
+                  .Setup(s => s.TryGetPlatformEntryBySlug("nds", out platformEntry))
+                  .Returns(true);
+
+            var datEntries = new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "[BIOS] Nintendo DS ARM7 (World)",
+                    RomName = "bios7.bin",
+                    Md5 = "df692a80a5b1bc90728bc3dfc76cd948",
+                    Sha1 = "24f67bdea115a2c847c8813a262502ee1607b7df"
+                },
+                new DatEntry
+                {
+                    GameName = "Nintendo DS BootROM (World)",
+                    RomName = "nds_dsi_boot.bin",
+                    Md5 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    Sha1 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                new DatEntry
+                {
+                    GameName = "Mario Kart DS (USA)",
+                    RomName = "Mario Kart DS (USA).nds",
+                    Md5 = "cccccccccccccccccccccccccccccccc",
+                    Sha1 = "dddddddddddddddddddddddddddddddddddddddd"
+                }
+            };
+
+            Mocker.GetMock<IDatCacheService>()
+                  .Setup(d => d.GetEntriesForPlatform("nds", "Nintendo DS", "Nintendo - Nintendo DS"))
+                  .Returns(datEntries);
+
+            var catalog = Subject.GetCatalog("nds");
+
+            catalog.Should().ContainSingle(b => b.FileName == "bios7.bin");
+            var discoveredBoot = catalog.FirstOrDefault(b => b.FileName == "nds_dsi_boot.bin");
+            discoveredBoot.Should().NotBeNull();
+            discoveredBoot.IsRequired.Should().BeFalse();
+            discoveredBoot.ExpectedMd5.Should().Be("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            discoveredBoot.ExpectedSha1.Should().Be("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+            catalog.Should().NotContain(b => b.FileName.Contains("Mario Kart DS"));
         }
     }
 }

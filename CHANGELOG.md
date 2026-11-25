@@ -26,6 +26,10 @@ All notable changes to **Controllarr** are documented in this file.
 ## [Unreleased] - 2026-11-25
 
 ### Changed
+- **Strict BIOS, Firmware & Boot ROM Filtering and Classification (`RegionHelper`, `DatParserService`, `GameCatalogProxy`, `BiosService`)**:
+  - Broadened `RegionHelper.IsBios` to detect console BIOS, firmware, boot ROM/BootROM/boot image, IPL, System Menu/Software/Card, Kickstart, Executive ROM, and known console BIOS filenames across platforms while preventing false positives on retail game titles (`Bioshock`, `Bionic Commando`, `Boot Camp`, `Das Boot`, `System Shock`, etc.).
+  - Updated `DatParserService` to recognize XML/ClrMamePro `isbios` and `BIOS`/`Firmware`/`Boot ROM` category tags, and added hard exclusion guards in `GameCatalogProxy` (`TryRegisterCrossReferencedGame`, `BuildPlatformAndGames`, `ParseLibretroDatContent`, and `ShouldSkipSmdbPath`) so BIOS, firmware, and boot ROM entries never populate as platform games.
+  - Updated `BiosService.GetCatalog` to surface DAT-discovered BIOS, firmware, and boot ROM entries (deduplicated against canonical BIOS entries by hash and filename) in the platform's **System BIOS & Firmware** section.
 - **Removed Automatic Scheduled Library Refresh (`TaskManager`)**:
   - Removed the 12-hour automatic `RefreshPlatformCommand` scheduled task from `TaskManager` so library refreshes only run when triggered manually by the user (or when adding, editing, or importing a platform) or when DAT catalogs/databases are updated (`UpdateDatCatalogsCommand` via `DatCatalogUpdateService` / `DatDatabaseUpdatedEvent` via `DatDatabaseUpdatedHandler`).
   - Existing SQLite and PostgreSQL installations automatically prune the obsolete `RefreshPlatformCommand` scheduled task entry on application startup.

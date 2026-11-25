@@ -2138,5 +2138,75 @@ game (
             GameCatalogProxy.ShouldSkipSmdbPathForPlatform("gb", "Game Boy/3 GBC with GB Compatibility - Black Carts/1 USA/Antz (USA).gbc", "Antz (USA).gbc").Should().BeTrue();
             GameCatalogProxy.ShouldSkipSmdbPathForPlatform("gbc", "Game Boy/3 GBC with GB Compatibility - Black Carts/1 USA/Antz (USA).gbc", "Antz (USA).gbc").Should().BeFalse();
         }
+
+        [Test]
+        public void should_never_populate_bios_firmware_or_boot_roms_as_platform_games()
+        {
+            Subject.TryGetPlatformEntryBySlug("nds", out var ndsPlatform).Should().BeTrue();
+
+            var datFile = new NzbDrone.Core.Dat.DatFile
+            {
+                Id = 9201,
+                Name = "Nintendo - Nintendo DS (No-Intro)",
+                Category = "No-Intro"
+            };
+
+            var datEntries = new List<NzbDrone.Core.Dat.DatEntry>
+            {
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9201,
+                    GameName = "[BIOS] Nintendo DS ARM7 (World)",
+                    RomName = "bios7.bin",
+                    Sha1 = "1111111111111111111111111111111111111111"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9201,
+                    GameName = "Nintendo DS Firmware (World)",
+                    RomName = "firmware.bin",
+                    Sha1 = "2222222222222222222222222222222222222222"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9201,
+                    GameName = "Nintendo DS BootROM (World)",
+                    RomName = "nds_boot.bin",
+                    Sha1 = "3333333333333333333333333333333333333333"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9201,
+                    GameName = "Atari 5200 BIOS (USA)",
+                    RomName = "5200.rom",
+                    Sha1 = "4444444444444444444444444444444444444444"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9201,
+                    GameName = "Mario Kart DS (USA)",
+                    RomName = "Mario Kart DS (USA).nds",
+                    Sha1 = "5555555555555555555555555555555555555555"
+                }
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile> { datFile });
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetEntriesForPlatform(ndsPlatform.Slug, ndsPlatform.Name, ndsPlatform.LibretroSystemName))
+                .Returns(datEntries);
+
+            Subject.InvalidatePlatformCache(ndsPlatform.TvdbId);
+            var tuple = Subject.GetSeriesInfo(ndsPlatform.TvdbId, Language.English, null);
+
+            tuple.Item2.Should().Contain(e => e.Title == "Mario Kart DS");
+            tuple.Item2.Should().NotContain(e => e.SeasonNumber == GameCatalogProxy.RegionBios);
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("Firmware", System.StringComparison.OrdinalIgnoreCase));
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("BootROM", System.StringComparison.OrdinalIgnoreCase));
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("BIOS", System.StringComparison.OrdinalIgnoreCase));
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("ARM7", System.StringComparison.OrdinalIgnoreCase));
+        }
     }
 }
