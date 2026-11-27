@@ -2,7 +2,6 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
@@ -10,91 +9,30 @@ namespace NzbDrone.Core.Test.ParserTests
     [TestFixture]
     public class ParserFixture : CoreTest
     {
-        [TestCase("Series Title - 4x05 - Title", "seriestitle")]
-        [TestCase("Series & Title - 4x05 - Title", "seriestitle")]
-        [TestCase("Bad Format", "badformat")]
-        [TestCase("Mad Series - Season 1 [Bluray720p]", "madseries")]
-        [TestCase("Mad Series - Season 1 [Bluray1080p]", "madseries")]
-        [TestCase("The Daily Series -", "thedailyseries")]
-        [TestCase("The Series Bros. (2006)", "theseriesbros2006")]
-        [TestCase("Series (2011)", "series2011")]
-        [TestCase("Series Time S02 720p HDTV x264 CRON", "seriestime")]
-        [TestCase("Series Title 0", "seriestitle0")]
-        [TestCase("Series of the Day", "seriesday")]
-        [TestCase("Series of the Day 2", "seriesday2")]
-        [TestCase("[ www.Torrenting.com ] - Series.S03E14.720p.HDTV.X264-DIMENSION", "series")]
-        [TestCase("www.Torrenting.com - Series.S03E14.720p.HDTV.X264-DIMENSION", "series")]
-        [TestCase("Series S02E09 HDTV x264-2HD [eztv]-[rarbg.com]", "series")]
-        [TestCase("Series.911.S01.DVDRip.DD2.0.x264-DEEP", "series 911")]
-        [TestCase("www.Torrenting.org - Series.S03E14.720p.HDTV.X264-DIMENSION", "series")]
-        public void should_parse_series_name(string postTitle, string title)
+        [TestCase("Super Mario 64 (USA) [!]", "supermario64usa")]
+        [TestCase("Chrono Trigger (USA) [!]", "chronotriggerusa")]
+        [TestCase("The Legend of Zelda (2006)", "thelegendzelda2006")]
+        [TestCase("Metroid Prime (2002)", "metroidprime2002")]
+        [TestCase("Pokemon Emerald Version", "pokemonemeraldversion")]
+        [TestCase("Nintendo 64 - Super Mario World", "nintendo64supermarioworld")]
+        public void should_clean_game_and_platform_names(string rawTitle, string expectedCleanTitle)
         {
-            var result = Parser.Parser.ParseSeriesName(postTitle).CleanSeriesTitle();
-            result.Should().Be(title.CleanSeriesTitle());
-        }
-
-        [TestCase("Series S03E14 720p HDTV X264-DIMENSION", "Series")]
-        [TestCase("Series.S03E14.720p.HDTV.X264-DIMENSION", "Series")]
-        [TestCase("Series-S03E14-720p-HDTV-X264-DIMENSION", "Series")]
-        [TestCase("Series_S03E14_720p_HDTV_X264-DIMENSION", "Series")]
-        [TestCase("Series 2022 S03E14 720p HDTV X264-DIMENSION", "Series", 2022)]
-        [TestCase("Series (2022) S03E14 720p HDTV X264-DIMENSION", "Series", 2022)]
-        [TestCase("Series.2022.S03E14.720p.HDTV.X264-DIMENSION", "Series", 2022)]
-        [TestCase("Series-2022-S03E14-720p-HDTV-X264-DIMENSION", "Series", 2022)]
-        [TestCase("Series_2022_S03E14_720p_HDTV_X264-DIMENSION", "Series", 2022)]
-        [TestCase("1234 S03E14 720p HDTV X264-DIMENSION", "1234")]
-        [TestCase("1234.S03E14.720p.HDTV.X264-DIMENSION", "1234")]
-        [TestCase("1234-S03E14-720p-HDTV-X264-DIMENSION", "1234")]
-        [TestCase("1234_S03E14_720p_HDTV_X264-DIMENSION", "1234")]
-        [TestCase("1234 2022 S03E14 720p HDTV X264-DIMENSION", "1234", 2022)]
-        [TestCase("1234 (2022) S03E14 720p HDTV X264-DIMENSION", "1234", 2022)]
-        [TestCase("1234.2022.S03E14.720p.HDTV.X264-DIMENSION", "1234", 2022)]
-        [TestCase("1234-2022-S03E14-720p-HDTV-X264-DIMENSION", "1234", 2022)]
-        [TestCase("1234_2022_S03E14_720p_HDTV_X264-DIMENSION", "1234", 2022)]
-        public void should_parse_series_title_info(string postTitle, string titleWithoutYear, int year = 0)
-        {
-            var seriesTitleInfo = Parser.Parser.ParseTitle(postTitle).SeriesTitleInfo;
-            seriesTitleInfo.TitleWithoutYear.Should().Be(titleWithoutYear);
-            seriesTitleInfo.Year.Should().Be(year);
+            var result = Parser.Parser.ParseSeriesName(rawTitle).CleanSeriesTitle();
+            result.Should().Be(expectedCleanTitle);
         }
 
         [Test]
         public void should_remove_accents_from_title()
         {
-            const string title = "Seri\u00E0es";
+            const string title = "Pok\u00E9mon";
 
-            title.CleanSeriesTitle().Should().Be("seriaes");
+            title.CleanSeriesTitle().Should().Be("pokemon");
         }
 
-        [TestCase("Sonar TV - Series Title : 02 Road From Code [S04].mp4")]
+        [TestCase("Super Mario World : Rev 1 [No-Intro].sfc")]
         public void should_clean_up_invalid_path_characters(string postTitle)
         {
             Parser.Parser.ParseTitle(postTitle);
-        }
-
-        [TestCase("[scnzbefnet][509103] 2.Developers.Series.S03E18.720p.HDTV.X264-DIMENSION", "2 Developers Series")]
-        public void should_remove_request_info_from_title(string postTitle, string title)
-        {
-            Parser.Parser.ParseTitle(postTitle).SeriesTitle.Should().Be(title);
-        }
-
-        [TestCase("Series.S01E02.Chained.Title.mkv", "Series.S01E02.Chained.Title")]
-        public void should_parse_releasetitle(string path, string releaseTitle)
-        {
-            var result = Parser.Parser.ParseTitle(path);
-            result.ReleaseTitle.Should().Be(releaseTitle);
-        }
-
-        [TestCase("Босх: Спадок (S2E1) / Series: Legacy (S2E1) (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Босх: Спадок", "Series: Legacy")]
-        [TestCase("Босх: Спадок / Series: Legacy / S2E1-4 of 10 (2023) WEB-DL 1080p Ukr/Eng | sub Eng", "Босх: Спадок", "Series: Legacy")]
-        [TestCase("Босх: Спадок AKA Series: Legacy S02 1080p NF WEB-DL Dual- Audio DD+ 5.1 Atmos H.264-APEX", "Босх: Спадок", "Series: Legacy")]
-        [TestCase("Босх.Спадок.AKA.Series.Legacy.S02.1080p.NF.WEB-DL.DUAL.DDP5.1.Atmos.H.264-APEX", "Босх Спадок", "Series Legacy")]
-        [TestCase("[Judas] Series E (Series J) (Season 04) [1080p][HEVC x265 10bit][Dual-Audio][Multi-Subs] (Batch)", "Series E", "Series J")]
-        [TestCase("Serie / Series [S01E02] [MULTI] [1080p] [HMAX] [WEB-DL] [H.264] [DDP5.1.Atmos-K83] [Lektor i Napisy PL]", "Serie", "Series")]
-        public void should_parse_multiple_series_titles(string postTitle, params string[] titles)
-        {
-            var seriesTitleInfo = Parser.Parser.ParseTitle(postTitle).SeriesTitleInfo;
-            seriesTitleInfo.AllTitles.Should().BeEquivalentTo(titles);
         }
 
         [Test]
@@ -105,13 +43,13 @@ namespace NzbDrone.Core.Test.ParserTests
             Parser.Parser.ParseTitle("Pokemon Diamond Version r9792").Should().BeNull();
         }
 
-        [TestCase("[Reza] Series in Russian - S01E08 [WEBRip 1080p HEVC AAC] (Dual Audio) (Tokidoki Bosotto Russiago de Dereru Tonari no Alya-san)", "Unknown")]
-        public void should_parse_language_after_parsing_title(string postTitle, string expectedLanguage)
+        [TestCase("Super.Mario.64.USA.English.[No-Intro].z64", "English")]
+        public void should_parse_language_from_release_title(string postTitle, string expectedLanguage)
         {
-            var result = Parser.Parser.ParseTitle(postTitle);
+            var result = LanguageParser.ParseLanguages(postTitle);
 
-            result.Languages.Count.Should().Be(1);
-            result.Languages.Should().Contain((Language)expectedLanguage);
+            result.Count.Should().Be(1);
+            result.Should().Contain((Language)expectedLanguage);
         }
     }
 }

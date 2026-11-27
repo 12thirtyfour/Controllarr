@@ -23,16 +23,16 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("86420f8ee425340d8894bf3bc636b66404b95f18")]
         [TestCase("ce39afb7da6cf7c04eba3090f0a309f609883862")]
         [TestCase("THIS SHOULD NEVER PARSE")]
-        [TestCase("Vh1FvU3bJXw6zs8EEUX4bMo5vbbMdHghxHirc.mkv")]
-        [TestCase("0e895c37245186812cb08aab1529cf8ee389dd05.mkv")]
-        [TestCase("08bbc153931ce3ca5fcafe1b92d3297285feb061.mkv")]
+        [TestCase("Vh1FvU3bJXw6zs8EEUX4bMo5vbbMdHghxHirc.zip")]
+        [TestCase("0e895c37245186812cb08aab1529cf8ee389dd05.zip")]
+        [TestCase("08bbc153931ce3ca5fcafe1b92d3297285feb061.7z")]
         [TestCase("185d86a343e39f3341e35c4dad3ff159")]
-        [TestCase("ah63jka93jf0jh26ahjas961.mkv")]
+        [TestCase("ah63jka93jf0jh26ahjas961.zip")]
         [TestCase("qrdSD3rYzWb7cPdVIGSn4E7")]
         [TestCase("QZC4HDl7ncmzyUj9amucWe1ddKU1oFMZDd8r0dEDUsTd")]
         [TestCase("abc.xyz.af6021c37f7852")]
         [TestCase("e096aeb3c2c0483a96f5b32fc6d10ff5")]
-        [TestCase("_unpack e096aeb3c2c0483a96f5b32fc6d10ff5.mkv")]
+        [TestCase("_unpack e096aeb3c2c0483a96f5b32fc6d10ff5.zip")]
         public void should_not_parse_crap(string title)
         {
             Parser.Parser.ParseTitle(title).Should().BeNull();
@@ -98,20 +98,8 @@ namespace NzbDrone.Core.Test.ParserTests
             success.Should().Be(repetitions);
         }
 
-        [TestCase("theseriestitle1618finale")]
+        [TestCase("supermarioworld1618")]
         public void should_not_parse_file_name_without_proper_spacing(string fileName)
-        {
-            Parser.Parser.ParseTitle(fileName).Should().BeNull();
-        }
-
-        [TestCase("Series Title (2018) Complete 360p HDTV AAC H.264-NEXT")]
-        public void should_not_parse_invalid_release_name(string fileName)
-        {
-            Parser.Parser.ParseTitle(fileName).Should().BeNull();
-        }
-
-        [TestCase("Specials/Series - Episode Title (part 1)")]
-        public void should_not_parse_special_with_part_number(string fileName)
         {
             Parser.Parser.ParseTitle(fileName).Should().BeNull();
         }

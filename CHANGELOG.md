@@ -39,9 +39,12 @@ All notable changes to **Controllarr** are documented in this file.
   - Removed all 21 legacy TV/video qualities (`SDTV`, `HDTV-720p`, `WEBDL-1080p`, `Bluray-2160p`, etc.) and video/audio codec/resolution regexes from `Quality`, `QualitySource`, `QualityFinder`, `QualityParser`, and `frontend/src/Quality/Quality.ts`, leaving exclusively the 7 ROM dump-verification tiers (`Unknown`, `BetaProto`, `TranslationPatch`, `UnverifiedRaw`, `VerifiedGoodDump`, `NoIntroVerified`, `VerifiedRedump`) with startup cleanup of removed IDs from existing profiles.
   - Updated `ParseModalContent.tsx` placeholder to use a ROM filename (`Super Mario World (USA) [!].sfc`) instead of a TV release name.
 
+- **User-Facing Video Terminology Cleanup (`en.json`)**:
+  - Updated remaining video references in `en.json` (`AnalyseVideoFiles`, `InteractiveImportNoFilesFound`, and `QualityProfilesSectionDescription`) to ROM and ROM dump verification terminology.
+
 ### Removed
 - **Obsolete TV/Anime/Video-Quality Parser Test Fixtures**:
-  - Removed `AbsoluteGameNumberParserFixture.cs`, `DailyGameParserFixture.cs`, `SubGroupParserFixture.cs`, `MiniPlatformGameParserFixture.cs`, `ExtendedQualityParserRegex.cs`, `HashedReleaseFixture.cs`, `117_add_webrip_qualites_in_profileFixture.cs`, and `215_add_blurary576p_quality_in_profiles_with_grouped_blurary480pFixture.cs`, and converted `UrlFixture`, `QualityParserFixture`, `ReleaseRevisionParserFixture`, `SceneCheckerFixture`, and affected quality/organizer test fixtures to ROM-focused test cases.
+  - Removed `AbsoluteGameNumberParserFixture.cs`, `BracketedHashParserFixture.cs`, `DailyGameParserFixture.cs`, `ExtendedQualityParserRegex.cs`, `HashedReleaseFixture.cs`, `IsPossibleSpecialGameFixture.cs`, `MiniPlatformGameParserFixture.cs`, `MultiGameParserFixture.cs`, `PathParserFixture.cs`, `RegionParserFixture.cs`, `RegionTitleParserFixture.cs`, `SingleGameParserFixture.cs`, `SubGroupParserFixture.cs`, `UnicodeReleaseParserFixture.cs`, `117_add_webrip_qualites_in_profileFixture.cs`, and `215_add_blurary576p_quality_in_profiles_with_grouped_blurary480pFixture.cs`, and converted `UrlFixture`, `QualityParserFixture`, `ReleaseRevisionParserFixture`, `SceneCheckerFixture`, `LanguageParserFixture`, `ReleaseGroupParserFixture`, `ParserFixture`, `PlatformTitleInfoFixture`, `NormalizeGameTitleFixture`, `CrapParserFixture`, `ReleaseComparerFixture`, and affected quality/organizer test fixtures to ROM-focused test cases.
 
 ### Fixed
 - **Recursive Nested Archive Extraction & Internet Archive Junk Filtering (`ArchiveRepackService`, `DownloadedGamesImportService`)**:

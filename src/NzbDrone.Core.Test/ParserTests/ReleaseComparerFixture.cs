@@ -10,7 +10,7 @@ namespace NzbDrone.Core.Test.ParserTests
     [TestFixture]
     public class ReleaseComparerFixture
     {
-        private const string Title = "Series.Title.S01E05.1080p.x265-ELiTE";
+        private const string Title = "Super.Mario.64.(USA).[No-Intro]-Mercury.z64";
         private const long Size = 1352581934;
 
         private static readonly DateTime PublishedDate = new DateTime(2026, 2, 6, 15, 39, 0, DateTimeKind.Utc);
