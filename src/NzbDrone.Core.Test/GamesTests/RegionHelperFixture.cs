@@ -89,5 +89,44 @@ namespace NzbDrone.Core.Test.GamesTests
             RegionHelper.IsTranslation(name).Should().BeFalse();
             RegionHelper.IsRomHackOrTranslation(name).Should().BeTrue();
         }
+
+        [TestCase("Game Boy Aging Cartridge (World) (En,Ja) (v1.1)", true)]
+        [TestCase("Super Famicom Aging Program Ver. 1.00 (Japan) (En)", true)]
+        [TestCase("SNSP Aging Ver 1.02 (Japan) (En)", true)]
+        [TestCase("Controller Test Cassette (Japan) (En)", true)]
+        [TestCase("Super NES Control Deck Tester (Japan) (En) (Rev 1)", true)]
+        [TestCase("Arkagis Revolution - Input Diagnostics (World)", true)]
+        [TestCase("MD Soft Checker (USA) (Proto)", true)]
+        [TestCase("SoundTest 2 (World) (Program) (Aftermarket) (Unl)", true)]
+        [TestCase("Gesture Test for Power Pad (World) (Program) (Aftermarket) (Unl)", true)]
+        [TestCase("OptImage CD-I 220 Adjustment Disc (USA)", true)]
+        [TestCase("Test Drive II - The Duel (USA)", false)]
+        [TestCase("Chinese Checkers (USA)", false)]
+        [TestCase("Burn-Cycle (USA, Europe) (Disc 1) (The Game)", false)]
+        public void should_classify_test_and_diagnostic_carts_across_platforms(string name, bool expected)
+        {
+            RegionHelper.IsTestOrUtility(name).Should().Be(expected);
+        }
+
+        [TestCase("Accent Health - April 2003 50 + Silver CDi 0403 (USA)", true)]
+        [TestCase("CD-i Music Book - Classical Guitar Volume 1 (USA)", true)]
+        [TestCase("Felix the Cat's Giant Electronic Comic Book (USA, Europe)", true)]
+        [TestCase("Compton's Interactive Encyclopedia (USA)", false)]
+        [TestCase("Rand McNally's America - United States Atlas (USA)", true)]
+        [TestCase("CD-i Title Sampler - Fall '94 (USA)", true)]
+        [TestCase("Time Life Presents - 35mm Photography (USA)", true)]
+        [TestCase("Time-Life Astrology (USA)", true)]
+        [TestCase("Louis Armstrong - An American Songbook (USA)", true)]
+        [TestCase("Bell Atlantic Info-Active Electronic Directory (USA)", true)]
+        [TestCase("Philips CD-i Product Preview (USA)", true)]
+        [TestCase("Hotel Mario (USA)", false)]
+        [TestCase("Zelda - The Wand of Gamelon (USA)", false)]
+        [TestCase("Ys Book I & II (USA)", false)]
+        [TestCase("Jungle Book, The (USA)", false)]
+        [TestCase("Toy Story (USA)", false)]
+        public void should_classify_cdi_magazines_and_reference_books_out_of_retail(string name, bool expected)
+        {
+            RegionHelper.IsMagazineOrBook(name).Should().Be(expected);
+        }
     }
 }

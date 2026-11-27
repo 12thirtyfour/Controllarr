@@ -39,6 +39,12 @@ All notable changes to **Controllarr** are documented in this file.
   - Removed legacy TV `RawDiskSpecification` and `NotSampleSpecification` holdovers so valid console disc `.iso` images and small ROM demos/samples are never falsely rejected as `"Raw DVD release"` or video samples.
 - **Scanner & Patcher DAT Query Performance (`UnmanagedDiskScanner`, `RomPatchingService`)**:
   - Hoisted `_seriesService.GetAllSeries()` out of the per-BIOS-entry loop in `UnmanagedDiskScanner`, eliminated 4 redundant per-hash DB fallbacks after `IDatCacheService.FindBestMatch`, and consolidated `RomPatchingService` DAT hash lookup into a single `FindBestMatch` query.
+- **NES Catalog Deduplication, Hack Isolation, Test Carts & Philips CD-i Magazines (`GameCatalogProxy`, `RegionHelper`)**:
+  - Guarded `PairDlcWithBaseGames` with `IsNonRetailSpecialRegion` so ROM hacks with `Update` in their titles (such as `1943 - The Battle of Midway - 2011 Update (1943 Hack)`) are never re-regioned into retail USA or pruned.
+  - Preserved SmokeMonster SMDB path context and `Test & Utilities` category recognition in the cached DAT catalog loader (`GetSeriesInfo`) so SMDB folder authority is honored consistently across live sync and cached DB loads.
+  - Added distinct edition/re-release recognition (`Retro-Bit Generations`, `Switch Online`, `Classic Mini`, `Animal Crossing`, `e-Reader`, `Namcot Collection`, etc.) and broadened `VirtualConsoleTagRegex` + SMDB headered retail dedup (`ShouldMergeIdenticalRetailHeaderVariant`, `IsCatalogNoiseToken`) to eliminate doubled-up `Retail (v1.0)` NES entries (`10-Yard Fight`, `1943 - The Battle of Midway`).
+  - Expanded `RegionHelper.TestOrUtilityRegex` to route cross-platform test/aging/diagnostic/adjustment cartridges and discs (`Aging Cartridge`, `Aging Program`, `Aging Ver`, `Test Cassette`, `Control Deck Tester`, `Input Diagnostics`, `Soft Checker`, `Adjustment Disc`, `SoundTest`, `Gesture Test`) into `Test & Utilities`.
+  - Expanded `RegionHelper.MagazineOrBookRegex` so Philips CD-i USA periodicals, electronic comic/music books, atlases, directories, and title samplers route into `Magazines & Books`.
 
 ### Added
 - **Dedicated Internet Archive Queue Section & Reordering (`InternetArchive`, `QueueService`, `QueueActionController`, `Queue.tsx`)**:

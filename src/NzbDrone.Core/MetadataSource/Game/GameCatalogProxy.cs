@@ -94,7 +94,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex VirtualConsoleTagRegex = new Regex(
-            @"\((?:(?:Wii U|Wii|3DS)\s+)?Virtual Console\)",
+            @"\([^\)]*\b(?:(?:USA|Europe|Japan)\s+)?(?:(?:Wii U|Wii|3DS)\s+)?Virtual Console\b[^\)]*\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex ArtifactTitleIdRegex = new Regex(
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex EditionVariantTagRegex = new Regex(
-            @"\((?<ed>SGB\s+Enhanced|GB\s+Compatible|Rumble\s+Version|No\s+EDC|EDC|Player's\s+Choice|Greatest\s+Hits|Platinum|Best\s+Price|The\s+Best|Collector's\s+Edition|GameCube\s+Edition|Shindou\s+Edition|Special\s+Edition|Limited\s+Edition|Competition\s+Cart|Not\s+for\s+Resale|NFR|Kiosk|Bonus\s+Disc|Save\s+Edition|Debug|NP|Made\s+in\s+Japan|512K|1M|2M|4M|8M|16M)\)",
+            @"\((?<ed>(?:SGB\s+Enhanced|GB\s+Compatible|Rumble\s+Version|No\s+EDC|EDC|Player's\s+Choice|Greatest\s+Hits|Platinum|Best\s+Price|The\s+Best|Collector's\s+Edition|GameCube\s+Edition|Shindou\s+Edition|Special\s+Edition|Limited\s+Edition|Competition\s+Cart|Not\s+for\s+Resale|NFR|Kiosk|Bonus\s+Disc|Save\s+Edition|Debug|NP|Made\s+in\s+Japan|512K|1M|2M|4M|8M|16M|Retro-Bit\s+Generations|Retro-Bit|Switch\s+Online|Classic\s+Mini|NES\s+Classic|SNES\s+Classic|Animal\s+Crossing|e-Reader(?:\s+Edition)?|FamicomBox|Namcot\s+Collection|Namco\s+Museum\s+Archives(?:\s+Vol\.?\s*\d+)?|Castlevania\s+Anniversary\s+Collection|Contra\s+Anniversary\s+Collection|The\s+Disney\s+Afternoon\s+Collection|SNK\s+40th\s+Anniversary\s+Collection|Capcom\s+Classics\s+Mini\s+Mix|Capcom\s+Town|Super\s+Bomberman\s+Collection|Mega\s+Man\s+Legacy\s+Collection|Marvel\s+MaXimum\s+Collection|Cowabunga\s+Collection|Evercade|Retro\s+Collection|Arcade\s+Archives)(?:,\s*(?:Namco\s+Museum\s+Archives(?:\s+Vol\.?\s*\d+)?|Switch\s+Online))?)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         internal static readonly Regex UpdateTagRegex = new Regex(
@@ -932,10 +932,33 @@ namespace NzbDrone.Core.MetadataSource.Game
                 if (seenCanonicalEntries.TryGetValue(canonicalKey, out var existingCanonical))
                 {
                     var bothHaveHashes = HasAnyHash(existingCanonical) && HasAnyHash(candidate);
-                    if (!bothHaveHashes || HasMatchingHash(existingCanonical, candidate))
+                    if (!bothHaveHashes ||
+                        HasMatchingHash(existingCanonical, candidate) ||
+                        ShouldMergeIdenticalRetailHeaderVariant(existingCanonical, candidate))
                     {
                         MergeMissingHashes(existingCanonical, candidate, seenHashes);
                         IndexEntryByHashes(existingCanonical);
+                        RegisterHashes(seenHashes, candidate.ExpectedSha256, candidate.ExpectedSha1, candidate.ExpectedMd5, candidate.ExpectedCrc32);
+                        if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha256))
+                        {
+                            entriesByHash.TryAdd($"sha256:{candidate.ExpectedSha256.Trim().ToLowerInvariant()}", existingCanonical);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(candidate.ExpectedSha1))
+                        {
+                            entriesByHash.TryAdd($"sha1:{candidate.ExpectedSha1.Trim().ToLowerInvariant()}", existingCanonical);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(candidate.ExpectedMd5))
+                        {
+                            entriesByHash.TryAdd($"md5:{candidate.ExpectedMd5.Trim().ToLowerInvariant()}", existingCanonical);
+                        }
+
+                        if (IsValidCrc32(candidate.ExpectedCrc32))
+                        {
+                            entriesByHash.TryAdd($"crc:{candidate.ExpectedCrc32.Trim().ToLowerInvariant()}", existingCanonical);
+                        }
+
                         return false;
                     }
 
@@ -1059,7 +1082,17 @@ namespace NzbDrone.Core.MetadataSource.Game
                         if (!string.IsNullOrWhiteSpace(datEntry.SmdbPath))
                         {
                             var smdbParts = datEntry.SmdbPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-                            if (smdbParts.Any(IsTranslationSmdbSegment))
+                            if (smdbParts.Any(s => s.Contains("Tools & Service", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Tools & Test", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Service Test", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Contains("Test Carts", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Equals("Utilities", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Equals("Utility", StringComparison.OrdinalIgnoreCase) ||
+                                                   s.Equals("Diagnostics", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                effectiveCategory = "Test & Utilities";
+                            }
+                            else if (smdbParts.Any(IsTranslationSmdbSegment))
                             {
                                 effectiveCategory = "Translations";
                             }
@@ -1084,7 +1117,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                             }
                         }
 
-                        var isSpecialCategory = effectiveCategory == "Translations" ||
+                        var isSpecialCategory = effectiveCategory == "Test & Utilities" ||
+                                                effectiveCategory == "Translations" ||
                                                 effectiveCategory == "ROM Hacks & Translations" ||
                                                 effectiveCategory == "Homebrew" ||
                                                 effectiveCategory == "Aftermarket" ||
@@ -1102,7 +1136,11 @@ namespace NzbDrone.Core.MetadataSource.Game
                         var cachedYear = cachedDateInfo?.Year ?? platform.ReleaseYear;
                         var cachedReleaseDate = cachedDateInfo?.ReleaseDate;
 
-                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, cachedYear, effectiveCategory, customReleaseDate: cachedReleaseDate);
+                        var effectiveVerificationSource = string.IsNullOrWhiteSpace(datEntry.SmdbPath)
+                            ? effectiveCategory
+                            : $"{effectiveCategory} | {datEntry.SmdbPath}";
+
+                        var converted = CreateCatalogEntryFromNoIntroName(platform, rawName, cachedYear, effectiveVerificationSource, customReleaseDate: cachedReleaseDate);
                         if (converted != null)
                         {
                             converted.ExpectedSha256 = datEntry.Sha256?.Trim().ToLowerInvariant();
@@ -3602,6 +3640,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             return false;
         }
 
+        private static bool IsNonRetailSpecialRegion(int regionNumber) =>
+            regionNumber is RegionRomHacks or RegionTranslations or RegionHomebrew or RegionAftermarket or RegionTestAndUtilities or RegionMagazinesAndBooks or RegionBios;
+
         internal static void PairDlcWithBaseGames(List<GameCatalogEntry> games)
         {
             if (games == null || games.Count == 0)
@@ -3616,7 +3657,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             var primaryRegionByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var game in games)
             {
-                if (game == null || IsUpdateVersion(game.RevisionTag, game.NoIntroName))
+                if (game == null || IsNonRetailSpecialRegion(game.RegionNumber) || IsUpdateVersion(game.RevisionTag, game.NoIntroName))
                 {
                     continue;
                 }
@@ -3692,7 +3733,7 @@ namespace NzbDrone.Core.MetadataSource.Game
 
             foreach (var entry in games)
             {
-                if (entry == null || !IsUpdateVersion(entry.RevisionTag, entry.NoIntroName))
+                if (entry == null || IsNonRetailSpecialRegion(entry.RegionNumber) || !IsUpdateVersion(entry.RevisionTag, entry.NoIntroName))
                 {
                     continue;
                 }
@@ -3773,7 +3814,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
 
             // Never leave standalone/orphaned Updates or DLC floating in the library without their base game
-            games.RemoveAll(g => g != null && IsUpdateVersion(g.RevisionTag, g.NoIntroName) && !pairedEntries.Contains(g));
+            games.RemoveAll(g => g != null && !IsNonRetailSpecialRegion(g.RegionNumber) && IsUpdateVersion(g.RevisionTag, g.NoIntroName) && !pairedEntries.Contains(g));
         }
 
         private static string ExtractTitleIdTag(string noIntroName)
@@ -4177,6 +4218,68 @@ namespace NzbDrone.Core.MetadataSource.Game
             return tokens;
         }
 
+        private static readonly Regex GoodToolsShortRegionTokenRegex = new Regex(
+            @"^(?:U|E|J|W|A|B|C|F|G|I|K|S|UK|EU|US|JP|JU|UE|JE|JUE|Gr|Sw|Ch|Hk|Tw|Nl|Pt|Ru|Pl|No|Dk|Fi|Unk|PD|h\d*|p\d*|t\d*|f\d*|b\d*|o\d*|a\d*)$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static bool IsCatalogNoiseToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return true;
+            }
+
+            if (token.Equals("Encrypted", StringComparison.OrdinalIgnoreCase) ||
+                token.StartsWith("Track ", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("!", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("S", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("Hack", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("ROM Hack", StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("Translation", StringComparison.OrdinalIgnoreCase) ||
+                GoodToolsShortRegionTokenRegex.IsMatch(token))
+            {
+                return true;
+            }
+
+            var wrapped = $"({token})";
+            return GeographicRegionTagRegex.IsMatch(wrapped);
+        }
+
+        internal static bool ShouldMergeIdenticalRetailHeaderVariant(GameCatalogEntry existingCanonical, GameCatalogEntry candidate)
+        {
+            if (existingCanonical == null || candidate == null)
+            {
+                return false;
+            }
+
+            if (existingCanonical.RegionNumber != candidate.RegionNumber ||
+                existingCanonical.RegionNumber is not (RegionUsa or RegionWorld or RegionEurope or RegionJapan))
+            {
+                return false;
+            }
+
+            if (!IsBaseV1Tag(existingCanonical.RevisionTag) || !IsBaseV1Tag(candidate.RevisionTag))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(candidate.VerificationSource) ||
+                !candidate.VerificationSource.Contains("SmokeMonster", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var existingSet = new HashSet<string>(
+                ExtractBracketAndParenTokens(existingCanonical.NoIntroName).Where(t => !IsCatalogNoiseToken(t)),
+                StringComparer.OrdinalIgnoreCase);
+
+            var candidateTokens = ExtractBracketAndParenTokens(candidate.NoIntroName)
+                .Where(t => !IsCatalogNoiseToken(t) && !TrailingLanguageTagRegex.IsMatch($"({t})"))
+                .ToList();
+
+            return !candidateTokens.Any(t => !existingSet.Contains(t));
+        }
+
         internal static void DisambiguateCollidingEntries(
             GameCatalogEntry existingCanonical,
             GameCatalogEntry candidate,
@@ -4186,20 +4289,11 @@ namespace NzbDrone.Core.MetadataSource.Game
             var existingTokens = ExtractBracketAndParenTokens(existingCanonical.NoIntroName);
             var candidateTokens = ExtractBracketAndParenTokens(candidate.NoIntroName);
 
-            bool IsNoiseToken(string token) =>
-                token.Equals("Encrypted", StringComparison.OrdinalIgnoreCase) ||
-                token.StartsWith("Track ", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("!", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("S", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("Hack", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("ROM Hack", StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("Translation", StringComparison.OrdinalIgnoreCase);
-
-            var existingSet = new HashSet<string>(existingTokens.Where(t => !IsNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
-            var candidateSet = new HashSet<string>(candidateTokens.Where(t => !IsNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
+            var existingSet = new HashSet<string>(existingTokens.Where(t => !IsCatalogNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
+            var candidateSet = new HashSet<string>(candidateTokens.Where(t => !IsCatalogNoiseToken(t)), StringComparer.OrdinalIgnoreCase);
 
             string PickDistinctToken(IEnumerable<string> own, HashSet<string> other) =>
-                own.FirstOrDefault(t => !IsNoiseToken(t) && !other.Contains(t));
+                own.FirstOrDefault(t => !IsCatalogNoiseToken(t) && !other.Contains(t));
 
             var usedTags = new HashSet<string>(
                 platformGames
@@ -4341,12 +4435,15 @@ namespace NzbDrone.Core.MetadataSource.Game
                 }
             }
 
-            if (VirtualConsoleTagRegex.IsMatch(noIntroName))
+            if (VirtualConsoleTagRegex.IsMatch(noIntroName) &&
+                !parts.Any(p => p.Contains("Virtual Console", StringComparison.OrdinalIgnoreCase)))
             {
                 parts.Add("Virtual Console");
             }
-            else if (noIntroName.Contains("(Classic Mini)", StringComparison.OrdinalIgnoreCase) ||
-                     noIntroName.Contains("(Switch Online)", StringComparison.OrdinalIgnoreCase))
+            else if ((noIntroName.Contains("(Classic Mini)", StringComparison.OrdinalIgnoreCase) ||
+                      noIntroName.Contains("(Switch Online)", StringComparison.OrdinalIgnoreCase)) &&
+                     !parts.Any(p => p.Contains("Classic Mini", StringComparison.OrdinalIgnoreCase) ||
+                                     p.Contains("Switch Online", StringComparison.OrdinalIgnoreCase)))
             {
                 parts.Add("Re-Release");
             }

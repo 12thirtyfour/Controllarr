@@ -2371,5 +2371,126 @@ game (
 
             nightsEpisodes.Should().ContainSingle();
         }
+
+        [Test]
+        public void should_deduplicate_nes_smdb_headered_retail_variants_and_isolate_retrobit_and_hack_updates()
+        {
+            Subject.TryGetPlatformEntryBySlug("nes", out var nesPlatform).Should().BeTrue();
+            Subject.InvalidatePlatformCache(nesPlatform.TvdbId);
+
+            var noIntroDat = new NzbDrone.Core.Dat.DatFile
+            {
+                Id = 9401,
+                Name = "Nintendo - Nintendo Entertainment System (No-Intro)",
+                Category = "No-Intro"
+            };
+            var smdbDat = new NzbDrone.Core.Dat.DatFile
+            {
+                Id = 9402,
+                Name = "Nintendo - Nintendo Entertainment System (SMDB)",
+                Category = "SmokeMonster SMDB"
+            };
+
+            var datEntries = new List<NzbDrone.Core.Dat.DatEntry>
+            {
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9401,
+                    GameName = "10-Yard Fight (USA, Europe)",
+                    RomName = "10-Yard Fight (USA, Europe).nes",
+                    Crc32 = "c986cda2"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9402,
+                    GameName = "10-Yard Fight (USA, Europe)",
+                    RomName = "10-Yard Fight (USA, Europe).nes",
+                    SmdbPath = "EverDrive N8/1 US - A-F/10-Yard Fight (USA, Europe).nes",
+                    Crc32 = "c38b62cb"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9401,
+                    GameName = "1943 - The Battle of Midway (USA)",
+                    RomName = "1943 - The Battle of Midway (USA).nes",
+                    Crc32 = "46f660c9"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9401,
+                    GameName = "1943 - The Battle of Midway (USA) (Retro-Bit Generations)",
+                    RomName = "1943 - The Battle of Midway (USA) (Retro-Bit Generations).nes",
+                    Crc32 = "5564b222"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9402,
+                    GameName = "1943 - The Battle of Midway (USA)",
+                    RomName = "1943 - The Battle of Midway (USA).nes",
+                    SmdbPath = "EverDrive N8/1 US - A-F/1943 - The Battle of Midway (USA).nes",
+                    Crc32 = "d131bf15"
+                },
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9402,
+                    GameName = "1943 - The Battle of Midway - 2011 Update (1943 Hack)",
+                    RomName = "1943 - The Battle of Midway - 2011 Update (1943 Hack).nes",
+                    SmdbPath = "EverDrive N8/4 Hacks/Hacks A-B/1943 - The Battle of Midway - 2011 Update (1943 Hack).nes",
+                    Crc32 = "deadbeef"
+                }
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile> { noIntroDat, smdbDat });
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetEntriesForPlatform(nesPlatform.Slug, nesPlatform.Name, nesPlatform.LibretroSystemName))
+                .Returns(datEntries);
+
+            var tuple = Subject.GetSeriesInfo(nesPlatform.TvdbId, Language.English, null);
+            var episodes = tuple.Item2;
+
+            var yardUsa = episodes.Where(e =>
+                e.SeasonNumber == GameCatalogProxy.RegionUsa &&
+                e.Title.Contains("10-Yard Fight", System.StringComparison.OrdinalIgnoreCase)).ToList();
+            yardUsa.Should().ContainSingle();
+
+            var battleUsa = episodes.Where(e =>
+                e.SeasonNumber == GameCatalogProxy.RegionUsa &&
+                e.Title.Contains("1943 - The Battle of Midway", System.StringComparison.OrdinalIgnoreCase)).ToList();
+            battleUsa.Should().HaveCount(2);
+            battleUsa.Count(e => e.Overview.Contains("Retail (v1.0)", System.StringComparison.OrdinalIgnoreCase)).Should().Be(1);
+            battleUsa.Count(e => e.Overview.Contains("Retro-Bit Generations", System.StringComparison.OrdinalIgnoreCase)).Should().Be(1);
+            battleUsa.Should().NotContain(e => e.Title.Contains("Hack", System.StringComparison.OrdinalIgnoreCase) || e.Title.Contains("2011 Update", System.StringComparison.OrdinalIgnoreCase));
+
+            var battleHacks = episodes.Where(e =>
+                e.SeasonNumber == GameCatalogProxy.RegionRomHacks &&
+                e.Title.Contains("1943", System.StringComparison.OrdinalIgnoreCase)).ToList();
+            battleHacks.Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_never_re_region_rom_hack_with_update_in_title_during_dlc_pairing()
+        {
+            Subject.TryGetPlatformEntryBySlug("nes", out var nesPlatform).Should().BeTrue();
+
+            var baseGame = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(nesPlatform, "1943 - The Battle of Midway (USA)", 1988, "No-Intro");
+            var hackUpdate = GameCatalogProxy.CreateCatalogEntryFromNoIntroName(
+                nesPlatform,
+                "1943 - The Battle of Midway - 2011 Update (1943 Hack)",
+                1988,
+                "ROM Hacks & Translations | EverDrive N8/4 Hacks/Hacks A-B/1943 - The Battle of Midway - 2011 Update (1943 Hack).nes");
+
+            hackUpdate.Should().NotBeNull();
+            hackUpdate.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+
+            var list = new List<GameCatalogEntry> { baseGame, hackUpdate };
+            GameCatalogProxy.PairDlcWithBaseGames(list);
+
+            list.Should().Contain(hackUpdate);
+            hackUpdate.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
+            list.Count(e => e.RegionNumber == GameCatalogProxy.RegionUsa).Should().Be(1);
+        }
     }
 }
