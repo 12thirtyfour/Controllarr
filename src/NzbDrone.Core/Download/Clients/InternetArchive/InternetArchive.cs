@@ -20,6 +20,9 @@ using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.InternetArchive;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
@@ -548,8 +551,9 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             string downloadPath,
             InternetArchiveDownloadState state)
         {
-            var tempDownloadPath = downloadPath + ".ia.part";
-            if (!TrackedItems.ContainsKey(downloadPath))
+            var downloadId = state.DownloadId ?? downloadPath;
+            var activePartPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!TrackedItems.ContainsKey(downloadId))
             {
                 return;
             }
@@ -568,177 +572,79 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     authHeader = $"LOW {s3AccessKey}:{s3SecretKey}";
                 }
 
-                static bool ShouldSendAuthHeader(string targetUrl, string initialHost)
+                var resolvedTargets = await ResolveCompressDownloadTargetsAsync(url, downloadPath, state, authHeader).ConfigureAwait(false);
+                if (resolvedTargets != null && resolvedTargets.Count > 0)
                 {
-                    if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var targetUri) || string.IsNullOrWhiteSpace(targetUri.Host))
+                    long completedBytes = 0;
+                    var totalDeclaredSize = resolvedTargets.Sum(t => Math.Max(0L, t.DeclaredSize));
+                    if (totalDeclaredSize > 0)
                     {
-                        return false;
+                        state.TotalSize = totalDeclaredSize;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(initialHost) &&
-                        string.Equals(targetUri.Host, initialHost, StringComparison.OrdinalIgnoreCase))
+                    PersistTrackedItems();
+
+                    foreach (var target in resolvedTargets)
                     {
-                        return true;
-                    }
-
-                    return string.Equals(targetUri.Host, "archive.org", StringComparison.OrdinalIgnoreCase) ||
-                           targetUri.Host.EndsWith(".archive.org", StringComparison.OrdinalIgnoreCase);
-                }
-
-                static async Task<System.Net.Http.HttpResponseMessage> SendWithRedirectsAsync(
-                    System.Net.Http.HttpClient httpClient,
-                    string requestUrl,
-                    string auth)
-                {
-                    var initialHost = Uri.TryCreate(requestUrl, UriKind.Absolute, out var initialUri)
-                        ? initialUri.Host
-                        : null;
-                    var currentUrl = requestUrl;
-                    const int maxRedirects = 10;
-                    for (var i = 0; i < maxRedirects; i++)
-                    {
-                        using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, currentUrl);
-                        if (!string.IsNullOrWhiteSpace(auth) && ShouldSendAuthHeader(currentUrl, initialHost))
+                        if (!TrackedItems.ContainsKey(downloadId))
                         {
-                            req.Headers.TryAddWithoutValidation("Authorization", auth);
-                        }
-
-                        var response = await httpClient.SendAsync(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-                        var status = (int)response.StatusCode;
-                        if (status is 301 or 302 or 303 or 307 or 308)
-                        {
-                            var location = response.Headers.Location;
-                            response.Dispose();
-                            if (location == null)
-                            {
-                                throw new System.Net.Http.HttpRequestException("Redirect response did not include a Location header.");
-                            }
-
-                            if (!location.IsAbsoluteUri)
-                            {
-                                location = new Uri(new Uri(currentUrl), location);
-                            }
-
-                            currentUrl = location.ToString();
-                            continue;
-                        }
-
-                        return response;
-                    }
-
-                    return null;
-                }
-
-                var resp = await SendWithRedirectsAsync(SharedHttpClient, url, authHeader).ConfigureAwait(false);
-                if (resp == null)
-                {
-                    throw new System.Net.Http.HttpRequestException("Too many automatic redirections were attempted.");
-                }
-
-                if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    var initialStatus = resp.StatusCode;
-                    resp.Dispose();
-                    if (!string.IsNullOrWhiteSpace(authHeader) && ShouldAllowAnonymousFallback())
-                    {
-                        _logger.Warn("InternetArchive authenticated stream failed with {0}, falling back to anonymous.", initialStatus);
-                        resp = await SendWithRedirectsAsync(SharedHttpClient, url, null).ConfigureAwait(false);
-                        if (resp == null)
-                        {
-                            throw new System.Net.Http.HttpRequestException("Too many automatic redirections were attempted.");
-                        }
-
-                        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                        {
-                            state.Status = DownloadItemStatus.Failed;
-                            state.ErrorMessage = $"HTTP {(int)resp.StatusCode} ({resp.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
-                            _logger.Warn("InternetArchive anonymous stream also failed with {0}.", resp.StatusCode);
-                            resp.Dispose();
-                            PersistTrackedItems();
                             return;
                         }
-                    }
-                    else
-                    {
-                        state.Status = DownloadItemStatus.Failed;
-                        state.ErrorMessage = $"HTTP {(int)initialStatus} ({initialStatus}) - Authentication required. Please configure S3 Access and Secret keys.";
-                        PersistTrackedItems();
-                        return;
-                    }
-                }
 
-                using (resp)
-                {
-                    resp.EnsureSuccessStatusCode();
-                    if (resp.Content.Headers.ContentLength.HasValue && resp.Content.Headers.ContentLength.Value > 0)
-                    {
-                        state.TotalSize = resp.Content.Headers.ContentLength.Value;
-                    }
-
-                    using var networkStream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    using var fileStream = _diskProvider.OpenWriteStream(tempDownloadPath);
-
-                    const int bufferSize = 262144;
-                    var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
-                    try
-                    {
-                        long totalRead = 0;
-                        var lastRefreshSec = 0.0;
-                        int bytesRead;
-                        while ((bytesRead = await networkStream.ReadAsync(buffer.AsMemory(0, bufferSize)).ConfigureAwait(false)) > 0)
+                        var partPath = target.DestinationPath + ".ia.part";
+                        activePartPaths.Add(partPath);
+                        var parentDir = Path.GetDirectoryName(target.DestinationPath);
+                        if (!string.IsNullOrWhiteSpace(parentDir))
                         {
-                            if (!TrackedItems.ContainsKey(downloadPath))
-                            {
-                                _logger.Debug("InternetArchive download aborted because item '{0}' was removed.", filename);
-                                return;
-                            }
-
-                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
-                            totalRead += bytesRead;
-                            state.DownloadedBytes = totalRead;
-                            if (totalRead > state.TotalSize)
-                            {
-                                state.TotalSize = totalRead;
-                            }
-
-                            var elapsedSec = Math.Max(0.001, stopwatch.Elapsed.TotalSeconds);
-                            state.SpeedBytesPerSec = totalRead / elapsedSec;
-
-                            if (elapsedSec - lastRefreshSec >= 3.0)
-                            {
-                                lastRefreshSec = elapsedSec;
-                                _commandQueue?.Push(new RefreshMonitoredDownloadsCommand(), CommandPriority.High);
-                            }
+                            _diskProvider.EnsureFolder(parentDir);
                         }
-                    }
-                    finally
-                    {
-                        System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-                    }
-                }
 
-                if (!TrackedItems.ContainsKey(downloadPath))
-                {
-                    if (_diskProvider.FileExists(tempDownloadPath))
-                    {
-                        _diskProvider.DeleteFile(tempDownloadPath);
+                        var (aborted, authFailed, fileBytes) = await StreamUrlToFileInternalAsync(
+                            target.Url,
+                            target.DisplayName,
+                            target.DestinationPath,
+                            partPath,
+                            downloadId,
+                            state,
+                            authHeader,
+                            stopwatch,
+                            completedBytes).ConfigureAwait(false);
+
+                        if (authFailed || aborted || !TrackedItems.ContainsKey(downloadId))
+                        {
+                            CleanupPartFiles(activePartPaths);
+                            return;
+                        }
+
+                        completedBytes += fileBytes;
                     }
 
+                    state.TotalSize = Math.Max(state.TotalSize, state.DownloadedBytes);
+                    state.DownloadedBytes = state.TotalSize;
+                    state.Status = DownloadItemStatus.Completed;
+                    PersistTrackedItems();
+                    _logger.Info("HTTPS direct download completed ({0} file(s), {1} bytes) -> {2}", resolvedTargets.Count, state.DownloadedBytes, state.OutputPath);
                     return;
                 }
 
-                if (_diskProvider.FileExists(downloadPath))
-                {
-                    _diskProvider.DeleteFile(downloadPath);
-                }
+                var tempDownloadPath = downloadPath + ".ia.part";
+                activePartPaths.Add(tempDownloadPath);
+                var (singleAborted, singleAuthFailed, _) = await StreamUrlToFileInternalAsync(
+                    url,
+                    filename,
+                    downloadPath,
+                    tempDownloadPath,
+                    downloadId,
+                    state,
+                    authHeader,
+                    stopwatch,
+                    0).ConfigureAwait(false);
 
-                if (!_diskProvider.FileExists(tempDownloadPath))
+                if (singleAuthFailed || singleAborted || !TrackedItems.ContainsKey(downloadId))
                 {
-                    _logger.Warn("InternetArchive partial file '{0}' no longer exists; skipping completion move.", tempDownloadPath);
+                    CleanupPartFiles(activePartPaths);
                     return;
                 }
-
-                _diskProvider.MoveFile(tempDownloadPath, downloadPath, true);
 
                 state.TotalSize = Math.Max(state.TotalSize, state.DownloadedBytes);
                 state.DownloadedBytes = state.TotalSize;
@@ -752,24 +658,520 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 state.Status = DownloadItemStatus.Failed;
                 state.ErrorMessage = ex.Message;
 
-                try
-                {
-                    if (_diskProvider.FileExists(tempDownloadPath))
-                    {
-                        _diskProvider.DeleteFile(tempDownloadPath);
-                    }
-                }
-                catch (Exception cleanupEx)
-                {
-                    _logger.Debug(cleanupEx, "Unable to delete partial download file '{0}'", tempDownloadPath);
-                }
-
+                CleanupPartFiles(activePartPaths);
                 PersistTrackedItems();
             }
             finally
             {
                 _commandQueue?.Push(new RefreshMonitoredDownloadsCommand(), CommandPriority.High);
             }
+        }
+
+        private sealed class DirectDownloadTarget
+        {
+            public string Url { get; init; }
+            public string DisplayName { get; init; }
+            public string DestinationPath { get; init; }
+            public long DeclaredSize { get; init; }
+        }
+
+        private void CleanupPartFiles(IEnumerable<string> partPaths)
+        {
+            foreach (var partPath in partPaths)
+            {
+                try
+                {
+                    if (_diskProvider.FileExists(partPath))
+                    {
+                        _diskProvider.DeleteFile(partPath);
+                    }
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger.Debug(cleanupEx, "Unable to delete partial download file '{0}'", partPath);
+                }
+            }
+        }
+
+        private async Task<(bool Aborted, bool AuthFailed, long BytesWritten)> StreamUrlToFileInternalAsync(
+            string targetUrl,
+            string displayName,
+            string destinationPath,
+            string tempDownloadPath,
+            string downloadId,
+            InternetArchiveDownloadState state,
+            string authHeader,
+            Stopwatch stopwatch,
+            long byteOffset)
+        {
+            var resp = await SendWithRedirectsAsync(SharedHttpClient, targetUrl, authHeader).ConfigureAwait(false);
+            if (resp == null)
+            {
+                throw new System.Net.Http.HttpRequestException("Too many automatic redirections were attempted.");
+            }
+
+            if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                var initialStatus = resp.StatusCode;
+                resp.Dispose();
+                if (!string.IsNullOrWhiteSpace(authHeader) && ShouldAllowAnonymousFallback())
+                {
+                    _logger.Warn("InternetArchive authenticated stream failed with {0}, falling back to anonymous.", initialStatus);
+                    resp = await SendWithRedirectsAsync(SharedHttpClient, targetUrl, null).ConfigureAwait(false);
+                    if (resp == null)
+                    {
+                        throw new System.Net.Http.HttpRequestException("Too many automatic redirections were attempted.");
+                    }
+
+                    if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        state.Status = DownloadItemStatus.Failed;
+                        state.ErrorMessage = $"HTTP {(int)resp.StatusCode} ({resp.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
+                        _logger.Warn("InternetArchive anonymous stream also failed with {0}.", resp.StatusCode);
+                        resp.Dispose();
+                        PersistTrackedItems();
+                        return (false, true, 0);
+                    }
+                }
+                else
+                {
+                    state.Status = DownloadItemStatus.Failed;
+                    state.ErrorMessage = $"HTTP {(int)initialStatus} ({initialStatus}) - Authentication required. Please configure S3 Access and Secret keys.";
+                    PersistTrackedItems();
+                    return (false, true, 0);
+                }
+            }
+
+            long totalRead = 0;
+
+            using (resp)
+            {
+                resp.EnsureSuccessStatusCode();
+                if (resp.Content.Headers.ContentLength.HasValue && resp.Content.Headers.ContentLength.Value > 0 && byteOffset == 0 && state.TotalSize <= 0)
+                {
+                    state.TotalSize = resp.Content.Headers.ContentLength.Value;
+                }
+
+                using var networkStream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var fileStream = _diskProvider.OpenWriteStream(tempDownloadPath);
+
+                const int bufferSize = 262144;
+                var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
+                try
+                {
+                    var lastRefreshSec = 0.0;
+                    int bytesRead;
+                    while ((bytesRead = await networkStream.ReadAsync(buffer.AsMemory(0, bufferSize)).ConfigureAwait(false)) > 0)
+                    {
+                        if (!TrackedItems.ContainsKey(downloadId))
+                        {
+                            _logger.Debug("InternetArchive download aborted because item '{0}' was removed.", displayName);
+                            return (true, false, totalRead);
+                        }
+
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
+                        totalRead += bytesRead;
+                        var cumulativeBytes = byteOffset + totalRead;
+                        state.DownloadedBytes = cumulativeBytes;
+                        if (cumulativeBytes > state.TotalSize)
+                        {
+                            state.TotalSize = cumulativeBytes;
+                        }
+
+                        var elapsedSec = Math.Max(0.001, stopwatch.Elapsed.TotalSeconds);
+                        state.SpeedBytesPerSec = cumulativeBytes / elapsedSec;
+
+                        if (elapsedSec - lastRefreshSec >= 3.0)
+                        {
+                            lastRefreshSec = elapsedSec;
+                            _commandQueue?.Push(new RefreshMonitoredDownloadsCommand(), CommandPriority.High);
+                        }
+                    }
+                }
+                finally
+                {
+                    System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
+                }
+            }
+
+            if (!TrackedItems.ContainsKey(downloadId))
+            {
+                if (_diskProvider.FileExists(tempDownloadPath))
+                {
+                    _diskProvider.DeleteFile(tempDownloadPath);
+                }
+
+                return (true, false, totalRead);
+            }
+
+            if (_diskProvider.FileExists(destinationPath))
+            {
+                _diskProvider.DeleteFile(destinationPath);
+            }
+
+            if (!_diskProvider.FileExists(tempDownloadPath))
+            {
+                _logger.Warn("InternetArchive partial file '{0}' no longer exists; skipping completion move.", tempDownloadPath);
+                return (true, false, totalRead);
+            }
+
+            _diskProvider.MoveFile(tempDownloadPath, destinationPath, true);
+            return (false, false, totalRead);
+        }
+
+        private async Task<List<DirectDownloadTarget>> ResolveCompressDownloadTargetsAsync(
+            string url,
+            string downloadPath,
+            InternetArchiveDownloadState state,
+            string authHeader)
+        {
+            if (!TryExtractCompressIdentifier(url, out var iaBaseUrl, out var identifier))
+            {
+                return null;
+            }
+
+            var metadataUrl = $"{iaBaseUrl}/metadata/{Uri.EscapeDataString(identifier)}/files";
+            try
+            {
+                var resp = await SendWithRedirectsAsync(SharedHttpClient, metadataUrl, authHeader).ConfigureAwait(false);
+                if (resp != null && (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden) &&
+                    !string.IsNullOrWhiteSpace(authHeader) && ShouldAllowAnonymousFallback())
+                {
+                    resp.Dispose();
+                    resp = await SendWithRedirectsAsync(SharedHttpClient, metadataUrl, null).ConfigureAwait(false);
+                }
+
+                if (resp == null)
+                {
+                    return null;
+                }
+
+                using (resp)
+                {
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        _logger.Debug("InternetArchive metadata lookup returned HTTP {0} for '{1}'; falling back to /compress/.", (int)resp.StatusCode, identifier);
+                        return null;
+                    }
+
+                    var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var metadata = Newtonsoft.Json.JsonConvert.DeserializeObject<InternetArchiveMetadataResponse>(json);
+                    return BuildDirectTargetsFromMetadata(iaBaseUrl, identifier, metadata, downloadPath, state);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to resolve direct files for Internet Archive item '{0}'; falling back to /compress/.", identifier);
+                return null;
+            }
+        }
+
+        private List<DirectDownloadTarget> BuildDirectTargetsFromMetadata(
+            string iaBaseUrl,
+            string identifier,
+            InternetArchiveMetadataResponse metadata,
+            string downloadPath,
+            InternetArchiveDownloadState state)
+        {
+            var selectedFiles = SelectDirectDownloadFiles(metadata?.Result);
+            if (selectedFiles.Count == 0 || selectedFiles.Count > 100)
+            {
+                return null;
+            }
+
+            var workingFolder = GetWorkingFolder();
+            var normalizedWorkingFolder = Path.GetFullPath(workingFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+            if (selectedFiles.Count == 1)
+            {
+                var file = selectedFiles[0];
+                var directFileName = SanitizeFileNameForDestination(Path.GetFileName(file.Name.Replace('\\', '/')));
+                if (string.IsNullOrWhiteSpace(directFileName))
+                {
+                    return null;
+                }
+
+                var directPath = Path.Combine(workingFolder, directFileName);
+                var collision = TrackedItems.Values.Any(s =>
+                    !string.Equals(s.DownloadId, state.DownloadId, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(s.OutputPath, directPath, StringComparison.OrdinalIgnoreCase) &&
+                    s.Status is DownloadItemStatus.Downloading or DownloadItemStatus.Queued);
+
+                if (collision)
+                {
+                    var stem = Path.GetFileNameWithoutExtension(directFileName);
+                    var ext = Path.GetExtension(directFileName);
+                    directPath = Path.Combine(workingFolder, $"{stem}_{Guid.NewGuid().ToString("N")[..6]}{ext}");
+                }
+
+                var fullDirectPath = Path.GetFullPath(directPath);
+                if (!fullDirectPath.StartsWith(normalizedWorkingFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                state.OutputPath = directPath;
+                var declaredSize = long.TryParse(file.Size, out var parsedSize) ? Math.Max(0L, parsedSize) : 0L;
+                _logger.Info("Resolved Internet Archive item '{0}' directly to '{1}' (bypassing /compress/)", identifier, directFileName);
+
+                return new List<DirectDownloadTarget>
+                {
+                    new DirectDownloadTarget
+                    {
+                        Url = BuildDirectDownloadUrl(iaBaseUrl, identifier, file.Name),
+                        DisplayName = directFileName,
+                        DestinationPath = directPath,
+                        DeclaredSize = declaredSize
+                    }
+                };
+            }
+
+            var folderBaseName = Path.GetFileNameWithoutExtension(downloadPath);
+            if (string.IsNullOrWhiteSpace(folderBaseName))
+            {
+                folderBaseName = "rom_" + Guid.NewGuid().ToString("N")[..8];
+            }
+
+            var targetFolder = Path.Combine(workingFolder, folderBaseName);
+            var folderCollision = TrackedItems.Values.Any(s =>
+                !string.Equals(s.DownloadId, state.DownloadId, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(s.OutputPath, targetFolder, StringComparison.OrdinalIgnoreCase) &&
+                s.Status is DownloadItemStatus.Downloading or DownloadItemStatus.Queued);
+
+            if (folderCollision)
+            {
+                targetFolder = Path.Combine(workingFolder, $"{folderBaseName}_{Guid.NewGuid().ToString("N")[..6]}");
+            }
+
+            var normalizedTargetFolder = Path.GetFullPath(targetFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            if (!normalizedTargetFolder.StartsWith(normalizedWorkingFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var targets = new List<DirectDownloadTarget>(selectedFiles.Count);
+            foreach (var file in selectedFiles)
+            {
+                var relPath = file.Name.Replace('\\', '/').TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                var destPath = Path.GetFullPath(Path.Combine(normalizedTargetFolder, relPath));
+                if (!destPath.StartsWith(normalizedTargetFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var declaredSize = long.TryParse(file.Size, out var parsedSize) ? Math.Max(0L, parsedSize) : 0L;
+                targets.Add(new DirectDownloadTarget
+                {
+                    Url = BuildDirectDownloadUrl(iaBaseUrl, identifier, file.Name),
+                    DisplayName = Path.GetFileName(relPath),
+                    DestinationPath = destPath,
+                    DeclaredSize = declaredSize
+                });
+            }
+
+            if (targets.Count == 0)
+            {
+                return null;
+            }
+
+            _diskProvider.EnsureFolder(targetFolder);
+            state.OutputPath = targetFolder;
+            _logger.Info("Resolved Internet Archive item '{0}' directly to folder '{1}' ({2} files, bypassing /compress/)", identifier, targetFolder, targets.Count);
+            return targets;
+        }
+
+        internal static bool TryExtractCompressIdentifier(string url, out string baseUrl, out string identifier)
+        {
+            baseUrl = null;
+            identifier = null;
+
+            if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var path = uri.AbsolutePath ?? string.Empty;
+            const string compressPrefix = "/compress/";
+            if (!path.StartsWith(compressPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var remainder = path[compressPrefix.Length..].Trim('/');
+            if (string.IsNullOrWhiteSpace(remainder))
+            {
+                return false;
+            }
+
+            var slashIdx = remainder.IndexOf('/');
+            var rawId = slashIdx >= 0 ? remainder[..slashIdx] : remainder;
+            var decoded = Uri.UnescapeDataString(rawId).Trim();
+            if (string.IsNullOrWhiteSpace(decoded))
+            {
+                return false;
+            }
+
+            baseUrl = uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+            identifier = decoded;
+            return true;
+        }
+
+        internal static List<InternetArchiveFileItem> SelectDirectDownloadFiles(IEnumerable<InternetArchiveFileItem> files)
+        {
+            if (files == null)
+            {
+                return new List<InternetArchiveFileItem>();
+            }
+
+            var candidates = new List<InternetArchiveFileItem>();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var file in files)
+            {
+                if (file == null || string.IsNullOrWhiteSpace(file.Name))
+                {
+                    continue;
+                }
+
+                var normalized = file.Name.Replace('\\', '/').TrimStart('/');
+                if (string.IsNullOrWhiteSpace(normalized) || normalized.EndsWith("/", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var fileName = Path.GetFileName(normalized);
+                if (string.IsNullOrWhiteSpace(fileName) ||
+                    ArchiveRepackService.IsJunkEntry(normalized, fileName) ||
+                    ArchiveRepackService.IsNonRomArchiveJunkFile(normalized))
+                {
+                    continue;
+                }
+
+                var ext = Path.GetExtension(fileName);
+                if (FileExtensions.DangerousExtensions.Contains(ext) ||
+                    FileExtensions.ExecutableExtensions.Contains(ext))
+                {
+                    continue;
+                }
+
+                var isTarCompound = fileName.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ||
+                                    fileName.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase);
+
+                var isEligible = isTarCompound ||
+                                 (!string.IsNullOrWhiteSpace(ext) &&
+                                  (MediaFileExtensions.RomExtensions.Contains(ext) ||
+                                   FileExtensions.ArchiveExtensions.Contains(ext) ||
+                                   DiscSheetHelper.IsDiscSheetExtension(ext) ||
+                                   DiscSheetHelper.IsCompanionTrackExtension(ext)));
+
+                if (!isEligible || !seenNames.Add(normalized))
+                {
+                    continue;
+                }
+
+                candidates.Add(file);
+            }
+
+            var hasDiscSheet = candidates.Any(f => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(f.Name)));
+            if (!hasDiscSheet)
+            {
+                candidates = candidates
+                    .Where(f => !string.Equals(Path.GetExtension(f.Name), ".wav", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            return candidates
+                .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string BuildDirectDownloadUrl(string baseUrl, string identifier, string fileName)
+        {
+            var normalized = (fileName ?? string.Empty).Replace('\\', '/').TrimStart('/');
+            var escapedPath = string.Join(
+                "/",
+                normalized.Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString));
+
+            return $"{baseUrl.TrimEnd('/')}/download/{Uri.EscapeDataString(identifier)}/{escapedPath}";
+        }
+
+        private static string SanitizeFileNameForDestination(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return string.Empty;
+            }
+
+            var invalid = Path.GetInvalidFileNameChars();
+            var chars = fileName.Select(c => invalid.Contains(c) ? '_' : c).ToArray();
+            return new string(chars).Trim();
+        }
+
+        private static async Task<System.Net.Http.HttpResponseMessage> SendWithRedirectsAsync(
+            System.Net.Http.HttpClient httpClient,
+            string requestUrl,
+            string auth)
+        {
+            var initialHost = Uri.TryCreate(requestUrl, UriKind.Absolute, out var initialUri)
+                ? initialUri.Host
+                : null;
+            var currentUrl = requestUrl;
+            const int maxRedirects = 10;
+            for (var i = 0; i < maxRedirects; i++)
+            {
+                using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, currentUrl);
+                if (!string.IsNullOrWhiteSpace(auth) && ShouldSendAuthHeader(currentUrl, initialHost))
+                {
+                    req.Headers.TryAddWithoutValidation("Authorization", auth);
+                }
+
+                var response = await httpClient.SendAsync(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                var status = (int)response.StatusCode;
+                if (status is 301 or 302 or 303 or 307 or 308)
+                {
+                    var location = response.Headers.Location;
+                    response.Dispose();
+                    if (location == null)
+                    {
+                        throw new System.Net.Http.HttpRequestException("Redirect response did not include a Location header.");
+                    }
+
+                    if (!location.IsAbsoluteUri)
+                    {
+                        location = new Uri(new Uri(currentUrl), location);
+                    }
+
+                    currentUrl = location.ToString();
+                    continue;
+                }
+
+                return response;
+            }
+
+            return null;
+        }
+
+        private static bool ShouldSendAuthHeader(string targetUrl, string initialHost)
+        {
+            if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var targetUri) || string.IsNullOrWhiteSpace(targetUri.Host))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(initialHost) &&
+                string.Equals(targetUri.Host, initialHost, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return string.Equals(targetUri.Host, "archive.org", StringComparison.OrdinalIgnoreCase) ||
+                   targetUri.Host.EndsWith(".archive.org", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<string> ExecuteDownloadInternalAsync(
@@ -786,48 +1188,57 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 state.Status = DownloadItemStatus.Downloading;
                 var stopwatch = Stopwatch.StartNew();
 
-                var request = indexer?.GetDownloadRequest(url) ?? new HttpRequest(url);
-                request.RateLimitKey = remoteEpisode?.Release?.IndexerId.ToString();
-                request.AllowAutoRedirect = true;
-                request.SuppressHttpErrorStatusCodes = new[] { System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.Forbidden };
-
                 var s3AccessKey = GetS3AccessKey();
                 var s3SecretKey = GetS3SecretKey();
                 var hasS3Auth = !string.IsNullOrWhiteSpace(s3AccessKey) && !string.IsNullOrWhiteSpace(s3SecretKey);
-                if (hasS3Auth)
-                {
-                    request.Headers.Add("Authorization", $"LOW {s3AccessKey}:{s3SecretKey}");
-                }
 
-                var response = await RetryStrategy
-                    .ExecuteAsync(static async (s, token) => await s._httpClient.GetAsync(s.request, token), (_httpClient, request))
-                    .ConfigureAwait(false);
-
-                if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
+                var directTargets = await TryResolveCompressTargetsWithHttpClientAsync(url, downloadPath, state, hasS3Auth ? $"LOW {s3AccessKey}:{s3SecretKey}" : null).ConfigureAwait(false);
+                if (directTargets != null && directTargets.Count > 0)
                 {
-                    if (hasS3Auth && ShouldAllowAnonymousFallback())
+                    long totalBytes = 0;
+                    var declaredSum = directTargets.Sum(t => Math.Max(0L, t.DeclaredSize));
+                    if (declaredSum > 0)
                     {
-                        _logger.Warn("InternetArchive authenticated request failed with {0}, falling back to anonymous.", response.StatusCode);
-                        request.Headers.Remove("Authorization");
-                        response = await _httpClient.GetAsync(request, CancellationToken.None).ConfigureAwait(false);
-                        if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
+                        state.TotalSize = declaredSum;
+                    }
+
+                    foreach (var target in directTargets)
+                    {
+                        var targetParent = Path.GetDirectoryName(target.DestinationPath);
+                        if (!string.IsNullOrWhiteSpace(targetParent))
                         {
-                            _logger.Warn("InternetArchive anonymous request also failed with {0}.", response.StatusCode);
+                            _diskProvider.EnsureFolder(targetParent);
+                        }
+
+                        var targetResponse = await ExecuteSingleHttpGetAsync(remoteEpisode, indexer, target.Url, downloadPath, state, s3AccessKey, s3SecretKey, hasS3Auth).ConfigureAwait(false);
+                        if (targetResponse?.ResponseData == null)
+                        {
                             state.Status = DownloadItemStatus.Failed;
-                            state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
+                            state.ErrorMessage = "Empty response from HTTPS server";
                             TrackedItems.TryRemove(downloadPath, out _);
+                            PersistTrackedItems();
                             throw new DownloadClientException(state.ErrorMessage);
                         }
+
+                        using (var stream = _diskProvider.OpenWriteStream(target.DestinationPath))
+                        {
+                            await stream.WriteAsync(targetResponse.ResponseData.AsMemory(), CancellationToken.None).ConfigureAwait(false);
+                        }
+
+                        totalBytes += targetResponse.ResponseData.Length;
+                        state.DownloadedBytes = totalBytes;
                     }
-                    else
-                    {
-                        _logger.Warn("InternetArchive request failed with {0}.", response.StatusCode);
-                        state.Status = DownloadItemStatus.Failed;
-                        state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
-                        TrackedItems.TryRemove(downloadPath, out _);
-                        throw new DownloadClientException(state.ErrorMessage);
-                    }
+
+                    var elapsedDirectSec = Math.Max(0.001, stopwatch.Elapsed.TotalSeconds);
+                    state.TotalSize = Math.Max(state.TotalSize, totalBytes);
+                    state.DownloadedBytes = state.TotalSize;
+                    state.SpeedBytesPerSec = totalBytes / elapsedDirectSec;
+                    state.Status = DownloadItemStatus.Completed;
+                    PersistTrackedItems();
+                    return state.OutputPath ?? downloadPath;
                 }
+
+                var response = await ExecuteSingleHttpGetAsync(remoteEpisode, indexer, url, downloadPath, state, s3AccessKey, s3SecretKey, hasS3Auth).ConfigureAwait(false);
 
                 if (response?.ResponseData != null)
                 {
@@ -870,6 +1281,114 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             {
                 SyncConcurrencySemaphore.Release();
             }
+        }
+
+        private async Task<List<DirectDownloadTarget>> TryResolveCompressTargetsWithHttpClientAsync(
+            string url,
+            string downloadPath,
+            InternetArchiveDownloadState state,
+            string authHeader)
+        {
+            if (!TryExtractCompressIdentifier(url, out var iaBaseUrl, out var identifier))
+            {
+                return null;
+            }
+
+            var metadataUrl = $"{iaBaseUrl}/metadata/{Uri.EscapeDataString(identifier)}/files";
+            try
+            {
+                var req = new HttpRequest(metadataUrl)
+                {
+                    AllowAutoRedirect = true,
+                    SuppressHttpErrorStatusCodes = new[]
+                    {
+                        System.Net.HttpStatusCode.Unauthorized,
+                        System.Net.HttpStatusCode.Forbidden,
+                        System.Net.HttpStatusCode.NotFound
+                    }
+                };
+                if (!string.IsNullOrWhiteSpace(authHeader))
+                {
+                    req.Headers.Add("Authorization", authHeader);
+                }
+
+                var response = await _httpClient.GetAsync(req).ConfigureAwait(false);
+                if (response != null &&
+                    (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                     response.StatusCode == System.Net.HttpStatusCode.Forbidden) &&
+                    !string.IsNullOrWhiteSpace(authHeader) &&
+                    ShouldAllowAnonymousFallback())
+                {
+                    req.Headers.Remove("Authorization");
+                    response = await _httpClient.GetAsync(req).ConfigureAwait(false);
+                }
+
+                if (response == null || response.StatusCode != System.Net.HttpStatusCode.OK || string.IsNullOrWhiteSpace(response.Content))
+                {
+                    return null;
+                }
+
+                var metadata = Newtonsoft.Json.JsonConvert.DeserializeObject<InternetArchiveMetadataResponse>(response.Content);
+                return BuildDirectTargetsFromMetadata(iaBaseUrl, identifier, metadata, downloadPath, state);
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to resolve direct files for Internet Archive item '{0}'; falling back to /compress/.", identifier);
+                return null;
+            }
+        }
+
+        private async Task<HttpResponse> ExecuteSingleHttpGetAsync(
+            RemoteEpisode remoteEpisode,
+            IIndexer indexer,
+            string url,
+            string downloadPath,
+            InternetArchiveDownloadState state,
+            string s3AccessKey,
+            string s3SecretKey,
+            bool hasS3Auth)
+        {
+            var request = indexer?.GetDownloadRequest(url) ?? new HttpRequest(url);
+            request.RateLimitKey = remoteEpisode?.Release?.IndexerId.ToString();
+            request.AllowAutoRedirect = true;
+            request.SuppressHttpErrorStatusCodes = new[] { System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.Forbidden };
+
+            if (hasS3Auth)
+            {
+                request.Headers.Add("Authorization", $"LOW {s3AccessKey}:{s3SecretKey}");
+            }
+
+            var response = await RetryStrategy
+                .ExecuteAsync(static async (s, token) => await s._httpClient.GetAsync(s.request, token), (_httpClient, request))
+                .ConfigureAwait(false);
+
+            if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
+            {
+                if (hasS3Auth && ShouldAllowAnonymousFallback())
+                {
+                    _logger.Warn("InternetArchive authenticated request failed with {0}, falling back to anonymous.", response.StatusCode);
+                    request.Headers.Remove("Authorization");
+                    response = await _httpClient.GetAsync(request, CancellationToken.None).ConfigureAwait(false);
+                    if (response != null && (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || response.StatusCode == System.Net.HttpStatusCode.Forbidden))
+                    {
+                        _logger.Warn("InternetArchive anonymous request also failed with {0}.", response.StatusCode);
+                        state.Status = DownloadItemStatus.Failed;
+                        state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
+                        TrackedItems.TryRemove(downloadPath, out _);
+                        throw new DownloadClientException(state.ErrorMessage);
+                    }
+                }
+                else
+                {
+                    _logger.Warn("InternetArchive request failed with {0}.", response.StatusCode);
+                    state.Status = DownloadItemStatus.Failed;
+                    state.ErrorMessage = $"HTTP {(int)response.StatusCode} ({response.StatusCode}) - Authentication required. Please configure S3 Access and Secret keys.";
+                    TrackedItems.TryRemove(downloadPath, out _);
+                    throw new DownloadClientException(state.ErrorMessage);
+                }
+            }
+
+            return response;
         }
 
         public bool IsPreferredArchiveUrl(string downloadUrl)
@@ -1073,7 +1592,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                                     changed = true;
                                 }
                                 else if (!string.IsNullOrWhiteSpace(entry.OutputPath) &&
-                                         (_diskProvider.FileExists(entry.OutputPath) || HasAnyExtractedFolder(entry.OutputPath)))
+                                         (_diskProvider.FileExists(entry.OutputPath) || _diskProvider.FolderExists(entry.OutputPath) || HasAnyExtractedFolder(entry.OutputPath)))
                                 {
                                     if (_downloadHistoryService != null)
                                     {

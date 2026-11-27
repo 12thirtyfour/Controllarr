@@ -642,5 +642,134 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
                 q3Gate.TrySetResult(true);
             }
         }
+
+        [Test]
+        public void should_extract_identifier_only_for_compress_urls()
+        {
+            InternetArchive.TryExtractCompressIdentifier("https://archive.org/compress/alfapetsweden", out var baseUrl, out var id).Should().BeTrue();
+            baseUrl.Should().Be("https://archive.org");
+            id.Should().Be("alfapetsweden");
+
+            InternetArchive.TryExtractCompressIdentifier("https://archive.org/download/alfapetsweden/Alfapet.chd", out _, out _).Should().BeFalse();
+        }
+
+        [Test]
+        public void should_filter_non_rom_and_ia_junk_files_when_selecting_direct_download_files()
+        {
+            var files = new[]
+            {
+                new InternetArchiveFileItem { Name = "Alfapet (Sweden).chd", Size = "12345" },
+                new InternetArchiveFileItem { Name = "alfapetsweden_meta.xml", Size = "500" },
+                new InternetArchiveFileItem { Name = "alfapetsweden_files.xml", Size = "900" },
+                new InternetArchiveFileItem { Name = "manual_jp2.zip", Size = "2000" },
+                new InternetArchiveFileItem { Name = "manual_chocr.html.gz", Size = "300" },
+                new InternetArchiveFileItem { Name = "__ia_thumb.jpg", Size = "100" },
+                new InternetArchiveFileItem { Name = "soundtrack.wav", Size = "400" },
+                new InternetArchiveFileItem { Name = "installer.exe", Size = "400" }
+            };
+
+            var selected = InternetArchive.SelectDirectDownloadFiles(files);
+
+            selected.Should().ContainSingle().Which.Name.Should().Be("Alfapet (Sweden).chd");
+        }
+
+        [Test]
+        public async Task should_bypass_compress_and_download_single_direct_file_when_metadata_resolves()
+        {
+            var requestedUrls = new List<string>();
+            var metadataJson = "{\"result\":[{\"name\":\"Alfapet (Sweden).chd\",\"size\":\"4\"},{\"name\":\"alfapet_meta.xml\",\"size\":\"100\"}]}";
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync((HttpRequest req, CancellationToken _) =>
+                  {
+                      requestedUrls.Add(req.Url.FullUri);
+                      if (req.Url.FullUri.Contains("/metadata/", StringComparison.OrdinalIgnoreCase))
+                      {
+                          return new HttpResponse(req, new HttpHeader(), System.Text.Encoding.UTF8.GetBytes(metadataJson));
+                      }
+
+                      return new HttpResponse(req, new HttpHeader(), new byte[] { 1, 2, 3, 4 });
+                  });
+
+            var release = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/compress/alfapetsweden",
+                Title = "Alfapet (Sweden)"
+            };
+
+            await Subject.Download(new RemoteEpisode { Release = release }, null);
+
+            requestedUrls.Should().Contain(u => u.Contains("/metadata/alfapetsweden/files", StringComparison.OrdinalIgnoreCase));
+            requestedUrls.Should().Contain(u => u.Contains("/download/alfapetsweden/Alfapet", StringComparison.OrdinalIgnoreCase));
+            requestedUrls.Should().NotContain(u => u.Contains("/compress/", StringComparison.OrdinalIgnoreCase));
+
+            var item = Subject.GetItems().Should().ContainSingle().Subject;
+            item.OutputPath.FullPath.Should().EndWith("Alfapet (Sweden).chd");
+        }
+
+        [Test]
+        public async Task should_bypass_compress_and_download_multi_file_disc_set_into_folder()
+        {
+            var requestedUrls = new List<string>();
+            var metadataJson = "{\"result\":[{\"name\":\"Waynes World (USA).cue\",\"size\":\"2\"},{\"name\":\"Waynes World (USA) (Track 01).bin\",\"size\":\"4\"},{\"name\":\"waynes_files.xml\",\"size\":\"99\"}]}";
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync((HttpRequest req, CancellationToken _) =>
+                  {
+                      requestedUrls.Add(req.Url.FullUri);
+                      if (req.Url.FullUri.Contains("/metadata/", StringComparison.OrdinalIgnoreCase))
+                      {
+                          return new HttpResponse(req, new HttpHeader(), System.Text.Encoding.UTF8.GetBytes(metadataJson));
+                      }
+
+                      return new HttpResponse(req, new HttpHeader(), new byte[] { 1, 2, 3, 4 });
+                  });
+
+            var release = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/compress/waynesworld",
+                Title = "Wayne's World (USA)"
+            };
+
+            var resultPath = await Subject.Download(new RemoteEpisode { Release = release }, null);
+
+            requestedUrls.Should().Contain(u => u.Contains("/download/waynesworld/Waynes", StringComparison.OrdinalIgnoreCase));
+            requestedUrls.Should().Contain(u => u.Contains(".cue", StringComparison.OrdinalIgnoreCase));
+            requestedUrls.Should().Contain(u => u.Contains(".bin", StringComparison.OrdinalIgnoreCase));
+            requestedUrls.Should().NotContain(u => u.Contains("/compress/", StringComparison.OrdinalIgnoreCase));
+
+            resultPath.Should().NotEndWith(".zip");
+        }
+
+        [Test]
+        public async Task should_fallback_to_compress_url_when_metadata_lookup_fails()
+        {
+            var requestedUrls = new List<string>();
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync((HttpRequest req, CancellationToken _) =>
+                  {
+                      requestedUrls.Add(req.Url.FullUri);
+                      if (req.Url.FullUri.Contains("/metadata/", StringComparison.OrdinalIgnoreCase))
+                      {
+                          return new HttpResponse(req, new HttpHeader(), Array.Empty<byte>(), System.Net.HttpStatusCode.NotFound);
+                      }
+
+                      return new HttpResponse(req, new HttpHeader(), new byte[] { 1, 2, 3, 4 });
+                  });
+
+            var release = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/compress/missing",
+                Title = "Fallback Game"
+            };
+
+            await Subject.Download(new RemoteEpisode { Release = release }, null);
+
+            requestedUrls.Should().Contain("https://archive.org/compress/missing");
+        }
     }
 }
