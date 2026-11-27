@@ -29,10 +29,19 @@
   width: 55px;
 }
 
+.queuePosition {
+  composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
+
+  width: 55px;
+  white-space: nowrap;
+  font-family: var(--monoSpaceFontFamily);
+}
+
 .actions {
   composes: cell from 'Components/Table/Cells/TableRowCell.module.css';
 
-  width: 70px;
+  width: 1%;
+  min-width: 70px;
   text-align: right;
   white-space: nowrap;
 }

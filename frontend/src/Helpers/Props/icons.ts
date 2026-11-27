@@ -17,8 +17,10 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsDown,
   ChevronsLeft,
   ChevronsRight,
+  ChevronsUp,
   ChevronUp,
   Circle,
   CircleAlert,
@@ -179,6 +181,10 @@ export const MANAGE = ListChecks;
 export const MEDIA_INFO = FileText;
 export const MISSING = TriangleAlert;
 export const MONITORED = Bookmark;
+export const MOVE_BOTTOM = ChevronsDown;
+export const MOVE_DOWN = ChevronDown;
+export const MOVE_TOP = ChevronsUp;
+export const MOVE_UP = ChevronUp;
 export const NETWORK = Radio;
 export const NAVBAR_COLLAPSE = Menu;
 export const NOT_AIRED = Clock;

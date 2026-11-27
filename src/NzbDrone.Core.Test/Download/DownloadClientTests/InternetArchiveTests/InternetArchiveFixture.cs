@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -59,6 +60,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
 
             Mocker.GetMock<IDiskProvider>().Setup(s => s.OpenWriteStream(It.IsAny<string>()))
                   .Returns(() => new FileStream(Path.GetTempFileName(), FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite, 81920, FileOptions.DeleteOnClose));
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            InternetArchive.ClearTrackedItems();
         }
 
         [Test]
@@ -455,6 +462,185 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
             Mocker.GetMock<IDiskProvider>().Verify(d => d.DeleteFolder(sabnzbdExtractedDir, true), Times.Never());
 
             items.Should().ContainSingle(i => i.DownloadId == pendingArchive && i.Status == DownloadItemStatus.Completed);
+        }
+
+        [Test]
+        public void should_reorder_queued_internet_archive_downloads_with_top_up_down_bottom()
+        {
+            var slot1 = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var slot2 = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q1Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q2Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q3Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q4Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            try
+            {
+                InternetArchive.EnqueueBackgroundDownloadForTest("slot1", "Active 1", () => slot1.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("slot2", "Active 2", () => slot2.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("q1", "Game 1", () => q1Gate.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("q2", "Game 2", () => q2Gate.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("q3", "Game 3", () => q3Gate.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("q4", "Game 4", () => q4Gate.Task);
+
+                var initial = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                initial["slot1"].Status.Should().Be(DownloadItemStatus.Downloading);
+                initial["slot1"].CanReorder.Should().BeFalse();
+                initial["slot1"].QueuePosition.Should().BeNull();
+                initial["q1"].QueuePosition.Should().Be(1);
+                initial["q1"].CanReorder.Should().BeTrue();
+                initial["q2"].QueuePosition.Should().Be(2);
+                initial["q3"].QueuePosition.Should().Be(3);
+                initial["q4"].QueuePosition.Should().Be(4);
+
+                InternetArchive.ReorderQueuedDownloads(new[] { "q3" }, QueueReorderAction.Top);
+                var afterTop = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                afterTop["q3"].QueuePosition.Should().Be(1);
+                afterTop["q1"].QueuePosition.Should().Be(2);
+                afterTop["q2"].QueuePosition.Should().Be(3);
+                afterTop["q4"].QueuePosition.Should().Be(4);
+
+                InternetArchive.ReorderQueuedDownloads(new[] { "q1" }, QueueReorderAction.Down);
+                var afterDown = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                afterDown["q3"].QueuePosition.Should().Be(1);
+                afterDown["q2"].QueuePosition.Should().Be(2);
+                afterDown["q1"].QueuePosition.Should().Be(3);
+                afterDown["q4"].QueuePosition.Should().Be(4);
+
+                InternetArchive.ReorderQueuedDownloads(new[] { "q4" }, QueueReorderAction.Up);
+                var afterUp = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                afterUp["q3"].QueuePosition.Should().Be(1);
+                afterUp["q2"].QueuePosition.Should().Be(2);
+                afterUp["q4"].QueuePosition.Should().Be(3);
+                afterUp["q1"].QueuePosition.Should().Be(4);
+
+                InternetArchive.ReorderQueuedDownloads(new[] { "q3", "q4" }, QueueReorderAction.Bottom);
+                var afterBulkBottom = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                afterBulkBottom["q2"].QueuePosition.Should().Be(1);
+                afterBulkBottom["q1"].QueuePosition.Should().Be(2);
+                afterBulkBottom["q3"].QueuePosition.Should().Be(3);
+                afterBulkBottom["q4"].QueuePosition.Should().Be(4);
+            }
+            finally
+            {
+                slot1.TrySetResult(true);
+                slot2.TrySetResult(true);
+                q1Gate.TrySetResult(true);
+                q2Gate.TrySetResult(true);
+                q3Gate.TrySetResult(true);
+                q4Gate.TrySetResult(true);
+            }
+        }
+
+        [Test]
+        public async Task should_start_reordered_queued_download_next_when_active_slot_frees()
+        {
+            var slot1 = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var slot2 = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var qAGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var qBGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var qCGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var qCStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var startedOrder = new ConcurrentQueue<string>();
+
+            try
+            {
+                InternetArchive.EnqueueBackgroundDownloadForTest("slot1", "Active 1", () => slot1.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("slot2", "Active 2", () => slot2.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("qA", "Game A", () =>
+                {
+                    startedOrder.Enqueue("qA");
+                    return qAGate.Task;
+                });
+                InternetArchive.EnqueueBackgroundDownloadForTest("qB", "Game B", () =>
+                {
+                    startedOrder.Enqueue("qB");
+                    return qBGate.Task;
+                });
+                InternetArchive.EnqueueBackgroundDownloadForTest("qC", "Game C", () =>
+                {
+                    startedOrder.Enqueue("qC");
+                    qCStarted.TrySetResult(true);
+                    return qCGate.Task;
+                });
+
+                InternetArchive.ReorderQueuedDownloads(new[] { "qC" }, QueueReorderAction.Top);
+
+                slot1.TrySetResult(true);
+                await qCStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                startedOrder.ToArray().Should().Equal("qC");
+
+                var items = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                items["qC"].Status.Should().Be(DownloadItemStatus.Downloading);
+                items["qC"].CanReorder.Should().BeFalse();
+                items["qC"].QueuePosition.Should().BeNull();
+                items["qA"].QueuePosition.Should().Be(1);
+                items["qB"].QueuePosition.Should().Be(2);
+            }
+            finally
+            {
+                slot1.TrySetResult(true);
+                slot2.TrySetResult(true);
+                qAGate.TrySetResult(true);
+                qBGate.TrySetResult(true);
+                qCGate.TrySetResult(true);
+            }
+        }
+
+        [Test]
+        public async Task should_remove_queued_download_from_pending_queue_and_renumber_remaining()
+        {
+            var slot1 = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var slot2 = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q1Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q3Gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q1Started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q2Started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var q3Started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            try
+            {
+                InternetArchive.EnqueueBackgroundDownloadForTest("slot1", "Active 1", () => slot1.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("slot2", "Active 2", () => slot2.Task);
+                InternetArchive.EnqueueBackgroundDownloadForTest("q1", "Game 1", () =>
+                {
+                    q1Started.TrySetResult(true);
+                    return q1Gate.Task;
+                });
+                InternetArchive.EnqueueBackgroundDownloadForTest("q2", "Game 2", () =>
+                {
+                    q2Started.TrySetResult(true);
+                    return Task.CompletedTask;
+                });
+                InternetArchive.EnqueueBackgroundDownloadForTest("q3", "Game 3", () =>
+                {
+                    q3Started.TrySetResult(true);
+                    return q3Gate.Task;
+                });
+
+                Subject.RemoveItem(new DownloadClientItem { DownloadId = "q2" }, false);
+
+                var afterRemove = Subject.GetItems().ToDictionary(i => i.DownloadId);
+                afterRemove.Should().NotContainKey("q2");
+                afterRemove["q1"].QueuePosition.Should().Be(1);
+                afterRemove["q3"].QueuePosition.Should().Be(2);
+
+                slot1.TrySetResult(true);
+                await q1Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                slot2.TrySetResult(true);
+                await q3Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                q2Started.Task.IsCompleted.Should().BeFalse();
+            }
+            finally
+            {
+                slot1.TrySetResult(true);
+                slot2.TrySetResult(true);
+                q1Gate.TrySetResult(true);
+                q3Gate.TrySetResult(true);
+            }
         }
     }
 }

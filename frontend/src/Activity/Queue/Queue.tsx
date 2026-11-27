@@ -21,6 +21,7 @@ import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import PageToolbarSpacer from 'Components/Page/Toolbar/PageToolbarSpacer';
 import ToolbarItem from 'Components/Page/Toolbar/ToolbarItem';
+import SectionHeading from 'Components/SectionHeading';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModal from 'Components/Table/TableOptions/TableOptionsModal';
@@ -41,6 +42,7 @@ import {
 import translate from 'Utilities/String/translate';
 import QueueFilterModal from './QueueFilterModal';
 import {
+  setIaQueueSort,
   setQueueOption,
   setQueueOptions,
   setQueueSort,
@@ -50,39 +52,52 @@ import QueueRow from './QueueRow';
 import RemoveQueueItemModal from './RemoveQueueItemModal';
 import useQueueStatus from './Status/useQueueStatus';
 import useQueue, {
+  QueueReorderAction,
   useFilters,
   useGrabQueueItems,
   useRemoveQueueItems,
+  useReorderQueueItems,
 } from './useQueue';
+import styles from './Queue.module.css';
 
 function QueueContent() {
   const executeCommand = useExecuteCommand();
 
-  const {
-    records,
-    totalPages,
-    totalRecords,
-    error,
-    isFetching,
-    isLoading,
-    page,
-    goToPage,
-    refetch,
-  } = useQueue();
+  const standardQueue = useQueue({ isInternetArchive: false });
+  const iaQueue = useQueue({ isInternetArchive: true });
 
-  const { columns, pageSize, sortKey, sortDirection, selectedFilterKey } =
-    useQueueOptions();
+  const standardRecords = standardQueue.records;
+  const iaRecords = iaQueue.records;
+
+  const allRecords = useMemo(() => {
+    return [...standardRecords, ...iaRecords];
+  }, [standardRecords, iaRecords]);
+
+  const {
+    columns,
+    pageSize,
+    sortKey,
+    sortDirection,
+    iaSortKey,
+    iaSortDirection,
+    selectedFilterKey,
+  } = useQueueOptions();
+
+  const standardColumns = useMemo(() => {
+    return columns.filter((column) => column.name !== 'queuePosition');
+  }, [columns]);
 
   const filters = useFilters();
 
   const { isRemoving, removeQueueItems } = useRemoveQueueItems();
   const { isGrabbing, grabQueueItems } = useGrabQueueItems();
+  const { isReordering, reorderQueueItems } = useReorderQueueItems();
 
   const { count } = useQueueStatus();
 
   const gameIds = useMemo(() => {
-    return selectUniqueIds<QueueModel, number>(records, 'gameIds');
-  }, [records]);
+    return selectUniqueIds<QueueModel, number>(allRecords, 'gameIds');
+  }, [allRecords]);
 
   const {
     isFetching: isGamesFetching,
@@ -100,29 +115,74 @@ function QueueContent() {
   const currentQueue = useRef<ReactElement | null>(null);
   const hasPopulatedOnce = useRef(false);
 
-  const { allSelected, allUnselected, selectAll, unselectAll, useSelectedIds } =
-    useSelect<QueueModel>();
+  const { setItemStates, useSelectedIds } = useSelect<QueueModel>();
 
   const selectedIds = useSelectedIds();
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  const standardAllSelected = useMemo(() => {
+    return (
+      standardRecords.length > 0 &&
+      standardRecords.every((item) => selectedIdSet.has(item.id))
+    );
+  }, [standardRecords, selectedIdSet]);
+
+  const standardAllUnselected = useMemo(() => {
+    return standardRecords.every((item) => !selectedIdSet.has(item.id));
+  }, [standardRecords, selectedIdSet]);
+
+  const iaAllSelected = useMemo(() => {
+    return (
+      iaRecords.length > 0 &&
+      iaRecords.every((item) => selectedIdSet.has(item.id))
+    );
+  }, [iaRecords, selectedIdSet]);
+
+  const iaAllUnselected = useMemo(() => {
+    return iaRecords.every((item) => !selectedIdSet.has(item.id));
+  }, [iaRecords, selectedIdSet]);
+
   const isPendingSelected = useMemo(() => {
-    return records.some((item) => {
-      return selectedIds.indexOf(item.id) > -1 && item.status === 'delay';
+    return allRecords.some((item) => {
+      return selectedIdSet.has(item.id) && item.status === 'delay';
     });
-  }, [records, selectedIds]);
+  }, [allRecords, selectedIdSet]);
 
   const completedDownloadIds = useMemo(
     () =>
       selectedIds
         .map((id) => {
-          const item = records.find(
+          const item = allRecords.find(
             (i) => i.id === id && i.status === 'completed'
           );
 
           return item?.downloadId;
         })
         .filter((id): id is string => !!id),
-    [records, selectedIds]
+    [allRecords, selectedIds]
   );
+
+  const hasIaReorderableItems = useMemo(() => {
+    return iaRecords.some((item) => item.canReorder);
+  }, [iaRecords]);
+
+  const maxIaQueuePosition = useMemo(() => {
+    return iaRecords.reduce((max, item) => {
+      return item.queuePosition != null && item.queuePosition > max
+        ? item.queuePosition
+        : max;
+    }, 0);
+  }, [iaRecords]);
+
+  const selectedReorderableIds = useMemo(() => {
+    return allRecords
+      .filter((item) => selectedIdSet.has(item.id) && item.canReorder)
+      .map((item) => item.id);
+  }, [allRecords, selectedIdSet]);
+
+  const canReorderSelected =
+    selectedIds.length > 0 &&
+    selectedReorderableIds.length === selectedIds.length;
 
   const [isConfirmRemoveModalOpen, setIsConfirmRemoveModalOpen] =
     useState(false);
@@ -130,6 +190,7 @@ function QueueContent() {
   const [isInteractiveImportDownloadIds, setIsInteractiveImportDownloadIds] =
     useState<string[]>(() => []);
 
+  const isLoading = standardQueue.isLoading || iaQueue.isLoading;
   const isRefreshing =
     isLoading || isGamesFetching || isRefreshMonitoredDownloadsExecuting;
 
@@ -137,29 +198,46 @@ function QueueContent() {
   const isPopulatedNow =
     !isLoading &&
     (isGamesFetched ||
-      !records.length ||
-      records.every((e) => !e.gameIds?.length));
+      !allRecords.length ||
+      allRecords.every((e) => !e.gameIds?.length));
 
   if (isPopulatedNow) {
     hasPopulatedOnce.current = true;
   }
 
   const isAllPopulated = hasPopulatedOnce.current || isPopulatedNow;
-  const hasError = error || gamesError;
+  const hasError = standardQueue.error || iaQueue.error || gamesError;
+  const hasStandardRecords = standardRecords.length > 0;
+  const hasIaRecords = iaRecords.length > 0;
+  const hasAnyRecords = hasStandardRecords || hasIaRecords;
   const selectedCount = selectedIds.length;
   const disableSelectedActions = selectedCount === 0;
   const disableImportSelected =
     selectedCount === 0 || completedDownloadIds.length === 0;
+  const disableReorderSelected = !canReorderSelected || isReordering;
 
-  const handleSelectAllChange = useCallback(
+  const handleStandardSelectAllChange = useCallback(
     ({ value }: CheckInputChanged) => {
-      if (value) {
-        selectAll();
-      } else {
-        unselectAll();
-      }
+      setItemStates(
+        standardRecords.map((item) => ({
+          id: item.id,
+          isSelected: !!value,
+        }))
+      );
     },
-    [selectAll, unselectAll]
+    [setItemStates, standardRecords]
+  );
+
+  const handleIaSelectAllChange = useCallback(
+    ({ value }: CheckInputChanged) => {
+      setItemStates(
+        iaRecords.map((item) => ({
+          id: item.id,
+          isSelected: !!value,
+        }))
+      );
+    },
+    [setItemStates, iaRecords]
   );
 
   const handleRefreshPress = useCallback(() => {
@@ -175,6 +253,47 @@ function QueueContent() {
   const handleGrabSelectedPress = useCallback(() => {
     grabQueueItems({ ids: selectedIds });
   }, [selectedIds, grabQueueItems]);
+
+  const handleReorder = useCallback(
+    (ids: number[], action: QueueReorderAction) => {
+      if (!ids.length) {
+        return;
+      }
+
+      reorderQueueItems({ ids, action });
+
+      if (iaSortKey !== 'queuePosition' || iaSortDirection !== 'ascending') {
+        setIaQueueSort({
+          sortKey: 'queuePosition',
+          sortDirection: 'ascending',
+        });
+      }
+    },
+    [reorderQueueItems, iaSortKey, iaSortDirection]
+  );
+
+  const handleRowReorderPress = useCallback(
+    (id: number, action: QueueReorderAction) => {
+      handleReorder([id], action);
+    },
+    [handleReorder]
+  );
+
+  const handleMoveTopSelectedPress = useCallback(() => {
+    handleReorder(selectedReorderableIds, 'top');
+  }, [handleReorder, selectedReorderableIds]);
+
+  const handleMoveUpSelectedPress = useCallback(() => {
+    handleReorder(selectedReorderableIds, 'up');
+  }, [handleReorder, selectedReorderableIds]);
+
+  const handleMoveDownSelectedPress = useCallback(() => {
+    handleReorder(selectedReorderableIds, 'down');
+  }, [handleReorder, selectedReorderableIds]);
+
+  const handleMoveBottomSelectedPress = useCallback(() => {
+    handleReorder(selectedReorderableIds, 'bottom');
+  }, [handleReorder, selectedReorderableIds]);
 
   const handleRemoveSelectedPress = useCallback(() => {
     shouldBlockRefresh.current = true;
@@ -210,10 +329,20 @@ function QueueContent() {
   );
 
   const handleSortPress = useCallback(
-    (sortKey: string, sortDirection?: SortDirection) => {
+    (nextSortKey: string, nextSortDirection?: SortDirection) => {
       setQueueSort({
-        sortKey,
-        sortDirection,
+        sortKey: nextSortKey,
+        sortDirection: nextSortDirection,
+      });
+    },
+    []
+  );
+
+  const handleIaSortPress = useCallback(
+    (nextSortKey: string, nextSortDirection?: SortDirection) => {
+      setIaQueueSort({
+        sortKey: nextSortKey,
+        sortDirection: nextSortDirection,
       });
     },
     []
@@ -224,10 +353,11 @@ function QueueContent() {
       setQueueOptions(payload);
 
       if (payload.pageSize) {
-        goToPage(1);
+        standardQueue.goToPage(1);
+        iaQueue.goToPage(1);
       }
     },
-    [goToPage]
+    [standardQueue, iaQueue]
   );
 
   const [isTableOptionsModalOpen, setIsTableOptionsModalOpen] = useState(false);
@@ -240,9 +370,13 @@ function QueueContent() {
     setIsTableOptionsModalOpen(false);
   }, []);
 
+  const refetchStandard = standardQueue.refetch;
+  const refetchIa = iaQueue.refetch;
+
   useEffect(() => {
     const repopulate = () => {
-      refetch();
+      refetchStandard();
+      refetchIa();
     };
 
     registerPagePopulator(repopulate);
@@ -250,7 +384,9 @@ function QueueContent() {
     return () => {
       unregisterPagePopulator(repopulate);
     };
-  }, [refetch]);
+  }, [refetchStandard, refetchIa]);
+
+  const isIaLastPage = iaQueue.page >= iaQueue.totalPages;
 
   if (!shouldBlockRefresh.current) {
     currentQueue.current = (
@@ -263,7 +399,7 @@ function QueueContent() {
           <Alert kind={kinds.DANGER}>{translate('QueueLoadError')}</Alert>
         ) : null}
 
-        {isAllPopulated && !hasError && !records.length ? (
+        {isAllPopulated && !hasError && !hasAnyRecords ? (
           <PageMessage>
             {selectedFilterKey !== 'all' && count > 0
               ? translate('QueueFilterHasNoItems')
@@ -271,43 +407,102 @@ function QueueContent() {
           </PageMessage>
         ) : null}
 
-        {isAllPopulated && !hasError && !!records.length ? (
+        {isAllPopulated && !hasError && hasAnyRecords ? (
           <div>
-            <Table
-              selectAll={true}
-              allSelected={allSelected}
-              allUnselected={allUnselected}
-              columns={columns}
-              pageSize={pageSize}
-              sortKey={sortKey}
-              sortDirection={sortDirection}
-              onTableOptionChange={handleTableOptionChange}
-              onSelectAllChange={handleSelectAllChange}
-              onSortPress={handleSortPress}
-            >
-              <TableBody>
-                {records.map((item) => {
-                  return (
-                    <QueueRow
-                      key={item.id}
-                      columns={columns}
-                      {...item}
-                      onQueueRowModalOpenOrClose={
-                        handleQueueRowModalOpenOrClose
-                      }
-                    />
-                  );
-                })}
-              </TableBody>
-            </Table>
+            {hasStandardRecords ? (
+              <div className={styles.queueSection}>
+                <SectionHeading title={translate('TorrentsAndUsenetQueue')} />
 
-            <TablePager
-              page={page}
-              totalPages={totalPages}
-              totalRecords={totalRecords}
-              isFetching={isFetching}
-              onPageSelect={goToPage}
-            />
+                <Table
+                  selectAll={true}
+                  allSelected={standardAllSelected}
+                  allUnselected={standardAllUnselected}
+                  columns={standardColumns}
+                  pageSize={pageSize}
+                  sortKey={sortKey}
+                  sortDirection={sortDirection}
+                  onTableOptionChange={handleTableOptionChange}
+                  onSelectAllChange={handleStandardSelectAllChange}
+                  onSortPress={handleSortPress}
+                >
+                  <TableBody>
+                    {standardRecords.map((item) => {
+                      return (
+                        <QueueRow
+                          key={item.id}
+                          columns={standardColumns}
+                          {...item}
+                          onQueueRowModalOpenOrClose={
+                            handleQueueRowModalOpenOrClose
+                          }
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                <TablePager
+                  page={standardQueue.page}
+                  totalPages={standardQueue.totalPages}
+                  totalRecords={standardQueue.totalRecords}
+                  isFetching={standardQueue.isFetching}
+                  onPageSelect={standardQueue.goToPage}
+                />
+              </div>
+            ) : null}
+
+            {hasIaRecords ? (
+              <div className={styles.queueSection}>
+                <SectionHeading
+                  title={translate('InternetArchiveQueue')}
+                  description={translate('InternetArchiveQueueDescription')}
+                />
+
+                <Table
+                  selectAll={true}
+                  allSelected={iaAllSelected}
+                  allUnselected={iaAllUnselected}
+                  columns={columns}
+                  pageSize={pageSize}
+                  sortKey={iaSortKey}
+                  sortDirection={iaSortDirection}
+                  onTableOptionChange={handleTableOptionChange}
+                  onSelectAllChange={handleIaSelectAllChange}
+                  onSortPress={handleIaSortPress}
+                >
+                  <TableBody>
+                    {iaRecords.map((item) => {
+                      const isLastQueued =
+                        isIaLastPage &&
+                        item.queuePosition != null &&
+                        item.queuePosition === maxIaQueuePosition;
+
+                      return (
+                        <QueueRow
+                          key={item.id}
+                          columns={columns}
+                          {...item}
+                          isLastQueued={isLastQueued}
+                          isReordering={isReordering}
+                          onQueueRowModalOpenOrClose={
+                            handleQueueRowModalOpenOrClose
+                          }
+                          onReorderPress={handleRowReorderPress}
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                <TablePager
+                  page={iaQueue.page}
+                  totalPages={iaQueue.totalPages}
+                  totalRecords={iaQueue.totalRecords}
+                  isFetching={iaQueue.isFetching}
+                  onPageSelect={iaQueue.goToPage}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </PageContentBody>
@@ -367,6 +562,54 @@ function QueueContent() {
           onPress={handleImportSelectedPress}
         />
 
+        {hasIaReorderableItems ? (
+          <>
+            <OverflowDivider groupId="left-c">
+              <PageToolbarSeparator />
+            </OverflowDivider>
+
+            <ToolbarItem
+              id="move-top-selected"
+              priority={2}
+              groupId="left-d"
+              label={translate('MoveToTop')}
+              iconName={icons.MOVE_TOP}
+              isDisabled={disableReorderSelected}
+              onPress={handleMoveTopSelectedPress}
+            />
+
+            <ToolbarItem
+              id="move-up-selected"
+              priority={2}
+              groupId="left-d"
+              label={translate('MoveUp')}
+              iconName={icons.MOVE_UP}
+              isDisabled={disableReorderSelected}
+              onPress={handleMoveUpSelectedPress}
+            />
+
+            <ToolbarItem
+              id="move-down-selected"
+              priority={2}
+              groupId="left-d"
+              label={translate('MoveDown')}
+              iconName={icons.MOVE_DOWN}
+              isDisabled={disableReorderSelected}
+              onPress={handleMoveDownSelectedPress}
+            />
+
+            <ToolbarItem
+              id="move-bottom-selected"
+              priority={2}
+              groupId="left-d"
+              label={translate('MoveToBottom')}
+              iconName={icons.MOVE_BOTTOM}
+              isDisabled={disableReorderSelected}
+              onPress={handleMoveBottomSelectedPress}
+            />
+          </>
+        ) : null}
+
         <PageToolbarSpacer />
 
         <ToolbarItem
@@ -398,7 +641,7 @@ function QueueContent() {
         canChangeCategory={
           isConfirmRemoveModalOpen &&
           selectedIds.every((id: number) => {
-            const item = records.find((i) => i.id === id);
+            const item = allRecords.find((i) => i.id === id);
 
             return !!(item && item.downloadClientHasPostImportCategory);
           })
@@ -406,7 +649,7 @@ function QueueContent() {
         canIgnore={
           isConfirmRemoveModalOpen &&
           selectedIds.every((id: number) => {
-            const item = records.find((i) => i.id === id);
+            const item = allRecords.find((i) => i.id === id);
 
             return !!(item && item.seriesId && item.gameIds.length);
           })
@@ -414,7 +657,7 @@ function QueueContent() {
         isPending={
           isConfirmRemoveModalOpen &&
           selectedIds.every((id: number) => {
-            const item = records.find((i) => i.id === id);
+            const item = allRecords.find((i) => i.id === id);
 
             if (!item) {
               return false;
@@ -450,10 +693,15 @@ function QueueContent() {
 }
 
 function Queue() {
-  const { records } = useQueue();
+  const standardQueue = useQueue({ isInternetArchive: false });
+  const iaQueue = useQueue({ isInternetArchive: true });
+
+  const allRecords = useMemo(() => {
+    return [...standardQueue.records, ...iaQueue.records];
+  }, [standardQueue.records, iaQueue.records]);
 
   return (
-    <SelectProvider<QueueModel> items={records}>
+    <SelectProvider<QueueModel> items={allRecords}>
       <QueueContent />
     </SelectProvider>
   );

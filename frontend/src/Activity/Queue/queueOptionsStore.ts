@@ -5,6 +5,7 @@ import {
   PageableOptions,
 } from 'Helpers/Hooks/useOptionsStore';
 import { icons } from 'Helpers/Props';
+import { SortDirection } from 'Helpers/Props/sortDirections';
 import translate from 'Utilities/String/translate';
 
 interface QueueRemovalOptions {
@@ -13,16 +14,20 @@ interface QueueRemovalOptions {
 }
 
 export interface QueueOptions extends PageableOptions {
+  iaSortKey: string;
+  iaSortDirection: SortDirection;
   removalOptions: QueueRemovalOptions;
 }
 
-const { useOptions, useOption, setOptions, setOption, setSort } =
+const { store, useOptions, useOption, setOptions, setOption, setSort } =
   createOptionsStore<QueueOptions>('queue_options_v5', () => {
     return {
       pageSize: 20,
       selectedFilterKey: 'all',
       sortKey: 'added',
       sortDirection: 'ascending',
+      iaSortKey: 'queuePosition',
+      iaSortDirection: 'ascending',
       columns: [
         {
           name: 'status',
@@ -31,6 +36,13 @@ const { useOptions, useOption, setOptions, setOption, setSort } =
           isSortable: true,
           isVisible: true,
           isModifiable: 'onlyPosition',
+        },
+        {
+          name: 'queuePosition',
+          label: '#',
+          columnLabel: () => translate('QueueOrder'),
+          isSortable: true,
+          isVisible: true,
         },
         {
           name: 'series.sortTitle',
@@ -151,3 +163,28 @@ export const setQueueOptions = setOptions;
 export const useQueueOption = useOption;
 export const setQueueOption = setOption;
 export const setQueueSort = setSort;
+export const setIaQueueSort = ({
+  sortKey,
+  sortDirection,
+}: {
+  sortKey: string;
+  sortDirection?: SortDirection;
+}) => {
+  store.setState((state) => {
+    let newSortDirection = sortDirection;
+
+    if (sortDirection == null) {
+      if (state.iaSortKey === sortKey) {
+        newSortDirection =
+          state.iaSortDirection === 'ascending' ? 'descending' : 'ascending';
+      } else {
+        newSortDirection = state.iaSortDirection;
+      }
+    }
+
+    return {
+      iaSortKey: sortKey,
+      iaSortDirection: newSortDirection,
+    };
+  });
+};

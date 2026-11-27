@@ -42,6 +42,7 @@ interface Queue extends ModelBase {
   downloadId: string;
   protocol: DownloadProtocol;
   downloadClient: string;
+  downloadClientType?: string;
   outputPath: string;
   gamesWithFilesCount: number;
   seriesId?: number;
@@ -49,6 +50,8 @@ interface Queue extends ModelBase {
   seasonNumbers: number[];
   downloadClientHasPostImportCategory: boolean;
   isFullSeason: boolean;
+  queuePosition?: number;
+  canReorder: boolean;
   games?: Game[];
 }
 

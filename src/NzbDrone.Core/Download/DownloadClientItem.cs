@@ -23,6 +23,8 @@ namespace NzbDrone.Core.Download
         public bool IsEncrypted { get; set; }
         public bool CanMoveFiles { get; set; }
         public bool CanBeRemoved { get; set; }
+        public int? QueuePosition { get; set; }
+        public bool CanReorder { get; set; }
 
         public DownloadClientItem Clone()
         {

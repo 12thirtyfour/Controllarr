@@ -37,7 +37,11 @@ import GameTitleCellContent from './GameTitleCellContent';
 import QueueStatusCell from './QueueStatusCell';
 import RemoveQueueItemModal from './RemoveQueueItemModal';
 import TimeLeftCell from './TimeLeftCell';
-import { useGrabQueueItem, useRemoveQueueItem } from './useQueue';
+import {
+  QueueReorderAction,
+  useGrabQueueItem,
+  useRemoveQueueItem,
+} from './useQueue';
 import styles from './QueueRow.module.css';
 
 interface QueueRowProps {
@@ -68,9 +72,14 @@ interface QueueRowProps {
   timeLeft?: string;
   size: number;
   sizeLeft: number;
+  queuePosition?: number;
+  canReorder?: boolean;
+  isLastQueued?: boolean;
+  isReordering?: boolean;
   isRemoving?: boolean;
   columns: Column[];
   onQueueRowModalOpenOrClose: (isOpen: boolean) => void;
+  onReorderPress?: (id: number, action: QueueReorderAction) => void;
 }
 
 function QueueRow(props: QueueRowProps) {
@@ -99,8 +108,13 @@ function QueueRow(props: QueueRowProps) {
     timeLeft,
     size,
     sizeLeft,
+    queuePosition,
+    canReorder = false,
+    isLastQueued = false,
+    isReordering = false,
     columns,
     onQueueRowModalOpenOrClose,
+    onReorderPress,
   } = props;
 
   const series = useSingleSeries(seriesId);
@@ -163,6 +177,22 @@ function QueueRow(props: QueueRowProps) {
     [toggleSelected]
   );
 
+  const handleMoveTopPress = useCallback(() => {
+    onReorderPress?.(id, 'top');
+  }, [id, onReorderPress]);
+
+  const handleMoveUpPress = useCallback(() => {
+    onReorderPress?.(id, 'up');
+  }, [id, onReorderPress]);
+
+  const handleMoveDownPress = useCallback(() => {
+    onReorderPress?.(id, 'down');
+  }, [id, onReorderPress]);
+
+  const handleMoveBottomPress = useCallback(() => {
+    onReorderPress?.(id, 'bottom');
+  }, [id, onReorderPress]);
+
   const progress = 100 - (sizeLeft / size) * 100;
   const showInteractiveImport =
     status === 'completed' && trackedDownloadStatus === 'warning';
@@ -196,6 +226,14 @@ function QueueRow(props: QueueRowProps) {
               statusMessages={statusMessages}
               errorMessage={errorMessage}
             />
+          );
+        }
+
+        if (name === 'queuePosition') {
+          return (
+            <TableRowCell key={name} className={styles.queuePosition}>
+              {queuePosition != null ? `#${queuePosition}` : '-'}
+            </TableRowCell>
           );
         }
 
@@ -438,8 +476,43 @@ function QueueRow(props: QueueRowProps) {
         }
 
         if (name === 'actions') {
+          const isFirstQueued = queuePosition === 1;
+
           return (
             <TableRowCell key={name} className={styles.actions}>
+              {canReorder && onReorderPress ? (
+                <>
+                  <IconButton
+                    name={icons.MOVE_TOP}
+                    title={translate('MoveToTop')}
+                    aria-label={translate('MoveToTop')}
+                    isDisabled={isReordering || isFirstQueued}
+                    onPress={handleMoveTopPress}
+                  />
+                  <IconButton
+                    name={icons.MOVE_UP}
+                    title={translate('MoveUp')}
+                    aria-label={translate('MoveUp')}
+                    isDisabled={isReordering || isFirstQueued}
+                    onPress={handleMoveUpPress}
+                  />
+                  <IconButton
+                    name={icons.MOVE_DOWN}
+                    title={translate('MoveDown')}
+                    aria-label={translate('MoveDown')}
+                    isDisabled={isReordering || isLastQueued}
+                    onPress={handleMoveDownPress}
+                  />
+                  <IconButton
+                    name={icons.MOVE_BOTTOM}
+                    title={translate('MoveToBottom')}
+                    aria-label={translate('MoveToBottom')}
+                    isDisabled={isReordering || isLastQueued}
+                    onPress={handleMoveBottomPress}
+                  />
+                </>
+              ) : null}
+
               {showInteractiveImport ? (
                 <IconButton
                   name={icons.INTERACTIVE}

@@ -10,6 +10,7 @@ interface PageStore {
   importListExclusion: number;
   missing: number;
   queue: number;
+  queue_ia: number;
 }
 
 const pageStore = create<PageStore>(() => ({
@@ -20,6 +21,7 @@ const pageStore = create<PageStore>(() => ({
   importListExclusion: 1,
   missing: 1,
   queue: 1,
+  queue_ia: 1,
 }));
 
 const usePage = (kind: keyof PageStore) => {

@@ -12,8 +12,19 @@ import findSelectedFilters from 'Utilities/Filter/findSelectedFilters';
 import translate from 'Utilities/String/translate';
 import { useQueueOptions } from './queueOptionsStore';
 
+export type QueueReorderAction = 'top' | 'up' | 'down' | 'bottom';
+
 interface BulkQueueData {
   ids: number[];
+}
+
+interface ReorderQueueData {
+  ids: number[];
+  action: QueueReorderAction;
+}
+
+interface UseQueueOptions {
+  isInternetArchive?: boolean;
 }
 
 export const FILTERS: Filter[] = [
@@ -74,23 +85,45 @@ export const FILTER_BUILDER: FilterBuilderProp<Queue>[] = [
   },
 ];
 
-const useQueue = () => {
-  const { page, goToPage } = usePage('queue');
-  const { pageSize, selectedFilterKey, sortKey, sortDirection } =
-    useQueueOptions();
+const useQueue = (options?: UseQueueOptions) => {
+  const isInternetArchive = options?.isInternetArchive;
+  const { page, goToPage } = usePage(
+    isInternetArchive ? 'queue_ia' : 'queue'
+  );
+  const {
+    pageSize,
+    selectedFilterKey,
+    sortKey,
+    sortDirection,
+    iaSortKey,
+    iaSortDirection,
+  } = useQueueOptions();
+  const activeSortKey = isInternetArchive ? iaSortKey : sortKey;
+  const activeSortDirection = isInternetArchive ? iaSortDirection : sortDirection;
   const customFilters = useCustomFiltersList('queue');
 
   const filters = useMemo(() => {
     return findSelectedFilters(selectedFilterKey, FILTERS, customFilters);
   }, [selectedFilterKey, customFilters]);
 
+  const queryParams = useMemo(() => {
+    if (isInternetArchive === undefined) {
+      return undefined;
+    }
+
+    return {
+      isInternetArchive,
+    };
+  }, [isInternetArchive]);
+
   const { refetch, ...query } = usePagedApiQuery<Queue>({
     path: '/queue',
     page,
     pageSize,
     filters,
-    sortKey,
-    sortDirection,
+    queryParams,
+    sortKey: activeSortKey,
+    sortDirection: activeSortDirection,
     queryOptions: {
       placeholderData: keepPreviousData,
     },
@@ -203,5 +236,24 @@ export const useGrabQueueItems = () => {
   return {
     grabQueueItems: mutate,
     isGrabbing: isPending,
+  };
+};
+
+export const useReorderQueueItems = () => {
+  const queryClient = useQueryClient();
+
+  const { mutate, isPending } = useApiMutation<unknown, ReorderQueueData>({
+    path: '/queue/reorder',
+    method: 'POST',
+    mutationOptions: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/queue'] });
+      },
+    },
+  });
+
+  return {
+    reorderQueueItems: mutate,
+    isReordering: isPending,
   };
 };

@@ -25,6 +25,12 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-27
 
+### Added
+- **Dedicated Internet Archive Queue Section & Reordering (`InternetArchive`, `QueueService`, `QueueActionController`, `Queue.tsx`)**:
+  - Replaced the unordered concurrency wait in `InternetArchive` with an ordered pending download dispatch queue (`PendingQueue` under `QueueLock`), `QueueReorderAction` (`Top`, `Up`, `Down`, `Bottom`), and `ReorderQueuedDownloads`, guaranteeing that reordered queued Internet Archive items execute in the user's chosen order and are cleanly cancelled/renumbered on removal.
+  - Added `DownloadClientType`, `QueuePosition`, `CanReorder`, `isInternetArchive` queue filtering, `queuePosition` sorting, and `POST /api/v5/queue/reorder` (restricted strictly to Internet Archive downloads).
+  - Updated the Activity → Queue page to render **Torrents & Usenet** above a dedicated **Internet Archive** section (hiding either section automatically when empty), with an Order (`#`) column plus per-row and bulk **Move to Top / Move Up / Move Down / Move to Bottom** controls scoped exclusively to queued Internet Archive downloads.
+
 ### Changed
 - **De-Televisonized Rejection Reason Enums (`DownloadRejectionReason`, `ImportRejectionReason`)**:
   - Replaced legacy TV enum members in `DownloadRejectionReason` (`UnknownSeries` → `UnknownPlatform`, `UnknownEpisode` → `UnknownGame`, `MatchesAnotherSeries` → `MatchesAnotherPlatform`, `SeriesNotMonitored` → `PlatformNotMonitored`, `EpisodeNotMonitored` → `GameNotMonitored`, `WrongEpisode` → `WrongGame`, `WrongSeason` → `WrongRegion`, `WrongSeries` → `WrongPlatform`, `FullSeason` → `FullRegion`, `FullSeasonNotAired` → `FullRegionNotReleased`, `MultiSeason` → `MultiRegion`, `ExistingFileHasMoreEpisodes` → `ExistingFileHasMoreGames`, `NotSeasonPack` → `NotRegionPack`, `SplitEpisode` → `SplitGame`) and removed unused `UnknownRuntime` and `BeforeAirDate`.

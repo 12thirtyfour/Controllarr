@@ -38,16 +38,32 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             public double SpeedBytesPerSec { get; set; }
             public DownloadItemStatus Status { get; set; }
             public string ErrorMessage { get; set; }
+            public int? QueuePosition { get; set; }
         }
+
+        private sealed class QueuedDownloadJob
+        {
+            public string DownloadId { get; init; }
+            public InternetArchiveDownloadState State { get; init; }
+            public Func<Task> ExecuteAsync { get; init; }
+        }
+
+        private const int MaxConcurrentDownloads = 2;
 
         private static readonly ConcurrentDictionary<string, InternetArchiveDownloadState> TrackedItems =
             new ConcurrentDictionary<string, InternetArchiveDownloadState>(StringComparer.OrdinalIgnoreCase);
 
-        private static readonly SemaphoreSlim ConcurrencySemaphore = new SemaphoreSlim(2, 2);
+        private static readonly SemaphoreSlim SyncConcurrencySemaphore = new SemaphoreSlim(MaxConcurrentDownloads, MaxConcurrentDownloads);
 
         private static readonly System.Net.Http.HttpClient SharedHttpClient = CreateSharedHttpClient();
 
         private static readonly object PersistenceLock = new object();
+
+        private static readonly object QueueLock = new object();
+
+        private static readonly List<QueuedDownloadJob> PendingQueue = new List<QueuedDownloadJob>();
+
+        private static int _activeBackgroundDownloads;
 
         private static volatile bool _initializedFromDisk;
 
@@ -170,8 +186,186 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
         public static void ClearTrackedItems()
         {
+            lock (QueueLock)
+            {
+                PendingQueue.Clear();
+                _activeBackgroundDownloads = 0;
+            }
+
             TrackedItems.Clear();
             _initializedFromDisk = false;
+        }
+
+        public static void EnqueueBackgroundDownloadForTest(string downloadId, string title, Func<Task> executeAsync)
+        {
+            if (string.IsNullOrWhiteSpace(downloadId) || executeAsync == null)
+            {
+                return;
+            }
+
+            var state = new InternetArchiveDownloadState
+            {
+                DownloadId = downloadId,
+                Title = title ?? Path.GetFileName(downloadId),
+                OutputPath = downloadId,
+                TotalSize = 0,
+                DownloadedBytes = 0,
+                SpeedBytesPerSec = 0,
+                Status = DownloadItemStatus.Queued
+            };
+
+            TrackedItems[downloadId] = state;
+            EnqueueBackgroundJob(downloadId, state, executeAsync);
+        }
+
+        public static Dictionary<string, int?> ReorderQueuedDownloads(IReadOnlyList<string> downloadIds, QueueReorderAction action)
+        {
+            lock (QueueLock)
+            {
+                if (downloadIds != null && downloadIds.Count > 0 && PendingQueue.Count > 1)
+                {
+                    var idSet = new HashSet<string>(downloadIds, StringComparer.OrdinalIgnoreCase);
+
+                    switch (action)
+                    {
+                        case QueueReorderAction.Top:
+                        {
+                            var selected = PendingQueue.Where(j => idSet.Contains(j.DownloadId)).ToList();
+                            var others = PendingQueue.Where(j => !idSet.Contains(j.DownloadId)).ToList();
+                            PendingQueue.Clear();
+                            PendingQueue.AddRange(selected);
+                            PendingQueue.AddRange(others);
+                            break;
+                        }
+
+                        case QueueReorderAction.Bottom:
+                        {
+                            var selected = PendingQueue.Where(j => idSet.Contains(j.DownloadId)).ToList();
+                            var others = PendingQueue.Where(j => !idSet.Contains(j.DownloadId)).ToList();
+                            PendingQueue.Clear();
+                            PendingQueue.AddRange(others);
+                            PendingQueue.AddRange(selected);
+                            break;
+                        }
+
+                        case QueueReorderAction.Up:
+                        {
+                            for (var i = 1; i < PendingQueue.Count; i++)
+                            {
+                                if (idSet.Contains(PendingQueue[i].DownloadId) &&
+                                    !idSet.Contains(PendingQueue[i - 1].DownloadId))
+                                {
+                                    (PendingQueue[i - 1], PendingQueue[i]) = (PendingQueue[i], PendingQueue[i - 1]);
+                                }
+                            }
+
+                            break;
+                        }
+
+                        case QueueReorderAction.Down:
+                        {
+                            for (var i = PendingQueue.Count - 2; i >= 0; i--)
+                            {
+                                if (idSet.Contains(PendingQueue[i].DownloadId) &&
+                                    !idSet.Contains(PendingQueue[i + 1].DownloadId))
+                                {
+                                    (PendingQueue[i], PendingQueue[i + 1]) = (PendingQueue[i + 1], PendingQueue[i]);
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                RefreshPendingQueuePositionsLocked();
+
+                var positions = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in TrackedItems)
+                {
+                    positions[kvp.Key] = kvp.Value.Status == DownloadItemStatus.Queued
+                        ? kvp.Value.QueuePosition
+                        : null;
+                }
+
+                return positions;
+            }
+        }
+
+        private static void EnqueueBackgroundJob(string downloadId, InternetArchiveDownloadState state, Func<Task> executeAsync)
+        {
+            var job = new QueuedDownloadJob
+            {
+                DownloadId = downloadId,
+                State = state,
+                ExecuteAsync = executeAsync
+            };
+
+            lock (QueueLock)
+            {
+                if (_activeBackgroundDownloads < MaxConcurrentDownloads)
+                {
+                    _activeBackgroundDownloads++;
+                    state.Status = DownloadItemStatus.Downloading;
+                    state.QueuePosition = null;
+                    _ = Task.Run(() => RunBackgroundJobAsync(job));
+                }
+                else
+                {
+                    state.Status = DownloadItemStatus.Queued;
+                    PendingQueue.Add(job);
+                    RefreshPendingQueuePositionsLocked();
+                }
+            }
+        }
+
+        private static async Task RunBackgroundJobAsync(QueuedDownloadJob job)
+        {
+            try
+            {
+                await job.ExecuteAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // ExecuteAsync handles persistence and error state on normal downloads
+            }
+            finally
+            {
+                lock (QueueLock)
+                {
+                    _activeBackgroundDownloads = Math.Max(0, _activeBackgroundDownloads - 1);
+                    StartNextQueuedDownloadsLocked();
+                }
+            }
+        }
+
+        private static void StartNextQueuedDownloadsLocked()
+        {
+            while (_activeBackgroundDownloads < MaxConcurrentDownloads && PendingQueue.Count > 0)
+            {
+                var nextJob = PendingQueue[0];
+                PendingQueue.RemoveAt(0);
+
+                if (!TrackedItems.ContainsKey(nextJob.DownloadId))
+                {
+                    continue;
+                }
+
+                _activeBackgroundDownloads++;
+                nextJob.State.Status = DownloadItemStatus.Downloading;
+                nextJob.State.QueuePosition = null;
+                _ = Task.Run(() => RunBackgroundJobAsync(nextJob));
+            }
+
+            RefreshPendingQueuePositionsLocked();
+        }
+
+        private static void RefreshPendingQueuePositionsLocked()
+        {
+            for (var i = 0; i < PendingQueue.Count; i++)
+            {
+                PendingQueue[i].State.QueuePosition = i + 1;
+            }
         }
 
         public static void TrackTransferState(
@@ -289,11 +483,10 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                 TotalSize = initialSize,
                 DownloadedBytes = 0,
                 SpeedBytesPerSec = 0,
-                Status = ConcurrencySemaphore.CurrentCount > 0 ? DownloadItemStatus.Downloading : DownloadItemStatus.Queued
+                Status = DownloadItemStatus.Queued
             };
 
             TrackedItems[downloadPath] = state;
-            PersistTrackedItems();
 
             var isBackgroundRun = remoteEpisode?.Series != null &&
                                   _httpClient.GetType().FullName?.Contains("Castle.Proxies", StringComparison.Ordinal) != true;
@@ -301,10 +494,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             if (isBackgroundRun)
             {
                 _diskProvider.EnsureFolder(workingFolder);
-                _ = Task.Run(() => StreamDownloadToDiskAsync(url, filename, downloadPath, state));
+                EnqueueBackgroundJob(downloadPath, state, () => StreamDownloadToDiskAsync(url, filename, downloadPath, state));
+                PersistTrackedItems();
                 return downloadPath;
             }
 
+            PersistTrackedItems();
             return await ExecuteDownloadInternalAsync(remoteEpisode, indexer, url, filename, downloadPath, state).ConfigureAwait(false);
         }
 
@@ -354,10 +549,15 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             InternetArchiveDownloadState state)
         {
             var tempDownloadPath = downloadPath + ".ia.part";
-            await ConcurrencySemaphore.WaitAsync().ConfigureAwait(false);
+            if (!TrackedItems.ContainsKey(downloadPath))
+            {
+                return;
+            }
+
             try
             {
                 state.Status = DownloadItemStatus.Downloading;
+                state.QueuePosition = null;
                 var stopwatch = Stopwatch.StartNew();
 
                 var s3AccessKey = GetS3AccessKey();
@@ -546,7 +746,6 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             }
             finally
             {
-                ConcurrencySemaphore.Release();
                 _commandQueue?.Push(new RefreshMonitoredDownloadsCommand(), CommandPriority.High);
             }
         }
@@ -559,7 +758,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             string downloadPath,
             InternetArchiveDownloadState state)
         {
-            await ConcurrencySemaphore.WaitAsync().ConfigureAwait(false);
+            await SyncConcurrencySemaphore.WaitAsync().ConfigureAwait(false);
             try
             {
                 state.Status = DownloadItemStatus.Downloading;
@@ -647,7 +846,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             }
             finally
             {
-                ConcurrencySemaphore.Release();
+                SyncConcurrencySemaphore.Release();
             }
         }
 
@@ -717,7 +916,9 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     Status = state.Status,
                     Message = state.ErrorMessage,
                     CanMoveFiles = state.Status == DownloadItemStatus.Completed,
-                    CanBeRemoved = true
+                    CanBeRemoved = true,
+                    QueuePosition = state.Status == DownloadItemStatus.Queued ? state.QueuePosition : null,
+                    CanReorder = state.Status == DownloadItemStatus.Queued
                 });
             }
 
@@ -729,6 +930,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             InternetArchiveDownloadState removedState = null;
             if (item != null && !string.IsNullOrWhiteSpace(item.DownloadId))
             {
+                lock (QueueLock)
+                {
+                    PendingQueue.RemoveAll(j => string.Equals(j.DownloadId, item.DownloadId, StringComparison.OrdinalIgnoreCase));
+                    RefreshPendingQueuePositionsLocked();
+                }
+
                 TrackedItems.TryRemove(item.DownloadId, out removedState);
                 PersistTrackedItems();
             }

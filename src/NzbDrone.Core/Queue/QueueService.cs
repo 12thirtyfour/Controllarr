@@ -16,6 +16,7 @@ namespace NzbDrone.Core.Queue
         List<Queue> GetQueue();
         Queue Find(int id);
         void Remove(int id);
+        void UpdateQueuePositions(IReadOnlyDictionary<string, int?> positions);
     }
 
     public class QueueService : IQueueService,
@@ -45,6 +46,31 @@ namespace NzbDrone.Core.Queue
         public void Remove(int id)
         {
             _queue.Remove(Find(id));
+        }
+
+        public void UpdateQueuePositions(IReadOnlyDictionary<string, int?> positions)
+        {
+            if (positions == null || positions.Count == 0)
+            {
+                return;
+            }
+
+            var updated = false;
+            foreach (var item in _queue)
+            {
+                if (!string.IsNullOrWhiteSpace(item.DownloadId) &&
+                    positions.TryGetValue(item.DownloadId, out var newPosition))
+                {
+                    item.QueuePosition = newPosition;
+                    item.CanReorder = newPosition.HasValue && item.Status == QueueStatus.Queued;
+                    updated = true;
+                }
+            }
+
+            if (updated)
+            {
+                _eventAggregator.PublishEvent(new QueueUpdatedEvent());
+            }
         }
 
         private IEnumerable<Queue> MapQueue(TrackedDownload trackedDownload)
@@ -82,10 +108,13 @@ namespace NzbDrone.Core.Queue
                 DownloadId = trackedDownload.DownloadItem.DownloadId,
                 Protocol = trackedDownload.Protocol,
                 DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo?.Name ?? string.Empty,
+                DownloadClientType = trackedDownload.DownloadItem.DownloadClientInfo?.Type ?? string.Empty,
                 Indexer = trackedDownload.Indexer,
                 OutputPath = trackedDownload.DownloadItem.OutputPath.ToString(),
                 Added = trackedDownload.Added,
-                DownloadClientHasPostImportCategory = trackedDownload.DownloadItem.DownloadClientInfo?.HasPostImportCategory ?? false
+                DownloadClientHasPostImportCategory = trackedDownload.DownloadItem.DownloadClientInfo?.HasPostImportCategory ?? false,
+                QueuePosition = trackedDownload.DownloadItem.QueuePosition,
+                CanReorder = trackedDownload.DownloadItem.CanReorder
             };
 
             queue.Id = HashConverter.GetHashInt31($"trackedDownload-{trackedDownload.DownloadClient}-{trackedDownload.DownloadItem.DownloadId}");

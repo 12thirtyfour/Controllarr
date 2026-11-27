@@ -64,5 +64,25 @@ namespace NzbDrone.Api.Test.v5.Queue
             resource.IsFullSeason.Should().BeFalse();
             resource.GameIds.Should().ContainSingle().Which.Should().Be(201);
         }
+
+        [Test]
+        public void should_map_queue_position_can_reorder_and_download_client_type()
+        {
+            var queue = new NzbDrone.Core.Queue.Queue
+            {
+                Id = 3,
+                Title = "Chrono Trigger (USA)",
+                DownloadClient = "Internet Archive",
+                DownloadClientType = "InternetArchive",
+                QueuePosition = 1,
+                CanReorder = true
+            };
+
+            var resource = queue.ToResource(includeSeries: false, includeEpisodes: false);
+
+            resource.DownloadClientType.Should().Be("InternetArchive");
+            resource.QueuePosition.Should().Be(1);
+            resource.CanReorder.Should().BeTrue();
+        }
     }
 }

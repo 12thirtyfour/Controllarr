@@ -140,7 +140,7 @@ namespace Sonarr.Api.V5.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public Ok<PagingResource<QueueResource>> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownSeriesItems = true, [FromQuery] int[]? seriesIds = null, DownloadProtocol? protocol = null, [FromQuery] int[]? languages = null, [FromQuery] int[]? quality = null, [FromQuery] QueueStatus[]? status = null, [FromQuery] QueueSubresource[]? includeSubresources = null)
+        public Ok<PagingResource<QueueResource>> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownSeriesItems = true, [FromQuery] int[]? seriesIds = null, DownloadProtocol? protocol = null, [FromQuery] int[]? languages = null, [FromQuery] int[]? quality = null, [FromQuery] QueueStatus[]? status = null, [FromQuery] QueueSubresource[]? includeSubresources = null, [FromQuery] bool? isInternetArchive = null)
         {
             var pagingResource = new PagingResource<QueueResource>(paging);
             var pagingSpec = pagingResource.MapToPagingSpec<QueueResource, NzbDrone.Core.Queue.Queue>(
@@ -165,6 +165,7 @@ namespace Sonarr.Api.V5.Queue
                     "progress",
                     "protocol",
                     "quality",
+                    "queuePosition",
                     "series.sortTitle",
                     "size",
                     "status",
@@ -177,10 +178,10 @@ namespace Sonarr.Api.V5.Queue
             var includeSeries = includeSubresources.Contains(QueueSubresource.Series);
             var includeEpisodes = includeSubresources.Contains(QueueSubresource.Games);
 
-            return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, seriesIds?.ToHashSet() ?? [], protocol, languages?.ToHashSet() ?? [], quality?.ToHashSet() ?? [], status?.ToHashSet() ?? [], includeUnknownSeriesItems), (q) => MapToResource(q, includeSeries, includeEpisodes)));
+            return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, seriesIds?.ToHashSet() ?? [], protocol, languages?.ToHashSet() ?? [], quality?.ToHashSet() ?? [], status?.ToHashSet() ?? [], includeUnknownSeriesItems, isInternetArchive), (q) => MapToResource(q, includeSeries, includeEpisodes)));
         }
 
-        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> seriesIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownSeriesItems)
+        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> seriesIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownSeriesItems, bool? isInternetArchive)
         {
             var ascending = pagingSpec.SortDirection == SortDirection.Ascending;
             var orderByFunc = GetOrderByFunc(pagingSpec);
@@ -219,6 +220,12 @@ namespace Sonarr.Api.V5.Queue
                 if (include && hasStatusFilter)
                 {
                     include &= status.Contains(q.Status);
+                }
+
+                if (include && isInternetArchive.HasValue)
+                {
+                    var isIaItem = string.Equals(q.DownloadClientType, "InternetArchive", StringComparison.OrdinalIgnoreCase);
+                    include &= isInternetArchive.Value ? isIaItem : !isIaItem;
                 }
 
                 return include;
@@ -277,6 +284,17 @@ namespace Sonarr.Api.V5.Queue
                 ordered = ascending
                     ? fullQueue.OrderBy(q => q.Languages, new LanguagesComparer())
                     : fullQueue.OrderByDescending(q => q.Languages, new LanguagesComparer());
+            }
+            else if (pagingSpec.SortKey == "queuePosition")
+            {
+                static int GetQueueOrderRank(NzbDrone.Core.Queue.Queue q) =>
+                    q.Status == QueueStatus.Downloading
+                        ? 0
+                        : (q.QueuePosition ?? int.MaxValue);
+
+                ordered = ascending
+                    ? fullQueue.OrderBy(GetQueueOrderRank)
+                    : fullQueue.OrderByDescending(GetQueueOrderRank);
             }
             else
             {

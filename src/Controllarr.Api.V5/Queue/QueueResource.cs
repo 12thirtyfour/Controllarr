@@ -36,11 +36,14 @@ namespace Sonarr.Api.V5.Queue
         public string? DownloadId { get; set; }
         public DownloadProtocol Protocol { get; set; }
         public string? DownloadClient { get; set; }
+        public string? DownloadClientType { get; set; }
         public bool DownloadClientHasPostImportCategory { get; set; }
         public string? Indexer { get; set; }
         public string? OutputPath { get; set; }
         public int GamesWithFilesCount { get; set; }
         public bool IsFullSeason { get; set; }
+        public int? QueuePosition { get; set; }
+        public bool CanReorder { get; set; }
     }
 
     public static class QueueResourceMapper
@@ -78,11 +81,14 @@ namespace Sonarr.Api.V5.Queue
                 DownloadId = model.DownloadId,
                 Protocol = model.Protocol,
                 DownloadClient = model.DownloadClient,
+                DownloadClientType = model.DownloadClientType,
                 DownloadClientHasPostImportCategory = model.DownloadClientHasPostImportCategory,
                 Indexer = model.Indexer,
                 OutputPath = model.OutputPath,
                 GamesWithFilesCount = model.Episodes?.Count(e => e.HasFile) ?? 0,
-                IsFullSeason = isFullSet
+                IsFullSeason = isFullSet,
+                QueuePosition = model.QueuePosition,
+                CanReorder = model.CanReorder
             };
         }
 
