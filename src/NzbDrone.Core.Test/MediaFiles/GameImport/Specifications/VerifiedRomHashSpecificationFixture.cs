@@ -59,6 +59,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             var decision = Subject.IsSatisfiedBy(localEpisode, downloadItem);
             decision.Accepted.Should().BeFalse();
             decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+            decision.Message.Should().NotContain("Inspect and approve manually");
         }
 
         [Test]

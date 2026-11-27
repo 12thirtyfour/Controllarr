@@ -246,10 +246,28 @@ namespace NzbDrone.Core.Download
             }
             else if (importResults.Count > 1 &&
                      importResults.All(r => r.Result == ImportResultType.Rejected &&
-                                            IsAutoFailRejectionReason(r.ImportDecision?.Rejections.FirstOrDefault()?.Reason)))
+                                            r.ImportDecision?.Rejections != null &&
+                                            r.ImportDecision.Rejections.Any(rej => IsAutoFailRejectionReason(rej.Reason))))
             {
                 var firstRejected = importResults.First();
                 if (_rejectedImportService.Process(trackedDownload, firstRejected) &&
+                    trackedDownload.State == TrackedDownloadState.FailedPending)
+                {
+                    return;
+                }
+            }
+            else if (importResults.Count > 1 &&
+                     !importResults.Any(r => r.Result == ImportResultType.Imported) &&
+                     !importResults.Any(r => r.ImportDecision?.Rejections?.Any(rej =>
+                         rej.Reason == ImportRejectionReason.UnmonitoredDatMatch ||
+                         rej.Reason == ImportRejectionReason.MultiRegion) == true))
+            {
+                var unverifiedResult = importResults.FirstOrDefault(r =>
+                    r.Result == ImportResultType.Rejected &&
+                    r.ImportDecision?.Rejections?.Any(rej => rej.Reason == ImportRejectionReason.UnverifiedRomHash) == true);
+
+                if (unverifiedResult != null &&
+                    _rejectedImportService.Process(trackedDownload, unverifiedResult) &&
                     trackedDownload.State == TrackedDownloadState.FailedPending)
                 {
                     return;

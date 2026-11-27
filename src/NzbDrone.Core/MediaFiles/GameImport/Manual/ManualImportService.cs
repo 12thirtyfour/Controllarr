@@ -24,6 +24,9 @@ using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
+using SharpCompress.Archives;
+using SharpCompress.Common;
+using SharpCompress.Readers;
 
 namespace NzbDrone.Core.MediaFiles.GameImport.Manual
 {
@@ -155,13 +158,35 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                 }
 
                 var ext = Path.GetExtension(path);
-                if ((ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) || ext.Equals(".7z", StringComparison.OrdinalIgnoreCase)) &&
+                var isArchiveFile = IsExtractableArchiveFile(path);
+
+                if (isArchiveFile &&
+                    !ArchiveRepackService.HasNestedArchiveEntries(path) &&
+                    (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) || ext.Equals(".7z", StringComparison.OrdinalIgnoreCase)) &&
                     _unmanagedDiskScanner != null)
                 {
                     var scanned = _unmanagedDiskScanner.Scan(path);
                     if (scanned != null && scanned.Count > 0)
                     {
                         return EnrichAndFilterScannedItems(scanned, seriesId, downloadId, false);
+                    }
+                }
+
+                if (isArchiveFile)
+                {
+                    var extractedDir = TryExtractNestedArchiveForManualImport(path);
+                    if (!string.IsNullOrWhiteSpace(extractedDir))
+                    {
+                        if (_unmanagedDiskScanner != null)
+                        {
+                            var scannedExtracted = _unmanagedDiskScanner.Scan(extractedDir);
+                            if (scannedExtracted != null && scannedExtracted.Count > 0)
+                            {
+                                return EnrichAndFilterScannedItems(scannedExtracted, seriesId, downloadId, filterExistingFiles);
+                            }
+                        }
+
+                        return ProcessFolder(extractedDir, extractedDir, downloadId, seriesId, filterExistingFiles);
                     }
                 }
 
@@ -953,6 +978,285 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, importedPlatform.Id, romFiles, importedResults.First().ImportDecision.LocalEpisode.Release));
                 }
             }
+        }
+
+        private string TryExtractNestedArchiveForManualImport(string archivePath)
+        {
+            if (string.IsNullOrWhiteSpace(archivePath) ||
+                !File.Exists(archivePath) ||
+                ArchiveRepackService.IsNonRomArchiveJunkFile(archivePath))
+            {
+                return null;
+            }
+
+            var parentDir = Path.GetDirectoryName(archivePath);
+            var baseName = Path.GetFileNameWithoutExtension(archivePath);
+            if (string.IsNullOrWhiteSpace(parentDir) || string.IsNullOrWhiteSpace(baseName))
+            {
+                return null;
+            }
+
+            var extractDir = Path.Combine(parentDir, baseName + "_extracted");
+
+            try
+            {
+                if (Directory.Exists(extractDir) && Directory.EnumerateFiles(extractDir, "*", SearchOption.AllDirectories).Any())
+                {
+                    var existingArchives = Directory.GetFiles(extractDir, "*", SearchOption.AllDirectories)
+                        .Where(f => IsExtractableArchiveFile(f) && !ArchiveRepackService.IsNonRomArchiveJunkFile(f))
+                        .ToList();
+
+                    if (existingArchives.Count == 0)
+                    {
+                        return extractDir;
+                    }
+                }
+
+                Directory.CreateDirectory(extractDir);
+                var rejectedExtensions = FileExtensions.ParseUserRejectedExtensions(_configService?.UserRejectedExtensions ?? string.Empty);
+                var extractedFiles = new List<string>();
+                ExtractArchiveRecursiveForManualImport(archivePath, extractDir, 0, 5, rejectedExtensions, extractedFiles, deleteSourceArchive: false);
+
+                if (extractedFiles.Count == 0)
+                {
+                    if (Directory.Exists(extractDir) && !Directory.EnumerateFileSystemEntries(extractDir).Any())
+                    {
+                        Directory.Delete(extractDir, true);
+                    }
+
+                    return null;
+                }
+
+                foreach (var extractedFile in extractedFiles)
+                {
+                    if (DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(extractedFile)))
+                    {
+                        DiscSheetHelper.RepairSheetInPlaceIfNeeded(extractedFile);
+                    }
+                }
+
+                return extractDir;
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "Unable to extract archive '{0}' for manual import", archivePath);
+                return null;
+            }
+        }
+
+        private static void ExtractArchiveRecursiveForManualImport(
+            string archivePath,
+            string targetDir,
+            int depth,
+            int maxDepth,
+            HashSet<string> rejectedExtensions,
+            List<string> collectedFiles,
+            bool deleteSourceArchive)
+        {
+            if (depth > maxDepth || string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+            {
+                return;
+            }
+
+            Directory.CreateDirectory(targetDir);
+            var targetDirFull = Path.GetFullPath(targetDir);
+            if (!targetDirFull.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                targetDirFull += Path.DirectorySeparatorChar;
+            }
+
+            var fileName = Path.GetFileName(archivePath);
+            var ext = Path.GetExtension(archivePath)?.ToLowerInvariant() ?? string.Empty;
+            var newlyExtracted = new List<string>();
+
+            if (ext == ".zip")
+            {
+                using var archive = ZipFile.OpenRead(archivePath);
+                foreach (var entry in archive.Entries)
+                {
+                    if (entry.FullName.EndsWith("/") ||
+                        entry.FullName.EndsWith("\\") ||
+                        ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name) ||
+                        ArchiveRepackService.IsNonRomArchiveJunkFile(entry.FullName))
+                    {
+                        continue;
+                    }
+
+                    var entryExt = Path.GetExtension(entry.Name);
+                    if (ShouldSkipExtractedExtensionForManualImport(entryExt, rejectedExtensions))
+                    {
+                        continue;
+                    }
+
+                    var relativePath = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativePath));
+                    if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var destParent = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(destParent) && !Directory.Exists(destParent))
+                    {
+                        Directory.CreateDirectory(destParent);
+                    }
+
+                    entry.ExtractToFile(destPath, overwrite: true);
+                    newlyExtracted.Add(destPath);
+                }
+            }
+            else if (fileName.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ||
+                     fileName.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase) ||
+                     ext is ".tgz" or ".tbz2" or ".tb2" or ".gz" or ".bz2" or ".tar")
+            {
+                using var fs = File.OpenRead(archivePath);
+                using var reader = ReaderFactory.OpenReader(fs);
+                while (reader.MoveToNextEntry())
+                {
+                    if (reader.Entry.IsDirectory)
+                    {
+                        continue;
+                    }
+
+                    var rawKey = (reader.Entry.Key ?? string.Empty).Replace('\\', '/');
+                    var entryName = Path.GetFileName(rawKey);
+                    if (string.IsNullOrWhiteSpace(rawKey) || (string.Equals(entryName, "data", StringComparison.OrdinalIgnoreCase) && ext is ".gz" or ".bz2"))
+                    {
+                        var fallbackName = Path.GetFileNameWithoutExtension(archivePath);
+                        if (string.IsNullOrWhiteSpace(fallbackName))
+                        {
+                            continue;
+                        }
+
+                        rawKey = fallbackName;
+                        entryName = fallbackName;
+                    }
+
+                    if (ArchiveRepackService.IsJunkEntry(rawKey, entryName) ||
+                        ArchiveRepackService.IsNonRomArchiveJunkFile(rawKey))
+                    {
+                        continue;
+                    }
+
+                    var entryExt = Path.GetExtension(entryName);
+                    if (ShouldSkipExtractedExtensionForManualImport(entryExt, rejectedExtensions))
+                    {
+                        continue;
+                    }
+
+                    var relativePath = rawKey.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativePath));
+                    if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var destParent = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(destParent) && !Directory.Exists(destParent))
+                    {
+                        Directory.CreateDirectory(destParent);
+                    }
+
+                    reader.WriteEntryToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
+                    newlyExtracted.Add(destPath);
+                }
+            }
+            else
+            {
+                using var archive = ArchiveFactory.OpenArchive(archivePath);
+                foreach (var entry in archive.Entries)
+                {
+                    if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                    {
+                        continue;
+                    }
+
+                    var entryKey = entry.Key.Replace('\\', '/');
+                    var entryName = Path.GetFileName(entryKey);
+                    if (ArchiveRepackService.IsJunkEntry(entryKey, entryName) ||
+                        ArchiveRepackService.IsNonRomArchiveJunkFile(entryKey))
+                    {
+                        continue;
+                    }
+
+                    var entryExt = Path.GetExtension(entryName);
+                    if (ShouldSkipExtractedExtensionForManualImport(entryExt, rejectedExtensions))
+                    {
+                        continue;
+                    }
+
+                    var relativePath = entryKey.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
+                    var destPath = Path.GetFullPath(Path.Combine(targetDirFull, relativePath));
+                    if (!destPath.StartsWith(targetDirFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var destParent = Path.GetDirectoryName(destPath);
+                    if (!string.IsNullOrWhiteSpace(destParent) && !Directory.Exists(destParent))
+                    {
+                        Directory.CreateDirectory(destParent);
+                    }
+
+                    entry.WriteToFile(destPath, new ExtractionOptions { ExtractFullPath = false, Overwrite = true });
+                    newlyExtracted.Add(destPath);
+                }
+            }
+
+            if (deleteSourceArchive && File.Exists(archivePath))
+            {
+                try
+                {
+                    File.Delete(archivePath);
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (var extractedPath in newlyExtracted)
+            {
+                if (IsExtractableArchiveFile(extractedPath) && depth < maxDepth)
+                {
+                    var nestedTargetDir = Path.Combine(
+                        Path.GetDirectoryName(extractedPath) ?? targetDir,
+                        Path.GetFileNameWithoutExtension(extractedPath));
+                    ExtractArchiveRecursiveForManualImport(extractedPath, nestedTargetDir, depth + 1, maxDepth, rejectedExtensions, collectedFiles, deleteSourceArchive: true);
+                }
+                else
+                {
+                    collectedFiles.Add(extractedPath);
+                }
+            }
+        }
+
+        private static bool IsExtractableArchiveFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return false;
+            }
+
+            if (filePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ||
+                filePath.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var ext = Path.GetExtension(filePath);
+            return !string.IsNullOrWhiteSpace(ext) && FileExtensions.ArchiveExtensions.Contains(ext);
+        }
+
+        private static bool ShouldSkipExtractedExtensionForManualImport(string ext, HashSet<string> rejectedExtensions)
+        {
+            if (string.IsNullOrWhiteSpace(ext))
+            {
+                return false;
+            }
+
+            return FileExtensions.DangerousExtensions.Contains(ext) ||
+                   FileExtensions.ExecutableExtensions.Contains(ext) ||
+                   (rejectedExtensions != null && rejectedExtensions.Contains(ext));
         }
 
         private long GetItemFileSize(string path)

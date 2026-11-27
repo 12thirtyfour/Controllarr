@@ -1,13 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Formats.Tar;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.GameImport;
 using NzbDrone.Core.MediaFiles.GameImport.Manual;
+using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -81,6 +86,49 @@ namespace NzbDrone.Core.Test.MediaFiles.GameImport.Manual
             Subject.Execute(command);
 
             importedPaths.Should().ContainSingle().Which.Should().Be(cuePath);
+        }
+
+        [Test]
+        public void should_extract_nested_archives_recursively_when_scanning_file_for_manual_import()
+        {
+            var tarGzPath = Path.Combine(_tempDir, "inner.tar.gz");
+            using (var fs = File.Create(tarGzPath))
+            using (var gz = new GZipStream(fs, CompressionMode.Compress))
+            using (var tar = new TarWriter(gz, TarEntryFormat.Pax))
+            {
+                var entry = new PaxTarEntry(TarEntryType.RegularFile, "Super Mario World (USA).sfc")
+                {
+                    DataStream = new MemoryStream(new byte[] { 1, 2, 3, 4 })
+                };
+                tar.WriteEntry(entry);
+            }
+
+            var outerZipPath = Path.Combine(_tempDir, "SuperMarioWorld.zip");
+            using (var zip = ZipFile.Open(outerZipPath, ZipArchiveMode.Create))
+            {
+                zip.CreateEntryFromFile(tarGzPath, "nested/inner.tar.gz");
+            }
+
+            File.Delete(tarGzPath);
+
+            var expectedExtractDir = Path.Combine(_tempDir, "SuperMarioWorld_extracted");
+
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(It.IsAny<string>())).Returns<string>(p => Directory.Exists(p));
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FileExists(It.IsAny<string>())).Returns<string>(p => File.Exists(p));
+            Mocker.GetMock<IUnmanagedDiskScanner>().Setup(s => s.Scan(It.Is<string>(p => Directory.Exists(p))))
+                .Returns<string>(dir => Directory.GetFiles(dir, "*.sfc", SearchOption.AllDirectories)
+                    .Select(f => new ManualImportItem
+                    {
+                        Path = f,
+                        Name = Path.GetFileNameWithoutExtension(f)
+                    })
+                    .ToList());
+
+            var items = Subject.GetMediaFiles(outerZipPath, null, null, false);
+
+            Directory.Exists(expectedExtractDir).Should().BeTrue();
+            items.Should().ContainSingle();
+            items[0].Path.Should().EndWith("Super Mario World (USA).sfc");
         }
     }
 }

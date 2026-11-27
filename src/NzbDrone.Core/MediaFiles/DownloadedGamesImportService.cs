@@ -353,9 +353,13 @@ namespace NzbDrone.Core.MediaFiles
             var decisions = _importDecisionMaker.GetImportDecisions(remainingVideoFiles, series, downloadClientItem, downloadClientItemInfo, folderInfo, true);
             if (decisions != null && decisions.Count > 0)
             {
-                foreach (var remainingFile in remainingVideoFiles)
+                foreach (var decision in decisions)
                 {
-                    handledPaths.Add(remainingFile);
+                    var decisionFile = decision?.LocalEpisode?.Path;
+                    if (!string.IsNullOrWhiteSpace(decisionFile))
+                    {
+                        handledPaths.Add(decisionFile);
+                    }
                 }
             }
 
@@ -367,14 +371,7 @@ namespace NzbDrone.Core.MediaFiles
                 directOrSingleDecisions = new List<ImportDecision>(decisions.Count);
                 foreach (var decision in decisions)
                 {
-                    var decisionPath = decision?.LocalEpisode?.Path;
-                    if (decision != null &&
-                        !decision.Approved &&
-                        !string.IsNullOrWhiteSpace(decisionPath) &&
-                        IsExtractableArchiveFile(decisionPath) &&
-                        !ArchiveRepackService.IsNonRomArchiveJunkFile(decisionPath) &&
-                        File.Exists(decisionPath) &&
-                        (archiveDepth > 0 || ArchiveRepackService.HasNestedArchiveEntries(decisionPath)))
+                    if (ShouldExtractRejectedArchive(decision))
                     {
                         nestedArchiveDecisionsToExtract.Add(decision);
                     }
@@ -609,10 +606,7 @@ namespace NzbDrone.Core.MediaFiles
             if (decisions != null && decisions.Any() && decisions.All(d => !d.Approved))
             {
                 if (archiveDepth < MaxArchiveExtractionDepth &&
-                    IsExtractableArchiveFile(fileInfo.FullName) &&
-                    !ArchiveRepackService.IsNonRomArchiveJunkFile(fileInfo.FullName) &&
-                    File.Exists(fileInfo.FullName) &&
-                    (archiveDepth > 0 || ArchiveRepackService.HasNestedArchiveEntries(fileInfo.FullName)))
+                    decisions.All(ShouldExtractRejectedArchive))
                 {
                     var nestedResults = ProcessExtractedArchiveFile(fileInfo, importMode, series, downloadClientItem, null, archiveDepth);
                     if (nestedResults != null && nestedResults.Count > 0)
@@ -1507,6 +1501,40 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             return null;
+        }
+
+        private static bool ShouldExtractRejectedArchive(ImportDecision decision)
+        {
+            if (decision == null || decision.Approved)
+            {
+                return false;
+            }
+
+            var decisionPath = decision.LocalEpisode?.Path;
+            if (string.IsNullOrWhiteSpace(decisionPath) ||
+                !IsExtractableArchiveFile(decisionPath) ||
+                ArchiveRepackService.IsNonRomArchiveJunkFile(decisionPath) ||
+                !File.Exists(decisionPath))
+            {
+                return false;
+            }
+
+            var reasons = decision.Rejections?.Select(r => r.Reason).ToList() ?? new List<ImportRejectionReason>();
+            if (reasons.Any(r => r is ImportRejectionReason.DangerousFile or
+                                     ImportRejectionReason.ExecutableFile or
+                                     ImportRejectionReason.UserRejectedExtension or
+                                     ImportRejectionReason.DuplicateLibraryHash))
+            {
+                return false;
+            }
+
+            var onlyAlreadyImported = reasons.Count > 0 && reasons.All(r => r == ImportRejectionReason.GameAlreadyImported);
+            if (onlyAlreadyImported && !ArchiveRepackService.HasNestedArchiveEntries(decisionPath))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static bool IsExtractableArchiveFile(string filePath)

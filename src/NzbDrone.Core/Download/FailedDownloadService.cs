@@ -189,6 +189,17 @@ namespace NzbDrone.Core.Download
             {
                 failure = trackedDownload.DownloadItem.Message;
             }
+            else if (trackedDownload.StatusMessages != null && trackedDownload.StatusMessages.Any())
+            {
+                var statusFailure = trackedDownload.StatusMessages
+                    .SelectMany(m => m.Messages ?? new List<string>())
+                    .FirstOrDefault(m => m.IsNotNullOrWhiteSpace());
+
+                if (statusFailure.IsNotNullOrWhiteSpace())
+                {
+                    failure = statusFailure;
+                }
+            }
 
             trackedDownload.State = TrackedDownloadState.Failed;
             PublishDownloadFailedEvent(historyItem, episodeIds, failure, $"{BuildInfo.AppName} Failed Download Handling", trackedDownload, skipBlocklist: trackedDownload.SkipBlocklist);

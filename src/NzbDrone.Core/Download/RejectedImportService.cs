@@ -35,9 +35,9 @@ public class RejectedImportService : IRejectedImportService
             return false;
         }
 
-        var rejectionReason = importResult.ImportDecision.Rejections.FirstOrDefault()?.Reason;
+        var reasons = importResult.ImportDecision.Rejections.Select(r => r.Reason).ToList();
 
-        if (rejectionReason == ImportRejectionReason.UnmonitoredDatMatch)
+        if (reasons.Contains(ImportRejectionReason.UnmonitoredDatMatch))
         {
             trackedDownload.Warn(new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, importResult.Errors));
 
@@ -51,20 +51,28 @@ public class RejectedImportService : IRejectedImportService
             return true;
         }
 
-        if (rejectionReason == ImportRejectionReason.DuplicateLibraryHash)
+        if (reasons.Contains(ImportRejectionReason.DuplicateLibraryHash))
         {
             _logger.Info("Download '{0}' failed verification and its hash matches an already-imported library file; failing and deleting without blocklisting to continue searching.", trackedDownload.DownloadItem.Title);
             trackedDownload.Fail(skipBlocklist: true);
             return true;
         }
 
-        if (rejectionReason == ImportRejectionReason.CrossPlatformMatchImported ||
-            rejectionReason == ImportRejectionReason.ArchiveFile ||
-            rejectionReason == ImportRejectionReason.UnverifiedRomHash ||
-            rejectionReason == ImportRejectionReason.PlatformFormatRejected ||
-            rejectionReason == ImportRejectionReason.UnsupportedExtension)
+        var autoFailReason = reasons.FirstOrDefault(r =>
+            r is ImportRejectionReason.CrossPlatformMatchImported or
+                ImportRejectionReason.ArchiveFile or
+                ImportRejectionReason.UnverifiedRomHash or
+                ImportRejectionReason.PlatformFormatRejected or
+                ImportRejectionReason.UnsupportedExtension);
+
+        if (autoFailReason != default)
         {
-            _logger.Trace("Download '{0}' rejected ({1}), marking as failed to continue searching for requested ROM", trackedDownload.DownloadItem.Title, rejectionReason);
+            _logger.Trace("Download '{0}' rejected ({1}), marking as failed to continue searching for requested ROM", trackedDownload.DownloadItem.Title, autoFailReason);
+            if (importResult.Errors != null && importResult.Errors.Any())
+            {
+                trackedDownload.Warn(new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, importResult.Errors));
+            }
+
             trackedDownload.Fail();
             return true;
         }
@@ -83,19 +91,19 @@ public class RejectedImportService : IRejectedImportService
             return true;
         }
 
-        if (rejectionReason == ImportRejectionReason.DangerousFile &&
+        if (reasons.Contains(ImportRejectionReason.DangerousFile) &&
             indexerSettings.FailDownloads.Contains(FailDownloads.PotentiallyDangerous))
         {
             _logger.Trace("Download '{0}' contains potentially dangerous file, marking as failed", trackedDownload.DownloadItem.Title);
             trackedDownload.Fail();
         }
-        else if (rejectionReason == ImportRejectionReason.ExecutableFile &&
+        else if (reasons.Contains(ImportRejectionReason.ExecutableFile) &&
             indexerSettings.FailDownloads.Contains(FailDownloads.Executables))
         {
             _logger.Trace("Download '{0}' contains executable file, marking as failed", trackedDownload.DownloadItem.Title);
             trackedDownload.Fail();
         }
-        else if (rejectionReason == ImportRejectionReason.UserRejectedExtension &&
+        else if (reasons.Contains(ImportRejectionReason.UserRejectedExtension) &&
                  indexerSettings.FailDownloads.Contains(FailDownloads.UserDefinedExtensions))
         {
             _logger.Trace("Download '{0}' contains user defined rejected file extension, marking as failed", trackedDownload.DownloadItem.Title);

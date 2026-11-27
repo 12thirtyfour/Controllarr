@@ -1056,5 +1056,82 @@ namespace NzbDrone.Core.Test.MediaFiles
                 }
             }
         }
+
+        [Test]
+        public void should_extract_top_level_archive_rejected_at_depth_zero_to_inspect_inner_archive()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_depth0_reject_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var tarGzPath = Path.Combine(tempDir, "inner.tar.gz");
+                CreateTestTarGz(tarGzPath, ("Donkey Kong Country (USA).sfc", new byte[2048]));
+
+                var outerZipPath = Path.Combine(tempDir, "Donkey Kong Country (USA).zip");
+                using (var zip = ZipFile.Open(outerZipPath, ZipArchiveMode.Create))
+                {
+                    zip.CreateEntryFromFile(tarGzPath, "inner.tar.gz");
+                }
+
+                File.Delete(tarGzPath);
+
+                var platform = new Series { Id = 8, Title = "Super Nintendo Entertainment System", TitleSlug = "snes", Path = Path.Combine(tempDir, "Library") };
+                var game = new Episode { Id = 43, SeasonNumber = 1, EpisodeNumber = 1, Title = "Donkey Kong Country" };
+                var downloadItem = new DownloadClientItem { DownloadId = "dl-depth0", Title = "Donkey Kong Country (USA)", CanMoveFiles = false };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(It.IsAny<string>())).Returns<string>(p => Directory.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(It.IsAny<string>())).Returns<string>(p => File.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.EnsureFolder(It.IsAny<string>())).Callback<string>(p => Directory.CreateDirectory(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.DeleteFolder(It.IsAny<string>(), true)).Callback<string, bool>((p, r) =>
+                {
+                    if (Directory.Exists(p))
+                    {
+                        Directory.Delete(p, r);
+                    }
+                });
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetDirectories(It.IsAny<string>()))
+                    .Returns<string>(p => Directory.Exists(p) ? Directory.GetDirectories(p) : Array.Empty<string>());
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(It.IsAny<string>(), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly) : Array.Empty<string>());
+
+                Mocker.GetMock<IDiskScanService>().Setup(c => c.GetVideoFiles(It.IsAny<string>(), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*.zip", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+                        .Concat(Directory.GetFiles(p, "*.sfc", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)).ToArray() : Array.Empty<string>());
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Setup(s => s.GetImportDecisions(It.IsAny<List<string>>(), platform, downloadItem, It.IsAny<ParsedEpisodeInfo>(), It.IsAny<ParsedEpisodeInfo>(), true))
+                    .Returns<List<string>, Series, DownloadClientItem, ParsedEpisodeInfo, ParsedEpisodeInfo, bool>((paths, ser, item, dlInfo, folderInfo, check) =>
+                        paths.Select(p =>
+                        {
+                            if (p.EndsWith(".sfc", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return new ImportDecision(new LocalEpisode { Path = p, Series = ser, Episodes = new List<Episode> { game }, RomHashVerified = true });
+                            }
+
+                            return new ImportDecision(
+                                new LocalEpisode { Path = p, Series = ser },
+                                new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified archive hash"));
+                        }).ToList());
+
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, downloadItem, ImportMode.Copy))
+                    .Returns<List<ImportDecision>, bool, DownloadClientItem, ImportMode>((d, newDl, item, mode) =>
+                        d.Where(x => x.Approved).Select(x => new ImportResult(x)).ToList());
+
+                var results = Subject.ProcessPath(outerZipPath, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().Contain(r => r.Result == ImportResultType.Imported &&
+                                              r.ImportDecision.LocalEpisode.Path.EndsWith("Donkey Kong Country (USA).sfc", StringComparison.OrdinalIgnoreCase));
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
     }
 }

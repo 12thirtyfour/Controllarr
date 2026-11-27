@@ -687,6 +687,12 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                         int bytesRead;
                         while ((bytesRead = await networkStream.ReadAsync(buffer.AsMemory(0, bufferSize)).ConfigureAwait(false)) > 0)
                         {
+                            if (!TrackedItems.ContainsKey(downloadPath))
+                            {
+                                _logger.Debug("InternetArchive download aborted because item '{0}' was removed.", filename);
+                                return;
+                            }
+
                             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead)).ConfigureAwait(false);
                             totalRead += bytesRead;
                             state.DownloadedBytes = totalRead;
@@ -711,9 +717,25 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
                     }
                 }
 
+                if (!TrackedItems.ContainsKey(downloadPath))
+                {
+                    if (_diskProvider.FileExists(tempDownloadPath))
+                    {
+                        _diskProvider.DeleteFile(tempDownloadPath);
+                    }
+
+                    return;
+                }
+
                 if (_diskProvider.FileExists(downloadPath))
                 {
                     _diskProvider.DeleteFile(downloadPath);
+                }
+
+                if (!_diskProvider.FileExists(tempDownloadPath))
+                {
+                    _logger.Warn("InternetArchive partial file '{0}' no longer exists; skipping completion move.", tempDownloadPath);
+                    return;
                 }
 
                 _diskProvider.MoveFile(tempDownloadPath, downloadPath, true);

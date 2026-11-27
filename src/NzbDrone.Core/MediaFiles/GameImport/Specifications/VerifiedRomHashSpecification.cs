@@ -53,10 +53,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
             if (hasComputedRomHashes || hasPlatformEntries)
             {
-                _logger.Warn("Holding unverified ROM download in Activity Queue for manual review: {0}", localEpisode.Path);
+                _logger.Warn("Rejecting ROM download with unverified DAT hash: {0}", localEpisode.Path);
                 return ImportSpecDecision.Reject(
                     ImportRejectionReason.UnverifiedRomHash,
-                    "Unverified ROM Hash: Checksum does not match any verified No-Intro, Redump, TOSEC, or SmokeMonster SMDB entry. Inspect and approve manually if trusted.");
+                    "Unverified ROM Hash: Checksum does not match any verified No-Intro, Redump, TOSEC, or SmokeMonster SMDB DAT entry.");
             }
 
             return ImportSpecDecision.Accept();

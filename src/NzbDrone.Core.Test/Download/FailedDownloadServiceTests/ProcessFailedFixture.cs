@@ -104,6 +104,22 @@ namespace NzbDrone.Core.Test.Download.FailedDownloadServiceTests
                   .Verify(v => v.PublishEvent(It.Is<DownloadFailedEvent>(e => e.SkipRedownload)), Times.Once());
         }
 
+        [Test]
+        public void should_use_status_message_reason_when_processing_failed_download()
+        {
+            _trackedDownload.Warn(new TrackedDownloadStatusMessage("Unverified.Game", "Unverified ROM Hash: Checksum does not match any verified DAT entry."));
+            _trackedDownload.Fail();
+
+            Subject.ProcessFailed(_trackedDownload);
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(
+                      v => v.PublishEvent(It.Is<DownloadFailedEvent>(e => e.Message == "Unverified ROM Hash: Checksum does not match any verified DAT entry.")),
+                      Times.Once());
+
+            AssertDownloadFailed();
+        }
+
         private void AssertDownloadNotFailed()
         {
             Mocker.GetMock<IEventAggregator>()

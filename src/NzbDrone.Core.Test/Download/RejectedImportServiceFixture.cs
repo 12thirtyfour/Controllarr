@@ -107,5 +107,40 @@ namespace NzbDrone.Core.Test.Download
             trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
             trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
         }
+
+        [Test]
+        public void should_fail_download_when_unverified_rom_hash_is_secondary_rejection()
+        {
+            var trackedDownload = new TrackedDownload
+            {
+                DownloadItem = new DownloadClientItem
+                {
+                    Title = "Mixed.Rejection.ROM",
+                    DownloadId = "dl-unverified-2"
+                },
+                RemoteEpisode = new RemoteEpisode
+                {
+                    Release = new ReleaseInfo
+                    {
+                        IndexerId = 1,
+                        Title = "Mixed.Rejection.ROM"
+                    }
+                }
+            };
+
+            var importDecision = new ImportDecision(
+                new LocalEpisode { Path = @"C:\Downloads\Mixed.Rejection.cue" },
+                new ImportRejection(ImportRejectionReason.GameAlreadyImported, "ROM file already imported"),
+                new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM Hash: Checksum does not match any verified No-Intro, Redump, TOSEC, or SmokeMonster SMDB DAT entry."));
+
+            var importResult = new ImportResult(importDecision, "ROM file already imported", "Unverified ROM Hash");
+
+            var handled = Subject.Process(trackedDownload, importResult);
+
+            handled.Should().BeTrue();
+            trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
+            trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
+            trackedDownload.StatusMessages.Should().ContainSingle();
+        }
     }
 }

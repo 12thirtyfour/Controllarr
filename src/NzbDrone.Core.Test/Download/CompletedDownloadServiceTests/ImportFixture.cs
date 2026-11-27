@@ -536,6 +536,39 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
         }
 
         [Test]
+        public void should_fail_download_when_multiple_files_fail_and_at_least_one_has_unverified_rom_hash()
+        {
+            Mocker.GetMock<IDownloadedGamesImportService>()
+                  .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>()))
+                  .Returns(new List<ImportResult>
+                           {
+                               new ImportResult(
+                                   new ImportDecision(
+                                       new LocalEpisode { Path = @"C:\TestPath\Track 01.bin" },
+                                       new ImportRejection(ImportRejectionReason.Unknown, "Unable to identify game")),
+                                   "Unable to identify game"),
+                               new ImportResult(
+                                   new ImportDecision(
+                                       new LocalEpisode { Path = @"C:\TestPath\Game.cue" },
+                                       new ImportRejection(ImportRejectionReason.GameAlreadyImported, "Already imported"),
+                                       new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM hash")),
+                                   "Unverified ROM hash")
+                           });
+
+            Mocker.GetMock<IRejectedImportService>()
+                  .Setup(s => s.Process(It.IsAny<TrackedDownload>(), It.IsAny<ImportResult>()))
+                  .Callback<TrackedDownload, ImportResult>((td, _) => td.Fail())
+                  .Returns(true);
+
+            Subject.Import(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
+            _trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(v => v.PublishEvent(It.IsAny<ManualInteractionRequiredEvent>()), Times.Never());
+        }
+
+        [Test]
         public void should_skip_rechecking_import_blocked_download_within_cooldown()
         {
             Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(It.IsAny<string>())).Returns(true);
