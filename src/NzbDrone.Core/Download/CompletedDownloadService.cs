@@ -109,6 +109,13 @@ namespace NzbDrone.Core.Download
                 }
             }
 
+            if (trackedDownload.State == TrackedDownloadState.ImportBlocked &&
+                trackedDownload.LastImportAttempt.HasValue &&
+                DateTime.UtcNow - trackedDownload.LastImportAttempt.Value < TimeSpan.FromMinutes(5))
+            {
+                return;
+            }
+
             var grabbedHistories = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId).Where(h => h.EventType == GameHistoryEventType.Grabbed).ToList();
             var historyItem = grabbedHistories.MaxBy(h => h.Date);
 
@@ -158,6 +165,7 @@ namespace NzbDrone.Core.Download
 
         public void Import(TrackedDownload trackedDownload)
         {
+            trackedDownload.LastImportAttempt = DateTime.UtcNow;
             SetImportItem(trackedDownload);
 
             if (!ValidatePath(trackedDownload))

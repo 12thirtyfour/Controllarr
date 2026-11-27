@@ -535,6 +535,30 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
                   .Verify(v => v.PublishEvent(It.IsAny<ManualInteractionRequiredEvent>()), Times.Never());
         }
 
+        [Test]
+        public void should_skip_rechecking_import_blocked_download_within_cooldown()
+        {
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(It.IsAny<string>())).Returns(true);
+            _trackedDownload.State = TrackedDownloadState.ImportBlocked;
+            _trackedDownload.LastImportAttempt = System.DateTime.UtcNow;
+
+            Subject.Check(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportBlocked);
+        }
+
+        [Test]
+        public void should_recheck_import_blocked_download_after_cooldown_expires()
+        {
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists(It.IsAny<string>())).Returns(true);
+            _trackedDownload.State = TrackedDownloadState.ImportBlocked;
+            _trackedDownload.LastImportAttempt = System.DateTime.UtcNow.AddMinutes(-10);
+
+            Subject.Check(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
+        }
+
         private void GivenNoFilesToImport()
         {
             Mocker.GetMock<IDownloadedGamesImportService>()

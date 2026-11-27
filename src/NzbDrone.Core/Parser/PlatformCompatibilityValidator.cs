@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Parser
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex PcNonConsoleRegex = new Regex(
-            @"[\(\[]\s*(?:PC(?![\s._-]*(?:Engine|FX))\b[^\)\]]*|IBM[\s._-]*PC|Windows(?:\s+(?:3\.1|95|98|ME|2000|XP|Vista|7|8|10|11))?|Win(?:32|64|95|98|XP)|MS-?DOS|DOS|DOSBox|Mac(?:OS)?|OS\s*X|Linux|Steam|GOG|PC-?98|PC-?88|iOS|iPhone|iPad|Android|Roblox|OST|Soundtrack|FLAC|MP3|PDF|EPUB|CBR|CBZ|Strategy[\s._-]+Guide)\s*[\)\]]|\b(?:pc[\s._-]+(?:games?|images?|dis[ck]s?|cd(?:-?rom)?|dvd(?:-?rom)?|isos?|rips?|repacks?|versions?|ports?|releases?|editions?|install(?:er)?s?|setup|cracks?|patches?|compatibles?)|(?:for|on)[\s._-]+pc|ibm[\s._-]+pc|ms-?dos|dos[\s._-]+(?:images?|dis[ck]s?|versions?|ports?|games?)|dosbox|win3\.?1|win95|win98|win32|win64|windows[\s._-]+(?:3\.1|95|98|xp|vista|7|8|10|11|version|port|release|edition|installer|setup)|(?:macos|linux|android)[\s._-]+(?:version|port|release|edition|installer|setup|apk)|gog[\s._-]+(?:games?|installer|edition|rip)|steam[\s._-]+(?:rip|repack|edition)|apple\s*ii|commodore\s*64|zx\s*spectrum|amstrad\s+cpc|pc-98|pc-88|roblox|bloxcards?wiki|strategy[\s._-]+guide|official[\s._-]+soundtrack|original[\s._-]+soundtrack)\b|(?-i:\biOS\b)|softwarelibrary_msdos|softwarelibrary_win|softwarelibrary_mac|softwarelibrary_c64|softwarelibrary_amiga",
+            @"[\(\[]\s*(?:PC(?![\s._-]*(?:Engine|FX))\b[^\)\]]*|IBM[\s._-]*PC|Windows(?:\s+(?:3\.1|95|98|ME|2000|XP|Vista|7|8|10|11))?|Win(?:32|64|95|98|XP)|MS-?DOS|DOS|DOSBox|Mac(?:OS)?|OS\s*X|Linux|Steam|GOG|PC-?98|PC-?88|Atari[\s._-]*(?:ST|STE|Falcon|400|800|XL|XE)|Amiga(?![\s._-]*CD32)|Commodore[\s._-]*(?:64|128|VIC-?20|PET)|MSX2?|BBC[\s._-]*Micro|Acorn[\s._-]*(?:Electron|Archimedes)|TRS-?80|TI-?99|Sharp[\s._-]*X68000|FM[\s._-]*Towns|Sinclair[\s._-]*QL|iOS|iPhone|iPad|Android|Roblox|OST|Soundtrack|FLAC|MP3|PDF|EPUB|CBR|CBZ|Strategy[\s._-]+Guide)\s*[\)\]]|\b(?:pc[\s._-]+(?:games?|images?|dis[ck]s?|cd(?:-?rom)?|dvd(?:-?rom)?|isos?|rips?|repacks?|versions?|ports?|releases?|editions?|install(?:er)?s?|setup|cracks?|patches?|compatibles?)|(?:for|on)[\s._-]+pc|ibm[\s._-]+pc|ms-?dos|dos[\s._-]+(?:images?|dis[ck]s?|versions?|ports?|games?)|dosbox|win3\.?1|win95|win98|win32|win64|windows[\s._-]+(?:3\.1|95|98|xp|vista|7|8|10|11|version|port|release|edition|installer|setup)|(?:macos|linux|android)[\s._-]+(?:version|port|release|edition|installer|setup|apk)|gog[\s._-]+(?:games?|installer|edition|rip)|steam[\s._-]+(?:rip|repack|edition)|apple\s*ii|commodore[\s._-]+(?:64|128|vic-?20|pet)|zx\s*spectrum|amstrad\s+cpc|pc-98|pc-88|atari[\s._-]+(?:st|ste|falcon|800|xl|xe)|bbc[\s._-]+micro|x68000|fm[\s._-]+towns|roblox|bloxcards?wiki|strategy[\s._-]+guide|official[\s._-]+soundtrack|original[\s._-]+soundtrack)\b|(?-i:\biOS\b)|softwarelibrary_msdos|softwarelibrary_win|softwarelibrary_mac|softwarelibrary_c64|softwarelibrary_amiga",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Dictionary<string, string[]> PlatformAliases = PlatformCatalogService.PlatformAliases;
@@ -1019,6 +1019,10 @@ namespace NzbDrone.Core.Parser
             @"^\[(?<subgroup>[^\]]+)\]\s*[^\[\(\]]+\s*-\s*\d{2,4}\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex TvShowOrSeriesPattern = new(
+            @"(?:\(\s*|\[\s*|\b)(?:tv[\s._-]*(?:series|show|movie|film|special|miniseries|mini-series|broadcast)|television[\s._-]*(?:series|show|program|broadcast))(?:\s*\)|\s*\]|\b)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         public static string ExtractArchiveId(string infoUrl)
         {
             if (!string.IsNullOrWhiteSpace(infoUrl))
@@ -1074,6 +1078,11 @@ namespace NzbDrone.Core.Parser
                 }
 
                 if (AnimeSubgroupPattern.IsMatch(title))
+                {
+                    return true;
+                }
+
+                if (TvShowOrSeriesPattern.IsMatch(title))
                 {
                     return true;
                 }

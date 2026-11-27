@@ -15,6 +15,7 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles.Archive;
+using NzbDrone.Core.MediaFiles.Disc;
 using NzbDrone.Core.MediaFiles.GameImport.Aggregation;
 using NzbDrone.Core.MediaFiles.LibraryImport;
 using NzbDrone.Core.Messaging.Commands;
@@ -215,7 +216,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                 localGame.Path = path;
                 localGame.SceneSource = SceneSource(platform, rootFolder);
                 localGame.ExistingFile = platform.Path.IsParentPath(path);
-                localGame.Size = _diskProvider.GetFileSize(path);
+                localGame.Size = GetItemFileSize(path);
                 localGame.ReleaseGroup = finalReleaseGroup;
                 localGame.Languages = finalLanguages;
                 localGame.Quality = finalQuality;
@@ -255,7 +256,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     Path = path,
                     SceneSource = SceneSource(platform, rootFolder),
                     ExistingFile = platform.Path.IsParentPath(path),
-                    Size = _diskProvider.GetFileSize(path),
+                    Size = GetItemFileSize(path),
                     ReleaseGroup = releaseGroup.IsNullOrWhiteSpace() ? Parser.ReleaseGroupParser.ParseReleaseGroup(path) : releaseGroup,
                     Languages = languages?.Count <= 1 && (languages?.SingleOrDefault() ?? Language.Unknown) == Language.Unknown ? LanguageParser.ParseLanguages(path) : languages,
                     Quality = quality.Quality == Quality.Unknown ? QualityParser.ParseQuality(path) : quality,
@@ -521,7 +522,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             item.ReleaseGroup = decision.LocalEpisode.ReleaseGroup;
             item.Quality = decision.LocalEpisode.Quality;
             item.Languages = decision.LocalEpisode.Languages;
-            item.Size = _diskProvider.GetFileSize(decision.LocalEpisode.Path);
+            item.Size = GetItemFileSize(decision.LocalEpisode.Path);
             item.Rejections = decision.Rejections;
             item.IndexerFlags = (int)decision.LocalEpisode.IndexerFlags;
             item.ReleaseType = decision.LocalEpisode.ReleaseType;
@@ -558,7 +559,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             item.Languages = romFile.Languages;
             item.IndexerFlags = (int)romFile.IndexerFlags;
             item.ReleaseType = romFile.ReleaseType;
-            item.Size = _diskProvider.GetFileSize(item.Path);
+            item.Size = GetItemFileSize(item.Path);
             item.Rejections = Enumerable.Empty<ImportRejection>();
             item.EpisodeFileId = romFile.Id;
             item.CustomFormats = _formatCalculator.ParseCustomFormat(romFile, platform);
@@ -577,12 +578,19 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             var importedUntrackedDownload = new List<ImportResult>();
             var importedZipEntriesByArchive = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             var importedSourceDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var companionPathsToSkip = DiscSheetHelper.FindCompanionTrackFiles(message.Files.Select(f => f.Path));
 
             for (var i = 0; i < message.Files.Count; i++)
             {
                 _logger.ProgressTrace("Processing file {0} of {1}", i + 1, message.Files.Count);
 
                 var file = message.Files[i];
+                if (companionPathsToSkip.Contains(file.Path))
+                {
+                    _logger.Debug("Skipping companion disc track '{0}' because its primary disc sheet is also queued for import.", file.Path);
+                    continue;
+                }
+
                 var platform = _seriesService.GetSeries(file.SeriesId);
                 if (platform != null)
                 {
@@ -611,6 +619,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                 string tempExtractDir = null;
                 string currentZipPath = null;
                 string currentZipEntryName = null;
+                List<string> extractedCompanionZipEntries = null;
 
                 if (file.Path.Contains(".zip#"))
                 {
@@ -637,6 +646,11 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                         if (entry != null)
                         {
                             entry.ExtractToFile(actualPath, true);
+
+                            if (DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(entryName)))
+                            {
+                                extractedCompanionZipEntries = ExtractCompanionDiscEntriesFromZip(archive, entry, tempExtractDir, actualPath);
+                            }
 
                             if (Path.GetExtension(actualPath).Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
                                 !RomFileMovingService.IsPlatformCompressionEnabled(platform))
@@ -822,6 +836,13 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     }
 
                     entrySet.Add(currentZipEntryName);
+                    if (extractedCompanionZipEntries != null)
+                    {
+                        foreach (var companionEntry in extractedCompanionZipEntries)
+                        {
+                            entrySet.Add(companionEntry);
+                        }
+                    }
                 }
 
                 if (tempExtractDir != null && Directory.Exists(tempExtractDir))
@@ -932,6 +953,96 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, importedPlatform.Id, romFiles, importedResults.First().ImportDecision.LocalEpisode.Release));
                 }
             }
+        }
+
+        private long GetItemFileSize(string path)
+        {
+            if (!string.IsNullOrWhiteSpace(path) &&
+                DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(path)) &&
+                File.Exists(path))
+            {
+                return DiscSheetHelper.GetEffectiveFileSize(path);
+            }
+
+            return _diskProvider.GetFileSize(path);
+        }
+
+        private static List<string> ExtractCompanionDiscEntriesFromZip(
+            ZipArchive archive,
+            ZipArchiveEntry sheetEntry,
+            string tempExtractDir,
+            string extractedSheetPath)
+        {
+            var extracted = new List<string>();
+            if (archive == null || sheetEntry == null || string.IsNullOrWhiteSpace(tempExtractDir))
+            {
+                return extracted;
+            }
+
+            var sheetFullKey = sheetEntry.FullName.Replace('\\', '/');
+            var sheetDir = Path.GetDirectoryName(sheetFullKey)?.Replace('\\', '/') ?? string.Empty;
+            var trackReferenceNames = new HashSet<string>(
+                DiscSheetHelper.ParseTrackReferences(extractedSheetPath)
+                    .Select(Path.GetFileName)
+                    .Where(n => !string.IsNullOrWhiteSpace(n)),
+                StringComparer.OrdinalIgnoreCase);
+
+            var tempExtractRoot = Path.GetFullPath(tempExtractDir);
+            if (!tempExtractRoot.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                tempExtractRoot += Path.DirectorySeparatorChar;
+            }
+
+            foreach (var sibling in archive.Entries)
+            {
+                if (sibling == sheetEntry ||
+                    ArchiveRepackService.IsJunkEntry(sibling.FullName, sibling.Name) ||
+                    ArchiveRepackService.IsNonRomArchiveJunkFile(sibling.FullName))
+                {
+                    continue;
+                }
+
+                var siblingExt = Path.GetExtension(sibling.Name);
+                if (!DiscSheetHelper.IsCompanionTrackExtension(siblingExt) &&
+                    !trackReferenceNames.Contains(sibling.Name))
+                {
+                    continue;
+                }
+
+                var siblingFullKey = sibling.FullName.Replace('\\', '/');
+                var siblingDir = Path.GetDirectoryName(siblingFullKey)?.Replace('\\', '/') ?? string.Empty;
+                var isSameSubtree = string.Equals(siblingDir, sheetDir, StringComparison.OrdinalIgnoreCase) ||
+                                    (!string.IsNullOrEmpty(sheetDir) &&
+                                     siblingDir.StartsWith(sheetDir + "/", StringComparison.OrdinalIgnoreCase));
+
+                if (!isSameSubtree && !trackReferenceNames.Contains(sibling.Name))
+                {
+                    continue;
+                }
+
+                var relativeSibling = !string.IsNullOrEmpty(sheetDir) &&
+                                      siblingFullKey.StartsWith(sheetDir + "/", StringComparison.OrdinalIgnoreCase)
+                    ? siblingFullKey.Substring(sheetDir.Length + 1)
+                    : sibling.Name;
+
+                var destPath = Path.GetFullPath(Path.Combine(tempExtractRoot, relativeSibling.Replace('/', Path.DirectorySeparatorChar)));
+                if (!destPath.StartsWith(tempExtractRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var destParent = Path.GetDirectoryName(destPath);
+                if (!string.IsNullOrWhiteSpace(destParent) && !Directory.Exists(destParent))
+                {
+                    Directory.CreateDirectory(destParent);
+                }
+
+                sibling.ExtractToFile(destPath, true);
+                extracted.Add(sibling.FullName);
+            }
+
+            DiscSheetHelper.RepairSheetInPlaceIfNeeded(extractedSheetPath);
+            return extracted;
         }
 
         private bool ShouldDeleteSourceZipArchive(string zipArchive, HashSet<string> importedEntries)

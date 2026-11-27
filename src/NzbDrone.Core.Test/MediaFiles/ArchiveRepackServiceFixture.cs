@@ -318,5 +318,60 @@ namespace NzbDrone.Core.Test.MediaFiles
                 }
             }
         }
+
+        [Test]
+        public void should_ignore_ia_junk_archives_and_inspect_nested_zips()
+        {
+            var workDir = Path.Combine(Path.GetTempPath(), "ars_nested_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(workDir);
+
+            try
+            {
+                var jp2Zip = Path.Combine(workDir, "manual_jp2.zip");
+                using (var zip = ZipFile.Open(jp2Zip, ZipArchiveMode.Create))
+                {
+                    using var s = zip.CreateEntry("manual_jp2/0001.jp2").Open();
+                    s.Write(new byte[] { 1, 2, 3, 4 });
+                }
+
+                var innerGameZip = Path.Combine(workDir, "TheApprentice.zip");
+                using (var zip = ZipFile.Open(innerGameZip, ZipArchiveMode.Create))
+                {
+                    using var s = zip.CreateEntry("TheApprentice.cue").Open();
+                    s.Write(Encoding.UTF8.GetBytes("FILE \"TheApprentice.bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n"));
+                }
+
+                var junkContainerZip = Path.Combine(workDir, "only_ia_junk.zip");
+                using (var zip = ZipFile.Open(junkContainerZip, ZipArchiveMode.Create))
+                {
+                    zip.CreateEntryFromFile(jp2Zip, "manual_jp2.zip");
+                    using var s = zip.CreateEntry("manual_chocr.html.gz").Open();
+                    s.Write(new byte[] { 0x1F, 0x8B, 8, 0 });
+                }
+
+                var validNestedZip = Path.Combine(workDir, "theapprenticephilipscdi.zip");
+                using (var zip = ZipFile.Open(validNestedZip, ZipArchiveMode.Create))
+                {
+                    zip.CreateEntryFromFile(jp2Zip, "manual_jp2.zip");
+                    zip.CreateEntryFromFile(innerGameZip, "TheApprentice.zip");
+                }
+
+                ArchiveRepackService.IsNonRomArchiveJunkFile(jp2Zip).Should().BeTrue();
+                ArchiveRepackService.IsNonRomArchiveJunkFile("manual_hocr_searchtext.txt.gz").Should().BeTrue();
+                ArchiveRepackService.IsNonRomArchiveJunkFile(innerGameZip).Should().BeFalse();
+
+                ArchiveRepackService.HasValidRomEntries(junkContainerZip).Should().BeFalse();
+                ArchiveRepackService.HasValidRomEntries(validNestedZip).Should().BeTrue();
+                ArchiveRepackService.HasNestedArchiveEntries(junkContainerZip).Should().BeFalse();
+                ArchiveRepackService.HasNestedArchiveEntries(validNestedZip).Should().BeTrue();
+            }
+            finally
+            {
+                if (Directory.Exists(workDir))
+                {
+                    Directory.Delete(workDir, true);
+                }
+            }
+        }
     }
 }

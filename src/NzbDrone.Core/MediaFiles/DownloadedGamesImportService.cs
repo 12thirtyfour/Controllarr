@@ -37,7 +37,7 @@ namespace NzbDrone.Core.MediaFiles
 
     public class DownloadedGamesImportService : IDownloadedGamesImportService
     {
-        private const int MaxArchiveExtractionDepth = 3;
+        private const int MaxArchiveExtractionDepth = 5;
 
         private static readonly Regex SecondaryPartRarRegex = new Regex(
             @"\.part(?!0*1\.rar$)\d+\.rar$",
@@ -236,7 +236,7 @@ namespace NzbDrone.Core.MediaFiles
             return ProcessFolder(directoryInfo, importMode, series, downloadClientItem);
         }
 
-        private List<ImportResult> ProcessFolder(DirectoryInfo directoryInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem, int archiveDepth = 0, ParsedEpisodeInfo overrideFolderInfo = null)
+        private List<ImportResult> ProcessFolder(DirectoryInfo directoryInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem, int archiveDepth = 0, ParsedEpisodeInfo overrideFolderInfo = null, bool isTemporaryExtractDir = false)
         {
             if (_seriesService.SeriesPathExists(directoryInfo.FullName))
             {
@@ -247,7 +247,7 @@ namespace NzbDrone.Core.MediaFiles
                 };
             }
 
-            var folderInfo = overrideFolderInfo ?? Parser.Parser.ParseTitle(directoryInfo.Name);
+            var folderInfo = overrideFolderInfo ?? (isTemporaryExtractDir ? null : Parser.Parser.ParseTitle(directoryInfo.Name));
             var videoFiles = _diskScanService.FilterPaths(directoryInfo.FullName, _diskScanService.GetVideoFiles(directoryInfo.FullName));
             var downloadClientItemInfo = downloadClientItem == null ? null : Parser.Parser.ParseTitle(downloadClientItem.Title);
 
@@ -313,12 +313,19 @@ namespace NzbDrone.Core.MediaFiles
 
             foreach (var candidateFile in videoFiles)
             {
+                if (ArchiveRepackService.IsNonRomArchiveJunkFile(candidateFile))
+                {
+                    handledPaths.Add(candidateFile);
+                    continue;
+                }
+
                 var ext = Path.GetExtension(candidateFile);
-                if (IsSupportedMultiGameArchiveExtension(ext) &&
+                if (archiveDepth < MaxArchiveExtractionDepth &&
+                    IsSupportedMultiGameArchiveExtension(ext) &&
                     IsMultiGameZipArchive(candidateFile))
                 {
                     handledPaths.Add(candidateFile);
-                    patchResults.AddRange(ProcessMultiGameZipArchive(new FileInfo(candidateFile), importMode, series, downloadClientItem));
+                    patchResults.AddRange(ProcessMultiGameZipArchive(new FileInfo(candidateFile), importMode, series, downloadClientItem, archiveDepth));
                     continue;
                 }
 
@@ -352,7 +359,54 @@ namespace NzbDrone.Core.MediaFiles
                 }
             }
 
-            var importResults = ImportDecisionsWithArchiveExtraction(decisions, importMode, series, downloadClientItem) ?? new List<ImportResult>();
+            var nestedArchiveDecisionsToExtract = new List<ImportDecision>();
+            var directOrSingleDecisions = decisions;
+
+            if (decisions != null && decisions.Count > 0 && archiveDepth < MaxArchiveExtractionDepth)
+            {
+                directOrSingleDecisions = new List<ImportDecision>(decisions.Count);
+                foreach (var decision in decisions)
+                {
+                    var decisionPath = decision?.LocalEpisode?.Path;
+                    if (decision != null &&
+                        !decision.Approved &&
+                        !string.IsNullOrWhiteSpace(decisionPath) &&
+                        IsExtractableArchiveFile(decisionPath) &&
+                        !ArchiveRepackService.IsNonRomArchiveJunkFile(decisionPath) &&
+                        File.Exists(decisionPath) &&
+                        (archiveDepth > 0 || ArchiveRepackService.HasNestedArchiveEntries(decisionPath)))
+                    {
+                        nestedArchiveDecisionsToExtract.Add(decision);
+                    }
+                    else
+                    {
+                        directOrSingleDecisions.Add(decision);
+                    }
+                }
+            }
+
+            var importResults = ImportDecisionsWithArchiveExtraction(directOrSingleDecisions, importMode, series, downloadClientItem) ?? new List<ImportResult>();
+
+            foreach (var rejectedArchiveDecision in nestedArchiveDecisionsToExtract)
+            {
+                var nestedResults = ProcessExtractedArchiveFile(
+                    new FileInfo(rejectedArchiveDecision.LocalEpisode.Path),
+                    importMode,
+                    series,
+                    downloadClientItem,
+                    folderInfo,
+                    archiveDepth);
+
+                if (nestedResults != null && nestedResults.Count > 0)
+                {
+                    importResults.AddRange(nestedResults);
+                }
+                else
+                {
+                    importResults.AddRange(ImportDecisionsWithArchiveExtraction(new List<ImportDecision> { rejectedArchiveDecision }, importMode, series, downloadClientItem) ?? new List<ImportResult>());
+                }
+            }
+
             importResults.AddRange(patchResults);
 
             if (archiveDepth < MaxArchiveExtractionDepth)
@@ -491,6 +545,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 if (archiveDepth < MaxArchiveExtractionDepth &&
                     IsExtractableArchiveFile(fileInfo.FullName) &&
+                    !ArchiveRepackService.IsNonRomArchiveJunkFile(fileInfo.FullName) &&
                     File.Exists(fileInfo.FullName))
                 {
                     return ProcessExtractedArchiveFile(fileInfo, importMode, series, downloadClientItem, null, archiveDepth);
@@ -541,9 +596,11 @@ namespace NzbDrone.Core.MediaFiles
                 }
             }
 
-            if (IsSupportedMultiGameArchiveExtension(extension) && IsMultiGameZipArchive(fileInfo.FullName))
+            if (archiveDepth < MaxArchiveExtractionDepth &&
+                IsSupportedMultiGameArchiveExtension(extension) &&
+                IsMultiGameZipArchive(fileInfo.FullName))
             {
-                return ProcessMultiGameZipArchive(fileInfo, importMode, series, downloadClientItem);
+                return ProcessMultiGameZipArchive(fileInfo, importMode, series, downloadClientItem, archiveDepth);
             }
 
             var downloadClientItemInfo = downloadClientItem == null ? null : Parser.Parser.ParseTitle(downloadClientItem.Title);
@@ -551,6 +608,19 @@ namespace NzbDrone.Core.MediaFiles
 
             if (decisions != null && decisions.Any() && decisions.All(d => !d.Approved))
             {
+                if (archiveDepth < MaxArchiveExtractionDepth &&
+                    IsExtractableArchiveFile(fileInfo.FullName) &&
+                    !ArchiveRepackService.IsNonRomArchiveJunkFile(fileInfo.FullName) &&
+                    File.Exists(fileInfo.FullName) &&
+                    (archiveDepth > 0 || ArchiveRepackService.HasNestedArchiveEntries(fileInfo.FullName)))
+                {
+                    var nestedResults = ProcessExtractedArchiveFile(fileInfo, importMode, series, downloadClientItem, null, archiveDepth);
+                    if (nestedResults != null && nestedResults.Count > 0)
+                    {
+                        return nestedResults;
+                    }
+                }
+
                 var firstDecision = decisions.First();
                 var crossMatch = TryHandleNoWastedDownload(fileInfo, series, importMode, downloadClientItem, firstDecision.LocalEpisode);
                 if (crossMatch != null)
@@ -754,7 +824,7 @@ namespace NzbDrone.Core.MediaFiles
                     FileEpisodeInfo = orig.FileEpisodeInfo,
                     DownloadClientEpisodeInfo = orig.DownloadClientEpisodeInfo,
                     DownloadItem = orig.DownloadItem,
-                    FolderEpisodeInfo = orig.FolderEpisodeInfo ?? new ParsedEpisodeInfo { ReleaseTitle = Path.GetFileName(extractDir) },
+                    FolderEpisodeInfo = orig.FolderEpisodeInfo ?? new ParsedEpisodeInfo { ReleaseTitle = Path.GetFileNameWithoutExtension(archivePath) },
                     Series = targetSeries,
                     Episodes = orig.Episodes,
                     Quality = orig.Quality,
@@ -1211,9 +1281,13 @@ namespace NzbDrone.Core.MediaFiles
             return ArchiveRepackService.IsMultiGameArchive(archivePath, _biosService);
         }
 
-        private List<ImportResult> ProcessMultiGameZipArchive(FileInfo fileInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem)
+        private List<ImportResult> ProcessMultiGameZipArchive(FileInfo fileInfo, ImportMode importMode, Series series, DownloadClientItem downloadClientItem, int archiveDepth = 0)
         {
             var extractDir = Path.Combine(fileInfo.DirectoryName ?? Path.GetTempPath(), Path.GetFileNameWithoutExtension(fileInfo.Name) + "_extracted");
+            var effectiveImportMode = importMode == ImportMode.Auto
+                ? ((downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy)
+                : importMode;
+            var preserveExtractDir = false;
 
             try
             {
@@ -1238,7 +1312,8 @@ namespace NzbDrone.Core.MediaFiles
                                 continue;
                             }
 
-                            if (ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name))
+                            if (ArchiveRepackService.IsJunkEntry(entry.FullName, entry.Name) ||
+                                ArchiveRepackService.IsNonRomArchiveJunkFile(entry.FullName))
                             {
                                 continue;
                             }
@@ -1272,7 +1347,8 @@ namespace NzbDrone.Core.MediaFiles
 
                             var entryKey = entry.Key.Replace('\\', '/');
                             var entryName = Path.GetFileName(entryKey);
-                            if (ArchiveRepackService.IsJunkEntry(entryKey, entryName))
+                            if (ArchiveRepackService.IsJunkEntry(entryKey, entryName) ||
+                                ArchiveRepackService.IsNonRomArchiveJunkFile(entryKey))
                             {
                                 continue;
                             }
@@ -1294,11 +1370,8 @@ namespace NzbDrone.Core.MediaFiles
                     }
                 }
 
-                var folderResults = ProcessFolder(new DirectoryInfo(extractDir), importMode, series, downloadClientItem);
-
-                var effectiveImportMode = importMode == ImportMode.Auto
-                    ? ((downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy)
-                    : importMode;
+                var parsedArchiveInfo = Parser.Parser.ParseTitle(Path.GetFileNameWithoutExtension(fileInfo.Name));
+                var folderResults = ProcessFolder(new DirectoryInfo(extractDir), importMode, series, downloadClientItem, archiveDepth + 1, parsedArchiveInfo, isTemporaryExtractDir: true);
 
                 if (_diskProvider.FolderExists(extractDir))
                 {
@@ -1308,25 +1381,24 @@ namespace NzbDrone.Core.MediaFiles
                 var isExtractDirEmpty = _diskProvider.FolderExists(extractDir) &&
                                         !_diskProvider.GetFiles(extractDir, true).Any();
 
+                var importedAny = folderResults.Any(i => i.Result == ImportResultType.Imported);
                 var hasRemainingUnimportedFiles = folderResults.Any(i => i.Result == ImportResultType.Rejected) ||
                                                   (_diskProvider.FolderExists(extractDir) && !isExtractDirEmpty && !ShouldDeleteFolder(new DirectoryInfo(extractDir), series));
 
                 if (effectiveImportMode == ImportMode.Move &&
-                    ((folderResults.Any(i => i.Result == ImportResultType.Imported) && !hasRemainingUnimportedFiles) || isExtractDirEmpty))
+                    ((importedAny && !hasRemainingUnimportedFiles) || isExtractDirEmpty))
                 {
                     if (downloadClientItem == null && _diskProvider.FileExists(fileInfo.FullName))
                     {
                         _diskProvider.DeleteFile(fileInfo.FullName);
                     }
-
-                    if (_diskProvider.FolderExists(extractDir))
-                    {
-                        _diskProvider.DeleteFolder(extractDir, true);
-                    }
                 }
-                else if (effectiveImportMode == ImportMode.Copy && _diskProvider.FolderExists(extractDir))
+                else if (downloadClientItem == null &&
+                         effectiveImportMode == ImportMode.Move &&
+                         importedAny &&
+                         hasRemainingUnimportedFiles)
                 {
-                    _diskProvider.DeleteFolder(extractDir, true);
+                    preserveExtractDir = true;
                 }
 
                 return folderResults;
@@ -1338,6 +1410,20 @@ namespace NzbDrone.Core.MediaFiles
                 {
                     RejectionResult(ImportRejectionReason.ArchiveFile, $"Failed to extract multi-game archive: {ex.Message}")
                 };
+            }
+            finally
+            {
+                if (!preserveExtractDir && _diskProvider.FolderExists(extractDir))
+                {
+                    try
+                    {
+                        _diskProvider.DeleteFolder(extractDir, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Debug(ex, "Unable to clean up multi-game extraction folder {0}", extractDir);
+                    }
+                }
             }
         }
 
@@ -1459,6 +1545,7 @@ namespace NzbDrone.Core.MediaFiles
             {
                 if (string.IsNullOrWhiteSpace(file) ||
                     handledSet.Contains(file) ||
+                    ArchiveRepackService.IsNonRomArchiveJunkFile(file) ||
                     !IsExtractableArchiveFile(file) ||
                     !File.Exists(file))
                 {
@@ -1567,7 +1654,7 @@ namespace NzbDrone.Core.MediaFiles
                 ExtractArchiveToDirectory(archiveFile, volumeFiles, extractDir);
 
                 var parsedArchiveInfo = parentFolderInfo ?? Parser.Parser.ParseTitle(Path.GetFileNameWithoutExtension(archiveFile.Name));
-                var folderResults = ProcessFolder(new DirectoryInfo(extractDir), effectiveImportMode, series, downloadClientItem, archiveDepth + 1, parsedArchiveInfo);
+                var folderResults = ProcessFolder(new DirectoryInfo(extractDir), effectiveImportMode, series, downloadClientItem, archiveDepth + 1, parsedArchiveInfo, isTemporaryExtractDir: true);
 
                 if (folderResults == null || folderResults.Count == 0)
                 {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using NzbDrone.Common;
 
 namespace NzbDrone.Core.MediaFiles.Disc
 {
@@ -10,12 +11,12 @@ namespace NzbDrone.Core.MediaFiles.Disc
     {
         private static readonly HashSet<string> DiscSheetExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".cue", ".gdi", ".ccd"
+            ".cue", ".gdi", ".ccd", ".mds"
         };
 
         private static readonly HashSet<string> CompanionTrackExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".bin", ".img", ".iso", ".raw", ".wav", ".sub", ".mdf", ".mds"
+            ".bin", ".img", ".iso", ".raw", ".wav", ".sub", ".mdf"
         };
 
         private static readonly HashSet<string> FallbackSingleTrackExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -49,6 +50,17 @@ namespace NzbDrone.Core.MediaFiles.Disc
                 {
                     references.Add(baseName + ".img");
                     references.Add(baseName + ".sub");
+                }
+
+                return references;
+            }
+
+            if (ext == ".mds")
+            {
+                var baseName = Path.GetFileNameWithoutExtension(sheetPath);
+                if (!string.IsNullOrWhiteSpace(baseName))
+                {
+                    references.Add(baseName + ".mdf");
                 }
 
                 return references;
@@ -234,10 +246,78 @@ namespace NzbDrone.Core.MediaFiles.Disc
             }
         }
 
+        public static HashSet<string> FindCompanionTrackFiles(IEnumerable<string> filePaths)
+        {
+            var companions = new HashSet<string>(PathEqualityComparer.Instance);
+            if (filePaths == null)
+            {
+                return companions;
+            }
+
+            var sheets = filePaths
+                .Where(f => !string.IsNullOrWhiteSpace(f) && IsDiscSheetExtension(Path.GetExtension(f)) && File.Exists(f))
+                .Distinct(PathEqualityComparer.Instance)
+                .OrderBy(f => GetDiscSheetPriority(Path.GetExtension(f)))
+                .ThenBy(f => f, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (sheets.Count == 0)
+            {
+                return companions;
+            }
+
+            var claimedTracksByFullPath = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var sheet in sheets)
+            {
+                var tracks = ResolveTrackFiles(sheet);
+                var sharesTracksWithHigherPrioritySheet = false;
+
+                foreach (var track in tracks)
+                {
+                    if (string.Equals(track, sheet, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    companions.Add(track);
+                    var fullTrackPath = Path.GetFullPath(track);
+                    if (claimedTracksByFullPath.TryGetValue(fullTrackPath, out var ownerSheet) &&
+                        !string.Equals(ownerSheet, sheet, StringComparison.OrdinalIgnoreCase))
+                    {
+                        sharesTracksWithHigherPrioritySheet = true;
+                    }
+                    else
+                    {
+                        claimedTracksByFullPath[fullTrackPath] = sheet;
+                    }
+                }
+
+                if (sharesTracksWithHigherPrioritySheet)
+                {
+                    companions.Add(sheet);
+                }
+            }
+
+            return companions;
+        }
+
+        private static int GetDiscSheetPriority(string extension)
+        {
+            return extension?.ToLowerInvariant() switch
+            {
+                ".cue" => 0,
+                ".gdi" => 1,
+                ".ccd" => 2,
+                ".mds" => 3,
+                _ => 4
+            };
+        }
+
         public static string BuildRenamedTrackFileName(string destBaseName, string sourceTrackPath, int trackIndex, int totalTracks, string sheetExtension = ".cue")
         {
             var trackExt = Path.GetExtension(sourceTrackPath) ?? string.Empty;
-            if ((sheetExtension != null && sheetExtension.Equals(".ccd", StringComparison.OrdinalIgnoreCase)) ||
+            if ((sheetExtension != null && (sheetExtension.Equals(".ccd", StringComparison.OrdinalIgnoreCase) || sheetExtension.Equals(".mds", StringComparison.OrdinalIgnoreCase))) ||
                 totalTracks <= 1)
             {
                 return destBaseName + trackExt;

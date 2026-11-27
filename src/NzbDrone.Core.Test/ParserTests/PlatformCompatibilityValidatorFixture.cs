@@ -291,5 +291,24 @@ namespace NzbDrone.Core.Test.ParserTests
             detected.Should().NotContain("tg16");
             PlatformCompatibilityValidator.IsLocalFileCompatible(candidatePath, "tgcd", "NEC TurboGrafx-CD").Should().BeTrue();
         }
+
+        [TestCase("The Addams Family (tv series)", true)]
+        [TestCase("The Addams Family (tv show)", true)]
+        [TestCase("The Addams Family (USA).chd", false)]
+        public void should_detect_tv_series_and_show_tags_for_zero_tv_rejection(string releaseTitle, bool expected)
+        {
+            PlatformCompatibilityValidator.IsTvOrVideoRelease(releaseTitle).Should().Be(expected);
+        }
+
+        [TestCase("The Addams Family (Atari ST)", true)]
+        [TestCase("The Hunt for Red October (Atari ST)", true)]
+        [TestCase("Superfrog (Amiga)", true)]
+        [TestCase("Last Ninja (Commodore 64)", true)]
+        [TestCase("Superfrog (Amiga CD32)", false)]
+        [TestCase("The Apprentice (USA) (Philips CD-i)", false)]
+        public void should_reject_non_console_retro_computers_while_preserving_amiga_cd32(string releaseTitle, bool expected)
+        {
+            PlatformCompatibilityValidator.IsPcOrNonConsoleRelease(releaseTitle).Should().Be(expected);
+        }
     }
 }

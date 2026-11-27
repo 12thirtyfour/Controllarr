@@ -20,6 +20,9 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
     public class ArchiveRepackService : IArchiveRepackService
     {
+        private const int MaxInspectionArchiveDepth = 4;
+        private const long MaxNestedZipMemoryBytes = 50L * 1024 * 1024;
+
         private readonly Logger _logger;
 
         public ArchiveRepackService(Logger logger)
@@ -73,6 +76,33 @@ namespace NzbDrone.Core.MediaFiles.Archive
             ".zip", ".7z", ".rar"
         };
 
+        private static readonly string[] NonRomArchiveJunkSuffixes =
+        {
+            "_jp2.zip",
+            "_raw_jp2.zip",
+            "_orig_jp2.tar",
+            "_images.zip",
+            "_files.xml",
+            ".html.gz",
+            ".htm.gz",
+            ".json.gz",
+            ".txt.gz",
+            ".xml.gz",
+            ".svg.gz",
+            ".pdf.gz",
+            ".log.gz"
+        };
+
+        private static readonly string[] NonRomArchiveJunkMarkers =
+        {
+            "_scandata.",
+            "_chocr.",
+            "_hocr_",
+            "_djvu.",
+            "_abbyy.",
+            "_meta."
+        };
+
         public void SyncSingleRomEntryName(string archivePath)
         {
             SanitizeSingleRomZip(archivePath);
@@ -83,7 +113,40 @@ namespace NzbDrone.Core.MediaFiles.Archive
             return !string.IsNullOrWhiteSpace(extension) && ArchiveExtensions.Contains(extension);
         }
 
-        public static bool HasValidRomEntries(string archivePath, IBiosService biosService = null)
+        public static bool IsNonRomArchiveJunkFile(string pathOrName)
+        {
+            if (string.IsNullOrWhiteSpace(pathOrName))
+            {
+                return false;
+            }
+
+            var normalized = pathOrName.Replace('\\', '/');
+            var fileName = Path.GetFileName(normalized);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            foreach (var suffix in NonRomArchiveJunkSuffixes)
+            {
+                if (fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var marker in NonRomArchiveJunkMarkers)
+            {
+                if (fileName.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool HasNestedArchiveEntries(string archivePath)
         {
             if (string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
             {
@@ -98,19 +161,12 @@ namespace NzbDrone.Core.MediaFiles.Archive
                     using var zipArchive = ZipFile.OpenRead(archivePath);
                     foreach (var entry in zipArchive.Entries)
                     {
-                        if (IsJunkEntry(entry.FullName, entry.Name))
+                        if (IsJunkEntry(entry.FullName, entry.Name) || IsNonRomArchiveJunkFile(entry.FullName))
                         {
                             continue;
                         }
 
-                        if ((biosService != null && biosService.IsKnownBiosFileName(entry.Name)) ||
-                            RegionHelper.IsBios(entry.Name, null, null, entry.FullName))
-                        {
-                            continue;
-                        }
-
-                        var ext = Path.GetExtension(entry.Name);
-                        if (MediaFileExtensions.RomExtensions.Contains(ext) || IsArchiveExtension(ext))
+                        if (IsExtractableEntryName(entry.Name))
                         {
                             return true;
                         }
@@ -131,7 +187,77 @@ namespace NzbDrone.Core.MediaFiles.Archive
 
                         var fullName = entry.Key.Replace('\\', '/');
                         var name = Path.GetFileName(fullName);
-                        if (IsJunkEntry(fullName, name))
+                        if (IsJunkEntry(fullName, name) || IsNonRomArchiveJunkFile(fullName))
+                        {
+                            continue;
+                        }
+
+                        if (IsExtractableEntryName(name))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        private static bool IsExtractableEntryName(string entryName)
+        {
+            if (string.IsNullOrWhiteSpace(entryName))
+            {
+                return false;
+            }
+
+            if (entryName.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ||
+                entryName.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var ext = Path.GetExtension(entryName);
+            return IsArchiveExtension(ext) ||
+                   (!string.IsNullOrWhiteSpace(ext) && FileExtensions.ArchiveExtensions.Contains(ext));
+        }
+
+        public static bool HasValidRomEntries(string archivePath, IBiosService biosService = null)
+        {
+            return HasValidRomEntries(archivePath, biosService, 0);
+        }
+
+        private static bool HasValidRomEntries(string archivePath, IBiosService biosService, int depth)
+        {
+            if (depth > MaxInspectionArchiveDepth || string.IsNullOrWhiteSpace(archivePath) || !File.Exists(archivePath))
+            {
+                return false;
+            }
+
+            try
+            {
+                var extension = Path.GetExtension(archivePath);
+                if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var fs = File.OpenRead(archivePath);
+                    return HasValidRomEntriesInZipStream(fs, biosService, depth);
+                }
+
+                if (IsArchiveExtension(extension))
+                {
+                    using var archive = ArchiveFactory.OpenArchive(archivePath);
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (entry.IsDirectory || string.IsNullOrWhiteSpace(entry.Key))
+                        {
+                            continue;
+                        }
+
+                        var fullName = entry.Key.Replace('\\', '/');
+                        var name = Path.GetFileName(fullName);
+                        if (IsJunkEntry(fullName, name) || IsNonRomArchiveJunkFile(fullName))
                         {
                             continue;
                         }
@@ -143,7 +269,35 @@ namespace NzbDrone.Core.MediaFiles.Archive
                         }
 
                         var ext = Path.GetExtension(name);
-                        if (MediaFileExtensions.RomExtensions.Contains(ext) || IsArchiveExtension(ext))
+                        if (IsArchiveExtension(ext))
+                        {
+                            if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                                depth < MaxInspectionArchiveDepth &&
+                                entry.Size <= MaxNestedZipMemoryBytes)
+                            {
+                                try
+                                {
+                                    using var entryStream = entry.OpenEntryStream();
+                                    using var ms = new MemoryStream();
+                                    entryStream.CopyTo(ms);
+                                    ms.Position = 0;
+                                    if (HasValidRomEntriesInZipStream(ms, biosService, depth + 1))
+                                    {
+                                        return true;
+                                    }
+
+                                    continue;
+                                }
+                                catch
+                                {
+                                    continue;
+                                }
+                            }
+
+                            return true;
+                        }
+
+                        if (MediaFileExtensions.RomExtensions.Contains(ext))
                         {
                             return true;
                         }
@@ -154,6 +308,65 @@ namespace NzbDrone.Core.MediaFiles.Archive
             }
             catch
             {
+            }
+
+            return false;
+        }
+
+        private static bool HasValidRomEntriesInZipStream(Stream stream, IBiosService biosService, int depth)
+        {
+            if (depth > MaxInspectionArchiveDepth || stream == null)
+            {
+                return false;
+            }
+
+            using var zipArchive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+            foreach (var entry in zipArchive.Entries)
+            {
+                if (IsJunkEntry(entry.FullName, entry.Name) || IsNonRomArchiveJunkFile(entry.FullName))
+                {
+                    continue;
+                }
+
+                if ((biosService != null && biosService.IsKnownBiosFileName(entry.Name)) ||
+                    RegionHelper.IsBios(entry.Name, null, null, entry.FullName))
+                {
+                    continue;
+                }
+
+                var ext = Path.GetExtension(entry.Name);
+                if (IsArchiveExtension(ext))
+                {
+                    if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) &&
+                        depth < MaxInspectionArchiveDepth &&
+                        entry.Length <= MaxNestedZipMemoryBytes)
+                    {
+                        try
+                        {
+                            using var entryStream = entry.Open();
+                            using var ms = new MemoryStream();
+                            entryStream.CopyTo(ms);
+                            ms.Position = 0;
+                            if (HasValidRomEntriesInZipStream(ms, biosService, depth + 1))
+                            {
+                                return true;
+                            }
+
+                            continue;
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+                    }
+
+                    return true;
+                }
+
+                if (MediaFileExtensions.RomExtensions.Contains(ext))
+                {
+                    return true;
+                }
             }
 
             return false;
@@ -277,7 +490,7 @@ namespace NzbDrone.Core.MediaFiles.Archive
                 foreach (var fullName in entryFullNames)
                 {
                     var name = Path.GetFileName(fullName.Replace('\\', '/'));
-                    if (IsJunkEntry(fullName, name))
+                    if (IsJunkEntry(fullName, name) || IsNonRomArchiveJunkFile(fullName))
                     {
                         continue;
                     }

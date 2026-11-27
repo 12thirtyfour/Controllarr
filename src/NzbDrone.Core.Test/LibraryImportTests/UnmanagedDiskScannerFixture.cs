@@ -591,5 +591,34 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             id1.Should().Be(id2);
             id1.Should().NotBe(other);
         }
+
+        [Test]
+        public void Scan_LooseCueAndBinSet_ShouldGroupIntoSingleItemWithCombinedSize()
+        {
+            var cuePath = Path.Combine(_tempPath, "Panzer Dragoon (USA).cue");
+            var binPath = Path.Combine(_tempPath, "Panzer Dragoon (USA).bin");
+
+            var cueContent = "FILE \"Panzer Dragoon (USA).bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n    INDEX 01 00:00:00\r\n";
+            File.WriteAllText(cuePath, cueContent);
+            File.WriteAllBytes(binPath, new byte[4096]);
+
+            var expectedSize = new FileInfo(cuePath).Length + new FileInfo(binPath).Length;
+
+            _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+            {
+                new Series { Id = 30, Title = "Sega Saturn", CleanTitle = "saturn", TitleSlug = "saturn" }
+            });
+            _episodeService.Setup(s => s.GetEpisodeBySeries(30)).Returns(new List<Episode>
+            {
+                new Episode { Id = 301, Title = "Panzer Dragoon", SeriesId = 30 }
+            });
+
+            var results = Subject.Scan(_tempPath);
+
+            results.Should().ContainSingle();
+            var item = results.Single();
+            item.Path.Should().Be(cuePath);
+            item.Size.Should().Be(expectedSize);
+        }
     }
 }

@@ -363,7 +363,7 @@ namespace NzbDrone.Core.MediaFiles
             var mediaFileList = filesOnDisk.Where(file =>
             {
                 var ext = Path.GetExtension(file);
-                if (!MediaFileExtensions.Extensions.Contains(ext))
+                if (!MediaFileExtensions.Extensions.Contains(ext) && !DiscSheetHelper.IsDiscSheetExtension(ext))
                 {
                     return false;
                 }
@@ -382,30 +382,12 @@ namespace NzbDrone.Core.MediaFiles
                 return true;
             }).ToList();
 
-            var discSheets = mediaFileList
-                .Where(f => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(f)) && File.Exists(f))
-                .ToList();
-
-            if (discSheets.Count > 0)
+            var companionTracks = DiscSheetHelper.FindCompanionTrackFiles(mediaFileList);
+            if (companionTracks.Count > 0)
             {
-                var companionTracks = new HashSet<string>(PathEqualityComparer.Instance);
-                foreach (var sheet in discSheets)
-                {
-                    foreach (var track in DiscSheetHelper.ResolveTrackFiles(sheet))
-                    {
-                        if (!string.Equals(track, sheet, StringComparison.OrdinalIgnoreCase))
-                        {
-                            companionTracks.Add(track);
-                        }
-                    }
-                }
-
-                if (companionTracks.Count > 0)
-                {
-                    mediaFileList = mediaFileList
-                        .Where(f => !companionTracks.Contains(f))
-                        .ToList();
-                }
+                mediaFileList = mediaFileList
+                    .Where(f => !companionTracks.Contains(f))
+                    .ToList();
             }
 
             _logger.Trace("{0} files were found in {1}", filesOnDisk.Count, path);

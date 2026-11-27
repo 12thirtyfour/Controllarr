@@ -620,5 +620,58 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions[2].Approved.Should().BeFalse();
             decisions[2].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeTrue();
         }
+
+        [Test]
+        public void should_match_philips_cdi_dash_formatted_releases_and_reject_atari_st_and_tv_bleed()
+        {
+            var platform = new Series
+            {
+                Id = 55,
+                Title = "Philips CD-i",
+                CleanTitle = "cdi",
+                TitleSlug = "cdi",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 }, new Season { SeasonNumber = 2 } }
+            };
+
+            var game1 = new Episode { Id = 501, SeriesId = 55, SeasonNumber = 1, EpisodeNumber = 1, Title = "Escape From Cyber City" };
+            var game2 = new Episode { Id = 502, SeriesId = 55, SeasonNumber = 1, EpisodeNumber = 2, Title = "How The Rhinoceros Got His Skin" };
+            var game3 = new Episode { Id = 503, SeriesId = 55, SeasonNumber = 1, EpisodeNumber = 3, Title = "The Addams Family" };
+
+            var searchCriteria = new SeasonSearchCriteria
+            {
+                Series = platform,
+                SeasonNumber = 1,
+                Episodes = new List<Episode> { game1, game2, game3 }
+            };
+
+            var reports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo { Title = "Escape From Cyber City - Philips CD-i - USA", Indexer = "Internet Archive" },
+                new ReleaseInfo { Title = "How The Rhinoceros Got His Skin - Philips CDi - USA Release", Indexer = "Internet Archive" },
+                new ReleaseInfo { Title = "The Addams Family (Atari ST)", Indexer = "Internet Archive" },
+                new ReleaseInfo { Title = "The Addams Family (tv series)", Indexer = "Internet Archive" },
+                new ReleaseInfo { Title = "The Addams Family (tv show)", Indexer = "Internet Archive" }
+            };
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), searchCriteria))
+                .Returns<ParsedEpisodeInfo, int, int, string, SearchCriteriaBase>((p, tvdb, rage, imdb, sc) => new RemoteEpisode
+                {
+                    Series = sc.Series,
+                    ParsedEpisodeInfo = p,
+                    Episodes = p.EpisodeNumbers?.Contains(1) == true
+                        ? new List<Episode> { game1 }
+                        : new List<Episode> { game2 }
+                });
+
+            GivenSpecifications(_pass1);
+
+            var decisions = Subject.GetSearchDecision(reports, searchCriteria);
+
+            decisions.Should().HaveCount(2);
+            decisions.Should().OnlyContain(d => d.Approved);
+            decisions.Select(d => d.RemoteEpisode.Episodes.Single().Title)
+                .Should().BeEquivalentTo(new[] { "Escape From Cyber City", "How The Rhinoceros Got His Skin" });
+        }
     }
 }

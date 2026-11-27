@@ -113,9 +113,15 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             }
 
             var files = Directory.GetFiles(rootFolder, "*.*", SearchOption.AllDirectories);
+            var companionTracks = DiscSheetHelper.FindCompanionTrackFiles(files);
 
             foreach (var file in files)
             {
+                if (companionTracks.Contains(file) || ArchiveRepackService.IsNonRomArchiveJunkFile(file))
+                {
+                    continue;
+                }
+
                 var fileName = Path.GetFileName(file);
                 var isBios = (_biosService != null && _biosService.IsKnownBiosFileName(fileName)) ||
                              RegionHelper.IsBios(fileName, null, null, file);
@@ -140,7 +146,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 {
                     ProcessZipArchive(file, rootFolder, validExtensions, results);
                 }
-                else if (validExtensions.Count == 0 || validExtensions.Contains(extension))
+                else if (validExtensions.Count == 0 || validExtensions.Contains(extension) || DiscSheetHelper.IsDiscSheetExtension(extension))
                 {
                     var item = ProcessSingleFile(file, rootFolder, validExtensions);
                     if (item != null)
@@ -388,10 +394,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 return false;
             }
 
-            var cueEntries = entries.Where(e =>
-                Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
-                Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+            var cueEntries = entries.Where(e => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(e.Name))).ToList();
 
             if (cueEntries.Count != 1)
             {
@@ -548,7 +551,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         return false;
                     }
 
-                    if (e.FullName.Contains("__MACOSX") || e.Name.StartsWith(".") || e.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
+                    if (ArchiveRepackService.IsJunkEntry(e.FullName, e.Name) ||
+                        ArchiveRepackService.IsNonRomArchiveJunkFile(e.FullName))
                     {
                         return false;
                     }
@@ -559,7 +563,10 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     }
 
                     var ext = Path.GetExtension(e.Name);
-                    return !ExcludedNonGameExtensions.Contains(ext) && (validExtensions.Contains(ext) || MediaFileExtensions.RomExtensions.Contains(ext));
+                    return !ExcludedNonGameExtensions.Contains(ext) &&
+                           (validExtensions.Contains(ext) ||
+                            MediaFileExtensions.RomExtensions.Contains(ext) ||
+                            DiscSheetHelper.IsDiscSheetExtension(ext));
                 }).ToList();
 
                 if (gameEntries.Count == 0)
@@ -571,9 +578,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
                 if (gameEntries.Count == 1 || isSingleMultiTrack)
                 {
-                    var primaryEntry = gameEntries.FirstOrDefault(e => Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                                                                       Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
-                                                                       Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)) ?? gameEntries[0];
+                    var primaryEntry = gameEntries.FirstOrDefault(e => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(e.Name))) ?? gameEntries[0];
 
                     var orderedHashEntries = gameEntries
                         .OrderBy(e => GetCandidateHashPriority(e.Name))
@@ -638,10 +643,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                 }
                 else
                 {
-                    var cueEntries = gameEntries.Where(e =>
-                        Path.GetExtension(e.Name).Equals(".cue", StringComparison.OrdinalIgnoreCase) ||
-                        Path.GetExtension(e.Name).Equals(".gdi", StringComparison.OrdinalIgnoreCase) ||
-                        Path.GetExtension(e.Name).Equals(".ccd", StringComparison.OrdinalIgnoreCase)).ToList();
+                    var cueEntries = gameEntries.Where(e => DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(e.Name))).ToList();
 
                     var entriesToProcess = cueEntries.Count > 1 ? cueEntries : gameEntries;
 
@@ -751,13 +753,16 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
 
             var crc32 = hashes.TryGetValue("CRC32", out var c) ? c : null;
             var (matchedSeries, matchedEpisode, isHighConfidence, matchedDatEntry) = ResolvePlatformAndGame(crc32, effectiveRomName, filePath, hashes, preferredSeries, allowCreateEpisode);
+            var effectiveSize = DiscSheetHelper.IsDiscSheetExtension(Path.GetExtension(filePath))
+                ? DiscSheetHelper.GetEffectiveFileSize(filePath)
+                : new FileInfo(filePath).Length;
 
             return new ManualImportItem
             {
                 Path = filePath,
                 RelativePath = rootFolder.GetRelativePath(filePath),
                 Name = matchedEpisode?.Title ?? parsedInfo?.GameTitle ?? Path.GetFileNameWithoutExtension(effectiveRomName),
-                Size = new FileInfo(filePath).Length,
+                Size = effectiveSize,
                 Series = matchedSeries,
                 SeasonNumber = matchedEpisode?.SeasonNumber,
                 Episodes = matchedEpisode != null ? new List<Episode> { matchedEpisode } : new List<Episode>(),

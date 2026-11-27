@@ -19,6 +19,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         public bool IsTrackable { get; set; }
         public bool HasNotifiedManualInteractionRequired { get; set; }
         public bool SkipBlocklist { get; private set; }
+        public DateTime? LastImportAttempt { get; set; }
 
         public TrackedDownload()
         {

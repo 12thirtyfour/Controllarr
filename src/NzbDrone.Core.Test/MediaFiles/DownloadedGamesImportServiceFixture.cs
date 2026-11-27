@@ -965,5 +965,96 @@ namespace NzbDrone.Core.Test.MediaFiles
                 tarWriter.WriteEntry(entry);
             }
         }
+
+        [Test]
+        public void should_extract_nested_archives_recursively_skip_ia_junk_and_import_valid_rom()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "dgi_nested_ia_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var innerGameZip = Path.Combine(tempDir, "nested_source.zip");
+                using (var zip = ZipFile.Open(innerGameZip, ZipArchiveMode.Create))
+                {
+                    using var s = zip.CreateEntry("Chrono Trigger (USA).sfc").Open();
+                    s.Write(new byte[2048]);
+                }
+
+                var jp2Zip = Path.Combine(tempDir, "manual_jp2_src.zip");
+                using (var zip = ZipFile.Open(jp2Zip, ZipArchiveMode.Create))
+                {
+                    using var s = zip.CreateEntry("0001.jp2").Open();
+                    s.Write(new byte[128]);
+                }
+
+                var outerZipPath = Path.Combine(tempDir, "Chrono Trigger (USA).zip");
+                using (var zip = ZipFile.Open(outerZipPath, ZipArchiveMode.Create))
+                {
+                    zip.CreateEntryFromFile(innerGameZip, "Chrono Trigger (USA).zip");
+                    zip.CreateEntryFromFile(jp2Zip, "manual_jp2.zip");
+                    using var gz = zip.CreateEntry("manual_chocr.html.gz").Open();
+                    gz.Write(new byte[] { 0x1F, 0x8B, 8, 0 });
+                }
+
+                File.Delete(innerGameZip);
+                File.Delete(jp2Zip);
+
+                var platform = new Series { Id = 8, Title = "Super Nintendo Entertainment System", TitleSlug = "snes", Path = Path.Combine(tempDir, "Library") };
+                var game = new Episode { Id = 42, SeasonNumber = 1, EpisodeNumber = 1, Title = "Chrono Trigger" };
+                var downloadItem = new DownloadClientItem { DownloadId = "dl-ia-nested", Title = "Chrono Trigger (USA)", CanMoveFiles = false };
+
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(It.IsAny<string>())).Returns<string>(p => Directory.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(It.IsAny<string>())).Returns<string>(p => File.Exists(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.EnsureFolder(It.IsAny<string>())).Callback<string>(p => Directory.CreateDirectory(p));
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.DeleteFolder(It.IsAny<string>(), true)).Callback<string, bool>((p, r) =>
+                {
+                    if (Directory.Exists(p))
+                    {
+                        Directory.Delete(p, r);
+                    }
+                });
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetDirectories(It.IsAny<string>()))
+                    .Returns<string>(p => Directory.Exists(p) ? Directory.GetDirectories(p) : Array.Empty<string>());
+                Mocker.GetMock<IDiskProvider>().Setup(c => c.GetFiles(It.IsAny<string>(), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly) : Array.Empty<string>());
+
+                Mocker.GetMock<IDiskScanService>().Setup(c => c.GetVideoFiles(It.IsAny<string>(), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p) ? Directory.GetFiles(p, "*", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly) : Array.Empty<string>());
+
+                Mocker.GetMock<IMakeImportDecision>()
+                    .Setup(s => s.GetImportDecisions(It.IsAny<List<string>>(), platform, downloadItem, It.IsAny<ParsedEpisodeInfo>(), It.IsAny<ParsedEpisodeInfo>(), true))
+                    .Returns<List<string>, Series, DownloadClientItem, ParsedEpisodeInfo, ParsedEpisodeInfo, bool>((paths, ser, item, dlInfo, folderInfo, check) =>
+                        paths.Select(p =>
+                        {
+                            if (p.EndsWith(".sfc", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return new ImportDecision(new LocalEpisode { Path = p, Series = ser, Episodes = new List<Episode> { game }, RomHashVerified = true });
+                            }
+
+                            return new ImportDecision(
+                                new LocalEpisode { Path = p, Series = ser },
+                                new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Nested archive requires extraction"));
+                        }).ToList());
+
+                Mocker.GetMock<IImportApprovedGames>()
+                    .Setup(s => s.Import(It.IsAny<List<ImportDecision>>(), true, downloadItem, ImportMode.Copy))
+                    .Returns<List<ImportDecision>, bool, DownloadClientItem, ImportMode>((d, newDl, item, mode) =>
+                        d.Where(x => x.Approved).Select(x => new ImportResult(x)).ToList());
+
+                var results = Subject.ProcessPath(outerZipPath, ImportMode.Auto, platform, downloadItem);
+
+                results.Should().Contain(r => r.Result == ImportResultType.Imported &&
+                                              r.ImportDecision.LocalEpisode.Path.EndsWith("Chrono Trigger (USA).sfc", StringComparison.OrdinalIgnoreCase));
+                Directory.GetDirectories(tempDir).Should().BeEmpty();
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
     }
 }

@@ -151,6 +151,16 @@ namespace NzbDrone.Core.DecisionEngine
                         remoteEpisode.ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria);
                         remoteEpisode.ParsedRomInfo = report.ParsedRomInfo;
 
+                        if (remoteEpisode.Series == null &&
+                            searchCriteria?.Series != null &&
+                            PlatformCompatibilityValidator.DetectPlatforms(report.Title)
+                                .Any(p => PlatformCompatibilityValidator.IsPlatformMatch(
+                                    p,
+                                    PlatformCompatibilityValidator.NormalizePlatformSlug(searchCriteria.Series.TitleSlug, searchCriteria.Series.Title))))
+                        {
+                            remoteEpisode.Series = searchCriteria.Series;
+                        }
+
                         if (remoteEpisode.Series == null)
                         {
                             decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Platform"));
@@ -641,7 +651,11 @@ namespace NzbDrone.Core.DecisionEngine
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex PlatformWordsStripRegex = new(
-            @"(?<![A-Za-z0-9])(?:Game\s*Boy\s+Advance|Game\s*Boy\s+Color|Game\s*Boy|Super\s+Nintendo(?:\s+Entertainment\s+System)?|Nintendo\s+Entertainment\s+System|Nintendo\s+64DD|Nintendo\s+64|Nintendo\s+GameCube|GameCube|Nintendo\s+Wii\s*U|Nintendo\s+Wii|Nintendo\s+Switch|Nintendo\s+3DS|Nintendo\s+DS|Virtual\s+Boy|PlayStation\s+Portable|PlayStation\s+Vita|Sony\s+PlayStation(?:\s*[12345])?|Sega\s+Genesis|Mega\s+Drive|Master\s+System|Game\s+Gear|Sega\s+Saturn|Sega\s+Dreamcast|Atari\s+Lynx|Atari\s+Jaguar(?:\s+CD)?|TurboGrafx(?:-|\s*)16|PC\s+Engine)(?![A-Za-z0-9])",
+            @"(?<![A-Za-z0-9])(?:Game\s*Boy\s+Advance|Game\s*Boy\s+Color|Game\s*Boy|Super\s+Nintendo(?:\s+Entertainment\s+System)?|Nintendo\s+Entertainment\s+System|Nintendo\s+64DD|Nintendo\s+64|Nintendo\s+GameCube|GameCube|Nintendo\s+Wii\s*U|Nintendo\s+Wii|Nintendo\s+Switch|Nintendo\s+3DS|Nintendo\s+DS|Virtual\s+Boy|PlayStation\s+Portable|PlayStation\s+Vita|Sony\s+PlayStation(?:\s*[12345])?|Sega\s+Genesis|Mega\s+Drive|Master\s+System|Game\s+Gear|Sega\s+Saturn|Sega\s+Dreamcast|Sega\s+CD|Mega\s*CD|Sega\s+32X|SG-1000|Atari\s+Lynx|Atari\s+Jaguar(?:\s+CD)?|Atari\s+(?:2600|5200|7800)|TurboGrafx(?:-|\s*)16|PC\s+Engine|PC-FX|Philips\s+CD-?i|CD-?i|3DO(?:\s+Interactive\s+Multiplayer)?|Amiga\s+CD32|ColecoVision|Intellivision|Vectrex|Neo\s*Geo(?:\s+(?:CD|Pocket(?:\s+Color)?))?|WonderSwan(?:\s+Color)?|Famicom\s+Disk\s+System)(?![A-Za-z0-9])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex TrailingDashRegionOrReleaseRegex = new(
+            @"(?:\s*-\s*(?:USA|EUR|Europe|Japan|JPN|World|Australia|Canada|France|Germany|Spain|Italy|Netherlands|Sweden|Denmark|Norway|Finland|Portugal|Brazil|UK|PAL|NTSC|Release|Demonstration\s+Disc)?\s*)+$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex BenignRomTokensRegex = new(
@@ -754,6 +768,12 @@ namespace NzbDrone.Core.DecisionEngine
             if (withoutPlatformWords.Any(char.IsLetterOrDigit))
             {
                 clean = withoutPlatformWords;
+            }
+
+            var withoutTrailingDash = TrailingDashRegionOrReleaseRegex.Replace(clean, string.Empty).Trim();
+            if (withoutTrailingDash.Any(char.IsLetterOrDigit))
+            {
+                clean = withoutTrailingDash;
             }
 
             var withoutSceneTags = SceneTagsRegex.Replace(clean, " ").Trim();

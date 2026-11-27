@@ -23,6 +23,20 @@ All notable changes to **Controllarr** are documented in this file.
 
 ---
 
+## [Unreleased] - 2026-11-27
+
+### Fixed
+- **Recursive Nested Archive Extraction & Internet Archive Junk Filtering (`ArchiveRepackService`, `DownloadedGamesImportService`)**:
+  - Updated `ArchiveRepackService.HasValidRomEntries` to inspect nested `.zip` archives (up to depth 4) while skipping Internet Archive OCR/manual/metadata derivatives (`*_jp2.zip`, `*_chocr.*`, `*_hocr_*`, `*_scandata.*`, `*_meta.*`, `*.html.gz`, `*.json.gz`, `*.txt.gz`, etc.) via `ArchiveRepackService.IsNonRomArchiveJunkFile`, and ensured `IsMultiGameArchive` ignores those derivatives as well.
+  - Updated `DownloadedGamesImportService` (`MaxArchiveExtractionDepth = 5`) to extract rejected nested archives to evaluate inner compressed ROMs recursively, ignore IA derivative junk files, skip parsing temporary `_extract_*` folder names as release/date titles, and clean up temporary `_extracted` directories reliably.
+- **Stop Infinite Download Re-Extraction Loop (`TrackedDownload`, `CompletedDownloadService`)**:
+  - Added `TrackedDownload.LastImportAttempt` and a 5-minute cooldown in `CompletedDownloadService.Check` before retrying `ImportBlocked` downloads so failed imports do not re-extract every 5 seconds while still immediately transitioning to `Ignored` if removed from disk.
+- **Multi-File Disc Format Imports (`DiscSheetHelper`, `DiskScanService`, `UnmanagedDiskScanner`, `ManualImportService`, `InteractiveImportModalContent`)**:
+  - Added `.mds`/`.mdf` support and `DiscSheetHelper.FindCompanionTrackFiles` to group multi-file disc sets (`.cue`/`.gdi`/`.ccd`/`.mds` and companion `.bin`/`.img`/`.iso`/`.raw`/`.wav`/`.sub`/`.mdf`) cleanly across disk scanning, unmanaged scanning, and manual/interactive import (`ManualImportService` and `InteractiveImportModalContent.tsx` now allow selecting `.bin` + `.cue` sets together without triggering duplicate-game errors and extract companion disc tracks from `.zip#` entries).
+- **Internet Archive TV Bleed, Retro Computer Rejection & Title Matching (`PlatformCompatibilityValidator`, `DownloadDecisionMaker`)**:
+  - Rejected `(tv series)` / `(tv show)` releases in `IsTvOrVideoRelease` and non-console retro home computers such as `(Atari ST)`, `(Amiga)` (while preserving `Amiga CD32`), and `(Commodore 64)` in `IsPcOrNonConsoleRelease`.
+  - Updated `DownloadDecisionMaker` to strip dash-separated platform/region/release suffixes (e.g., `- Philips CD-i - USA`, `- Philips CDi - USA Release`) when matching game titles and to attribute platform-matched failures to `UnknownEpisode` rather than `UnknownSeries`.
+
 ## [Unreleased] - 2026-11-25
 
 ### Added

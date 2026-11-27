@@ -168,6 +168,63 @@ const importModeOptions: SelectInputOption[] = [
   },
 ];
 
+const DISC_SHEET_EXTENSIONS = new Set(['.cue', '.gdi', '.ccd', '.mds']);
+const DISC_COMPANION_EXTENSIONS = new Set([
+  '.bin',
+  '.img',
+  '.iso',
+  '.raw',
+  '.wav',
+  '.sub',
+  '.mdf',
+  '.mds',
+  '.cue',
+  '.gdi',
+  '.ccd',
+]);
+
+function getFileExtensionLower(filePath: string): string {
+  const lastDot = filePath.lastIndexOf('.');
+  const lastSlash = Math.max(
+    filePath.lastIndexOf('/'),
+    filePath.lastIndexOf('\\')
+  );
+
+  if (lastDot <= lastSlash || lastDot < 0) {
+    return '';
+  }
+
+  return filePath.slice(lastDot).toLowerCase();
+}
+
+function getParentDirectory(filePath: string): string {
+  const lastSlash = Math.max(
+    filePath.lastIndexOf('/'),
+    filePath.lastIndexOf('\\')
+  );
+
+  return lastSlash >= 0 ? filePath.slice(0, lastSlash).toLowerCase() : '';
+}
+
+function areCompanionDiscFiles(paths: string[]): boolean {
+  if (paths.length <= 1) {
+    return true;
+  }
+
+  const directories = new Set(paths.map(getParentDirectory));
+  if (directories.size !== 1) {
+    return false;
+  }
+
+  const extensions = paths.map(getFileExtensionLower);
+  const hasDiscSheet = extensions.some((ext) => DISC_SHEET_EXTENSIONS.has(ext));
+  const allDiscRelated = extensions.every((ext) =>
+    DISC_COMPANION_EXTENSIONS.has(ext)
+  );
+
+  return hasDiscSheet && allDiscRelated;
+}
+
 function isSameRomFile(
   file: InteractiveImport,
   originalFile?: InteractiveImport
@@ -483,7 +540,7 @@ function InteractiveImportModalContentInner(
       return;
     }
 
-    const seenGameIds = new Set<number>();
+    const selectedPathsByGameId = new Map<number, string[]>();
     let hasDuplicateGames = false;
 
     items.forEach((item) => {
@@ -540,11 +597,11 @@ function InteractiveImportModalContentInner(
 
         if (!hasDuplicateGames) {
           for (const game of games) {
-            const hasAlreadySeen = seenGameIds.has(game.id);
+            const existingPaths = selectedPathsByGameId.get(game.id) ?? [];
+            const nextPaths = [...existingPaths, item.path];
+            selectedPathsByGameId.set(game.id, nextPaths);
 
-            seenGameIds.add(game.id);
-
-            if (hasAlreadySeen) {
+            if (nextPaths.length > 1 && !areCompanionDiscFiles(nextPaths)) {
               hasDuplicateGames = true;
               return;
             }
