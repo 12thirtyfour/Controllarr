@@ -771,5 +771,106 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.InternetArchiveTests
 
             requestedUrls.Should().Contain("https://archive.org/compress/missing");
         }
+
+        [Test]
+        public async Task should_prefer_decoded_url_extension_over_title_extension_for_bin_downloads()
+        {
+            string openedPath = null;
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(s => s.OpenWriteStream(It.IsAny<string>()))
+                  .Callback<string>(p => openedPath = p)
+                  .Returns(() => new FileStream(Path.GetTempFileName(), FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite, 81920, FileOptions.DeleteOnClose));
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync((HttpRequest req, CancellationToken _) =>
+                      new HttpResponse(req, new HttpHeader(), new byte[] { 1, 2, 3, 4 }));
+
+            var release = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/download/ps1/Game%20(Track%2001).bin?token=1",
+                Title = "Game (USA).cue"
+            };
+
+            var downloadId = await Subject.Download(new RemoteEpisode { Release = release }, null);
+
+            downloadId.Should().EndWith(".bin");
+            downloadId.Should().NotEndWith(".cue");
+            openedPath.Should().EndWith(".bin");
+        }
+
+        [Test]
+        public async Task should_deduplicate_active_queued_download_with_same_source_url()
+        {
+            var getStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var getGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var httpCalls = 0;
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .Returns(async (HttpRequest req, CancellationToken _) =>
+                  {
+                      Interlocked.Increment(ref httpCalls);
+                      getStarted.TrySetResult(true);
+                      await getGate.Task;
+                      return new HttpResponse(req, new HttpHeader(), new byte[] { 1, 2, 3, 4 });
+                  });
+
+            var release = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/download/ps1/Game%20(USA).bin",
+                Title = "Game (USA)"
+            };
+
+            try
+            {
+                var firstTask = Subject.Download(new RemoteEpisode { Release = release }, null);
+                await getStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                var duplicateId = await Subject.Download(new RemoteEpisode { Release = release }, null);
+                getGate.TrySetResult(true);
+                var firstId = await firstTask;
+
+                duplicateId.Should().Be(firstId);
+                httpCalls.Should().Be(1);
+            }
+            finally
+            {
+                getGate.TrySetResult(true);
+            }
+        }
+
+        [Test]
+        public async Task should_allow_distinct_multi_disc_downloads_for_same_game()
+        {
+            var httpCalls = 0;
+
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(s => s.GetAsync(It.IsAny<HttpRequest>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync((HttpRequest req, CancellationToken _) =>
+                  {
+                      Interlocked.Increment(ref httpCalls);
+                      return new HttpResponse(req, new HttpHeader(), new byte[] { 1, 2, 3, 4 });
+                  });
+
+            var disc1 = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/download/ps1/Game%20(USA)%20(Disc%201).bin",
+                Title = "Game (USA) (Disc 1)"
+            };
+            var disc2 = new ReleaseInfo
+            {
+                DownloadUrl = "https://archive.org/download/ps1/Game%20(USA)%20(Disc%202).bin",
+                Title = "Game (USA) (Disc 2)"
+            };
+
+            var id1 = await Subject.Download(new RemoteEpisode { Release = disc1 }, null);
+            var id2 = await Subject.Download(new RemoteEpisode { Release = disc2 }, null);
+
+            id1.Should().EndWith("disc1.bin");
+            id2.Should().EndWith("disc2.bin");
+            id1.Should().NotBe(id2);
+            httpCalls.Should().Be(2);
+        }
     }
 }

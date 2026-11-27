@@ -520,5 +520,38 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeTrue();
         }
+
+        [Test]
+        public void should_reject_second_grab_when_http_download_is_already_in_queue_even_with_unknown_quality()
+        {
+            var queuedRemoteEpisode = Builder<RemoteEpisode>.CreateNew()
+                .With(r => r.Series = _series)
+                .With(r => r.Episodes = new List<Episode> { _episode })
+                .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
+                {
+                    Quality = new QualityModel(Quality.Unknown),
+                    Languages = new List<Language> { Language.English }
+                })
+                .With(r => r.Release = _releaseInfo)
+                .With(r => r.CustomFormats = new List<CustomFormat>())
+                .Build();
+
+            _remoteEpisode.ParsedEpisodeInfo.Quality = new QualityModel(Quality.NoIntroVerified);
+
+            Mocker.GetMock<NzbDrone.Core.Queue.IQueueService>()
+                  .Setup(s => s.GetQueue())
+                  .Returns(new List<NzbDrone.Core.Queue.Queue>
+                  {
+                      new NzbDrone.Core.Queue.Queue
+                      {
+                          Title = "Queued IA Game",
+                          RemoteEpisode = queuedRemoteEpisode,
+                          TrackedDownloadState = TrackedDownloadState.Downloading,
+                          Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Http
+                      }
+                  });
+
+            Subject.IsSatisfiedBy(_remoteEpisode, new()).Accepted.Should().BeFalse();
+        }
     }
 }

@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.MediaFiles.Disc;
@@ -59,6 +61,19 @@ namespace NzbDrone.Core.Test.MediaFiles.DiscTests
             companions.Should().Contain(Path.GetFullPath(subPath));
             companions.Should().Contain(ccdPath);
             companions.Should().NotContain(cuePath);
+        }
+
+        [Test]
+        public void should_ignore_binary_file_misnamed_as_cue_when_parsing_track_references()
+        {
+            var misnamedCue = Path.Combine(_tempDir, "MisnamedTrack (USA).cue");
+            var headerBytes = new byte[] { 0x00, 0xFF, 0x00, 0x01 };
+            var fakeCueText = Encoding.ASCII.GetBytes("\r\nFILE \"fake.bin\" BINARY\r\n  TRACK 01 MODE1/2352\r\n");
+            File.WriteAllBytes(misnamedCue, headerBytes.Concat(fakeCueText).ToArray());
+            File.WriteAllBytes(Path.Combine(_tempDir, "fake.bin"), new byte[1024]);
+
+            DiscSheetHelper.ParseTrackReferences(misnamedCue).Should().BeEmpty();
+            DiscSheetHelper.ResolveTrackFilesPrioritizingData(misnamedCue).Should().BeEmpty();
         }
     }
 }

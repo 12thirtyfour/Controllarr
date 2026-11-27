@@ -659,7 +659,7 @@ namespace NzbDrone.Core.MediaFiles
             }
         }
 
-        private static bool ShouldPostProcessInPlace(string filePath, Series platform)
+        public static bool ShouldPostProcessInPlace(string filePath, Series platform)
         {
             var ext = Path.GetExtension(filePath)?.ToLowerInvariant() ?? string.Empty;
             var shouldCompress = IsPlatformCompressionEnabled(platform);

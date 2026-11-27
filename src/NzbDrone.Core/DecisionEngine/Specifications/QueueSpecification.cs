@@ -78,6 +78,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     continue;
                 }
 
+                if (queueItem.Protocol == Indexers.DownloadProtocol.Http)
+                {
+                    _logger.Debug("Internet Archive / HTTP release '{0}' is already queued or downloading for this game.", queueItem.Title);
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.QueueHigherPreference, "Release is already queued or downloading for this game");
+                }
+
                 var queuedItemCustomFormats = _formatService.ParseCustomFormat(remoteEpisode, (long)queueItem.Size);
 
                 _logger.Debug("Checking if existing release in queue meets cutoff. Queued: {0}", remoteEpisode.ParsedEpisodeInfo.Quality);

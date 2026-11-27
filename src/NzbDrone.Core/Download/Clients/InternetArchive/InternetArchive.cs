@@ -35,6 +35,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
         {
             public string DownloadId { get; set; }
             public string Title { get; set; }
+            public string SourceUrl { get; set; }
             public string OutputPath { get; set; }
             public long TotalSize { get; set; }
             public long DownloadedBytes { get; set; }
@@ -419,17 +420,28 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             }
 
             var rawTitle = remoteEpisode?.Release?.Title ?? "rom_download";
+            string urlExt = null;
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                if (Uri.TryCreate(url, UriKind.Absolute, out var parsedUrl))
+                {
+                    urlExt = Path.GetExtension(Uri.UnescapeDataString(parsedUrl.AbsolutePath));
+                }
+                else
+                {
+                    urlExt = Path.GetExtension(url.Split('?')[0]);
+                }
+            }
+
+            var extension = !string.IsNullOrWhiteSpace(urlExt) && ValidDownloadExtensionRegex.IsMatch(urlExt)
+                ? urlExt
+                : null;
+
             var rawTitleExt = Path.GetExtension(rawTitle);
             var hasValidTitleExtension = !string.IsNullOrWhiteSpace(rawTitleExt) && ValidDownloadExtensionRegex.IsMatch(rawTitleExt);
-            var extension = hasValidTitleExtension ? rawTitleExt : null;
-
-            if (string.IsNullOrWhiteSpace(extension))
+            if (string.IsNullOrWhiteSpace(extension) && hasValidTitleExtension)
             {
-                var urlExt = Path.GetExtension(url);
-                if (!string.IsNullOrWhiteSpace(urlExt) && ValidDownloadExtensionRegex.IsMatch(urlExt))
-                {
-                    extension = urlExt;
-                }
+                extension = rawTitleExt;
             }
 
             if (string.IsNullOrWhiteSpace(extension) && !string.IsNullOrWhiteSpace(remoteEpisode?.Release?.Container))
@@ -462,6 +474,22 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
 
             var filename = cleanTitle + extension;
             var downloadPath = Path.Combine(workingFolder, filename);
+
+            var existingActiveDuplicate = TrackedItems.Values.FirstOrDefault(s =>
+                s != null &&
+                s.Status is DownloadItemStatus.Downloading or DownloadItemStatus.Queued &&
+                ((!string.IsNullOrWhiteSpace(url) &&
+                  !string.IsNullOrWhiteSpace(s.SourceUrl) &&
+                  string.Equals(s.SourceUrl, url, StringComparison.OrdinalIgnoreCase)) ||
+                 string.Equals(s.DownloadId, downloadPath, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(s.OutputPath, downloadPath, StringComparison.OrdinalIgnoreCase)));
+
+            if (existingActiveDuplicate != null)
+            {
+                _logger.Info("Skipping duplicate Internet Archive download for '{0}'; already active in queue as '{1}'.", rawTitle, existingActiveDuplicate.DownloadId);
+                return existingActiveDuplicate.DownloadId;
+            }
+
             if (TrackedItems.TryGetValue(downloadPath, out var existingState) &&
                 existingState.Status is DownloadItemStatus.Downloading or DownloadItemStatus.Queued)
             {
@@ -482,6 +510,7 @@ namespace NzbDrone.Core.Download.Clients.InternetArchive
             {
                 DownloadId = downloadPath,
                 Title = rawTitle,
+                SourceUrl = url,
                 OutputPath = downloadPath,
                 TotalSize = initialSize,
                 DownloadedBytes = 0,

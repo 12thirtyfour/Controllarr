@@ -34,6 +34,36 @@ namespace NzbDrone.Core.MediaFiles.Disc
             return !string.IsNullOrWhiteSpace(extension) && CompanionTrackExtensions.Contains(extension);
         }
 
+        private static bool IsLikelyTextDiscSheet(string sheetPath)
+        {
+            try
+            {
+                var info = new FileInfo(sheetPath);
+                if (!info.Exists || info.Length == 0 || info.Length > 512 * 1024)
+                {
+                    return false;
+                }
+
+                var sampleLen = (int)Math.Min(4096, info.Length);
+                var buffer = new byte[sampleLen];
+                using var stream = File.OpenRead(sheetPath);
+                var read = stream.Read(buffer, 0, sampleLen);
+                for (var i = 0; i < read; i++)
+                {
+                    if (buffer[i] == 0)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static List<string> ParseTrackReferences(string sheetPath)
         {
             var references = new List<string>();
@@ -66,7 +96,7 @@ namespace NzbDrone.Core.MediaFiles.Disc
                 return references;
             }
 
-            if (ext != ".cue" && ext != ".gdi")
+            if ((ext != ".cue" && ext != ".gdi") || !IsLikelyTextDiscSheet(sheetPath))
             {
                 return references;
             }
@@ -136,7 +166,7 @@ namespace NzbDrone.Core.MediaFiles.Disc
             }
 
             var ext = Path.GetExtension(sheetPath)?.ToLowerInvariant() ?? string.Empty;
-            if (ext != ".cue")
+            if (ext != ".cue" || !IsLikelyTextDiscSheet(sheetPath))
             {
                 return ResolveTrackFiles(sheetPath);
             }

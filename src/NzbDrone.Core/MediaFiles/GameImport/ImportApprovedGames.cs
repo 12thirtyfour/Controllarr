@@ -243,12 +243,12 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 return true;
             }
 
-            var shouldCompress = RomFileMovingService.IsPlatformCompressionEnabled(localGame.Series);
-            if (shouldCompress && RomFileMovingService.IsZipCompressibleRom(ext, localGame.Series, localGame.Path))
+            if (RomFileMovingService.ShouldPostProcessInPlace(localGame.Path, localGame.Series))
             {
                 return true;
             }
 
+            var shouldCompress = RomFileMovingService.IsPlatformCompressionEnabled(localGame.Series);
             if (ArchiveRepackService.IsArchiveExtension(ext) &&
                 RomFileMovingService.ShouldUnwrapArchiveBeforeMove(localGame.Path, ext, shouldCompress, localGame.Series))
             {

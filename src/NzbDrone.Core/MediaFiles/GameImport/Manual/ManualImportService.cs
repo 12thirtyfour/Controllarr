@@ -603,6 +603,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             var importedUntrackedDownload = new List<ImportResult>();
             var importedZipEntriesByArchive = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             var importedSourceDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var manualExtractedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var companionPathsToSkip = DiscSheetHelper.FindCompanionTrackFiles(message.Files.Select(f => f.Path));
 
             for (var i = 0; i < message.Files.Count; i++)
@@ -631,10 +632,9 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     var relativePath = platform.Path.GetRelativePath(file.Path);
                     var relativeDir = Path.GetDirectoryName(relativePath);
                     var needsRegionFolder = string.IsNullOrWhiteSpace(relativeDir);
-                    var needsZipCompression = RomFileMovingService.IsPlatformCompressionEnabled(platform) &&
-                                              RomFileMovingService.IsZipCompressibleRom(Path.GetExtension(file.Path), platform, file.Path);
+                    var needsPostProcess = RomFileMovingService.ShouldPostProcessInPlace(file.Path, platform);
 
-                    if (needsRegionFolder || needsZipCompression || message.ImportMode == ImportMode.Move || message.ImportMode == ImportMode.Auto)
+                    if (needsRegionFolder || needsPostProcess || message.ImportMode == ImportMode.Move || message.ImportMode == ImportMode.Auto)
                     {
                         existingFile = false;
                     }
@@ -712,6 +712,14 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     if (!string.IsNullOrWhiteSpace(sourceDir) && (platform == null || !platform.Path.IsParentPath(sourceDir)))
                     {
                         importedSourceDirs.Add(sourceDir);
+                        for (var cursor = new DirectoryInfo(sourceDir); cursor != null; cursor = cursor.Parent)
+                        {
+                            if (cursor.Name.EndsWith("_extracted", StringComparison.OrdinalIgnoreCase))
+                            {
+                                manualExtractedDirs.Add(cursor.FullName);
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -949,7 +957,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
             foreach (var groupedTrackedDownload in importedTrackedDownload.GroupBy(i => i.TrackedDownload.DownloadItem.DownloadId).ToList())
             {
                 var trackedDownload = groupedTrackedDownload.First().TrackedDownload;
-                var importedPlatform = imported.First().ImportDecision.LocalEpisode.Series;
+                var importedPlatform = groupedTrackedDownload.FirstOrDefault(g => g.ImportResult?.ImportDecision?.LocalEpisode?.Series != null)?.ImportResult.ImportDecision.LocalEpisode.Series
+                    ?? imported.FirstOrDefault(r => r.ImportDecision?.LocalEpisode?.Series != null)?.ImportDecision.LocalEpisode.Series;
                 var outputPath = trackedDownload.ImportItem.OutputPath.FullPath;
 
                 if (_diskProvider.FolderExists(outputPath))
@@ -961,21 +970,55 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                         _diskProvider.DeleteFolder(outputPath, true);
                     }
                 }
+                else if (message.ImportMode != ImportMode.Copy &&
+                         trackedDownload.DownloadItem.CanMoveFiles &&
+                         !string.IsNullOrWhiteSpace(outputPath))
+                {
+                    var outputParent = Path.GetDirectoryName(outputPath);
+                    var outputStem = Path.GetFileNameWithoutExtension(outputPath);
+                    if (!string.IsNullOrWhiteSpace(outputParent) && !string.IsNullOrWhiteSpace(outputStem))
+                    {
+                        var extractedSibling = Path.Combine(outputParent, outputStem + "_extracted");
+                        if (_diskProvider.FolderExists(extractedSibling))
+                        {
+                            manualExtractedDirs.Add(extractedSibling);
+                        }
+                    }
+                }
 
                 var importedResults = groupedTrackedDownload.Select(c => c.ImportResult)
                     .Where(c => c.Result == ImportResultType.Imported)
                     .ToList();
 
-                var allGamesImported = importedResults
-                                                                .SelectMany(c => c.ImportDecision.LocalEpisode.Episodes).Count() >=
-                                                                    Math.Max(1, trackedDownload.RemoteEpisode?.Episodes?.Count ?? 1);
+                var allGamesImported = importedResults.Any() &&
+                                       (importedResults.SelectMany(c => c.ImportDecision.LocalEpisode.Episodes).Count() >=
+                                        Math.Max(1, trackedDownload.RemoteEpisode?.Episodes?.Count ?? 1) ||
+                                        importedResults.Count >= groupedTrackedDownload.Count());
 
-                if (allGamesImported)
+                if (allGamesImported && importedPlatform != null)
                 {
                     var romFiles = importedResults.Select(i => i.EpisodeFile).ToList();
 
                     trackedDownload.State = TrackedDownloadState.Imported;
                     _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, importedPlatform.Id, romFiles, importedResults.First().ImportDecision.LocalEpisode.Release));
+                }
+            }
+
+            if (imported.Any(i => i.Result == ImportResultType.Imported) && message.ImportMode != ImportMode.Copy)
+            {
+                foreach (var extractedDir in manualExtractedDirs)
+                {
+                    if (_diskProvider.FolderExists(extractedDir))
+                    {
+                        try
+                        {
+                            _diskProvider.DeleteFolder(extractedDir, true);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug(ex, "Unable to delete extracted import folder '{0}'", extractedDir);
+                        }
+                    }
                 }
             }
         }
