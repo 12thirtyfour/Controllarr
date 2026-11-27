@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                                      .With(e => e.QualityProfile = new QualityProfile { Items = Qualities.QualityFixture.GetDefaultQualities() })
                                      .Build();
 
-            _quality = new QualityModel(Quality.DVD);
+            _quality = new QualityModel(Quality.TranslationPatch);
 
             _localEpisode = new LocalEpisode
             {
@@ -252,7 +252,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             var decisions = Subject.GetImportDecisions(_videoFiles, _series, downloadClientItem, null, null, false);
 
             decisions.Should().HaveCount(2);
-            decisions.Should().OnlyContain(d => d.Rejections.Any(r => r.Reason == NzbDrone.Core.MediaFiles.GameImport.ImportRejectionReason.InvalidSeasonOrEpisode));
+            decisions.Should().OnlyContain(d => d.Rejections.Any(r => r.Reason == NzbDrone.Core.MediaFiles.GameImport.ImportRejectionReason.InvalidRegionOrGame));
         }
     }
 }

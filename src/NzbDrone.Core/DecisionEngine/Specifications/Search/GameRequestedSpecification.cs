@@ -36,10 +36,10 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
                 if (firstMismatch != null)
                 {
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, $"Game wasn't requested: {firstMismatch.Title}");
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongGame, $"Game wasn't requested: {firstMismatch.Title}");
                 }
 
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, "Game wasn't requested");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongGame, "Game wasn't requested");
             }
 
             return DownloadSpecDecision.Accept();

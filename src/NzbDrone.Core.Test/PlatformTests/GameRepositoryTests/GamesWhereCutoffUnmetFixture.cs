@@ -29,12 +29,12 @@ namespace NzbDrone.Core.Test.PlatformTests.GameRepositoryTests
             var profile = new QualityProfile
             {
                 Id = 1,
-                Cutoff = Quality.WEBDL480p.Id,
+                Cutoff = Quality.BetaProto.Id,
                 Items = new List<QualityProfileQualityItem>
                 {
-                    new QualityProfileQualityItem { Allowed = true, Quality = Quality.SDTV },
-                    new QualityProfileQualityItem { Allowed = true, Quality = Quality.WEBDL480p },
-                    new QualityProfileQualityItem { Allowed = true, Quality = Quality.RAWHD }
+                    new QualityProfileQualityItem { Allowed = true, Quality = Quality.BetaProto },
+                    new QualityProfileQualityItem { Allowed = true, Quality = Quality.BetaProto },
+                    new QualityProfileQualityItem { Allowed = true, Quality = Quality.UnverifiedRaw }
                 }
             };
 
@@ -69,18 +69,18 @@ namespace NzbDrone.Core.Test.PlatformTests.GameRepositoryTests
 
             _qualitiesBelowCutoff = new List<QualitiesBelowCutoff>
                                     {
-                                        new QualitiesBelowCutoff(profile.Id, new[] { Quality.SDTV.Id })
+                                        new QualitiesBelowCutoff(profile.Id, new[] { Quality.BetaProto.Id })
                                     };
 
-            var qualityMetLanguageUnmet = new EpisodeFile { RelativePath = "a", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.English } };
-            var qualityMetLanguageMet = new EpisodeFile { RelativePath = "b", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.Spanish } };
-            var qualityMetLanguageExceed = new EpisodeFile { RelativePath = "c", Quality = new QualityModel { Quality = Quality.WEBDL480p }, Languages = new List<Language> { Language.French } };
-            var qualityUnmetLanguageUnmet = new EpisodeFile { RelativePath = "d", Quality = new QualityModel { Quality = Quality.SDTV }, Languages = new List<Language> { Language.English } };
-            var qualityUnmetLanguageMet = new EpisodeFile { RelativePath = "e", Quality = new QualityModel { Quality = Quality.SDTV }, Languages = new List<Language> { Language.Spanish } };
-            var qualityUnmetLanguageExceed = new EpisodeFile { RelativePath = "f", Quality = new QualityModel { Quality = Quality.SDTV }, Languages = new List<Language> { Language.French } };
-            var qualityRawHDLanguageUnmet = new EpisodeFile { RelativePath = "g", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.English } };
-            var qualityRawHDLanguageMet = new EpisodeFile { RelativePath = "h", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.Spanish } };
-            var qualityRawHDLanguageExceed = new EpisodeFile { RelativePath = "i", Quality = new QualityModel { Quality = Quality.RAWHD }, Languages = new List<Language> { Language.French } };
+            var qualityMetLanguageUnmet = new EpisodeFile { RelativePath = "a", Quality = new QualityModel { Quality = Quality.BetaProto }, Languages = new List<Language> { Language.English } };
+            var qualityMetLanguageMet = new EpisodeFile { RelativePath = "b", Quality = new QualityModel { Quality = Quality.BetaProto }, Languages = new List<Language> { Language.Spanish } };
+            var qualityMetLanguageExceed = new EpisodeFile { RelativePath = "c", Quality = new QualityModel { Quality = Quality.BetaProto }, Languages = new List<Language> { Language.French } };
+            var qualityUnmetLanguageUnmet = new EpisodeFile { RelativePath = "d", Quality = new QualityModel { Quality = Quality.BetaProto }, Languages = new List<Language> { Language.English } };
+            var qualityUnmetLanguageMet = new EpisodeFile { RelativePath = "e", Quality = new QualityModel { Quality = Quality.BetaProto }, Languages = new List<Language> { Language.Spanish } };
+            var qualityUnmetLanguageExceed = new EpisodeFile { RelativePath = "f", Quality = new QualityModel { Quality = Quality.BetaProto }, Languages = new List<Language> { Language.French } };
+            var qualityRawHDLanguageUnmet = new EpisodeFile { RelativePath = "g", Quality = new QualityModel { Quality = Quality.UnverifiedRaw }, Languages = new List<Language> { Language.English } };
+            var qualityRawHDLanguageMet = new EpisodeFile { RelativePath = "h", Quality = new QualityModel { Quality = Quality.UnverifiedRaw }, Languages = new List<Language> { Language.Spanish } };
+            var qualityRawHDLanguageExceed = new EpisodeFile { RelativePath = "i", Quality = new QualityModel { Quality = Quality.UnverifiedRaw }, Languages = new List<Language> { Language.French } };
 
             var fileRepository = Mocker.Resolve<MediaFileRepository>();
 
@@ -156,7 +156,7 @@ namespace NzbDrone.Core.Test.PlatformTests.GameRepositoryTests
             var spec = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false);
 
             spec.Records.Should().HaveCount(1);
-            spec.Records.Should().OnlyContain(e => e.EpisodeFile.Value.Quality.Quality == Quality.SDTV);
+            spec.Records.Should().OnlyContain(e => e.EpisodeFile.Value.Quality.Quality == Quality.BetaProto);
         }
 
         [Test]
@@ -210,10 +210,10 @@ namespace NzbDrone.Core.Test.PlatformTests.GameRepositoryTests
         {
             GivenMonitoredFilterExpression();
 
-            var result = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false, null, new List<int> { Quality.SDTV.Id });
+            var result = Subject.EpisodesWhereCutoffUnmet(_pagingSpec, _qualitiesBelowCutoff, false, null, new List<int> { Quality.BetaProto.Id });
 
             result.Records.Should().NotBeEmpty();
-            result.Records.Should().OnlyContain(e => e.EpisodeFile.Value.Quality.Quality == Quality.SDTV);
+            result.Records.Should().OnlyContain(e => e.EpisodeFile.Value.Quality.Quality == Quality.BetaProto);
         }
 
         [Test]

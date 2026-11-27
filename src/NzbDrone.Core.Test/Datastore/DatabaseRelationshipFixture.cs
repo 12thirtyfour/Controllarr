@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Test.Datastore
         [Test]
         public void embedded_document_as_json()
         {
-            var quality = new QualityModel { Quality = Quality.Bluray720p, Revision = new Revision(version: 2) };
+            var quality = new QualityModel { Quality = Quality.NoIntroVerified, Revision = new Revision(version: 2) };
 
             var history = Builder<GameHistory>.CreateNew()
                 .With(c => c.Languages = new List<Language> { Language.English })
@@ -93,14 +93,14 @@ namespace NzbDrone.Core.Test.Datastore
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .Build().ToList();
 
-            history[0].Quality = new QualityModel(Quality.HDTV1080p, new Revision(version: 2));
-            history[1].Quality = new QualityModel(Quality.Bluray720p, new Revision(version: 2));
+            history[0].Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 2));
+            history[1].Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 2));
 
             Db.InsertMany(history);
 
             var returnedHistory = Db.All<GameHistory>();
 
-            returnedHistory[0].Quality.Quality.Should().Be(Quality.HDTV1080p);
+            returnedHistory[0].Quality.Quality.Should().Be(Quality.UnverifiedRaw);
         }
     }
 }

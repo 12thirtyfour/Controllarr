@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             _episodeFile = new EpisodeFile
                            {
-                               Quality = new QualityModel(Quality.HDTV720p, new Revision()),
+                               Quality = new QualityModel(Quality.UnverifiedRaw, new Revision()),
                                ReleaseGroup = "DRONE2"
                            };
 
@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _remoteEpisode.Series = new Series { SeriesType = SeriesTypes.Anime };
             _remoteEpisode.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                {
-                                                   Quality = new QualityModel(Quality.HDTV720p, new Revision(2)),
+                                                   Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(2)),
                                                    ReleaseGroup = "DRONE"
                                                };
 

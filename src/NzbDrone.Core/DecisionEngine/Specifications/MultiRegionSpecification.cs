@@ -25,7 +25,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
 
                 _logger.Debug("Multi-region release {0} rejected. Not supported", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.MultiSeason, "Multi-region releases are not supported");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.MultiRegion, "Multi-region releases are not supported");
             }
 
             return DownloadSpecDecision.Accept();

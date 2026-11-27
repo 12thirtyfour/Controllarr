@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                                     Path = @"C:\Test\30 Rock\30.rock.s01e01.avi",
                                     Episodes = episodes,
                                     Series = _series,
-                                    Quality = new QualityModel(Quality.HDTV720p),
+                                    Quality = new QualityModel(Quality.UnverifiedRaw),
                                 };
         }
 

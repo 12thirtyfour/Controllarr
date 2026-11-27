@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
@@ -31,40 +31,40 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         {
             Mocker.Resolve<UpgradableSpecification>();
 
-            _firstFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1)), DateAdded = DateTime.Now };
-            _secondFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1)), DateAdded = DateTime.Now };
+            _firstFile = new EpisodeFile { Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1)), DateAdded = DateTime.Now };
+            _secondFile = new EpisodeFile { Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1)), DateAdded = DateTime.Now };
 
             var singleEpisodeList = new List<Episode> { new Episode { EpisodeFile = _firstFile, EpisodeFileId = 1 }, new Episode { EpisodeFile = null } };
             var doubleEpisodeList = new List<Episode> { new Episode { EpisodeFile = _firstFile, EpisodeFileId = 1 }, new Episode { EpisodeFile = _secondFile, EpisodeFileId = 1 }, new Episode { EpisodeFile = null } };
 
             var fakeSeries = Builder<Series>.CreateNew()
-                         .With(c => c.QualityProfile = new QualityProfile { Cutoff = Quality.Bluray1080p.Id })
+                         .With(c => c.QualityProfile = new QualityProfile { Cutoff = Quality.NoIntroVerified.Id })
                          .Build();
 
             _parseResultMulti = new RemoteEpisode
             {
                 Series = fakeSeries,
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD, new Revision(version: 2)) },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch, new Revision(version: 2)) },
                 Episodes = doubleEpisodeList
             };
 
             _parseResultSingle = new RemoteEpisode
             {
                 Series = fakeSeries,
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD, new Revision(version: 2)) },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch, new Revision(version: 2)) },
                 Episodes = singleEpisodeList
             };
         }
 
         private void WithFirstFileUpgradable()
         {
-            _firstFile.Quality = new QualityModel(Quality.SDTV);
+            _firstFile.Quality = new QualityModel(Quality.BetaProto);
         }
 
         [Test]
         public void should_return_false_when_episodeFile_was_added_more_than_7_days_ago()
         {
-            _firstFile.Quality.Quality = Quality.DVD;
+            _firstFile.Quality.Quality = Quality.TranslationPatch;
 
             _firstFile.DateAdded = DateTime.Today.AddDays(-30);
             Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeFalse();
@@ -73,8 +73,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         [Test]
         public void should_return_false_when_first_episodeFile_was_added_more_than_7_days_ago()
         {
-            _firstFile.Quality.Quality = Quality.DVD;
-            _secondFile.Quality.Quality = Quality.DVD;
+            _firstFile.Quality.Quality = Quality.TranslationPatch;
+            _secondFile.Quality.Quality = Quality.TranslationPatch;
 
             _firstFile.DateAdded = DateTime.Today.AddDays(-30);
             Subject.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().BeFalse();
@@ -83,8 +83,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         [Test]
         public void should_return_false_when_second_episodeFile_was_added_more_than_7_days_ago()
         {
-            _firstFile.Quality.Quality = Quality.DVD;
-            _secondFile.Quality.Quality = Quality.DVD;
+            _firstFile.Quality.Quality = Quality.TranslationPatch;
+            _secondFile.Quality.Quality = Quality.TranslationPatch;
 
             _secondFile.DateAdded = DateTime.Today.AddDays(-30);
             Subject.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().BeFalse();
@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                   .Setup(s => s.DownloadPropersAndRepacks)
                   .Returns(ProperDownloadTypes.DoNotUpgrade);
 
-            _firstFile.Quality.Quality = Quality.DVD;
+            _firstFile.Quality.Quality = Quality.TranslationPatch;
 
             _firstFile.DateAdded = DateTime.Today;
             Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeFalse();
@@ -128,7 +128,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                   .Setup(s => s.DownloadPropersAndRepacks)
                   .Returns(ProperDownloadTypes.PreferAndUpgrade);
 
-            _firstFile.Quality.Quality = Quality.DVD;
+            _firstFile.Quality.Quality = Quality.TranslationPatch;
 
             _firstFile.DateAdded = DateTime.Today;
             Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();
@@ -141,7 +141,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                   .Setup(s => s.DownloadPropersAndRepacks)
                   .Returns(ProperDownloadTypes.DoNotPrefer);
 
-            _firstFile.Quality.Quality = Quality.DVD;
+            _firstFile.Quality.Quality = Quality.TranslationPatch;
 
             _firstFile.DateAdded = DateTime.Today;
             Subject.IsSatisfiedBy(_parseResultSingle, new()).Accepted.Should().BeTrue();

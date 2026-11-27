@@ -24,27 +24,27 @@ namespace NzbDrone.Core.Test.Qualities
         [Test]
         public void should_score_single_item_profile_as_1()
         {
-            var profile = BuildProfile(7, Quality.SDTV);
+            var profile = BuildProfile(7, Quality.BetaProto);
 
             var ranks = Subject.ComputeRanks(profile).ToList();
 
             ranks.Should().HaveCount(1);
             ranks[0].ProfileId.Should().Be(7);
-            ranks[0].QualityId.Should().Be(Quality.SDTV.Id);
+            ranks[0].QualityId.Should().Be(Quality.BetaProto.Id);
             ranks[0].Score.Should().Be(1.0);
         }
 
         [Test]
         public void should_score_first_item_as_0_and_last_as_1()
         {
-            var profile = BuildProfile(3, Quality.SDTV, Quality.HDTV720p, Quality.Bluray1080p);
+            var profile = BuildProfile(3, Quality.BetaProto, Quality.UnverifiedRaw, Quality.NoIntroVerified);
 
             var ranks = Subject.ComputeRanks(profile)
                 .ToDictionary(r => r.QualityId, r => r.Score);
 
-            ranks[Quality.SDTV.Id].Should().Be(0.0);
-            ranks[Quality.HDTV720p.Id].Should().Be(0.5);
-            ranks[Quality.Bluray1080p.Id].Should().Be(1.0);
+            ranks[Quality.BetaProto.Id].Should().Be(0.0);
+            ranks[Quality.UnverifiedRaw.Id].Should().Be(0.5);
+            ranks[Quality.NoIntroVerified.Id].Should().Be(1.0);
         }
 
         [Test]
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.Qualities
                 Id = 4,
                 Items = new List<QualityProfileQualityItem>
                 {
-                    new() { Quality = Quality.SDTV, Allowed = true },
+                    new() { Quality = Quality.BetaProto, Allowed = true },
                     new()
                     {
                         Id = 1000,
@@ -63,27 +63,27 @@ namespace NzbDrone.Core.Test.Qualities
                         Allowed = true,
                         Items = new List<QualityProfileQualityItem>
                         {
-                            new() { Quality = Quality.HDTV720p, Allowed = true },
-                            new() { Quality = Quality.WEBDL720p, Allowed = true }
+                            new() { Quality = Quality.UnverifiedRaw, Allowed = true },
+                            new() { Quality = Quality.VerifiedGoodDump, Allowed = true }
                         }
                     },
-                    new() { Quality = Quality.Bluray1080p, Allowed = true }
+                    new() { Quality = Quality.NoIntroVerified, Allowed = true }
                 }
             };
 
             var ranks = Subject.ComputeRanks(profile)
                 .ToDictionary(r => r.QualityId, r => r.Score);
 
-            ranks[Quality.SDTV.Id].Should().Be(0.0);
-            ranks[Quality.HDTV720p.Id].Should().Be(0.5);
-            ranks[Quality.WEBDL720p.Id].Should().Be(0.5);
-            ranks[Quality.Bluray1080p.Id].Should().Be(1.0);
+            ranks[Quality.BetaProto.Id].Should().Be(0.0);
+            ranks[Quality.UnverifiedRaw.Id].Should().Be(0.5);
+            ranks[Quality.VerifiedGoodDump.Id].Should().Be(0.5);
+            ranks[Quality.NoIntroVerified.Id].Should().Be(1.0);
         }
 
         [Test]
         public void should_emit_ranks_for_disallowed_items_too()
         {
-            var profile = BuildProfile(9, Quality.SDTV, Quality.HDTV720p);
+            var profile = BuildProfile(9, Quality.BetaProto, Quality.UnverifiedRaw);
             profile.Items[0].Allowed = false;
 
             var ranks = Subject.ComputeRanks(profile).ToList();
@@ -94,8 +94,8 @@ namespace NzbDrone.Core.Test.Qualities
         [Test]
         public void seed_should_upsert_ranks_for_every_profile()
         {
-            var p1 = BuildProfile(1, Quality.SDTV, Quality.HDTV720p);
-            var p2 = BuildProfile(2, Quality.Bluray1080p);
+            var p1 = BuildProfile(1, Quality.BetaProto, Quality.UnverifiedRaw);
+            var p2 = BuildProfile(2, Quality.NoIntroVerified);
 
             Subject.SeedAll(new List<QualityProfile> { p1, p2 });
 

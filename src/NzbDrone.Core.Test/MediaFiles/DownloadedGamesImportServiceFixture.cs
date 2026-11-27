@@ -534,7 +534,7 @@ namespace NzbDrone.Core.Test.MediaFiles
 
             result.Count.Should().Be(1);
             result.First().Result.Should().Be(ImportResultType.Rejected);
-            result.First().ImportDecision.Rejections.First().Reason.Should().Be(ImportRejectionReason.MultiSeason);
+            result.First().ImportDecision.Rejections.First().Reason.Should().Be(ImportRejectionReason.MultiRegion);
 
             Mocker.GetMock<IParsingService>().Setup(c => c.GetSeries("foldername")).Returns((Series)null);
 

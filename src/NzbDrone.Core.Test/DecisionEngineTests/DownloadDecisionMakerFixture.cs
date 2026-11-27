@@ -361,7 +361,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var result = Subject.GetRssDecision(_reports);
 
             result.Should().HaveCount(1);
-            result.First().Rejections.First().Reason.Should().Be(DownloadRejectionReason.UnknownSeries);
+            result.First().Rejections.First().Reason.Should().Be(DownloadRejectionReason.UnknownPlatform);
         }
 
         [Test]
@@ -541,7 +541,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             parsingRejectSpec.SetupGet(s => s.Priority).Returns(SpecificationPriority.Parsing);
             parsingRejectSpec.SetupGet(s => s.Type).Returns(RejectionType.Permanent);
             parsingRejectSpec.Setup(s => s.IsSatisfiedBy(It.IsAny<RemoteEpisode>(), It.IsAny<ReleaseDecisionInformation>()))
-                .Returns(DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Collection package rejected"));
+                .Returns(DownloadSpecDecision.Reject(DownloadRejectionReason.FullRegion, "Collection package rejected"));
 
             var databaseUpgradeSpec = new Mock<IDownloadDecisionEngineSpecification>();
             databaseUpgradeSpec.SetupGet(s => s.Priority).Returns(SpecificationPriority.Database);

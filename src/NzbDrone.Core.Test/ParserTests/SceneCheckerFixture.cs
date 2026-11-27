@@ -7,24 +7,24 @@ namespace NzbDrone.Core.Test.ParserTests
     [TestFixture]
     public class SceneCheckerFixture
     {
-        [TestCase("Series.Title.S04E13.Helen.Keller.The.Musical.720p.WEBRip.AAC2.0.H.264-GC")]
-        [TestCase("Series.Title.S07E02.720p.WEB-DL.DD5.1.H.264-pcsyndicate")]
-        [TestCase("Series.Title.2009.S05E06.Baby.Shower.720p.WEB-DL.DD5.1.H.264-iT00NZ")]
-        [TestCase("Series.Title.S04E17.720p.HDTV.X264-DIMENSION")]
-        [TestCase("Series.Title.S04.720p.HDTV.X264-DIMENSION")]
+        [TestCase("Super.Mario.64.S04E13.USA.[No-Intro]-Mercury")]
+        [TestCase("Final.Fantasy.VII.S07E02.[Redump]-Mercury")]
+        [TestCase("Chrono.Trigger.2009.S05E06.Rev.1.[!]-Mercury")]
+        [TestCase("The.Legend.of.Zelda.S04E17.[No-Intro]-Mercury")]
+        [TestCase("Metroid.Prime.S04.[Redump]-Mercury")]
         public void should_return_true_for_scene_names(string title)
         {
             SceneChecker.IsSceneTitle(title).Should().BeTrue();
         }
 
-        [TestCase("S08E05 - Virtual In-Stanity [WEBDL-720p]")]
-        [TestCase("S08E05 - Virtual In-Stanity.With.Dots [WEBDL-720p]")]
+        [TestCase("S08E05 - Super Mario 64 [No-Intro]")]
+        [TestCase("S08E05 - Super.Mario.64 [No-Intro]")]
         [TestCase("Something")]
         [TestCase("86de66b7ef385e2fa56a3e41b98481ea1658bfab")]
-        [TestCase("Series.Title.S04E17.720p.HDTV.X264", Description = "no group")]
-        [TestCase("S04E17.720p.HDTV.X264-DIMENSION", Description = "no series title")]
-        [TestCase("Series.Title.S04E17-DIMENSION", Description = "no quality")]
-        [TestCase("Series.Title.720p.HDTV.X264-DIMENSION", Description = "no episode")]
+        [TestCase("Super.Mario.64.S04E17.[Redump]", Description = "no group")]
+        [TestCase("S04E17.[No-Intro]-Mercury", Description = "no game title")]
+        [TestCase("Super.Mario.64.S04E17-Mercury", Description = "no quality")]
+        [TestCase("Super.Mario.64.[No-Intro]-Mercury", Description = "no game number")]
         public void should_return_false_for_non_scene_names(string title)
         {
             SceneChecker.IsSceneTitle(title).Should().BeFalse();

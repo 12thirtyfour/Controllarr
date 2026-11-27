@@ -44,7 +44,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
             if (!matches)
             {
                 _logger.Debug("Region does not match searched region, skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeason, "Wrong region");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongRegion, "Wrong region");
             }
 
             return DownloadSpecDecision.Accept();

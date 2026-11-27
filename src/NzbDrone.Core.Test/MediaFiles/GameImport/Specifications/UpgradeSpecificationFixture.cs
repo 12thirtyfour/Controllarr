@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             _localEpisode = new LocalEpisode
                                 {
                                     Path = @"C:\Test\30 Rock\30.rock.s01e01.avi",
-                                    Quality = new QualityModel(Quality.HDTV720p, new Revision(version: 1)),
+                                    Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 1)),
                                     Languages = new List<Language> { Language.Spanish },
                                     Series = _series
                                 };
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.SDTV, new Revision(version: 1)),
+                                                                                    Quality = new QualityModel(Quality.BetaProto, new Revision(version: 1)),
                                                                                     Languages = new List<Language> { Language.Spanish }
                                                                                 }))
                                                      .Build()
@@ -99,7 +99,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.HDTV720p, new Revision(version: 1)),
+                                                                                    Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 1)),
                                                                                     Languages = new List<Language> { Language.English }
                                                                                 }))
                                                      .Build()
@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1)),
+                                                                                    Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1)),
                                                                                     Languages = new List<Language> { Language.English }
                                                                                 }))
                                                      .Build()
@@ -135,7 +135,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.SDTV, new Revision(version: 1))
+                                                                                    Quality = new QualityModel(Quality.BetaProto, new Revision(version: 1))
                                                                                 }))
                                                      .Build()
                                                      .ToList();
@@ -152,7 +152,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.HDTV720p, new Revision(version: 1)),
+                                                                                    Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 1)),
                                                                                     Languages = new List<Language> { Language.English }
                                                                                 }))
                                                      .Build()
@@ -170,7 +170,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1)),
+                                                                                    Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1)),
                                                                                     Languages = new List<Language> { Language.English }
                                                                                 }))
                                                      .Build()
@@ -188,7 +188,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.Bluray720p, new Revision(version: 1))
+                                                                                    Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1))
                                                                                 }))
                                                      .Build()
                                                      .ToList();
@@ -205,7 +205,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.Bluray720p, new Revision(version: 1))
+                                                                                    Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1))
                                                                                 }))
                                                      .Build()
                                                      .ToList();
@@ -222,14 +222,14 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.SDTV, new Revision(version: 1))
+                                                                                    Quality = new QualityModel(Quality.BetaProto, new Revision(version: 1))
                                                                                 }))
                                                      .TheNext(1)
                                                      .With(e => e.EpisodeFileId = 2)
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                                                 new EpisodeFile
                                                                                 {
-                                                                                    Quality = new QualityModel(Quality.Bluray720p, new Revision(version: 1))
+                                                                                    Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1))
                                                                                 }))
                                                      .Build()
                                                      .ToList();
@@ -250,7 +250,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.HDTV720p, new Revision(version: 2)),
+                                                             Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 2)),
                                                              Languages = new List<Language> { Language.Spanish }
                                                          }))
                                                      .Build()
@@ -274,7 +274,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Setup(s => s.ParseCustomFormat(It.IsAny<RemoteEpisode>(), It.IsAny<long>()))
                   .Returns(new List<CustomFormat>());
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray2160p);
+            _localEpisode.Quality = new QualityModel(Quality.VerifiedRedump);
 
             _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
                                                      .All()
@@ -282,7 +282,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.Bluray1080p),
+                                                             Quality = new QualityModel(Quality.NoIntroVerified),
                                                              Languages = new List<Language> { Language.French }
                                                          }))
                                                      .Build()
@@ -308,7 +308,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Setup(s => s.ParseCustomFormat(It.IsAny<RemoteEpisode>(), It.IsAny<long>()))
                   .Returns(new List<CustomFormat>());
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
 
             _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
                                                      .All()
@@ -316,7 +316,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.Bluray1080p),
+                                                             Quality = new QualityModel(Quality.NoIntroVerified),
                                                              Languages = new List<Language> { Language.English }
                                                          }))
                                                      .Build()
@@ -340,7 +340,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.HDTV720p, new Revision(version: 2))
+                                                             Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 2))
                                                          }))
                                                      .Build()
                                                      .ToList();
@@ -355,7 +355,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Setup(s => s.DownloadPropersAndRepacks)
                   .Returns(ProperDownloadTypes.DoNotPrefer);
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
 
             _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
                                                      .All()
@@ -363,7 +363,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 2))
+                                                             Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 2))
                                                          }))
                                                      .Build()
                                                      .ToList();
@@ -386,7 +386,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Setup(s => s.ParseCustomFormat(It.IsAny<RemoteEpisode>(), It.IsAny<long>()))
                   .Returns(new List<CustomFormat>());
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
 
             _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
                                                      .All()
@@ -394,7 +394,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.Bluray1080p)
+                                                             Quality = new QualityModel(Quality.NoIntroVerified)
                                                          }))
                                                      .Build()
                                                      .ToList();
@@ -419,7 +419,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Setup(s => s.ParseCustomFormat(It.IsAny<RemoteEpisode>(), It.IsAny<long>()))
                   .Returns(new List<CustomFormat>());
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
 
             _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
                                                      .All()
@@ -427,7 +427,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                                                      .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(
                                                          new EpisodeFile
                                                          {
-                                                             Quality = new QualityModel(Quality.Bluray1080p)
+                                                             Quality = new QualityModel(Quality.NoIntroVerified)
                                                          }))
                                                      .Build()
                                                      .ToList();
@@ -457,7 +457,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             var episodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.Bluray1080p)
+                Quality = new QualityModel(Quality.NoIntroVerified)
             };
 
             _series.QualityProfile.Value.FormatItems = episodeFileCustomFormats.Select(c => new ProfileFormatItem
@@ -475,7 +475,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Setup(s => s.ParseCustomFormat(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
             _localEpisode.CustomFormats = Builder<CustomFormat>.CreateListOfSize(1).Build().ToList();
             _localEpisode.CustomFormatScore = 20;
 
@@ -496,7 +496,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             var episodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.Bluray720p)
+                Quality = new QualityModel(Quality.VerifiedGoodDump)
             };
 
             _series.QualityProfile.Value.FormatItems = episodeFileCustomFormats.Select(c => new ProfileFormatItem
@@ -514,7 +514,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Setup(s => s.ParseCustomFormat(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
             _localEpisode.CustomFormats = Builder<CustomFormat>.CreateListOfSize(1).Build().ToList();
             _localEpisode.CustomFormatScore = 20;
 
@@ -535,7 +535,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             var episodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.Bluray1080p)
+                Quality = new QualityModel(Quality.NoIntroVerified)
             };
 
             _series.QualityProfile.Value.FormatItems = episodeFileCustomFormats.Select(c => new ProfileFormatItem
@@ -553,7 +553,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Setup(s => s.ParseCustomFormat(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
             _localEpisode.CustomFormats = Builder<CustomFormat>.CreateListOfSize(1).Build().ToList();
             _localEpisode.CustomFormatScore = 20;
 
@@ -574,7 +574,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             var episodeFile = new EpisodeFile
             {
-                Quality = new QualityModel(Quality.Bluray1080p)
+                Quality = new QualityModel(Quality.NoIntroVerified)
             };
 
             _series.QualityProfile.Value.FormatItems = episodeFileCustomFormats.Select(c => new ProfileFormatItem
@@ -592,7 +592,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Setup(s => s.ParseCustomFormat(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
-            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.Quality = new QualityModel(Quality.NoIntroVerified);
             _localEpisode.CustomFormats = Builder<CustomFormat>.CreateListOfSize(1).Build().ToList();
             _localEpisode.CustomFormatScore = 20;
             _localEpisode.OriginalFileNameCustomFormats = Builder<CustomFormat>.CreateListOfSize(1).Build().ToList();

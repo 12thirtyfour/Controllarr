@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                                                    .With(r => r.Series = _series)
                                                    .With(r => r.Episodes = new List<Episode> { _episode })
-                                                   .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD), Languages = new List<Language> { Language.Spanish } })
+                                                   .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch), Languages = new List<Language> { Language.Spanish } })
                                                    .With(r => r.CustomFormats = new List<CustomFormat>())
                                                    .Build();
 

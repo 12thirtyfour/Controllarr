@@ -163,11 +163,11 @@ namespace NzbDrone.Core.DecisionEngine
 
                         if (remoteEpisode.Series == null)
                         {
-                            decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Platform"));
+                            decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownPlatform, "Unknown Platform"));
                         }
                         else if (remoteEpisode.Episodes.Empty())
                         {
-                            decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownEpisode, "Unable to identify correct game(s) using release name"));
+                            decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownGame, "Unable to identify correct game(s) using release name"));
                         }
                         else
                         {

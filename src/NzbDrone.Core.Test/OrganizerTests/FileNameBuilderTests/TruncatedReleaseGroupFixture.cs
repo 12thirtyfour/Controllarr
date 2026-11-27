@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                                             .Build()
                         };
 
-            _episodeFile = new EpisodeFile { Quality = new QualityModel(Quality.HDTV720p), ReleaseGroup = "SonarrTest" };
+            _episodeFile = new EpisodeFile { Quality = new QualityModel(Quality.UnverifiedRaw), ReleaseGroup = "SonarrTest" };
 
             Mocker.GetMock<IQualityDefinitionService>()
                 .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
@@ -66,14 +66,14 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.Title = "The Fantastic Life of Mr. Sisko";
 
-            _episodeFile.Quality.Quality = Quality.Bluray1080p;
+            _episodeFile.Quality.Quality = Quality.NoIntroVerified;
             _episodeFile.ReleaseGroup = "IWishIWasALittleBitTallerIWishIWasABallerIWishIHadAGirlWhoLookedGoodIWouldCallHerIWishIHadARabbitInAHatWithABatAndASixFourImpala";
             _episodes = _episodes.Take(1).ToList();
             _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}-{ReleaseGroup:12}";
 
             var result = Subject.BuildFileName(_episodes, _series, _episodeFile, ".mkv");
             result.Length.Should().BeLessOrEqualTo(255);
-            result.Should().Be("The Fantastic Life of Mr. Sisko - S01E01 - Episode Title 1 Bluray-1080p-IWishIWas....mkv");
+            result.Should().Be("The Fantastic Life of Mr. Sisko - S01E01 - Episode Title 1 NoIntroVerified-IWishIWas....mkv");
         }
 
         [Test]
@@ -81,14 +81,14 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         {
             _series.Title = "The Fantastic Life of Mr. Sisko";
 
-            _episodeFile.Quality.Quality = Quality.Bluray1080p;
+            _episodeFile.Quality.Quality = Quality.NoIntroVerified;
             _episodeFile.ReleaseGroup = "IWishIWasALittleBitTallerIWishIWasABallerIWishIHadAGirlWhoLookedGoodIWouldCallHerIWishIHadARabbitInAHatWithABatAndASixFourImpala";
             _episodes = _episodes.Take(1).ToList();
             _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}-{ReleaseGroup:-17}";
 
             var result = Subject.BuildFileName(_episodes, _series, _episodeFile, ".mkv");
             result.Length.Should().BeLessOrEqualTo(255);
-            result.Should().Be("The Fantastic Life of Mr. Sisko - S01E01 - Episode Title 1 Bluray-1080p-...ASixFourImpala.mkv");
+            result.Should().Be("The Fantastic Life of Mr. Sisko - S01E01 - Episode Title 1 NoIntroVerified-...ASixFourImpala.mkv");
         }
     }
 }

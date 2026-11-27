@@ -69,10 +69,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
                 if (unexpected.Count == 1)
                 {
-                    return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeUnexpected, "Game '{0}' was unexpected considering the '{1}' folder name", FormatGame(unexpected), folderInfo.ReleaseTitle);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.GameUnexpected, "Game '{0}' was unexpected considering the '{1}' folder name", FormatGame(unexpected), folderInfo.ReleaseTitle);
                 }
 
-                return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeUnexpected, "Games '{0}' were unexpected considering the '{1}' folder name", FormatGame(unexpected), folderInfo.ReleaseTitle);
+                return ImportSpecDecision.Reject(ImportRejectionReason.GameUnexpected, "Games '{0}' were unexpected considering the '{1}' folder name", FormatGame(unexpected), folderInfo.ReleaseTitle);
             }
 
             return ImportSpecDecision.Accept();

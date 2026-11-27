@@ -10,8 +10,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration;
 [TestFixture]
 public class add_size_to_quality_profilesFixture : MigrationTest<add_size_to_quality_profiles>
 {
-    private static readonly int HdtvQualityId = (int)Quality.HDTV1080p;
-    private static readonly int RawhdQualityId = (int)Quality.RAWHD;
+    private static readonly int HdtvQualityId = (int)Quality.UnverifiedRaw;
+    private static readonly int RawhdQualityId = (int)Quality.UnverifiedRaw;
 
     private string GenerateQualityJson(int quality, bool allowed)
     {

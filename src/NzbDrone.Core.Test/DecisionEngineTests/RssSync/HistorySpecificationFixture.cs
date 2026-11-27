@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                 .With(c => c.QualityProfile = new QualityProfile
                 {
                     UpgradeAllowed = true,
-                    Cutoff = Quality.Bluray1080p.Id,
+                    Cutoff = Quality.NoIntroVerified.Id,
                     FormatItems = CustomFormatsTestHelpers.GetSampleFormatItems("None"),
                     MinFormatScore = 0,
                     Items = Qualities.QualityFixture.GetDefaultQualities()
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _parseResultMulti = new RemoteEpisode
             {
                 Series = _fakeSeries,
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD, new Revision(version: 2)), Languages = new List<Language> { Language.English } },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch, new Revision(version: 2)), Languages = new List<Language> { Language.English } },
                 Episodes = doubleEpisodeList,
                 CustomFormats = new List<CustomFormat>()
             };
@@ -73,14 +73,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _parseResultSingle = new RemoteEpisode
             {
                 Series = _fakeSeries,
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD, new Revision(version: 2)), Languages = new List<Language> { Language.English } },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch, new Revision(version: 2)), Languages = new List<Language> { Language.English } },
                 Episodes = singleEpisodeList,
                 CustomFormats = new List<CustomFormat>()
             };
 
-            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.SDTV, new Revision(version: 1)), Language.English);
+            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.BetaProto, new Revision(version: 1)), Language.English);
 
-            _notupgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.HDTV1080p, new Revision(version: 2)), Language.English);
+            _notupgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.UnverifiedRaw, new Revision(version: 2)), Language.English);
 
             Mocker.GetMock<IConfigService>()
                   .SetupGet(s => s.EnableCompletedDownloadHandling)
@@ -180,9 +180,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         [Test]
         public void should_not_be_upgradable_if_episode_is_of_same_quality_as_existing()
         {
-            _fakeSeries.QualityProfile = new QualityProfile { Cutoff = Quality.Bluray1080p.Id, Items = Qualities.QualityFixture.GetDefaultQualities() };
-            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.WEBDL1080p, new Revision(version: 1));
-            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.WEBDL1080p, new Revision(version: 1)), Language.English);
+            _fakeSeries.QualityProfile = new QualityProfile { Cutoff = Quality.NoIntroVerified.Id, Items = Qualities.QualityFixture.GetDefaultQualities() };
+            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(version: 1));
+            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.VerifiedGoodDump, new Revision(version: 1)), Language.English);
 
             GivenMostRecentForEpisode(FIRST_EPISODE_ID, string.Empty, _upgradableQuality, DateTime.UtcNow, GameHistoryEventType.Grabbed);
 
@@ -192,9 +192,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         [Test]
         public void should_not_be_upgradable_if_cutoff_already_met()
         {
-            _fakeSeries.QualityProfile = new QualityProfile { Cutoff = Quality.WEBDL1080p.Id, Items = Qualities.QualityFixture.GetDefaultQualities() };
-            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.WEBDL1080p, new Revision(version: 1));
-            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.WEBDL1080p, new Revision(version: 1)), Language.Spanish);
+            _fakeSeries.QualityProfile = new QualityProfile { Cutoff = Quality.VerifiedGoodDump.Id, Items = Qualities.QualityFixture.GetDefaultQualities() };
+            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.VerifiedGoodDump, new Revision(version: 1));
+            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.VerifiedGoodDump, new Revision(version: 1)), Language.Spanish);
 
             GivenMostRecentForEpisode(FIRST_EPISODE_ID, string.Empty, _upgradableQuality, DateTime.UtcNow, GameHistoryEventType.Grabbed);
 
@@ -220,9 +220,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         public void should_return_false_if_cutoff_already_met_and_cdh_is_disabled()
         {
             GivenCdhDisabled();
-            _fakeSeries.QualityProfile = new QualityProfile { Cutoff = Quality.WEBDL1080p.Id, Items = Qualities.QualityFixture.GetDefaultQualities() };
-            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1));
-            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.WEBDL1080p, new Revision(version: 1)), Language.Spanish);
+            _fakeSeries.QualityProfile = new QualityProfile { Cutoff = Quality.VerifiedGoodDump.Id, Items = Qualities.QualityFixture.GetDefaultQualities() };
+            _parseResultSingle.ParsedEpisodeInfo.Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1));
+            _upgradableQuality = new Tuple<QualityModel, Language>(new QualityModel(Quality.VerifiedGoodDump, new Revision(version: 1)), Language.Spanish);
 
             GivenMostRecentForEpisode(FIRST_EPISODE_ID, "test", _upgradableQuality, DateTime.UtcNow.AddDays(-100), GameHistoryEventType.Grabbed);
 

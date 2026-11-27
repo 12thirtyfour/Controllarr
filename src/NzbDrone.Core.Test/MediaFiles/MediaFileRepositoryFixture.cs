@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Test.MediaFiles
                 .All()
                 .With(c => c.Id = 0)
                 .With(c => c.Languages = new List<Language> { Language.English })
-                .With(c => c.Quality = new QualityModel(Quality.Bluray720p))
+                .With(c => c.Quality = new QualityModel(Quality.NoIntroVerified))
                 .Random(4)
                 .With(s => s.SeriesId = 12)
                 .BuildListOfNew();
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.MediaFiles
                 .With(c => c.SeriesId = _series1.Id)
                 .All()
                 .With(c => c.Id = 0)
-                .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
+                .With(c => c.Quality = new QualityModel(Quality.NoIntroVerified))
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .BuildListOfNew();
 

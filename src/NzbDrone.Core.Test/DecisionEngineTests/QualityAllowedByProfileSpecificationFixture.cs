@@ -20,8 +20,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             new object[] { Quality.NoIntroVerified },
             new object[] { Quality.UnverifiedRaw },
             new object[] { Quality.Unknown },
-            new object[] { Quality.DVD },
-            new object[] { Quality.HDTV720p }
+            new object[] { Quality.TranslationPatch },
+            new object[] { Quality.UnverifiedRaw }
         };
 
         [SetUp]

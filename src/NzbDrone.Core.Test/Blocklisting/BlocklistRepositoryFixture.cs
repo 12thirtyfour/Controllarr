@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.Blocklisting
                      {
                          SeriesId = 12345,
                          EpisodeIds = new List<int> { 1 },
-                         Quality = new QualityModel(Quality.Bluray720p),
+                         Quality = new QualityModel(Quality.NoIntroVerified),
                          Languages = new List<Language> { Language.English },
                          SourceTitle = "series.title.s01e01",
                          Date = DateTime.UtcNow

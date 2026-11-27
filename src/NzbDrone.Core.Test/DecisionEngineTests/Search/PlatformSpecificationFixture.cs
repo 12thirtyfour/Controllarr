@@ -59,7 +59,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
 
             var decision = Subject.IsSatisfiedBy(_remoteEpisode, _information);
             decision.Accepted.Should().BeFalse();
-            decision.Reason.Should().Be(DownloadRejectionReason.WrongSeries);
+            decision.Reason.Should().Be(DownloadRejectionReason.WrongPlatform);
         }
 
         [Test]

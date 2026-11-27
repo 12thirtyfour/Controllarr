@@ -25,7 +25,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
                 PlatformCompatibilityValidator.IsPcOrNonConsoleRelease(candidatePath))
             {
                 _logger.Debug("Release '{0}' is a PC or non-console release, rejecting", title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeries, "PC or non-console release");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongPlatform, "PC or non-console release");
             }
 
             var searchCriteria = information.SearchCriteria;
@@ -40,7 +40,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
             if (remoteEpisode.Series.Id != searchCriteria.Series.Id)
             {
                 _logger.Debug("Platform {0} does not match {1}", remoteEpisode.Series, searchCriteria.Series);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeries, "Wrong platform");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongPlatform, "Wrong platform");
             }
 
             var platformSlug = searchCriteria.Series?.TitleSlug ?? remoteEpisode.Series?.TitleSlug;
@@ -54,7 +54,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
                     !PlatformCompatibilityValidator.IsCompatible(title, platformSlug, platformName, format, archiveId))
                 {
                     _logger.Debug("Release title '{0}' is not compatible with platform '{1}'", title, platformName);
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeries, $"File format or platform tag does not match {platformName}");
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongPlatform, $"File format or platform tag does not match {platformName}");
                 }
 
                 if (!string.IsNullOrWhiteSpace(candidatePath) &&
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
                     !PlatformCompatibilityValidator.IsCompatible(candidatePath, platformSlug, platformName, format, archiveId))
                 {
                     _logger.Debug("Release path '{0}' is not compatible with platform '{1}'", candidatePath, platformName);
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeries, $"File format or platform tag does not match {platformName}");
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongPlatform, $"File format or platform tag does not match {platformName}");
                 }
             }
 

@@ -19,8 +19,8 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
     public class GetSceneNameFixture : CoreTest
     {
         private LocalEpisode _localEpisode;
-        private string _seasonName = "series.title.s02.dvdrip.x264-ingot";
-        private string _episodeName = "series.title.s02e23.dvdrip.x264-ingot";
+        private string _seasonName = "series.title.s02.[No-Intro]-ingot";
+        private string _episodeName = "series.title.s02e23.[No-Intro]-ingot";
 
         [SetUp]
         public void Setup()
@@ -38,7 +38,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                                 Series = series,
                                 Episodes = new List<Episode> { episode },
                                 Path = Path.Combine(series.Path, "Series Title - S02E23 - Episode Title.mkv"),
-                                Quality = new QualityModel(Quality.Bluray720p),
+                                Quality = new QualityModel(Quality.NoIntroVerified),
                                 ReleaseGroup = "DRONE"
                             };
         }

@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                     DateAdded = DateTime.UtcNow.AddDays(-5),
                     OriginalFilePath = "Series.Title.S01E05.720p.HDTV.x265-Sonarr.mkv",
                     ReleaseGroup = "Sonarr",
-                    Quality = new QualityModel(Quality.HDTV720p).ToJson(),
+                    Quality = new QualityModel(Quality.UnverifiedRaw).ToJson(),
                     Languages = "[1]"
                 });
             });
@@ -56,7 +56,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                     DateAdded = DateTime.UtcNow.AddDays(-5),
                     OriginalFilePath = "Series.Title.S01E05.720p.HDTV.x265-Sonarr/S01E05.mkv",
                     ReleaseGroup = "Sonarr",
-                    Quality = new QualityModel(Quality.HDTV720p).ToJson(),
+                    Quality = new QualityModel(Quality.UnverifiedRaw).ToJson(),
                     Languages = "[1]"
                 });
             });
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                     DateAdded = DateTime.UtcNow.AddDays(-5),
                     OriginalFilePath = "Series.Title.S01E05E06.720p.HDTV.x265-Sonarr.mkv",
                     ReleaseGroup = "Sonarr",
-                    Quality = new QualityModel(Quality.HDTV720p).ToJson(),
+                    Quality = new QualityModel(Quality.UnverifiedRaw).ToJson(),
                     Languages = "[1]"
                 });
             });
@@ -108,7 +108,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                     DateAdded = DateTime.UtcNow.AddDays(-5),
                     OriginalFilePath = "Series.Title.S01E05E06.720p.HDTV.x265-Sonarr/S01E05E06.mkv",
                     ReleaseGroup = "Sonarr",
-                    Quality = new QualityModel(Quality.HDTV720p).ToJson(),
+                    Quality = new QualityModel(Quality.UnverifiedRaw).ToJson(),
                     Languages = "[1]"
                 });
             });
@@ -134,7 +134,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                     DateAdded = DateTime.UtcNow.AddDays(-5),
                     OriginalFilePath = "Series.Title.S01.720p.HDTV.x265-Sonarr/S01E05.mkv",
                     ReleaseGroup = "Sonarr",
-                    Quality = new QualityModel(Quality.HDTV720p).ToJson(),
+                    Quality = new QualityModel(Quality.UnverifiedRaw).ToJson(),
                     Languages = "[1]"
                 });
             });
@@ -159,7 +159,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
                     Size = 125.Megabytes(),
                     DateAdded = DateTime.UtcNow.AddDays(-5),
                     ReleaseGroup = "Sonarr",
-                    Quality = new QualityModel(Quality.HDTV720p).ToJson(),
+                    Quality = new QualityModel(Quality.UnverifiedRaw).ToJson(),
                     Languages = "[1]"
                 });
             });

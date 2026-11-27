@@ -264,7 +264,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     ReleaseType = releaseType
                 };
 
-                return MapItem(new ImportDecision(localGame, new ImportRejection(ImportRejectionReason.NoEpisodes, "Games not selected")), rootFolder, downloadId, null);
+                return MapItem(new ImportDecision(localGame, new ImportRejection(ImportRejectionReason.NoGames, "Games not selected")), rootFolder, downloadId, null);
             }
 
             return ProcessFile(rootFolder, rootFolder, path, downloadId, platform);
@@ -383,7 +383,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Manual
                     localGame.Size = _diskProvider.GetFileSize(file);
 
                     return MapItem(new ImportDecision(localGame,
-                        new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Platform")),
+                        new ImportRejection(ImportRejectionReason.UnknownPlatform, "Unknown Platform")),
                         rootFolder,
                         downloadId,
                         null);

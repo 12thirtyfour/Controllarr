@@ -30,8 +30,8 @@ namespace NzbDrone.Core.Test.Qualities
         [Test]
         public void quality_sort_orders_history_across_two_profiles_by_normalized_score()
         {
-            var profileA = AddProfile("A", Quality.HDTV720p, Quality.SDTV, Quality.HDTV720p);
-            var profileB = AddProfile("B", Quality.Bluray1080p, Quality.SDTV, Quality.HDTV720p, Quality.WEBDL1080p, Quality.Bluray1080p);
+            var profileA = AddProfile("A", Quality.UnverifiedRaw, Quality.BetaProto, Quality.UnverifiedRaw);
+            var profileB = AddProfile("B", Quality.NoIntroVerified, Quality.BetaProto, Quality.UnverifiedRaw, Quality.VerifiedGoodDump, Quality.NoIntroVerified);
 
             var seriesA = AddSeries("a", profileA.Id);
             var seriesB = AddSeries("b", profileB.Id);
@@ -42,9 +42,9 @@ namespace NzbDrone.Core.Test.Qualities
 
             Mocker.SetConstant<IHistoryRepository>(Mocker.Resolve<HistoryRepository>());
 
-            InsertHistory(seriesA.Id, episodeA.Id, Quality.HDTV720p);
-            InsertHistory(seriesB.Id, episodeB1.Id, Quality.HDTV720p);
-            InsertHistory(seriesB.Id, episodeB2.Id, Quality.Bluray1080p);
+            InsertHistory(seriesA.Id, episodeA.Id, Quality.UnverifiedRaw);
+            InsertHistory(seriesB.Id, episodeB1.Id, Quality.UnverifiedRaw);
+            InsertHistory(seriesB.Id, episodeB2.Id, Quality.NoIntroVerified);
 
             var spec = new PagingSpec<GameHistory>
             {
@@ -61,23 +61,23 @@ namespace NzbDrone.Core.Test.Qualities
                 .ToList();
 
             rows.Should().HaveCount(3);
-            rows[0].Should().Be((seriesB.Id, Quality.HDTV720p.Id));
-            rows.Skip(1).Should().Contain((seriesA.Id, Quality.HDTV720p.Id));
-            rows.Skip(1).Should().Contain((seriesB.Id, Quality.Bluray1080p.Id));
+            rows[0].Should().Be((seriesB.Id, Quality.UnverifiedRaw.Id));
+            rows.Skip(1).Should().Contain((seriesA.Id, Quality.UnverifiedRaw.Id));
+            rows.Skip(1).Should().Contain((seriesB.Id, Quality.NoIntroVerified.Id));
         }
 
         [Test]
         public void quality_sort_orders_blocklist_across_two_profiles_by_normalized_score()
         {
-            var profileA = AddProfile("A", Quality.HDTV720p, Quality.SDTV, Quality.HDTV720p);
-            var profileB = AddProfile("B", Quality.Bluray1080p, Quality.SDTV, Quality.HDTV720p, Quality.WEBDL1080p, Quality.Bluray1080p);
+            var profileA = AddProfile("A", Quality.UnverifiedRaw, Quality.BetaProto, Quality.UnverifiedRaw);
+            var profileB = AddProfile("B", Quality.NoIntroVerified, Quality.BetaProto, Quality.UnverifiedRaw, Quality.VerifiedGoodDump, Quality.NoIntroVerified);
 
             var seriesA = AddSeries("a", profileA.Id);
             var seriesB = AddSeries("b", profileB.Id);
 
-            InsertBlocklist(seriesA.Id, Quality.HDTV720p);
-            InsertBlocklist(seriesB.Id, Quality.HDTV720p);
-            InsertBlocklist(seriesB.Id, Quality.Bluray1080p);
+            InsertBlocklist(seriesA.Id, Quality.UnverifiedRaw);
+            InsertBlocklist(seriesB.Id, Quality.UnverifiedRaw);
+            InsertBlocklist(seriesB.Id, Quality.NoIntroVerified);
 
             var spec = new PagingSpec<Blocklist>
             {
@@ -94,20 +94,20 @@ namespace NzbDrone.Core.Test.Qualities
                 .ToList();
 
             rows.Should().HaveCount(3);
-            rows[0].Should().Be((seriesB.Id, Quality.HDTV720p.Id));
-            rows.Skip(1).Should().Contain((seriesA.Id, Quality.HDTV720p.Id));
-            rows.Skip(1).Should().Contain((seriesB.Id, Quality.Bluray1080p.Id));
+            rows[0].Should().Be((seriesB.Id, Quality.UnverifiedRaw.Id));
+            rows.Skip(1).Should().Contain((seriesA.Id, Quality.UnverifiedRaw.Id));
+            rows.Skip(1).Should().Contain((seriesB.Id, Quality.NoIntroVerified.Id));
         }
 
         [Test]
         public void quality_sort_orders_cutoff_unmet_by_normalized_score()
         {
-            var profile = AddProfile("A", Quality.Bluray1080p, Quality.SDTV, Quality.HDTV720p, Quality.WEBDL1080p, Quality.Bluray1080p);
+            var profile = AddProfile("A", Quality.NoIntroVerified, Quality.BetaProto, Quality.UnverifiedRaw, Quality.VerifiedGoodDump, Quality.NoIntroVerified);
             var series = AddSeries("a", profile.Id);
 
-            var sdFile = InsertEpisodeFile(Quality.SDTV);
-            var hdFile = InsertEpisodeFile(Quality.HDTV720p);
-            var webFile = InsertEpisodeFile(Quality.WEBDL1080p);
+            var sdFile = InsertEpisodeFile(Quality.BetaProto);
+            var hdFile = InsertEpisodeFile(Quality.UnverifiedRaw);
+            var webFile = InsertEpisodeFile(Quality.VerifiedGoodDump);
 
             AddEpisode(series.Id, 1, 1, sdFile.Id);
             AddEpisode(series.Id, 1, 2, hdFile.Id);
@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Test.Qualities
 
             var qualitiesBelowCutoff = new List<QualitiesBelowCutoff>
             {
-                new(profile.Id, new[] { Quality.SDTV.Id, Quality.HDTV720p.Id, Quality.WEBDL1080p.Id })
+                new(profile.Id, new[] { Quality.BetaProto.Id, Quality.UnverifiedRaw.Id, Quality.VerifiedGoodDump.Id })
             };
 
             var spec = new PagingSpec<Episode>

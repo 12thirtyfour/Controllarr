@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var decision = Subject.IsSatisfiedBy(_remoteEpisode, new ReleaseDecisionInformation(false, criteria));
 
             decision.Accepted.Should().BeFalse();
-            decision.Reason.Should().Be(DownloadRejectionReason.NotSeasonPack);
+            decision.Reason.Should().Be(DownloadRejectionReason.NotRegionPack);
         }
 
         [Test]
@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var decision = Subject.IsSatisfiedBy(_remoteEpisode, new ReleaseDecisionInformation(false, criteria));
 
             decision.Accepted.Should().BeFalse();
-            decision.Reason.Should().Be(DownloadRejectionReason.FullSeason);
+            decision.Reason.Should().Be(DownloadRejectionReason.FullRegion);
         }
 
         [Test]

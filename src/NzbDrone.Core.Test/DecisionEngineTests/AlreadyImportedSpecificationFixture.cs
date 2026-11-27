@@ -45,8 +45,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _series = Builder<Series>.CreateNew()
                                      .Build();
 
-            _hdtv720p = new QualityModel(Quality.HDTV720p, new Revision(version: 1));
-            _hdtv1080p = new QualityModel(Quality.HDTV1080p, new Revision(version: 1));
+            _hdtv720p = new QualityModel(Quality.UnverifiedRaw, new Revision(version: 1));
+            _hdtv1080p = new QualityModel(Quality.VerifiedGoodDump, new Revision(version: 1));
 
             _remoteEpisode = new RemoteEpisode
             {

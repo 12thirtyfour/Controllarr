@@ -18,9 +18,9 @@ namespace NzbDrone.Core.Test.PlatformTests.PlatformRepositoryTests
         {
             var profile = new QualityProfile
                 {
-                    Items = Qualities.QualityFixture.GetDefaultQualities(Quality.Bluray1080p, Quality.DVD, Quality.HDTV720p),
+                    Items = Qualities.QualityFixture.GetDefaultQualities(Quality.NoIntroVerified, Quality.TranslationPatch, Quality.UnverifiedRaw),
 
-                    Cutoff = Quality.Bluray1080p.Id,
+                    Cutoff = Quality.NoIntroVerified.Id,
                     Name = "TestProfile"
                 };
 

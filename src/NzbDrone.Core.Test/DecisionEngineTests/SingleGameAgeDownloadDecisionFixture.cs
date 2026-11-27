@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             {
                 Series = _series,
                 Release = new ReleaseInfo(),
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.SDTV, new Revision(version: 2)), FullSeason = true },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.BetaProto, new Revision(version: 2)), FullSeason = true },
                 Episodes = _episodes.ToList()
             };
 
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             {
                 Series = _series,
                 Release = new ReleaseInfo(),
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.SDTV, new Revision(version: 2)) },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.BetaProto, new Revision(version: 2)) },
                 Episodes = new List<Episode>()
             };
         }

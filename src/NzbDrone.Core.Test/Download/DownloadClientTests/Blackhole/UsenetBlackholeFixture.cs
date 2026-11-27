@@ -149,13 +149,13 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
             GivenCompletedItem();
 
             Mocker.GetMock<IDiskProvider>()
-                .Setup(c => c.FileExists(It.IsAny<string>()))
+                .Setup(c => c.FileExists(_downloadClientItem.OutputPath.FullPath))
                 .Returns(true);
 
             Subject.RemoveItem(_downloadClientItem, true);
 
             Mocker.GetMock<IDiskProvider>()
-                .Verify(c => c.DeleteFile(It.IsAny<string>()), Times.Once());
+                .Verify(c => c.DeleteFile(_downloadClientItem.OutputPath.FullPath), Times.Once());
         }
 
         [Test]

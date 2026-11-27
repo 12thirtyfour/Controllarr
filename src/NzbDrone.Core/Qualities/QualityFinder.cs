@@ -1,62 +1,19 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using NLog;
-using NzbDrone.Common.Instrumentation;
 
 namespace NzbDrone.Core.Qualities
 {
     public static class QualityFinder
     {
-        private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(QualityFinder));
-
-        // Legacy video resolution and broadcast sources for backwards compatibility with tests. For gaming ROMs, use FindByDumpTag instead.
         public static Quality FindBySourceAndResolution(QualitySource source, int resolution)
         {
-            if (source == QualitySource.Unknown && resolution == 0)
+            if (source == QualitySource.Unknown)
             {
                 return Quality.Unknown;
             }
 
-            var matchingQuality = Quality.All.FirstOrDefault(q => q.Source == source && q.Resolution == resolution);
-
-            if (matchingQuality != null)
-            {
-                return matchingQuality;
-            }
-
-            // Handle legacy 576p video releases so they don't roll up incorrectly in tests
-            if (resolution < 720)
-            {
-                switch (source)
-                {
-                    case QualitySource.Television:
-                        return Quality.SDTV;
-                    case QualitySource.Web:
-                        return Quality.WEBDL480p;
-                    case QualitySource.WebRip:
-                        return Quality.WEBRip480p;
-                }
-            }
-
-            var matchingResolution = Quality.All.Where(q => q.Resolution == resolution)
-                                            .OrderBy(q => q.Source)
-                                            .ToList();
-
-            var nearestQuality = Quality.Unknown;
-
-            foreach (var quality in matchingResolution)
-            {
-                if (quality.Source >= source)
-                {
-                    nearestQuality = quality;
-                    break;
-                }
-            }
-
-            Logger.Warn("Unable to find exact quality for {0} and {1}. Using {2} as fallback", source, resolution, nearestQuality);
-
-            return nearestQuality;
+            return Quality.All.FirstOrDefault(q => q.Source == source) ?? Quality.Unknown;
         }
 
         public static Quality FindByDumpTag(string dumpTag)
@@ -67,6 +24,17 @@ namespace NzbDrone.Core.Qualities
             }
 
             var cleanTag = dumpTag.Trim('[', ']', '(', ')', ' ');
+
+            if (cleanTag.Equals("Redump", StringComparison.OrdinalIgnoreCase))
+            {
+                return Quality.VerifiedRedump;
+            }
+
+            if (cleanTag.Equals("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                cleanTag.Equals("NoIntro", StringComparison.OrdinalIgnoreCase))
+            {
+                return Quality.NoIntroVerified;
+            }
 
             if (cleanTag.Equals("!", StringComparison.OrdinalIgnoreCase) ||
                 cleanTag.StartsWith("!p", StringComparison.OrdinalIgnoreCase) ||

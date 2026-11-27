@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                                                    .With(r => r.Series = _series)
                                                    .With(r => r.Episodes = new List<Episode> { _episode })
-                                                   .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD), Languages = new List<Language> { Language.Spanish } })
+                                                   .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch), Languages = new List<Language> { Language.Spanish } })
                                                    .With(r => r.CustomFormats = new List<CustomFormat>())
                                                    .Build();
 
@@ -130,14 +130,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_if_everything_is_the_same()
         {
-            _series.QualityProfile.Value.Cutoff = Quality.Bluray1080p.Id;
+            _series.QualityProfile.Value.Cutoff = Quality.NoIntroVerified.Id;
 
             var remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                 .With(r => r.Series = _series)
                 .With(r => r.Episodes = new List<Episode> { _episode })
                 .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                 {
-                    Quality = new QualityModel(Quality.DVD),
+                    Quality = new QualityModel(Quality.TranslationPatch),
                     Languages = new List<Language> { Language.Spanish }
                 })
                 .With(r => r.CustomFormats = new List<CustomFormat>())
@@ -152,14 +152,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_true_when_quality_in_queue_is_lower()
         {
-            _series.QualityProfile.Value.Cutoff = Quality.Bluray1080p.Id;
+            _series.QualityProfile.Value.Cutoff = Quality.NoIntroVerified.Id;
 
             var remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                                                       .With(r => r.Series = _series)
                                                       .With(r => r.Episodes = new List<Episode> { _episode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                                                        {
-                                                                                           Quality = new QualityModel(Quality.SDTV),
+                                                                                           Quality = new QualityModel(Quality.BetaProto),
                                                                                            Languages = new List<Language> { Language.Spanish }
                                                                                        })
                                                       .With(r => r.Release = _releaseInfo)
@@ -173,14 +173,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_true_when_quality_in_queue_is_lower_but_language_is_higher()
         {
-            _series.QualityProfile.Value.Cutoff = Quality.Bluray1080p.Id;
+            _series.QualityProfile.Value.Cutoff = Quality.NoIntroVerified.Id;
 
             var remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                                                       .With(r => r.Series = _series)
                                                       .With(r => r.Episodes = new List<Episode> { _episode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                       {
-                                                          Quality = new QualityModel(Quality.SDTV),
+                                                          Quality = new QualityModel(Quality.BetaProto),
                                                           Languages = new List<Language> { Language.English }
                                                       })
                                                       .With(r => r.Release = _releaseInfo)
@@ -199,7 +199,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                       .With(r => r.Episodes = new List<Episode> { _otherEpisode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                                                        {
-                                                                                           Quality = new QualityModel(Quality.DVD)
+                                                                                           Quality = new QualityModel(Quality.TranslationPatch)
                                                                                        })
                                                       .With(r => r.Release = _releaseInfo)
                                                       .With(r => r.CustomFormats = new List<CustomFormat>())
@@ -227,7 +227,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 .With(r => r.Episodes = new List<Episode> { _episode })
                 .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                 {
-                    Quality = new QualityModel(Quality.DVD),
+                    Quality = new QualityModel(Quality.TranslationPatch),
                     Languages = new List<Language> { Language.Spanish },
                 })
                 .With(r => r.Release = _releaseInfo)
@@ -246,7 +246,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                       .With(r => r.Episodes = new List<Episode> { _episode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                                                        {
-                                                                                           Quality = new QualityModel(Quality.DVD),
+                                                                                           Quality = new QualityModel(Quality.TranslationPatch),
                                                                                            Languages = new List<Language> { Language.Spanish },
                                                                                        })
                                                       .With(r => r.Release = _releaseInfo)
@@ -260,14 +260,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_when_quality_in_queue_is_better()
         {
-            _series.QualityProfile.Value.Cutoff = Quality.Bluray1080p.Id;
+            _series.QualityProfile.Value.Cutoff = Quality.NoIntroVerified.Id;
 
             var remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                                                       .With(r => r.Series = _series)
                                                       .With(r => r.Episodes = new List<Episode> { _episode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                                                        {
-                                                                                           Quality = new QualityModel(Quality.HDTV720p),
+                                                                                           Quality = new QualityModel(Quality.UnverifiedRaw),
                                                                                            Languages = new List<Language> { Language.English }
                                                                                        })
                                                       .With(r => r.Release = _releaseInfo)
@@ -286,7 +286,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                       .With(r => r.Episodes = new List<Episode> { _episode, _otherEpisode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                       {
-                                                          Quality = new QualityModel(Quality.HDTV720p),
+                                                          Quality = new QualityModel(Quality.UnverifiedRaw),
                                                           Languages = new List<Language> { Language.English }
                                                       })
                                                       .With(r => r.Release = _releaseInfo)
@@ -305,7 +305,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                       .With(r => r.Episodes = new List<Episode> { _episode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                       {
-                                                          Quality = new QualityModel(Quality.HDTV720p),
+                                                          Quality = new QualityModel(Quality.UnverifiedRaw),
                                                           Languages = new List<Language> { Language.English }
                                                       })
                                                       .With(r => r.Release = _releaseInfo)
@@ -326,7 +326,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                       .With(r => r.Episodes = new List<Episode> { _episode, _otherEpisode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                       {
-                                                          Quality = new QualityModel(Quality.HDTV720p),
+                                                          Quality = new QualityModel(Quality.UnverifiedRaw),
                                                           Languages = new List<Language> { Language.English }
                                                       })
                                                       .With(r => r.Release = _releaseInfo)
@@ -350,7 +350,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                                                         {
                                                                                             Quality =
                                                                                                 new QualityModel(
-                                                                                                Quality.HDTV720p),
+                                                                                                Quality.UnverifiedRaw),
                                                                                             Languages = new List<Language> { Language.English }
                                                                                         })
                                                        .With(r => r.Release = _releaseInfo)
@@ -375,7 +375,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                       .With(r => r.Episodes = new List<Episode> { _episode })
                                                       .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                                                       {
-                                                          Quality = new QualityModel(Quality.HDTV720p),
+                                                          Quality = new QualityModel(Quality.UnverifiedRaw),
                                                           Languages = new List<Language> { Language.Spanish }
                                                       })
                                                       .With(r => r.Release = _releaseInfo)
@@ -395,7 +395,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 .With(r => r.Episodes = new List<Episode> { _episode })
                 .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                 {
-                    Quality = new QualityModel(Quality.DVD),
+                    Quality = new QualityModel(Quality.TranslationPatch),
                     Languages = new List<Language> { Language.English }
                 })
                 .With(r => r.Release = _releaseInfo)
@@ -409,7 +409,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_when_quality_is_better_languages_are_the_same_and_upgrade_allowed_is_false_for_quality_profile()
         {
-            _series.QualityProfile.Value.Cutoff = Quality.Bluray1080p.Id;
+            _series.QualityProfile.Value.Cutoff = Quality.NoIntroVerified.Id;
             _series.QualityProfile.Value.UpgradeAllowed = false;
 
             var remoteEpisode = Builder<RemoteEpisode>.CreateNew()
@@ -417,7 +417,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 .With(r => r.Episodes = new List<Episode> { _episode })
                 .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                 {
-                    Quality = new QualityModel(Quality.Bluray1080p),
+                    Quality = new QualityModel(Quality.NoIntroVerified),
                     Languages = new List<Language> { Language.Spanish }
                 })
                 .With(r => r.Release = _releaseInfo)
@@ -431,14 +431,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_true_if_everything_is_the_same_for_failed_pending()
         {
-            _series.QualityProfile.Value.Cutoff = Quality.Bluray1080p.Id;
+            _series.QualityProfile.Value.Cutoff = Quality.NoIntroVerified.Id;
 
             var remoteEpisode = Builder<RemoteEpisode>.CreateNew()
                 .With(r => r.Series = _series)
                 .With(r => r.Episodes = new List<Episode> { _episode })
                 .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                 {
-                    Quality = new QualityModel(Quality.DVD),
+                    Quality = new QualityModel(Quality.TranslationPatch),
                     Languages = new List<Language> { Language.Spanish }
                 })
                 .With(r => r.Release = _releaseInfo)
@@ -453,7 +453,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_false_if_same_quality_non_proper_in_queue_and_download_propers_is_do_not_upgrade()
         {
-            _remoteEpisode.ParsedEpisodeInfo.Quality = new QualityModel(Quality.HDTV720p, new Revision(2));
+            _remoteEpisode.ParsedEpisodeInfo.Quality = new QualityModel(Quality.UnverifiedRaw, new Revision(2));
             _series.QualityProfile.Value.Cutoff = _remoteEpisode.ParsedEpisodeInfo.Quality.Quality.Id;
 
             Mocker.GetMock<IConfigService>()
@@ -465,7 +465,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                 .With(r => r.Episodes = new List<Episode> { _episode })
                 .With(r => r.ParsedEpisodeInfo = new ParsedEpisodeInfo
                 {
-                    Quality = new QualityModel(Quality.HDTV720p),
+                    Quality = new QualityModel(Quality.UnverifiedRaw),
                     Languages = new List<Language> { Language.English }
                 })
                 .With(r => r.Release = _releaseInfo)

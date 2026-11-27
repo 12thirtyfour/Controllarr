@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                                      })
                                      .Build();
 
-            _quality = new QualityModel(Quality.DVD);
+            _quality = new QualityModel(Quality.TranslationPatch);
 
             _localEpisode = new LocalEpisode
             {

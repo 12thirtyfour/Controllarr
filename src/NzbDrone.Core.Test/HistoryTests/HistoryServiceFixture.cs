@@ -28,14 +28,14 @@ namespace NzbDrone.Core.Test.HistoryTests
         {
             _profile = new QualityProfile
                 {
-                    Cutoff = Quality.WEBDL720p.Id,
+                    Cutoff = Quality.VerifiedGoodDump.Id,
                     Items = QualityFixture.GetDefaultQualities(),
                 };
 
             _profileCustom = new QualityProfile
                 {
-                    Cutoff = Quality.WEBDL720p.Id,
-                    Items = QualityFixture.GetDefaultQualities(Quality.DVD),
+                    Cutoff = Quality.VerifiedGoodDump.Id,
+                    Items = QualityFixture.GetDefaultQualities(Quality.TranslationPatch),
                 };
         }
 

@@ -35,7 +35,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                             .With(e => e.AbsoluteEpisodeNumber = 100)
                             .Build();
 
-            _episodeFile = new EpisodeFile { Id = 5, Quality = new QualityModel(Quality.HDTV720p), ReleaseGroup = "SonarrTest" };
+            _episodeFile = new EpisodeFile { Id = 5, Quality = new QualityModel(Quality.UnverifiedRaw), ReleaseGroup = "SonarrTest" };
 
             _namingConfig = NamingConfig.Default;
             _namingConfig.RenameEpisodes = true;
@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Original Title} {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
-                   .Should().Be("My Series - S15E06 - City Sushi HDTV-720p");
+                   .Should().Be("My Series - S15E06 - City Sushi UnverifiedRaw");
         }
 
         [Test]
@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.DailyGameFormat = "{Original Title} {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
-                   .Should().Be("My Series - 2022-04-28 - City Sushi HDTV-720p");
+                   .Should().Be("My Series - 2022-04-28 - City Sushi UnverifiedRaw");
         }
 
         [Test]
@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.AnimeGameFormat = "{Original Title} {Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode }, _series, _episodeFile)
-                   .Should().Be("My Series - 123 - City Sushi HDTV-720p");
+                   .Should().Be("My Series - 123 - City Sushi UnverifiedRaw");
         }
 
         [Test]

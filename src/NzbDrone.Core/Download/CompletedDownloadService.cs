@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Download
                     return;
                 }
 
-                if (firstResult.ImportDecision.Rejections.FirstOrDefault()?.Reason == ImportRejectionReason.MultiSeason)
+                if (firstResult.ImportDecision.Rejections.FirstOrDefault()?.Reason == ImportRejectionReason.MultiRegion)
                 {
                     trackedDownload.Warn(new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, firstResult.Errors));
                     SetStateToImportBlocked(trackedDownload);

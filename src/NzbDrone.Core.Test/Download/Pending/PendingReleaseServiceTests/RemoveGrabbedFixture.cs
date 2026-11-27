@@ -41,12 +41,12 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _profile = new QualityProfile
                        {
                            Name = "Test",
-                           Cutoff = Quality.HDTV720p.Id,
+                           Cutoff = Quality.UnverifiedRaw.Id,
                            Items = new List<QualityProfileQualityItem>
                                    {
-                                       new QualityProfileQualityItem { Allowed = true, Quality = Quality.HDTV720p },
-                                       new QualityProfileQualityItem { Allowed = true, Quality = Quality.WEBDL720p },
-                                       new QualityProfileQualityItem { Allowed = true, Quality = Quality.Bluray720p }
+                                       new QualityProfileQualityItem { Allowed = true, Quality = Quality.UnverifiedRaw },
+                                       new QualityProfileQualityItem { Allowed = true, Quality = Quality.VerifiedGoodDump },
+                                       new QualityProfileQualityItem { Allowed = true, Quality = Quality.NoIntroVerified }
                                    },
                        };
 
@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             _release = Builder<ReleaseInfo>.CreateNew().Build();
 
             _parsedEpisodeInfo = Builder<ParsedEpisodeInfo>.CreateNew()
-                                                           .With(h => h.Quality = new QualityModel(Quality.HDTV720p))
+                                                           .With(h => h.Quality = new QualityModel(Quality.UnverifiedRaw))
                                                            .With(h => h.AirDate = null)
                                                            .Build();
 
@@ -132,7 +132,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         [Test]
         public void should_delete_if_the_grabbed_quality_is_the_higher()
         {
-            GivenHeldRelease(new QualityModel(Quality.SDTV));
+            GivenHeldRelease(new QualityModel(Quality.BetaProto));
 
             InitializeReleases();
             Subject.Handle(new GameGrabbedEvent(_remoteEpisode));
@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         [Test]
         public void should_not_delete_if_the_grabbed_quality_is_the_lower()
         {
-            GivenHeldRelease(new QualityModel(Quality.Bluray720p));
+            GivenHeldRelease(new QualityModel(Quality.NoIntroVerified));
 
             InitializeReleases();
             Subject.Handle(new GameGrabbedEvent(_remoteEpisode));

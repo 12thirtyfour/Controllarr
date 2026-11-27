@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
@@ -69,7 +69,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
                                               .With(f => f.SeriesId = seriesId)
                                               .With(f => f.RelativePath = $"Season 1\\Episode {_nextEpisodeFileNumber++}.mkv")
                                               .With(f => f.Size = size)
-                                              .With(f => f.Quality = new QualityModel(quality ?? Quality.HDTV720p))
+                                              .With(f => f.Quality = new QualityModel(quality ?? Quality.UnverifiedRaw))
                                               .With(f => f.Languages = new List<Language> { Language.English })
                                               .BuildNew();
 
@@ -323,8 +323,8 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
         GivenEpisode(series1.Id, monitored: true, airDateUtc: DateTime.UtcNow.AddDays(-5));
         GivenEpisode(series2.Id, monitored: true, airDateUtc: DateTime.UtcNow.AddDays(-5));
 
-        GivenEpisodeFile(series1.Id, 100, Quality.HDTV720p);
-        GivenEpisodeFile(series2.Id, 200, Quality.Bluray1080p);
+        GivenEpisodeFile(series1.Id, 100, Quality.UnverifiedRaw);
+        GivenEpisodeFile(series2.Id, 200, Quality.NoIntroVerified);
 
         var stats = Subject.GetLibraryStatistics(new StatisticsFilter { RootFolderPaths = new List<string> { "/tv".AsOsAgnostic() } });
 
@@ -336,7 +336,7 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
         stats.RomFileCount.Should().Be(1);
         stats.SizeOnDisk.Should().Be(100);
         stats.QualityStatistics.Should().HaveCount(1);
-        stats.QualityStatistics[0].Quality.Should().Be(Quality.HDTV720p);
+        stats.QualityStatistics[0].Quality.Should().Be(Quality.UnverifiedRaw);
     }
 
     [Test]
@@ -675,21 +675,21 @@ public class StatisticsRepositoryFixture : DbTest<StatisticsRepository, Series>
     {
         var series = GivenSeries();
 
-        GivenEpisodeFile(series.Id, 100, Quality.HDTV720p);
-        GivenEpisodeFile(series.Id, 200, Quality.HDTV720p);
-        GivenEpisodeFile(series.Id, 400, Quality.Bluray1080p);
+        GivenEpisodeFile(series.Id, 100, Quality.UnverifiedRaw);
+        GivenEpisodeFile(series.Id, 200, Quality.UnverifiedRaw);
+        GivenEpisodeFile(series.Id, 400, Quality.NoIntroVerified);
 
         var stats = Subject.GetLibraryStatistics();
 
         stats.QualityStatistics.Should().HaveCount(2);
 
         var hdtvStats = stats.QualityStatistics[0];
-        hdtvStats.Quality.Should().Be(Quality.HDTV720p);
+        hdtvStats.Quality.Should().Be(Quality.UnverifiedRaw);
         hdtvStats.RomFileCount.Should().Be(2);
         hdtvStats.SizeOnDisk.Should().Be(300);
 
         var blurayStats = stats.QualityStatistics[1];
-        blurayStats.Quality.Should().Be(Quality.Bluray1080p);
+        blurayStats.Quality.Should().Be(Quality.NoIntroVerified);
         blurayStats.RomFileCount.Should().Be(1);
         blurayStats.SizeOnDisk.Should().Be(400);
     }

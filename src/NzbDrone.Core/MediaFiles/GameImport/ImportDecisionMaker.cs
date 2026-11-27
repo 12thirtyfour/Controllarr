@@ -173,15 +173,15 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                 {
                     if (IsPartialSeason(localEpisode))
                     {
-                        decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.PartialSeason, "Partial region packs are not supported"));
+                        decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.PartialRegion, "Partial region packs are not supported"));
                     }
                     else if (IsSeasonExtra(localEpisode))
                     {
-                        decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.SeasonExtra, "Extras are not supported"));
+                        decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.RegionExtra, "Extras are not supported"));
                     }
                     else
                     {
-                        decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.InvalidSeasonOrEpisode, "Invalid region or game"));
+                        decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.InvalidRegionOrGame, "Invalid region or game"));
                     }
                 }
                 else

@@ -34,14 +34,14 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             {
                 Id = 1,
                 RelativePath = "My.Series.S01E01.mkv",
-                Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1)),
+                Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1)),
                 DateAdded = DateTime.Now
             };
             _secondFile = new EpisodeFile
             {
                 Id = 2,
                 RelativePath = "My.Series.S01E02.mkv",
-                Quality = new QualityModel(Quality.Bluray1080p, new Revision(version: 1)),
+                Quality = new QualityModel(Quality.NoIntroVerified, new Revision(version: 1)),
                 DateAdded = DateTime.Now
             };
 
@@ -53,21 +53,21 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             };
 
             var fakeSeries = Builder<Series>.CreateNew()
-                         .With(c => c.QualityProfile = new QualityProfile { Cutoff = Quality.Bluray1080p.Id })
+                         .With(c => c.QualityProfile = new QualityProfile { Cutoff = Quality.NoIntroVerified.Id })
                          .With(c => c.Path = @"C:\Series\My.Series".AsOsAgnostic())
                          .Build();
 
             _parseResultMulti = new RemoteEpisode
             {
                 Series = fakeSeries,
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD, new Revision(version: 2)) },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch, new Revision(version: 2)) },
                 Episodes = doubleEpisodeList
             };
 
             _parseResultSingle = new RemoteEpisode
             {
                 Series = fakeSeries,
-                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.DVD, new Revision(version: 2)) },
+                ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.TranslationPatch, new Revision(version: 2)) },
                 Episodes = singleEpisodeList
             };
 

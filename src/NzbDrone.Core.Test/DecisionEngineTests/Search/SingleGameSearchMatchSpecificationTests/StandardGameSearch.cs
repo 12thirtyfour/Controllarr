@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search.SingleGameSearchMatchSpe
             var decision = Subject.IsSatisfiedBy(_remoteEpisode, _information);
 
             decision.Accepted.Should().BeFalse();
-            decision.Reason.Should().Be(DownloadRejectionReason.FullSeason);
+            decision.Reason.Should().Be(DownloadRejectionReason.FullRegion);
         }
 
         [Test]
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search.SingleGameSearchMatchSpe
             var decision = Subject.IsSatisfiedBy(_remoteEpisode, _information);
 
             decision.Accepted.Should().BeFalse();
-            decision.Reason.Should().Be(DownloadRejectionReason.WrongSeason);
+            decision.Reason.Should().Be(DownloadRejectionReason.WrongRegion);
         }
     }
 }

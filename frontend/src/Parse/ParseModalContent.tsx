@@ -52,7 +52,7 @@ function ParseModalContent(props: ParseModalContentProps) {
             className={styles.input}
             name="title"
             value={title}
-            placeholder="eg. Series.Title.S01E05.720p.HDTV-RlsGroup"
+            placeholder="eg. Super Mario World (USA) [!].sfc"
             autoFocus={true}
             onChange={onInputChange}
           />

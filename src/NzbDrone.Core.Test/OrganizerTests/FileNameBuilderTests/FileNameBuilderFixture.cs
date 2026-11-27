@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                             .With(e => e.AbsoluteEpisodeNumber = 100)
                             .Build();
 
-            _episodeFile = new EpisodeFile { Quality = new QualityModel(Quality.HDTV720p), ReleaseGroup = "SonarrTest" };
+            _episodeFile = new EpisodeFile { Quality = new QualityModel(Quality.UnverifiedRaw), ReleaseGroup = "SonarrTest" };
 
             Mocker.GetMock<IQualityDefinitionService>()
                 .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
@@ -205,7 +205,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Quality Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("HDTV-720p");
+                   .Should().Be("UnverifiedRaw");
         }
 
         [Test]
@@ -234,7 +234,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} [{Quality Title}]";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South Park - S15E06 - City Sushi [HDTV-720p]");
+                   .Should().Be("South Park - S15E06 - City Sushi [UnverifiedRaw]");
         }
 
         [TestCase("Some Escaped {{ String", "Some Escaped { String")]
@@ -536,7 +536,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Series.Title}.S{season:00}E{episode:00}{_Episode.Title_}{Quality.Title}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South.Park.S15E06_City.Sushi_HDTV-720p");
+                   .Should().Be("South.Park.S15E06_City.Sushi_UnverifiedRaw");
         }
 
         [Test]
@@ -727,7 +727,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Quality Title} {Quality Proper}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("HDTV-720p");
+                   .Should().Be("UnverifiedRaw");
         }
 
         [Test]
@@ -738,7 +738,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             GivenProper();
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South Park - S15E06 [HDTV-720p] [Proper]");
+                   .Should().Be("South Park - S15E06 [UnverifiedRaw] [Proper]");
         }
 
         [Test]
@@ -747,7 +747,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} [{Quality Title}] {[Quality Proper]}";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South Park - S15E06 [HDTV-720p]");
+                   .Should().Be("South Park - S15E06 [UnverifiedRaw]");
         }
 
         [Test]
@@ -756,7 +756,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = "{Series Title} - S{season:00}E{episode:00} [{Quality Full}]";
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South Park - S15E06 [HDTV-720p]");
+                   .Should().Be("South Park - S15E06 [UnverifiedRaw]");
         }
 
         [Test]
@@ -767,7 +767,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             GivenProper();
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South Park - S15E06 [HDTV-720p Proper]");
+                   .Should().Be("South Park - S15E06 [UnverifiedRaw Proper]");
         }
 
         [Test]
@@ -777,7 +777,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             GivenReal();
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("South Park - S15E06 [HDTV-720p REAL]");
+                   .Should().Be("South Park - S15E06 [UnverifiedRaw REAL]");
         }
 
         [TestCase(' ')]
@@ -789,7 +789,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = string.Format("{{Quality{0}Title}}{0}{{Quality{0}Proper}}", separator);
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be("HDTV-720p");
+                   .Should().Be("UnverifiedRaw");
         }
 
         [TestCase(' ')]
@@ -801,7 +801,7 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
             _namingConfig.StandardGameFormat = string.Format("{{Quality{0}Title}}{0}{{Quality{0}Proper}}{0}{{Episode{0}Title}}", separator);
 
             Subject.BuildFileName(new List<Episode> { _episode1 }, _series, _episodeFile)
-                   .Should().Be(string.Format("HDTV-720p{0}City{0}Sushi", separator));
+                   .Should().Be(string.Format("UnverifiedRaw{0}City{0}Sushi", separator));
         }
 
         [Test]

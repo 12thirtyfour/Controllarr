@@ -25,6 +25,18 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-27
 
+### Changed
+- **De-Televisonized Rejection Reason Enums (`DownloadRejectionReason`, `ImportRejectionReason`)**:
+  - Replaced legacy TV enum members in `DownloadRejectionReason` (`UnknownSeries` → `UnknownPlatform`, `UnknownEpisode` → `UnknownGame`, `MatchesAnotherSeries` → `MatchesAnotherPlatform`, `SeriesNotMonitored` → `PlatformNotMonitored`, `EpisodeNotMonitored` → `GameNotMonitored`, `WrongEpisode` → `WrongGame`, `WrongSeason` → `WrongRegion`, `WrongSeries` → `WrongPlatform`, `FullSeason` → `FullRegion`, `FullSeasonNotAired` → `FullRegionNotReleased`, `MultiSeason` → `MultiRegion`, `ExistingFileHasMoreEpisodes` → `ExistingFileHasMoreGames`, `NotSeasonPack` → `NotRegionPack`, `SplitEpisode` → `SplitGame`) and removed unused `UnknownRuntime` and `BeforeAirDate`.
+  - Removed legacy TV compatibility aliases from `ImportRejectionReason`, leaving only canonical gaming rejection reasons (`UnknownPlatform`, `PlatformFolder`, `PartialRegion`, `RegionExtra`, `InvalidRegionOrGame`, `NoGames`, `MissingAbsoluteGameNumber`, `GameAlreadyImported`, `FullRegion`, `GameUnexpected`, `GameNotFoundInRelease`, `ExistingFileHasMoreGames`, `SplitGame`, `MultiRegion`).
+- **ROM Dump-Verification Tiers Replacing TV/Video Qualities (`Quality`, `QualitySource`, `QualityFinder`, `QualityParser`, `QualityProfileService`, Frontend)**:
+  - Removed all 21 legacy TV/video qualities (`SDTV`, `HDTV-720p`, `WEBDL-1080p`, `Bluray-2160p`, etc.) and video/audio codec/resolution regexes from `Quality`, `QualitySource`, `QualityFinder`, `QualityParser`, and `frontend/src/Quality/Quality.ts`, leaving exclusively the 7 ROM dump-verification tiers (`Unknown`, `BetaProto`, `TranslationPatch`, `UnverifiedRaw`, `VerifiedGoodDump`, `NoIntroVerified`, `VerifiedRedump`) with startup cleanup of removed IDs from existing profiles.
+  - Updated `ParseModalContent.tsx` placeholder to use a ROM filename (`Super Mario World (USA) [!].sfc`) instead of a TV release name.
+
+### Removed
+- **Obsolete TV/Anime/Video-Quality Parser Test Fixtures**:
+  - Removed `AbsoluteGameNumberParserFixture.cs`, `DailyGameParserFixture.cs`, `SubGroupParserFixture.cs`, `MiniPlatformGameParserFixture.cs`, `ExtendedQualityParserRegex.cs`, `HashedReleaseFixture.cs`, `117_add_webrip_qualites_in_profileFixture.cs`, and `215_add_blurary576p_quality_in_profiles_with_grouped_blurary480pFixture.cs`, and converted `UrlFixture`, `QualityParserFixture`, `ReleaseRevisionParserFixture`, `SceneCheckerFixture`, and affected quality/organizer test fixtures to ROM-focused test cases.
+
 ### Fixed
 - **Recursive Nested Archive Extraction & Internet Archive Junk Filtering (`ArchiveRepackService`, `DownloadedGamesImportService`)**:
   - Updated `ArchiveRepackService.HasValidRomEntries` to inspect nested `.zip` archives (up to depth 4) while skipping Internet Archive OCR/manual/metadata derivatives (`*_jp2.zip`, `*_chocr.*`, `*_hocr_*`, `*_scandata.*`, `*_meta.*`, `*.html.gz`, `*.json.gz`, `*.txt.gz`, etc.) via `ArchiveRepackService.IsNonRomArchiveJunkFile`, and ensured `IsMultiGameArchive` ignores those derivatives as well.

@@ -59,7 +59,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                                                    Series = series,
                                                    Episodes = new List<Episode> { episode },
                                                    Path = Path.Combine(series.Path, "30 Rock - S01E01 - Pilot.avi"),
-                                                   Quality = new QualityModel(Quality.Bluray720p),
+                                                   Quality = new QualityModel(Quality.NoIntroVerified),
                                                    ReleaseGroup = "DRONE",
                                                    FileEpisodeInfo = new ParsedEpisodeInfo()
                                                }));
@@ -180,7 +180,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                      Series = fileDecision.LocalEpisode.Series,
                      Episodes = new List<Episode> { fileDecision.LocalEpisode.Episodes.First() },
                      Path = @"C:\Test\TV\30 Rock\30 Rock - S01E01 - Pilot.avi".AsOsAgnostic(),
-                     Quality = new QualityModel(Quality.Bluray720p),
+                     Quality = new QualityModel(Quality.NoIntroVerified),
                      Size = 80.Megabytes()
                  });
 

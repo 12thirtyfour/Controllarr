@@ -87,10 +87,10 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
                 if (unexpected.Count == 1)
                 {
-                    return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeNotFoundInRelease, "Game '{0}' was not found in the grabbed release: {1}", FormatGame(unexpected), releaseInfo.Title);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.GameNotFoundInRelease, "Game '{0}' was not found in the grabbed release: {1}", FormatGame(unexpected), releaseInfo.Title);
                 }
 
-                return ImportSpecDecision.Reject(ImportRejectionReason.EpisodeNotFoundInRelease, "Games '{0}' were not found in the grabbed release: {1}", FormatGame(unexpected), releaseInfo.Title);
+                return ImportSpecDecision.Reject(ImportRejectionReason.GameNotFoundInRelease, "Games '{0}' were not found in the grabbed release: {1}", FormatGame(unexpected), releaseInfo.Title);
             }
 
             return ImportSpecDecision.Accept();

@@ -20,7 +20,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             if (subject.ParsedEpisodeInfo.IsSplitEpisode)
             {
                 _logger.Debug("Split game release {0} rejected. Not supported", subject.Release.Title);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.SplitEpisode, "Split game releases are not supported");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.SplitGame, "Split game releases are not supported");
             }
 
             return DownloadSpecDecision.Accept();

@@ -133,6 +133,26 @@ namespace NzbDrone.Core.Profiles.Qualities
                         profile.Items = new List<QualityProfileQualityItem>();
                     }
 
+                    foreach (var item in profile.Items)
+                    {
+                        if (item.Items != null)
+                        {
+                            var removedInner = item.Items.RemoveAll(sub => sub.Quality == null || !Quality.AllLookup.ContainsKey(sub.Quality.Id));
+                            if (removedInner > 0)
+                            {
+                                modified = true;
+                            }
+                        }
+                    }
+
+                    var removedTop = profile.Items.RemoveAll(item =>
+                        (item.Quality != null && !Quality.AllLookup.ContainsKey(item.Quality.Id)) ||
+                        (item.Quality == null && (item.Items == null || item.Items.Count == 0)));
+                    if (removedTop > 0)
+                    {
+                        modified = true;
+                    }
+
                     foreach (var gq in orderedGamingQualities)
                     {
                         var qualityItem = profile.Items.FirstOrDefault(i => i.Quality == gq) ??
@@ -202,9 +222,9 @@ namespace NzbDrone.Core.Profiles.Qualities
                         }
                     }
 
-                    if (modified)
+                    if (modified || !Quality.AllLookup.ContainsKey(profile.Cutoff))
                     {
-                        if (profile.Cutoff == 0 || profile.Cutoff == Quality.SDTV.Id)
+                        if (profile.Cutoff == 0 || !Quality.AllLookup.ContainsKey(profile.Cutoff))
                         {
                             profile.Cutoff = Quality.VerifiedGoodDump.Id;
                         }

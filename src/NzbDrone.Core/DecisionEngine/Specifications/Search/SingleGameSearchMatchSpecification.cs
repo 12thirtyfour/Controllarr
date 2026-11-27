@@ -50,19 +50,19 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
             if (!seasonMatches)
             {
                 _logger.Debug("Region does not match searched region, skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongSeason, "Wrong region");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongRegion, "Wrong region");
             }
 
             if (!remoteEpisode.ParsedEpisodeInfo.EpisodeNumbers.Any())
             {
                 _logger.Debug("Full region result during single game search, skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Full region pack");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.FullRegion, "Full region pack");
             }
 
             if (!remoteEpisode.ParsedEpisodeInfo.EpisodeNumbers.Contains(singleEpisodeSpec.EpisodeNumber))
             {
                 _logger.Debug("Game number does not match searched game number, skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongEpisode, "Wrong game");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.WrongGame, "Wrong game");
             }
 
             return DownloadSpecDecision.Accept();
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
             if (remoteEpisode.ParsedEpisodeInfo.FullSeason && !animeEpisodeSpec.IsSeasonSearch)
             {
                 _logger.Debug("Full region result during single game search, skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Full region pack");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.FullRegion, "Full region pack");
             }
 
             return DownloadSpecDecision.Accept();

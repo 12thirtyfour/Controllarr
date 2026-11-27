@@ -1,12 +1,11 @@
 export enum QualitySource {
   Unknown = 'unknown',
-  Television = 'television',
-  TelevisionRaw = 'televisionRaw',
-  Web = 'web',
-  WebRip = 'webRip',
-  DVD = 'dvd',
-  Bluray = 'bluray',
-  BlurayRaw = 'blurayRaw',
+  Prototype = 'prototype',
+  Patch = 'patch',
+  Unverified = 'unverified',
+  Verified = 'verified',
+  NoIntro = 'noIntro',
+  Redump = 'redump',
 }
 
 export interface Revision {

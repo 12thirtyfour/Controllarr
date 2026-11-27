@@ -243,7 +243,7 @@ namespace NzbDrone.Core.MediaFiles
                 _logger.Warn("Unable to process folder that is mapped to an existing platform");
                 return new List<ImportResult>
                 {
-                    RejectionResult(ImportRejectionReason.SeriesFolder, "Import path is mapped to a platform folder")
+                    RejectionResult(ImportRejectionReason.PlatformFolder, "Import path is mapped to a platform folder")
                 };
             }
 
@@ -271,7 +271,7 @@ namespace NzbDrone.Core.MediaFiles
 
                 return new List<ImportResult>
                 {
-                    RejectionResult(ImportRejectionReason.MultiSeason, "Multi-region download, unable to import automatically")
+                    RejectionResult(ImportRejectionReason.MultiRegion, "Multi-region download, unable to import automatically")
                 };
             }
 
@@ -1483,7 +1483,7 @@ namespace NzbDrone.Core.MediaFiles
         {
             var localEpisode = videoFile == null ? null : new LocalEpisode { Path = videoFile };
 
-            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Platform")), message);
+            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.UnknownPlatform, "Unknown Platform")), message);
         }
 
         private ImportResult RejectionResult(ImportRejectionReason reason, string message)

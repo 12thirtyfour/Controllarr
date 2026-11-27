@@ -37,7 +37,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 if (!isCollectionPackage)
                 {
                     _logger.Debug("Release {0}: single ROM release rejected during collection search; collection package required.", subject.Release.Title);
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.NotSeasonPack, "Single ROM release rejected during collection search; collection package required.");
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.NotRegionPack, "Single ROM release rejected during collection search; collection package required.");
                 }
 
                 return DownloadSpecDecision.Accept();
@@ -48,7 +48,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 if (isCollectionPackage)
                 {
                     _logger.Debug("Release {0}: collection package rejected during individual game search; single ROM release required.", subject.Release.Title);
-                    return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Collection package rejected during individual game search; single ROM release required.");
+                    return DownloadSpecDecision.Reject(DownloadRejectionReason.FullRegion, "Collection package rejected during individual game search; single ROM release required.");
                 }
 
                 return DownloadSpecDecision.Accept();
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     if (subset.Count > 0 && subset.Max(e => e.AirDateUtc).Value.Before(DateTime.UtcNow - TimeSpan.FromDays(subject.Release.SeasonSearchMaximumSingleEpisodeAge)))
                     {
                         _logger.Debug("Release {0}: last game in this region released more than {1} days ago, region pack required.", subject.Release.Title, subject.Release.SeasonSearchMaximumSingleEpisodeAge);
-                        return DownloadSpecDecision.Reject(DownloadRejectionReason.NotSeasonPack, "Last game in this region released more than {0} days ago, region pack required.", subject.Release.SeasonSearchMaximumSingleEpisodeAge);
+                        return DownloadSpecDecision.Reject(DownloadRejectionReason.NotRegionPack, "Last game in this region released more than {0} days ago, region pack required.", subject.Release.SeasonSearchMaximumSingleEpisodeAge);
                     }
                 }
             }

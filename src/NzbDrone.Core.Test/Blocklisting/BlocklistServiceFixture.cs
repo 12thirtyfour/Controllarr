@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Test.Blocklisting
                      {
                          SeriesId = 12345,
                          EpisodeIds = new List<int> { 1 },
-                         Quality = new QualityModel(Quality.Bluray720p),
+                         Quality = new QualityModel(Quality.NoIntroVerified),
                          SourceTitle = "series.title.s01e01",
                          DownloadClient = "SabnzbdClient",
                          DownloadId = "Sabnzbd_nzo_2dfh73k"

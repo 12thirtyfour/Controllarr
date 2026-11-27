@@ -50,14 +50,14 @@ namespace NzbDrone.Core.Test.HistoryTests
         {
             var historyBluray = Builder<GameHistory>.CreateNew()
                 .With(c => c.Languages = new List<Language> { Language.English })
-                .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
+                .With(c => c.Quality = new QualityModel(Quality.NoIntroVerified))
                 .With(c => c.SeriesId = 12)
                 .With(c => c.EventType = GameHistoryEventType.Grabbed)
                 .BuildNew();
 
             var historyDvd = Builder<GameHistory>.CreateNew()
                 .With(c => c.Languages = new List<Language> { Language.English })
-                .With(c => c.Quality = new QualityModel(Quality.DVD))
+                .With(c => c.Quality = new QualityModel(Quality.TranslationPatch))
                 .With(c => c.SeriesId = 12)
                 .With(c => c.EventType = GameHistoryEventType.Grabbed)
              .BuildNew();
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Test.HistoryTests
             Subject.Insert(historyBluray);
             Subject.Insert(historyDvd);
 
-            var downloadHistory = Subject.FindDownloadHistory(12, new QualityModel(Quality.Bluray1080p));
+            var downloadHistory = Subject.FindDownloadHistory(12, new QualityModel(Quality.NoIntroVerified));
 
             downloadHistory.Should().HaveCount(1);
         }
@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Test.HistoryTests
                 .With(c => c.SeriesId = _series1.Id)
                 .All()
                 .With(c => c.Id = 0)
-                .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
+                .With(c => c.Quality = new QualityModel(Quality.NoIntroVerified))
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .With(c => c.EventType = GameHistoryEventType.Grabbed)
                 .BuildListOfNew();

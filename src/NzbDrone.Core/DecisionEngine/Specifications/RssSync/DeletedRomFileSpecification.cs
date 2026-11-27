@@ -53,7 +53,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
                 }
 
                 _logger.Debug("Files for this game exist in the database but not on disk, will be unmonitored on next diskscan. skipping.");
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.EpisodeNotMonitored, "Episode is not monitored");
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.GameNotMonitored, "Game is not monitored");
             }
 
             return DownloadSpecDecision.Accept();
