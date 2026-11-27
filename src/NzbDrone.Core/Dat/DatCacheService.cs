@@ -100,10 +100,14 @@ namespace NzbDrone.Core.Dat
                         }
 
                         DatEntryHashHelper.NormalizeEntryHashes(entry);
+                        if (!DatEntryHashHelper.HasAnyHash(entry))
+                        {
+                            continue;
+                        }
+
                         entry.DatFileId = datFileId;
 
-                        if (DatEntryHashHelper.HasAnyHash(entry) &&
-                            DatEntryHashHelper.TryFindMatchingEntry(hashIndex, entry, out var existing))
+                        if (DatEntryHashHelper.TryFindMatchingEntry(hashIndex, entry, out var existing))
                         {
                             if (DatEntryHashHelper.MergeDatEntry(existing, entry, hashIndex) && existing.Id > 0)
                             {

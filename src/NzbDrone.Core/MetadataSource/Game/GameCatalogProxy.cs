@@ -862,6 +862,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             bool TryRegisterCrossReferencedGame(GameCatalogEntry candidate)
             {
                 if (candidate == null ||
+                    !HasAnyHash(candidate) ||
                     candidate.RegionNumber == RegionBios ||
                     RegionHelper.IsBios(candidate.NoIntroName ?? candidate.Title, candidate.Title, null, candidate.VerificationSource))
                 {
@@ -1153,18 +1154,6 @@ namespace NzbDrone.Core.MetadataSource.Game
                 _logger?.Debug(ex, "Unable to cross-reference DAT entries for platform {0}", platform.Name);
             }
 
-            if (platformGames.Count == 0)
-            {
-                foreach (var builtIn in BuiltInGames.Where(g => g.PlatformTvdbId == platform.TvdbId))
-                {
-                    var builtInCopy = CloneGameCatalogEntry(builtIn);
-                    if (TryRegisterCrossReferencedGame(builtInCopy))
-                    {
-                        platformGames.Add(builtInCopy);
-                    }
-                }
-            }
-
             PairDlcWithBaseGames(platformGames);
             MarkLatestAndInitialRevisions(platformGames);
 
@@ -1207,32 +1196,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                 episodes.Add(CreateEpisodeForGame(game, 0, isMonitored));
             }
 
-            if (episodes.Count > 0)
-            {
-                var presentSeasonNumbers = episodes.Select(e => e.SeasonNumber).Distinct().ToHashSet();
-                series.Seasons = series.Seasons.Where(s => presentSeasonNumbers.Contains(s.SeasonNumber)).ToList();
-            }
-            else
-            {
-                episodes.Add(new Episode
-                {
-                    SeriesId = 0,
-                    TvdbId = platform.TvdbId + 1,
-                    SeasonNumber = RegionUsa,
-                    EpisodeNumber = 1,
-                    AbsoluteEpisodeNumber = 1,
-                    Title = $"{platform.Name} Launch Title",
-                    FinaleType = "Retail (v1.0)",
-                    Overview = platform.Overview,
-                    AirDate = $"{platform.ReleaseYear}-01-01",
-                    AirDateUtc = new DateTime(platform.ReleaseYear, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    Runtime = 0,
-                    Monitored = true,
-                    Ratings = new Ratings { Votes = 100, Value = 9.0m }
-                });
-
-                series.Seasons = series.Seasons.Where(s => s.SeasonNumber == RegionUsa).ToList();
-            }
+            var presentSeasonNumbers = episodes.Select(e => e.SeasonNumber).Distinct().ToHashSet();
+            series.Seasons = series.Seasons.Where(s => presentSeasonNumbers.Contains(s.SeasonNumber)).ToList();
 
             return new Tuple<Series, List<Episode>>(series, episodes);
         }
@@ -1992,7 +1957,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                         });
                     }
 
-                    if (HasSeenHash(seenHashes, null, null, null, normalizedCrc) || !seenNames.Add(noIntroName))
+                    if (!IsValidCrc32(normalizedCrc) ||
+                        HasSeenHash(seenHashes, null, null, null, normalizedCrc) ||
+                        !seenNames.Add(noIntroName))
                     {
                         continue;
                     }
@@ -2305,7 +2272,8 @@ namespace NzbDrone.Core.MetadataSource.Game
                                 }
                             }
 
-                            if (HasSeenHash(seenHashes, null, primarySha1, primaryMd5, primaryCrc) ||
+                            if ((string.IsNullOrWhiteSpace(primarySha1) && string.IsNullOrWhiteSpace(primaryMd5) && !IsValidCrc32(primaryCrc)) ||
+                                HasSeenHash(seenHashes, null, primarySha1, primaryMd5, primaryCrc) ||
                                 !seenNames.Add(formattedName))
                             {
                                 continue;
@@ -5004,24 +4972,6 @@ namespace NzbDrone.Core.MetadataSource.Game
         {
             var candidates = new List<Tuple<GameCatalogEntry, int>>();
 
-            foreach (var game in BuiltInGames.Where(g => g.IsLatestRevision))
-            {
-                var score = ScoreGameMatch(game, rawQuery, normalizedQuery, queryTokens);
-                if (score > 0)
-                {
-                    candidates.Add(Tuple.Create(game, score));
-                }
-            }
-
-            foreach (var dynGame in DynamicGames.Values.Where(g => g.IsLatestRevision))
-            {
-                var score = ScoreGameMatch(dynGame, rawQuery, normalizedQuery, queryTokens);
-                if (score > 0 && candidates.All(c => c.Item1.TvdbId != dynGame.TvdbId))
-                {
-                    candidates.Add(Tuple.Create(dynGame, score));
-                }
-            }
-
             try
             {
                 var datMatches = _datCacheService?.SearchByName(rawQuery, 40);
@@ -5041,6 +4991,24 @@ namespace NzbDrone.Core.MetadataSource.Game
             catch (Exception ex)
             {
                 _logger?.Debug(ex, "Skipping local DAT search fallback during catalog lookup.");
+            }
+
+            foreach (var dynGame in DynamicGames.Values.Where(g => g.IsLatestRevision))
+            {
+                var score = ScoreGameMatch(dynGame, rawQuery, normalizedQuery, queryTokens);
+                if (score > 0 && candidates.All(c => c.Item1.TvdbId != dynGame.TvdbId && !string.Equals(c.Item1.NoIntroName, dynGame.NoIntroName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    candidates.Add(Tuple.Create(dynGame, score));
+                }
+            }
+
+            foreach (var game in BuiltInGames.Where(g => g.IsLatestRevision))
+            {
+                var score = ScoreGameMatch(game, rawQuery, normalizedQuery, queryTokens);
+                if (score > 0 && candidates.All(c => c.Item1.TvdbId != game.TvdbId && !string.Equals(c.Item1.NoIntroName, game.NoIntroName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    candidates.Add(Tuple.Create(game, score));
+                }
             }
 
             return candidates

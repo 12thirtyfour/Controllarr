@@ -1527,6 +1527,11 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     !string.IsNullOrWhiteSpace(cuePath) &&
                     File.Exists(cuePath))
                 {
+                    if (DiscSheetHelper.ResolveTrackFilesPrioritizingData(cuePath).Any(File.Exists))
+                    {
+                        hashes["INNER_TRACKS_HASHED"] = "true";
+                    }
+
                     EnrichDiscSheetHashesFromTracks(cuePath, datCacheService, logger, hashes, Path.GetFileName(chdPath));
                 }
             }

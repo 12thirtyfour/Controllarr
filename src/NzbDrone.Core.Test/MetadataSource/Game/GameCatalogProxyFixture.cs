@@ -45,6 +45,40 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
         [Test]
         public void should_return_platform_and_regional_games_from_get_series_info()
         {
+            Subject.InvalidatePlatformCache(1011);
+
+            var emptyTuple = Subject.GetSeriesInfo(1011, Language.English, null);
+            emptyTuple.Item2.Should().BeEmpty();
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile>
+                {
+                    new NzbDrone.Core.Dat.DatFile { Id = 1101, Name = "Nintendo - Game Boy Advance (No-Intro)", Category = "No-Intro" }
+                });
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("gba", "Nintendo Game Boy Advance", Moq.It.IsAny<string>()))
+                .Returns(new List<NzbDrone.Core.Dat.DatEntry>
+                {
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1101,
+                        GameName = "Pokemon - Emerald Version (USA, Europe)",
+                        RomName = "Pokemon - Emerald Version (USA, Europe).gba",
+                        Crc32 = "1f1c08fb",
+                        Region = "USA, Europe"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1101,
+                        GameName = "Metroid Fusion (USA)",
+                        RomName = "Metroid Fusion (USA).gba",
+                        Crc32 = "6c75479c",
+                        Region = "USA"
+                    }
+                });
+
+            Subject.InvalidatePlatformCache(1011);
             var tuple = Subject.GetSeriesInfo(1011, Language.English, null);
 
             tuple.Item1.Title.Should().Be("Nintendo Game Boy Advance");
@@ -57,6 +91,29 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
         [Test]
         public void should_resolve_parent_platform_when_get_series_info_called_with_game_id()
         {
+            var emeraldDatEntry = new NzbDrone.Core.Dat.DatEntry
+            {
+                DatFileId = 1101,
+                GameName = "Pokemon - Emerald Version (USA, Europe)",
+                RomName = "Pokemon - Emerald Version (USA, Europe).gba",
+                Crc32 = "1f1c08fb",
+                Region = "USA, Europe"
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile>
+                {
+                    new NzbDrone.Core.Dat.DatFile { Id = 1101, Name = "Nintendo - Game Boy Advance (No-Intro)", Category = "No-Intro" }
+                });
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.SearchByName("Pokemon Emerald", Moq.It.IsAny<int>()))
+                .Returns(new List<NzbDrone.Core.Dat.DatEntry> { emeraldDatEntry });
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("gba", "Nintendo Game Boy Advance", Moq.It.IsAny<string>()))
+                .Returns(new List<NzbDrone.Core.Dat.DatEntry> { emeraldDatEntry });
+
+            Subject.InvalidatePlatformCache(1011);
             var searchResults = Subject.SearchForNewSeries("Pokemon Emerald", Language.English);
             var emerald = searchResults.First(r => r.Title.Contains("Pokemon - Emerald Version"));
 
@@ -64,7 +121,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
 
             tuple.Item1.Title.Should().Be("Nintendo Game Boy Advance");
             Subject.HasPendingGameSelections(tuple.Item1.TvdbId).Should().BeTrue();
-            tuple.Item2.Where(e => e.Monitored).Should().ContainSingle(e => e.TvdbId == emerald.TvdbId);
+            tuple.Item2.Where(e => e.Monitored).Should().ContainSingle(e => e.Title.Contains("Pokemon - Emerald Version"));
 
             Subject.ClearPendingPlatformSelections(tuple.Item1.TvdbId);
         }
@@ -75,23 +132,27 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             var sampleDat = @"
 game (
 	name ""Super Mario Bros. (USA)""
-	rom ( name ""Super Mario Bros. (USA).nes"" size 40976 )
+	rom ( name ""Super Mario Bros. (USA).nes"" size 40976 crc 3337ec47 )
 )
 game (
 	name ""Super Mario Bros. (USA) (Rev 1)""
-	rom ( name ""Super Mario Bros. (USA) (Rev 1).nes"" size 40976 )
+	rom ( name ""Super Mario Bros. (USA) (Rev 1).nes"" size 40976 crc d445f698 )
 )
 game (
 	name ""Super Mario Bros. (USA) (Beta)""
-	rom ( name ""Super Mario Bros. (USA) (Beta).nes"" size 40976 )
+	rom ( name ""Super Mario Bros. (USA) (Beta).nes"" size 40976 crc a1b2c3d4 )
 )
 game (
 	name ""Bible Adventures (USA)""
-	rom ( name ""Bible Adventures (USA) (Unl).nes"" size 131088 )
+	rom ( name ""Bible Adventures (USA) (Unl).nes"" size 131088 crc b2c3d4e5 )
 )
 game (
 	name ""Micro Mages (World)""
-	rom ( name ""Micro Mages (World) (Aftermarket) (Unl).nes"" size 40976 )
+	rom ( name ""Micro Mages (World) (Aftermarket) (Unl).nes"" size 40976 crc c3d4e5f6 )
+)
+game (
+	name ""Hashless Prototype Game (USA)""
+	rom ( name ""Hashless Prototype Game (USA).nes"" size 40976 )
 )";
 
             Mocker.GetMock<NzbDrone.Common.Http.IHttpClient>()
@@ -113,6 +174,7 @@ game (
 
             var aftermarketEpisodes = tuple.Item2.Where(e => e.SeasonNumber == GameCatalogProxy.RegionAftermarket).ToList();
             aftermarketEpisodes.Should().Contain(e => e.Title.Contains("Micro Mages"));
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("Hashless Prototype"));
 
             GameCatalogProxy.IsPreReleaseVersion("Proto", "Star Fox 2 (USA) (Proto)").Should().BeTrue();
             GameCatalogProxy.IsPreReleaseVersion("Beta", "Legend of Zelda, The (USA) (Beta)").Should().BeTrue();
@@ -172,7 +234,7 @@ game (
             var decryptedNdsDat = @"
 game (
 	name ""Chrono Trigger (USA) (Decrypted)""
-	rom ( name ""Chrono Trigger (USA).nds"" size 67108864 )
+	rom ( name ""Chrono Trigger (USA).nds"" size 67108864 crc 3333cccc )
 )
 game (
 	name ""Pokemon - HeartGold Version (USA)""
@@ -262,6 +324,51 @@ game (
         {
             Subject.InvalidatePlatformCache();
 
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile>
+                {
+                    new NzbDrone.Core.Dat.DatFile { Id = 1301, Name = "Nintendo - Nintendo 3DS (Decrypted) (No-Intro)", Category = "No-Intro" },
+                    new NzbDrone.Core.Dat.DatFile { Id = 1302, Name = "Nintendo 3DS (GameTDB)", Category = "GameTDB" }
+                });
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("3ds", "Nintendo 3DS", Moq.It.IsAny<string>()))
+                .Returns(new List<NzbDrone.Core.Dat.DatEntry>
+                {
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1301,
+                        GameName = "Pokemon Moon (USA)",
+                        RomName = "Pokemon Moon (USA).3ds",
+                        Crc32 = "a1b2c3d4",
+                        Region = "USA"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1302,
+                        GameName = "Pokémon™ Moon (USA)",
+                        RomName = "Pokémon™ Moon (USA).3ds",
+                        Crc32 = "a1b2c3d4",
+                        Region = "USA"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1301,
+                        GameName = "Pokemon Omega Ruby (USA)",
+                        RomName = "Pokemon Omega Ruby (USA).3ds",
+                        Crc32 = "b2c3d4e5",
+                        Region = "USA"
+                    },
+                    new NzbDrone.Core.Dat.DatEntry
+                    {
+                        DatFileId = 1302,
+                        GameName = "Pokémon Omega Ruby (USA)",
+                        RomName = "Pokémon Omega Ruby (USA).3ds",
+                        Crc32 = "b2c3d4e5",
+                        Region = "USA"
+                    }
+                });
+
             var tuple = Subject.GetSeriesInfo(1013, Language.English, "notEncrypted");
             tuple.Item1.Title.Should().Be("Nintendo 3DS");
 
@@ -335,6 +442,7 @@ game (
     <locale lang=""EN"">
       <title>Monster Fruit Academy</title>
     </locale>
+    <rom crc=""10000001"" name=""Monster Fruit Academy.xci"" size=""1000"" />
   </game>
   <game name=""MODEL Debut 2 #nicola (JA)"">
     <id>AABBB</id>
@@ -343,6 +451,7 @@ game (
     <locale lang=""JA"">
       <title>MODEL Debut 2 #nicola</title>
     </locale>
+    <rom crc=""10000002"" name=""MODEL Debut 2.xci"" size=""1000"" />
   </game>
   <game name=""PJ MASKS: HEROES OF THE NIGHT (EN,FR,DE,ES,IT,NL,PT,SE,DK,NO,FI,AR,ZHCN,RU,PL)"">
     <id>A22EA</id>
@@ -350,6 +459,7 @@ game (
     <locale lang=""EN"">
       <title>PJ MASKS: HEROES OF THE NIGHT</title>
     </locale>
+    <rom crc=""10000003"" name=""PJ Masks EUR.xci"" size=""1000"" />
   </game>
   <game name=""PJ MASKS: HEROES OF THE NIGHT (EN,FR,DE,ES,IT,NL,PT,SE,DK,NO,FI,AR,ZHCN,RU,PL)"">
     <id>A22EB</id>
@@ -357,6 +467,7 @@ game (
     <locale lang=""EN"">
       <title>PJ MASKS: HEROES OF THE NIGHT</title>
     </locale>
+    <rom crc=""10000004"" name=""PJ Masks USA.xci"" size=""1000"" />
   </game>
   <game name=""Romancing SaGa Remastered (JA,KO,ZHCN,ZHTW)"">
     <id>AABBC</id>
@@ -365,6 +476,7 @@ game (
     <locale lang=""EN"">
       <title>Romancing SaGa Remastered</title>
     </locale>
+    <rom crc=""10000005"" name=""Romancing SaGa.xci"" size=""1000"" />
   </game>
 </xml>";
 
@@ -440,8 +552,8 @@ game (
             // When building the episodes for Sega CD with multi-disc game
             var cachedDatEntries = new List<NzbDrone.Core.Dat.DatEntry>
             {
-                new NzbDrone.Core.Dat.DatEntry { GameName = "Night Trap (USA) (Disc 1)", RomName = "Night Trap (USA) (Disc 1).chd", Region = "USA" },
-                new NzbDrone.Core.Dat.DatEntry { GameName = "Night Trap (USA) (Disc 2)", RomName = "Night Trap (USA) (Disc 2).chd", Region = "USA" }
+                new NzbDrone.Core.Dat.DatEntry { GameName = "Night Trap (USA) (Disc 1)", RomName = "Night Trap (USA) (Disc 1).chd", Crc32 = "1111aaaa", Region = "USA" },
+                new NzbDrone.Core.Dat.DatEntry { GameName = "Night Trap (USA) (Disc 2)", RomName = "Night Trap (USA) (Disc 2).chd", Crc32 = "2222bbbb", Region = "USA" }
             };
 
             Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
@@ -1598,12 +1710,14 @@ game (
     <type>Switch</type>
     <region>USA</region>
     <locale lang=""EN""><title>Super Mario Odyssey</title></locale>
+    <rom crc=""AA110001"" name=""Super Mario Odyssey.xci"" size=""1000"" />
   </game>
   <game name=""Golf Story (USA)"">
     <id>ABABA</id>
     <type>eShop</type>
     <region>USA</region>
     <locale lang=""EN""><title>Golf Story</title></locale>
+    <rom crc=""AA110002"" name=""Golf Story.nsp"" size=""1000"" />
   </game>
 </xml>";
 
@@ -1660,12 +1774,14 @@ game (
     <type>eShop</type>
     <region>USA</region>
     <locale lang=""EN""><title>Golf Story</title></locale>
+    <rom crc=""BB110001"" name=""Golf Story.nsp"" size=""1000"" />
   </game>
   <game name=""Hollow Knight (USA)"">
     <id>ABABB</id>
     <type>eShop</type>
     <region>USA</region>
     <locale lang=""EN""><title>Hollow Knight</title></locale>
+    <rom crc=""BB110002"" name=""Hollow Knight.nsp"" size=""1000"" />
   </game>
 </xml>");
             }
@@ -1697,11 +1813,11 @@ game (
             Subject.TryGetPlatformEntry(1054, out var eshop3ds).Should().BeTrue();
 
             var xml = @"<xml>
-  <game name=""Pokemon X (USA)""><id>EKJA</id><type>3DS</type><region>USA</region><locale lang=""EN""><title>Pokemon X</title></locale></game>
-  <game name=""Pushmo (USA)""><id>JCAA</id><type>3DSWare</type><region>USA</region><locale lang=""EN""><title>Pushmo</title></locale></game>
-  <game name=""Binding of Isaac Rebirth (USA)""><id>FNBA</id><type>New3DSWare</type><region>USA</region><locale lang=""EN""><title>The Binding of Isaac: Rebirth</title></locale></game>
-  <game name=""Shantae DSiWare (USA)""><id>KSHA</id><type>DSiWare</type><region>USA</region><locale lang=""EN""><title>Shantae DSiWare</title></locale></game>
-  <game name=""Custom Theme (USA)""><id>CUST</id><type>CUSTOM</type><region>USA</region><locale lang=""EN""><title>Custom Theme</title></locale></game>
+  <game name=""Pokemon X (USA)""><id>EKJA</id><type>3DS</type><region>USA</region><locale lang=""EN""><title>Pokemon X</title></locale><rom crc=""CC110001"" name=""Pokemon X.3ds"" size=""1000"" /></game>
+  <game name=""Pushmo (USA)""><id>JCAA</id><type>3DSWare</type><region>USA</region><locale lang=""EN""><title>Pushmo</title></locale><rom crc=""CC110002"" name=""Pushmo.cia"" size=""1000"" /></game>
+  <game name=""Binding of Isaac Rebirth (USA)""><id>FNBA</id><type>New3DSWare</type><region>USA</region><locale lang=""EN""><title>The Binding of Isaac: Rebirth</title></locale><rom crc=""CC110003"" name=""Binding of Isaac.cia"" size=""1000"" /></game>
+  <game name=""Shantae DSiWare (USA)""><id>KSHA</id><type>DSiWare</type><region>USA</region><locale lang=""EN""><title>Shantae DSiWare</title></locale><rom crc=""CC110004"" name=""Shantae.nds"" size=""1000"" /></game>
+  <game name=""Custom Theme (USA)""><id>CUST</id><type>CUSTOM</type><region>USA</region><locale lang=""EN""><title>Custom Theme</title></locale><rom crc=""CC110005"" name=""Custom Theme.cia"" size=""1000"" /></game>
 </xml>";
 
             var retailGames = Subject.ParseGameTdbXmlContent(retail3ds, xml, new HashSet<string>());
@@ -1753,12 +1869,14 @@ game (
     <type>GameCube</type>
     <region>USA</region>
     <locale lang=""EN""><title>Super Mario Sunshine</title></locale>
+    <rom crc=""DD110001"" name=""Super Mario Sunshine.iso"" size=""1000"" />
   </game>
   <game name=""Super Mario Galaxy (USA)"">
     <id>RMGE01</id>
     <type>Wii</type>
     <region>USA</region>
     <locale lang=""EN""><title>Super Mario Galaxy</title></locale>
+    <rom crc=""DD110002"" name=""Super Mario Galaxy.iso"" size=""1000"" />
   </game>
 </xml>";
 
@@ -1770,6 +1888,19 @@ game (
             wiiGames.Should().ContainSingle(g => g.Title == "Super Mario Galaxy");
             wiiGames.Should().NotContain(g => g.Title == "Super Mario Sunshine");
 
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Verify(d => d.Insert(Moq.It.IsAny<NzbDrone.Core.Dat.DatFile>(), Moq.It.IsAny<List<NzbDrone.Core.Dat.DatEntry>>()), Moq.Times.Exactly(2));
+
+            const string hashlessXml = @"<xml>
+  <game name=""Hashless Wii Game (USA)"">
+    <id>RHLE01</id>
+    <type>Wii</type>
+    <region>USA</region>
+    <locale lang=""EN""><title>Hashless Wii Game</title></locale>
+  </game>
+</xml>";
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>().Invocations.Clear();
+            Subject.ParseGameTdbXmlContent(wiiPlatform, hashlessXml, new HashSet<string>()).Should().BeEmpty();
             Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
                 .Verify(d => d.Insert(Moq.It.IsAny<NzbDrone.Core.Dat.DatFile>(), Moq.It.IsAny<List<NzbDrone.Core.Dat.DatEntry>>()), Moq.Times.Never());
         }

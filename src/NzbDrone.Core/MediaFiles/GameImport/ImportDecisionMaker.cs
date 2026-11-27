@@ -179,6 +179,14 @@ namespace NzbDrone.Core.MediaFiles.GameImport
                     {
                         decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.RegionExtra, "Extras are not supported"));
                     }
+                    else if (isRom && !localEpisode.RomHashVerified)
+                    {
+                        var hashSpec = _specifications?.OfType<Specifications.VerifiedRomHashSpecification>().FirstOrDefault();
+                        var hashRejection = hashSpec != null ? EvaluateSpec(hashSpec, localEpisode, downloadClientItem) : null;
+                        decision = hashRejection != null
+                            ? new ImportDecision(localEpisode, hashRejection)
+                            : new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.InvalidRegionOrGame, "Invalid region or game"));
+                    }
                     else
                     {
                         decision = new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.InvalidRegionOrGame, "Invalid region or game"));

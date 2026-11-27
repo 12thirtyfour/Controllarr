@@ -180,5 +180,170 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             decision.Accepted.Should().BeTrue();
             localEpisode.RomHashVerified.Should().BeTrue();
         }
+
+        [Test]
+        public void should_accept_chd_under_missing_format_hash_exception_when_platform_has_iso_hashes_only()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("psx", "Sony PlayStation"))
+                .Returns(new List<DatEntry>
+                {
+                    new DatEntry
+                    {
+                        Id = 10,
+                        GameName = "Crash Bandicoot (USA)",
+                        RomName = "Crash Bandicoot (USA).iso",
+                        Crc32 = "aabbccdd",
+                        Sha1 = "0123456789abcdef0123456789abcdef01234567"
+                    }
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Crash Bandicoot (USA).chd",
+                Series = new NzbDrone.Core.Tv.Series { Id = 1, TitleSlug = "psx", Title = "Sony PlayStation" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Id = 1, Title = "Crash Bandicoot" } },
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "11223344" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, new DownloadClientItem { DownloadId = "dl-chd" });
+            decision.Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_chd_when_inner_tracks_were_hashed_and_did_not_match_dat()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("psx", "Sony PlayStation"))
+                .Returns(new List<DatEntry>
+                {
+                    new DatEntry
+                    {
+                        Id = 10,
+                        GameName = "Crash Bandicoot (USA)",
+                        RomName = "Crash Bandicoot (USA).bin",
+                        Crc32 = "aabbccdd"
+                    }
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Crash Bandicoot (USA) (Bad Dump).chd",
+                Series = new NzbDrone.Core.Tv.Series { Id = 1, TitleSlug = "psx", Title = "Sony PlayStation" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Id = 1, Title = "Crash Bandicoot" } },
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "deadbeef" },
+                    { "INNER_TRACKS_HASHED", "true" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, new DownloadClientItem { DownloadId = "dl-bad-chd" });
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+        }
+
+        [Test]
+        public void should_reject_chd_when_platform_dat_cache_has_no_hashed_entries()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("psx", "Sony PlayStation"))
+                .Returns(new List<DatEntry>
+                {
+                    new DatEntry
+                    {
+                        Id = 11,
+                        GameName = "Hashless Entry",
+                        RomName = "Hashless Entry.bin"
+                    }
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Crash Bandicoot (USA).chd",
+                Series = new NzbDrone.Core.Tv.Series { Id = 1, TitleSlug = "psx", Title = "Sony PlayStation" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Id = 1, Title = "Crash Bandicoot" } },
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "11223344" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, new DownloadClientItem { DownloadId = "dl-hashless-platform" });
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+        }
+
+        [Test]
+        public void should_reject_chd_when_platform_dat_cache_already_has_chd_hashes()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("psx", "Sony PlayStation"))
+                .Returns(new List<DatEntry>
+                {
+                    new DatEntry
+                    {
+                        Id = 12,
+                        GameName = "Crash Bandicoot (USA)",
+                        RomName = "Crash Bandicoot (USA).chd",
+                        Crc32 = "aabbccdd"
+                    }
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Crash Bandicoot (USA).chd",
+                Series = new NzbDrone.Core.Tv.Series { Id = 1, TitleSlug = "psx", Title = "Sony PlayStation" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Id = 1, Title = "Crash Bandicoot" } },
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "11223344" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, new DownloadClientItem { DownloadId = "dl-has-chd" });
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+        }
+
+        [Test]
+        public void should_reject_iso_when_hash_does_not_match_platform_iso_dat_hashes()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("ps2", "Sony PlayStation 2"))
+                .Returns(new List<DatEntry>
+                {
+                    new DatEntry
+                    {
+                        Id = 13,
+                        GameName = "Shadow of the Colossus (USA)",
+                        RomName = "Shadow of the Colossus (USA).iso",
+                        Crc32 = "aabbccdd"
+                    }
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Shadow of the Colossus (USA).iso",
+                Series = new NzbDrone.Core.Tv.Series { Id = 2, TitleSlug = "ps2", Title = "Sony PlayStation 2" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Id = 2, Title = "Shadow of the Colossus" } },
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "deadbeef" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, new DownloadClientItem { DownloadId = "dl-bad-iso" });
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+        }
     }
 }

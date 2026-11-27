@@ -592,6 +592,61 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             _trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
         }
 
+        [Test]
+        public void should_mark_collection_download_imported_when_verified_inner_files_import_and_unverified_inner_files_fail_hash_check()
+        {
+            _trackedDownload.RemoteEpisode.ParsedEpisodeInfo = new ParsedEpisodeInfo { FullSeason = true };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode> { _episode1, _episode2, _episode3 };
+
+            Mocker.GetMock<IDownloadedGamesImportService>()
+                  .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>()))
+                  .Returns(new List<ImportResult>
+                  {
+                      new ImportResult(new ImportDecision(new LocalEpisode { Path = @"C:\TestPath\Verified.sfc", Episodes = new List<Episode> { _episode1 } })),
+                      new ImportResult(
+                          new ImportDecision(
+                              new LocalEpisode { Path = @"C:\TestPath\Hashless.sfc" },
+                              new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM Hash")),
+                          "Unverified ROM Hash")
+                  });
+
+            Subject.Import(_trackedDownload);
+
+            AssertImported();
+        }
+
+        [Test]
+        public void should_fail_collection_download_when_all_inner_files_fail_hash_verification()
+        {
+            _trackedDownload.RemoteEpisode.ParsedEpisodeInfo = new ParsedEpisodeInfo { FullSeason = true };
+
+            Mocker.GetMock<IDownloadedGamesImportService>()
+                  .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>()))
+                  .Returns(new List<ImportResult>
+                  {
+                      new ImportResult(
+                          new ImportDecision(
+                              new LocalEpisode { Path = @"C:\TestPath\Unverified1.sfc" },
+                              new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM Hash")),
+                          "Unverified ROM Hash"),
+                      new ImportResult(
+                          new ImportDecision(
+                              new LocalEpisode { Path = @"C:\TestPath\Unverified2.sfc" },
+                              new ImportRejection(ImportRejectionReason.UnverifiedRomHash, "Unverified ROM Hash")),
+                          "Unverified ROM Hash")
+                  });
+
+            Mocker.GetMock<IRejectedImportService>()
+                  .Setup(s => s.Process(It.IsAny<TrackedDownload>(), It.IsAny<ImportResult>()))
+                  .Callback<TrackedDownload, ImportResult>((td, _) => td.Fail())
+                  .Returns(true);
+
+            Subject.Import(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.FailedPending);
+            _trackedDownload.DownloadItem.CanBeRemoved.Should().BeTrue();
+        }
+
         private void GivenNoFilesToImport()
         {
             Mocker.GetMock<IDownloadedGamesImportService>()

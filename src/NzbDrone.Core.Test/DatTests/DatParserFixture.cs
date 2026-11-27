@@ -217,5 +217,30 @@ game (
                 datEntries[0].GameName.Should().Be("[BIOS] System Unit v1.0 (World)");
             }
         }
+
+        [Test]
+        public void Should_reject_hashless_and_nodump_entries()
+        {
+            const string mixedDat = @"<?xml version=""1.0""?>
+<datafile>
+	<header><name>Nintendo - NES</name></header>
+	<game name=""Valid Game (USA)"">
+		<rom name=""Valid Game (USA).nes"" size=""40976"" crc=""AABBCCDD"" />
+	</game>
+	<game name=""Undumped Game (USA)"">
+		<rom name=""Undumped Game (USA).nes"" size=""40976"" status=""nodump"" />
+	</game>
+	<game name=""Zero CRC Game (USA)"">
+		<rom name=""Zero CRC Game (USA).nes"" size=""40976"" crc=""00000000"" />
+	</game>
+</datafile>";
+
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(mixedDat)))
+            {
+                var (_, datEntries) = Subject.Parse(stream);
+                datEntries.Should().ContainSingle();
+                datEntries[0].GameName.Should().Be("Valid Game (USA)");
+            }
+        }
     }
 }

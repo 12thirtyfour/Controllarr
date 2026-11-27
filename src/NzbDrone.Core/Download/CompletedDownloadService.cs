@@ -310,7 +310,7 @@ namespace NzbDrone.Core.Download
             if (!allEpisodesImported &&
                 isCollectionDownload &&
                 importResults.Any(c => c.Result == ImportResultType.Imported) &&
-                !importResults.Any(c => c.Result == ImportResultType.Rejected))
+                !importResults.Any(c => c.Result == ImportResultType.Rejected && !IsCollectionSkippableRejection(c)))
             {
                 allEpisodesImported = true;
             }
@@ -379,6 +379,23 @@ namespace NzbDrone.Core.Download
 
             _logger.Debug("Not all games have been imported for the release '{0}'", trackedDownload.DownloadItem.Title);
             return false;
+        }
+
+        private static bool IsCollectionSkippableRejection(ImportResult result)
+        {
+            var rejections = result?.ImportDecision?.Rejections;
+            if (rejections == null || !rejections.Any())
+            {
+                return false;
+            }
+
+            return rejections.All(rej =>
+                rej.Reason is ImportRejectionReason.UnverifiedRomHash or
+                    ImportRejectionReason.GameAlreadyImported or
+                    ImportRejectionReason.DuplicateLibraryHash or
+                    ImportRejectionReason.UnmonitoredDatMatch or
+                    ImportRejectionReason.UnsupportedExtension or
+                    ImportRejectionReason.PlatformFormatRejected);
         }
 
         private static bool IsAutoFailRejectionReason(ImportRejectionReason? reason)

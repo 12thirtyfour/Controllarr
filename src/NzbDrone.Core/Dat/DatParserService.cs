@@ -326,8 +326,12 @@ namespace NzbDrone.Core.Dat
 
             DatEntryHashHelper.NormalizeEntryHashes(incoming);
 
-            if (DatEntryHashHelper.HasAnyHash(incoming) &&
-                DatEntryHashHelper.TryFindMatchingEntry(hashIndex, incoming, out var existing))
+            if (!DatEntryHashHelper.HasAnyHash(incoming))
+            {
+                return;
+            }
+
+            if (DatEntryHashHelper.TryFindMatchingEntry(hashIndex, incoming, out var existing))
             {
                 DatEntryHashHelper.MergeDatEntry(existing, incoming, hashIndex);
                 return;
