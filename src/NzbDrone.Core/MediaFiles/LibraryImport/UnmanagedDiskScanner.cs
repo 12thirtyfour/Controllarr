@@ -504,6 +504,8 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                     return segments.Any(s => string.Equals(s, "BIOS", StringComparison.OrdinalIgnoreCase));
                 }).ToList();
 
+                var allSeries = _seriesService?.GetAllSeries() ?? new List<Series>();
+
                 foreach (var bEntry in biosEntries)
                 {
                     BiosFile biosFile = null;
@@ -512,7 +514,6 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
                         _biosService.TryGetBiosFile(bEntry.Name, out biosFile);
                     }
 
-                    var allSeries = _seriesService.GetAllSeries() ?? new List<Series>();
                     var matchedSeries = biosFile != null
                         ? allSeries.FirstOrDefault(s =>
                             string.Equals(s.TitleSlug, biosFile.GamePlatform, StringComparison.OrdinalIgnoreCase) ||
@@ -1676,32 +1677,7 @@ namespace NzbDrone.Core.MediaFiles.LibraryImport
             hashes.TryGetValue("MD5", out var md5);
             hashes.TryGetValue("CRC32", out var crc32);
 
-            if (IsMeaningfulDatMatch(datCacheService.FindBestMatch(crc32, md5, sha1, sha256)))
-            {
-                return true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(sha256) && IsMeaningfulDatMatch(datCacheService.FindBySha256(sha256)))
-            {
-                return true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(sha1) && IsMeaningfulDatMatch(datCacheService.FindBySha1(sha1)))
-            {
-                return true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(md5) && IsMeaningfulDatMatch(datCacheService.FindByMd5(md5)))
-            {
-                return true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(crc32) && IsMeaningfulDatMatch(datCacheService.FindByCrc32(crc32)))
-            {
-                return true;
-            }
-
-            return false;
+            return IsMeaningfulDatMatch(datCacheService.FindBestMatch(crc32, md5, sha1, sha256));
         }
 
         private static void CopyHashesFromDatEntry(DatEntry datMatch, Dictionary<string, string> hashes)

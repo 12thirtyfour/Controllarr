@@ -63,6 +63,8 @@ public class MediaManagementSettingsResource : RestResource
     public bool DeleteOriginalAfterConversion { get; set; }
 
     public bool RequireUserConfirmationForBatchConversions { get; set; }
+
+    public bool AutoDownloadRequiredBios { get; set; }
 }
 
 public static class MediaManagementConfigResourceMapper
@@ -100,7 +102,8 @@ public static class MediaManagementConfigResourceMapper
             ExtractFullSetCompletely = model.ExtractFullSetCompletely,
             AutoCompressDiscsToChd = model.AutoCompressDiscsToChd,
             DeleteOriginalAfterConversion = model.DeleteOriginalAfterConversion,
-            RequireUserConfirmationForBatchConversions = model.RequireUserConfirmationForBatchConversions
+            RequireUserConfirmationForBatchConversions = model.RequireUserConfirmationForBatchConversions,
+            AutoDownloadRequiredBios = model.AutoDownloadRequiredBios
         };
     }
 }

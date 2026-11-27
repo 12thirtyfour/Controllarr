@@ -29,10 +29,12 @@ if [ "$(id -u)" = "0" ]; then
         CONFIG_UID="$(stat -c '%u' /config 2>/dev/null || echo "${PUID}")"
         CONFIG_GID="$(stat -c '%g' /config 2>/dev/null || echo "${PGID}")"
 
-        if [ "${CONFIG_UID}:${CONFIG_GID}" != "${PUID}:${PGID}" ] && gosu "${CONFIG_UID}:${CONFIG_GID}" test -w /config; then
+        if [ "${CONFIG_UID}" != "0" ] && [ "${CONFIG_UID}:${CONFIG_GID}" != "${PUID}:${PGID}" ] && gosu "${CONFIG_UID}:${CONFIG_GID}" test -w /config; then
             echo "[entrypoint] WARNING: /config is not writable by ${PUID}:${PGID} (for example, restricted ACLs on TrueNAS ZFS). Falling back to /config owner ${CONFIG_UID}:${CONFIG_GID}."
             PUID="${CONFIG_UID}"
             PGID="${CONFIG_GID}"
+        elif [ "${CONFIG_UID}" = "0" ]; then
+            echo "[entrypoint] WARNING: /config is owned by root (0:0) and not writable by ${PUID}:${PGID}. Refusing to fall back to root; check dataset/volume permissions."
         else
             echo "[entrypoint] WARNING: /config does not appear writable by ${PUID}:${PGID}. Check dataset/volume permissions."
         fi

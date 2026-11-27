@@ -6,6 +6,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using NLog;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Exceptions;
@@ -34,7 +35,7 @@ namespace Sonarr.Http.ErrorManagement
             var errorModel = new ErrorModel
             {
                 Message = exception?.Message,
-                Description = exception?.ToString()
+                Description = BuildInfo.IsDebug ? exception?.ToString() : null
             };
 
             if (exception is ApiException apiException)

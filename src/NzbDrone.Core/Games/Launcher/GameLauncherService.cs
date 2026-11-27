@@ -881,11 +881,12 @@ namespace NzbDrone.Core.Games.Launcher
             var romFileName = !string.IsNullOrWhiteSpace(safeRomPath)
                 ? Path.GetFileName(safeRomPath)
                 : string.Empty;
-            var hasRomFile = !string.IsNullOrWhiteSpace(safeRomPath) &&
+            var isAllowedRomPath = IsPathWithinConfiguredLibrary(safeRomPath);
+            var hasRomFile = isAllowedRomPath &&
                              (File.Exists(safeRomPath) || romPath.IsNotNullOrWhiteSpace());
 
             var streamFileName = romFileName;
-            if (!string.IsNullOrWhiteSpace(safeRomPath) &&
+            if (isAllowedRomPath &&
                 File.Exists(safeRomPath) &&
                 ShouldExtractZipForWebPlayer(safeRomPath, emulatorJsCore))
             {
@@ -965,6 +966,18 @@ namespace NzbDrone.Core.Games.Launcher
             };
         }
 
+        internal static bool IsAllowedRetroArchExecutable(string executablePath)
+        {
+            if (string.IsNullOrWhiteSpace(executablePath))
+            {
+                return false;
+            }
+
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(executablePath.Trim());
+            return !string.IsNullOrWhiteSpace(fileNameWithoutExtension) &&
+                   fileNameWithoutExtension.StartsWith("retroarch", StringComparison.OrdinalIgnoreCase);
+        }
+
         public DesktopLaunchResult LaunchDesktopGame(int gameId, string platformFolder = "", string romPath = "", int romFileId = 0)
         {
             var descriptor = BuildLaunchDescriptor(gameId, platformFolder, romPath, romFileId);
@@ -972,40 +985,64 @@ namespace NzbDrone.Core.Games.Launcher
 
             if (!string.IsNullOrWhiteSpace(config.RetroArchExecutablePath) && File.Exists(config.RetroArchExecutablePath))
             {
+                if (!IsAllowedRetroArchExecutable(config.RetroArchExecutablePath))
+                {
+                    _logger?.Warn("Blocked desktop launch with disallowed executable: {0}", config.RetroArchExecutablePath);
+                    return new DesktopLaunchResult
+                    {
+                        Success = false,
+                        LaunchedMode = "retroarch",
+                        Message = "Configured RetroArch executable path is not a recognized RetroArch binary.",
+                        Descriptor = descriptor
+                    };
+                }
+
+                if (!string.IsNullOrWhiteSpace(descriptor.RomPath) && !IsPathWithinConfiguredLibrary(descriptor.RomPath))
+                {
+                    _logger?.Warn("Blocked desktop launch for ROM outside configured library folders: {0}", descriptor.RomPath);
+                    return new DesktopLaunchResult
+                    {
+                        Success = false,
+                        LaunchedMode = "retroarch",
+                        Message = "ROM path is outside configured library folders.",
+                        Descriptor = descriptor
+                    };
+                }
+
                 try
                 {
-                    var args = new List<string>();
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = config.RetroArchExecutablePath,
+                        UseShellExecute = false
+                    };
+
                     if (!string.IsNullOrWhiteSpace(config.LibretroCoresDirectory))
                     {
                         var ext = OsInfo.IsWindows ? ".dll" : (OsInfo.IsOsx ? ".dylib" : ".so");
                         var candidateCore = Path.Combine(config.LibretroCoresDirectory, $"{descriptor.LibretroCore}_libretro{ext}");
                         if (File.Exists(candidateCore))
                         {
-                            args.Add($"-L \"{candidateCore}\"");
+                            psi.ArgumentList.Add("-L");
+                            psi.ArgumentList.Add(candidateCore);
                         }
                     }
 
                     if (!string.IsNullOrWhiteSpace(config.RetroArchConfigPath) && File.Exists(config.RetroArchConfigPath))
                     {
-                        args.Add($"--config \"{config.RetroArchConfigPath}\"");
+                        psi.ArgumentList.Add("--config");
+                        psi.ArgumentList.Add(config.RetroArchConfigPath);
                     }
 
                     if (config.FullScreenOnLaunch)
                     {
-                        args.Add("-f");
+                        psi.ArgumentList.Add("-f");
                     }
 
                     if (!string.IsNullOrWhiteSpace(descriptor.RomPath))
                     {
-                        args.Add($"\"{descriptor.RomPath}\"");
+                        psi.ArgumentList.Add(descriptor.RomPath);
                     }
-
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = config.RetroArchExecutablePath,
-                        Arguments = string.Join(" ", args),
-                        UseShellExecute = false
-                    };
 
                     Process.Start(psi);
 

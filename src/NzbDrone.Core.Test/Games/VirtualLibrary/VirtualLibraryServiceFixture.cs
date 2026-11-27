@@ -304,6 +304,21 @@ namespace NzbDrone.Core.Test.Games.VirtualLibrary
             }
         }
 
+        [TestCase(@"C:\VirtualLibraries\MiSTer", true)]
+        [TestCase(@"D:\Games\Super Nintendo", true)]
+        [TestCase(@"C:\Games\Bad""Path", false)]
+        [TestCase(@"C:\Games\Bad&calc.exe", false)]
+        [TestCase(@"C:\Games\Bad|dir", false)]
+        [TestCase(@"C:\Games\Bad%TEMP%", false)]
+        [TestCase(@"C:\Games\Bad^escape", false)]
+        [TestCase(@"C:\Games\Bad>out", false)]
+        [TestCase(@"C:\Games\Bad<in", false)]
+        [TestCase(@"relative\path", false)]
+        public void should_validate_windows_junction_paths_for_shell_safety(string path, bool expected)
+        {
+            VirtualLibraryService.IsSafeWindowsJunctionPath(path).Should().Be(expected);
+        }
+
         private static void DeleteDirectorySafe(string dir)
         {
             if (!Directory.Exists(dir))

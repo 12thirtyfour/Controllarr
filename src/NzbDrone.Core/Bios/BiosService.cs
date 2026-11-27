@@ -5668,23 +5668,26 @@ namespace NzbDrone.Core.Bios
 
             try
             {
-                var tarProcess = new Process
+                var tarStartInfo = new ProcessStartInfo
                 {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "tar",
-                        Arguments = $"-xf \"{archivePath}\" -C \"{destinationDirectory}\"",
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    }
+                    FileName = "tar",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
                 };
+                tarStartInfo.ArgumentList.Add("-xf");
+                tarStartInfo.ArgumentList.Add(archivePath);
+                tarStartInfo.ArgumentList.Add("-C");
+                tarStartInfo.ArgumentList.Add(destinationDirectory);
 
-                tarProcess.Start();
-                if (tarProcess.WaitForExit(10000) && tarProcess.ExitCode == 0)
+                using (var tarProcess = new Process { StartInfo = tarStartInfo })
                 {
-                    return true;
+                    tarProcess.Start();
+                    if (tarProcess.WaitForExit(10000) && tarProcess.ExitCode == 0)
+                    {
+                        return true;
+                    }
                 }
             }
             catch

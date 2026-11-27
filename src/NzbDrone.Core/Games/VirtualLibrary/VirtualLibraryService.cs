@@ -1812,6 +1812,18 @@ namespace NzbDrone.Core.Games.VirtualLibrary
             }
         }
 
+        private static readonly char[] UnsafeWindowsPathChars = new[] { '"', '%', '&', '|', '<', '>', '^', '!', ';', '\r', '\n', '\0' };
+
+        internal static bool IsSafeWindowsJunctionPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path))
+            {
+                return false;
+            }
+
+            return path.IndexOfAny(UnsafeWindowsPathChars) < 0;
+        }
+
         private bool TryCreateDirectorySymlinkOrJunction(string linkPath, string targetPath)
         {
             try
@@ -1838,7 +1850,16 @@ namespace NzbDrone.Core.Games.VirtualLibrary
                 {
                     try
                     {
-                        var psi = new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{linkPath}\" \"{targetPath}\"")
+                        var fullLinkPath = Path.GetFullPath(linkPath);
+                        var fullTargetPath = Path.GetFullPath(targetPath);
+
+                        if (!IsSafeWindowsJunctionPath(fullLinkPath) || !IsSafeWindowsJunctionPath(fullTargetPath))
+                        {
+                            _logger.Warn("Blocked Windows junction creation with unsafe path characters: {0} -> {1}", linkPath, targetPath);
+                            return false;
+                        }
+
+                        var psi = new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{fullLinkPath}\" \"{fullTargetPath}\"")
                         {
                             CreateNoWindow = true,
                             UseShellExecute = false,

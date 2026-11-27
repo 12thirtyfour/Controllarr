@@ -482,14 +482,17 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             }
 
             var datCache = Mocker.GetMock<IDatCacheService>();
-            datCache.Setup(d => d.FindByCrc32(binCrc)).Returns(new DatEntry
+            var datEntry = new DatEntry
             {
                 GameName = "Crash 'n Burn (USA)",
                 RomName = "Crash 'n Burn (USA).bin",
                 Crc32 = binCrc,
                 Sha1 = binSha1,
                 Md5 = binMd5
-            });
+            };
+            datCache.Setup(d => d.FindByCrc32(binCrc)).Returns(datEntry);
+            datCache.Setup(d => d.FindBestMatch(binCrc, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(datEntry);
 
             var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(zipPath, new[] { ".chd", ".iso", ".cue", ".bin" }, datCache.Object);
 
@@ -539,12 +542,15 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             }
 
             var datCache = Mocker.GetMock<IDatCacheService>();
-            datCache.Setup(d => d.FindBySha1(binSha1)).Returns(new DatEntry
+            var datEntry = new DatEntry
             {
                 GameName = "Road Rash (USA)",
                 RomName = "Road Rash (USA).bin",
                 Sha1 = binSha1
-            });
+            };
+            datCache.Setup(d => d.FindBySha1(binSha1)).Returns(datEntry);
+            datCache.Setup(d => d.FindBestMatch(It.IsAny<string>(), It.IsAny<string>(), binSha1, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(datEntry);
 
             var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(cuePath, new[] { ".chd", ".iso", ".cue", ".bin" }, datCache.Object);
 
@@ -565,13 +571,16 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             File.WriteAllText(sfvPath, $"Super Mario World (USA).sfc {fakeSfvCrc}\r\n");
 
             var datCache = Mocker.GetMock<IDatCacheService>();
-            datCache.Setup(d => d.FindByCrc32(fakeSfvCrc)).Returns(new DatEntry
+            var datEntry = new DatEntry
             {
                 GameName = "Super Mario World (USA)",
                 RomName = "Super Mario World (USA).sfc",
                 Crc32 = fakeSfvCrc,
                 Sha1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-            });
+            };
+            datCache.Setup(d => d.FindByCrc32(fakeSfvCrc)).Returns(datEntry);
+            datCache.Setup(d => d.FindBestMatch(fakeSfvCrc, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(datEntry);
 
             var hashes = UnmanagedDiskScanner.ComputeFileOrArchiveHashes(romPath, new[] { ".sfc" }, datCache.Object);
 

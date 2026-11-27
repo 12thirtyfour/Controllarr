@@ -30,7 +30,22 @@ public class MediaCoverController : Controller
     [Produces("image/jpeg", "image/png", "image/gif")]
     public Results<PhysicalFileHttpResult, NotFound> GetMediaCover(int seriesId, string filename)
     {
-        var filePath = Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", seriesId.ToString(), filename);
+        if (string.IsNullOrWhiteSpace(filename) ||
+            filename.Contains("..") ||
+            filename.Contains('/') ||
+            filename.Contains('\\') ||
+            Path.GetFileName(filename) != filename)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var mediaCoverDir = Path.GetFullPath(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", seriesId.ToString()));
+        var filePath = Path.GetFullPath(Path.Combine(mediaCoverDir, filename));
+        var expectedPrefix = Path.TrimEndingDirectorySeparator(mediaCoverDir) + Path.DirectorySeparatorChar;
+        if (!filePath.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return TypedResults.NotFound();
+        }
 
         if (!_diskProvider.FileExists(filePath) || _diskProvider.GetFileSize(filePath) == 0)
         {

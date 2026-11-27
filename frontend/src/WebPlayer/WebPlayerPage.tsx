@@ -64,6 +64,42 @@ const SHADER_CHOICES = [
   { key: 'sabr', label: 'SABR v3.0' },
 ];
 
+const DEFAULT_EMULATORJS_DATA_PATH = 'https://cdn.emulatorjs.org/stable/data/';
+
+function safeJsonForScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function sanitizeDataPath(raw: string): string {
+  const trimmed = (raw || '').trim();
+  if (!trimmed || /["'<>`\s]/.test(trimmed)) {
+    return DEFAULT_EMULATORJS_DATA_PATH;
+  }
+
+  if (
+    /^https?:\/\//i.test(trimmed) ||
+    (trimmed.startsWith('/') && !trimmed.startsWith('//'))
+  ) {
+    return trimmed.replace(/\/?$/, '/');
+  }
+
+  return DEFAULT_EMULATORJS_DATA_PATH;
+}
+
 function WebPlayerPage() {
   const location = useLocation();
   const searchParams = useMemo(
@@ -230,16 +266,16 @@ function WebPlayerPage() {
     const rawDataPath =
       effectiveConfig.emulatorJsDataPath ||
       descriptor.emulatorJsDataPath ||
-      'https://cdn.emulatorjs.org/stable/data/';
-    const dataPath = rawDataPath.replace(/\/?$/, '/');
+      DEFAULT_EMULATORJS_DATA_PATH;
+    const dataPath = sanitizeDataPath(rawDataPath);
     const ejsCore = descriptor.emulatorJsCore || selectedCore || 'snes';
     const safeTitle = (descriptor.gameTitle || 'ROM').replace(/["<>]/g, '');
     const shaderValue = selectedShader === 'none' ? '' : selectedShader;
     const shaderLine = shaderValue
-      ? `window.EJS_shader = ${JSON.stringify(shaderValue)};`
+      ? `window.EJS_shader = ${safeJsonForScript(shaderValue)};`
       : '';
     const biosLine = biosStreamUrl
-      ? `window.EJS_biosUrl = ${JSON.stringify(biosStreamUrl)};`
+      ? `window.EJS_biosUrl = ${safeJsonForScript(biosStreamUrl)};`
       : '';
     const originHref =
       typeof window !== 'undefined' && window.location?.origin
@@ -250,8 +286,8 @@ function WebPlayerPage() {
 <html>
 <head>
   <meta charset="utf-8" />
-  <base href="${originHref}" />
-  <title>${safeTitle} - Controllarr Libretro Player</title>
+  <base href="${escapeHtmlAttr(originHref)}" />
+  <title>${escapeHtmlAttr(safeTitle)} - Controllarr Libretro Player</title>
   <style>
     html, body {
       margin: 0;
@@ -271,16 +307,16 @@ function WebPlayerPage() {
   <div id="game"></div>
   <script>
     window.EJS_player = '#game';
-    window.EJS_core = ${JSON.stringify(ejsCore)};
-    window.EJS_gameName = ${JSON.stringify(safeTitle)};
-    window.EJS_gameUrl = ${JSON.stringify(romStreamUrl)};
-    window.EJS_pathtodata = ${JSON.stringify(dataPath)};
+    window.EJS_core = ${safeJsonForScript(ejsCore)};
+    window.EJS_gameName = ${safeJsonForScript(safeTitle)};
+    window.EJS_gameUrl = ${safeJsonForScript(romStreamUrl)};
+    window.EJS_pathtodata = ${safeJsonForScript(dataPath)};
     window.EJS_color = '#00a8e8';
     window.EJS_startOnLoaded = true;
     ${biosLine}
     ${shaderLine}
   </script>
-  <script src="${dataPath}loader.js"></script>
+  <script src="${escapeHtmlAttr(dataPath)}loader.js"></script>
 </body>
 </html>`;
   }, [
@@ -345,6 +381,7 @@ function WebPlayerPage() {
           title={`${descriptor.gameTitle} Libretro WebPlayer`}
           className={styles.playerIframe}
           srcDoc={playerSrcDoc}
+          sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-downloads"
           allow="autoplay; fullscreen; gamepad"
         />
       </div>

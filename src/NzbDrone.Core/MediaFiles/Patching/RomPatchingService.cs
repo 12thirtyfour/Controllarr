@@ -391,14 +391,7 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 var patchedBytes = ApplyPatch(baseBytes, patchBytes, format);
                 var (crc32Hex, md5Hex, sha1Hex, sha256Hex) = ComputeAllHashes(patchedBytes);
 
-                DatEntry matchedDat = null;
-                if (_datCacheService != null)
-                {
-                    matchedDat = _datCacheService.FindBySha256(sha256Hex) ??
-                                 _datCacheService.FindBySha1(sha1Hex) ??
-                                 _datCacheService.FindByMd5(md5Hex) ??
-                                 _datCacheService.FindByCrc32(crc32Hex);
-                }
+                var matchedDat = _datCacheService?.FindBestMatch(crc32Hex, md5Hex, sha1Hex, sha256Hex);
 
                 var cleanPatchTitle = !string.IsNullOrWhiteSpace(request.OutputTitle)
                     ? request.OutputTitle.Trim()

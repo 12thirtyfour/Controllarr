@@ -660,5 +660,65 @@ namespace NzbDrone.Core.Test.GamesTests
                 }
             }
         }
+
+        [TestCase(@"C:\RetroArch\retroarch.exe", true)]
+        [TestCase("/usr/bin/retroarch", true)]
+        [TestCase("/Applications/RetroArch.app/Contents/MacOS/RetroArch", true)]
+        [TestCase(@"C:\Windows\System32\cmd.exe", false)]
+        [TestCase("/bin/sh", false)]
+        [TestCase("", false)]
+        public void should_only_allow_retroarch_executables_for_desktop_launch(string executablePath, bool expected)
+        {
+            GameLauncherService.IsAllowedRetroArchExecutable(executablePath).Should().Be(expected);
+        }
+
+        [Test]
+        public void should_block_arbitrary_executable_and_rom_path_outside_configured_library()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "controllarr_launcher_sec_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var fakeExe = Path.Combine(tempDir, "not_retroarch.exe");
+                File.WriteAllText(fakeExe, "stub");
+
+                var libDir = Path.Combine(tempDir, "SNES");
+                Directory.CreateDirectory(libDir);
+                var outsideRom = Path.Combine(tempDir, "outside.sfc");
+                File.WriteAllBytes(outsideRom, new byte[] { 0x01, 0x02 });
+
+                var seriesService = new Mock<ISeriesService>();
+                seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
+                {
+                    new Series { Id = 1, Title = "SNES", TitleSlug = "snes", Path = libDir }
+                });
+
+                var launcher = new GameLauncherService(seriesService: seriesService.Object);
+                launcher.SaveConfig(new LibretroLauncherConfig { RetroArchExecutablePath = fakeExe });
+
+                var outsideDescriptor = launcher.BuildLaunchDescriptor(10, "snes", outsideRom);
+                outsideDescriptor.HasRomFile.Should().BeFalse();
+
+                var blockedExeResult = launcher.LaunchDesktopGame(10, "snes", outsideRom);
+                blockedExeResult.Success.Should().BeFalse();
+                blockedExeResult.Message.Should().Contain("not a recognized RetroArch binary");
+
+                var retroarchExe = Path.Combine(tempDir, "retroarch.exe");
+                File.WriteAllText(retroarchExe, "stub");
+                launcher.SaveConfig(new LibretroLauncherConfig { RetroArchExecutablePath = retroarchExe });
+
+                var blockedRomResult = launcher.LaunchDesktopGame(10, "snes", outsideRom);
+                blockedRomResult.Success.Should().BeFalse();
+                blockedRomResult.Message.Should().Contain("outside configured library folders");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                {
+                    Directory.Delete(tempDir, true);
+                }
+            }
+        }
     }
 }

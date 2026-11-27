@@ -68,14 +68,16 @@ namespace Sonarr.Http.Authentication
             {
                 var lockoutEndTime = _authService.GetLockoutEndTime(HttpContext.Request);
 
+                var safeReturnUrl = Uri.EscapeDataString(returnUrl ?? string.Empty);
+
                 if (lockoutEndTime.HasValue)
                 {
                     var lockoutUntil = new DateTimeOffset(lockoutEndTime.Value, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
-                    return TypedResults.Redirect($"~/login?returnUrl={returnUrl}&loginFailed=true&lockoutUntil={lockoutUntil}");
+                    return TypedResults.Redirect($"~/login?returnUrl={safeReturnUrl}&loginFailed=true&lockoutUntil={lockoutUntil}");
                 }
 
-                return TypedResults.Redirect($"~/login?returnUrl={returnUrl}&loginFailed=true");
+                return TypedResults.Redirect($"~/login?returnUrl={safeReturnUrl}&loginFailed=true");
             }
 
             var claims = new List<Claim>

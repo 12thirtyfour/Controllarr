@@ -328,6 +328,19 @@ namespace NzbDrone.Host
 
             app.UseForwardedHeaders();
             app.UseHostFiltering();
+            app.Use(async (context, next) =>
+            {
+                context.Response.OnStarting(() =>
+                {
+                    var headers = context.Response.Headers;
+                    headers["X-Content-Type-Options"] = "nosniff";
+                    headers["X-Frame-Options"] = "SAMEORIGIN";
+                    headers["Referrer-Policy"] = "no-referrer";
+                    return Task.CompletedTask;
+                });
+
+                await next();
+            });
             app.UseMiddleware<LoggingMiddleware>();
             app.UseMiddleware<ViteDevMiddleware>(configFileProvider.UrlBase);
             app.UsePathBase(new PathString(configFileProvider.UrlBase));

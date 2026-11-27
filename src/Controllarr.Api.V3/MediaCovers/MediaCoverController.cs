@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +29,22 @@ namespace Sonarr.Api.V3.MediaCovers
         [HttpGet(@"{seriesId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
         public IActionResult GetMediaCover(int seriesId, string filename)
         {
-            var filePath = Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", seriesId.ToString(), filename);
+            if (string.IsNullOrWhiteSpace(filename) ||
+                filename.Contains("..") ||
+                filename.Contains('/') ||
+                filename.Contains('\\') ||
+                Path.GetFileName(filename) != filename)
+            {
+                return NotFound();
+            }
+
+            var mediaCoverDir = Path.GetFullPath(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", seriesId.ToString()));
+            var filePath = Path.GetFullPath(Path.Combine(mediaCoverDir, filename));
+            var expectedPrefix = Path.TrimEndingDirectorySeparator(mediaCoverDir) + Path.DirectorySeparatorChar;
+            if (!filePath.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound();
+            }
 
             if (!_diskProvider.FileExists(filePath) || _diskProvider.GetFileSize(filePath) == 0)
             {

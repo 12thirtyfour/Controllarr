@@ -1521,10 +1521,24 @@ namespace NzbDrone.Core.MediaFiles.Export
                             var romEntry = archive.Entries.FirstOrDefault(e => !string.IsNullOrEmpty(e.Name));
                             if (romEntry != null)
                             {
-                                var actualFileName = Path.Combine(destinationFolder ?? string.Empty, romEntry.Name);
-                                romEntry.ExtractToFile(actualFileName, overwrite);
-                                finalOutputPath = actualFileName;
-                                return true;
+                                var safeEntryName = Path.GetFileName(romEntry.Name);
+                                if (!string.IsNullOrWhiteSpace(safeEntryName))
+                                {
+                                    var actualFileName = Path.Combine(destinationFolder ?? string.Empty, safeEntryName);
+                                    if (!string.IsNullOrWhiteSpace(destinationFolder))
+                                    {
+                                        var normalizedDest = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destinationFolder)) + Path.DirectorySeparatorChar;
+                                        var fullOutput = Path.GetFullPath(actualFileName);
+                                        if (!fullOutput.StartsWith(normalizedDest, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            throw new InvalidOperationException($"Blocked unsafe archive entry extraction path: {romEntry.Name}");
+                                        }
+                                    }
+
+                                    romEntry.ExtractToFile(actualFileName, overwrite);
+                                    finalOutputPath = actualFileName;
+                                    return true;
+                                }
                             }
                         }
                     }

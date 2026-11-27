@@ -25,6 +25,21 @@ All notable changes to **Controllarr** are documented in this file.
 
 ## [Unreleased] - 2026-11-27
 
+### Security
+- **Virtual Library Junction Command Injection Guard (`VirtualLibraryService`)**: Canonicalized paths and rejected Windows shell metacharacters (`"`, `%`, `&`, `|`, `<`, `>`, `^`, `!`, `;`, control chars) before invoking the `cmd.exe /c mklink /J` junction fallback.
+- **SD Card Export Path Validation (`SdCardExportController`, `SdCardExporterService`)**: Enforced library/BIOS source-path containment and safe destination segments on `POST /api/v5/sdcardexport`, plus `Path.GetFileName` and destination bounds verification during `ExtractZipToRawRom`.
+- **ROM Hack Acquisition SSRF & Path Containment (`RomHackAutomationService`)**: Validated `DownloadUrl`/`PageUrl` to permit only external `http://`/`https://` targets (blocking loopback, RFC1918, link-local, CGNAT, and IPv6 ULA/link-local addresses) and constrained `BaseRomPath` to the selected platform directory.
+- **Libretro WebPlayer & Desktop Launcher Hardening (`WebPlayerPage.tsx`, `GameLauncherService`)**: Escaped script-embedded JSON and HTML attributes, sanitized `emulatorJsDataPath`, added `sandbox` restrictions on the player `<iframe>`, switched desktop RetroArch execution to `ProcessStartInfo.ArgumentList` with executable allowlisting (`retroarch*`), and gated `BuildLaunchDescriptor` `File.Exists` checks behind `IsPathWithinConfiguredLibrary`.
+- **MediaCover Traversal, Tar Arg Injection, HTTP Headers, Errors & Docker (`MediaCoverController`, `BiosService`, `Startup`, `ControllarrErrorPipeline`, `AuthenticationController`, `Dockerfile`, `entrypoint.sh`)**: Blocked directory traversal in V3/V5 `MediaCoverController`, migrated `BiosService` `tar` invocation to `ArgumentList`, added `X-Content-Type-Options`/`X-Frame-Options`/`Referrer-Policy` headers, suppressed full exception stack traces in Release `ErrorModel` responses, URL-encoded failed-login `returnUrl`, tightened `/config` mode to `750`, and prevented `entrypoint.sh` from silently falling back to `UID 0` (`root`).
+
+### Fixed
+- **V5 Settings Serialization (`MediaManagementSettingsResource`, `UiSettingsResource`)**:
+  - Restored `AutoDownloadRequiredBios` on `MediaManagementSettingsResource` and `ConsoleRegion` on `UiSettingsResource` (and their resource mappers) so `CollectionSettings` and `UISettings` saves are no longer silently dropped by `/api/v5/settings/*`.
+- **Console Disc & Demo Filtering (`DecisionEngine`)**:
+  - Removed legacy TV `RawDiskSpecification` and `NotSampleSpecification` holdovers so valid console disc `.iso` images and small ROM demos/samples are never falsely rejected as `"Raw DVD release"` or video samples.
+- **Scanner & Patcher DAT Query Performance (`UnmanagedDiskScanner`, `RomPatchingService`)**:
+  - Hoisted `_seriesService.GetAllSeries()` out of the per-BIOS-entry loop in `UnmanagedDiskScanner`, eliminated 4 redundant per-hash DB fallbacks after `IDatCacheService.FindBestMatch`, and consolidated `RomPatchingService` DAT hash lookup into a single `FindBestMatch` query.
+
 ### Added
 - **Dedicated Internet Archive Queue Section & Reordering (`InternetArchive`, `QueueService`, `QueueActionController`, `Queue.tsx`)**:
   - Replaced the unordered concurrency wait in `InternetArchive` with an ordered pending download dispatch queue (`PendingQueue` under `QueueLock`), `QueueReorderAction` (`Top`, `Up`, `Down`, `Bottom`), and `ReorderQueuedDownloads`, guaranteeing that reordered queued Internet Archive items execute in the user's chosen order and are cleanly cancelled/renumbered on removal.

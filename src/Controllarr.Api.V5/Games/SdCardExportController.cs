@@ -261,6 +261,34 @@ namespace Sonarr.Api.V5.Games
                 return BadRequest("TargetMountPath is required.");
             }
 
+            if (request.Items != null)
+            {
+                var allowedDirectories = GetAllowedSourceDirectories();
+
+                foreach (var item in request.Items)
+                {
+                    if (item == null)
+                    {
+                        continue;
+                    }
+
+                    if (!IsSafeRelativeSegment(item.PlatformFolder) ||
+                        !IsSafeRelativeSegment(item.RegionFolder) ||
+                        (!string.IsNullOrWhiteSpace(item.CanonicalBiosFileName) &&
+                         (item.CanonicalBiosFileName.Contains("..", StringComparison.Ordinal) ||
+                          Path.GetFileName(item.CanonicalBiosFileName) != item.CanonicalBiosFileName)))
+                    {
+                        return BadRequest("Export item contains invalid destination path segments.");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(item.SourceFilePath) &&
+                        !IsAllowedExportSourcePath(item.SourceFilePath, allowedDirectories))
+                    {
+                        return BadRequest($"SourceFilePath is outside configured library or BIOS directories: {item.SourceFilePath}");
+                    }
+                }
+            }
+
             if (request.IncludeBios && request.Items != null)
             {
                 foreach (var item in request.Items)
@@ -294,6 +322,80 @@ namespace Sonarr.Api.V5.Games
                 request.OptimizeFormatsForDevice);
 
             return Ok(result);
+        }
+
+        private List<string> GetAllowedSourceDirectories()
+        {
+            var directories = new List<string>();
+
+            if (_seriesService != null)
+            {
+                foreach (var series in _seriesService.GetAllSeries() ?? new List<Series>())
+                {
+                    if (!string.IsNullOrWhiteSpace(series?.Path))
+                    {
+                        directories.Add(NormalizeDirectoryPrefix(series.Path));
+                    }
+                }
+            }
+
+            if (_biosService != null)
+            {
+                foreach (var bios in _biosService.GetCatalog() ?? new List<BiosFile>())
+                {
+                    if (!string.IsNullOrWhiteSpace(bios?.ResolvedPath))
+                    {
+                        var dir = Path.GetDirectoryName(bios.ResolvedPath);
+                        if (!string.IsNullOrWhiteSpace(dir))
+                        {
+                            directories.Add(NormalizeDirectoryPrefix(dir));
+                        }
+                    }
+                }
+            }
+
+            return directories.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private bool IsAllowedExportSourcePath(string sourceFilePath, List<string> allowedDirectories)
+        {
+            if (string.IsNullOrWhiteSpace(sourceFilePath) || sourceFilePath.Contains("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            string fullPath;
+            try
+            {
+                fullPath = Path.GetFullPath(sourceFilePath);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (_seriesService == null && _biosService == null)
+            {
+                return true;
+            }
+
+            return allowedDirectories.Any(dir => fullPath.StartsWith(dir, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string NormalizeDirectoryPrefix(string path)
+        {
+            return Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)) + Path.DirectorySeparatorChar;
+        }
+
+        private static bool IsSafeRelativeSegment(string? segment)
+        {
+            if (string.IsNullOrWhiteSpace(segment))
+            {
+                return true;
+            }
+
+            return !segment.Contains("..", StringComparison.Ordinal) &&
+                   !Path.IsPathRooted(segment);
         }
     }
 }

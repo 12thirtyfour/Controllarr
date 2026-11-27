@@ -146,7 +146,8 @@ RUN ln -snf /app/bin/UI /app/UI && \
     printf "PackageVersion=%s-%s\nPackageAuthor=Team Controllarr (https://github.com/12thirtyfour/Controllarr)\nUpdateMethod=Docker\nUpdateMethodMessage=Pull the latest Controllarr Docker image to update\nBranch=%s\nReleaseVersion=%s\n" \
       "${VERSION}" "${BRANCH}" "${BRANCH}" "${VERSION}" > /app/package_info && \
     mkdir -p /config /roms /downloads && \
-    chmod 777 /config /roms /downloads
+    chmod 750 /config && \
+    chmod 755 /roms /downloads
 
 VOLUME ["/config", "/roms", "/downloads"]
 EXPOSE 7050

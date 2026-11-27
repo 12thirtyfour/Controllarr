@@ -403,5 +403,53 @@ namespace NzbDrone.Core.Test.MediaFiles.Patching
             Mocker.GetMock<IHttpClient>()
                 .Verify(c => c.DownloadFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
+
+        [TestCase("https://romhackplaza.org/files/smw-return.bps", true)]
+        [TestCase("https://archive.org/download/smw-hack-pack/patch.ips", true)]
+        [TestCase("file:///etc/passwd", false)]
+        [TestCase("ftp://example.com/patch.bps", false)]
+        [TestCase("http://127.0.0.1:8080/secret", false)]
+        [TestCase("http://169.254.169.254/latest/meta-data/", false)]
+        [TestCase("http://10.0.0.5/internal", false)]
+        [TestCase("http://192.168.1.10/admin", false)]
+        [TestCase("http://172.16.0.1/api", false)]
+        [TestCase("http://[::1]/local", false)]
+        [TestCase("http://localhost:7050/api/v5/system/status", false)]
+        public void should_validate_external_http_urls_and_block_ssrf_targets(string url, bool expected)
+        {
+            RomHackAutomationService.IsSafeExternalHttpUrl(url, out _).Should().Be(expected);
+        }
+
+        [Test]
+        public void should_block_rom_hack_acquire_with_loopback_url_and_base_rom_outside_library()
+        {
+            var series = new Series { Id = 8, Title = "SNES", TitleSlug = "snes", Path = "/roms/SNES" };
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetSeries(8))
+                .Returns(series);
+
+            var ssrfResult = Subject.AcquireAndCreate(new RomHackAcquireRequest
+            {
+                SeriesId = 8,
+                Title = "Evil Hack",
+                DownloadUrl = "http://127.0.0.1:7050/api/v5/config"
+            });
+
+            ssrfResult.Success.Should().BeFalse();
+            ssrfResult.Message.Should().Contain("Blocked unsafe DownloadUrl");
+            Mocker.GetMock<IHttpClient>()
+                .Verify(c => c.DownloadFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+
+            var escapeResult = Subject.AcquireAndCreate(new RomHackAcquireRequest
+            {
+                SeriesId = 8,
+                Title = "Traversal Hack",
+                DownloadUrl = "https://romhackplaza.org/files/hack.bps",
+                BaseRomPath = "/etc/passwd"
+            });
+
+            escapeResult.Success.Should().BeFalse();
+            escapeResult.Message.Should().Contain("BaseRomPath");
+        }
     }
 }

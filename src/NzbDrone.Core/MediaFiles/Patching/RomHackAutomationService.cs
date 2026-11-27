@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using NLog;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Dat;
 using NzbDrone.Core.IndexerSearch;
@@ -310,6 +312,37 @@ namespace NzbDrone.Core.MediaFiles.Patching
                 };
             }
 
+            if (!string.IsNullOrWhiteSpace(request.BaseRomPath) &&
+                !string.IsNullOrWhiteSpace(series.Path) &&
+                !IsPathWithinDirectory(request.BaseRomPath, series.Path))
+            {
+                return new RomHackAcquireResult
+                {
+                    Success = false,
+                    Message = "BaseRomPath must reside inside the selected platform library folder."
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.DownloadUrl) &&
+                !IsSafeExternalHttpUrl(request.DownloadUrl, out var downloadUrlReason))
+            {
+                return new RomHackAcquireResult
+                {
+                    Success = false,
+                    Message = $"Blocked unsafe DownloadUrl: {downloadUrlReason}"
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PageUrl) &&
+                !IsSafeExternalHttpUrl(request.PageUrl, out var pageUrlReason))
+            {
+                return new RomHackAcquireResult
+                {
+                    Success = false,
+                    Message = $"Blocked unsafe PageUrl: {pageUrlReason}"
+                };
+            }
+
             var effectiveDownloadUrl = request.DownloadUrl;
             var effectiveBaseGameTitle = request.BaseGameTitle;
             var effectiveBaseCrc32 = request.BaseRomCrc32;
@@ -354,6 +387,17 @@ namespace NzbDrone.Core.MediaFiles.Patching
                     BaseRomMissing = false,
                     PatchDownloadUrl = effectiveDownloadUrl,
                     Message = "No direct binary patch download link was found on the detail page."
+                };
+            }
+
+            if (!IsSafeExternalHttpUrl(effectiveDownloadUrl, out var resolvedUrlReason))
+            {
+                return new RomHackAcquireResult
+                {
+                    Success = false,
+                    BaseRomMissing = false,
+                    PatchDownloadUrl = effectiveDownloadUrl,
+                    Message = $"Blocked unsafe resolved download URL: {resolvedUrlReason}"
                 };
             }
 
@@ -557,6 +601,140 @@ namespace NzbDrone.Core.MediaFiles.Patching
             }
 
             return results;
+        }
+
+        internal static bool IsSafeExternalHttpUrl(string url, out string reason)
+        {
+            reason = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
+            {
+                reason = "URL is invalid.";
+                return false;
+            }
+
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                reason = "Only http:// and https:// URLs are allowed.";
+                return false;
+            }
+
+            var host = uri.DnsSafeHost?.Trim().TrimEnd('.');
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                reason = "URL host is empty.";
+                return false;
+            }
+
+            if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".home.arpa", StringComparison.OrdinalIgnoreCase))
+            {
+                reason = "Local or internal hostnames are not permitted.";
+                return false;
+            }
+
+            if (IPAddress.TryParse(host, out var literalIp))
+            {
+                if (IsBlockedIpAddress(literalIp))
+                {
+                    reason = "Private, loopback, or link-local IP addresses are not permitted.";
+                    return false;
+                }
+
+                return true;
+            }
+
+            try
+            {
+                var addresses = Dns.GetHostAddresses(host);
+                foreach (var addr in addresses)
+                {
+                    if (IsBlockedIpAddress(addr))
+                    {
+                        reason = "Host resolves to a private, loopback, or link-local IP address.";
+                        return false;
+                    }
+                }
+            }
+            catch (SocketException)
+            {
+                // Allow offline mocked tests or transient DNS misses to reach the HTTP client layer
+            }
+
+            return true;
+        }
+
+        private static bool IsBlockedIpAddress(IPAddress address)
+        {
+            if (address == null)
+            {
+                return true;
+            }
+
+            if (address.IsIPv4MappedToIPv6)
+            {
+                address = address.MapToIPv4();
+            }
+
+            if (IPAddress.IsLoopback(address) ||
+                address.Equals(IPAddress.Any) ||
+                address.Equals(IPAddress.IPv6Any) ||
+                address.Equals(IPAddress.IPv6Loopback))
+            {
+                return true;
+            }
+
+            if (address.AddressFamily == AddressFamily.InterNetwork)
+            {
+                var bytes = address.GetAddressBytes();
+                if (bytes[0] == 0 ||
+                    bytes[0] == 10 ||
+                    bytes[0] == 127 ||
+                    (bytes[0] == 169 && bytes[1] == 254) ||
+                    (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) ||
+                    (bytes[0] == 192 && bytes[1] == 168) ||
+                    (bytes[0] == 100 && bytes[1] >= 64 && bytes[1] <= 127))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (address.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                if (address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6Multicast)
+                {
+                    return true;
+                }
+
+                var bytes = address.GetAddressBytes();
+                if ((bytes[0] & 0xFE) == 0xFC)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsPathWithinDirectory(string candidatePath, string baseDirectory)
+        {
+            try
+            {
+                var fullCandidate = Path.GetFullPath(candidatePath);
+                var normalizedBase = Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseDirectory)) + Path.DirectorySeparatorChar;
+                var comparison = OsInfo.IsWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                return fullCandidate.StartsWith(normalizedBase, comparison);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private RomHackSearchResult TryResolveRomhackPlazaDetailPage(string detailUrl, string fallbackTitle, string platformSlug)
