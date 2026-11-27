@@ -28,31 +28,6 @@ namespace NzbDrone.Core.Games
                 { "Season 06", "ROM Hacks" }
             };
 
-        private static readonly string[] KnownPokemonHacks = new[]
-        {
-            "Brown", "Prism", "Ash Gray", "AshGray", "Glazed", "Light Platinum", "Flora Sky",
-            "Clover", "Gaia", "Radical Red", "Unbound", "Liquid Crystal", "Dark Rising",
-            "Orange Islands", "Crystal Clear", "Polished Crystal", "Red++", "Red ++", "Blue++",
-            "Blue ++", "PureRGB", "Shin Red", "Bronze", "Coral", "Silver Chronicles",
-            "Gold and Silver 97", "Spaceworld 97", "Adventure Red", "Vega", "Procyon", "Deneb",
-            "Snakewood", "Blasting Off", "Mirage", "Fuligin", "Quartz", "Victory Fire",
-            "Resolute", "Mega Power", "Nameless", "Emerald Rogue", "Inclement Emerald",
-            "Modern Emerald", "ROWE", "Odyssey", "Sovereign of the Skies", "Dreams", "Sors",
-            "Crown", "Vintage White", "Blaze Black", "Volt White", "Sacred Gold", "Storm Silver",
-            "Renegade Platinum", "Rising Sun", "Waning Moon", "Photonic Sun", "Prismatic Moon",
-            "Luminescent Platinum", "Theta Emerald", "Altered Emerald", "Blazing Emerald",
-            "Fire Gold", "Vietnamese Crystal", "Fool's Gold", "Rocket Edition", "Moemon"
-        };
-
-        private static readonly string[] KnownFranchiseHacks = new[]
-        {
-            "Return to Dinosaur Land", "Ancient Stone Tablets", "Parallel Worlds",
-            "Goddess of Wisdom", "Super Zero Mission", "Crimson Echoes", "Flames of Eternity",
-            "Brave New World", "Chorus of Mysteries", "In the Mushroom Kingdom",
-            "Star Road", "Super Mario 64 Land", "Super Mario 3Mix", "Super Mario Land DX",
-            "Super Mario Land 2 DX", "Conker's Pocket Tales (Color)", "Conker's Pocket Tales Color"
-        };
-
         private static readonly string[] TranslationTokens = new[]
         {
             "[T+", "[T-", "(T+", "(T-", "(Translation)", "[Translation]", "Translation Hack", "Fan Translation",
@@ -221,20 +196,6 @@ namespace NzbDrone.Core.Games
                     text.Contains("\\Hacks\\", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("/Translations & Hacks/", StringComparison.OrdinalIgnoreCase) ||
                     text.Contains("\\Translations & Hacks\\", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                var isPokemon = text.Contains("Pokemon", StringComparison.OrdinalIgnoreCase) ||
-                                text.Contains("Pokémon", StringComparison.OrdinalIgnoreCase) ||
-                                text.Contains("Pocket Monsters", StringComparison.OrdinalIgnoreCase);
-
-                if (isPokemon && KnownPokemonHacks.Any(h => text.Contains(h, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return true;
-                }
-
-                if (KnownFranchiseHacks.Any(h => text.Contains(h, StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }
