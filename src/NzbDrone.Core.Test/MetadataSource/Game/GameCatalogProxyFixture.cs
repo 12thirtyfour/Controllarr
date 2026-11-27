@@ -173,6 +173,15 @@ game (
 game (
 	name ""Chrono Trigger (USA) (Decrypted)""
 	rom ( name ""Chrono Trigger (USA).nds"" size 67108864 )
+)
+game (
+	name ""Pokemon - HeartGold Version (USA)""
+	rom ( name ""Pokemon - HeartGold Version (USA).nds"" size 134217728 crc 1111aaaa )
+)";
+            var encryptedNdsDat = @"
+game (
+	name ""Pokemon - HeartGold Version (USA)""
+	rom ( name ""Pokemon - HeartGold Version (USA).nds"" size 134217728 crc 2222bbbb )
 )";
             var smdbContent = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899\tNeoSD/World/Garou - Mark of the Wolves (World).neo\t1122334455667788990011223344556677889900\t11223344556677889900112233445566\tdeadbeef";
             var nswdbXml = @"<?xml version=""1.0"" encoding=""UTF-8""?>
@@ -204,6 +213,10 @@ game (
                 .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), decryptedNdsDat));
 
             httpMock
+                .Setup(c => c.Execute(Moq.It.Is<NzbDrone.Common.Http.HttpRequest>(r => r.Url.FullUri.Contains("Nintendo%20-%20Nintendo%20DS.dat"))))
+                .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), encryptedNdsDat));
+
+            httpMock
                 .Setup(c => c.Execute(Moq.It.Is<NzbDrone.Common.Http.HttpRequest>(r => r.Url.FullUri.Contains("Darksoft%20Neo%20Geo%20SMDB.txt") || r.Url.FullUri.Contains("NeoSD%20SMDB.txt"))))
                 .Returns((NzbDrone.Common.Http.HttpRequest r) => new NzbDrone.Common.Http.HttpResponse(r, new NzbDrone.Common.Http.HttpHeader(), smdbContent));
 
@@ -213,14 +226,13 @@ game (
 
             Subject.InvalidatePlatformCache();
 
-            // 1. Nintendo DS (1012) includes both Decrypted and Encrypted versions under the same base game
+            // 1. Nintendo DS (1012) selects Decrypted vs Encrypted feeds per encryptionPreference
             //    and monitors NotEncrypted by default, Encrypted when "encrypted", or both when "both".
             var ndsNotEncrypted = Subject.GetSeriesInfo(1012, Language.English, "notEncrypted");
             ndsNotEncrypted.Item2.Should().Contain(e => e.Title.Contains("Chrono Trigger"));
             var heartGoldUnencrypted = ndsNotEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version" && e.FinaleType != "Encrypted");
-            var heartGoldEncrypted = ndsNotEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version" && e.FinaleType == "Encrypted");
             heartGoldUnencrypted.Monitored.Should().BeTrue();
-            heartGoldEncrypted.Monitored.Should().BeFalse();
+            ndsNotEncrypted.Item2.Should().NotContain(e => e.Title == "Pokemon - HeartGold Version" && e.FinaleType == "Encrypted");
 
             var ndsEncrypted = Subject.GetSeriesInfo(1012, Language.English, "encrypted");
             ndsEncrypted.Item2.First(e => e.Title == "Pokemon - HeartGold Version" && e.FinaleType != "Encrypted").Monitored.Should().BeFalse();
@@ -2479,6 +2491,45 @@ game (
             list.Should().Contain(hackUpdate);
             hackUpdate.RegionNumber.Should().Be(GameCatalogProxy.RegionRomHacks);
             list.Count(e => e.RegionNumber == GameCatalogProxy.RegionUsa).Should().Be(1);
+        }
+
+        [Test]
+        public void should_exclude_hashless_builtin_games_when_dat_entries_exist_for_platform()
+        {
+            Subject.TryGetPlatformEntryBySlug("gba", out var gbaPlatform).Should().BeTrue();
+            Subject.InvalidatePlatformCache(gbaPlatform.TvdbId);
+
+            var noIntroDat = new NzbDrone.Core.Dat.DatFile
+            {
+                Id = 9501,
+                Name = "Nintendo - Game Boy Advance (No-Intro)",
+                Category = "No-Intro"
+            };
+
+            var datEntries = new List<NzbDrone.Core.Dat.DatEntry>
+            {
+                new NzbDrone.Core.Dat.DatEntry
+                {
+                    DatFileId = 9501,
+                    GameName = "Metroid Fusion (USA)",
+                    RomName = "Metroid Fusion (USA).gba",
+                    Sha1 = "abababababababababababababababababababab",
+                    Crc32 = "11223344"
+                }
+            };
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetAllDatFiles())
+                .Returns(new List<NzbDrone.Core.Dat.DatFile> { noIntroDat });
+
+            Mocker.GetMock<NzbDrone.Core.Dat.IDatCacheService>()
+                .Setup(s => s.GetEntriesForPlatform(gbaPlatform.Slug, gbaPlatform.Name, gbaPlatform.LibretroSystemName))
+                .Returns(datEntries);
+
+            var tuple = Subject.GetSeriesInfo(gbaPlatform.TvdbId, Language.English, null);
+
+            tuple.Item2.Should().ContainSingle(e => e.Title == "Metroid Fusion");
+            tuple.Item2.Should().NotContain(e => e.Title.Contains("Pokemon - Emerald Version", System.StringComparison.OrdinalIgnoreCase));
         }
     }
 }

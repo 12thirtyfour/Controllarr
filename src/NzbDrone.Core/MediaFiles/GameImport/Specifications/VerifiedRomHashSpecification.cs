@@ -18,7 +18,7 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
 
         public ImportSpecDecision IsSatisfiedBy(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
         {
-            if (downloadClientItem == null || localEpisode == null || _datCacheService == null)
+            if (localEpisode == null || _datCacheService == null)
             {
                 return ImportSpecDecision.Accept();
             }
@@ -37,29 +37,33 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
                 localEpisode.RomHashes.TryGetValue("CRC32", out var crc32);
 
                 var matchedDat = _datCacheService.FindBestMatch(crc32, md5, sha1, sha256, localEpisode.Series?.TitleSlug, localEpisode.Series?.Title);
-                if (matchedDat != null ||
-                    (sha256 != null && _datCacheService.FindBySha256(sha256) != null) ||
-                    (sha1 != null && _datCacheService.FindBySha1(sha1) != null) ||
-                    (md5 != null && _datCacheService.FindByMd5(md5) != null) ||
-                    (crc32 != null && _datCacheService.FindByCrc32(crc32) != null))
+                if (IsValidDatEntry(matchedDat) ||
+                    (sha256 != null && IsValidDatEntry(_datCacheService.FindBySha256(sha256))) ||
+                    (sha1 != null && IsValidDatEntry(_datCacheService.FindBySha1(sha1))) ||
+                    (md5 != null && IsValidDatEntry(_datCacheService.FindByMd5(md5))) ||
+                    (crc32 != null && IsValidDatEntry(_datCacheService.FindByCrc32(crc32))))
                 {
                     localEpisode.RomHashVerified = true;
                     return ImportSpecDecision.Accept();
                 }
             }
 
-            var hasPlatformEntries = localEpisode.Series != null &&
-                _datCacheService.HasEntriesForPlatform(localEpisode.Series.TitleSlug, localEpisode.Series.Title);
+            _logger.Warn("Rejecting ROM with unverified DAT hash: {0}", localEpisode.Path);
+            return ImportSpecDecision.Reject(
+                ImportRejectionReason.UnverifiedRomHash,
+                "Unverified ROM Hash: Checksum does not match any verified No-Intro, Redump, TOSEC, or SmokeMonster SMDB DAT entry.");
+        }
 
-            if (hasComputedRomHashes || hasPlatformEntries)
-            {
-                _logger.Warn("Rejecting ROM download with unverified DAT hash: {0}", localEpisode.Path);
-                return ImportSpecDecision.Reject(
-                    ImportRejectionReason.UnverifiedRomHash,
-                    "Unverified ROM Hash: Checksum does not match any verified No-Intro, Redump, TOSEC, or SmokeMonster SMDB DAT entry.");
-            }
-
-            return ImportSpecDecision.Accept();
+        private static bool IsValidDatEntry(DatEntry entry)
+        {
+            return entry != null &&
+                   (entry.Id > 0 ||
+                    !string.IsNullOrWhiteSpace(entry.GameName) ||
+                    !string.IsNullOrWhiteSpace(entry.RomName) ||
+                    !string.IsNullOrWhiteSpace(entry.Crc32) ||
+                    !string.IsNullOrWhiteSpace(entry.Sha1) ||
+                    !string.IsNullOrWhiteSpace(entry.Md5) ||
+                    !string.IsNullOrWhiteSpace(entry.Sha256));
         }
     }
 }

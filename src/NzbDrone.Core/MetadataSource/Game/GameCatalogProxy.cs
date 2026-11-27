@@ -986,15 +986,6 @@ namespace NzbDrone.Core.MetadataSource.Game
                 return true;
             }
 
-            foreach (var builtIn in BuiltInGames.Where(g => g.PlatformTvdbId == platform.TvdbId))
-            {
-                var builtInCopy = CloneGameCatalogEntry(builtIn);
-                if (TryRegisterCrossReferencedGame(builtInCopy))
-                {
-                    platformGames.Add(builtInCopy);
-                }
-            }
-
             var syncedGames = SyncOnlineCatalogForPlatform(
                 platform,
                 encryptionPreference);
@@ -1160,6 +1151,18 @@ namespace NzbDrone.Core.MetadataSource.Game
             catch (Exception ex)
             {
                 _logger?.Debug(ex, "Unable to cross-reference DAT entries for platform {0}", platform.Name);
+            }
+
+            if (platformGames.Count == 0)
+            {
+                foreach (var builtIn in BuiltInGames.Where(g => g.PlatformTvdbId == platform.TvdbId))
+                {
+                    var builtInCopy = CloneGameCatalogEntry(builtIn);
+                    if (TryRegisterCrossReferencedGame(builtInCopy))
+                    {
+                        platformGames.Add(builtInCopy);
+                    }
+                }
             }
 
             PairDlcWithBaseGames(platformGames);

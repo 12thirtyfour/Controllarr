@@ -63,6 +63,14 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             var romPath = Path.Combine(_tempPath, "Super Mario World (USA).sfc");
             File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
 
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(c => c.FindBySha256(It.IsAny<string>()))
+                .Returns(new DatEntry
+                {
+                    GameName = "Super Mario World (USA)",
+                    RomName = "Super Mario World (USA).sfc"
+                });
+
             _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
                 new Series { Id = 1, Title = "SNES" }
@@ -94,6 +102,14 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             Directory.CreateDirectory(bucketDir);
             var romPath = Path.Combine(bucketDir, "Chrono Trigger (USA).sfc");
             File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
+
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(c => c.FindBySha256(It.IsAny<string>()))
+                .Returns(new DatEntry
+                {
+                    GameName = "Chrono Trigger (USA)",
+                    RomName = "Chrono Trigger (USA).sfc"
+                });
 
             _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
@@ -227,6 +243,14 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             var romPath = Path.Combine(_tempPath, "Mega Man 2 (USA).nes");
             File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
 
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(c => c.FindBySha256(It.IsAny<string>()))
+                .Returns(new DatEntry
+                {
+                    GameName = "Mega Man 2 (USA)",
+                    RomName = "Mega Man 2 (USA).nes"
+                });
+
             var junkVideo = Path.Combine(_tempPath, "trailer.mp4");
             File.WriteAllBytes(junkVideo, new byte[] { 4, 5, 6 });
 
@@ -256,6 +280,14 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             Directory.CreateDirectory(usaDir);
             var romPath = Path.Combine(usaDir, "Castlevania (USA).nes");
             File.WriteAllBytes(romPath, new byte[] { 1, 2, 3 });
+
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(c => c.FindBySha256(It.IsAny<string>()))
+                .Returns(new DatEntry
+                {
+                    GameName = "Castlevania (USA)",
+                    RomName = "Castlevania (USA).nes"
+                });
 
             _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
@@ -298,6 +330,14 @@ namespace NzbDrone.Core.Test.LibraryImportTests
                 }
             }
 
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(c => c.FindByCrc32(It.IsAny<string>()))
+                .Returns(new DatEntry
+                {
+                    GameName = "Metroid (USA)",
+                    RomName = "Metroid (USA).nes"
+                });
+
             _seriesService.Setup(s => s.GetAllSeries()).Returns(new List<Series>
             {
                 new Series { Id = 10, Title = "Nintendo Entertainment System", CleanTitle = "nes" }
@@ -310,7 +350,7 @@ namespace NzbDrone.Core.Test.LibraryImportTests
             var results = Subject.Scan(_tempPath);
 
             results.Should().HaveCount(1);
-            results.First().Name.Should().Be("Metroid (USA)");
+            results.First().Name.Should().Be("Metroid");
             results.First().Series.Should().NotBeNull();
             results.First().Series.Title.Should().Be("Nintendo Entertainment System");
             results.First().Episodes.First().Title.Should().Be("Metroid");

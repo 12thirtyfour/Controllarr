@@ -33,6 +33,10 @@ All notable changes to **Controllarr** are documented in this file.
 - **MediaCover Traversal, Tar Arg Injection, HTTP Headers, Errors & Docker (`MediaCoverController`, `BiosService`, `Startup`, `ControllarrErrorPipeline`, `AuthenticationController`, `Dockerfile`, `entrypoint.sh`)**: Blocked directory traversal in V3/V5 `MediaCoverController`, migrated `BiosService` `tar` invocation to `ArgumentList`, added `X-Content-Type-Options`/`X-Frame-Options`/`Referrer-Policy` headers, suppressed full exception stack traces in Release `ErrorModel` responses, URL-encoded failed-login `returnUrl`, tightened `/config` mode to `750`, and prevented `entrypoint.sh` from silently falling back to `UID 0` (`root`).
 
 ### Fixed
+- **Strict Database & Hash-Only Library Population & Verification (`GameCatalogProxy`, `UnmanagedDiskScanner`, `VerifiedRomHashSpecification`)**:
+  - Updated `GameCatalogProxy.GetSeriesInfo` so platforms are populated exclusively from verified DAT/SMDB databases (No-Intro, Redump, SmokeMonster SMDB, NSWDB, GameTDB, TOSEC) whenever catalog entries exist, confining hashless `BuiltInGames` strictly to an empty-catalog fallback.
+  - Updated `UnmanagedDiskScanner.ResolvePlatformAndGame`, `FindMatchingEpisode`, and `VerifyAndEnrichLocalEpisode` to require a meaningful non-empty `DatEntry` hash match before assigning `IsHighConfidenceMatch` or auto-matching/updating `Episode` records (eliminating filename-only auto-matching).
+  - Removed the `downloadClientItem == null` and empty-platform-cache bypasses in `VerifiedRomHashSpecification` so all ROM imports—including manual/disk imports—require a verified DAT/SMDB checksum match.
 - **V5 Settings Serialization (`MediaManagementSettingsResource`, `UiSettingsResource`)**:
   - Restored `AutoDownloadRequiredBios` on `MediaManagementSettingsResource` and `ConsoleRegion` on `UiSettingsResource` (and their resource mappers) so `CollectionSettings` and `UISettings` saves are no longer silently dropped by `/api/v5/settings/*`.
 - **Console Disc & Demo Filtering (`DecisionEngine`)**:

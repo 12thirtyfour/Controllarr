@@ -96,6 +96,9 @@ namespace NzbDrone.Core.Test.MediaFiles.LibraryImport
             parentScanned[0].Series.Should().NotBeNull();
             parentScanned[0].Series.Id.Should().Be(1);
             parentScanned[0].Series.TitleSlug.Should().Be("jaguar");
+            scanned[0].IsDatHashVerified.Should().BeFalse();
+            scanned[0].IsHighConfidenceMatch.Should().BeFalse();
+            scanned[0].Episodes.Should().BeEmpty();
         }
 
         [Test]
@@ -431,6 +434,41 @@ namespace NzbDrone.Core.Test.MediaFiles.LibraryImport
             localEpisode.Episodes.Should().ContainSingle(e => e.Id == 501);
             Mocker.GetMock<IEpisodeService>()
                 .Verify(e => e.InsertMany(It.IsAny<List<Episode>>()), Times.Never());
+        }
+        [Test]
+        public void should_not_auto_match_episode_by_filename_when_dat_hash_is_missing()
+        {
+            var nesPath = Path.Combine(_tempRoot, "Nintendo", "NES");
+            var romPath = Path.Combine(nesPath, "USA", "Super Mario Bros. (USA).nes");
+            Directory.CreateDirectory(Path.GetDirectoryName(romPath));
+            File.WriteAllBytes(romPath, new byte[] { 0xDE, 0xAD, 0xBE, 0xEF });
+
+            var nesSeries = new Series
+            {
+                Id = 55,
+                Title = "Nintendo Entertainment System",
+                CleanTitle = "nes",
+                TitleSlug = "nes",
+                Path = nesPath
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                .Setup(s => s.GetAllSeries())
+                .Returns(new List<Series> { nesSeries });
+
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(e => e.GetEpisodeBySeries(55))
+                .Returns(new List<Episode>
+                {
+                    new Episode { Id = 5501, SeriesId = 55, SeasonNumber = 1, Title = "Super Mario Bros.", FinaleType = "Retail (v1.0)" }
+                });
+
+            var scanned = Subject.Scan(nesPath);
+
+            scanned.Should().ContainSingle();
+            scanned[0].IsDatHashVerified.Should().BeFalse();
+            scanned[0].IsHighConfidenceMatch.Should().BeFalse();
+            scanned[0].Episodes.Should().BeEmpty();
         }
     }
 }

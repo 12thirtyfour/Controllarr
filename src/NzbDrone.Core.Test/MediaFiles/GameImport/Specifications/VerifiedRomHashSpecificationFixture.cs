@@ -63,7 +63,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         }
 
         [Test]
-        public void should_accept_manual_import_when_download_client_item_is_null()
+        public void should_reject_unverified_rom_when_download_client_item_is_null()
         {
             var localEpisode = new LocalEpisode
             {
@@ -72,7 +72,51 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             };
 
             var decision = Subject.IsSatisfiedBy(localEpisode, null);
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+        }
+
+        [Test]
+        public void should_reject_unhashed_rom_even_when_platform_dat_cache_is_empty()
+        {
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Downloads\Mystery Game.rom",
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>()
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, new DownloadClientItem { DownloadId = "dl-empty" });
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
+        }
+
+        [Test]
+        public void should_accept_disk_or_manual_import_when_rom_hash_matches_dat_cache()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.FindBestMatch("b19ed489", null, null, null, null, null))
+                .Returns(new DatEntry
+                {
+                    Id = 2,
+                    GameName = "Super Mario World (USA)",
+                    RomName = "Super Mario World (USA).sfc",
+                    Crc32 = "b19ed489"
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\ManualImport\Super Mario World (USA).sfc",
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "b19ed489" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, null);
             decision.Accepted.Should().BeTrue();
+            localEpisode.RomHashVerified.Should().BeTrue();
         }
 
         [Test]
