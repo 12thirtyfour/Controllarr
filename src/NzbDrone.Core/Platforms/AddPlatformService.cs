@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Tv
         List<Series> AddSeries(List<Series> newSeries, bool ignoreErrors = false);
     }
 
-    public class AddPlatformService : IAddPlatformService
+    public class AddPlatformService : IAddPlatformService, IExecute<ImportPlatformFilesCommand>
     {
         private readonly ISeriesService _seriesService;
         private readonly IEpisodeService _episodeService;
@@ -75,6 +75,34 @@ namespace NzbDrone.Core.Tv
             _logger = logger;
         }
 
+        public void Execute(ImportPlatformFilesCommand message)
+        {
+            if (message == null || message.SeriesId <= 0)
+            {
+                return;
+            }
+
+            var platform = _seriesService.GetSeries(message.SeriesId);
+            if (platform == null)
+            {
+                return;
+            }
+
+            EnsurePlatformFoldersCreated(platform);
+
+            if (message.PopulateLibraryInfo)
+            {
+                PopulatePlatformLibraryInfo(platform);
+            }
+
+            foreach (var incomingPath in (message.IncomingPaths ?? Enumerable.Empty<string>()).Where(p => !string.IsNullOrWhiteSpace(p)))
+            {
+                ImportIncomingFilesToPlatform(platform, incomingPath);
+            }
+
+            _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { platform.Id }, true));
+        }
+
         public Series AddSeries(Series newSeries)
         {
             Ensure.That(newSeries, () => newSeries).IsNotNull();
@@ -104,9 +132,18 @@ namespace NzbDrone.Core.Tv
 
             if (!string.IsNullOrWhiteSpace(incomingSourcePath))
             {
-                PopulatePlatformLibraryInfo(addedSeries);
-                ImportIncomingFilesToPlatform(addedSeries, incomingSourcePath);
-                _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { addedSeries.Id }, true));
+                if (_commandQueueManager != null)
+                {
+                    _commandQueueManager.Push(new ImportPlatformFilesCommand(
+                        addedSeries.Id,
+                        new List<string> { incomingSourcePath },
+                        populateLibraryInfo: true));
+                }
+                else
+                {
+                    PopulatePlatformLibraryInfo(addedSeries);
+                    ImportIncomingFilesToPlatform(addedSeries, incomingSourcePath);
+                }
             }
 
             return addedSeries;
@@ -235,14 +272,22 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
-                PopulatePlatformLibraryInfo(added);
-
-                foreach (var incomingPath in matchingIncoming)
+                if (_commandQueueManager != null)
                 {
-                    ImportIncomingFilesToPlatform(added, incomingPath);
+                    _commandQueueManager.Push(new ImportPlatformFilesCommand(
+                        added.Id,
+                        matchingIncoming,
+                        populateLibraryInfo: true));
                 }
+                else
+                {
+                    PopulatePlatformLibraryInfo(added);
 
-                _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { added.Id }, true));
+                    foreach (var incomingPath in matchingIncoming)
+                    {
+                        ImportIncomingFilesToPlatform(added, incomingPath);
+                    }
+                }
             }
 
             return addedSeries;
@@ -544,9 +589,18 @@ namespace NzbDrone.Core.Tv
                 }
 
                 EnsurePlatformFoldersCreated(existing);
-                ImportIncomingFilesToPlatform(existing, incoming?.Path);
-
-                _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { existing.Id }, true));
+                if (!string.IsNullOrWhiteSpace(incoming?.Path) && _commandQueueManager != null)
+                {
+                    _commandQueueManager.Push(new ImportPlatformFilesCommand(
+                        existing.Id,
+                        new List<string> { incoming.Path },
+                        populateLibraryInfo: false));
+                }
+                else
+                {
+                    ImportIncomingFilesToPlatform(existing, incoming?.Path);
+                    _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { existing.Id }, true));
+                }
             }
             catch (Exception ex)
             {

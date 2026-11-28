@@ -1008,7 +1008,7 @@ namespace NzbDrone.Core.Parser
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex NonRomContentPattern = new(
-            @"(?:\b(?:save[\s._-]*(?:file|game|data|state)s?|game[\s._-]*saves?|saves?|memory[\s._-]*card|action[\s._-]*replay|gameshark|cheat[\s._-]*(?:codes?|database)|strategy[\s._-]*guide|instruction[\s._-]*manual|box[\s._-]*art|cover[\s._-]*art)\b|\bsave(?=\s*(?:\.|[\(\[]|7z|zip|rar|$))|\.(?:sav|srm|eep|fla|mcr|mcd|gci|ps2save|dsv)(?:\b|$))",
+            @"(?:\b(?:save[\s._-]*(?:file|game|data|state)s?|game[\s._-]*saves?|saves|memory[\s._-]*card|action[\s._-]*replay|gameshark|cheat[\s._-]*(?:codes?|database)|strategy[\s._-]*guide|instruction[\s._-]*manual|box[\s._-]*art|cover[\s._-]*art)\b|\bsave(?=\s*(?:\.|[\(\[]|7z|zip|rar|$))|\.(?:sav|srm|eep|fla|mcr|mcd|gci|ps2save|dsv)(?:\b|$))",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex VideoResolutionPattern = new(

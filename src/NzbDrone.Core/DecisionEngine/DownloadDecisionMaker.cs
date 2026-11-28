@@ -32,13 +32,15 @@ namespace NzbDrone.Core.DecisionEngine
         private readonly IParsingService _parsingService;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IRemoteGameAggregationService _aggregationService;
+        private readonly IEpisodeService _episodeService;
         private readonly Logger _logger;
 
         public DownloadDecisionMaker(IEnumerable<IDownloadDecisionEngineSpecification> specifications,
                                      IParsingService parsingService,
                                      ICustomFormatCalculationService formatService,
                                      IRemoteGameAggregationService aggregationService,
-                                     Logger logger)
+                                     Logger logger,
+                                     IEpisodeService episodeService = null)
         {
             _orderedSpecificationGroups = specifications
                 .GroupBy(v => v.Priority)
@@ -48,6 +50,7 @@ namespace NzbDrone.Core.DecisionEngine
             _parsingService = parsingService;
             _formatCalculator = formatService;
             _aggregationService = aggregationService;
+            _episodeService = episodeService;
             _logger = logger;
         }
 
@@ -73,6 +76,7 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             var episodeLookup = BuildSearchEpisodeLookup(searchCriteria);
+            Dictionary<int, SearchEpisodeTitleLookup> rssEpisodeLookups = null;
             var reportNumber = 1;
 
             foreach (var report in reports)
@@ -159,6 +163,32 @@ namespace NzbDrone.Core.DecisionEngine
                                     PlatformCompatibilityValidator.NormalizePlatformSlug(searchCriteria.Series.TitleSlug, searchCriteria.Series.Title))))
                         {
                             remoteEpisode.Series = searchCriteria.Series;
+                        }
+
+                        if (searchCriteria == null &&
+                            remoteEpisode.Series != null &&
+                            remoteEpisode.Episodes.Empty() &&
+                            _episodeService != null &&
+                            !parsedEpisodeInfo.FullSeason)
+                        {
+                            rssEpisodeLookups ??= new Dictionary<int, SearchEpisodeTitleLookup>();
+                            if (!rssEpisodeLookups.TryGetValue(remoteEpisode.Series.Id, out var rssLookup))
+                            {
+                                var platformEpisodes = _episodeService.GetEpisodeBySeries(remoteEpisode.Series.Id) ?? new List<Episode>();
+                                rssLookup = new SearchEpisodeTitleLookup(platformEpisodes);
+                                rssEpisodeLookups[remoteEpisode.Series.Id] = rssLookup;
+                            }
+
+                            var cleanRssTitle = CleanRomTitleForComparison(RomParser.ParseRomName(report.Title)?.GameTitle ?? report.Title);
+                            var matchedEp = rssLookup.FindMatch(cleanRssTitle, parsedEpisodeInfo.SeasonNumber);
+                            if (matchedEp != null)
+                            {
+                                remoteEpisode.Episodes = new List<Episode> { matchedEp };
+                                parsedEpisodeInfo.SeasonNumber = matchedEp.SeasonNumber;
+                                parsedEpisodeInfo.SeasonNumbers = new List<int> { matchedEp.SeasonNumber };
+                                parsedEpisodeInfo.EpisodeNumbers = new[] { matchedEp.EpisodeNumber };
+                                parsedEpisodeInfo.AbsoluteEpisodeNumbers = new[] { matchedEp.AbsoluteEpisodeNumber ?? matchedEp.EpisodeNumber };
+                            }
                         }
 
                         if (remoteEpisode.Series == null)
@@ -258,6 +288,7 @@ namespace NzbDrone.Core.DecisionEngine
         private sealed class SearchEpisodeTitleLookup
         {
             private readonly Dictionary<string, Episode> _exactMatches = new(StringComparer.Ordinal);
+            private readonly Dictionary<(string Title, int SeasonNumber), Episode> _regionMatches = new();
 
             public SearchEpisodeTitleLookup(IList<Episode> episodes)
             {
@@ -275,14 +306,22 @@ namespace NzbDrone.Core.DecisionEngine
                     }
 
                     _exactMatches.TryAdd(targetClean, ep);
+                    _regionMatches.TryAdd((targetClean, ep.SeasonNumber), ep);
                 }
             }
 
-            public Episode FindMatch(string cleanCandidate)
+            public Episode FindMatch(string cleanCandidate, int? preferredSeasonNumber = null)
             {
                 if (string.IsNullOrEmpty(cleanCandidate))
                 {
                     return null;
+                }
+
+                if (preferredSeasonNumber.HasValue &&
+                    preferredSeasonNumber.Value > 0 &&
+                    _regionMatches.TryGetValue((cleanCandidate, preferredSeasonNumber.Value), out var regionMatch))
+                {
+                    return regionMatch;
                 }
 
                 return _exactMatches.TryGetValue(cleanCandidate, out var exact) ? exact : null;
@@ -544,8 +583,11 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             return !ParentheticalRegionTagRegex.IsMatch(text) &&
-                   (text.Contains("Collection", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("Complete", StringComparison.OrdinalIgnoreCase));
+                   (text.Contains("Complete Collection", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Complete Set", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Complete Rom", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Full Collection", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("Rom Collection", StringComparison.OrdinalIgnoreCase));
         }
 
         private static readonly ConcurrentDictionary<string, Regex> WordBoundaryRegexCache = new(StringComparer.OrdinalIgnoreCase);
@@ -643,7 +685,7 @@ namespace NzbDrone.Core.DecisionEngine
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex SceneTagsRegex = new(
-            @"(?<![A-Za-z0-9])(USA|EUR|JPN|ASIA|WORLD|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|PS1|PSX|PS2|PS3|PS4|PS5|PSP|PSVITA|WII|WIIU|XBOX|XBOX360|ISO|ROM|CHD|RVZ|CUE|BIN)(?![A-Za-z0-9])",
+            @"(?<![A-Za-z0-9])(USA|EUR|JPN|ASIA|WORLD|PAL|NTSC|NTSC-U|NTSC-J|AUS|CAN|KOR|CHN|TWN|UK|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|PS1|PSX|PS2|PS3|PS4|PS5|PSP|PSVITA|WII|WIIU|XBOX|XBOX360|ISO|ROM|CHD|RVZ|CUE|BIN)(?![A-Za-z0-9])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex SceneGroupSuffixRegex = new(
@@ -651,7 +693,7 @@ namespace NzbDrone.Core.DecisionEngine
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex PlatformWordsStripRegex = new(
-            @"(?<![A-Za-z0-9])(?:Game\s*Boy\s+Advance|Game\s*Boy\s+Color|Game\s*Boy|Super\s+Nintendo(?:\s+Entertainment\s+System)?|Nintendo\s+Entertainment\s+System|Nintendo\s+64DD|Nintendo\s+64|Nintendo\s+GameCube|GameCube|Nintendo\s+Wii\s*U|Nintendo\s+Wii|Nintendo\s+Switch|Nintendo\s+3DS|Nintendo\s+DS|Virtual\s+Boy|PlayStation\s+Portable|PlayStation\s+Vita|Sony\s+PlayStation(?:\s*[12345])?|Sega\s+Genesis|Mega\s+Drive|Master\s+System|Game\s+Gear|Sega\s+Saturn|Sega\s+Dreamcast|Sega\s+CD|Mega\s*CD|Sega\s+32X|SG-1000|Atari\s+Lynx|Atari\s+Jaguar(?:\s+CD)?|Atari\s+(?:2600|5200|7800)|TurboGrafx(?:-|\s*)16|PC\s+Engine|PC-FX|Philips\s+CD-?i|CD-?i|3DO(?:\s+Interactive\s+Multiplayer)?|Amiga\s+CD32|ColecoVision|Intellivision|Vectrex|Neo\s*Geo(?:\s+(?:CD|Pocket(?:\s+Color)?))?|WonderSwan(?:\s+Color)?|Famicom\s+Disk\s+System)(?![A-Za-z0-9])",
+            @"(?<![A-Za-z0-9])(?:Game\s*Boy\s+Advance|Game\s*Boy\s+Color|Game\s*Boy|Super\s+Nintendo(?:\s+Entertainment\s+System)?|Nintendo\s+Entertainment\s+System|Nintendo\s+64DD|Nintendo\s+64|Nintendo\s+GameCube|GameCube|Nintendo\s+Wii\s*U|Nintendo\s+Wii|Nintendo\s+Switch|Nintendo\s+3DS|Nintendo\s+DS|Nintendo\s+(?:3DS|DS|Switch|GBA|GBC|GB|NES|SNES|N64|WiiU?|GC)|Virtual\s+Boy|PlayStation\s+Portable|PlayStation\s+Vita|Sony\s+PlayStation(?:\s*[12345])?|Sony\s+(?:PS[1-5]|PSP|PSV(?:ita)?)|Sega\s+Genesis|Mega\s+Drive|Master\s+System|Game\s+Gear|Sega\s+Saturn|Sega\s+Dreamcast|Sega\s+CD|Mega\s*CD|Sega\s+32X|Sega\s+(?:CD|DC|MD|SMS|GG|Saturn|Dreamcast|Genesis)|SG-1000|Microsoft\s+Xbox(?:\s*360|\s*One)?|Atari\s+Lynx|Atari\s+Jaguar(?:\s+CD)?|Atari\s+(?:2600|5200|7800)|TurboGrafx(?:-|\s*)16|PC\s+Engine|PC-FX|Philips\s+CD-?i|CD-?i|3DO(?:\s+Interactive\s+Multiplayer)?|Amiga\s+CD32|ColecoVision|Intellivision|Vectrex|Neo\s*Geo(?:\s+(?:CD|Pocket(?:\s+Color)?))?|WonderSwan(?:\s+Color)?|Famicom\s+Disk\s+System)(?![A-Za-z0-9])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex TrailingDashRegionOrReleaseRegex = new(

@@ -46,7 +46,11 @@ function ImportPlatform() {
     data: detailedImportFolder,
   } = useImportFolder(sourceFolderId, false);
 
-  const { data: fallbackRootFolder } = useRootFolder(sourceFolderId, false);
+  const { data: fallbackRootFolder } = useRootFolder(
+    sourceFolderId,
+    false,
+    Boolean(importFolderError)
+  );
 
   const isLoading =
     (importFoldersFetching && !importFoldersFetched && !detailedImportFolder) ||

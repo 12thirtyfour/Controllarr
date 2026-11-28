@@ -209,6 +209,32 @@ namespace NzbDrone.Core.Test.PlatformTests
             results[0].Should().BeSameAs(existing);
 
             Mocker.GetMock<IManageCommandQueue>()
+                  .Verify(q => q.Push(It.Is<ImportPlatformFilesCommand>(c => c.SeriesId == 42 && c.IncomingPaths.Contains(@"C:\Games\Game Boy.zip"))), Times.Once());
+        }
+
+        [Test]
+        public void should_execute_import_platform_files_command_and_queue_refresh()
+        {
+            var platform = new Series
+            {
+                Id = 42,
+                Title = "Nintendo Game Boy",
+                TvdbId = 1007,
+                TitleSlug = "gb",
+                Path = @"C:\Games\Game Boy"
+            };
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetSeries(42))
+                  .Returns(platform);
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FolderExists(It.IsAny<string>()))
+                  .Returns(true);
+
+            Subject.Execute(new ImportPlatformFilesCommand(42, new List<string> { @"C:\Downloads\GB" }, populateLibraryInfo: false));
+
+            Mocker.GetMock<IManageCommandQueue>()
                   .Verify(q => q.Push(It.Is<RefreshPlatformCommand>(c => c.SeriesIds.Contains(42))), Times.Once());
         }
 
@@ -421,6 +447,17 @@ namespace NzbDrone.Core.Test.PlatformTests
                   .Setup(r => r.All())
                   .Returns(new List<RootFolder> { new RootFolder { Id = 1, Path = targetRoot } });
 
+            Series addedPlatform = null;
+            ImportPlatformFilesCommand queuedImportCommand = null;
+
+            Mocker.GetMock<IManageCommandQueue>()
+                  .Setup(q => q.Push(It.IsAny<ImportPlatformFilesCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()))
+                  .Callback<ImportPlatformFilesCommand, CommandPriority, CommandTrigger>((cmd, _, _) => queuedImportCommand = cmd);
+
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.GetSeries(42))
+                  .Returns(() => addedPlatform);
+
             Mocker.GetMock<ISeriesService>()
                   .Setup(s => s.AddSeries(It.IsAny<List<Series>>()))
                   .Callback<List<Series>>(list =>
@@ -430,6 +467,8 @@ namespace NzbDrone.Core.Test.PlatformTests
                       {
                           item.Id = 42;
                       }
+
+                      addedPlatform = list.Count > 0 ? list[0] : null;
                   })
                   .Returns<List<Series>>(list => list);
 
@@ -451,6 +490,10 @@ namespace NzbDrone.Core.Test.PlatformTests
             var added = Subject.AddSeries(new List<Series> { newSeries });
 
             added.Should().ContainSingle();
+            queuedImportCommand.Should().NotBeNull();
+            queuedImportCommand.PopulateLibraryInfo.Should().BeTrue();
+            Subject.Execute(queuedImportCommand);
+
             callOrder.Should().ContainInOrder("AddSeries", "RefreshEpisodeInfo", "ImportIncomingFiles");
 
             Mocker.GetMock<IRefreshGameService>()

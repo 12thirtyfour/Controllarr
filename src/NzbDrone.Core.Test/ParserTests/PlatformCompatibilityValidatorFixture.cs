@@ -310,5 +310,13 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             PlatformCompatibilityValidator.IsPcOrNonConsoleRelease(releaseTitle).Should().Be(expected);
         }
+
+        [TestCase("Save the Furries USA WiiWare Wii-OneUp", false)]
+        [TestCase("Super Mario 64 Save File.zip", true)]
+        [TestCase("Zelda Game Saves.7z", true)]
+        public void should_not_flag_save_verb_in_game_titles_as_non_rom_content(string releaseTitle, bool expected)
+        {
+            PlatformCompatibilityValidator.IsNonRomContentRelease(releaseTitle).Should().Be(expected);
+        }
     }
 }

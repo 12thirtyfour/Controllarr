@@ -673,5 +673,65 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions.Select(d => d.RemoteEpisode.Episodes.Single().Title)
                 .Should().BeEquivalentTo(new[] { "Escape From Cyber City", "How The Rhinoceros Got His Skin" });
         }
+
+        [Test]
+        public void should_resolve_single_game_scene_and_collection_title_releases_in_rss_sync()
+        {
+            var ps2Platform = new Series
+            {
+                Id = 60,
+                Title = "Sony PlayStation 2",
+                CleanTitle = "playstation2",
+                TitleSlug = "ps2",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 }, new Season { SeasonNumber = 2 } }
+            };
+
+            var wiiPlatform = new Series
+            {
+                Id = 61,
+                Title = "Nintendo Wii",
+                CleanTitle = "wii",
+                TitleSlug = "wii",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 }, new Season { SeasonNumber = 2 } }
+            };
+
+            var nightfire = new Episode { Id = 601, SeriesId = 60, SeasonNumber = 1, EpisodeNumber = 1, Title = "007 - Nightfire" };
+            var monopolyCollection = new Episode { Id = 602, SeriesId = 61, SeasonNumber = 2, EpisodeNumber = 1, Title = "Monopoly Collection" };
+
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(e => e.GetEpisodeBySeries(60))
+                .Returns(new List<Episode> { nightfire });
+            Mocker.GetMock<IEpisodeService>()
+                .Setup(e => e.GetEpisodeBySeries(61))
+                .Returns(new List<Episode> { monopolyCollection });
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
+                .Returns<ParsedEpisodeInfo, int, int, string, SearchCriteriaBase>((p, _, _, _, _) => new RemoteEpisode
+                {
+                    Series = p.SeriesTitle?.Contains("Wii", StringComparison.OrdinalIgnoreCase) == true ? wiiPlatform : ps2Platform,
+                    ParsedEpisodeInfo = p,
+                    Episodes = new List<Episode>()
+                });
+
+            Mocker.SetConstant<IEnumerable<IDownloadDecisionEngineSpecification>>(new List<IDownloadDecisionEngineSpecification>
+            {
+                Mocker.Resolve<MultiRegionSpecification>()
+            });
+
+            var reports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo { Title = "Sony.PS2.007.Nightfire.USA", Indexer = "NZBgeek" },
+                new ReleaseInfo { Title = "Monopoly Collection PAL WII-ZER0", Indexer = "NZBgeek" }
+            };
+
+            var decisions = Subject.GetRssDecision(reports).ToList();
+
+            decisions.Should().HaveCount(2);
+            decisions.Should().OnlyContain(d => d.Approved);
+            decisions[0].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 601);
+            decisions[1].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 602);
+            decisions[1].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeFalse();
+        }
     }
 }

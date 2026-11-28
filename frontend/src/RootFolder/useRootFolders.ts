@@ -41,7 +41,11 @@ const useRootFolders = () => {
   };
 };
 
-export const useRootFolder = (id: number, timeout: boolean) => {
+export const useRootFolder = (
+  id: number,
+  timeout: boolean,
+  enabled = true
+) => {
   const result = useApiQuery<RootFolder>({
     path: `/rootFolder/${id}`,
     queryParams: { timeout },
@@ -49,6 +53,8 @@ export const useRootFolder = (id: number, timeout: boolean) => {
       // Disable refetch on window focus to prevent refetching when the user switch tabs
       refetchOnWindowFocus: false,
       refetchOnMount: 'always',
+      enabled,
+      retry: false,
     },
   });
 
