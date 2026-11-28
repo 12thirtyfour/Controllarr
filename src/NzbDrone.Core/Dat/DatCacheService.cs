@@ -343,6 +343,17 @@ namespace NzbDrone.Core.Dat
                 return true;
             }
 
+            if (!string.IsNullOrWhiteSpace(slug))
+            {
+                var aliases = PlatformCompatibilityValidator.GetAliasesForPlatform(slug);
+                if (aliases.Any(a => a.Length >= 5 &&
+                                     (fileName.Contains(a, StringComparison.OrdinalIgnoreCase) ||
+                                      desc.Contains(a, StringComparison.OrdinalIgnoreCase))))
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 

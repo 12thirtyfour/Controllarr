@@ -1044,9 +1044,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 var url = $"https://api.screenscraper.fr/api2/jeuRecherche.php?output=json&ssid={Uri.EscapeDataString(scraper.Username)}&sspassword={Uri.EscapeDataString(scraper.Password)}&softname=Controllarr&recherche={Uri.EscapeDataString(gameTitle)}";
                 var response = ExecuteRateLimitedRequest(scraper.Id, url);
-                if (response != null && !string.IsNullOrWhiteSpace(response.Content))
+                if (response != null && TryParseScraperJson(scraper.Id, scraper.Name, response.Content, out var doc))
                 {
-                    using (var doc = JsonDocument.Parse(response.Content))
+                    using (doc)
                     {
                         if (doc.RootElement.TryGetProperty("response", out var respEl) &&
                             respEl.TryGetProperty("jeux", out var jeuxEl) &&
@@ -1107,9 +1107,9 @@ namespace NzbDrone.Core.MetadataSource.Game
             {
                 var url = $"https://api.thegamesdb.net/v1/Games/ByGameName?apikey={Uri.EscapeDataString(scraper.ApiKey)}&name={Uri.EscapeDataString(gameTitle)}&include=boxart";
                 var response = ExecuteRateLimitedRequest(scraper.Id, url);
-                if (response != null && !string.IsNullOrWhiteSpace(response.Content))
+                if (response != null && TryParseScraperJson(scraper.Id, scraper.Name, response.Content, out var doc))
                 {
-                    using (var doc = JsonDocument.Parse(response.Content))
+                    using (doc)
                     {
                         if (doc.RootElement.TryGetProperty("include", out var incEl) &&
                             incEl.TryGetProperty("boxart", out var boxartEl))
@@ -1182,9 +1182,9 @@ namespace NzbDrone.Core.MetadataSource.Game
                     igdbReq.SetContent($"search \"{safeQuery}\"; fields name,cover.image_id,screenshots.image_id,artworks.image_id; limit 1;");
 
                     var igdbResp = _httpClient?.Execute(igdbReq);
-                    if (igdbResp != null && !igdbResp.HasHttpError && !string.IsNullOrWhiteSpace(igdbResp.Content))
+                    if (igdbResp != null && !igdbResp.HasHttpError && TryParseScraperJson(scraper.Id, scraper.Name, igdbResp.Content, out var igdbDoc))
                     {
-                        using (var igdbDoc = JsonDocument.Parse(igdbResp.Content))
+                        using (igdbDoc)
                         {
                             if (igdbDoc.RootElement.ValueKind == JsonValueKind.Array)
                             {
@@ -1259,7 +1259,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 };
 
                 var tokenResp = _httpClient.Execute(tokenReq);
-                if (tokenResp == null || tokenResp.HasHttpError || string.IsNullOrWhiteSpace(tokenResp.Content))
+                if (tokenResp == null || tokenResp.HasHttpError || !TryParseScraperJson("igdb", "IGDB (Twitch Developer API)", tokenResp.Content, out var tokenDoc))
                 {
                     return null;
                 }
@@ -1267,7 +1267,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                 string accessToken = null;
                 var expiresInSeconds = 3600;
 
-                using (var tokenDoc = JsonDocument.Parse(tokenResp.Content))
+                using (tokenDoc)
                 {
                     if (tokenDoc.RootElement.TryGetProperty("access_token", out var atEl))
                     {
@@ -1300,6 +1300,41 @@ namespace NzbDrone.Core.MetadataSource.Game
             }
         }
 
+        private bool TryParseScraperJson(string scraperId, string scraperName, string content, out JsonDocument document)
+        {
+            document = null;
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+
+            var trimmed = content.Trim();
+            if (!trimmed.StartsWith('{') && !trimmed.StartsWith('['))
+            {
+                var singleLine = Regex.Replace(trimmed, @"\s+", " ");
+                if (singleLine.Length > 160)
+                {
+                    singleLine = string.Concat(singleLine.AsSpan(0, 160), "...");
+                }
+
+                _logger?.Debug("Scraper {0} returned non-JSON response ('{1}'); registering cooldown and cascading to next priority scraper.", scraperName, singleLine);
+                RegisterScraperCooldown(scraperId, TimeSpan.FromMinutes(5));
+                return false;
+            }
+
+            try
+            {
+                document = JsonDocument.Parse(trimmed);
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                _logger?.Debug(ex, "Scraper {0} returned malformed JSON; registering cooldown.", scraperName);
+                RegisterScraperCooldown(scraperId, TimeSpan.FromMinutes(2));
+                return false;
+            }
+        }
+
         private HttpResponse ExecuteRateLimitedRequest(string scraperId, string url)
         {
             if (_httpClient == null)
@@ -1314,13 +1349,20 @@ namespace NzbDrone.Core.MetadataSource.Game
             };
 
             var response = _httpClient.Execute(request);
-            if (response != null &&
-                (response.StatusCode == HttpStatusCode.TooManyRequests ||
-                 response.StatusCode == HttpStatusCode.Forbidden ||
-                 response.StatusCode == HttpStatusCode.ServiceUnavailable))
+            if (response != null)
             {
-                RegisterScraperCooldown(scraperId, TimeSpan.FromMinutes(2));
-                return null;
+                var statusCode = (int)response.StatusCode;
+                if (response.StatusCode == HttpStatusCode.TooManyRequests ||
+                    response.StatusCode == HttpStatusCode.Forbidden ||
+                    response.StatusCode == HttpStatusCode.Unauthorized ||
+                    response.StatusCode == HttpStatusCode.ServiceUnavailable ||
+                    statusCode == 430 ||
+                    statusCode == 431 ||
+                    statusCode == 432)
+                {
+                    RegisterScraperCooldown(scraperId, TimeSpan.FromMinutes(2));
+                    return null;
+                }
             }
 
             return response != null && !response.HasHttpError ? response : null;

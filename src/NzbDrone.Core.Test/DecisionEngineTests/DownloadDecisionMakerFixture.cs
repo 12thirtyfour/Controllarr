@@ -733,5 +733,103 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             decisions[1].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 602);
             decisions[1].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeFalse();
         }
+
+        [Test]
+        public void should_not_flag_redump_source_hack_as_multi_region_full_set_and_should_match_xboxdvd_and_scene_language_tags()
+        {
+            var xboxPlatform = new Series
+            {
+                Id = 70,
+                Title = "Microsoft Xbox",
+                CleanTitle = "xbox",
+                TitleSlug = "xbox",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 } }
+            };
+
+            var ps2Platform = new Series
+            {
+                Id = 71,
+                Title = "Sony PlayStation 2",
+                CleanTitle = "playstation2",
+                TitleSlug = "ps2",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 } }
+            };
+
+            var saturnPlatform = new Series
+            {
+                Id = 72,
+                Title = "Sega Saturn",
+                CleanTitle = "saturn",
+                TitleSlug = "saturn",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 } }
+            };
+
+            var wiiPlatform = new Series
+            {
+                Id = 73,
+                Title = "Nintendo Wii",
+                CleanTitle = "wii",
+                TitleSlug = "wii",
+                Seasons = new List<Season> { new Season { SeasonNumber = 1 }, new Season { SeasonNumber = 2 } }
+            };
+
+            var area51 = new Episode { Id = 701, SeriesId = 70, SeasonNumber = 1, EpisodeNumber = 1, Title = "Area 51" };
+            var game24 = new Episode { Id = 702, SeriesId = 71, SeasonNumber = 1, EpisodeNumber = 1, Title = "24 - The Game" };
+            var legendOfOasis = new Episode { Id = 703, SeriesId = 72, SeasonNumber = 1, EpisodeNumber = 1, Title = "Legend of Oasis 4-in-1 Hack" };
+            var captainAmerica = new Episode { Id = 704, SeriesId = 73, SeasonNumber = 2, EpisodeNumber = 1, Title = "Captain America: Super Soldier" };
+
+            Mocker.GetMock<IEpisodeService>().Setup(e => e.GetEpisodeBySeries(70)).Returns(new List<Episode> { area51 });
+            Mocker.GetMock<IEpisodeService>().Setup(e => e.GetEpisodeBySeries(71)).Returns(new List<Episode> { game24 });
+            Mocker.GetMock<IEpisodeService>().Setup(e => e.GetEpisodeBySeries(72)).Returns(new List<Episode> { legendOfOasis });
+            Mocker.GetMock<IEpisodeService>().Setup(e => e.GetEpisodeBySeries(73)).Returns(new List<Episode> { captainAmerica });
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(c => c.Map(It.IsAny<ParsedEpisodeInfo>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), null))
+                .Returns<ParsedEpisodeInfo, int, int, string, SearchCriteriaBase>((p, _, _, _, _) =>
+                {
+                    var matchedSeries = p.SeriesTitle switch
+                    {
+                        var t when t != null && t.Contains("Xbox", StringComparison.OrdinalIgnoreCase) => xboxPlatform,
+                        var t when t != null && t.Contains("PlayStation 2", StringComparison.OrdinalIgnoreCase) => ps2Platform,
+                        var t when t != null && t.Contains("Saturn", StringComparison.OrdinalIgnoreCase) => saturnPlatform,
+                        _ => wiiPlatform
+                    };
+
+                    return new RemoteEpisode
+                    {
+                        Series = matchedSeries,
+                        ParsedEpisodeInfo = p,
+                        Episodes = new List<Episode>()
+                    };
+                });
+
+            Mocker.SetConstant<IEnumerable<IDownloadDecisionEngineSpecification>>(new List<IDownloadDecisionEngineSpecification>
+            {
+                Mocker.Resolve<MultiRegionSpecification>()
+            });
+
+            var reports = new List<ReleaseInfo>
+            {
+                new ReleaseInfo { Title = "Area 51-USA-XBOXDVD-DAGGER", Indexer = "NZBgeek" },
+                new ReleaseInfo { Title = "Sony.PS2.24.The.Game.USA.En.Fr.Es", Indexer = "NZBgeek" },
+                new ReleaseInfo
+                {
+                    Title = "Legend of Oasis 4-in-1 Hack (U) Redump Source v1.1 paul_met.7z",
+                    Indexer = "Internet Archive",
+                    InfoUrl = "https://archive.org/details/sega-saturn-hacks"
+                },
+                new ReleaseInfo { Title = "Captain.America.Super.Soldier.PAL.iNT.WII-GXC", Indexer = "NZBgeek" }
+            };
+
+            var decisions = Subject.GetRssDecision(reports).ToList();
+
+            decisions.Should().HaveCount(4);
+            decisions.Should().OnlyContain(d => d.Approved);
+            decisions[0].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 701);
+            decisions[1].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 702);
+            decisions[2].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 703);
+            decisions[2].RemoteEpisode.ParsedEpisodeInfo.IsMultiSeason.Should().BeFalse();
+            decisions[3].RemoteEpisode.Episodes.Should().ContainSingle(e => e.Id == 704);
+        }
     }
 }

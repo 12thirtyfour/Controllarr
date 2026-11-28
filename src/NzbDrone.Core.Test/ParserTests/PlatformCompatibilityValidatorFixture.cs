@@ -318,5 +318,14 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             PlatformCompatibilityValidator.IsNonRomContentRelease(releaseTitle).Should().Be(expected);
         }
+
+        [TestCase("Area 51-USA-XBOXDVD-DAGGER", "Microsoft Xbox")]
+        [TestCase("pcecd-collection", "NEC TurboGrafx-CD")]
+        [TestCase("turbografxcd_usa", "NEC TurboGrafx-CD")]
+        [TestCase("Pool Hustler PSX2PSP", "Sony PlayStation Portable")]
+        public void should_resolve_platform_name_from_scene_and_archive_tags(string releaseTitle, string expectedPlatform)
+        {
+            PlatformCompatibilityValidator.ResolvePlatformName(releaseTitle).Should().Be(expectedPlatform);
+        }
     }
 }

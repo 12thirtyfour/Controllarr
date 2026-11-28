@@ -191,7 +191,7 @@ namespace NzbDrone.Core.Parser
             (new Regex(@"(?:\b|_|\[|\()(?:(?:nec\s+)?(?:pc\s*engine\s+)?super\s*grafx|supergrafx|sgx)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "supergrafx"),
 
             // TurboGrafx-CD / PC Engine CD (must precede TurboGrafx-16 / PC Engine)
-            (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:[\s._-]*16)?[\s._-]*cd|pc[\s._-]*engine[\s._-]*(?:super[\s._-]*)?cd(?:-?rom2?)?|tg(?:fx)?16[\s._-]*cd|tg-?cd|pce[\s._-]*cd)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
+            (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:[\s._-]*16)?[\s._-]*cd|turbografxcd|pc[\s._-]*engine[\s._-]*(?:super[\s._-]*)?cd(?:-?rom2?)?|pcenginecd|tg(?:fx)?16[\s._-]*cd|tg-?cd|pce[\s._-]*cd(?:rom2?)?)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tgcd"),
 
             // TurboGrafx-16 / PC Engine
             (new Regex(@"(?:\b|_|\[|\()(?:turbografx(?:-16|\s*16)?|pc\s*engine|tg16|pce)(?:\b|_|\]|\))", RegexOptions.IgnoreCase | RegexOptions.Compiled), "tg16"),
@@ -967,6 +967,19 @@ namespace NzbDrone.Core.Parser
             var clean = !string.IsNullOrWhiteSpace(nameOrSlugOrFilename)
                 ? (isKnownRomOrArchiveExt ? Path.GetFileNameWithoutExtension(nameOrSlugOrFilename).Trim() : nameOrSlugOrFilename.Trim())
                 : string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(clean))
+            {
+                var detected = DetectPlatforms(clean);
+                if (detected.Count == 1)
+                {
+                    var detectedSlug = detected.First();
+                    if (CanonicalPlatformNames.TryGetValue(detectedSlug, out var detectedCanonName))
+                    {
+                        return detectedCanonName;
+                    }
+                }
+            }
 
             var slug = NormalizePlatformSlug(null, clean);
             if (!string.IsNullOrWhiteSpace(slug) && CanonicalPlatformNames.TryGetValue(slug, out var canonName))

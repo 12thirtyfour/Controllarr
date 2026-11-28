@@ -37,6 +37,18 @@ namespace NzbDrone.Core.MediaFiles
             @"\s*\(\s*(?:Disc|Disk|CD|Side|GD-ROM)\s*(?:\d+(?:\s*of\s*\d+)?|[A-Z])\s*\)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex HexCrcTagRegex = new Regex(
+            @"^[0-9A-Fa-f]{8}$",
+            RegexOptions.Compiled);
+
+        private static readonly Regex ParentheticalGroupRegex = new Regex(
+            @"\(([^)]+)\)",
+            RegexOptions.Compiled);
+
+        private static readonly Regex PlainRegionOrLanguageTagRegex = new Regex(
+            @"^(?:USA|Europe|Japan|World|Australia|Canada|Brazil|Korea|China|Taiwan|Asia|France|Germany|Spain|Italy|Netherlands|Sweden|Denmark|Norway|Finland|Portugal|Russia|Poland|Greece|UK|EU|US|JP|U|E|J|W|En|Fr|De|Es|It|Ja|Nl|Pt|Sv|No|Da|Fi|Ko|Zh)(?:\s*,\s*(?:USA|Europe|Japan|World|Australia|Canada|Brazil|Korea|China|Taiwan|Asia|France|Germany|Spain|Italy|Netherlands|Sweden|Denmark|Norway|Finland|Portugal|Russia|Poland|Greece|UK|EU|US|JP|U|E|J|W|En|Fr|De|Es|It|Ja|Nl|Pt|Sv|No|Da|Fi|Ko|Zh))*$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly IEpisodeService _gameService;
         private readonly IUpdateRomFileService _updateRomFileService;
         private readonly IBuildFileNames _buildFileNames;
@@ -154,6 +166,13 @@ namespace NzbDrone.Core.MediaFiles
                 throw new SameFilenameException("File not moved, source and destination are the same", romFilePath);
             }
 
+            if (!romFilePath.PathEquals(destinationFilePath) && DestinationExists(destinationFilePath))
+            {
+                var originalDestination = destinationFilePath;
+                destinationFilePath = ResolveCollisionFreeDestinationPath(destinationFilePath, romFilePath, romFile, games, localGame);
+                _logger.Info("Destination '{0}' already exists for another ROM; disambiguating destination to '{1}' to prevent overwrite.", originalDestination, destinationFilePath);
+            }
+
             romFile.RelativePath = platform.Path.GetRelativePath(destinationFilePath);
 
             if (localGame is not null)
@@ -196,6 +215,19 @@ namespace NzbDrone.Core.MediaFiles
                         transferSourcePath = stagedPath;
                         transferMode = TransferMode.Move;
                         stagedPreprocessed = true;
+
+                        if (!originalRomFilePath.PathEquals(destinationFilePath) && DestinationExists(destinationFilePath))
+                        {
+                            var originalDestination = destinationFilePath;
+                            destinationFilePath = ResolveCollisionFreeDestinationPath(destinationFilePath, originalRomFilePath, romFile, games, localGame);
+                            romFile.RelativePath = platform.Path.GetRelativePath(destinationFilePath);
+                            if (localGame is not null)
+                            {
+                                localGame.FileNameBeforeRename = romFile.RelativePath;
+                            }
+
+                            _logger.Info("Staged destination '{0}' already exists for another ROM; disambiguating destination to '{1}' to prevent overwrite.", originalDestination, destinationFilePath);
+                        }
                     }
 
                     _importActivityService?.SetCurrentActivity(mode == TransferMode.Move ? "Moving..." : "Copying...");
@@ -209,7 +241,7 @@ namespace NzbDrone.Core.MediaFiles
                     }
                     else
                     {
-                        _diskTransferService.TransferFile(transferSourcePath, destinationFilePath, transferMode, File.Exists(destinationFilePath));
+                        _diskTransferService.TransferFile(transferSourcePath, destinationFilePath, transferMode, false);
                     }
 
                     if (stagedPreprocessed && mode == TransferMode.Move)
@@ -890,6 +922,105 @@ namespace NzbDrone.Core.MediaFiles
 
             var stripped = DiscSuffixRegex.Replace(fileNameWithoutExtension, string.Empty);
             return Regex.Replace(stripped, @"\s{2,}", " ").Trim();
+        }
+
+        private bool DestinationExists(string destinationPath)
+        {
+            return (_diskProvider != null && _diskProvider.FileExists(destinationPath)) || File.Exists(destinationPath);
+        }
+
+        private string ResolveCollisionFreeDestinationPath(
+            string destinationFilePath,
+            string sourceFilePath,
+            EpisodeFile romFile,
+            List<Episode> games,
+            LocalEpisode localGame)
+        {
+            var directory = Path.GetDirectoryName(destinationFilePath) ?? string.Empty;
+            var fileNameWithoutExt = Path.GetFileNameWithoutExtension(destinationFilePath);
+            var extension = Path.GetExtension(destinationFilePath);
+
+            var candidates = new List<string>();
+
+            var finaleType = games?.FirstOrDefault()?.FinaleType?.Trim();
+            if (!string.IsNullOrWhiteSpace(finaleType) &&
+                !finaleType.Equals("Retail (v1.0)", StringComparison.OrdinalIgnoreCase) &&
+                !finaleType.Equals("Retail", StringComparison.OrdinalIgnoreCase) &&
+                !finaleType.Equals("Standard", StringComparison.OrdinalIgnoreCase) &&
+                !finaleType.Equals("v1.0", StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add(finaleType.Trim('(', ')', ' '));
+            }
+
+            if (localGame?.RomHashes != null &&
+                localGame.RomHashes.TryGetValue("CRC32", out var crc32) &&
+                !string.IsNullOrWhiteSpace(crc32))
+            {
+                candidates.Add(crc32.Trim().ToUpperInvariant());
+            }
+
+            var rawHash = !string.IsNullOrWhiteSpace(localGame?.ReleaseHash)
+                ? localGame.ReleaseHash
+                : romFile?.ReleaseHash;
+
+            if (!string.IsNullOrWhiteSpace(rawHash))
+            {
+                var trimmedHash = rawHash.Trim();
+                var shortHash = trimmedHash.Length > 8 ? trimmedHash.Substring(0, 8) : trimmedHash;
+                candidates.Add(shortHash.ToUpperInvariant());
+            }
+
+            var sourceName = Path.GetFileNameWithoutExtension(sourceFilePath) ?? string.Empty;
+            var parenMatches = ParentheticalGroupRegex.Matches(sourceName);
+            for (var i = parenMatches.Count - 1; i >= 0; i--)
+            {
+                var tag = parenMatches[i].Groups[1].Value.Trim();
+                if (string.IsNullOrWhiteSpace(tag) || PlainRegionOrLanguageTagRegex.IsMatch(tag))
+                {
+                    continue;
+                }
+
+                if (HexCrcTagRegex.IsMatch(tag))
+                {
+                    candidates.Add(tag.ToUpperInvariant());
+                }
+                else
+                {
+                    candidates.Add(tag);
+                }
+            }
+
+            var triedTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rawTag in candidates)
+            {
+                var cleanTag = FileNameBuilder.CleanFileName(rawTag)?.Trim();
+                if (string.IsNullOrWhiteSpace(cleanTag) || !triedTags.Add(cleanTag))
+                {
+                    continue;
+                }
+
+                if (fileNameWithoutExt.Contains($"({cleanTag})", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var candidatePath = Path.Combine(directory, $"{fileNameWithoutExt} ({cleanTag}){extension}");
+                if (candidatePath.PathEquals(sourceFilePath) || !DestinationExists(candidatePath))
+                {
+                    return candidatePath;
+                }
+            }
+
+            for (var index = 2; index <= 1000; index++)
+            {
+                var numberedPath = Path.Combine(directory, $"{fileNameWithoutExt} ({index}){extension}");
+                if (numberedPath.PathEquals(sourceFilePath) || !DestinationExists(numberedPath))
+                {
+                    return numberedPath;
+                }
+            }
+
+            return destinationFilePath;
         }
 
         private void EnsureGameFolder(EpisodeFile romFile, LocalEpisode localGame, string filePath)

@@ -79,6 +79,10 @@ namespace NzbDrone.Core.MediaFiles
             { ".img", Quality.Unknown },
             { ".nrg", Quality.Unknown },
             { ".pkg", Quality.Unknown },
+            { ".hex", Quality.Unknown },
+            { ".arduboy", Quality.Unknown },
+            { ".mgw", Quality.Unknown },
+            { ".gnw", Quality.Unknown },
             { ".ips", Quality.Unknown },
             { ".bps", Quality.Unknown },
             { ".xdelta", Quality.Unknown },
@@ -98,7 +102,7 @@ namespace NzbDrone.Core.MediaFiles
             ".3ds", ".cia", ".cci", ".vb", ".sg", ".sms", ".md", ".smd", ".gen", ".32x", ".cdi", ".gdi", ".cue", ".ccd",
             ".gg", ".pbp", ".cso", ".vpk", ".xbe", ".xex", ".pce", ".sgx", ".neo", ".ngp", ".ngc", ".a26", ".a52",
             ".a78", ".j64", ".jag", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec", ".iso", ".bin", ".img", ".nrg", ".pkg",
-            ".ips", ".bps", ".xdelta", ".vcdiff"
+            ".mgw", ".gnw", ".ips", ".bps", ".xdelta", ".vcdiff"
         ],
         StringComparer.OrdinalIgnoreCase);
 
@@ -107,7 +111,8 @@ namespace NzbDrone.Core.MediaFiles
             ".nes", ".unf", ".fds", ".sfc", ".smc", ".bs", ".z64", ".n64", ".v64", ".ndd",
             ".gb", ".gbc", ".gba", ".nds", ".dsi", ".vb", ".sg", ".sms", ".md", ".smd",
             ".gen", ".32x", ".gg", ".pce", ".sgx", ".neo", ".ngp", ".ngc", ".a26", ".a52",
-            ".a78", ".j64", ".jag", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec"
+            ".a78", ".j64", ".jag", ".lnx", ".ws", ".wsc", ".col", ".int", ".vec",
+            ".mgw", ".gnw"
         ],
         StringComparer.OrdinalIgnoreCase);
 

@@ -561,5 +561,84 @@ namespace NzbDrone.Core.Test.PlatformTests
             added.Monitored.Should().BeFalse();
             added.Seasons.Should().OnlyContain(s => !s.Monitored);
         }
+
+        [Test]
+        public void should_extract_7z_archive_when_importing_platform_files()
+        {
+            const string tiny7zBase64 = "N3q8ryccAAMNfPnNEQAAAAAAAAB8AAAAAAAAAEtTMMAAJxFGq5zdckZaF5///c8gAAEEBgABCREABwsBAAEjAwEBBV0AAIAADAcACAoBVT5cEwAABQERJwBUAGUAcwB0AEcAYQBtAGUAIAAoAFUAUwBBACkALgBuAGUAcwAAABQKAQAmAGLi6X7dARIKAQAmAGLi6X7dARMKAQBx6mLi6X7dARUGAQAggLaBAAA=";
+
+            var tempRoot = Path.Combine(Path.GetTempPath(), "controllarr_7z_import_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempRoot);
+
+            try
+            {
+                var archivePath = Path.Combine(tempRoot, "NESCollection.7z");
+                var destDir = Path.Combine(tempRoot, "Library", "Nintendo", "NES");
+                Directory.CreateDirectory(destDir);
+                File.WriteAllBytes(archivePath, Convert.FromBase64String(tiny7zBase64));
+
+                var platform = new Series
+                {
+                    Id = 101,
+                    Title = "Nintendo Entertainment System",
+                    TvdbId = 1001,
+                    TitleSlug = "nes",
+                    Path = destDir,
+                    PreferredArchiveFormat = "none"
+                };
+
+                Mocker.GetMock<ISeriesService>()
+                    .Setup(s => s.GetSeries(101))
+                    .Returns(platform);
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(d => d.FolderExists(It.IsAny<string>()))
+                    .Returns<string>(Directory.Exists);
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(d => d.CreateFolder(It.IsAny<string>()))
+                    .Callback<string>(p => Directory.CreateDirectory(p));
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(d => d.FileExists(It.IsAny<string>()))
+                    .Returns<string>(File.Exists);
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(d => d.SaveStream(It.IsAny<Stream>(), It.IsAny<string>()))
+                    .Callback<Stream, string>((stream, targetPath) =>
+                    {
+                        var dir = Path.GetDirectoryName(targetPath);
+                        if (!string.IsNullOrWhiteSpace(dir))
+                        {
+                            Directory.CreateDirectory(dir);
+                        }
+
+                        using var outFs = File.Create(targetPath);
+                        stream.CopyTo(outFs);
+                    });
+
+                Mocker.GetMock<IDiskProvider>()
+                    .Setup(d => d.GetFiles(It.IsAny<string>(), It.IsAny<bool>()))
+                    .Returns<string, bool>((p, rec) => Directory.Exists(p)
+                        ? Directory.GetFiles(p, "*", rec ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+                        : Array.Empty<string>());
+
+                Subject.Execute(new ImportPlatformFilesCommand(101, new List<string> { archivePath }, populateLibraryInfo: false));
+
+                var expectedExtractedRom = Path.Combine(destDir, "USA", "TestGame (USA).nes");
+                File.Exists(expectedExtractedRom).Should().BeTrue();
+                File.ReadAllText(expectedExtractedRom).Should().Be("NESDATA");
+
+                Mocker.GetMock<IManageCommandQueue>()
+                    .Verify(q => q.Push(It.Is<RefreshPlatformCommand>(c => c.SeriesIds.Contains(101))), Times.Once());
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, true);
+                }
+            }
+        }
     }
 }

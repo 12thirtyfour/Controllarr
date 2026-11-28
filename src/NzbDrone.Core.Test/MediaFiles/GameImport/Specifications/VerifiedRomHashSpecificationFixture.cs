@@ -345,5 +345,39 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             decision.Accepted.Should().BeFalse();
             decision.Reason.Should().Be(ImportRejectionReason.UnverifiedRomHash);
         }
+
+        [Test]
+        public void should_accept_zipped_gameandwatch_gnw_rom_under_missing_format_hash_exception_when_dat_only_has_mgw_hashes()
+        {
+            Mocker.GetMock<IDatCacheService>()
+                .Setup(d => d.GetEntriesForPlatform("gameandwatch", "Nintendo Game & Watch"))
+                .Returns(new List<DatEntry>
+                {
+                    new DatEntry
+                    {
+                        Id = 99,
+                        GameName = "Oil Panic (Multi Screen)",
+                        RomName = "Oil Panic (Multi Screen).mgw",
+                        Crc32 = "31c288c9",
+                        Sha1 = "4bfd0fba94a9927cefc925db8196b063c5dd9b19"
+                    }
+                });
+
+            var localEpisode = new LocalEpisode
+            {
+                Path = @"C:\Roms\Nintendo\Game & Watch\USA\Oil Panic.zip",
+                Series = new NzbDrone.Core.Tv.Series { Id = 179, TitleSlug = "gameandwatch", Title = "Nintendo Game & Watch" },
+                Episodes = new List<NzbDrone.Core.Tv.Episode> { new NzbDrone.Core.Tv.Episode { Id = 1, Title = "Oil Panic" } },
+                RomHashVerified = false,
+                RomHashes = new Dictionary<string, string>
+                {
+                    { "CRC32", "deadbeef" },
+                    { "ROM_NAME", "Oil Panic.gnw" }
+                }
+            };
+
+            var decision = Subject.IsSatisfiedBy(localEpisode, null);
+            decision.Accepted.Should().BeTrue();
+        }
     }
 }

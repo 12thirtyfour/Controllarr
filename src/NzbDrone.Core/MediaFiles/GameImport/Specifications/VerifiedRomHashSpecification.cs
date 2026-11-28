@@ -27,7 +27,8 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
             ".nsz",
             ".xcz",
             ".cia",
-            ".zar"
+            ".zar",
+            ".gnw"
         };
 
         private readonly IDatCacheService _datCacheService;
@@ -104,6 +105,19 @@ namespace NzbDrone.Core.MediaFiles.GameImport.Specifications
             }
 
             var extension = Path.GetExtension(localEpisode.Path);
+            if ((string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(extension, ".7z", StringComparison.OrdinalIgnoreCase)) &&
+                localEpisode.RomHashes != null &&
+                localEpisode.RomHashes.TryGetValue("ROM_NAME", out var innerRomName) &&
+                !string.IsNullOrWhiteSpace(innerRomName))
+            {
+                var innerExt = Path.GetExtension(innerRomName);
+                if (!string.IsNullOrWhiteSpace(innerExt))
+                {
+                    extension = innerExt;
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(extension) || !ContainerFormatsMissingDatHashes.Contains(extension))
             {
                 return false;

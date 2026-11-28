@@ -6827,7 +6827,7 @@ namespace NzbDrone.Core.MetadataSource.Game
                     "Handheld Electronic Game",
                     "Ball (World)",
                     new[] { "Game & Watch", "Nintendo Game & Watch", "Handheld Electronic Game" },
-                    new[] { ".mgw", ".zip", ".7z" },
+                    new[] { ".mgw", ".gnw", ".zip", ".7z" },
                     "Gunpei Yokoi's iconic 1980–1991 series of microprocessor-driven segmented LCD electronic games that debuted Donkey Kong's D-pad, Balloon Fight, Oil Panic, and Mr. Game & Watch."),
                 CreatePlatform(
                     1088,

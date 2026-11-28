@@ -181,6 +181,15 @@ namespace NzbDrone.Core.DecisionEngine
 
                             var cleanRssTitle = CleanRomTitleForComparison(RomParser.ParseRomName(report.Title)?.GameTitle ?? report.Title);
                             var matchedEp = rssLookup.FindMatch(cleanRssTitle, parsedEpisodeInfo.SeasonNumber);
+                            if (matchedEp == null)
+                            {
+                                var cleanRawTitle = CleanRomTitleForComparison(report.Title);
+                                if (!string.Equals(cleanRawTitle, cleanRssTitle, StringComparison.Ordinal))
+                                {
+                                    matchedEp = rssLookup.FindMatch(cleanRawTitle, parsedEpisodeInfo.SeasonNumber);
+                                }
+                            }
+
                             if (matchedEp != null)
                             {
                                 remoteEpisode.Episodes = new List<Episode> { matchedEp };
@@ -360,7 +369,14 @@ namespace NzbDrone.Core.DecisionEngine
                 new[] { releaseTitle, report?.Origin, archiveId }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
             var romInfo = RomParser.ParseRomName(releaseTitle);
-            var romInfoIsFullSet = romInfo?.IsFullSetArchive == true || report?.ParsedRomInfo?.IsFullSetArchive == true;
+            var isHackOrSourceQualifier =
+                SourceDumpQualifierRegex.IsMatch(releaseTitle) ||
+                ((HackReleaseRegex.IsMatch(releaseTitle) ||
+                  TranslationReleaseRegex.IsMatch(releaseTitle) ||
+                  Regex.IsMatch(releaseTitle, @"\bT[+-]Eng\b", RegexOptions.IgnoreCase)) &&
+                 !ExplicitPackCollectionKeywordRegex.IsMatch(releaseTitle));
+            var romInfoIsFullSet = !isHackOrSourceQualifier &&
+                                   (romInfo?.IsFullSetArchive == true || report?.ParsedRomInfo?.IsFullSetArchive == true);
             var cleanRomGameTitle = CleanRomTitleForComparison(romInfo?.GameTitle ?? releaseTitle);
 
             if (searchCriteria != null)
@@ -551,6 +567,14 @@ namespace NzbDrone.Core.DecisionEngine
             @"\((?:[^)]*\b(?:USA|Europe|Japan|World|Australia|Canada|Brazil|Korea|China|Taiwan|Asia|France|Germany|Spain|Italy|Netherlands|Sweden|Denmark|Norway|Finland|Portugal|Russia|Poland|Greece|En|Ja|Fr|De|Es|It|Nl|Pt|Sv|No|Da|Fi|Zh|Ko)\b[^)]*)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private static readonly Regex SourceDumpQualifierRegex = new(
+            @"\b(?:Redump|No-?Intro|TOSEC)[\s._-]+(?:Source|Base|Rom|Dump)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex ExplicitPackCollectionKeywordRegex = new(
+            @"\b(?:SMDB|HTGDB|FlashBoy|Ever\s*Drive|PowerPak|RetroHQ|Darksoft|GamePack|Full\s+Set|1G1R|Rom\s*set|Complete\s+(?:Set|Collection|Rom)|Full\s+Collection|Rom\s+Collection)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private static bool IsFullSetRelease(string releaseTitle)
         {
             var text = releaseTitle ?? string.Empty;
@@ -570,16 +594,29 @@ namespace NzbDrone.Core.DecisionEngine
                 text.Contains("GamePack", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Full Set", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("1G1R", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("No-Intro", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("nointro", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("Redump", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("TOSEC", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Romset", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Rom Set", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("[", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
+            }
+
+            if ((text.Contains("No-Intro", StringComparison.OrdinalIgnoreCase) ||
+                 text.Contains("nointro", StringComparison.OrdinalIgnoreCase) ||
+                 text.Contains("Redump", StringComparison.OrdinalIgnoreCase) ||
+                 text.Contains("TOSEC", StringComparison.OrdinalIgnoreCase)) &&
+                !SourceDumpQualifierRegex.IsMatch(text))
+            {
+                var isSingleGameHackOrTranslation =
+                    HackReleaseRegex.IsMatch(text) ||
+                    TranslationReleaseRegex.IsMatch(text) ||
+                    Regex.IsMatch(text, @"\bT[+-]Eng\b", RegexOptions.IgnoreCase);
+
+                if (!isSingleGameHackOrTranslation || ExplicitPackCollectionKeywordRegex.IsMatch(text))
+                {
+                    return true;
+                }
             }
 
             return !ParentheticalRegionTagRegex.IsMatch(text) &&
@@ -685,11 +722,11 @@ namespace NzbDrone.Core.DecisionEngine
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex SceneTagsRegex = new(
-            @"(?<![A-Za-z0-9])(USA|EUR|JPN|ASIA|WORLD|PAL|NTSC|NTSC-U|NTSC-J|AUS|CAN|KOR|CHN|TWN|UK|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|PS1|PSX|PS2|PS3|PS4|PS5|PSP|PSVITA|WII|WIIU|XBOX|XBOX360|ISO|ROM|CHD|RVZ|CUE|BIN)(?![A-Za-z0-9])",
+            @"(?<![A-Za-z0-9])(USA|EUR|JPN|ASIA|WORLD|PAL|NTSC|NTSC-U|NTSC-J|AUS|CAN|KOR|CHN|TWN|UK|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|DSIWARE|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|ESHOP|PS1|PSX|PS2|PS2DVD|PS2CD|PS3|PS4|PS5|PSP|PSX2PSP|PS2PSP|PSVITA|WII|WIIWARE|WIIU|XBOX|XBOX360|XBOXDVD|ISO|ROM|CHD|RVZ|CUE|BIN|GERMAN|FRENCH|SPANISH|ITALIAN|ENGLISH|JAPANESE|DUTCH|NORDIC|PORTUGUESE|RUSSIAN|KOREAN|CHINESE|SWEDISH|DANISH|NORWEGIAN|FINNISH|POLISH)(?![A-Za-z0-9])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex SceneGroupSuffixRegex = new(
-            @"(?<![A-Za-z0-9])(USA|EUR|JPN|ASIA|WORLD|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|PS1|PSX|PS2|PS3|PS4|PS5|PSP|PSVITA|WII|WIIU|XBOX|XBOX360|XBOXDVD|ISO|ROM|CHD|RVZ|CUE|BIN)\s*-[A-Za-z0-9]{2,12}$",
+            @"(?<![A-Za-z0-9])(USA|EUR|JPN|ASIA|WORLD|GER|FRA|ITA|SPA|3DS|CIA|CCI|NDS|DSI|DSIWARE|GBA|GBC|GB|NES|SNES|SFC|SMC|N64|Z64|V64|NSW|SWITCH|PS1|PSX|PS2|PS2DVD|PS2CD|PS3|PS4|PS5|PSP|PSX2PSP|PS2PSP|PSVITA|WII|WIIWARE|WIIU|XBOX|XBOX360|XBOXDVD|ISO|ROM|CHD|RVZ|CUE|BIN)\s*-[A-Za-z0-9]{2,12}(?:-[A-Za-z0-9]{2,12})?$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex PlatformWordsStripRegex = new(
@@ -701,7 +738,11 @@ namespace NzbDrone.Core.DecisionEngine
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex BenignRomTokensRegex = new(
-            @"(?<![A-Za-z0-9])(?:Rev\s*[A-Za-z0-9.]+|v\d+(?:\.\d+)*|Trimmed|Multi\d*|iNTERNAL|PROPER|REPACK|DUMP|CLEAN|EU-NL|PT-BR)(?![A-Za-z0-9])",
+            @"(?<![A-Za-z0-9])(?:Rev\s*[A-Za-z0-9.]+|v\d+(?:\.\d+)*|Trimmed|Multi\d*|iNTERNAL|iNT|PROPER|REPACK|READNFO|NFOFIX|DIRFIX|REGIONFREE|RF|DUMP|CLEAN|EU-NL|PT-BR)(?![A-Za-z0-9])",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex TrailingMultiLanguageCodesRegex = new(
+            @"(?:\s+(?:En|Fr|Es|De|It|Nl|Pt|Sv|No|Da|Fi|Ja|Ko|Zh)){2,}$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex HackReleaseRegex = new(
@@ -828,6 +869,12 @@ namespace NzbDrone.Core.DecisionEngine
             if (withoutBenign.Any(char.IsLetterOrDigit))
             {
                 clean = withoutBenign;
+            }
+
+            var withoutMultiLang = TrailingMultiLanguageCodesRegex.Replace(clean, string.Empty).Trim();
+            if (withoutMultiLang.Any(char.IsLetterOrDigit))
+            {
+                clean = withoutMultiLang;
             }
 
             var withoutVersionWord = VersionWordStripRegex.Replace(clean, " ").Trim();

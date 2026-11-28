@@ -1078,7 +1078,7 @@ namespace NzbDrone.Core.Games
                     { "EU", "Game & Watch" },
                     { "JP", "Game & Watch" }
                 },
-                RomFileExtensions = new List<string> { ".mgw" }
+                RomFileExtensions = new List<string> { ".mgw", ".gnw" }
             },
             new PlatformDefinition
             {
@@ -1212,7 +1212,7 @@ namespace NzbDrone.Core.Games
             ["gamecom"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".tgc" },
             ["gp32"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".smc", ".fxe", ".gxb" },
             ["arduboy"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".hex", ".arduboy" },
-            ["gameandwatch"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mgw" },
+            ["gameandwatch"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mgw", ".gnw" },
             ["pocketchallengev2"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pc2", ".ws" },
             ["ps1"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pbp" },
             ["psp"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".cso", ".pbp" },
@@ -1268,16 +1268,17 @@ namespace NzbDrone.Core.Games
                 "turbografx-cd", "turbografx cd", "turbografxcd", "turbografx-16 cd", "turbografx-16-cd", "turbografx 16 cd",
                 "tg-cd", "tgcd", "tg16-cd", "tg16 cd", "tg16cd", "tgfx16-cd", "tgfx16 cd",
                 "pc-engine-cd", "pc engine cd", "pcenginecd", "pcecd", "pce-cd", "pce cd",
+                "pcecdrom", "pcecdrom2", "pce-cdrom2",
                 "pc engine cd-rom2", "pc engine super cd-rom2"
             },
             ["ps1"] = new[] { "sony-playstation", "playstation", "ps1", "psx", "sony playstation", "psone" },
-            ["ps2"] = new[] { "sony-playstation-2", "playstation-2", "playstation 2", "ps2", "sony playstation 2" },
+            ["ps2"] = new[] { "sony-playstation-2", "playstation-2", "playstation 2", "ps2", "ps2dvd", "ps2cd", "sony playstation 2" },
             ["ps3"] = new[] { "sony-playstation-3", "playstation-3", "playstation 3", "ps3", "sony playstation 3" },
             ["ps3psn"] = new[] { "ps3psn", "ps3-psn", "ps3 psn", "playstation 3 psn", "sony playstation 3 (psn)" },
-            ["psp"] = new[] { "sony-playstation-portable", "playstation-portable", "playstation portable", "psp", "sony psp" },
+            ["psp"] = new[] { "sony-playstation-portable", "playstation-portable", "playstation portable", "psp", "sony psp", "psx2psp", "ps2psp" },
             ["psppsn"] = new[] { "psppsn", "psp-psn", "psp psn", "playstation portable psn", "sony playstation portable (psn)" },
             ["psvita"] = new[] { "sony-playstation-vita", "playstation-vita", "playstation vita", "ps vita", "psv", "vita" },
-            ["xbox"] = new[] { "xbox", "original xbox", "og xbox" },
+            ["xbox"] = new[] { "xbox", "original xbox", "og xbox", "xboxdvd" },
             ["xbox360"] = new[] { "xbox-360", "xbox 360", "xbox360", "x360" },
             ["xbox360digital"] = new[] { "xbox360digital", "xbox-360-digital", "xbox 360 digital", "xbox 360 (digital)", "xbox live arcade", "xbla" },
             ["atari2600"] = new[] { "atari-2600", "atari 2600", "2600", "vcs" },

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -21,6 +22,7 @@ using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tv.Commands;
+using SharpCompress.Archives;
 
 namespace NzbDrone.Core.Tv
 {
@@ -88,6 +90,12 @@ namespace NzbDrone.Core.Tv
                 return;
             }
 
+            var incomingList = (message.IncomingPaths ?? Enumerable.Empty<string>())
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+
+            _logger.Info("Starting library file import for {0} from {1} incoming path(s)", platform.Title, incomingList.Count);
+
             EnsurePlatformFoldersCreated(platform);
 
             if (message.PopulateLibraryInfo)
@@ -95,11 +103,12 @@ namespace NzbDrone.Core.Tv
                 PopulatePlatformLibraryInfo(platform);
             }
 
-            foreach (var incomingPath in (message.IncomingPaths ?? Enumerable.Empty<string>()).Where(p => !string.IsNullOrWhiteSpace(p)))
+            foreach (var incomingPath in incomingList)
             {
                 ImportIncomingFilesToPlatform(platform, incomingPath);
             }
 
+            _logger.Info("Completed library file import for {0}; queuing platform scan and metadata refresh", platform.Title);
             _commandQueueManager?.Push(new RefreshPlatformCommand(new List<int> { platform.Id }, true));
         }
 
@@ -545,8 +554,7 @@ namespace NzbDrone.Core.Tv
             }
 
             if (_diskProvider.FileExists(path) &&
-                (path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ||
-                 path.EndsWith(".7z", StringComparison.OrdinalIgnoreCase)))
+                ArchiveRepackService.IsArchiveExtension(Path.GetExtension(path)))
             {
                 return path;
             }
@@ -564,6 +572,11 @@ namespace NzbDrone.Core.Tv
             if (_diskProvider.FileExists(path + ".7z"))
             {
                 return path + ".7z";
+            }
+
+            if (_diskProvider.FileExists(path + ".rar"))
+            {
+                return path + ".rar";
             }
 
             return string.Empty;
@@ -615,10 +628,19 @@ namespace NzbDrone.Core.Tv
                 _diskProvider.CreateFolder(destinationDirectory);
             }
 
-            if (!Path.GetExtension(archivePath).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+            var archiveExt = Path.GetExtension(archivePath);
+            if (!ArchiveRepackService.IsArchiveExtension(archiveExt))
             {
+                _logger.Warn("Skipping unsupported archive format '{0}' for platform '{1}'", archivePath, platform?.Title);
                 return;
             }
+
+            var archiveFileName = Path.GetFileName(archivePath);
+            var stopwatch = Stopwatch.StartNew();
+            var extractedCount = 0;
+            var lastProgressLogMs = 0L;
+
+            _logger.Info("Extracting archive '{0}' into platform directory '{1}'...", archiveFileName, destinationDirectory);
 
             try
             {
@@ -626,47 +648,87 @@ namespace NzbDrone.Core.Tv
                 var newlyExtractedZips = new List<(string ZipPath, string EntryFullName)>();
                 var shouldCompress = RomFileMovingService.IsPlatformCompressionEnabled(platform);
 
-                using (var archive = ZipFile.OpenRead(archivePath))
+                void ProcessExtractedEntry(string entryFullName, Func<Stream> openEntryStream)
                 {
-                    foreach (var entry in archive.Entries)
+                    var normalizedFullName = entryFullName.Replace('\\', '/');
+                    var entryFileName = Path.GetFileName(normalizedFullName);
+                    if (string.IsNullOrWhiteSpace(entryFileName) ||
+                        normalizedFullName.Contains("__MACOSX") ||
+                        entryFileName.StartsWith(".") ||
+                        entryFileName.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase) ||
+                        ArchiveRepackService.IsNonRomArchiveJunkFile(normalizedFullName))
                     {
-                        if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\") ||
-                            entry.FullName.Contains("__MACOSX") || entry.Name.StartsWith(".") ||
-                            entry.Name.Equals("Thumbs.db", StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
+                        return;
+                    }
 
-                        var ext = Path.GetExtension(entry.Name);
-                        if (!validExtensions.Contains(ext))
-                        {
-                            continue;
-                        }
+                    var ext = Path.GetExtension(entryFileName);
+                    if (!validExtensions.Contains(ext))
+                    {
+                        return;
+                    }
 
-                        var entryFileName = Path.GetFileName(entry.FullName.Replace('/', Path.DirectorySeparatorChar));
-                        var regionFolder = GameCatalogProxy.ResolveCanonicalRegionFolderForRom(entry.FullName, entryFileName);
-                        var targetRegionDir = Path.Combine(destinationDirectory, regionFolder);
-                        if (!_diskProvider.FolderExists(targetRegionDir))
-                        {
-                            _diskProvider.CreateFolder(targetRegionDir);
-                        }
+                    var regionFolder = GameCatalogProxy.ResolveCanonicalRegionFolderForRom(normalizedFullName, entryFileName);
+                    var targetRegionDir = Path.Combine(destinationDirectory, regionFolder);
+                    if (!_diskProvider.FolderExists(targetRegionDir))
+                    {
+                        _diskProvider.CreateFolder(targetRegionDir);
+                    }
 
-                        var destFile = Path.Combine(targetRegionDir, entryFileName);
-                        if (!_diskProvider.FileExists(destFile))
-                        {
-                            using var stream = entry.Open();
-                            _diskProvider.SaveStream(stream, destFile);
-                        }
+                    var destFile = Path.Combine(targetRegionDir, entryFileName);
+                    if (!_diskProvider.FileExists(destFile))
+                    {
+                        using var stream = openEntryStream();
+                        _diskProvider.SaveStream(stream, destFile);
+                    }
 
-                        if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                    if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        newlyExtractedZips.Add((destFile, normalizedFullName));
+                    }
+                    else if (shouldCompress &&
+                             !regionFolder.Equals("BIOS", StringComparison.OrdinalIgnoreCase) &&
+                             RomFileMovingService.IsZipCompressibleRom(ext, platform, destFile))
+                    {
+                        ArchiveRepackService.TryCompressFileToZipInPlace(destFile, out _, _logger);
+                    }
+
+                    extractedCount++;
+                    var elapsedMs = stopwatch.ElapsedMilliseconds;
+                    if (extractedCount % 100 == 0 || elapsedMs - lastProgressLogMs >= 30000)
+                    {
+                        lastProgressLogMs = elapsedMs;
+                        _logger.Info("Extracting '{0}': {1} ROM file(s) extracted so far ({2:F1}s elapsed)...", archiveFileName, extractedCount, stopwatch.Elapsed.TotalSeconds);
+                    }
+                }
+
+                if (archiveExt.Equals(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    using (var archive = ZipFile.OpenRead(archivePath))
+                    {
+                        foreach (var entry in archive.Entries)
                         {
-                            newlyExtractedZips.Add((destFile, entry.FullName));
+                            if (entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
+                            {
+                                continue;
+                            }
+
+                            ProcessExtractedEntry(entry.FullName, () => entry.Open());
                         }
-                        else if (shouldCompress &&
-                                 !regionFolder.Equals("BIOS", StringComparison.OrdinalIgnoreCase) &&
-                                 RomFileMovingService.IsZipCompressibleRom(ext, platform, destFile))
+                    }
+                }
+                else
+                {
+                    using (var archive = ArchiveFactory.OpenArchive(archivePath))
+                    using (var reader = archive.ExtractAllEntries())
+                    {
+                        while (reader.MoveToNextEntry())
                         {
-                            ArchiveRepackService.TryCompressFileToZipInPlace(destFile, out _, _logger);
+                            if (reader.Entry.IsDirectory || string.IsNullOrWhiteSpace(reader.Entry.Key))
+                            {
+                                continue;
+                            }
+
+                            ProcessExtractedEntry(reader.Entry.Key, () => reader.OpenEntryStream());
                         }
                     }
                 }
@@ -744,7 +806,7 @@ namespace NzbDrone.Core.Tv
                     _diskProvider.DeleteFile(archivePath);
                 }
 
-                _logger.Info("Extracted archive '{0}' into platform directory '{1}'", Path.GetFileName(archivePath), destinationDirectory);
+                _logger.Info("Extracted {0} ROM file(s) from archive '{1}' into platform directory '{2}' ({3:F1}s)", extractedCount, archiveFileName, destinationDirectory, stopwatch.Elapsed.TotalSeconds);
             }
             catch (Exception ex)
             {
@@ -761,13 +823,16 @@ namespace NzbDrone.Core.Tv
                     _diskProvider.CreateFolder(destinationDirectory);
                 }
 
-                var files = _diskProvider.GetFiles(sourceDirectory, true);
+                var files = _diskProvider.GetFiles(sourceDirectory, true).ToList();
+                _logger.Info("Organizing {0} file(s) from '{1}' into platform directory '{2}'", files.Count, sourceDirectory, destinationDirectory);
                 OrganizeRomFilesIntoRegions(files, destinationDirectory, platform);
 
                 if (!sourceDirectory.PathEquals(destinationDirectory) && _diskProvider.FolderExists(sourceDirectory))
                 {
                     CleanupSourceDirectoryAfterMove(sourceDirectory);
                 }
+
+                _logger.Info("Finished organizing incoming folder '{0}' for platform '{1}'", sourceDirectory, platform?.Title);
             }
             catch (Exception ex)
             {
@@ -801,7 +866,7 @@ namespace NzbDrone.Core.Tv
                     continue;
                 }
 
-                if (ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) && ArchiveRepackService.IsMultiGameArchive(file))
+                if (ArchiveRepackService.IsArchiveExtension(ext) && ArchiveRepackService.IsMultiGameArchive(file))
                 {
                     ExtractArchiveToDirectory(file, destinationDirectory, platform);
                     continue;

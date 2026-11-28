@@ -381,5 +381,31 @@ namespace NzbDrone.Core.Test.DatTests
             jaguarCdEntries.Should().ContainSingle();
             jaguarCdEntries[0].GameName.Should().Be("Battlemorph (USA)");
         }
+
+        [Test]
+        public void Should_match_handheld_electronic_game_dat_for_gameandwatch_via_platform_alias()
+        {
+            var gnwDat = new DatFile
+            {
+                Name = "Handheld Electronic Game.dat",
+                Description = "Handheld Electronic Game",
+                Category = "Libretro DAT"
+            };
+
+            Subject.Insert(gnwDat, new List<DatEntry>
+            {
+                new DatEntry
+                {
+                    GameName = "Oil Panic (Multi Screen)",
+                    RomName = "Oil Panic (Multi Screen).mgw",
+                    Crc32 = "31c288c9",
+                    Sha1 = "4bfd0fba94a9927cefc925db8196b063c5dd9b19"
+                }
+            });
+
+            var entries = Subject.GetEntriesForPlatform("gameandwatch", "Nintendo Game & Watch");
+            entries.Should().ContainSingle();
+            entries[0].GameName.Should().Be("Oil Panic (Multi Screen)");
+        }
     }
 }

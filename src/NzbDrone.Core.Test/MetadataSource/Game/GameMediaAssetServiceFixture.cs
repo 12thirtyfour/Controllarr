@@ -366,5 +366,90 @@ namespace NzbDrone.Core.Test.MetadataSource.Game
             NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Commodore - Amiga").Should().BeTrue();
             NzbDrone.Core.MetadataSource.Game.GameMediaAssetService.IsUnsupportedArcadeOrComputerPlatform("Amstrad - CPC").Should().BeTrue();
         }
+
+        [Test]
+        public void should_handle_screenscraper_plain_text_error_without_throwing_and_cascade_to_next_scraper()
+        {
+            var tempPlatformDir = Path.Combine(Path.GetTempPath(), "Controllarr_SS_PlainText_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempPlatformDir);
+
+            try
+            {
+                Mocker.GetMock<IConfigService>()
+                    .SetupGet(c => c.EnableScreenScraper)
+                    .Returns(true);
+                Mocker.GetMock<IConfigService>()
+                    .SetupGet(c => c.ScreenScraperUsername)
+                    .Returns("testuser");
+                Mocker.GetMock<IConfigService>()
+                    .SetupGet(c => c.ScreenScraperPassword)
+                    .Returns("testpass");
+                Mocker.GetMock<IConfigService>()
+                    .SetupGet(c => c.EnableLaunchBox)
+                    .Returns(true);
+
+                var vectrexEntry = new PlatformCatalogEntry
+                {
+                    TvdbId = 1045,
+                    Slug = "vectrex",
+                    Name = "GCE Vectrex",
+                    LibretroSystemName = "GCE - Vectrex"
+                };
+
+                Mocker.GetMock<IGameCatalogService>()
+                    .Setup(s => s.TryGetPlatformEntry(1045, out vectrexEntry))
+                    .Returns(true);
+
+                var fallbackPngBytes = Encoding.UTF8.GetBytes("LIBRETRO_FALLBACK_ASSET_PAYLOAD_AT_LEAST_64_BYTES_LONG_0123456789012345");
+
+                Mocker.GetMock<IHttpClient>()
+                    .Setup(h => h.Execute(It.IsAny<HttpRequest>()))
+                    .Returns((HttpRequest req) =>
+                    {
+                        var url = req.Url?.ToString() ?? string.Empty;
+                        if (url.Contains("api.screenscraper.fr", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new HttpResponse(req, new HttpHeader(), "Erreur : API totalement fermée pour les membres non contributeurs.");
+                        }
+
+                        return new HttpResponse(req, new HttpHeader(), fallbackPngBytes);
+                    });
+
+                var platform = new Series
+                {
+                    Id = 137,
+                    TvdbId = 1045,
+                    Title = "GCE Vectrex",
+                    TitleSlug = "vectrex",
+                    Path = tempPlatformDir
+                };
+
+                var romFile = new EpisodeFile
+                {
+                    Id = 1,
+                    RelativePath = Path.Combine("USA", "3D Crazy Coaster (USA).zip")
+                };
+
+                var game = new Episode
+                {
+                    Id = 422490,
+                    Title = "3D Crazy Coaster"
+                };
+
+                Action act = () => Subject.ScrapeMediaAssetsForImportedRom(platform, romFile, game);
+                act.Should().NotThrow();
+
+                var fallbackBoxPath = Path.Combine(tempPlatformDir, "media", "box2d", "3D Crazy Coaster (USA).png");
+                File.Exists(fallbackBoxPath).Should().BeTrue();
+                File.ReadAllBytes(fallbackBoxPath).Should().Equal(fallbackPngBytes);
+            }
+            finally
+            {
+                if (Directory.Exists(tempPlatformDir))
+                {
+                    Directory.Delete(tempPlatformDir, true);
+                }
+            }
+        }
     }
 }
