@@ -52,7 +52,9 @@ namespace NzbDrone.Core.Tv
 
             var validExisting = existingEpisodes
                 .Where(e => (string.IsNullOrWhiteSpace(e.Title) || GameCatalogProxy.IsValidGameTitle(e.Title)) &&
-                            (!RegionHelper.IsBios(e.Title) || e.SeasonNumber == GameCatalogProxy.RegionBios))
+                            (!RegionHelper.IsBios(e.Title) || e.SeasonNumber == GameCatalogProxy.RegionBios) &&
+                            !GameCatalogProxy.IsExcludedReleaseEdition(e.Title, e.Overview) &&
+                            !GameCatalogProxy.IsExcludedReleaseEditionLabel(e.FinaleType))
                 .ToList();
 
             var claimedEpisodes = new HashSet<Episode>(ReferenceEqualityComparer.Instance);

@@ -41,6 +41,9 @@ namespace NzbDrone.Core.MetadataSource.Game
         private const int MaxRemoteArchiveCacheEntries = 4;
         private const int MaxReleaseYearLookupCacheEntries = 8;
 
+        private const string ExcludedReleaseEditionPattern =
+            @"Retro-?Bit\s+Generations|Pixel[\s-]?Heart|Evercade|Capcom[\s-]?Town|Capcom\s+Classics\s+Mini\s+Mix|Namco\s+Museum\s+Archives(?:\s+Vol\.?\s*\d+)?|Namcot\s+Collection|Castlevania\s+(?:Anniversary|Advance|Dominus)\s+Collection|Contra\s+Anniversary\s+Collection|(?:The\s+)?Disney\s+Afternoon\s+Collection|SNK\s+40th\s+Anniversary\s+Collection|Super\s+Bomberman\s+Collection|Mega\s+Man\s+(?:X\s+|Battle\s+Network\s+)?Legacy\s+Collection(?:\s*\d+)?|Marvel\s+MaXimum\s+Collection|(?:TMNT\s+)?Cowabunga\s+Collection|Retro\s+Collection|Arcade\s+Archives|Collection\s+of\s+(?:Mana|SaGa)|Sega\s+(?:Genesis|Mega\s+Drive)\s+Classics|Sega\s+Ages|Sonic\s+(?:Origins|Mega\s+Collection|Gems\s+Collection)|Atari\s+(?:50|Flashback\s+Classics)|QUByte\s+Classics|Limited\s+Run(?:\s+Games)?|Strictly\s+Limited(?:\s+Games)?|iam8bit|CollectorVision|Konami\s+Collector's\s+Series|Blizzard\s+Arcade\s+Collection|Double\s+Dragon\s*&\s*Kunio-kun\s+Retro\s+Brawler\s+Bundle|My\s+Arcade|Super\s+Pocket";
+
         private static readonly Regex DatGameBlockRegex = new Regex(
             @"game\s*\(\s*name\s+""(?<name>[^""]+)""(?<body>.*?)\r?\n\)",
             RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
@@ -97,6 +100,14 @@ namespace NzbDrone.Core.MetadataSource.Game
             @"\([^\)]*\b(?:(?:USA|Europe|Japan)\s+)?(?:(?:Wii U|Wii|3DS)\s+)?Virtual Console\b[^\)]*\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex ExcludedReleaseEditionTagRegex = new Regex(
+            @"\([^\)]*\b(?:" + ExcludedReleaseEditionPattern + @")\b[^\)]*\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ExcludedReleaseEditionLabelRegex = new Regex(
+            @"\b(?:" + ExcludedReleaseEditionPattern + @")\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex ArtifactTitleIdRegex = new Regex(
             @"^(?:[0-9a-fA-F]{8,}|[0-9a-fA-F]{8}-[0-9a-fA-F]{8}|(?:[0-9a-fA-F]{4,})?TU_[A-Za-z0-9_.]+|(?:[0-9a-fA-F]{4,})?tu[0-9a-fA-F]{6,}(?:_[0-9a-fA-F]+)?|[0-9a-fA-F]{8}(?:00000001|00000002|000B0000|00007000|000D0000).+|(?:\$?su|SystemUpdate)[0-9a-fA-F_]+|[0-9a-fA-F]{8,}_[0-9A-Za-z_]+(?:\.[0-9A-Za-z]+)?)$|\.[0-9A-Za-z]{10,}$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -122,7 +133,7 @@ namespace NzbDrone.Core.MetadataSource.Game
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex EditionVariantTagRegex = new Regex(
-            @"\((?<ed>(?:SGB\s+Enhanced|GB\s+Compatible|Rumble\s+Version|No\s+EDC|EDC|Player's\s+Choice|Greatest\s+Hits|Platinum|Best\s+Price|The\s+Best|Collector's\s+Edition|GameCube\s+Edition|Shindou\s+Edition|Special\s+Edition|Limited\s+Edition|Competition\s+Cart|Not\s+for\s+Resale|NFR|Kiosk|Bonus\s+Disc|Save\s+Edition|Debug|NP|Made\s+in\s+Japan|512K|1M|2M|4M|8M|16M|Retro-Bit\s+Generations|Retro-Bit|Switch\s+Online|Classic\s+Mini|NES\s+Classic|SNES\s+Classic|Animal\s+Crossing|e-Reader(?:\s+Edition)?|FamicomBox|Namcot\s+Collection|Namco\s+Museum\s+Archives(?:\s+Vol\.?\s*\d+)?|Castlevania\s+Anniversary\s+Collection|Contra\s+Anniversary\s+Collection|The\s+Disney\s+Afternoon\s+Collection|SNK\s+40th\s+Anniversary\s+Collection|Capcom\s+Classics\s+Mini\s+Mix|Capcom\s+Town|Super\s+Bomberman\s+Collection|Mega\s+Man\s+Legacy\s+Collection|Marvel\s+MaXimum\s+Collection|Cowabunga\s+Collection|Evercade|Retro\s+Collection|Arcade\s+Archives)(?:,\s*(?:Namco\s+Museum\s+Archives(?:\s+Vol\.?\s*\d+)?|Switch\s+Online))?)\)",
+            @"\((?<ed>(?:SGB\s+Enhanced|GB\s+Compatible|Rumble\s+Version|No\s+EDC|EDC|Player's\s+Choice|Greatest\s+Hits|Platinum|Best\s+Price|The\s+Best|Collector's\s+Edition|GameCube\s+Edition|Shindou\s+Edition|Special\s+Edition|Limited\s+Edition|Competition\s+Cart|Not\s+for\s+Resale|NFR|Kiosk|Bonus\s+Disc|Save\s+Edition|Debug|NP|Made\s+in\s+Japan|512K|1M|2M|4M|8M|16M|Retro-Bit|Switch\s+Online|Classic\s+Mini|NES\s+Classic|SNES\s+Classic|Animal\s+Crossing|e-Reader(?:\s+Edition)?|FamicomBox)(?:,\s*Switch\s+Online)?)\)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         internal static readonly Regex UpdateTagRegex = new Regex(
@@ -3154,6 +3165,29 @@ namespace NzbDrone.Core.MetadataSource.Game
             return TrackOneRegex.Replace(title, string.Empty).Trim();
         }
 
+        internal static bool IsExcludedReleaseEdition(params string[] values)
+        {
+            if (values == null || values.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value) && ExcludedReleaseEditionTagRegex.IsMatch(value))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal static bool IsExcludedReleaseEditionLabel(string label)
+        {
+            return !string.IsNullOrWhiteSpace(label) && ExcludedReleaseEditionLabelRegex.IsMatch(label);
+        }
+
         public static bool IsValidGameTitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -3165,7 +3199,8 @@ namespace NzbDrone.Core.MetadataSource.Game
             if (trimmed.StartsWith("@", StringComparison.OrdinalIgnoreCase) ||
                 trimmed.StartsWith("_", StringComparison.OrdinalIgnoreCase) ||
                 trimmed.StartsWith("[BIOS]", StringComparison.OrdinalIgnoreCase) ||
-                RegionHelper.IsBios(trimmed))
+                RegionHelper.IsBios(trimmed) ||
+                IsExcludedReleaseEdition(trimmed))
             {
                 return false;
             }

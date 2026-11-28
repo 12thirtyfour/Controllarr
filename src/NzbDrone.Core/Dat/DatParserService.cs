@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using NzbDrone.Core.MetadataSource.Game;
 
 namespace NzbDrone.Core.Dat
 {
@@ -319,7 +320,8 @@ namespace NzbDrone.Core.Dat
             Dictionary<string, DatEntry> hashIndex,
             DatEntry incoming)
         {
-            if (incoming == null)
+            if (incoming == null ||
+                GameCatalogProxy.IsExcludedReleaseEdition(incoming.GameName, incoming.RomName, incoming.SmdbPath))
             {
                 return;
             }

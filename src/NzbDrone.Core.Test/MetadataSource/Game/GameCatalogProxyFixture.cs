@@ -2590,9 +2590,9 @@ game (
             var battleUsa = episodes.Where(e =>
                 e.SeasonNumber == GameCatalogProxy.RegionUsa &&
                 e.Title.Contains("1943 - The Battle of Midway", System.StringComparison.OrdinalIgnoreCase)).ToList();
-            battleUsa.Should().HaveCount(2);
-            battleUsa.Count(e => e.Overview.Contains("Retail (v1.0)", System.StringComparison.OrdinalIgnoreCase)).Should().Be(1);
-            battleUsa.Count(e => e.Overview.Contains("Retro-Bit Generations", System.StringComparison.OrdinalIgnoreCase)).Should().Be(1);
+            battleUsa.Should().ContainSingle();
+            battleUsa.Single().Overview.Should().Contain("Retail (v1.0)");
+            battleUsa.Should().NotContain(e => e.Overview.Contains("Retro-Bit Generations", System.StringComparison.OrdinalIgnoreCase));
             battleUsa.Should().NotContain(e => e.Title.Contains("Hack", System.StringComparison.OrdinalIgnoreCase) || e.Title.Contains("2011 Update", System.StringComparison.OrdinalIgnoreCase));
 
             var battleHacks = episodes.Where(e =>
@@ -2661,6 +2661,31 @@ game (
 
             tuple.Item2.Should().ContainSingle(e => e.Title == "Metroid Fusion");
             tuple.Item2.Should().NotContain(e => e.Title.Contains("Pokemon - Emerald Version", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Test]
+        public void should_exclude_unsupported_rerelease_editions_while_keeping_valid_titles()
+        {
+            GameCatalogProxy.IsValidGameTitle("1943 - The Battle of Midway (USA) (Retro-Bit Generations)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Legend (USA) (Pixel Heart)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Xeno Crisis (World) (PixelHeart)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Andro Dunos (Europe) (Pixel-Heart)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Earthworm Jim (USA) (Evercade)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Mega Man (USA) (Capcom Town)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Galaga (USA) (Namco Museum Archives Vol 2)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Pac-Man (Japan) (Namcot Collection)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Castlevania (USA) (Castlevania Anniversary Collection)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Contra (USA) (Contra Anniversary Collection)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("DuckTales (USA) (The Disney Afternoon Collection)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Mega Man 2 (USA) (Mega Man Legacy Collection)").Should().BeFalse();
+            GameCatalogProxy.IsValidGameTitle("Dragon Spirit (USA) (Switch Online, Namco Museum Archives Vol 1)").Should().BeFalse();
+
+            GameCatalogProxy.IsValidGameTitle("Holy Diver (USA) (Retro-Bit)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Sonic Generations (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Kingdom Hearts (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Sonic Mega Collection (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Collection of Mana (USA)").Should().BeTrue();
+            GameCatalogProxy.IsValidGameTitle("Namco Museum Archives Vol 2 (USA)").Should().BeTrue();
         }
     }
 }

@@ -6,6 +6,7 @@ using NzbDrone.Core.Dat.Events;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Games;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource.Game;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Dat
@@ -94,7 +95,8 @@ namespace NzbDrone.Core.Dat
                 {
                     foreach (var entry in datEntries)
                     {
-                        if (entry == null)
+                        if (entry == null ||
+                            GameCatalogProxy.IsExcludedReleaseEdition(entry.GameName, entry.RomName, entry.SmdbPath))
                         {
                             continue;
                         }

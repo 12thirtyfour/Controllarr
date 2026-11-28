@@ -242,5 +242,52 @@ game (
                 datEntries[0].GameName.Should().Be("Valid Game (USA)");
             }
         }
+
+        [Test]
+        public void Should_exclude_unsupported_rerelease_edition_entries()
+        {
+            const string editionsDat = @"<?xml version=""1.0""?>
+<datafile>
+	<header><name>Nintendo - NES</name></header>
+	<game name=""1943 - The Battle of Midway (USA)"">
+		<rom name=""1943 - The Battle of Midway (USA).nes"" size=""131088"" crc=""46F660C9"" />
+	</game>
+	<game name=""1943 - The Battle of Midway (USA) (Retro-Bit Generations)"">
+		<rom name=""1943 - The Battle of Midway (USA) (Retro-Bit Generations).nes"" size=""131088"" crc=""5564B222"" />
+	</game>
+	<game name=""Legend (USA) (Pixel Heart)"">
+		<rom name=""Legend (USA) (Pixel Heart).sfc"" size=""1048576"" crc=""11223344"" />
+	</game>
+	<game name=""Andro Dunos (Europe) (PixelHeart)"">
+		<rom name=""Andro Dunos (Europe) (PixelHeart).md"" size=""524288"" crc=""AABBCCDD"" />
+	</game>
+	<game name=""Earthworm Jim (USA) (Evercade)"">
+		<rom name=""Earthworm Jim (USA) (Evercade).md"" size=""3145728"" crc=""22334455"" />
+	</game>
+	<game name=""Mega Man (USA) (Capcom Town)"">
+		<rom name=""Mega Man (USA) (Capcom Town).nes"" size=""131088"" crc=""33445566"" />
+	</game>
+	<game name=""Galaga (USA) (Namco Museum Archives Vol 2)"">
+		<rom name=""Galaga (USA) (Namco Museum Archives Vol 2).nes"" size=""40976"" crc=""44556677"" />
+	</game>
+	<game name=""Castlevania (USA) (Castlevania Anniversary Collection)"">
+		<rom name=""Castlevania (USA) (Castlevania Anniversary Collection).nes"" size=""131088"" crc=""55667788"" />
+	</game>
+	<game name=""Sonic Mega Collection (USA)"">
+		<rom name=""Sonic Mega Collection (USA).rvz"" size=""1000000"" crc=""66778899"" />
+	</game>
+</datafile>";
+
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(editionsDat)))
+            {
+                var (_, datEntries) = Subject.Parse(stream);
+                datEntries.Should().HaveCount(2);
+                datEntries.Select(e => e.GameName).Should().BeEquivalentTo(new[]
+                {
+                    "1943 - The Battle of Midway (USA)",
+                    "Sonic Mega Collection (USA)"
+                });
+            }
+        }
     }
 }
