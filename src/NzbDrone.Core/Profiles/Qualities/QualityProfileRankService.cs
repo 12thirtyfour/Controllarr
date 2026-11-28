@@ -49,6 +49,7 @@ namespace NzbDrone.Core.Profiles.Qualities
             var items = profile.Items ?? new List<QualityProfileQualityItem>();
             var singleItem = items.Count == 1;
             var denominator = Math.Max(1, items.Count - 1);
+            var seenQualityIds = new HashSet<int>();
 
             for (var i = 0; i < items.Count; i++)
             {
@@ -57,6 +58,11 @@ namespace NzbDrone.Core.Profiles.Qualities
 
                 if (item.Quality != null)
                 {
+                    if (!seenQualityIds.Add(item.Quality.Id))
+                    {
+                        continue;
+                    }
+
                     yield return new QualityProfileQualityRank
                     {
                         ProfileId = profile.Id,
@@ -68,7 +74,7 @@ namespace NzbDrone.Core.Profiles.Qualities
 
                 foreach (var member in item.Items ?? new List<QualityProfileQualityItem>())
                 {
-                    if (member.Quality == null)
+                    if (member.Quality == null || !seenQualityIds.Add(member.Quality.Id))
                     {
                         continue;
                     }
@@ -120,7 +126,8 @@ namespace NzbDrone.Core.Profiles.Qualities
         private Dictionary<(int ProfileId, int QualityId), double> AllRanks()
         {
             return _cache.Get("all", () => _repository.All()
-                .ToDictionary(r => (r.ProfileId, r.QualityId), r => r.Score));
+                .GroupBy(r => (r.ProfileId, r.QualityId))
+                .ToDictionary(g => g.Key, g => g.First().Score));
         }
 
         private static QualityProfile BuildDefaultProfile()

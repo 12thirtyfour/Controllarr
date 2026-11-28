@@ -62,8 +62,14 @@ RUN mkdir -p /opt/disc-tools/bin /opt/disc-tools/lib /opt/disc-tools/wrappers &&
     apt-get install -y --no-install-recommends mame-tools && \
     (apt-get install -y --no-install-recommends dolphin-emu || true) && \
     for tool in chdman dolphin-tool; do \
-      src="/usr/games/${tool}"; \
-      if [ -x "$src" ]; then \
+      src=""; \
+      for candidate in "/usr/bin/${tool}" "/usr/games/${tool}" "$(command -v "${tool}" 2>/dev/null || true)"; do \
+        if [ -n "$candidate" ] && [ -x "$candidate" ]; then \
+          src="$candidate"; \
+          break; \
+        fi; \
+      done; \
+      if [ -n "$src" ] && [ -x "$src" ]; then \
         cp -L "$src" "/opt/disc-tools/bin/${tool}" && \
         chmod 755 "/opt/disc-tools/bin/${tool}"; \
         ldd "$src" | awk '/=> \// {print $3}' | while IFS= read -r lib_path; do \
@@ -79,6 +85,7 @@ RUN mkdir -p /opt/disc-tools/bin /opt/disc-tools/lib /opt/disc-tools/wrappers &&
         chmod 755 "/opt/disc-tools/wrappers/${tool}"; \
       fi; \
     done && \
+    [ -x /opt/disc-tools/bin/chdman ] && [ -x /opt/disc-tools/wrappers/chdman ] || { echo "ERROR: chdman binary not found after installing mame-tools"; exit 1; } && \
     for bin in /opt/disc-tools/bin/*; do \
       [ -e "$bin" ] || continue; \
       if LD_LIBRARY_PATH=/opt/disc-tools/lib ldd "$bin" | grep -q "not found"; then \

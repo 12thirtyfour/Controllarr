@@ -177,5 +177,50 @@ namespace NzbDrone.Core.Test.Profiles
             comparer.Compare(Quality.VerifiedGoodDump, Quality.TranslationPatch).Should().BeGreaterThan(0);
             comparer.Compare(Quality.VerifiedGoodDump, Quality.UnverifiedRaw).Should().BeGreaterThan(0);
         }
+
+        [Test]
+        public void init_should_deduplicate_unknown_entries_and_remove_legacy_groups()
+        {
+            var profile = new QualityProfile
+            {
+                Id = 1,
+                Name = "Retail Dumps",
+                Cutoff = Quality.VerifiedGoodDump.Id,
+                Items = new List<QualityProfileQualityItem>
+                {
+                    new() { Quality = Quality.Unknown, Allowed = false },
+                    new() { Quality = Quality.Unknown, Allowed = false },
+                    new()
+                    {
+                        Id = 1000,
+                        Name = "Legacy Group",
+                        Allowed = false,
+                        Items = new List<QualityProfileQualityItem>
+                        {
+                            new() { Quality = Quality.Unknown, Allowed = false },
+                            new() { Quality = Quality.Unknown, Allowed = false }
+                        }
+                    },
+                    new() { Quality = Quality.BetaProto, Allowed = false },
+                    new() { Quality = Quality.TranslationPatch, Allowed = false },
+                    new() { Quality = Quality.UnverifiedRaw, Allowed = false },
+                    new() { Quality = Quality.VerifiedGoodDump, Allowed = true },
+                    new() { Quality = Quality.NoIntroVerified, Allowed = true },
+                    new() { Quality = Quality.VerifiedRedump, Allowed = true }
+                }
+            };
+
+            Mocker.GetMock<IQualityProfileRepository>()
+                  .Setup(s => s.All())
+                  .Returns(new List<QualityProfile> { profile });
+
+            Subject.Handle(new ApplicationStartedEvent());
+
+            profile.Items.Should().HaveCount(Quality.All.Count);
+            profile.Items.Should().NotContain(i => i.Quality == null);
+            profile.Items[0].Quality.Should().Be(Quality.Unknown);
+            profile.Items.Select(i => i.Quality.Id).Should().OnlyHaveUniqueItems();
+            Mocker.GetMock<IQualityProfileRepository>().Verify(r => r.Update(profile), Times.Once());
+        }
     }
 }

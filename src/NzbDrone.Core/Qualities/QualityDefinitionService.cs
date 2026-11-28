@@ -34,7 +34,17 @@ namespace NzbDrone.Core.Qualities
 
         private Dictionary<Quality, QualityDefinition> GetAll()
         {
-            return _cache.Get("all", () => _repo.All().Select(WithWeight).ToDictionary(v => v.Quality), TimeSpan.FromSeconds(5.0));
+            return _cache.Get(
+                "all",
+                () => _repo.All()
+                    .Select(WithWeight)
+                    .GroupBy(v => v.Quality)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.OrderByDescending(d => string.Equals(d.Title, g.Key.Name, StringComparison.OrdinalIgnoreCase))
+                              .ThenBy(d => d.Id)
+                              .First()),
+                TimeSpan.FromSeconds(5.0));
         }
 
         public void Update(QualityDefinition qualityDefinition)
@@ -75,7 +85,11 @@ namespace NzbDrone.Core.Qualities
 
             foreach (var definition in allDefinitions)
             {
-                var existing = existingDefinitions.SingleOrDefault(d => d.Quality == definition.Quality);
+                var existing = existingDefinitions
+                    .Where(d => d.Quality == definition.Quality)
+                    .OrderByDescending(d => string.Equals(d.Title, definition.Title, StringComparison.OrdinalIgnoreCase))
+                    .ThenBy(d => d.Id)
+                    .FirstOrDefault();
 
                 if (existing == null)
                 {
@@ -97,7 +111,7 @@ namespace NzbDrone.Core.Qualities
 
         private static QualityDefinition WithWeight(QualityDefinition definition)
         {
-            definition.Weight = Quality.DefaultQualityDefinitions.Single(d => d.Quality == definition.Quality).Weight;
+            definition.Weight = Quality.DefaultQualityDefinitions.FirstOrDefault(d => d.Quality == definition.Quality)?.Weight ?? 1;
 
             return definition;
         }
@@ -111,6 +125,7 @@ namespace NzbDrone.Core.Qualities
 
         public void Execute(ResetQualityDefinitionsCommand message)
         {
+            var insertList = new List<QualityDefinition>();
             var updateList = new List<QualityDefinition>();
 
             var allDefinitions = Quality.DefaultQualityDefinitions.OrderBy(d => d.Weight).ToList();
@@ -118,14 +133,36 @@ namespace NzbDrone.Core.Qualities
 
             foreach (var definition in allDefinitions)
             {
-                var existing = existingDefinitions.SingleOrDefault(d => d.Quality == definition.Quality);
+                var existing = existingDefinitions
+                    .Where(d => d.Quality == definition.Quality)
+                    .OrderByDescending(d => string.Equals(d.Title, definition.Title, StringComparison.OrdinalIgnoreCase))
+                    .ThenBy(d => d.Id)
+                    .FirstOrDefault();
 
-                existing.Title = message.ResetTitles ? definition.Title : existing.Title;
+                if (existing == null)
+                {
+                    insertList.Add(definition);
+                }
+                else
+                {
+                    existing.Title = message.ResetTitles ? definition.Title : existing.Title;
 
-                updateList.Add(existing);
+                    updateList.Add(existing);
+                    existingDefinitions.Remove(existing);
+                }
+            }
+
+            if (insertList.Any())
+            {
+                _repo.InsertMany(insertList);
             }
 
             _repo.UpdateMany(updateList);
+
+            if (existingDefinitions.Any())
+            {
+                _repo.DeleteMany(existingDefinitions);
+            }
 
             _cache.Clear();
         }

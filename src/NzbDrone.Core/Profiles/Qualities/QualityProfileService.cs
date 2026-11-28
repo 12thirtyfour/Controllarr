@@ -133,11 +133,17 @@ namespace NzbDrone.Core.Profiles.Qualities
                         profile.Items = new List<QualityProfileQualityItem>();
                     }
 
+                    var seenQualityIds = new HashSet<int>();
+
                     foreach (var item in profile.Items)
                     {
-                        if (item.Items != null)
+                        if (item.Quality == null && item.Items != null)
                         {
-                            var removedInner = item.Items.RemoveAll(sub => sub.Quality == null || !Quality.AllLookup.ContainsKey(sub.Quality.Id));
+                            var removedInner = item.Items.RemoveAll(sub =>
+                                sub.Quality == null ||
+                                !Quality.AllLookup.ContainsKey(sub.Quality.Id) ||
+                                sub.Quality == Quality.Unknown ||
+                                !seenQualityIds.Add(sub.Quality.Id));
                             if (removedInner > 0)
                             {
                                 modified = true;
@@ -146,7 +152,7 @@ namespace NzbDrone.Core.Profiles.Qualities
                     }
 
                     var removedTop = profile.Items.RemoveAll(item =>
-                        (item.Quality != null && !Quality.AllLookup.ContainsKey(item.Quality.Id)) ||
+                        (item.Quality != null && (!Quality.AllLookup.ContainsKey(item.Quality.Id) || !seenQualityIds.Add(item.Quality.Id))) ||
                         (item.Quality == null && (item.Items == null || item.Items.Count == 0)));
                     if (removedTop > 0)
                     {

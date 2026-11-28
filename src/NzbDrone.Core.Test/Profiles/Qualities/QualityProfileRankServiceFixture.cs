@@ -104,5 +104,36 @@ namespace NzbDrone.Core.Test.Qualities
             Mocker.GetMock<IQualityProfileRankRepository>()
                   .Verify(x => x.ReplaceForProfile(2, It.Is<IEnumerable<QualityProfileQualityRank>>(r => r.Count() == 1)), Times.Once);
         }
+
+        [Test]
+        public void should_deduplicate_duplicate_quality_ids_when_computing_ranks()
+        {
+            var profile = new QualityProfile
+            {
+                Id = 5,
+                Items = new List<QualityProfileQualityItem>
+                {
+                    new() { Quality = Quality.Unknown, Allowed = false },
+                    new()
+                    {
+                        Id = 1000,
+                        Name = "Legacy Group",
+                        Allowed = false,
+                        Items = new List<QualityProfileQualityItem>
+                        {
+                            new() { Quality = Quality.Unknown, Allowed = false },
+                            new() { Quality = Quality.Unknown, Allowed = false }
+                        }
+                    },
+                    new() { Quality = Quality.Unknown, Allowed = false },
+                    new() { Quality = Quality.VerifiedGoodDump, Allowed = true }
+                }
+            };
+
+            var ranks = Subject.ComputeRanks(profile).ToList();
+
+            ranks.Should().HaveCount(2);
+            ranks.Select(r => r.QualityId).Should().Equal(Quality.Unknown.Id, Quality.VerifiedGoodDump.Id);
+        }
     }
 }
